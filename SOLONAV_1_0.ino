@@ -375,7 +375,7 @@ static uint32_t ctoLastRadioHealthMs=0;
 // Motor command state. PWM remains the only motor actuator.
 static bool eStopEngaged=false; static int brakeValue=0, direction=DIRECTION_NEUTRAL;
 static int commandedPwm=0,rampTarget=0,rampCurrent=0; static unsigned long lastRampMs=0;
-static uint16_t prescribedRampStepMs=NORMAL_PROFILE_STEP_MS;
+static uint16_t prescribedRampStepMs=150;
 static void requestPrescribedPwm(int target,uint16_t stepMs){
   commandedPwm=constrain(target,0,255);
   prescribedRampStepMs=stepMs;
@@ -421,6 +421,15 @@ static const int16_t STATION_ZONE_START_OFFSET=-5;
 static const int16_t FINAL_APPROACH_START_OFFSET=0;
 static const int16_t FINAL_ZERO_TRIGGER_OFFSET=2;
 
+// Compatibility aliases used only by dormant inherited CTO/governor code.
+// They do not have motor-control authority in LL_PWM_DNA_AUTO_1_0.
+static const int16_t STATION_STOP_OFFSET=FINAL_ZERO_TRIGGER_OFFSET;
+static const uint8_t AUTO_PWM_MAX=255;
+static const float AUTO_TARGET_PKPH=45.0f;
+static const float STATION_SPEED_PKPH=25.0f;
+static const float STATION_M_PLUS_1_PKPH=10.0f;
+static const float STATION_M_PLUS_2_PKPH=5.0f;
+
 // ---------------------------------------------------------------------------
 // Four-station Goldcore service: every station is a STOP visit.
 //
@@ -453,7 +462,7 @@ static int8_t stationActiveIndex=-1;
 static bool stationFinalRampActive=false;
 // Fixed station target remains M+2 in r9.  These variables are retained only
 // because the proven departure/final-ramp scaffolding shares them.
-static int16_t stationFinalRampOffset=STATION_STOP_OFFSET;
+static int16_t stationFinalRampOffset=FINAL_ZERO_TRIGGER_OFFSET;
 static bool stationDwellClockRunning=false;
 // A station departure is a known-location proving ramp.  It never holds at
 // a fixed PWM: it continues at 300 ms/PWM through two post-stop Hall hits.
@@ -1139,8 +1148,7 @@ static void stationPublish(const char* event,int16_t offset,float ignoredTarget,
     st?(unsigned)st->centerMm:999U,mapDirName(opNav.mapDir),(int)offset,
     commandedPwm,rampCurrent,(unsigned)prescribedRampStepMs,note);
   mqttPublish(TOPIC_STATE_STATION,b,false);
-  Serial.printf("[STATION] %s
-",b);
+  Serial.printf("[STATION] %s\n",b);
 }
 static void stationResetTestCycle(const char* why){
   stationTestPhase=STATION_TEST_IDLE;
@@ -1321,6 +1329,14 @@ static void speedGovPublish(uint8_t fromMm,uint8_t toMm,uint16_t segMm,uint32_t 
   snprintf(speedJson,sizeof(speedJson),"{\"pkph\":%.2f,\"source\":\"SEGMENT_MEASURED\",\"samples\":%u,\"from_mm\":%u,\"to_mm\":%u,\"segment_mm\":%u,\"dt_ms\":%lu,\"target_pkph\":%.1f}",
     segPkph,(unsigned)speedHistCount,(unsigned)fromMm,(unsigned)toMm,(unsigned)segMm,(unsigned long)dt,effectiveGovernorTargetPkph());
   mqttPublish(TOPIC_MM_SPEED,speedJson,true);
+}
+
+// Compatibility helper for dormant inherited governor code.
+// The governor is not serviced by the LL_PWM_DNA_AUTO_1_0 main loop.
+static int stationArrivalTargetDelta(float targetPkph,float measuredPkph){
+  const float error=targetPkph-measuredPkph;
+  if(fabsf(error)<0.5f) return 0;
+  return (error>0.0f)?1:-1;
 }
 
 static void speedGovOnMeasuredSegment(uint8_t fromMm,uint8_t toMm,int8_t dir,uint16_t segMm,uint32_t dt,float segmentPkph){
