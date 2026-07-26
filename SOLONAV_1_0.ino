@@ -1,5 +1,5 @@
 // ============================================================================
-// NGR_LL_PWM_DNA_AUTO_1_0.ino
+// SOLONAV_1_0.ino
 //
 // Single-locomotive Low Line AUTO validation firmware.
 //
@@ -31,8 +31,10 @@
 #include <pgmspace.h>
 #include <string.h>
 #include <math.h>
+#include <freertos/task.h>
+#include <freertos/queue.h>
 
-#define SKETCH_NAME "NGR_LL_PWM_DNA_AUTO_1_0"
+#define SKETCH_NAME "SOLONAV_1_1_HALL_TASK"
 #define DNA_N 171
 #define DNA_W_LOCK 12
 #define DNA_W_MAX 18
@@ -98,6 +100,9 @@
 #endif
 #ifndef HALL_BASELINE_TELEM_INTERVAL_MS
 #define HALL_BASELINE_TELEM_INTERVAL_MS 5000UL
+#endif
+#ifndef LOOPSTAT_INTERVAL_MS
+#define LOOPSTAT_INTERVAL_MS 1000UL
 #endif
 
 enum HallState : uint8_t { HALL_NONE=0, HALL_NORTH=1, HALL_SOUTH=2 };
@@ -200,7 +205,7 @@ static uint16_t distanceAheadMm(uint8_t fromMM,uint8_t toMM,int8_t dir) {
 
 // MQTT topics
 static char TOPIC_ONLINE[48],TOPIC_CMD_THROTTLE[56],TOPIC_CMD_DIRECTION[56],TOPIC_CMD_BRAKE[56],TOPIC_CMD_ESTOP[56],TOPIC_CMD_AUTO[56],TOPIC_CMD_DISPATCHER_RELEASE[72],TOPIC_CMD_SESSION_DIRECTION[64],TOPIC_CMD_START_INTERVAL[64],TOPIC_CMD_START_MM[56],TOPIC_CMD_DNA_RESET[64],TOPIC_CMD_MHE[64];
-static char TOPIC_STATE_THROTTLE[56],TOPIC_STATE_DIRECTION[56],TOPIC_STATE_BRAKE[56],TOPIC_STATE_ESTOP[56],TOPIC_STATE_AUTO[56],TOPIC_STATE_GOV[56],TOPIC_STATE_STATION[56],TOPIC_STATE_SESSION_DIRECTION[64],TOPIC_STATE_START_INTERVAL[64],TOPIC_STATE_START_MM[56],TOPIC_STATE_MHE[64],TOPIC_STATE_WARNING[56],TOPIC_STATE_DNA[56],TOPIC_STATE_HALL[56],TOPIC_DNA_EVENT[56],TOPIC_MM_MAG[56],TOPIC_MM_POS[56],TOPIC_MM_MOTION[56],TOPIC_MM_SPEED[56],TOPIC_TELEM_VOLTAGE[56],TOPIC_TELEM_CURRENT[56],TOPIC_TELEM_POWER[56],TOPIC_STATE_LOWVOLT[56],TOPIC_STATE_CTO[56],TOPIC_STATE_CTO_BOUNDARY[64],TOPIC_STATE_TRAFFIC[64],TOPIC_STATE_CTO_RADIO[64],TOPIC_STATE_CTO_LEGACY[56],TOPIC_STATE_BOOT[64];
+static char TOPIC_STATE_THROTTLE[56],TOPIC_STATE_DIRECTION[56],TOPIC_STATE_BRAKE[56],TOPIC_STATE_ESTOP[56],TOPIC_STATE_AUTO[56],TOPIC_STATE_GOV[56],TOPIC_STATE_STATION[56],TOPIC_STATE_SESSION_DIRECTION[64],TOPIC_STATE_START_INTERVAL[64],TOPIC_STATE_START_MM[56],TOPIC_STATE_MHE[64],TOPIC_STATE_WARNING[56],TOPIC_STATE_DNA[56],TOPIC_STATE_HALL[56],TOPIC_DNA_EVENT[56],TOPIC_MM_MAG[56],TOPIC_MM_POS[56],TOPIC_MM_MOTION[56],TOPIC_MM_SPEED[56],TOPIC_TELEM_VOLTAGE[56],TOPIC_TELEM_CURRENT[56],TOPIC_TELEM_POWER[56],TOPIC_STATE_LOWVOLT[56],TOPIC_STATE_CTO[56],TOPIC_STATE_CTO_BOUNDARY[64],TOPIC_STATE_TRAFFIC[64],TOPIC_STATE_CTO_RADIO[64],TOPIC_STATE_CTO_LEGACY[56],TOPIC_STATE_BOOT[64],TOPIC_STATE_LOOPSTAT[64];
 static WiFiClient mqttWifiClient; static PubSubClient mqtt(mqttWifiClient);
 
 // ---------------------------------------------------------------------------
@@ -479,6 +484,19 @@ static int baselineCounts=0,northEnterThreshold=0,northExitThreshold=0,southEnte
 static int32_t baselineCountsQ8=0;
 static bool hallEventActive=false; static unsigned long hallEventStartedAtMs=0,hallBaselineReturnAtMs=0; static int hallPeakNorthDelta=0,hallPeakSouthDelta=0;
 static int hallBaselineLastRaw=0; static uint8_t hallBaselineStableSamples=0; static uint8_t hallBaselineUnstableSamples=0; static int hallBaselineLastStepCounts=0; static unsigned long hallBaselineTelemLastMs=0; static const char* hallBaselineTrackerState="BOOT"; static const char* hallBaselineFrozenReason="BOOT";
+// §3: loop()-published snapshot of Hall baseline telemetry. The detector task
+// writes it each sample; loop() reads and publishes it. Word-sized scalars and
+// const char* literals — no lock needed on ESP32 (a torn read at worst mixes
+// two adjacent samples, harmless for telemetry).
+struct HallBaselineSnapshot {
+  int  raw, baseline;
+  int  northEnter, northExit, southEnter, southExit;
+  uint8_t stableSamples, unstableSamples;
+  int  lastStep;
+  const char* trackerState;
+  const char* frozenReason;
+};
+static volatile HallBaselineSnapshot hallSnap;
 // Navigation evidence state
 static int8_t declaredSessionDir=MAP_UNSET,activeMapDir=MAP_UNSET; static bool navReady=false,startIntervalSet=false; static bool startReferenceIsExactMm=false; static uint8_t startIntervalA=0,startIntervalB=0,startNextMm=0;
 static bool odomValid=false; static uint8_t odomMm=0,lastExactMm=0;
@@ -1534,6 +1552,7 @@ static void mqttSetupTopics(){
   snprintf(TOPIC_STATE_WARNING,sizeof(TOPIC_STATE_WARNING),"ngr/loco/%s/state/warning",id);
   snprintf(TOPIC_STATE_DNA,sizeof(TOPIC_STATE_DNA),"ngr/loco/%s/state/dna",id);
   snprintf(TOPIC_STATE_HALL,sizeof(TOPIC_STATE_HALL),"ngr/loco/%s/state/hall",id);
+  snprintf(TOPIC_STATE_LOOPSTAT,sizeof(TOPIC_STATE_LOOPSTAT),"ngr/loco/%s/state/loopstat",id);
   snprintf(TOPIC_DNA_EVENT,sizeof(TOPIC_DNA_EVENT),"ngr/loco/%s/dna/event",id);
   snprintf(TOPIC_MM_MAG,sizeof(TOPIC_MM_MAG),"ngr/loco/%s/mm/mag",id);
   snprintf(TOPIC_MM_POS,sizeof(TOPIC_MM_POS),"ngr/loco/%s/mm/pos",id);
@@ -1569,8 +1588,32 @@ static int readAveragedADC(){uint32_t sum=0;for(uint8_t i=0;i<ADC_SAMPLES;i++)su
 static void recomputeHallThresholds(){northEnterThreshold=baselineCounts+HALL_DEADBAND_COUNTS+HALL_ENTRY_MARGIN_COUNTS;northExitThreshold=baselineCounts+HALL_DEADBAND_COUNTS;southEnterThreshold=baselineCounts-HALL_DEADBAND_COUNTS-HALL_ENTRY_MARGIN_COUNTS;southExitThreshold=baselineCounts-HALL_DEADBAND_COUNTS;}
 static bool hallInsideBaselineBand(int raw){return raw<=northExitThreshold&&raw>=southExitThreshold;}
 static HallState classifyCompletedHallEvent(int n,int s){if(n<(int)HALL_MIN_PEAK_DELTA&&s<(int)HALL_MIN_PEAK_DELTA)return HALL_NONE;if(n>=HALL_MIN_PEAK_DELTA && (uint32_t)n*100U>=(uint32_t)s*HALL_DOMINANCE_PERCENT)return HALL_NORTH;if(s>=HALL_MIN_PEAK_DELTA && (uint32_t)s*100U>=(uint32_t)n*HALL_DOMINANCE_PERCENT)return HALL_SOUTH;return HALL_NONE;}
-static void publishHallBaselineTelemetry(const char* state,const char* reason,int raw){char b[360];snprintf(b,sizeof(b),"{\"event\":\"HALL_BASELINE\",\"state\":\"%s\",\"reason\":\"%s\",\"raw\":%d,\"baseline\":%d,\"delta\":%d,\"north_enter\":%d,\"north_exit\":%d,\"south_enter\":%d,\"south_exit\":%d,\"stable_samples\":%u,\"unstable_samples\":%u,\"last_step\":%d}",state,reason,raw,baselineCounts,raw-baselineCounts,northEnterThreshold,northExitThreshold,southEnterThreshold,southExitThreshold,(unsigned)hallBaselineStableSamples,(unsigned)hallBaselineUnstableSamples,hallBaselineLastStepCounts);mqttPublish(TOPIC_STATE_HALL,b,false);}
-static void serviceHallBaselineTelemetry(int raw){unsigned long now=millis();if(now-hallBaselineTelemLastMs<HALL_BASELINE_TELEM_INTERVAL_MS)return;hallBaselineTelemLastMs=now;publishHallBaselineTelemetry(hallBaselineTrackerState,hallBaselineFrozenReason,raw);}
+// §3: task-side writer — captures live baseline state into hallSnap. No MQTT,
+// no Serial; safe to call from hallTask on core 0.
+static void snapshotHallBaseline(int raw){
+  hallSnap.raw=raw;hallSnap.baseline=baselineCounts;
+  hallSnap.northEnter=northEnterThreshold;hallSnap.northExit=northExitThreshold;
+  hallSnap.southEnter=southEnterThreshold;hallSnap.southExit=southExitThreshold;
+  hallSnap.stableSamples=hallBaselineStableSamples;hallSnap.unstableSamples=hallBaselineUnstableSamples;
+  hallSnap.lastStep=hallBaselineLastStepCounts;
+  hallSnap.trackerState=hallBaselineTrackerState;hallSnap.frozenReason=hallBaselineFrozenReason;
+}
+// §3: loop()-side publisher — same cadence, same JSON shape as before. This is
+// the ONLY path that still calls mqttPublish for Hall baseline telemetry, and
+// it runs only on the loop() thread, eliminating the concurrent-PubSubClient
+// race the detector task would otherwise create.
+static void serviceHallBaselineTelemetry(){
+  unsigned long now=millis();
+  if(now-hallBaselineTelemLastMs<HALL_BASELINE_TELEM_INTERVAL_MS)return;
+  hallBaselineTelemLastMs=now;
+  int raw=hallSnap.raw,baseline=hallSnap.baseline;
+  char b[360];
+  snprintf(b,sizeof(b),"{\"event\":\"HALL_BASELINE\",\"state\":\"%s\",\"reason\":\"%s\",\"raw\":%d,\"baseline\":%d,\"delta\":%d,\"north_enter\":%d,\"north_exit\":%d,\"south_enter\":%d,\"south_exit\":%d,\"stable_samples\":%u,\"unstable_samples\":%u,\"last_step\":%d}",
+    hallSnap.trackerState,hallSnap.frozenReason,raw,baseline,raw-baseline,
+    hallSnap.northEnter,hallSnap.northExit,hallSnap.southEnter,hallSnap.southExit,
+    (unsigned)hallSnap.stableSamples,(unsigned)hallSnap.unstableSamples,hallSnap.lastStep);
+  mqttPublish(TOPIC_STATE_HALL,b,false);
+}
 static bool hallBaselineSignalStable(int raw){if(hallBaselineLastRaw==0){hallBaselineLastRaw=raw;hallBaselineStableSamples=0;hallBaselineUnstableSamples=0;hallBaselineLastStepCounts=0;return false;}int step=raw-hallBaselineLastRaw;hallBaselineLastStepCounts=step;int absStep=step<0?-step:step;hallBaselineLastRaw=raw;if(absStep<=(int)HALL_BASELINE_STABLE_DELTA_COUNTS){if(hallBaselineStableSamples<255)hallBaselineStableSamples++;hallBaselineUnstableSamples=0;}else{hallBaselineStableSamples=0;if(hallBaselineUnstableSamples<255)hallBaselineUnstableSamples++;}return hallBaselineStableSamples>=HALL_BASELINE_STABLE_SAMPLES;}
 static bool hallBaselineTrackIfIdle(int raw){bool stable=hallBaselineSignalStable(raw);int err=raw-baselineCounts;int absErr=err<0?-err:err;if(stable && absErr<=(int)HALL_BASELINE_TRACK_WINDOW_COUNTS){int32_t target=((int32_t)raw)<<8;baselineCountsQ8 += (target-baselineCountsQ8)/(int32_t)HALL_BASELINE_TRACK_K;int newBaseline=(int)((baselineCountsQ8+128)>>8);if(newBaseline!=baselineCounts){baselineCounts=newBaseline;recomputeHallThresholds();}hallBaselineTrackerState="TRACKING";hallBaselineFrozenReason="NONE";return true;}hallBaselineTrackerState="FROZEN";hallBaselineFrozenReason=stable?"OUTSIDE_TRACK_WINDOW":"UNSTABLE";return false;}
 static void calibrateBaseline(){unsigned long start=millis();uint32_t sum=0,count=0;while(millis()-start<CALIBRATION_TIME_MS){sum+=readAveragedADC();count++;delay(5);}baselineCounts=count?(int)(sum/count):readAveragedADC();baselineCountsQ8=((int32_t)baselineCounts)<<8;hallBaselineLastRaw=baselineCounts;hallBaselineStableSamples=0;hallBaselineUnstableSamples=0;hallBaselineLastStepCounts=0;recomputeHallThresholds();Serial.printf("[DNA] Hall thresholds deadband=%d entryMargin=%d minPeak=%d dominance=%u baseline=%d Nenter=%d Senter=%d trackK=%ld trackWindow=%u stableDelta=%u stableSamples=%u\n",HALL_DEADBAND_COUNTS,HALL_ENTRY_MARGIN_COUNTS,HALL_MIN_PEAK_DELTA,HALL_DOMINANCE_PERCENT,baselineCounts,northEnterThreshold,southEnterThreshold,(long)HALL_BASELINE_TRACK_K,(unsigned)HALL_BASELINE_TRACK_WINDOW_COUNTS,(unsigned)HALL_BASELINE_STABLE_DELTA_COUNTS,(unsigned)HALL_BASELINE_STABLE_SAMPLES);}
@@ -2053,13 +2096,29 @@ static void onMagnetEvent(HallState hallPol,int peakN,int peakS,unsigned long ha
 
 }
 
-static void serviceHall(){
+// ---- §1 Hall detector / consumer split -----------------------------------
+// The former serviceHall() is renamed hallSampleOnce() (the detector) and will
+// run from a dedicated task (§2). Completed magnet events cross the seam to the
+// loop() thread through hallEventQueue; the new serviceHall() below drains it.
+// detectedAtMs is captured at detection time but is NOT passed into
+// onMagnetEvent() this pass (its signature is unchanged).
+struct HallEventMsg {
+  HallState     polarity;
+  int           peakN, peakS;
+  unsigned long durationMs;
+  unsigned long detectedAtMs;   // captured at detection, not at processing
+};
+static QueueHandle_t hallEventQueue = nullptr;
+static volatile unsigned long hallQueueDrops = 0;
+static volatile unsigned long hallShortRejects = 0;
+
+static void hallSampleOnce(){
   int raw=readAveragedADC();
   unsigned long now=millis();
 
   if(!hallEventActive){
     bool tracked=hallBaselineTrackIfIdle(raw);
-    serviceHallBaselineTelemetry(raw);
+    snapshotHallBaseline(raw);
     int n=max(0,raw-baselineCounts),s=max(0,baselineCounts-raw);
 
     // Stable signal inside the broad tracking window is treated as baseline
@@ -2091,7 +2150,7 @@ static void serviceHall(){
 
   hallBaselineTrackerState="FROZEN";
   hallBaselineFrozenReason="EVENT";
-  serviceHallBaselineTelemetry(raw);
+  snapshotHallBaseline(raw);
   int n=max(0,raw-baselineCounts),s=max(0,baselineCounts-raw);
   hallPeakNorthDelta=max(hallPeakNorthDelta,n);
   hallPeakSouthDelta=max(hallPeakSouthDelta,s);
@@ -2107,10 +2166,76 @@ static void serviceHall(){
       hallBaselineLastRaw=raw;
       if(h!=HALL_NONE){
         Serial.printf("[HALL] END peakN=%d peakS=%d result=%c\n",hallPeakNorthDelta,hallPeakSouthDelta,h==HALL_NORTH?'N':'S');
-        onMagnetEvent(h,hallPeakNorthDelta,hallPeakSouthDelta,dur);
+        // §4: drop short transients before they enter the queue or the odometer.
+        // The equivalent duration gate remains downstream in onMagnetEvent(),
+        // now redundant but intentionally left in place.
+        if(dur < HALL_MIN_EVENT_MS){
+          hallShortRejects++;
+          Serial.printf("[HALL] SHORT_REJECT dur=%lu min=%lu peakN=%d peakS=%d\n",dur,(unsigned long)HALL_MIN_EVENT_MS,hallPeakNorthDelta,hallPeakSouthDelta);
+          return;
+        }
+        HallEventMsg m = { h, hallPeakNorthDelta, hallPeakSouthDelta, dur, now };
+        if(hallEventQueue && xQueueSend(hallEventQueue,&m,0)!=pdTRUE) hallQueueDrops++;
       }else Serial.printf("[HALL] REJECT peakN=%d peakS=%d\n",hallPeakNorthDelta,hallPeakSouthDelta);
     }
   }else hallBaselineReturnAtMs=0;
+}
+
+// New consumer: runs on the loop() thread, drains the Hall event queue, and
+// forwards each event to onMagnetEvent() with the original signature and
+// argument order. detectedAtMs rides in the struct but is intentionally not
+// passed downstream this pass. loop() continues to call serviceHall().
+static void serviceHall(){
+  if(!hallEventQueue) return;
+  HallEventMsg m;
+  while(xQueueReceive(hallEventQueue,&m,0)==pdTRUE){
+    onMagnetEvent(m.polarity,m.peakN,m.peakS,m.durationMs);
+  }
+}
+
+// ---- §2 Hall task --------------------------------------------------------
+// Runs the detector on core 0 so MQTT/WiFi stalls on the loop() core can no
+// longer blind Hall sampling. hallTaskMaxGapMs / hallTaskLastRunMs are
+// observability for §6 (loopstat). Created in setup() after calibrateBaseline().
+static volatile unsigned long hallTaskMaxGapMs = 0;
+static volatile unsigned long hallTaskLastRunMs = 0;
+
+static void hallTask(void*) {
+  unsigned long prev = millis();
+  for (;;) {
+    unsigned long now = millis();
+    unsigned long gap = now - prev;
+    if (gap > hallTaskMaxGapMs) hallTaskMaxGapMs = gap;
+    prev = now;
+    hallTaskLastRunMs = now;
+    hallSampleOnce();
+    vTaskDelay(1);          // ~1 ms tick
+  }
+}
+
+// ---- §6 loopstat ---------------------------------------------------------
+// Loop observability. loop_max_gap_ms is measured by timestamping the top of
+// loop(); hall_task_* come from the §2 task. Published every LOOPSTAT_INTERVAL_MS
+// so baseline movement is visible within a single pass. splits is always 0 in
+// this build (the §5 zero-crossing split was not implemented); the field is
+// kept so the telemetry shape stays stable for a later §5.
+static unsigned long loopMaxGapMs=0;
+static unsigned long loopLastTopMs=0;
+static unsigned long loopstatLastMs=0;
+
+static void serviceLoopstat(){
+  unsigned long now=millis();
+  if(now-loopstatLastMs<LOOPSTAT_INTERVAL_MS)return;
+  loopstatLastMs=now;
+  char b[384];
+  snprintf(b,sizeof(b),
+    "{\"loop_max_gap_ms\":%lu,\"hall_task_max_gap_ms\":%lu,\"hall_task_age_ms\":%lu,\"baseline\":%d,\"hall_raw\":%d,\"tracker_state\":\"%s\",\"frozen_reason\":\"%s\",\"queue_drops\":%lu,\"short_rejects\":%lu,\"splits\":0,\"pwm\":%d}",
+    loopMaxGapMs,hallTaskMaxGapMs,(unsigned long)(now-hallTaskLastRunMs),
+    hallSnap.baseline,hallSnap.raw,hallSnap.trackerState,hallSnap.frozenReason,
+    hallQueueDrops,hallShortRejects,rampCurrent);
+  mqttPublish(TOPIC_STATE_LOOPSTAT,b,false);
+  loopMaxGapMs=0;
+  hallTaskMaxGapMs=0;
 }
 
 static void updateMotionState(){
@@ -2274,7 +2399,11 @@ static void onReceive(const esp_now_recv_info_t *info,const uint8_t *data,int le
   }
 }
 
-void setup(){Serial.begin(115200);delay(200);Serial.printf("\n[DNA] %s - %s booting packet=%u version=%u\n",SKETCH_NAME,LOCO_NAME,(unsigned)sizeof(CtoPeerPacket),(unsigned)CTO2_VERSION);mqttSetupTopics();pinMode(MOTOR_DIR_PIN,OUTPUT);applyDirectionPin();pwmAttachCompat();pwmWriteCompat(0);calibrateBaseline();ina219Setup();WiFi.mode(WIFI_STA);WiFi.setAutoReconnect(true);WiFi.setSleep(false);WiFi.begin(WIFI_SSID,WIFI_PASS);mqtt.setServer(MQTT_BROKER,MQTT_PORT);mqtt.setBufferSize(8192);mqtt.setCallback(onMQTTMessage);if(esp_now_init()!=ESP_OK){Serial.println("[AUTO] ESP-NOW init failed");}else{
+void setup(){Serial.begin(115200);delay(200);Serial.printf("\n[DNA] %s - %s booting packet=%u version=%u\n",SKETCH_NAME,LOCO_NAME,(unsigned)sizeof(CtoPeerPacket),(unsigned)CTO2_VERSION);mqttSetupTopics();pinMode(MOTOR_DIR_PIN,OUTPUT);applyDirectionPin();pwmAttachCompat();pwmWriteCompat(0);calibrateBaseline();
+  hallEventQueue=xQueueCreate(32,sizeof(HallEventMsg));
+  if(!hallEventQueue){Serial.println("[FATAL] hall queue alloc failed");while(1)delay(1000);}
+  if(xTaskCreatePinnedToCore(hallTask,"hallTask",4096,nullptr,2,nullptr,0)!=pdPASS){Serial.println("[FATAL] hall task creation failed");while(1)delay(1000);}
+  ina219Setup();WiFi.mode(WIFI_STA);WiFi.setAutoReconnect(true);WiFi.setSleep(false);WiFi.begin(WIFI_SSID,WIFI_PASS);mqtt.setServer(MQTT_BROKER,MQTT_PORT);mqtt.setBufferSize(8192);mqtt.setCallback(onMQTTMessage);if(esp_now_init()!=ESP_OK){Serial.println("[AUTO] ESP-NOW init failed");}else{
   esp_now_register_recv_cb(onReceive);
   {
     esp_now_peer_info_t pi={};
@@ -2288,11 +2417,16 @@ void setup(){Serial.begin(115200);delay(200);Serial.printf("\n[DNA] %s - %s boot
     }
   }
   Serial.println("[AUTO] ESP-NOW Dispatcher receiver ready; peer interaction disabled");
-}resetDnaRuntime(false);stationResetTestCycle("BOOT");Serial.println("[AUTO] LL_PWM_DNA_AUTO_1_0 single-train prescribed-PWM service ready.");}
+}resetDnaRuntime(false);stationResetTestCycle("BOOT");Serial.println("[AUTO] SOLONAV_1_1_HALL_TASK single-train prescribed-PWM service ready.");}
 void loop(){
+  unsigned long loopNow=millis();
+  if(loopLastTopMs){unsigned long g=loopNow-loopLastTopMs;if(g>loopMaxGapMs)loopMaxGapMs=g;}
+  loopLastTopMs=loopNow;
   mqtt.loop();
   serviceMQTTReconnect();
   serviceHall();
+  serviceHallBaselineTelemetry();
+  serviceLoopstat();
   serviceInaTelemetry();
   serviceRamp();
   updateMotionState();
