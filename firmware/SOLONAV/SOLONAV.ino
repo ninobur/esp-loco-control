@@ -1,6 +1,6 @@
 /*
  * ============================================================================
- * SOLONAV_2_16  —  Ninobur Garden Railway single-locomotive navigation
+ * SOLONAV_2_17  —  Ninobur Garden Railway single-locomotive navigation
  * ============================================================================
  *
  * A locomotive that knows where it has been, where it is, and what is
@@ -79,7 +79,7 @@
 #include <pgmspace.h>
 #include "LocoConfig.h"
 
-#define SKETCH_NAME "SOLONAV_2_16"
+#define SKETCH_NAME "SOLONAV_2_17"
 
 // Broker lives here, not in LocoConfig.h — same as the previous lineage.
 #define MQTT_BROKER "192.168.68.142"
@@ -384,6 +384,7 @@ static bool         autoEnrolled=false, autoRunning=false, estopped=false;
 static StationPhase stPhase=ST_IDLE;
 
 static void requestPwm(int target,uint16_t stepMs);
+static int  cruiseForPosition();   // section cruise speed; defined in LAYER 4
 
 // ===========================================================================
 // LAYER 3 — NAVIGATOR
@@ -457,9 +458,17 @@ static uint8_t  dnaBuf[DNA_W];
 static uint8_t  dnaBufLen=0;
 static bool     pendingValid=false;
 static uint8_t  pendingMm=0;
+// A candidate must predict REACQ_CONFIRMS readings in a row before it is
+// believed. One binary prediction passes half the time on garbage; two cuts
+// surviving false matches roughly fourfold, at the cost of one extra marker.
+// Reset on any failed prediction so a candidate never carries credit across a
+// miss.
+#define REACQ_CONFIRMS 2
+static uint8_t  pendingConfirms=0;
 
 static unsigned long lastMarkerMs=0;
 static int16_t       lastOdomDisagreement=0;   // published on REACQUIRED
+static int16_t       lastReacqOffset=0;        // accepted candidate's offset from navMm; +ve = odometer behind
 static unsigned long lostSinceMs=0;            // LOST budget
 static uint16_t      lostMarkers=0;
 
@@ -502,7 +511,7 @@ static void navDeclare(uint8_t mm){
 
 static void navEnterLost(const char* why){
   navState=NAV_LOST; navConfidence=CONFIDENCE_FLOOR;
-  dnaBufLen=0; pendingValid=false; navLostCount++;
+  dnaBufLen=0; pendingValid=false; pendingConfirms=0; navLostCount++;
   lostSinceMs=millis(); lostMarkers=0;
   // Slow to station speed as a VISIBLE SIGNAL, not as a safety measure. Solo
   // on a closed loop there is nothing to protect against; a lost train can run
@@ -524,20 +533,30 @@ static void dnaPush(uint8_t pol){
   dnaBuf[DNA_W-1]=pol;
 }
 
-// Unique window match, searched only in the declared direction.
-// Returns the mm of the LAST marker in the window, or 255 if not unique.
+// Reacquisition search is CONSTRAINED to a window around the odometer. The
+// odometer keeps counting while LOST, so navMm is already the expected answer;
+// searching the whole ring turned a 12-bit pattern into a 1-in-171 lottery.
+// Measured: false-match probability drops from 4.17% to 0.27% at a +-5 window.
+// DNA_W stays 12 -- shortening the pattern would give most of that gain back.
+#define REACQ_WINDOW_MARKERS 5
+
+// Unique window match, searched only near navMm and only in the declared
+// direction. Returns the mm of the LAST marker in the window, or 255 if not
+// unique within the window.
 static uint8_t dnaMatch(int8_t dir){
   if(dnaBufLen<DNA_W || dir==MAP_UNSET) return 255;
-  uint8_t found=255; uint8_t count=0;
-  for(uint8_t start=0;start<DNA_N;start++){
+  uint8_t found=255, count=0;
+  for(int8_t off=-REACQ_WINDOW_MARKERS; off<=REACQ_WINDOW_MARKERS; off++){
+    uint8_t end   = routeMod((int32_t)navMm + off);
+    uint8_t start = routeMod((int32_t)end - (int32_t)dir*(DNA_W-1));
     bool ok=true; uint8_t mm=start;
     for(uint8_t i=0;i<DNA_W;i++){
       if(dnaAt(mm)!=dnaBuf[i]){ ok=false; break; }
       mm=nextMm(mm,dir);
     }
-    if(ok){ if(++count>1) return 255; found=routeMod((int32_t)start+(int32_t)dir*(DNA_W-1)); }
+    if(ok){ if(++count>1) return 255; found=end; }
   }
-  return count==1?found:255;
+  return count==1 ? found : 255;
 }
 
 static void navOnMarker(const MarkerEvent& e){
@@ -565,28 +584,42 @@ static void navOnMarker(const MarkerEvent& e){
     dnaPush(e.polarity);
 
     if(pendingValid){
-      // A candidate is on probation: it must predict this reading.
+      // A candidate is on probation: it must predict this reading, and it must
+      // do so REACQ_CONFIRMS times running before it is believed. navMm and
+      // pendingMm advance in lockstep, so the odometer-vs-DNA offset established
+      // when the window matched is constant across the confirmations.
       uint8_t predicted=nextMm(pendingMm,navDir);
       if(dnaAt(predicted)==e.polarity){
-        lastOdomDisagreement = offsetToCentre(navMm,navDir,predicted); // odom vs DNA
-        int16_t disagree = lastOdomDisagreement;
-        navMm=predicted; navState=NAV_TRACKING;
-        navConfidence=CONFIDENCE_REACQUIRED; pendingValid=false;
-        lostMarkers=0;
-        lastConfirmedMm=navMm; lastConfirmedMs=millis();
-        markersSinceConfirmed=0; haveConfirmed=true;
-        // Back to cruise, unless a station approach already owns the throttle.
-        if(autoRunning && stPhase==ST_IDLE) requestPwm(CRUISE_PWM,NORMAL_STEP_MS);
-        publishAlert("CLEAR","REACQUIRED");
-        Serial.printf("[NAV] REACQUIRED mm=%u dir=%s odom_disagreement=%d\n",
-                      navMm,dirName(navDir),(int)disagree);
-        navPublishState("REACQUIRED",&e);
+        pendingMm=predicted;
+        if(++pendingConfirms>=REACQ_CONFIRMS){
+          // off: the accepted candidate's offset from the dead-reckoned navMm,
+          // positive when the odometer is running BEHIND -- the only direction
+          // the measured data shows it errs. Computed before navMm is moved.
+          int16_t off = offsetToCentre(pendingMm,navDir,navMm);
+          lastReacqOffset      = off;
+          lastOdomDisagreement = offsetToCentre(navMm,navDir,pendingMm); // odom vs DNA
+          navMm=pendingMm; navState=NAV_TRACKING;
+          navConfidence=CONFIDENCE_REACQUIRED;
+          pendingValid=false; pendingConfirms=0;
+          lostMarkers=0;
+          lastConfirmedMm=navMm; lastConfirmedMs=millis();
+          markersSinceConfirmed=0; haveConfirmed=true;
+          // Back to cruise, unless a station approach already owns the throttle.
+          if(autoRunning && stPhase==ST_IDLE) requestPwm(cruiseForPosition(),NORMAL_STEP_MS);
+          publishAlert("CLEAR","REACQUIRED");
+          Serial.printf("[NAV] REACQUIRED mm=%u dir=%s off=%d\n",
+                        navMm,dirName(navDir),(int)off);
+          navPublishState("REACQUIRED",&e);
+        }else{
+          // Correct so far, but not yet REACQ_CONFIRMS times. Still on probation.
+          navPublishState("CANDIDATE",&e);
+        }
       }else{
-        pendingValid=false;                       // candidate failed its test
+        pendingValid=false; pendingConfirms=0;    // candidate failed its test
         // Codex: don't throw away a fresh window just because the old
         // candidate failed. Promote it immediately instead of losing a marker.
         uint8_t again=dnaMatch(navDir);
-        if(again!=255){ pendingMm=again; pendingValid=true; navPublishState("CANDIDATE",&e); }
+        if(again!=255){ pendingMm=again; pendingValid=true; pendingConfirms=0; navPublishState("CANDIDATE",&e); }
         else            navPublishState("CANDIDATE_REJECTED",&e);
       }
       return;
@@ -594,7 +627,7 @@ static void navOnMarker(const MarkerEvent& e){
 
     uint8_t cand=dnaMatch(navDir);
     if(cand!=255){
-      pendingMm=cand; pendingValid=true;          // must survive one more marker
+      pendingMm=cand; pendingValid=true; pendingConfirms=0;  // must survive REACQ_CONFIRMS markers
       navPublishState("CANDIDATE",&e);
     }else{
       navPublishState("BUFFERING",&e);
@@ -662,31 +695,38 @@ static void navOnMarker(const MarkerEvent& e){
 // the same wall time from any starting speed.
 // ---------------------------------------------------------------------------
 // ---------------------------------------------------------------------------
-// GRADE COMPENSATION
+// SECTION CRUISE SPEED
 //
-// Some stretches need more power than the flat for the same speed. This is a
-// property of the LAYOUT, not of any station, so it lives in its own table and
-// is applied on top of whatever PWM the station or cruise logic has asked for.
+// Some stretches must be driven at a different speed than the open main. This
+// is a property of the LAYOUT, not of any station, so it lives in its own
+// table: a section carries its OWN cruise speed, which REPLACES CRUISE_PWM
+// while the locomotive is inside it.
 //
-// MM065-MM080 is the climb out of Grillers. Toby stalled there on 2026-07-27
-// with three coaches attached. Clockwise only: counter-clockwise the same
-// stretch is a descent, where adding power would be exactly wrong.
+// This is a whole target, not an additive boost. The previous boost mechanism
+// had two faults Codex flagged: it wrote commandedPwm outside requestPwm(),
+// creating a second PWM authority, and because it changed mid-ramp it broke the
+// guarantee that a ramp is a fixed duration. A section speed is just another
+// target requested through the normal path, so neither can recur —
+// requestPwm()/requestPwmOver() stay the only writers of commandedPwm, and a
+// ramp always runs to completion.
 //
-// The boost fades in and out over BOOST_BLEND_MM markers at each end rather
-// than stepping, so the locomotive does not lurch entering or leaving it.
+// MM065-MM080 CW is the climb out of Grillers. Toby stalled there on
+// 2026-07-27 with three coaches at the common cruise of 100. Clockwise only:
+// counter-clockwise the same stretch is a descent, where more speed would be
+// exactly wrong.
 //
-// AUTO only. In manual the operator has the throttle and nothing modifies it.
+// AUTO only. In manual the operator has the throttle and nothing modifies it;
+// every request path that consults cruiseForPosition() runs under AUTO.
 // ---------------------------------------------------------------------------
 struct GradeSegment {
   uint8_t fromMm, toMm;   // inclusive, in the direction given
   int8_t  dir;            // MAP_CW or MAP_CCW
-  uint8_t boost;          // PWM counts added at full effect
+  uint8_t cruisePwm;      // cruise speed WITHIN this section
 };
 static const GradeSegment GRADES[] = {
-  { 65, 80, MAP_CW, 20 }   // climb out of Grillers
+  { 65, 80, MAP_CW, 120 }   // climb out of Grillers: stalled at 100 with three coaches
 };
-static const uint8_t GRADE_COUNT   = sizeof(GRADES)/sizeof(GRADES[0]);
-static const uint8_t BOOST_BLEND_MM = 2;
+static const uint8_t GRADE_COUNT = sizeof(GRADES)/sizeof(GRADES[0]);
 
 static const uint16_t APPROACH_RAMP_MS = 700;   // ~half a marker: settled before the next
 static const uint16_t FINAL_RAMP_MS    = 700;
@@ -779,54 +819,39 @@ static void applyDirection(){
   }
 }
 
-// How much boost applies at the current position, blended at the edges.
-static int gradeBoostNow(){
-  if(!autoRunning || navState!=NAV_TRACKING || navDir==MAP_UNSET) return 0;
-  for(uint8_t i=0;i<GRADE_COUNT;i++){
-    const GradeSegment& g=GRADES[i];
-    if(g.dir!=navDir) continue;
-    // Distance in markers from the segment start, travelling in g.dir.
-    int32_t into = (g.dir==MAP_CW) ? (int32_t)routeMod((int32_t)navMm-g.fromMm)
-                                   : (int32_t)routeMod((int32_t)g.fromMm-navMm);
-    int32_t span = (g.dir==MAP_CW) ? (int32_t)routeMod((int32_t)g.toMm-g.fromMm)
-                                   : (int32_t)routeMod((int32_t)g.fromMm-g.toMm);
-    if(into<0 || into>span) continue;                 // not inside this segment
-    int32_t fromEnd = span-into;
-    int32_t edge = min(into,fromEnd);
-    int32_t b = (edge>=BOOST_BLEND_MM) ? g.boost
-                                       : (int32_t)g.boost*(edge+1)/(BOOST_BLEND_MM+1);
-    return (int)b;
+// The cruise speed for the current position: a section's own cruise while the
+// locomotive is inside one, otherwise the open-main CRUISE_PWM. The membership
+// arithmetic is the same modular test the old grade boost used, which Codex
+// verified correct in both directions.
+static int cruiseForPosition(){
+  if(navState==NAV_TRACKING && navDir!=MAP_UNSET){
+    for(uint8_t i=0;i<GRADE_COUNT;i++){
+      const GradeSegment& g=GRADES[i];
+      if(g.dir!=navDir) continue;
+      // Distance in markers from the segment start, travelling in g.dir.
+      int32_t into = (g.dir==MAP_CW) ? (int32_t)routeMod((int32_t)navMm-g.fromMm)
+                                     : (int32_t)routeMod((int32_t)g.fromMm-navMm);
+      int32_t span = (g.dir==MAP_CW) ? (int32_t)routeMod((int32_t)g.toMm-g.fromMm)
+                                     : (int32_t)routeMod((int32_t)g.fromMm-g.toMm);
+      if(into<0 || into>span) continue;               // not inside this segment
+      return (int)g.cruisePwm;
+    }
   }
-  return 0;
+  return CRUISE_PWM;
 }
 
 static void requestPwm(int target,uint16_t stepMs){
-  lastRequestedBase=constrain(target,0,255);
-  commandedPwm=constrain(target+gradeBoostNow(),0,255);
+  commandedPwm=constrain(target,0,255);
   pwmStepMs=stepMs;
 }
 
 // Reach the target in roughly durationMs, whatever the current PWM. Derives
 // the step rate from the distance still to travel.
 static void requestPwmOver(int target,uint16_t durationMs){
-  // A zero target means STOP -- never boosted.
-  lastRequestedBase=constrain(target,0,255);
-  int t=constrain(target>0?target+gradeBoostNow():0,0,255);
+  int t=constrain(target,0,255);
   int delta=abs(t-actualPwm);
   commandedPwm=t;
   pwmStepMs = (delta>0) ? (uint16_t)max(5UL,(unsigned long)durationMs/(unsigned long)delta) : 50;
-}
-
-// The boost changes with position, so a target set before entering a grade
-// must be revisited. Only touches the commanded value while AUTO is driving
-// and no ramp to zero is in progress.
-static int      lastRequestedBase=-1;
-static uint16_t lastRequestedStep=NORMAL_STEP_MS;
-static void serviceGradeBoost(){
-  if(!autoRunning || lastRequestedBase<0) return;
-  if(lastRequestedBase==0) return;                    // a stop is a stop
-  int want=constrain(lastRequestedBase+gradeBoostNow(),0,255);
-  if(want!=commandedPwm) commandedPwm=want;
 }
 
 static void servicePwmRamp(){
@@ -868,7 +893,7 @@ static void serviceStations(){
     // Codex: a timeout firing while LOST would otherwise promote a
     // navigation failure straight back to full speed. Speed is earned by
     // evidence; while lost, hold the reduced approach speed.
-    if(autoRunning && navState==NAV_TRACKING) requestPwm(CRUISE_PWM,NORMAL_STEP_MS);
+    if(autoRunning && navState==NAV_TRACKING) requestPwm(cruiseForPosition(),NORMAL_STEP_MS);
     return;
   }
 
@@ -907,6 +932,10 @@ static void serviceStations(){
         return;
       }
     }
+    // No station armed: keep cruise following the section map through the
+    // normal path. requestPwmOver() remains the sole writer of commandedPwm.
+    int want = cruiseForPosition();
+    if(commandedPwm != want) requestPwmOver(want, APPROACH_RAMP_MS);
     return;
   }
 
@@ -916,7 +945,7 @@ static void serviceStations(){
   if(o > OVERSHOOT_ABANDON && stPhase!=ST_DWELL && stPhase!=ST_DEPART){
     stationPublish("MISSED",o,"OVERSHOT_CENTRE_RETURNING_TO_IDLE");
     stationReset("MISSED");
-    requestPwm(CRUISE_PWM,NORMAL_STEP_MS);
+    requestPwm(cruiseForPosition(),NORMAL_STEP_MS);
     return;
   }
 
@@ -983,7 +1012,7 @@ static void serviceStations(){
         // magnet events stretched to four seconds, occupancy of the median
         // window reached 90%, the baseline was corrupted and navigation was
         // lost. A throttle number caused a navigation failure.
-        requestPwmOver(CRUISE_PWM,DEPART_RAMP_MS);
+        requestPwmOver(cruiseForPosition(),DEPART_RAMP_MS);
         stationPublish("DWELL_COMPLETE",o,"DEPART_TO_CRUISE");
       }
       break;
@@ -1036,7 +1065,7 @@ static char T_ST_THROTTLE[64],T_ST_DIRECTION[64],T_ST_BRAKE[64],T_ST_ESTOP[64],
             T_ST_MHE[64],T_ST_NAVREADY[64],T_ST_WARNING[64];
 static char T_CMD_AUTO[64],T_CMD_GO[64],T_CMD_STOP[64],T_CMD_DIR[64],T_CMD_SESSDIR[64];
 static char T_CMD_STARTMM[64],T_CMD_ESTOP[64],T_CMD_THROTTLE[64],T_CMD_STARTINT[64],
-            T_CMD_RELEASE[64];
+            T_CMD_RELEASE[64],T_CMD_FORCELOST[64];
 
 static void buildTopics(){
   const char* id=LOCO_NAME;
@@ -1064,6 +1093,7 @@ static void buildTopics(){
   snprintf(T_CMD_STARTMM ,64,"ngr/loco/%s/cmd/start_mm"         ,id);
   snprintf(T_CMD_STARTINT,64,"ngr/loco/%s/cmd/start_interval"   ,id);
   snprintf(T_CMD_RELEASE ,64,"ngr/loco/%s/cmd/dispatcher_release",id);
+  snprintf(T_CMD_FORCELOST,64,"ngr/loco/%s/cmd/force_lost"       ,id);
   snprintf(T_CMD_ESTOP   ,64,"ngr/loco/%s/cmd/estop"            ,id);
   snprintf(T_CMD_THROTTLE,64,"ngr/loco/%s/cmd/throttle"         ,id);
   snprintf(T_CMD_GO      ,64,"ngr/dispatcher/cmd/go/%s"         ,id);
@@ -1075,18 +1105,22 @@ static void pub(const char* t,const char* m,bool retain=false){
 }
 
 static void navPublishState(const char* ev,const MarkerEvent* e){
-  char b[320];
+  char b[384];
   if(e){
+    // "off" is the last reacquisition offset -- meaningful on REACQUIRED, where
+    // it sizes the search window from operational data. It carries its last
+    // value on other events; consumers filter on event=="REACQUIRED".
     snprintf(b,sizeof(b),
       "{\"event\":\"%s\",\"state\":\"%s\",\"mm\":%u,\"landmark\":\"%s\",\"dir\":\"%s\","
       "\"confidence\":%d,\"obs\":\"%c\",\"expected\":\"%c\",\"peak\":%d,\"ms\":%u,"
       "\"drift\":%d,\"dt\":%u,\"agree\":%lu,\"disagree\":%lu,\"lost\":%lu,"
-      "\"odom_disagreement\":%d,\"motor_dir\":\"%s\"}",
+      "\"odom_disagreement\":%d,\"off\":%d,\"motor_dir\":\"%s\"}",
       ev, navState==NAV_TRACKING?"TRACKING":(navState==NAV_LOST?"LOST":"UNSET"),
       navMm, landmarkAt(navMm), dirName(navDir), navConfidence,
       polChar(e->polarity), polChar(dnaAt(navMm)), e->peak, e->durationMs,
       e->baselineDrift, lastSegmentDt, navAgree, navDisagree, navLostCount,
-      (int)lastOdomDisagreement, motorDirection==DIRECTION_FORWARD?"FWD":"REV");
+      (int)lastOdomDisagreement, (int)lastReacqOffset,
+      motorDirection==DIRECTION_FORWARD?"FWD":"REV");
   }else{
     // The short payload is what DIRECTION and SESSION_DIRECTION publish, so it
     // has to carry the direction fields — those are the events a consumer most
@@ -1364,7 +1398,7 @@ static void onMqtt(char* topic,byte* payload,unsigned int len){
     {
       autoRunning=true;
       motorDirection=DIRECTION_FORWARD; applyDirection();
-      requestPwm(CRUISE_PWM,NORMAL_STEP_MS);
+      requestPwm(cruiseForPosition(),NORMAL_STEP_MS);
       stationPublish("GO",0,"LAUNCH");
     }
   }
@@ -1412,6 +1446,12 @@ static void onMqtt(char* topic,byte* payload,unsigned int len){
   else if(!strcmp(topic,T_CMD_THROTTLE)){
     if(!autoRunning && !estopped) requestPwm(atoi(msg),NORMAL_STEP_MS);   // manual only
   }
+  else if(!strcmp(topic,T_CMD_FORCELOST)){
+    // TEST FIXTURE. Reacquisition essentially never fires at the measured error
+    // rate, so LOST must be inducible or M1_TEST_SPEC cannot be run. Any payload
+    // forces it. Not a guard and not on any operational path.
+    navEnterLost("TEST");
+  }
 }
 
 static void subscribeAll(){
@@ -1421,6 +1461,7 @@ static void subscribeAll(){
   mqtt.subscribe(T_CMD_ESTOP);    mqtt.subscribe(T_CMD_THROTTLE);
   mqtt.subscribe(T_CMD_STARTINT);
   mqtt.subscribe(T_CMD_RELEASE);
+  mqtt.subscribe(T_CMD_FORCELOST);
 }
 
 // Non-blocking. No while() waits anywhere in the network path — a stalled
@@ -1509,7 +1550,6 @@ void loop(){
   serviceNetwork();
   drainMarkers();
   serviceStatusBroadcast();
-  serviceGradeBoost();
   serviceWarningExpiry();
   publishSimpleStates();
   serviceStations();
