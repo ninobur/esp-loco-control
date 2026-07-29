@@ -55,3 +55,20 @@
 #define VOLTAGE_COUNTER_LIMIT 5
 #define VOLTAGE_REPORT_INTERVAL_MS 120000UL
 #define VOLTAGE_DISPLAY_INTERVAL_MS 60000UL
+
+// ---------------------------------------------------------------------------
+// Hall thresholds. Previously undefined, so Otto ran on the sketch fallbacks
+// of 50/80/80 — an entry threshold of 130 counts.
+//
+// Measured 2026-07-28, five CW laps, 769 markers: peak minimum was exactly
+// 130 and the fifth percentile 137. The distribution was truncated at the
+// threshold, which is what a threshold cutting into the signal looks like.
+// 4% of markers were being missed and nothing showed it.
+//
+// These are Toby's values, which run at 0.5% error with zero spurious events.
+// Entry drops from 130 to 38 — well below the observed floor, well above the
+// few counts of baseline noise.
+// ---------------------------------------------------------------------------
+#define HALL_DEADBAND_COUNTS       25
+#define HALL_ENTRY_MARGIN_COUNTS   13
+#define HALL_MIN_PEAK_DELTA        35

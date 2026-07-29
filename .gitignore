@@ -1,6 +1,24 @@
+# Secrets — never committed. credentials_template.h is the pattern to copy.
 credentials.h
-.DS_Store
+firmware/*/credentials.h
+
+# Run captures: evidence, not source. Large and constantly changing.
+logs/
+*.log
+
+# Arduino build artefacts
 build/
-*.bin
 *.elf
-*.map
+*.bin
+*.hex
+
+# macOS
+.DS_Store
+.AppleDouble
+Icon?
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
