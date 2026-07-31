@@ -79,7 +79,7 @@
 #include <pgmspace.h>
 #include "LocoConfig.h"
 
-#define SKETCH_NAME "SOLONAV_2_17"
+#define SKETCH_NAME "SOLONAV_2_19"
 
 // Broker lives here, not in LocoConfig.h — same as the previous lineage.
 #define MQTT_BROKER "192.168.68.142"
@@ -109,6 +109,15 @@ struct MarkerEvent {
   int16_t       baselineDrift; // counts the baseline moved during the event
   unsigned long detectedAtMs;  // captured at detection, not at processing
 };
+
+// Outbound and inbound MQTT messages cross the loop<->network task boundary as
+// values on a queue, so no locomotive-state thread ever touches the radio and
+// the network never touches locomotive state. Topic pointers in PubMsg are safe
+// to store: the T_* topic strings are static char arrays that never move.
+// payload[512] covers today's largest payload (navPublishState, 384) and the
+// v3.0 QUORUM payload (512).
+struct PubMsg { const char* topic; char payload[512]; bool retain; };
+struct CmdMsg { char topic[64]; char payload[128]; };
 
 enum NavState     : uint8_t { NAV_UNSET=0, NAV_TRACKING, NAV_LOST };
 enum StationPhase : uint8_t { ST_IDLE=0, ST_APPROACH, ST_FINAL, ST_RAMP, ST_DWELL, ST_DEPART };
@@ -1044,6 +1053,15 @@ static void serviceStations(){
 static WiFiClient   espClient;
 static PubSubClient mqtt(espClient);
 
+// The two doors between loop() and the network task. pub() enqueues onto
+// pubQueue (drained and published by networkTask); the MQTT callback enqueues
+// onto cmdQueue (drained by serviceCommands() on the loop thread, which owns all
+// locomotive state). pubDrops is cumulative; pubQueueHw is the windowed max
+// occupancy, reset on each loopstat publish.
+static QueueHandle_t pubQueue=nullptr, cmdQueue=nullptr;
+static uint32_t      pubDrops=0;
+static uint16_t      pubQueueHw=0;
+
 static char T_ONLINE[64],T_NAV[64],T_MARKER[64],T_STATION[64],T_STAT[64],T_BOOT[64],T_ALERT[64];
 
 // ---------------------------------------------------------------------------
@@ -1100,8 +1118,24 @@ static void buildTopics(){
   snprintf(T_CMD_STOP    ,64,"ngr/dispatcher/cmd/stop/%s"       ,id);
 }
 
+// pub() ENQUEUES and returns immediately -- it must not reference mqtt at all,
+// so no publish site on the loop thread can block on the network. networkTask is
+// the only place a message actually leaves the radio. When the link degrades the
+// queue fills and we drop the OLDEST message: stale telemetry is worth less than
+// fresh, and losing some log is the correct failure -- losing navigation never
+// was.
 static void pub(const char* t,const char* m,bool retain=false){
-  if(mqtt.connected()) mqtt.publish(t,m,retain);
+  if(!pubQueue) return;
+  PubMsg msg; msg.topic=t; msg.retain=retain;
+  strlcpy(msg.payload,m,sizeof(msg.payload));
+  if(xQueueSend(pubQueue,&msg,0)!=pdTRUE){
+    PubMsg discard;                          // queue full: drop the OLDEST
+    xQueueReceive(pubQueue,&discard,0);
+    xQueueSend(pubQueue,&msg,0);
+    pubDrops++;
+  }
+  UBaseType_t w=uxQueueMessagesWaiting(pubQueue);
+  if(w>pubQueueHw) pubQueueHw=(uint16_t)w;
 }
 
 static void navPublishState(const char* ev,const MarkerEvent* e){
@@ -1252,6 +1286,9 @@ static void pubInt(const char* t,int v){ char b[12]; snprintf(b,sizeof(b),"%d",v
 static uint8_t startIntervalA=0, startIntervalB=0;
 static bool     haveStartInterval=false;
 
+// Published once a second. These are cheap now: pub() only enqueues, so this is
+// eight small memcpys, not eight socket writes. Publish-on-change is a separate
+// change (v2.20); this version deliberately leaves the cadence alone.
 static unsigned long lastSimpleMs=0;
 static void publishSimpleStates(){
   unsigned long now=millis();
@@ -1277,26 +1314,47 @@ static void publishSimpleStates(){
 }
 
 static unsigned long loopMaxGapMs=0, lastStatMs=0;
+
+// Change 4 — turn "did connect stall" and "did we come close to overflowing"
+// into numbers. mqttConnectMs is the duration of the LAST mqtt.connect() call;
+// mqttAttempts is the running count of connect attempts since boot; both
+// persist across loopstat windows. queueHighWater is the max queue occupancy
+// seen at drainMarkers() entry within the current loopstat window, reset on
+// publish like loop_max_gap_ms -- so a normal lap reads low single digits and a
+// stall spikes it.
+static volatile unsigned long mqttConnectMs=0;
+static uint32_t               mqttAttempts=0;
+static uint16_t               queueHighWater=0;
+
 static void publishStat(){
   unsigned long now=millis();
   if(now-lastStatMs<1000UL) return;
   lastStatMs=now;
-  char b[320];
+  // Change 4 (v2.19) — pub_drops is cumulative; pub_queue_hw is the windowed
+  // max occupancy of the outbound queue, reset below like loop_max_gap_ms. The
+  // whole test of this version is that loop_max_gap_ms stays tiny even with the
+  // broker down; pub_drops/pub_queue_hw show the network backing up behind the
+  // queue while the loop keeps running.
+  char b[512];
   snprintf(b,sizeof(b),
     "{\"loop_max_gap_ms\":%lu,\"hall_task_max_gap_ms\":%lu,\"hall_task_age_ms\":%lu,"
     "\"baseline\":%d,\"raw\":%d,\"delta\":%d,\"queue_drops\":%lu,\"floor_rejects\":%lu,"
+    "\"queue_high_water\":%u,\"mqtt_connect_ms\":%lu,\"mqtt_attempts\":%lu,"
+    "\"pub_drops\":%lu,\"pub_queue_hw\":%u,"
     "\"nav\":\"%s\",\"mm\":%u,\"conf\":%d,\"pwm\":%d,"
     "\"lost_markers\":%u,\"lost_ms\":%lu,\"motor_dir\":\"%s\"}",
     loopMaxGapMs,(unsigned long)taskMaxGapMs,(unsigned long)(now-taskLastRunMs),
     baselineCounts,(int)lastRaw,(int)lastRaw-baselineCounts,
     queueDrops,floorRejects,
+    (unsigned)queueHighWater,(unsigned long)mqttConnectMs,(unsigned long)mqttAttempts,
+    (unsigned long)pubDrops,(unsigned)pubQueueHw,
     navState==NAV_TRACKING?"TRACKING":(navState==NAV_LOST?"LOST":"UNSET"),
     navMm,navConfidence,actualPwm,
     (unsigned)lostMarkers,
     (unsigned long)(navState==NAV_LOST?(now-lostSinceMs):0UL),
     motorDirection==DIRECTION_FORWARD?"FWD":(motorDirection==DIRECTION_REVERSE?"REV":"NEU"));
   pub(T_STAT,b);
-  loopMaxGapMs=0; taskMaxGapMs=0;
+  loopMaxGapMs=0; taskMaxGapMs=0; queueHighWater=0; pubQueueHw=0;
 }
 
 static void publishBootId(){
@@ -1314,10 +1372,12 @@ static void publishBootId(){
 // ===========================================================================
 // COMMANDS
 // ===========================================================================
-static void onMqtt(char* topic,byte* payload,unsigned int len){
-  char msg[64]; unsigned n=min(len,(unsigned)63);
-  memcpy(msg,payload,n); msg[n]=0;
-
+// Runs on the LOOP thread (via serviceCommands), so every handler below still
+// touches navMm, commandedPwm, sessionDir and the station machine on the thread
+// that owns them -- exactly as when onMqtt ran inside loop(). The only change is
+// where it is called from; the handler bodies are unchanged. This is why no
+// mutex is needed once MQTT moves to its own task.
+static void handleCommand(const char* topic,const char* msg){
   if(!strcmp(topic,T_CMD_SESSDIR)){
     // Same movement guard as cmd/direction: 2_1 flipped the pin here with no
     // check at all, so a manually reversing loco could be thrown over under
@@ -1464,27 +1524,81 @@ static void subscribeAll(){
   mqtt.subscribe(T_CMD_FORCELOST);
 }
 
-// Non-blocking. No while() waits anywhere in the network path — a stalled
-// reconnect used to blind the detector for tens of seconds.
+// The MQTT callback runs on the NETWORK task. It must not touch locomotive
+// state, so it only copies the command onto cmdQueue and returns; loop()'s
+// serviceCommands() runs the actual handler on the thread that owns the state.
+// Dropped if full -- commands are rare, and a backed-up command queue would mean
+// loop() itself is wedged, which is exactly what this change prevents.
+static void onMqttEnqueue(char* topic,byte* payload,unsigned int len){
+  CmdMsg c;
+  strlcpy(c.topic,topic,sizeof(c.topic));
+  unsigned n=min(len,(unsigned)(sizeof(c.payload)-1));
+  memcpy(c.payload,payload,n); c.payload[n]=0;
+  if(cmdQueue) xQueueSend(cmdQueue,&c,0);
+}
+
+// Drained on the LOOP thread, symmetric with drainMarkers(). Runs the existing
+// command handlers unchanged, so all locomotive state stays owned by loop().
+static void serviceCommands(){
+  CmdMsg c;
+  while(cmdQueue && xQueueReceive(cmdQueue,&c,0)==pdTRUE)
+    handleCommand(c.topic,c.payload);
+}
+
+// Reconnect, throttled to one attempt per 5 s. Behaviour is unchanged from the
+// v2.18 serviceNetwork(): time the connect, publish online/boot/alert, and
+// resubscribe. It runs ONLY on networkTask, so mqtt.connect() blocking here can
+// no longer stall loop(). (The online/boot/alert publishes go through pub(),
+// i.e. onto pubQueue, and are flushed by networkTask on its next pass.)
 static unsigned long nextMqttTryMs=0;
-static void serviceNetwork(){
-  if(WiFi.status()!=WL_CONNECTED) return;
-  if(mqtt.connected()){ mqtt.loop(); return; }
+static void attemptReconnect(){
   unsigned long now=millis();
   if(now<nextMqttTryMs) return;
   nextMqttTryMs=now+5000UL;
-  if(mqtt.connect(LOCO_NAME,T_ONLINE,0,true,"0")){
+  unsigned long t0=millis();
+  mqttAttempts++;
+  bool ok=mqtt.connect(LOCO_NAME,T_ONLINE,0,true,"0");
+  mqttConnectMs=millis()-t0;
+  if(ok){
     pub(T_ONLINE,"1",true);
     publishBootId();
     publishAlert(navState==NAV_LOST?"LOST":"CLEAR","MQTT_CONNECT");
-    subscribeAll();
+    subscribeAll();                    // mqtt.subscribe; reached only from here
     Serial.println("[NET] MQTT connected");
+  }
+}
+
+// The network task owns the radio exclusively: it is the ONLY place mqtt.loop()
+// and mqtt.publish() run, and it calls attemptReconnect() (mqtt.connect/
+// subscribe). Pinned to core 0 alongside the WiFi stack at priority 1 -- below
+// hallTask's 2, so magnet sampling always wins. 8192 stack: PubSubClient plus
+// WiFi needs more than hallTask's 4096.
+static void networkTask(void*){
+  for(;;){
+    if(WiFi.status()==WL_CONNECTED){
+      if(!mqtt.connected()){
+        attemptReconnect();            // may block; that is now harmless
+      }else{
+        mqtt.loop();
+        PubMsg m;
+        while(xQueueReceive(pubQueue,&m,0)==pdTRUE)
+          mqtt.publish(m.topic,m.payload,m.retain);
+      }
+    }
+    vTaskDelay(pdMS_TO_TICKS(10));
   }
 }
 
 // ===========================================================================
 static void drainMarkers(){
   MarkerEvent e;
+  // Sample occupancy BEFORE draining: this is how deep the queue got while the
+  // previous loop pass was busy (e.g. blocked in serviceNetwork). Windowed max,
+  // reset by publishStat.
+  if(eventQueue){
+    UBaseType_t waiting=uxQueueMessagesWaiting(eventQueue);
+    if(waiting>queueHighWater) queueHighWater=(uint16_t)waiting;
+  }
   while(eventQueue && xQueueReceive(eventQueue,&e,0)==pdTRUE){
     navOnMarker(e);
     char b[224];
@@ -1521,11 +1635,20 @@ void setup(){
   buildTopics();
   calibrate();
 
-  eventQueue=xQueueCreate(32,sizeof(MarkerEvent));
+  // 256 slots is ~5 min of headroom at cruise (~1.1 s/marker), up from the 32
+  // (~35 s) that overflowed and destroyed 67 marker events on 2026-07-29. This
+  // does not fix a stall; it converts a data-destroying failure into a merely
+  // delayed one -- survivable, because detectedAtMs is stamped at detection.
+  eventQueue=xQueueCreate(256,sizeof(MarkerEvent));
   if(!eventQueue){ Serial.println("[FATAL] queue alloc failed"); while(1) delay(1000); }
   if(xTaskCreatePinnedToCore(hallTask,"hallTask",4096,nullptr,2,nullptr,0)!=pdPASS){
     Serial.println("[FATAL] hall task creation failed"); while(1) delay(1000);
   }
+
+  // The two MQTT queues must exist before pub() or the callback can be reached.
+  pubQueue=xQueueCreate(32,sizeof(PubMsg));   // ~17 KB
+  cmdQueue=xQueueCreate(16,sizeof(CmdMsg));
+  if(!pubQueue||!cmdQueue){ Serial.println("[FATAL] mqtt queue alloc failed"); while(1) delay(1000); }
 
   WiFi.mode(WIFI_STA);
   WiFi.setAutoReconnect(true);
@@ -1534,8 +1657,23 @@ void setup(){
   WiFi.begin(WIFI_SSID,WIFI_PASS);
   mqtt.setServer(MQTT_BROKER,MQTT_PORT);
   mqtt.setSocketTimeout(2);
-  mqtt.setCallback(onMqtt);
+  // Bound the underlying TCP connect. On the installed ESP32 core (3.3.11)
+  // WiFiClient is a typedef of NetworkClient, whose connect() timeout is set by
+  // setConnectionTimeout(MILLISECONDS) -- NOT by setTimeout(), which on this
+  // core is the inherited Stream read timeout and has no effect on connect().
+  // The core default is already 3000 ms, so this is belt-and-suspenders and
+  // makes the 3 s bound explicit and version-independent. See the v2.18 notes:
+  // the 33 s stalls were almost certainly measured on an older 2.x core, where
+  // the connect default was ~30 s and setTimeout()'s units were seconds.
+  espClient.setConnectionTimeout(3000);   // ms; yields the ~3 s the spec asked for
+  mqtt.setCallback(onMqttEnqueue);        // callback only enqueues; loop() runs handlers
   mqtt.setBufferSize(2048);
+
+  // MQTT now lives entirely on its own task. loop() never calls a mqtt.* function
+  // again, so a degraded link can no longer stall navigation.
+  if(xTaskCreatePinnedToCore(networkTask,"net",8192,nullptr,1,nullptr,0)!=pdPASS){
+    Serial.println("[FATAL] network task creation failed"); while(1) delay(1000);
+  }
 
   Serial.println("[BOOT] ready. Set session_direction, then start_mm, then auto, then GO.");
 }
@@ -1547,7 +1685,11 @@ void loop(){
   if(gap>loopMaxGapMs) loopMaxGapMs=gap;
   loopPrevMs=now;
 
-  serviceNetwork();
+  // Not one of these can block on the network: MQTT runs on networkTask, and
+  // every publish site only enqueues. serviceCommands() drains inbound commands
+  // first (symmetric with the outbound queue) so a command and the markers it
+  // affects are processed in the same pass, on this one thread.
+  serviceCommands();
   drainMarkers();
   serviceStatusBroadcast();
   serviceWarningExpiry();

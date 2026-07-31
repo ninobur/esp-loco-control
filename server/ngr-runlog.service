@@ -1,0 +1,15 @@
+[Unit]
+Description=NGR per-run MQTT telemetry logger
+After=network.target mosquitto.service
+Wants=mosquitto.service
+
+[Service]
+Type=simple
+User=david
+WorkingDirectory=/home/david/NGR/telemetry
+ExecStart=/usr/bin/python3 /home/david/NGR/telemetry/ngr_runlog.py
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
