@@ -1,6 +1,6 @@
 /*
  * ============================================================================
- * SOLONAV_2_17  —  Ninobur Garden Railway single-locomotive navigation
+ * SOLONAV_2_21  —  Ninobur Garden Railway single-locomotive navigation
  * ============================================================================
  *
  * A locomotive that knows where it has been, where it is, and what is
@@ -79,7 +79,7 @@
 #include <pgmspace.h>
 #include "LocoConfig.h"
 
-#define SKETCH_NAME "SOLONAV_2_19"
+#define SKETCH_NAME "SOLONAV_2_21"
 
 // Broker lives here, not in LocoConfig.h — same as the previous lineage.
 #define MQTT_BROKER "192.168.68.142"
@@ -389,7 +389,13 @@ static const uint8_t  CRUISE_PWM       = 100;   // raised so the LOST drop to 60
 static const uint8_t  STATION_ZONE_PWM = 60;
 static const uint16_t NORMAL_STEP_MS   = 150;
 
-static bool         autoEnrolled=false, autoRunning=false, estopped=false;
+static bool         autoEnrolled=false, autoRunning=false;
+// `estopped` is written from BOTH threads: the loop-thread command handler and,
+// as of v2.20, directly from the network task's MQTT callback so that engaging
+// E-stop never waits on the command queue (see onMqttEnqueue). Single volatile
+// bool, one writer path at a time, read every loop() pass by servicePwmRamp --
+// safe on ESP32 without a lock.
+static volatile bool estopped=false;
 static StationPhase stPhase=ST_IDLE;
 
 static void requestPwm(int target,uint16_t stepMs);
@@ -1061,6 +1067,24 @@ static PubSubClient mqtt(espClient);
 static QueueHandle_t pubQueue=nullptr, cmdQueue=nullptr;
 static uint32_t      pubDrops=0;
 static uint16_t      pubQueueHw=0;
+// CHANGE 1 (v2.21) — markers get their OWN publish queue. On 2026-07-30 the
+// single 32-slot pubQueue, evicting its OLDEST entry when full, dropped 22,774
+// telemetry messages and tore visible holes in the marker stream (MM154->MM145
+// in one step). Status is re-sent within a second and its stale value is worth
+// evicting; a marker event happens once and cannot be re-derived. They must not
+// share a queue. markerPubDrops is cumulative; markerPubHw is the windowed max
+// occupancy, both reported in loopstat and reset like their pubQueue twins.
+static QueueHandle_t markerPubQueue=nullptr;
+static uint32_t      markerPubDrops=0;
+static uint16_t      markerPubHw=0;
+// Change 4 (v2.20). cmdDrops: inbound commands lost to a full cmdQueue. Written
+// on the network task (onMqttEnqueue), read on the loop thread (publishStat) --
+// volatile. A dropped command must never be silent; v2.19 ignored the send
+// result entirely. pubWindowCount: publish calls in the current loopstat window,
+// bumped in pub() and reset each publishStat, reported as pub_per_s. If Change 3
+// works this drops from ~12/s to ~1/s parked.
+static volatile uint32_t cmdDrops=0;
+static volatile uint32_t pubWindowCount=0;
 
 static char T_ONLINE[64],T_NAV[64],T_MARKER[64],T_STATION[64],T_STAT[64],T_BOOT[64],T_ALERT[64];
 
@@ -1126,6 +1150,7 @@ static void buildTopics(){
 // was.
 static void pub(const char* t,const char* m,bool retain=false){
   if(!pubQueue) return;
+  pubWindowCount++;                        // Change 4: counted for pub_per_s
   PubMsg msg; msg.topic=t; msg.retain=retain;
   strlcpy(msg.payload,m,sizeof(msg.payload));
   if(xQueueSend(pubQueue,&msg,0)!=pdTRUE){
@@ -1136,6 +1161,24 @@ static void pub(const char* t,const char* m,bool retain=false){
   }
   UBaseType_t w=uxQueueMessagesWaiting(pubQueue);
   if(w>pubQueueHw) pubQueueHw=(uint16_t)w;
+}
+
+// The marker-only door. Same enqueue-and-return contract as pub(), but onto
+// markerPubQueue and NEVER retained -- mm/marker is an event stream.
+//
+// DROP-NEWEST, not drop-oldest, and the asymmetry with pub() is deliberate. A
+// contiguous run of markers with a gap only at the END is reconstructable from
+// dead reckoning; a run with holes scattered through it is not. So if this queue
+// ever fills we refuse the newcomer rather than evict a delivered-in-order
+// backlog, and markerPubDrops records exactly how many are missing.
+static void pubMarker(const char* t,const char* m){
+  if(!markerPubQueue) return;
+  pubWindowCount++;                        // counts toward pub_per_s like pub()
+  PubMsg msg; msg.topic=t; msg.retain=false;
+  strlcpy(msg.payload,m,sizeof(msg.payload));
+  if(xQueueSend(markerPubQueue,&msg,0)!=pdTRUE) markerPubDrops++;   // drop NEWEST
+  UBaseType_t w=uxQueueMessagesWaiting(markerPubQueue);
+  if(w>markerPubHw) markerPubHw=(uint16_t)w;
 }
 
 static void navPublishState(const char* ev,const MarkerEvent* e){
@@ -1281,36 +1324,93 @@ static void serviceStatusBroadcast(){
   publishAlert(level,"STATUS");
 }
 
-static void pubInt(const char* t,int v){ char b[12]; snprintf(b,sizeof(b),"%d",v); pub(t,b); }
-
 static uint8_t startIntervalA=0, startIntervalB=0;
 static bool     haveStartInterval=false;
 
-// Published once a second. These are cheap now: pub() only enqueues, so this is
-// eight small memcpys, not eight socket writes. Publish-on-change is a separate
-// change (v2.20); this version deliberately leaves the cadence alone.
+// The current start_interval string ("AAA-BBB" or "000-000"), written by both
+// the on-change publisher and the connect-time republish.
+static void formatStartInterval(char* out,size_t n){
+  if(haveStartInterval) snprintf(out,n,"%03u-%03u",startIntervalA,startIntervalB);
+  else                  snprintf(out,n,"000-000");
+}
+
+// ---------------------------------------------------------------------------
+// CHANGE 3 (v2.20) — DASHBOARD STATE IS PUBLISHED ON CHANGE, RETAINED.
+//
+// v2.19's publishSimpleStates() emitted ten messages every second regardless of
+// whether anything moved. That is what saturated pubQueue on 2026-07-30 and left
+// the E-stop unread in a socket buffer. Now each topic is published only when its
+// value changes, with the retain flag set, so a subscriber -- including a
+// dashboard refreshed mid-run -- gets the current value from the broker on
+// connect. The per-second broadcast was standing in for exactly that.
+//
+// The 1000 ms gate below stays, as a CEILING on values that change fast:
+// start_mm ticks every marker and throttle every ramp step, and neither needs
+// sub-second resolution on a status topic.
+//
+// RETAINED-STATE HAZARD: these retained values OUTLIVE the locomotive -- the
+// broker serves the last one to any late subscriber even after the loco is off.
+// The retained `online` flag, driven to "0" by the MQTT last will, is what makes
+// them interpretable: any consumer MUST treat all of this state as stale when
+// online is 0.
+// ---------------------------------------------------------------------------
+
+// Publish an int state topic retained, but only when it differs from last time.
+// `*last` starts at -1, which none of these states ever takes (all are >=0), so
+// the first call after boot publishes once.
+static void pubStateIntChanged(const char* t,int v,int* last){
+  if(v==*last) return;
+  *last=v; char b[12]; snprintf(b,sizeof(b),"%d",v); pub(t,b,true);
+}
+// Same, for a string state topic.
+static void pubStateStrChanged(const char* t,const char* v,char* last,size_t lastSz){
+  if(!strcmp(v,last)) return;
+  strlcpy(last,v,lastSz); pub(t,v,true);
+}
+
+// Last-published values for the eight changing states. Ints seeded to -1 (an
+// impossible value) so each publishes once at boot; strings seeded empty.
+static int  lastThrottle=-1,lastDirection=-1,lastEstop=-1,
+            lastAuto=-1,lastStartMm=-1,lastNavReady=-1;
+static char lastSessDir[8]="", lastStartInt[12]="";
+
 static unsigned long lastSimpleMs=0;
 static void publishSimpleStates(){
   unsigned long now=millis();
-  if(now-lastSimpleMs < 1000UL) return;
+  if(now-lastSimpleMs < 1000UL) return;   // ceiling on the fast-changing values
   lastSimpleMs=now;
-  pubInt(T_ST_THROTTLE ,commandedPwm);
-  pubInt(T_ST_DIRECTION,motorDirection);
-  pubInt(T_ST_BRAKE    ,0);                       // no brake channel in SOLONAV
-  pubInt(T_ST_ESTOP    ,estopped?1:0);
-  pubInt(T_ST_AUTO     ,autoEnrolled?1:0);
-  pub  (T_ST_SESSDIR   ,dirName(sessionDir));     // "CW" / "CCW" / "UNSET"
-  {
-    char si[12];
-    if(haveStartInterval) snprintf(si,sizeof(si),"%03u-%03u",startIntervalA,startIntervalB);
-    else                  snprintf(si,sizeof(si),"000-000");
-    pub(T_ST_STARTINT,si);
-  }
-  pubInt(T_ST_STARTMM  ,navMm);
-  pubInt(T_ST_MHE      ,0);                       // no CTO hold eligibility yet
+  pubStateIntChanged(T_ST_THROTTLE ,commandedPwm,      &lastThrottle);
+  pubStateIntChanged(T_ST_DIRECTION,motorDirection,    &lastDirection);
+  pubStateIntChanged(T_ST_ESTOP    ,estopped?1:0,      &lastEstop);
+  pubStateIntChanged(T_ST_AUTO     ,autoEnrolled?1:0,  &lastAuto);
+  pubStateStrChanged(T_ST_SESSDIR  ,dirName(sessionDir),lastSessDir,sizeof(lastSessDir));
+  { char si[12]; formatStartInterval(si,sizeof(si));
+    pubStateStrChanged(T_ST_STARTINT,si,lastStartInt,sizeof(lastStartInt)); }
+  pubStateIntChanged(T_ST_STARTMM  ,navMm,             &lastStartMm);
   // The console unlocks the throttle on this: a declared direction and a
   // position it can name.
-  pubInt(T_ST_NAVREADY ,(sessionDir!=MAP_UNSET && navState==NAV_TRACKING)?1:0);
+  pubStateIntChanged(T_ST_NAVREADY ,(sessionDir!=MAP_UNSET && navState==NAV_TRACKING)?1:0,&lastNavReady);
+}
+
+// CHANGE 3c (v2.20) — republish ALL ten state topics, retained, on every
+// successful MQTT connect (called from attemptReconnect right after online=1).
+// Ten writes per reconnect instead of ten per second, and it reseeds a broker
+// that restarted without persisting its retained store. The two inert channels
+// (brake, must_hold_eligible) live ONLY here now -- one retained zero at connect
+// rather than the 86,400 a day v2.19 sent for hardware that does not exist.
+static void publishAllStatesRetained(){
+  char b[12];
+  snprintf(b,sizeof(b),"%d",commandedPwm);     pub(T_ST_THROTTLE ,b,true);
+  snprintf(b,sizeof(b),"%d",motorDirection);   pub(T_ST_DIRECTION,b,true);
+  pub(T_ST_BRAKE,"0",true);                     // no brake channel in SOLONAV
+  snprintf(b,sizeof(b),"%d",estopped?1:0);     pub(T_ST_ESTOP    ,b,true);
+  snprintf(b,sizeof(b),"%d",autoEnrolled?1:0); pub(T_ST_AUTO     ,b,true);
+  pub(T_ST_SESSDIR,dirName(sessionDir),true);
+  { char si[12]; formatStartInterval(si,sizeof(si)); pub(T_ST_STARTINT,si,true); }
+  snprintf(b,sizeof(b),"%d",navMm);            pub(T_ST_STARTMM  ,b,true);
+  pub(T_ST_MHE,"0",true);                       // no CTO hold eligibility yet
+  snprintf(b,sizeof(b),"%d",(sessionDir!=MAP_UNSET && navState==NAV_TRACKING)?1:0);
+  pub(T_ST_NAVREADY,b,true);
 }
 
 static unsigned long loopMaxGapMs=0, lastStatMs=0;
@@ -1335,26 +1435,33 @@ static void publishStat(){
   // whole test of this version is that loop_max_gap_ms stays tiny even with the
   // broker down; pub_drops/pub_queue_hw show the network backing up behind the
   // queue while the loop keeps running.
+  // Change 4 (v2.20). cmd_drops: cumulative inbound commands lost to a full
+  // cmdQueue -- must never be silent. pub_per_s: publish calls in the window just
+  // ended, read before the reset below (the T_STAT publish that follows counts
+  // toward the next window). Expected ~12/s before Change 3, ~1/s parked after.
+  uint32_t pubPerS=pubWindowCount;
   char b[512];
   snprintf(b,sizeof(b),
     "{\"loop_max_gap_ms\":%lu,\"hall_task_max_gap_ms\":%lu,\"hall_task_age_ms\":%lu,"
     "\"baseline\":%d,\"raw\":%d,\"delta\":%d,\"queue_drops\":%lu,\"floor_rejects\":%lu,"
     "\"queue_high_water\":%u,\"mqtt_connect_ms\":%lu,\"mqtt_attempts\":%lu,"
-    "\"pub_drops\":%lu,\"pub_queue_hw\":%u,"
+    "\"pub_drops\":%lu,\"pub_queue_hw\":%u,\"cmd_drops\":%lu,\"pub_per_s\":%lu,"
+    "\"marker_pub_drops\":%lu,\"marker_pub_hw\":%u,"
     "\"nav\":\"%s\",\"mm\":%u,\"conf\":%d,\"pwm\":%d,"
     "\"lost_markers\":%u,\"lost_ms\":%lu,\"motor_dir\":\"%s\"}",
     loopMaxGapMs,(unsigned long)taskMaxGapMs,(unsigned long)(now-taskLastRunMs),
     baselineCounts,(int)lastRaw,(int)lastRaw-baselineCounts,
     queueDrops,floorRejects,
     (unsigned)queueHighWater,(unsigned long)mqttConnectMs,(unsigned long)mqttAttempts,
-    (unsigned long)pubDrops,(unsigned)pubQueueHw,
+    (unsigned long)pubDrops,(unsigned)pubQueueHw,(unsigned long)cmdDrops,(unsigned long)pubPerS,
+    (unsigned long)markerPubDrops,(unsigned)markerPubHw,
     navState==NAV_TRACKING?"TRACKING":(navState==NAV_LOST?"LOST":"UNSET"),
     navMm,navConfidence,actualPwm,
     (unsigned)lostMarkers,
     (unsigned long)(navState==NAV_LOST?(now-lostSinceMs):0UL),
     motorDirection==DIRECTION_FORWARD?"FWD":(motorDirection==DIRECTION_REVERSE?"REV":"NEU"));
   pub(T_STAT,b);
-  loopMaxGapMs=0; taskMaxGapMs=0; queueHighWater=0; pubQueueHw=0;
+  loopMaxGapMs=0; taskMaxGapMs=0; queueHighWater=0; pubQueueHw=0; markerPubHw=0; pubWindowCount=0;
 }
 
 static void publishBootId(){
@@ -1534,7 +1641,22 @@ static void onMqttEnqueue(char* topic,byte* payload,unsigned int len){
   strlcpy(c.topic,topic,sizeof(c.topic));
   unsigned n=min(len,(unsigned)(sizeof(c.payload)-1));
   memcpy(c.payload,payload,n); c.payload[n]=0;
-  if(cmdQueue) xQueueSend(cmdQueue,&c,0);
+
+  // CHANGE 1 (v2.20) — ENGAGING E-stop must not depend on the command queue.
+  // servicePwmRamp() clamps the motor to zero every loop() pass while `estopped`
+  // is set, so raising the flag HERE -- on the network task, before anything is
+  // enqueued -- stops the locomotive within ~35 ms even if cmdQueue is full and
+  // the queued handler below is lost. This is the single most important change in
+  // this version: on 2026-07-30 the E-stop sat unread and Otto could not be
+  // stopped. Only ENGAGING bypasses; CLEARING stays queued (below) so resuming
+  // motion is deliberate and runs the full handler.
+  if(!strcmp(c.topic,T_CMD_ESTOP) && atoi(c.payload)!=0) estopped=true;
+
+  // Fall through and ALSO enqueue, so the full handler still runs (NEUTRAL,
+  // autoRunning=false, stationReset, the alert). If this send is dropped the
+  // locomotive has still stopped. CHANGE 4: count the loss -- v2.19 ignored the
+  // send result, so a dropped command was silent.
+  if(cmdQueue && xQueueSend(cmdQueue,&c,0)!=pdTRUE) cmdDrops++;
 }
 
 // Drained on the LOOP thread, symmetric with drainMarkers(). Runs the existing
@@ -1561,6 +1683,7 @@ static void attemptReconnect(){
   mqttConnectMs=millis()-t0;
   if(ok){
     pub(T_ONLINE,"1",true);
+    publishAllStatesRetained();        // Change 3c: reseed all ten state topics
     publishBootId();
     publishAlert(navState==NAV_LOST?"LOST":"CLEAR","MQTT_CONNECT");
     subscribeAll();                    // mqtt.subscribe; reached only from here
@@ -1579,13 +1702,37 @@ static void networkTask(void*){
       if(!mqtt.connected()){
         attemptReconnect();            // may block; that is now harmless
       }else{
+        // CHANGE 2 (v2.20) — inbound FIRST, every pass, and the outbound drain is
+        // BOUNDED. v2.19 read inbound once, then drained up to 32 blocking
+        // publishes through a degraded socket before reading again; on 2026-07-30
+        // that left cmd/estop unread while the queue stayed pinned full. At most 4
+        // publishes per pass with a 5 ms tick gives ~200 inbound polls/s that
+        // outbound congestion can no longer starve.
+        //
+        // Do NOT raise the 4 to clear a backlog faster: a persistent backlog means
+        // the link cannot carry the traffic, and the fix for that is publish-on-
+        // change (Change 3), not a bigger gulp that re-creates the starvation.
         mqtt.loop();
         PubMsg m;
-        while(xQueueReceive(pubQueue,&m,0)==pdTRUE)
+        // CHANGE 2 (v2.21) — markers drain FIRST and UNCAPPED. They arrive at
+        // ~1/s while this loop runs at ~200/s, so the queue is normally empty;
+        // the only time it holds several is right after a stall, and then every
+        // one of them should go out at once rather than trickle 4 per pass behind
+        // status. Uncapped is safe precisely because the arrival rate is so far
+        // below the drain rate. Markers may starve status; status must never
+        // starve markers -- that inversion is the whole point of the split.
+        while(xQueueReceive(markerPubQueue,&m,0)==pdTRUE)
+          mqtt.publish(m.topic,m.payload,false);   // mm/marker is never retained
+        // Status keeps its bounded drain (Change 2, v2.20): at most 4 per pass so
+        // a congested outbound queue cannot starve inbound mqtt.loop().
+        uint8_t n=0;
+        while(n<4 && xQueueReceive(pubQueue,&m,0)==pdTRUE){
           mqtt.publish(m.topic,m.payload,m.retain);
+          n++;
+        }
       }
     }
-    vTaskDelay(pdMS_TO_TICKS(10));
+    vTaskDelay(pdMS_TO_TICKS(5));
   }
 }
 
@@ -1607,7 +1754,7 @@ static void drainMarkers(){
       "\"drift\":%d,\"dt\":%u,\"conf\":%d}",
       navMm,landmarkAt(navMm),polChar(e.polarity),e.peak,e.durationMs,
       e.baselineDrift,lastSegmentDt,navConfidence);
-    pub(T_MARKER,b);
+    pubMarker(T_MARKER,b);   // dedicated queue; status can no longer evict it
   }
 }
 
@@ -1645,10 +1792,14 @@ void setup(){
     Serial.println("[FATAL] hall task creation failed"); while(1) delay(1000);
   }
 
-  // The two MQTT queues must exist before pub() or the callback can be reached.
-  pubQueue=xQueueCreate(32,sizeof(PubMsg));   // ~17 KB
+  // The MQTT queues must exist before pub()/pubMarker() or the callback can be
+  // reached. markerPubQueue (v2.21): 64 slots at 512 B is ~33 KB -- a minute of
+  // markers at cruise, affordable at 15% RAM. pubQueue stays 32: it filling
+  // under a degraded link is correct behaviour, not the problem.
+  pubQueue=xQueueCreate(32,sizeof(PubMsg));         // ~17 KB
+  markerPubQueue=xQueueCreate(64,sizeof(PubMsg));   // ~33 KB, markers only
   cmdQueue=xQueueCreate(16,sizeof(CmdMsg));
-  if(!pubQueue||!cmdQueue){ Serial.println("[FATAL] mqtt queue alloc failed"); while(1) delay(1000); }
+  if(!pubQueue||!markerPubQueue||!cmdQueue){ Serial.println("[FATAL] mqtt queue alloc failed"); while(1) delay(1000); }
 
   WiFi.mode(WIFI_STA);
   WiFi.setAutoReconnect(true);
