@@ -1,6 +1,6 @@
 /*
  * ============================================================================
- * SOLONAV_2_21  —  Ninobur Garden Railway single-locomotive navigation
+ * SOLONAV_2_22  —  Ninobur Garden Railway single-locomotive navigation
  * ============================================================================
  *
  * A locomotive that knows where it has been, where it is, and what is
@@ -79,7 +79,7 @@
 #include <pgmspace.h>
 #include "LocoConfig.h"
 
-#define SKETCH_NAME "SOLONAV_2_21"
+#define SKETCH_NAME "SOLONAV_2_22"
 
 // Broker lives here, not in LocoConfig.h — same as the previous lineage.
 #define MQTT_BROKER "192.168.68.142"
@@ -1714,15 +1714,32 @@ static void networkTask(void*){
         // change (Change 3), not a bigger gulp that re-creates the starvation.
         mqtt.loop();
         PubMsg m;
-        // CHANGE 2 (v2.21) — markers drain FIRST and UNCAPPED. They arrive at
-        // ~1/s while this loop runs at ~200/s, so the queue is normally empty;
-        // the only time it holds several is right after a stall, and then every
-        // one of them should go out at once rather than trickle 4 per pass behind
-        // status. Uncapped is safe precisely because the arrival rate is so far
-        // below the drain rate. Markers may starve status; status must never
-        // starve markers -- that inversion is the whole point of the split.
-        while(xQueueReceive(markerPubQueue,&m,0)==pdTRUE)
-          mqtt.publish(m.topic,m.payload,false);   // mm/marker is never retained
+        // CHANGE F1/F2 (v2.22, CODEX R19 findings 3+4) — markers drain FIRST via
+        // PEEK-PUBLISH-REMOVE, capped at 8. v2.21 removed the marker from the
+        // queue and then ignored whether mqtt.publish() succeeded, so a publish
+        // that failed locally deleted the evidence with marker_pub_drops still 0
+        // -- the exact signature of this morning's outage test, where markers 24
+        // and 23 vanished at the seam. Now the marker leaves the queue ONLY after
+        // mqtt.publish() reports success; a local failure leaves it queued, stops
+        // this pass's drain, and retries next pass. QoS 0 still cannot prove
+        // broker receipt (the socket-buffer seam at outage onset can still eat
+        // ~2 markers), but every locally DETECTABLE failure now retries instead
+        // of silently discarding.
+        //
+        // The cap of 8 replaces v2.21's uncapped drain: 64 sequential socket
+        // writes on a degraded link could hold this task away from mqtt.loop(),
+        // delaying inbound E-stop reception. 8 per pass clears a full 64-marker
+        // backlog in 8 passes of this ~200 Hz task while bounding the gap
+        // between mqtt.loop() calls. Order unchanged: inbound first, markers
+        // before status, status keeps its cap of 4.
+        uint8_t nm=0;
+        while(nm<8 && xQueuePeek(markerPubQueue,&m,0)==pdTRUE){
+          if(!mqtt.publish(m.topic,m.payload,false)) break;
+              // publish failed locally: leave the marker queued,
+              // stop draining this pass, retry next pass
+          xQueueReceive(markerPubQueue,&m,0);   // remove ONLY after success
+          nm++;
+        }
         // Status keeps its bounded drain (Change 2, v2.20): at most 4 per pass so
         // a congested outbound queue cannot starve inbound mqtt.loop().
         uint8_t n=0;

@@ -1,9 +1,9 @@
 # QUORUM — SOLONAV v3.0 implementation specification
 
-**Repo:** `~/esp-loco-control` **File:** `firmware/SOLONAV/SOLONAV.ino` **Tag:** v2.21 → v3.0
+**Repo:** `~/esp-loco-control` **File:** `firmware/SOLONAV/SOLONAV.ino` **Tag:** v2.22 → v3.0
 **Navigator name:** QUORUM **SKETCH_NAME:** `"SOLONAV_3_0_QUORUM"`
 
-Revision 19. Thirteen review rounds with Sam (ChatGPT), then one with CODEX
+Revision 20. Thirteen review rounds with Sam (ChatGPT), then one with CODEX
 reading against the actual source — which found four criticals thirteen rounds
 of text review could not, because they live in the seams between this document
 and `SOLONAV.ino`.
@@ -59,6 +59,19 @@ new §5.1 assigns every QUORUM publish to its queue — in particular the retain
 `NO_QUORUM` snapshot stays on `pub()` because `pubMarker()` forces
 `retain=false` — and §8 verifies the assignment.
 
+**R20** — CODEX round 4, seven findings, all transport/consistency; navigator
+logic unchanged and §§1–4, 6, 7 remain as certified. The R19 claim that the
+retain flag protects the terminal snapshot was false — retain acts at the
+broker, not in the local drop-oldest queue — so §2.5 now specifies a desired
+retained-state mechanism outside every queue, and §8's impossible eviction test
+is replaced by the reconciliation test the mechanism actually passes. §0.1 and
+§5.1 disagreed on whether scores ride `mm/marker`; the payload contract is now
+stated once, exactly, with the `char b[320]` arithmetic shown. §2.5's station
+reset names the existing `stationReset()` rather than a nonexistent overshoot
+counter. Rebased onto v2.22, whose peek-publish-remove marker drain (capped at
+8) closes the silent-discard hole CODEX finding 3 predicted and the 2026-07-31
+outage test confirmed — markers 24 and 23 lost with `marker_pub_drops` reading 0.
+
 ---
 
 ## The model, in one paragraph
@@ -85,7 +98,7 @@ fact available at reading five.
 
 ## §0 Scope
 
-**Baseline: v2.21.** This is written against a sketch in which `loop()` cannot be
+**Baseline: v2.22.** This is written against a sketch in which `loop()` cannot be
 blocked by the network. MQTT lives on its own task; `pub()` enqueues and returns;
 the inbound command path is a queue drained by `loop()`. Measured after that
 change: worst `loop_max_gap_ms` 80 ms across 1,117 samples, against 94,033 ms
@@ -93,17 +106,23 @@ before it.
 
 v2.20 added the E-stop bypass (volatile flag, not the command queue) and bounded
 the status drain to 4 per pass. v2.21 split marker events onto their own
-publish queue — `pubMarker()` into `markerPubQueue` (64 slots, drop-newest),
-drained first and uncapped by `networkTask()` — after status traffic on the
-shared queue evicted markers wholesale on 2026-07-30. Status telemetry can be
+publish queue — `pubMarker()` into `markerPubQueue` (64 slots, drop-newest) —
+after status traffic on the shared queue evicted markers wholesale on
+2026-07-30. v2.22 hardened that drain: `networkTask()` now drains markers by
+**peek-publish-remove** — a marker leaves the queue only after `mqtt.publish()`
+reports success, so a locally detectable publish failure retries next pass
+instead of silently deleting the event — and the drain is **capped at 8 per
+pass**, bounding the gap between `mqtt.loop()` calls so a marker backlog on a
+degraded link cannot delay inbound E-stop reception. Status telemetry can be
 dropped and re-sent; marker events happen once. The navigator publishes into
 both paths, and §5.1 says which is which.
 
 That matters for QUORUM specifically. The navigator's value is deciding in three
 markers and acting on the sixth. Under the previous architecture a decision could
 be reached and take ninety seconds to reach the throttle, which is worse than the
-tally it replaces, because you would trust it. **Do not implement this on any
-sketch older than v2.21.**
+tally it replaces, because you would trust it. And the terminal-evidence
+guarantees in §2.5 assume a transport that does not discard on locally
+detectable failure. **Do not implement this on any sketch older than v2.22.**
 
 Rewrite **LAYER 3 — NAVIGATOR** (lines ~390–670) in full.
 
@@ -119,7 +138,7 @@ the station state machine's logic, or the PWM authority rules
 
 | Location | Change |
 |---|---|
-| `drainMarkers()` | add `dt_expected`, `dt_conserve_ratio` to the marker payload; raise `char b[224]` → 320 |
+| `drainMarkers()` | marker payload becomes exactly the §5.1 contract: existing raw event fields plus `timing_gate`, `dt_expected`, `dt_conserve_ratio` (`dt` is already present; `conf` is deleted with `navConfidence`). **Scores do not ride this message** — they ride the QUORUM decision events (§5.1). Raise `char b[224]` → 320; arithmetic in §5.1 |
 | `navPublishState()` | add `nav_state`, `miss_streak`, score vector, lead offset, margin; raise `char b[384]` → 512 |
 | `cruiseForPosition()` | remove `navState==NAV_TRACKING` from the guard, keep `navDir!=MAP_UNSET` |
 | `struct MarkerEvent` + `detectorSample()` | add `uint8_t pwmActualAtDetect, pwmCommandedAtDetect`; capture **at event open**, alongside the existing `evStartBaseline` — see §3 |
@@ -504,24 +523,23 @@ requestPwm(0, NORMAL_STEP_MS)          // controlled stop
 **Retain** `navMm`, `navDir`, `autoRunning`, last-confirmed, and the evidence.
 Nothing is cleared. AUTO is not dropped, but the locomotive does not resume.
 
-**On entry, in this order.** Note that under v2.19 the snapshot publish is an
-enqueue into `pubQueue` and returns in microseconds, so publishing before
-requesting the stop costs nothing. On any earlier sketch this ordering would have
-been wrong — a blocking 1 KB publish ahead of the stop request is precisely the
-failure this project spent 2026-07-30 removing. **If the publish path is ever
-made synchronous again, this order must be reversed.**
+**On entry, in this order.** Step 1 is now a RAM write — it records the snapshot
+into the desired-retained-state slot described below; nothing is enqueued and
+nothing can block — so establishing it before requesting the stop costs nothing.
+**If this mechanism is ever replaced by a synchronous publish, this order must
+be reversed.**
 
 1. **Snapshot the terminal evidence, before anything can overwrite it.** The ring
    holds only `QUORUM_MAX` entries, so deceleration events would otherwise
    destroy the very evidence that caused the stop — "nothing is cleared" is not
-   the same as "everything is preserved." Publish once to the marker log topic:
-   the full score vector, the exclusion flags, all retained ring entries with
-   their polarities and `navMm` values, leader, runner-up, margin, and
-   `evalCount`. **One message, one topic, published RETAINED to
-   `ngr/loco/<id>/mm/no_quorum`.**
+   the same as "everything is preserved." Snapshot once: the full score vector,
+   the exclusion flags, all retained ring entries with their polarities and
+   `navMm` values, leader, runner-up, margin, and `evalCount`. **One message,
+   one topic, `ngr/loco/<id>/mm/no_quorum`, retained — delivered through the
+   desired-retained-state mechanism below, never through a queue.**
 
-   **It must fit 512 bytes**, because v2.19's `PubMsg::payload` is
-   `char[512]` and `pub()` copies with `strlcpy()` — anything longer truncates
+   **It must fit 512 bytes**, matching `PubMsg::payload` (`char[512]`) so the
+   same buffer discipline applies everywhere — anything longer truncates
    silently. Do NOT enlarge `PubMsg`: 32 slots at 1024 costs ~16 KB of RAM for a
    message published perhaps once a month. Encode compactly instead:
 
@@ -539,21 +557,40 @@ made synchronous again, this order must be reversed.**
    `SNAPSHOT_TRUNCATED` alert if it is not. A silently truncated forensic record
    is worse than a missing one.
 
-   **Retained, because it must survive the failure it documents.** v2.19's
-   `pubQueue` drops the OLDEST entry when full. If `NO_QUORUM` fires while the
-   broker is unreachable — which is exactly when it is most likely — the
-   snapshot enters the queue once, ordinary status traffic accumulates behind
-   it, and the snapshot is the first thing evicted. The only complete record of
-   why the locomotive stopped would be discarded by the mechanism protecting
-   navigation.
+   **The desired-retained-state mechanism.** R19 claimed the retain flag
+   protected this snapshot in transit. That was false: retain is an instruction
+   to the *broker* and takes effect only after the broker receives the publish.
+   While the snapshot sat in the local drop-oldest `pubQueue` it was an
+   ordinary, evictable entry — and `NO_QUORUM` fires preferentially when the
+   broker is unreachable, which is exactly when that queue is churning.
 
-   Retained also survives the locomotive being switched off, which an in-RAM
-   pending slot does not, and it matches `alert`, which is already retained.
+   The snapshot therefore never enters a queue. One protected variable, outside
+   every queue, holds the desired retained state of the `mm/no_quorum` topic:
 
-   **Clear it on `navDeclare()`** — publish an empty retained payload to the
-   same topic. Otherwise it lingers as a ghost, exactly like the CTO2 r10
-   retained relics that were briefly mistaken for a second device on Otto's
-   topics on 2026-07-30.
+   ```
+   NONE      — nothing to reconcile
+   SNAPSHOT  — the complete NO_QUORUM snapshot JSON is owed to the broker
+               (regenerable from terminal state, which this section retains)
+   CLEAR     — an empty retained clearing payload is owed
+   ```
+
+   Terminal entry sets `SNAPSHOT`. `navDeclare()` sets `CLEAR`. The network
+   task, whenever it is connected and the state is not `NONE`, publishes the
+   desired retained message; **only on publish success does the state return to
+   `NONE`.** Routine telemetry cannot overwrite or evict it — it is in no
+   queue — and after any reconnect the task reconciles the broker to the
+   desired state automatically. Both directions get the same durability:
+   establishing the snapshot and clearing it survive broker outages,
+   reconnects, and queue churn identically.
+
+   Retained still matters for its original reasons: the broker's copy survives
+   the locomotive being switched off, which no in-RAM slot does, and a late
+   subscriber sees it — matching `alert`, which is already retained.
+
+   **Clearing on `navDeclare()`** is the `CLEAR` arm of the same mechanism, with
+   the same guarantee. Without it the snapshot lingers as a ghost, exactly like
+   the CTO2 r10 retained relics that were briefly mistaken for a second device
+   on Otto's topics on 2026-07-30.
 2. `requestPwm(0, NORMAL_STEP_MS)` — controlled stop.
 2a. **`stationReset("NO_QUORUM")`.** The station machine must not retain a
    continuation that is no longer valid.
@@ -569,8 +606,10 @@ made synchronous again, this order must be reversed.**
 
    This is not new protective machinery. It stops an unrelated state machine
    from holding an invalid continuation after QUORUM has deliberately stopped
-   the locomotive. Reset the phase to `ST_IDLE`, disarm any armed station,
-   clear the overshoot counter, and publish the reason.
+   the locomotive. Call the existing `stationReset("NO_QUORUM")` and clear the
+   existing station-phase fields — `stationReset()` already returns the phase
+   to `ST_IDLE`, disarms the station (`stIndex = -1`), and publishes the
+   reason. No new station machinery.
 3. Publish `"NO_QUORUM"` retained, carrying the last confirmed marker and
    landmark, markers travelled since, and the **list of viable candidate
    offsets** — not a computed occupancy bound, which is M5 (§4). The retained alert
@@ -1137,25 +1176,61 @@ stall was recorded 2026‑07‑29; a fix currently reports fresher than it is.
 
 ### §5.1 Publish-path assignment — every QUORUM publish, and its queue
 
-v2.21 has two outbound queues with opposite semantics. Assigning each publish to
-the wrong one is a silent defect: the wrong queue either evicts an
+v2.22 has two outbound queues with opposite semantics, plus the §2.5
+desired-retained-state slot which is not a queue at all. Assigning a publish to
+the wrong path is a silent defect: the wrong queue either evicts an
 unrecoverable event or strips a required retain flag. The complete assignment:
 
 | Publish | Path | Why |
 |---|---|---|
-| `mm/marker` per-event stream (from `drainMarkers()`) | `pubMarker()` | One-time events. Already moved in v2.21; QUORUM's added fields (`dt_expected`, `dt_conserve_ratio`, `timing_gate`, scores) ride the same message and change nothing about its routing. |
-| Adoption, reacquisition, and incident open/close events | `pubMarker()` | Also one-time and non-re-derivable. A replay with the marker stream intact but the adoption event evicted is unreadable. |
-| `mm/no_quorum` snapshot (§2.5) | `pub()` — **never `pubMarker()`** | It must be RETAINED and `pubMarker()` hard-codes `retain=false`. The topic prefix is `mm/` but the routing follows the retain requirement, not the topic name. §2.5's eviction argument survives v2.21 unchanged: this message rides the drop-oldest status queue, which is exactly why retained is mandatory. |
-| Its empty clearing payload on `navDeclare()` | `pub()` | Same reason — clearing a retained message requires the retain flag. |
+| `mm/marker` per-event stream (from `drainMarkers()`) | `pubMarker()` | One-time events. Already moved in v2.21; v2.22's peek-publish-remove drain holds each one until confirmed handoff. Carries the marker payload of the contract below — **scores do not ride this message.** |
+| QUORUM decision events — adoption, incident open/close | `pubMarker()` | Also one-time and non-re-derivable. A replay with the marker stream intact but the adoption event evicted is unreadable. Carries the decision payload of the contract below — this is where the score vector rides. |
+| `mm/no_quorum` snapshot (§2.5) | desired-retained-state mechanism — **never a queue** | R19 routed this through `pub()` on the theory that the retain flag protected it; CODEX showed retain acts only at the broker, so a queued snapshot was evictable precisely when it mattered. It now lives in the §2.5 pending slot; the network task publishes it retained and returns the slot to `NONE` only on success. |
+| Its empty clearing payload on `navDeclare()` | desired-retained-state mechanism | The `CLEAR` arm of the same slot — both directions get the same durability. |
 | `nav_state`, loopstat fields, all periodic status | `pub()` | Current-value state; the newest is the truth and eviction of stale copies is correct. |
 
-The rule generalising the table: **retain requirement decides first, then
-event-vs-state.** Retained → `pub()`. Non-retained one-time event →
-`pubMarker()`. Non-retained current-value state → `pub()`.
+The rule generalising the table: **the terminal retained state has its own
+mechanism and touches no queue; everything else splits by event-vs-state.**
+One-time event → `pubMarker()`. Current-value state → `pub()`.
 
-Payload sizes are unchanged by v2.21 — both queues carry `PubMsg` with
-`char[512]` — so the §2.5 snapshot budget and the §0.1 `char b[224] → 320`
-raise both stand.
+**The payload contract — exactly two payloads.** Earlier revisions let §0.1 and
+this section disagree about where scores travel. The contract, stated once:
+
+1. **`mm/marker`** (every accepted or rejected detector event): the existing
+   raw event fields — `mm`, `landmark`, `obs`, `peak`, `ms`, `drift` — plus
+   `dt`, `timing_gate`, `dt_expected`, `dt_conserve_ratio`. **Nothing else.**
+   `conf` is deleted along with `navConfidence`. Scores, streaks, leaders and
+   margins do NOT ride the marker message.
+
+2. **QUORUM decision event** (adoption, incident open/close, via
+   `pubMarker()`): `state`, `streak`, the full score vector, exclusions,
+   `leader`, `runner-up`, `margin`.
+
+**Buffer arithmetic for the marker payload (`char b[320]`).** Worst-case JSON,
+field by field, using each format specifier's widest possible output
+(`dt_conserve_ratio` prints `%.2f`, sentinel `-1.00`, clamped to `99.99`, so
+five characters bound it; the longest landmark is `Southpoint`, 10 chars; the
+longest `timing_gate` token is `NO_POSITION`, 11 chars):
+
+```
+{"mm":170,                       10     (uint8, 3 digits)
+"landmark":"Southpoint",         24
+"obs":"N",                       10
+"peak":-4095,                    13     (12-bit ADC delta, sign + 4 digits)
+"ms":65535,                      11     (uint16)
+"drift":-32768,                  15     (int16)
+"dt":65535,                      11     (uint16)
+"timing_gate":"NO_POSITION",     28
+"dt_expected":4294967295,        25     (uint32)
+"dt_conserve_ratio":-1.00}       26
+                                ---
+                                173   + 1 NUL = 174
+```
+
+174 ≤ 320 with 146 bytes (46%) of headroom — enough that no realistic field
+widening (a new landmark name, a wider gate token) approaches the boundary.
+The §2.5 snapshot budget of 512 stands separately, sized against
+`PubMsg::payload`.
 
 ---
 
@@ -1322,9 +1397,9 @@ hypothesis set, and staying stopped is the correct outcome.
 
 ## §8 Verify
 
-- [ ] Built on v2.21 or later. `grep mqtt\.` returns hits only inside `networkTask()`, `attemptReconnect()` and `setup()` — never in Layer 3.
+- [ ] Built on v2.22 or later. `grep mqtt\.` returns hits only inside `networkTask()`, `attemptReconnect()` and `setup()` — never in Layer 3.
 - [ ] No path out of `navOnMarker()` reaches a socket, a `delay()`, or any call whose duration depends on the network. Every publish goes through `pub()` or `pubMarker()`, both of which enqueue.
-- [ ] Publish paths match the §5.1 table exactly. In particular: the `mm/no_quorum` snapshot and its clearing payload go through `pub()` (retained), and every one-time nav event goes through `pubMarker()`. `grep pubMarker` hits confirm the event sites; `grep 'no_quorum'` confirms the snapshot does not.
+- [ ] Publish paths match the §5.1 table exactly. In particular: the `mm/no_quorum` snapshot and its clearing payload go through the desired-retained-state mechanism — `grep 'no_quorum'` must show the topic in the network task's reconciliation path and in **neither** `pub()` nor `pubMarker()` call sites — and every one-time nav event goes through `pubMarker()`.
 - [ ] With the broker stopped, drive over markers: `navMm` advances, QUORUM adopts an offset if one is induced, and `loop_max_gap_ms` stays under ~80 ms.
 - [ ] Compiles for `LL_LocoConfig_9950011.h` **and** `LL_LocoConfig_9950012.h`.
 - [ ] **Isolated disagreement.** One bad reading followed by agreements. `navMm` **advances normally throughout** — the locomotive is moving. What must not happen is relocation: no offset applied, `NAV_EVALUATING` never entered, `missStreak` returns to 0 on the first agreement.
@@ -1373,8 +1448,8 @@ hypothesis set, and staying stopped is the correct outcome.
 - [ ] **force_lost displaces only.** `cmd/force_lost -4` moves `navMm` by four event-steps and changes nothing else. `NAV_EVALUATING` is entered later, by ordinary disagreement, not by the command.
 - [ ] **NO_POSITION.** A marker arriving in `NAV_UNSET` publishes with `timing_gate` `NO_POSITION`, does not advance, and does not enter conservation.
 - [ ] **Snapshot fits the transport.** The `NO_QUORUM` payload is under 512 bytes as encoded, `snprintf()` does not truncate, and the queued copy matches the local buffer byte for byte.
-- [ ] **Snapshot survives the failure.** Stop the broker, force `NO_QUORUM`, let ordinary telemetry fill and cycle `pubQueue`, then restart the broker. The retained snapshot is present and complete.
-- [ ] **Snapshot cleared on declaration.** `navDeclare()` publishes an empty retained payload to the same topic; a fresh subscriber sees nothing.
+- [ ] **Snapshot survives the failure.** Stop the broker. Force `NAV_NO_QUORUM`. Generate status traffic until `pubQueue` fills and cycles. Restart the broker. The retained snapshot appears on the broker after reconnect — the desired-retained-state slot reconciled it; no queue carried it. (R19's version of this test — expecting a queued retained publish to survive eviction — was proven impossible by CODEX and is withdrawn.)
+- [ ] **Clear survives the failure too.** Recover navigation, `navDeclare()`. Stop and restart the broker mid-clear — after the `CLEAR` state is set but before it has been published — to prove the reconciliation direction. After reconnect, the retained message on the broker is empty; a fresh subscriber sees nothing.
 - [ ] **Station machine reset.** Force `NO_QUORUM` during `ST_DEPART`, redeclare position, and confirm `stPhase` is `ST_IDLE` with no armed station. The locomotive is drivable without an `AUTO` toggle.
 - [ ] **Fixture parsing.** `cmd/force_lost garbage`, empty, `+3x` and `99` are all rejected with `FIXTURE_REJECTED`. `-4` and `NOQUORUM` are accepted. `-4` is refused while `NAV_UNSET`; `NOQUORUM` is not.
 - [ ] **Hard bound.** 12 accepted events in `NAV_EVALUATING` with a persistent margin of 1 → `NAV_NO_QUORUM`. Not indefinite collection.
