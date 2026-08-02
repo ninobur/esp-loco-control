@@ -1,8 +1,16 @@
 /*
  * ============================================================================
- * QUORUM_1_1  —  Ninobur Garden Railway single-locomotive navigation
+ * QUORUM_1_2  —  Ninobur Garden Railway single-locomotive navigation
  * ============================================================================
  * Successor to SOLONAV (v2.22 final). QUORUM navigator per spec R20.
+ *
+ * v1.2 — generation counter closes the ABA race in retained-state
+ * reconciliation (CODEX 1.1 review): the success guard compared only the
+ * enum value, so a NEWER commit with the SAME value (snapshot B replacing
+ * snapshot A, or SNAPSHOT->CLEAR->SNAPSHOT during a slow publish) could be
+ * marked reconciled without ever being published. Every commit now bumps a
+ * generation under the mux; success clears the reconcile flag only if state
+ * AND generation both still match.
  *
  * v1.1 — terminal evidence fixes per the CODEX implementation review of 1.0
  * (docs/QUORUM_1_0_CODEX_FINDINGS.md). Navigator control logic untouched:
@@ -121,7 +129,7 @@
 #include <pgmspace.h>
 #include "LocoConfig.h"
 
-#define SKETCH_NAME "QUORUM_1_1"
+#define SKETCH_NAME "QUORUM_1_2"
 
 // Broker lives here, not in LocoConfig.h — same as the previous lineage.
 #define MQTT_BROKER "192.168.68.142"
@@ -601,6 +609,13 @@ enum DesiredRetained : uint8_t { DRS_NONE=0, DRS_SNAPSHOT, DRS_CLEAR };
 // event in the durable marker queue, not the retained mirror.
 static volatile uint8_t desiredRetainedNoQuorum = DRS_NONE;
 static volatile bool    noQuorumNeedsReconcile  = false;
+// v1.2 (CODEX 1.1 review): the completion guard compared only the enum value,
+// which misses a NEWER commit with the SAME value — snapshot B committed while
+// snapshot A publishes (repeated force_lost NOQUORUM), or the classic ABA
+// SNAPSHOT->CLEAR->SNAPSHOT during a slow publish. Every commit increments
+// this generation under the mux; reconciliation completes only if state AND
+// generation both still match what it copied out.
+static uint32_t noQuorumGeneration = 0;   // read/written only under noQuorumMux
 // F2 (CODEX finding 2): loop() writes the snapshot buffer; networkTask()
 // reads it. Both sides take this mux; the network task copies out under it
 // and publishes from the copy — the mux is NEVER held across mqtt.publish().
@@ -812,6 +827,7 @@ static void buildNoQuorumSnapshot(){
   portENTER_CRITICAL(&noQuorumMux);
   memcpy(noQuorumSnapshot,tmp,sizeof(noQuorumSnapshot));
   desiredRetainedNoQuorum=DRS_SNAPSHOT;
+  noQuorumGeneration++;                 // v1.2: every commit is a new generation
   noQuorumNeedsReconcile=true;
   portEXIT_CRITICAL(&noQuorumMux);
 }
@@ -1028,6 +1044,7 @@ static void navDeclare(uint8_t mm){
   // record lives in the durable NO_QUORUM decision event).
   portENTER_CRITICAL(&noQuorumMux);
   desiredRetainedNoQuorum=DRS_CLEAR;
+  noQuorumGeneration++;                 // v1.2: every commit is a new generation
   noQuorumNeedsReconcile=true;
   portEXIT_CRITICAL(&noQuorumMux);
   navPublishState("DECLARED",nullptr);
@@ -2334,8 +2351,11 @@ static void attemptReconnect(){
     subscribeAll();                    // mqtt.subscribe; reached only from here
     // F3: every successful reconnect re-arms reconciliation, so the broker
     // (which may have restarted without its retained store) is re-synced to
-    // the persistent desired state of mm/no_quorum.
+    // the persistent desired state of mm/no_quorum. Under the mux (v1.2, per
+    // CODEX) for consistency with every other writer of the slot.
+    portENTER_CRITICAL(&noQuorumMux);
     noQuorumNeedsReconcile=true;
+    portEXIT_CRITICAL(&noQuorumMux);
     Serial.println("[NET] MQTT connected");
   }
 }
@@ -2373,7 +2393,8 @@ static void networkTask(void*){
         if(noQuorumNeedsReconcile){
           static char snapCopy[512];
           portENTER_CRITICAL(&noQuorumMux);
-          uint8_t want=desiredRetainedNoQuorum;
+          uint8_t  want=desiredRetainedNoQuorum;
+          uint32_t gen =noQuorumGeneration;      // v1.2: copied WITH the state
           if(want==DRS_SNAPSHOT) memcpy(snapCopy,noQuorumSnapshot,sizeof(snapCopy));
           portEXIT_CRITICAL(&noQuorumMux);
           bool ok;
@@ -2382,9 +2403,13 @@ static void networkTask(void*){
           else                        ok=mqtt.publish(T_NO_QUORUM,"",true);   // empty retained = clear
           if(ok){
             portENTER_CRITICAL(&noQuorumMux);
-            // A new desired state may have landed while publishing; clear the
-            // flag only if we reconciled the state we actually read.
-            if(desiredRetainedNoQuorum==want) noQuorumNeedsReconcile=false;
+            // v1.2 (CODEX 1.1 review): the enum value alone misses a NEWER
+            // commit with the SAME value — snapshot B landing while snapshot
+            // A publishes, or SNAPSHOT->CLEAR->SNAPSHOT during a slow
+            // publish. Reconciliation completes only if the state AND the
+            // generation both still match what was copied out above.
+            if(desiredRetainedNoQuorum==want && noQuorumGeneration==gen)
+              noQuorumNeedsReconcile=false;
             portEXIT_CRITICAL(&noQuorumMux);
           }
         }
