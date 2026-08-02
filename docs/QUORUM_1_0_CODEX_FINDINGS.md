@@ -64,3 +64,58 @@ I confirm the report's claim for the actual control logic:
 
 Verdict: the QUORUM navigator itself is ready; the complete firmware is not yet ready for field verification because terminal evidence can be mislabeled, torn, forgotten after reconnect, or truncated. Fix findings 1–4, resolve AGREE/DISAGREE routing, then proceed to the §8 field/replay tests.
 No files were changed, no credentials were displayed, and I did not run git or compile.
+
+---
+
+## CODEX review of QUORUM 1.1 (commit 3381570)
+
+**The ABA finding (item 3) is fixed in QUORUM 1.2.**
+
+Four fixes are complete. Finding 3 is substantially fixed, but its
+completion guard has an ABA race. I would make that small correction
+before formally clearing the firmware for §8.
+
+1. Finding 1 — verified. QUORUM.ino line 784 converts leader and
+runner-up through QUORUM_OFFSETS[] and emits JSON null when absent.
+Correct.
+
+2. Finding 2 — verified. The snapshot is built locally, committed under
+noQuorumMux, copied under the same mux into snapCopy, and published
+after releasing it. No lock is held across mqtt.publish(). The 512-byte
+payload itself can no longer tear.
+
+3. Finding 3 — one remaining race. Persistent desired state and
+reconnect re-arming are correctly separated. The documented
+mirror-current-truth policy is coherent. However, the success guard at
+line 2387 compares only the enum value:
+if (desiredRetainedNoQuorum == want) noQuorumNeedsReconcile = false;
+That does not detect a newer update having the same value. Example: the
+network task copies snapshot A with want == DRS_SNAPSHOT; loop() builds
+snapshot B and again sets DRS_SNAPSHOT; publication of A succeeds; the
+values compare equal, so reconciliation is cleared; snapshot B is never
+published. Repeated force_lost NOQUORUM can produce this directly. A
+declaration followed by another terminal incident during a slow publish
+can produce a SNAPSHOT -> CLEAR -> SNAPSHOT ABA sequence. Add a
+generation counter incremented under the mux whenever SNAPSHOT or CLEAR
+is committed. Copy the generation with the desired state, and clear
+noQuorumNeedsReconcile only when both state and generation still match.
+Also set the reconnect flag under the mux for consistency.
+
+4. Finding 4 — verified. The calculated maximum is correct: 497 JSON
+characters plus NUL equals 498 bytes. The result is checked against the
+512-byte transport, and oversize output is replaced with valid compact
+JSON rather than enqueuing truncation.
+
+5. Findings 5/6 — verified. Event-bearing AGREE/DISAGREE publications
+now use pubMarker(); current-value publications remain on pub(). The
+128-entry marker queue restores roughly a minute of backlog capacity at
+the increased message rate. The retained DNA code is clearly recorded as
+the single operator-approved deviation.
+
+The navigator remains approved; I found no regression in its certified
+properties. Verdict: not quite formally cleared yet. Add the
+retained-state generation check, then it is ready for the §8 field/
+replay campaign. This is a terminal-evidence reliability issue only — it
+cannot affect navigation or motor control — but it defeats the exact
+reconciliation guarantee under a repeat update. No files were changed,
+and I did not run git or compile.
