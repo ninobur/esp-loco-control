@@ -1,8 +1,20 @@
 /*
  * ============================================================================
- * QUORUM_1_0  —  Ninobur Garden Railway single-locomotive navigation
+ * QUORUM_1_1  —  Ninobur Garden Railway single-locomotive navigation
  * ============================================================================
  * Successor to SOLONAV (v2.22 final). QUORUM navigator per spec R20.
+ *
+ * v1.1 — terminal evidence fixes per the CODEX implementation review of 1.0
+ * (docs/QUORUM_1_0_CODEX_FINDINGS.md). Navigator control logic untouched:
+ *   F1  terminal snapshot reports OFFSETS for ld/ru, not candidate indices
+ *   F2  tear-free snapshot handoff: portMUX critical section; the network
+ *       task copies under the mux and publishes from its own copy
+ *   F3  desired retained state is persistent; a per-connection reconcile
+ *       flag re-syncs the broker after EVERY reconnect, indefinitely
+ *   F4  alert payload compacted below the 512-byte transport, worst case
+ *       shown; oversize builds publish ALERT_OVERSIZE, never truncated JSON
+ *   F5  event-bearing AGREE/DISAGREE ride pubMarker() (durable, in-order);
+ *       markerPubQueue 64 -> 128 slots (~2 events per marker now)
  *
  * A locomotive that knows where it has been, where it is, and what is
  * possible next.
@@ -109,7 +121,7 @@
 #include <pgmspace.h>
 #include "LocoConfig.h"
 
-#define SKETCH_NAME "QUORUM_1_0"
+#define SKETCH_NAME "QUORUM_1_1"
 
 // Broker lives here, not in LocoConfig.h — same as the previous lineage.
 #define MQTT_BROKER "192.168.68.142"
@@ -576,7 +588,23 @@ static uint16_t      lostMarkers=0;
 // navDeclare() sets CLEAR; both directions get the same durability.
 // ---------------------------------------------------------------------------
 enum DesiredRetained : uint8_t { DRS_NONE=0, DRS_SNAPSHOT, DRS_CLEAR };
+// F3 (CODEX finding 3): the DESIRED state is PERSISTENT — changed only by
+// terminal entry (SNAPSHOT) and navDeclare() (CLEAR), never by a successful
+// publish. A separate per-connection flag says the broker needs re-syncing;
+// attemptReconnect() re-arms it on every successful reconnect, so a broker
+// restart while the locomotive sits in NAV_NO_QUORUM still gets the snapshot
+// back, indefinitely.
+//
+// POLICY: this slot mirrors CURRENT truth. If the operator redeclares while
+// the broker is unreachable, CLEAR legitimately supersedes an undelivered
+// SNAPSHOT — the forensic record of the incident is the NO_QUORUM decision
+// event in the durable marker queue, not the retained mirror.
 static volatile uint8_t desiredRetainedNoQuorum = DRS_NONE;
+static volatile bool    noQuorumNeedsReconcile  = false;
+// F2 (CODEX finding 2): loop() writes the snapshot buffer; networkTask()
+// reads it. Both sides take this mux; the network task copies out under it
+// and publishes from the copy — the mux is NEVER held across mqtt.publish().
+static portMUX_TYPE noQuorumMux = portMUX_INITIALIZER_UNLOCKED;
 static char noQuorumSnapshot[512];   // §2.5: sized to PubMsg::payload — do NOT enlarge PubMsg
 
 static void navPublishState(const char* ev,const MarkerEvent* e);
@@ -753,28 +781,39 @@ static void updateLastConfirmed(uint8_t mm,unsigned long detectedAtMs){
 // synchronous publish, the order must be reversed. Short keys are acceptable
 // here and nowhere else — this message is read by a human doing forensics.
 static void buildNoQuorumSnapshot(){
-  char sc[48], ex[24];
+  char sc[48], ex[24], ld[8], ru[8];
   jsonScores(sc,sizeof(sc));
   jsonExcluded(ex,sizeof(ex),true);
-  int w=snprintf(noQuorumSnapshot,sizeof(noQuorumSnapshot),
+  // F1 (CODEX finding 1): ld/ru are OFFSETS (-1..+4), converted through
+  // QUORUM_OFFSETS[] exactly as the decision events do — never the raw
+  // candidate indices 0..5. null when no leader/runner-up exists.
+  if(leaderIdx>=0)   snprintf(ld,sizeof(ld),"%d",(int)QUORUM_OFFSETS[leaderIdx]);   else strlcpy(ld,"null",sizeof(ld));
+  if(runnerUpIdx>=0) snprintf(ru,sizeof(ru),"%d",(int)QUORUM_OFFSETS[runnerUpIdx]); else strlcpy(ru,"null",sizeof(ru));
+  // F2: build into a loop-thread local buffer, then hand off under the mux.
+  char tmp[512];
+  int w=snprintf(tmp,sizeof(tmp),
     "{\"e\":\"NO_QUORUM\",\"mm\":%u,\"lm\":\"%s\",\"since\":%u,\"dir\":\"%s\","
-    "\"sc\":%s,\"ex\":%s,\"ld\":%d,\"ru\":%d,\"mg\":%d,\"ev\":%u,\"ring\":[",
+    "\"sc\":%s,\"ex\":%s,\"ld\":%s,\"ru\":%s,\"mg\":%d,\"ev\":%u,\"ring\":[",
     navMm, haveConfirmed?landmarkAt(lastConfirmedMm):"",
     (unsigned)markersSinceConfirmed, dirName(navDir),
-    sc, ex, (int)leaderIdx, (int)runnerUpIdx, (int)quorumMargin, (unsigned)evalCount);
-  for(uint8_t i=0;i<evRingLen && w<(int)sizeof(noQuorumSnapshot);i++){
+    sc, ex, ld, ru, (int)quorumMargin, (unsigned)evalCount);
+  for(uint8_t i=0;i<evRingLen && w<(int)sizeof(tmp);i++){
     const RingEntry* r=ringAt(i);
-    w+=snprintf(noQuorumSnapshot+w,sizeof(noQuorumSnapshot)-w,
+    w+=snprintf(tmp+w,sizeof(tmp)-w,
                 "%s[\"%c\",%u]", i?",":"", polChar(r->polarity), r->navMm);
   }
-  if(w<(int)sizeof(noQuorumSnapshot))
-    w+=snprintf(noQuorumSnapshot+w,sizeof(noQuorumSnapshot)-w,"]}");
+  if(w<(int)sizeof(tmp))
+    w+=snprintf(tmp+w,sizeof(tmp)-w,"]}");
   // §2.5: a silently truncated forensic record is worse than a missing one.
-  if(w>=(int)sizeof(noQuorumSnapshot)){
+  if(w>=(int)sizeof(tmp)){
     publishAlert("NO_QUORUM","SNAPSHOT_TRUNCATED");
     Serial.printf("[NAV] SNAPSHOT_TRUNCATED at %d bytes\n",w);
   }
+  portENTER_CRITICAL(&noQuorumMux);
+  memcpy(noQuorumSnapshot,tmp,sizeof(noQuorumSnapshot));
   desiredRetainedNoQuorum=DRS_SNAPSHOT;
+  noQuorumNeedsReconcile=true;
+  portEXIT_CRITICAL(&noQuorumMux);
 }
 
 // --- NAV_NO_QUORUM entry (§2.5, in this order) ------------------------------
@@ -984,7 +1023,13 @@ static void navDeclare(uint8_t mm){
   markersSinceConfirmed=0; haveConfirmed=true;
   // §2.5 CLEAR arm: without this the retained snapshot lingers as a ghost,
   // like the CTO2 r10 relics mistaken for a second device on 2026-07-30.
+  // F3: CLEAR is the new persistent desired state (it supersedes even an
+  // undelivered SNAPSHOT — the mirror carries current truth; the forensic
+  // record lives in the durable NO_QUORUM decision event).
+  portENTER_CRITICAL(&noQuorumMux);
   desiredRetainedNoQuorum=DRS_CLEAR;
+  noQuorumNeedsReconcile=true;
+  portEXIT_CRITICAL(&noQuorumMux);
   navPublishState("DECLARED",nullptr);
 }
 
@@ -1702,7 +1747,13 @@ static void navPublishState(const char* ev,const MarkerEvent* e){
       motorDirection==DIRECTION_FORWARD?"FWD":"REV", dirName(sessionDir),
       (unsigned)missStreak);
   }
-  pub(T_NAV,b);
+  // F5 (CODEX findings 5/6): event-bearing publishes — AGREE/DISAGREE, one
+  // observation per marker, not re-derivable — ride the durable in-order
+  // marker path. Current-value state publishes (the no-event form: DECLARED,
+  // DIRECTION, SESSION_DIRECTION, ...) stay on pub(), where eviction of a
+  // stale copy is correct.
+  if(e) pubMarker(T_NAV,b);
+  else  pub(T_NAV,b);
   Serial.printf("[NAV] %s\n",b);
 }
 
@@ -1813,15 +1864,34 @@ static void publishAlert(const char* level,const char* reason){
   // occupancy bound, which is M5.
   char vb[48]; jsonViable(vb,sizeof(vb));
 
-  snprintf(b,sizeof(b),
+  // F4 (CODEX finding 4) — the alert must fit PubMsg::payload (512).
+  // Compacted names (none read by the dashboard, which keeps its bindings):
+  //   motor_dir->mdir, rear_bound_mm->rear, front_bound_mm->front,
+  //   envelope_mm->env, last_confirmed_mm->lc_mm,
+  //   markers_since_confirmed->since, lost_markers->lostm, lost_count->losts.
+  // est_mm_s is clamped to 99999 (5 chars) — a garbage dt could otherwise
+  // print 10 digits of nonsense speed.
+  //
+  // Worst-case arithmetic, field by field ("name":value incl. quotes/colon):
+  //   level:"EVALUATING" 20   reason:"SECOND_ADOPTION_FAILED" 33
+  //   loco:"9950011" 16       uptime_ms:u32 22    nav:"EVALUATING" 18
+  //   moving 10  pwm 9        est_mm_s:99999 16   dir:"UNSET" 13
+  //   session_dir:"UNSET" 21  mdir:"NEU" 12       rear 10  front 11
+  //   env:u32 16  lc_mm 11    last_confirmed_landmark:"Southpoint" 38
+  //   age_ms:u32 19  since:65535 13  dead_reckoned_mm 22  candidate_mm 18
+  //   viable:[-1,0,1,2,3,4] 23  lostm:65535 13  lost_ms:u32 20
+  //   agree:u32 18  disagree:u32 21  losts:u32 18  auto 8
+  //   + 26 commas + 2 braces = 497, + NUL = 498 <= 512 (headroom 14).
+  if(mmPerSec>99999UL) mmPerSec=99999UL;
+  int w=snprintf(b,sizeof(b),
     "{\"level\":\"%s\",\"reason\":\"%s\",\"loco\":\"%s\",\"uptime_ms\":%lu,"
     "\"nav\":\"%s\",\"moving\":%d,\"pwm\":%d,\"est_mm_s\":%lu,"
-    "\"dir\":\"%s\",\"session_dir\":\"%s\",\"motor_dir\":\"%s\","
-    "\"rear_bound_mm\":%u,\"front_bound_mm\":%u,\"envelope_mm\":%lu,"
-    "\"last_confirmed_mm\":%d,\"last_confirmed_landmark\":\"%s\",\"age_ms\":%lu,"
-    "\"markers_since_confirmed\":%u,\"dead_reckoned_mm\":%u,"
-    "\"candidate_mm\":%d,\"viable\":%s,\"lost_markers\":%u,\"lost_ms\":%lu,"
-    "\"agree\":%lu,\"disagree\":%lu,\"lost_count\":%lu,\"auto\":%d}",
+    "\"dir\":\"%s\",\"session_dir\":\"%s\",\"mdir\":\"%s\","
+    "\"rear\":%u,\"front\":%u,\"env\":%lu,"
+    "\"lc_mm\":%d,\"last_confirmed_landmark\":\"%s\",\"age_ms\":%lu,"
+    "\"since\":%u,\"dead_reckoned_mm\":%u,"
+    "\"candidate_mm\":%d,\"viable\":%s,\"lostm\":%u,\"lost_ms\":%lu,"
+    "\"agree\":%lu,\"disagree\":%lu,\"losts\":%lu,\"auto\":%d}",
     level,reason,LOCO_NAME,(unsigned long)millis(),
     navStateName(),
     (actualPwm>0)?1:0,(int)actualPwm,(unsigned long)mmPerSec,
@@ -1836,6 +1906,12 @@ static void publishAlert(const char* level,const char* reason){
     (unsigned)lostMarkers,
     (unsigned long)(navState==NAV_NO_QUORUM?(millis()-lostSinceMs):0UL),
     navAgree,navDisagree,navLostCount,autoRunning?1:0);
+  // Never enqueue truncated JSON: an oversize build (should be impossible by
+  // the arithmetic above) publishes a minimal record naming the alert type.
+  if(w>=(int)sizeof(PubMsg::payload)){
+    Serial.printf("[ALERT] OVERSIZE %d bytes, level=%s\n",w,level);
+    snprintf(b,sizeof(b),"{\"level\":\"%s\",\"reason\":\"ALERT_OVERSIZE\"}",level);
+  }
 
   pub(T_ALERT,b,true);          // retained: a late subscriber still learns of it
   Serial.printf("[ALERT] %s\n",b);
@@ -2256,6 +2332,10 @@ static void attemptReconnect(){
     publishBootId();
     publishAlert(navAlertLevel(),"MQTT_CONNECT");   // §6.1: mid-evaluation reconnect must not report CLEAR
     subscribeAll();                    // mqtt.subscribe; reached only from here
+    // F3: every successful reconnect re-arms reconciliation, so the broker
+    // (which may have restarted without its retained store) is re-synced to
+    // the persistent desired state of mm/no_quorum.
+    noQuorumNeedsReconcile=true;
     Serial.println("[NET] MQTT connected");
   }
 }
@@ -2283,18 +2363,29 @@ static void networkTask(void*){
         // change (Change 3), not a bigger gulp that re-creates the starvation.
         mqtt.loop();
         // §2.5 desired-retained-state reconciliation — the ONLY publisher of
-        // mm/no_quorum. Whenever connected and the slot is not NONE, publish
-        // the desired retained message; return to NONE only on success. In no
-        // queue, so routine telemetry can neither overwrite nor evict it, and
-        // after any reconnect this path reconciles the broker automatically —
-        // establishing the snapshot and clearing it get the same durability.
-        {
+        // mm/no_quorum. In no queue, so routine telemetry can neither
+        // overwrite nor evict it. F3: success clears only the per-connection
+        // reconcile flag — NEVER the desired state — and attemptReconnect()
+        // re-arms the flag, so the broker is re-synchronized to the desired
+        // state after every outage, indefinitely. F2: state and snapshot are
+        // copied out under the mux into a task-local buffer; the mux is never
+        // held across mqtt.publish().
+        if(noQuorumNeedsReconcile){
+          static char snapCopy[512];
+          portENTER_CRITICAL(&noQuorumMux);
           uint8_t want=desiredRetainedNoQuorum;
-          if(want!=DRS_NONE){
-            bool ok = (want==DRS_SNAPSHOT)
-                    ? mqtt.publish(T_NO_QUORUM,noQuorumSnapshot,true)
-                    : mqtt.publish(T_NO_QUORUM,"",true);   // empty retained = clear
-            if(ok && desiredRetainedNoQuorum==want) desiredRetainedNoQuorum=DRS_NONE;
+          if(want==DRS_SNAPSHOT) memcpy(snapCopy,noQuorumSnapshot,sizeof(snapCopy));
+          portEXIT_CRITICAL(&noQuorumMux);
+          bool ok;
+          if(want==DRS_NONE)          ok=true;   // nothing owed to the broker
+          else if(want==DRS_SNAPSHOT) ok=mqtt.publish(T_NO_QUORUM,snapCopy,true);
+          else                        ok=mqtt.publish(T_NO_QUORUM,"",true);   // empty retained = clear
+          if(ok){
+            portENTER_CRITICAL(&noQuorumMux);
+            // A new desired state may have landed while publishing; clear the
+            // flag only if we reconciled the state we actually read.
+            if(desiredRetainedNoQuorum==want) noQuorumNeedsReconcile=false;
+            portEXIT_CRITICAL(&noQuorumMux);
           }
         }
         PubMsg m;
@@ -2401,11 +2492,13 @@ void setup(){
   }
 
   // The MQTT queues must exist before pub()/pubMarker() or the callback can be
-  // reached. markerPubQueue (v2.21): 64 slots at 512 B is ~33 KB -- a minute of
-  // markers at cruise, affordable at 15% RAM. pubQueue stays 32: it filling
-  // under a degraded link is correct behaviour, not the problem.
+  // reached. markerPubQueue: 128 slots (F5 — the marker path now carries the
+  // raw event, its AGREE/DISAGREE, and any decision event, ~2+ messages per
+  // marker; 128 at ~520 B is ~66 KB of heap, still a minute of markers at
+  // cruise). pubQueue stays 32: it filling under a degraded link is correct
+  // behaviour, not the problem.
   pubQueue=xQueueCreate(32,sizeof(PubMsg));         // ~17 KB
-  markerPubQueue=xQueueCreate(64,sizeof(PubMsg));   // ~33 KB, markers only
+  markerPubQueue=xQueueCreate(128,sizeof(PubMsg));  // ~66 KB heap, marker path only
   cmdQueue=xQueueCreate(16,sizeof(CmdMsg));
   if(!pubQueue||!markerPubQueue||!cmdQueue){ Serial.println("[FATAL] mqtt queue alloc failed"); while(1) delay(1000); }
 
