@@ -1,10 +1,38 @@
 /*
  * ============================================================================
- * SOLONAV_2_22  —  Ninobur Garden Railway single-locomotive navigation
+ * SOLONAV_3_0  —  Ninobur Garden Railway single-locomotive navigation
+ *                 v3.0: QUORUM navigator (spec R20)
  * ============================================================================
  *
  * A locomotive that knows where it has been, where it is, and what is
  * possible next.
+ *
+ * ---------------------------------------------------------------------------
+ * v3.0 — QUORUM (docs/QUORUM_v3_0_implementation_spec.md, Revision 20)
+ * ---------------------------------------------------------------------------
+ * Layer 3 is replaced. The tally navigator (navConfidence, LOST, windowed
+ * reacquisition) could express HOW MUCH it was disagreeing but not WHICH
+ * position it might be in; when the tally emptied it discarded position and
+ * rebuilt from nothing. QUORUM inverts that:
+ *
+ *   "I am on the tracks. I am not flying. I knew where I was a minute ago."
+ *
+ *   * One disagreement is free. The odometer still advances; position is held.
+ *   * Three consecutive misses wake NAV_EVALUATING: six candidate offsets
+ *     { -1, 0, +1, +2, +3, +4 } are scored against the evidence ring. Speed
+ *     is NOT reduced while evaluating.
+ *   * A unique two-point lead adopts the offset — one correction, applied
+ *     once, validated by the next agreement.
+ *   * Twelve readings without a margin, or a second failed adoption, is
+ *     NAV_NO_QUORUM: controlled stop, terminal evidence snapshot (retained,
+ *     via the desired-retained-state slot, never a queue), operator
+ *     re-declares position to recover. There is no automatic exit.
+ *   * A conservation timing gate rejects phantom events: two events whose
+ *     intervals sum to one expected interval are one magnet read twice.
+ *
+ * The detector, thresholds, DNA table, spacingMm[] and the transport queues
+ * are untouched. dnaMatch()/dnaPush()/dnaBuf remain as dead code by
+ * instruction — present, unreferenced, compiling.
  *
  * ---------------------------------------------------------------------------
  * WHY THIS IS A REWRITE AND NOT ANOTHER REVISION
@@ -60,8 +88,10 @@
  *                  that -- no log has yet shown it. Watch event_open_ms.
  *   2  DETECTOR    threshold crossing -> event {polarity, ms, peak, drift}.
  *                  Reports everything. Judges nothing.
- *   3  NAVIGATOR   odometer is truth. Map predicts. Reading votes.
- *                  LOST is a real state with a real exit.
+ *   3  NAVIGATOR   QUORUM. Odometer is truth. Map predicts. Reading votes.
+ *                  Hold position on a disagreement; wake nearby hypotheses
+ *                  only on a run of failures; stop only when no candidate
+ *                  fits — and then only the operator recovers it.
  *   4  OPERATIONS  station profile and PWM ramp. Consumes position and
  *                  confidence; never touches the sensor.
  *
@@ -79,7 +109,7 @@
 #include <pgmspace.h>
 #include "LocoConfig.h"
 
-#define SKETCH_NAME "SOLONAV_2_22"
+#define SKETCH_NAME "SOLONAV_3_0"
 
 // Broker lives here, not in LocoConfig.h — same as the previous lineage.
 #define MQTT_BROKER "192.168.68.142"
@@ -108,7 +138,15 @@ struct MarkerEvent {
   uint16_t      durationMs;
   int16_t       baselineDrift; // counts the baseline moved during the event
   unsigned long detectedAtMs;  // captured at detection, not at processing
+  // §3: both PWM values, sampled at event OPEN (the instant detectedAtMs is
+  // stamped), so the timing gate is a measurement, not an approximation.
+  uint8_t       pwmActualAtDetect;     // actualPwm at event open
+  uint8_t       pwmCommandedAtDetect;  // commandedPwm at event open
 };
+
+// QUORUM evidence ring entry (§2.4): the reading and the odometer value it was
+// recorded against. Scoring uses the navMm recorded WITH the reading.
+struct RingEntry { uint8_t polarity; uint8_t navMm; };
 
 // Outbound and inbound MQTT messages cross the loop<->network task boundary as
 // values on a queue, so no locomotive-state thread ever touches the radio and
@@ -119,7 +157,8 @@ struct MarkerEvent {
 struct PubMsg { const char* topic; char payload[512]; bool retain; };
 struct CmdMsg { char topic[64]; char payload[128]; };
 
-enum NavState     : uint8_t { NAV_UNSET=0, NAV_TRACKING, NAV_LOST };
+// §2: the QUORUM state machine. NAV_TRACKING and NAV_LOST are deleted.
+enum NavState     : uint8_t { NAV_UNSET=0, NAV_NORMAL, NAV_EVALUATING, NAV_NO_QUORUM };
 enum StationPhase : uint8_t { ST_IDLE=0, ST_APPROACH, ST_FINAL, ST_RAMP, ST_DWELL, ST_DEPART };
 
 // ===========================================================================
@@ -131,6 +170,14 @@ enum StationPhase : uint8_t { ST_IDLE=0, ST_APPROACH, ST_FINAL, ST_RAMP, ST_DWEL
 
 static inline void pwmAttachCompat(){ ledcAttach(MOTOR_PWM_PIN,PWM_FREQUENCY,PWM_RESOLUTION); }
 static inline void pwmWriteCompat(int v){ ledcWrite(MOTOR_PWM_PIN,constrain(v,0,255)); }
+
+// PWM authority state. Declared here — above the detector — because §3 requires
+// detectorSample() to sample both at event open. Written on the loop thread
+// (core 1), read on the hall task (core 0): aligned 32-bit access is atomic on
+// ESP32 hardware, but that is not a compiler visibility contract — hence
+// volatile (§3). Targets normally enter via requestPwm(); the deliberate
+// exceptions are servicePwmRamp() (the actuator), setup(), and E-stop.
+static volatile int commandedPwm=0, actualPwm=0;
 
 // ---------------------------------------------------------------------------
 // DIRECTION — one source of truth.
@@ -319,6 +366,9 @@ static volatile int lastRaw=0;
 static bool     evActive=false;
 static uint8_t  evOpenPole=0;
 static int      evPeakN=0, evPeakS=0, evStartBaseline=0;
+// §3: PWM pair captured at event OPEN, beside evStartBaseline — dt is measured
+// opening-to-opening, so the aligned PWM sample is the one at the opening.
+static uint8_t  evStartPwmActual=0, evStartPwmCommanded=0;
 static unsigned long evStartMs=0, evReturnMs=0;
 
 static void detectorSample(){
@@ -334,6 +384,11 @@ static void detectorSample(){
     if(raw>=northEnter || raw<=southEnter){
       evActive=true; evStartMs=now; evReturnMs=0;
       evStartBaseline=baselineCounts;
+      // §3: read the pair adjacently, in the same statement pair, so the two
+      // cannot straddle a target change. Neither is used for control; a
+      // one-tick skew is immaterial.
+      evStartPwmActual    = (uint8_t)actualPwm;
+      evStartPwmCommanded = (uint8_t)commandedPwm;
       evPeakN=n; evPeakS=s;
       evOpenPole=(raw>=northEnter)?1:0;
     }
@@ -354,6 +409,8 @@ static void detectorSample(){
       e.durationMs    = (uint16_t)min(dur,(unsigned long)65535);
       e.baselineDrift = (int16_t)(baselineCounts-evStartBaseline);
       e.detectedAtMs  = evStartMs;
+      e.pwmActualAtDetect    = evStartPwmActual;     // §3: from event open
+      e.pwmCommandedAtDetect = evStartPwmCommanded;
       if(eventQueue && xQueueSend(eventQueue,&e,0)!=pdTRUE) queueDrops++;
     }
   } else {
@@ -400,103 +457,149 @@ static StationPhase stPhase=ST_IDLE;
 
 static void requestPwm(int target,uint16_t stepMs);
 static int  cruiseForPosition();   // section cruise speed; defined in LAYER 4
+static void stationReset(const char* note);   // §2.5 step 2a; defined in LAYER 4
+// QUORUM decision events (adoption, incident open/close, phantom, fixture)
+// ride pubMarker() per §5.1; defined after the transport, called from Layer 3.
+// `extra` is a pre-formatted JSON fragment beginning with a comma, or "".
+static void publishQuorumDecision(const char* ev, const char* extra);
 
 // ===========================================================================
-// LAYER 3 — NAVIGATOR
+// LAYER 3 — NAVIGATOR  (QUORUM — docs/QUORUM_v3_0_implementation_spec.md R20)
 // ---------------------------------------------------------------------------
-// Dead reckoning with periodic fixes. This is the part that was missing.
+// The locomotive knows where it is. A magnet that disagrees is assumed to be
+// a bad read, not a lost position — so the locomotive holds its position,
+// ignores the reading, and watches whether the NEXT magnets fit the pattern
+// it already expected. Only when several in a row fail does it ask the second
+// question: if not here, then where? And it asks against a short list,
+// because it was right a minute ago.
 //
-//   The odometer ALWAYS advances on a marker event. Position comes from
-//   history plus the map. The reading is compared against what the map says
-//   should be there, and the result adjusts CONFIDENCE — it does not replace
-//   position.
+//   navMm is the marker the locomotive believes it has just reached. Once
+//   position and direction are declared it advances by exactly one on every
+//   NAVIGATION-ACCEPTED event — in NAV_NORMAL, NAV_EVALUATING and
+//   NAV_NO_QUORUM alike, including events whose polarity disagrees. "Hold
+//   position on a disagreement" means DO NOT RELOCATE; it never means do not
+//   advance. After a disagreement at navMm=154 the next event is compared
+//   against dnaAt(155), not dnaAt(154).
 //
-//   A single wrong polarity costs one confidence point. It cannot move the
-//   train. Only sustained contradiction does, and then the answer is LOST, not
-//   a different position.
-//
-//   Re-acquisition from LOST requires a pattern match that (a) is unique,
-//   (b) lies in the declared direction, and (c) SURVIVES THE NEXT MARKER —
-//   the candidate must correctly predict one more reading before it is
-//   believed. A lucky match on corrupted data almost never predicts.
+//   An offset is a displacement in EVENT STEPS ALONG THE DIRECTION OF
+//   TRAVEL, not an arithmetic marker number. It is applied ONLY as
+//   routeMod((int32_t)navMm + navDir * offset) — never as navMm += offset:
+//   under CCW navDir is negative and bare addition gives the wrong marker,
+//   and near MM000 the wrap matters. Because navMm advances on every
+//   accepted event throughout EVALUATING, the offset is constant while
+//   evaluating: adoption is one correction applied once.
 // ===========================================================================
-#define CONFIDENCE_MAX      10
-#define CONFIDENCE_FLOOR     0
-// A DECLARED position is operator-supplied ground truth -- the most
-// authoritative input the system has. A REACQUIRED one is something the
-// locomotive inferred from twelve readings and could have got lucky on. They
-// deserve different trust and had been sharing one constant.
-//
-// On the 2026-07-27 run this cost a station: position was declared at MM050,
-// three long events followed immediately, and two clean disagreements took
-// confidence from 4 to 0. The locomotive went LOST at MM054 and buffered 34
-// markers straight through Grillers, which therefore never armed. Once
-// running it sits at 8-10 and shrugs off the same errors.
-//
-// At 10 it takes five clean disagreements to doubt the operator, which is a
-// genuine run of bad reads rather than two unlucky ones at launch.
-#define CONFIDENCE_DECLARED    10
-#define CONFIDENCE_REACQUIRED   4
-#define CONFIDENCE_GOOD      6   // reporting threshold only -- gates nothing
+#define QUORUM_TRIGGER    3   // consecutive misses that wake evaluation
+#define QUORUM_MAX       12   // accepted events scored without adoption -> terminal
+#define QUORUM_MARGIN     2   // unique lead required to adopt
+#define QUORUM_CANDIDATES 6
+// Asymmetric by measurement (§2.2): a phantom inserts one spurious event, so
+// the odometer runs at most one AHEAD; dropped events arrive in bursts (run 1
+// logged queue_drops 0->4 and the recovery returned off=+4).
+static const int8_t QUORUM_OFFSETS[QUORUM_CANDIDATES] = { -1, 0, +1, +2, +3, +4 };
 
-// ---------------------------------------------------------------------------
-// LOST BUDGET
-//
-// A lost locomotive that keeps running is a collision mechanism, not an
-// inconvenience: under CTO the follower's spacing is computed from positions
-// that are no longer true, and the failure mode is a rear-end strike. But it
-// cannot simply stop either, because reacquisition needs markers and markers
-// need motion.
-//
-// So LOST is a BOUNDED SEARCH. Drop to creep immediately, and if the map has
-// not come back within the budget, halt and hold. Speed is earned by evidence;
-// with no evidence the budget is what buys the chance to earn some.
-// ---------------------------------------------------------------------------
+// §3 timing gate
+#define GATE_LOW_PWM_FLOOR 40   // below this the velocity model is invalid
+#define GATE_RAMP_DELTA    10   // |actual-commanded| beyond this = mid-ramp
+static const float DT_CONSERVE_TOL = 0.30f;   // provisional, named (§3)
+// PWM -> velocity, mm/s. Explicitly provisional: PWM is a request, not a
+// result (ROAD_TO_CTO.md) — grade, load, battery and railhead all move what
+// it produces. M2's wheel sensor replaces this; the wide tolerance above
+// exists to absorb the model error until then.
+static const float VEL_MODEL_SLOPE     = 3.90f;
+static const float VEL_MODEL_INTERCEPT = -99.2f;
+
 #define STATUS_BROADCAST_MS  1000UL
 
-// A lost locomotive may have missed markers as well as misread them, so it can
-// be AHEAD of its own dead reckoning, not only behind it. This is the forward
-// margin added when publishing the occupancy bound.
+// A loco that is misreading markers may also be MISSING them, so it can be
+// AHEAD of its own dead reckoning. Forward margin on the published bound.
 #define LOST_FRONT_MARGIN_MARKERS 5
-#define ALERT_REPEAT_MS        1000UL
-
-#define DNA_W               12   // 171 unique windows verified at W=10
-#define WEAK_PEAK_COUNTS    (HALL_MIN_PEAK_DELTA)
-#define DRIFT_SUSPECT_COUNTS 15
 
 static NavState navState      = NAV_UNSET;
 static uint8_t  navMm         = 0;
-static int8_t   navConfidence = 0;
 static uint32_t navMarkers=0, navAgree=0, navDisagree=0, navLostCount=0;
 
-static uint8_t  dnaBuf[DNA_W];
-static uint8_t  dnaBufLen=0;
-static bool     pendingValid=false;
-static uint8_t  pendingMm=0;
-// A candidate must predict REACQ_CONFIRMS readings in a row before it is
-// believed. One binary prediction passes half the time on garbage; two cuts
-// surviving false matches roughly fourfold, at the cost of one extra marker.
-// Reset on any failed prediction so a candidate never carries credit across a
-// miss.
-#define REACQ_CONFIRMS 2
-static uint8_t  pendingConfirms=0;
+// ---------------------------------------------------------------------------
+// Recovery-incident state (§2.6). An incident begins when NAV_NORMAL first
+// enters NAV_EVALUATING and ends only at a confirming agreement, a
+// declaration, a direction change, or NAV_NO_QUORUM entry.
+// ---------------------------------------------------------------------------
+constexpr int8_t NO_ADOPTED_OFFSET = INT8_MIN;   // zero is a VALID offset (§2.6)
+static uint8_t  missStreak=0;
+static bool     adoptionPendingValidation=false; // adoption not yet confirmed
+static uint8_t  adoptionDisagreeStreak=0;        // disagreements while pending
+static uint8_t  adoptionFailureCount=0;          // failed adoptions THIS incident
+static int8_t   adoptedOffset=NO_ADOPTED_OFFSET;
+static bool     candidateExcluded[QUORUM_CANDIDATES]={false,false,false,false,false,false};
+static uint8_t  evalCount=0;                     // accepted events scored, vs QUORUM_MAX
+static int8_t   scores[QUORUM_CANDIDATES]={0,0,0,0,0,0};
+static int8_t   leaderIdx=-1, runnerUpIdx=-1;    // indices into QUORUM_OFFSETS
+static int8_t   quorumMargin=0;                  // scores[leader]-scores[runnerUp]
 
-static unsigned long lastMarkerMs=0;
-static int16_t       lastOdomDisagreement=0;   // published on REACQUIRED
-static int16_t       lastReacqOffset=0;        // accepted candidate's offset from navMm; +ve = odometer behind
-static unsigned long lostSinceMs=0;            // LOST budget
-static uint16_t      lostMarkers=0;
+// Evidence ring (§2.4): every accepted event is appended once position is
+// declared — in NAV_NORMAL, NAV_EVALUATING and NAV_NO_QUORUM alike. Rejected
+// events are never pushed. Cleared on adoption, navDeclare(), direction change.
+static RingEntry evRing[QUORUM_MAX];
+static uint8_t   evRingLen=0, evRingHead=0;      // head = oldest
+
+// §3 timing-gate state. previousAcceptedDt holds the interval of the last
+// ACCEPTED event — the name is the specification; rejection leaves it alone.
+static uint16_t previousAcceptedDt=0;
+static bool     previousAcceptedDtValid=false;
+static unsigned long lastMarkerMs=0;             // EVERY received event advances this
+static uint16_t lastSegmentDt=0;
+// Published on every marker by drainMarkers() (§5): why the gate was inactive
+// and what it computed, explicit rather than omitted.
+static const char* lastTimingGate="NO_POSITION";
+static uint32_t    lastDtExpected=0;
+static float       lastDtConserveRatio=-1.0f;
 
 // The last marker whose reading actually AGREED with the map. Everything after
-// it is inference. This -- not the dead-reckoned navMm -- is the position a
-// following locomotive can trust, and the anchor of the uncertainty envelope.
+// it is inference; this is the position a following locomotive can trust.
 static uint8_t       lastConfirmedMm=0;
 static unsigned long lastConfirmedMs=0;
 static uint16_t      markersSinceConfirmed=0;
 static bool          haveConfirmed=false;
-static uint16_t      lastSegmentDt=0;
+
+// NAV_NO_QUORUM timing, published as lost_ms / lost_markers (field names kept
+// for the dashboard; the LOST state itself no longer exists).
+static unsigned long lostSinceMs=0;
+static uint16_t      lostMarkers=0;
+
+// ---------------------------------------------------------------------------
+// §2.5 desired-retained-state slot for mm/no_quorum. The snapshot never
+// enters a queue: retain acts at the BROKER, and a queued snapshot was an
+// ordinary evictable entry in the local drop-oldest pubQueue — churning
+// exactly when NO_QUORUM fires (broker unreachable). One protected variable
+// outside every queue; networkTask() reconciles the broker to it and returns
+// it to NONE only on publish success. Terminal entry sets SNAPSHOT;
+// navDeclare() sets CLEAR; both directions get the same durability.
+// ---------------------------------------------------------------------------
+enum DesiredRetained : uint8_t { DRS_NONE=0, DRS_SNAPSHOT, DRS_CLEAR };
+static volatile uint8_t desiredRetainedNoQuorum = DRS_NONE;
+static char noQuorumSnapshot[512];   // §2.5: sized to PubMsg::payload — do NOT enlarge PubMsg
 
 static void navPublishState(const char* ev,const MarkerEvent* e);
+static void publishAlert(const char* level,const char* reason);
+
+// §6.1 — the only navState vocabulary the rest of the sketch uses.
+static inline bool navPositionUsable(){ return navState==NAV_NORMAL || navState==NAV_EVALUATING; }
+static const char* navStateName(){
+  switch(navState){
+    case NAV_NORMAL:     return "NORMAL";
+    case NAV_EVALUATING: return "EVALUATING";
+    case NAV_NO_QUORUM:  return "NO_QUORUM";
+    default:             return "UNSET";
+  }
+}
+static const char* navAlertLevel(){   // one helper, BOTH broadcast and reconnect
+  switch(navState){
+    case NAV_NO_QUORUM:  return "NO_QUORUM";
+    case NAV_EVALUATING: return "EVALUATING";   // reconnect mid-evaluation must not report CLEAR
+    case NAV_NORMAL:     return "CLEAR";
+    default:             return "UNSET";
+  }
+}
 
 // Track distance spanned by n markers travelled from mm in direction dir.
 static uint32_t spanMm(uint8_t mm,int8_t dir,uint16_t n){
@@ -509,55 +612,405 @@ static uint32_t spanMm(uint8_t mm,int8_t dir,uint16_t n){
   return t;
 }
 
-// Retained alert. A follower or dispatcher connecting late still sees it.
-static void publishAlert(const char* level,const char* reason);
+// ---------------------------------------------------------------------------
+// JSON fragments shared by decision events, state and the snapshot.
+// Excluded candidates publish as null with a parallel boolean array (§5) —
+// whatever integer remains in the underlying score slot must never be read.
+// ---------------------------------------------------------------------------
+static int jsonScores(char* out,size_t n){
+  int w=snprintf(out,n,"[");
+  for(uint8_t i=0;i<QUORUM_CANDIDATES;i++){
+    if(candidateExcluded[i]) w+=snprintf(out+w,n-w,"%snull",i?",":"");
+    else                     w+=snprintf(out+w,n-w,"%s%d",i?",":"",(int)scores[i]);
+  }
+  w+=snprintf(out+w,n-w,"]");
+  return w;
+}
+static int jsonExcluded(char* out,size_t n,bool numeric){
+  int w=snprintf(out,n,"[");
+  for(uint8_t i=0;i<QUORUM_CANDIDATES;i++)
+    w+=snprintf(out+w,n-w,"%s%s",i?",":"",
+                numeric?(candidateExcluded[i]?"1":"0")
+                       :(candidateExcluded[i]?"true":"false"));
+  w+=snprintf(out+w,n-w,"]");
+  return w;
+}
+// §4 viability: an offset is viable when it trails the leader by FEWER than
+// QUORUM_MARGIN points — strictly. A candidate one behind has NOT been
+// excluded; the published list must cover it.
+static int jsonViable(char* out,size_t n){
+  int w=snprintf(out,n,"[");
+  bool first=true;
+  if(leaderIdx>=0){
+    for(uint8_t i=0;i<QUORUM_CANDIDATES;i++){
+      if(candidateExcluded[i]) continue;
+      if(scores[leaderIdx]-scores[i] < QUORUM_MARGIN){
+        w+=snprintf(out+w,n-w,"%s%d",first?"":",",(int)QUORUM_OFFSETS[i]);
+        first=false;
+      }
+    }
+  }
+  w+=snprintf(out+w,n-w,"]");
+  return w;
+}
+
+// --- evidence ring ---------------------------------------------------------
+static void clearRing(){ evRingLen=0; evRingHead=0; }
+static RingEntry* ringAt(uint8_t i){            // 0 = oldest
+  return &evRing[(uint8_t)((evRingHead+i)%QUORUM_MAX)];
+}
+static void pushRing(uint8_t pol,uint8_t mm){
+  if(evRingLen<QUORUM_MAX){
+    evRing[(uint8_t)((evRingHead+evRingLen)%QUORUM_MAX)]={pol,mm};
+    evRingLen++;
+  }else{
+    evRing[evRingHead]={pol,mm};                // overwrite oldest
+    evRingHead=(uint8_t)((evRingHead+1)%QUORUM_MAX);
+  }
+}
+
+// --- scoring (§2.2): plain match counts over the evaluation window ---------
+// A match adds exactly 1; a mismatch adds nothing. No penalty, no weighting,
+// no prior — a weak or drifting read counts exactly as much as a strong one.
+// Excluded candidates are not scored at all.
+static void clearScores(){
+  for(uint8_t i=0;i<QUORUM_CANDIDATES;i++) scores[i]=0;
+  leaderIdx=-1; runnerUpIdx=-1; quorumMargin=0;
+}
+static void scoreEntry(const RingEntry* r){
+  for(uint8_t c=0;c<QUORUM_CANDIDATES;c++){
+    if(candidateExcluded[c]) continue;
+    // Score against the navMm recorded WITH that reading, not the current one.
+    if(r->polarity == dnaAt(routeMod((int32_t)r->navMm + navDir*QUORUM_OFFSETS[c])))
+      scores[c]++;
+  }
+}
+static void scoreNewestRingEntry(){ if(evRingLen) scoreEntry(ringAt(evRingLen-1)); }
+static void scoreLastN(uint8_t n){
+  uint8_t from=(evRingLen>n)?(uint8_t)(evRingLen-n):0;
+  for(uint8_t i=from;i<evRingLen;i++) scoreEntry(ringAt(i));
+}
+static void computeLeaderRunnerUpMargin(){
+  leaderIdx=-1; runnerUpIdx=-1; quorumMargin=0;
+  for(uint8_t i=0;i<QUORUM_CANDIDATES;i++){
+    if(candidateExcluded[i]) continue;          // no part in leader selection
+    if(leaderIdx<0 || scores[i]>scores[leaderIdx]){ runnerUpIdx=leaderIdx; leaderIdx=(int8_t)i; }
+    else if(runnerUpIdx<0 || scores[i]>scores[runnerUpIdx]) runnerUpIdx=(int8_t)i;
+  }
+  if(leaderIdx>=0 && runnerUpIdx>=0)
+    quorumMargin=(int8_t)(scores[leaderIdx]-scores[runnerUpIdx]);
+}
+
+// --- incident lifecycle (§2.6) ---------------------------------------------
+static void clearCandidateExclusions(){
+  for(uint8_t i=0;i<QUORUM_CANDIDATES;i++) candidateExcluded[i]=false;
+}
+static void invalidatePreviousAcceptedDt(){ previousAcceptedDtValid=false; }
+
+// After a confirming agreement: the incident is over, every offset eligible.
+static void endSuccessfulIncident(){
+  clearScores(); clearCandidateExclusions();
+  evalCount=0; adoptionFailureCount=0;
+  adoptionPendingValidation=false; adoptionDisagreeStreak=0;
+  adoptedOffset=NO_ADOPTED_OFFSET;
+  publishQuorumDecision("QUORUM_CLOSED","");    // incident close (§5.1)
+}
+
+// On NAV_NO_QUORUM: clears ONLY the provisional-adoption state. Scores,
+// exclusions, evalCount, the ring, leader, runner-up and margin are RETAINED
+// until navDeclare() or a full reset — they are the record of why the
+// locomotive stopped, and every state publication while stopped reports them.
+static void closeIncidentNoQuorum(){
+  adoptionPendingValidation=false;
+  adoptedOffset=NO_ADOPTED_OFFSET;
+}
+
+// navDeclare() and direction change both clear EVERYTHING recovery-related.
+static void fullRecoveryReset(){
+  clearRing(); clearScores(); clearCandidateExclusions();
+  evalCount=0; missStreak=0;
+  adoptionPendingValidation=false; adoptionDisagreeStreak=0;
+  adoptionFailureCount=0; adoptedOffset=NO_ADOPTED_OFFSET;
+  invalidatePreviousAcceptedDt();
+  // lastMarkerMs must reset too: it used to survive navDeclare(), so the first
+  // interval after a declaration spanned a stop or a carried locomotive.
+  // Resetting makes that first dt zero, which §3 refuses to bootstrap from.
+  lastMarkerMs=0;
+}
+
+// §5: stamp last-confirmed from the event's detection time, not millis() — a
+// 49-second loop stall (2026-07-29) makes a millis() stamp report fresher
+// than it is.
+static void updateLastConfirmed(uint8_t mm,unsigned long detectedAtMs){
+  lastConfirmedMm=mm; lastConfirmedMs=detectedAtMs;
+  markersSinceConfirmed=0; haveConfirmed=true;
+}
+
+// --- §2.5 terminal snapshot -------------------------------------------------
+// Step 1 of NO_QUORUM entry: a RAM write into the desired-retained-state
+// slot — nothing is enqueued and nothing can block, which is why it may
+// safely precede the stop request. If this mechanism is ever replaced by a
+// synchronous publish, the order must be reversed. Short keys are acceptable
+// here and nowhere else — this message is read by a human doing forensics.
+static void buildNoQuorumSnapshot(){
+  char sc[48], ex[24];
+  jsonScores(sc,sizeof(sc));
+  jsonExcluded(ex,sizeof(ex),true);
+  int w=snprintf(noQuorumSnapshot,sizeof(noQuorumSnapshot),
+    "{\"e\":\"NO_QUORUM\",\"mm\":%u,\"lm\":\"%s\",\"since\":%u,\"dir\":\"%s\","
+    "\"sc\":%s,\"ex\":%s,\"ld\":%d,\"ru\":%d,\"mg\":%d,\"ev\":%u,\"ring\":[",
+    navMm, haveConfirmed?landmarkAt(lastConfirmedMm):"",
+    (unsigned)markersSinceConfirmed, dirName(navDir),
+    sc, ex, (int)leaderIdx, (int)runnerUpIdx, (int)quorumMargin, (unsigned)evalCount);
+  for(uint8_t i=0;i<evRingLen && w<(int)sizeof(noQuorumSnapshot);i++){
+    const RingEntry* r=ringAt(i);
+    w+=snprintf(noQuorumSnapshot+w,sizeof(noQuorumSnapshot)-w,
+                "%s[\"%c\",%u]", i?",":"", polChar(r->polarity), r->navMm);
+  }
+  if(w<(int)sizeof(noQuorumSnapshot))
+    w+=snprintf(noQuorumSnapshot+w,sizeof(noQuorumSnapshot)-w,"]}");
+  // §2.5: a silently truncated forensic record is worse than a missing one.
+  if(w>=(int)sizeof(noQuorumSnapshot)){
+    publishAlert("NO_QUORUM","SNAPSHOT_TRUNCATED");
+    Serial.printf("[NAV] SNAPSHOT_TRUNCATED at %d bytes\n",w);
+  }
+  desiredRetainedNoQuorum=DRS_SNAPSHOT;
+}
+
+// --- NAV_NO_QUORUM entry (§2.5, in this order) ------------------------------
+static void enterNoQuorum(const char* reason){
+  navState=NAV_NO_QUORUM;
+  navLostCount++;
+  lostSinceMs=millis(); lostMarkers=0;
+  // 1. snapshot the terminal evidence before deceleration can overwrite it
+  buildNoQuorumSnapshot();
+  // 2. controlled stop — issued once, on entry, never reissued on later markers
+  requestPwm(0,NORMAL_STEP_MS);
+  // 2a. the station machine must not retain a continuation that is no longer
+  //     valid (ST_DEPART would resume without cruise; ST_FINAL without its
+  //     M+1 timer). Existing routine; no new station machinery.
+  stationReset("NO_QUORUM");
+  // 3. retained alert: last confirmed marker/landmark, markers since, and the
+  //    viable candidate list (occupancy bounds themselves are M5).
+  publishAlert("NO_QUORUM",reason);
+  { char extra[96];
+    snprintf(extra,sizeof(extra),",\"reason\":\"%s\"",reason);
+    publishQuorumDecision("NO_QUORUM",extra); }
+  // Retain navMm, navDir, autoRunning, last-confirmed and ALL diagnostics.
+  // AUTO is not dropped, but the locomotive does not resume.
+  closeIncidentNoQuorum();          // never endSuccessfulIncident() here
+  Serial.printf("[NAV] NO_QUORUM (%s) — stopped; operator declaration required\n",reason);
+}
+
+// --- evaluation decisions (§2.2/§2.4) ---------------------------------------
+static void adoptLeader(){
+  int8_t off=QUORUM_OFFSETS[leaderIdx];
+  uint8_t oldMm=navMm;
+  navMm=routeMod((int32_t)navMm + navDir*off);
+  { char extra[64];
+    snprintf(extra,sizeof(extra),",\"old_mm\":%u,\"new_mm\":%u,\"offset\":%d",
+             oldMm,navMm,(int)off);
+    // Publish BEFORE clearing — scores, leader, runner-up and margin are the
+    // record of why the adoption was made (§2.2).
+    publishQuorumDecision("QUORUM_ADOPTED",extra); }
+  clearRing(); clearScores(); missStreak=0;     // AFTER publishing
+  evalCount=0;
+  adoptionPendingValidation=true; adoptionDisagreeStreak=0;
+  adoptedOffset=off;
+  navState=NAV_NORMAL;    // the incident stays open through validation (§2.6)
+}
+
+// One decision function, adoption tested FIRST (§2.4): if reading twelve is
+// what finally produces the two-point margin, the locomotive has identified
+// its position and must adopt. The hard bound means "twelve readings without
+// a margin", not "twelve readings then stop regardless".
+static void decideEvaluation(){
+  computeLeaderRunnerUpMargin();
+  if(leaderIdx>=0 && runnerUpIdx>=0 && quorumMargin>=QUORUM_MARGIN){
+    adoptLeader();
+  }else if(evalCount>=QUORUM_MAX){
+    enterNoQuorum("HARD_BOUND");
+  }else{
+    // UNRESOLVED: a leader exists but margin < 2 — publish with every viable
+    // candidate (§4) and keep collecting. Run 3 held -1 and +1 level at 4/4
+    // for four readings through an alternating stretch. This is not lost.
+    publishQuorumDecision("QUORUM_TIED","");
+  }
+}
+
+// beginNewEvaluation(): a NEW incident — missStreak reached 3 in ordinary
+// running. Must NOT share initialisation with handleFailedAdoption(): running
+// incident-begin code on a reopen would erase the failure count and the
+// exclusion that reopening exists to preserve (§2.6).
+static void beginNewEvaluation(){
+  adoptionFailureCount=0;
+  clearCandidateExclusions();
+  clearScores();
+  // the three triggering entries are ALREADY in the ring — do not re-push
+  scoreLastN(QUORUM_TRIGGER);
+  evalCount=QUORUM_TRIGGER;      // NOT 0 (the bound would fire at 15), not 6
+  decideEvaluation();            // may adopt without a fourth marker
+}
+
+// handleFailedAdoption(): the SAME incident, continued (§2.3). A provisional
+// adoption was contradicted three times while still under validation.
+static void handleFailedAdoption(){
+  int8_t failed=adoptedOffset;
+  // Remove the correction from the CURRENT odometer — the post-adoption
+  // advances were real. navMm=154, adopt -1 -> 153, three events -> 156,
+  // judged wrong: removing the correction gives 157. Restoring 154 would
+  // throw away three markers of travel.
+  navMm=routeMod((int32_t)navMm - navDir*failed);
+  // Rebase the evidence ring: the retained entries recorded navMm in the
+  // adopted frame; unrebased they test every hypothesis against the wrong
+  // map positions.
+  for(uint8_t i=0;i<evRingLen;i++){
+    RingEntry* r=ringAt(i);
+    r->navMm=routeMod((int32_t)r->navMm - navDir*failed);
+  }
+  adoptionFailureCount++;
+  for(uint8_t i=0;i<QUORUM_CANDIDATES;i++)      // excluded = removed, not deprioritised
+    if(QUORUM_OFFSETS[i]==failed) candidateExcluded[i]=true;
+  adoptionPendingValidation=false; adoptionDisagreeStreak=0;
+  adoptedOffset=NO_ADOPTED_OFFSET;
+  missStreak=0;                  // already served its purpose (§2.3)
+  clearScores();
+  evalCount=QUORUM_TRIGGER;
+  scoreLastN(QUORUM_TRIGGER);    // reconstruct over the 3 rebased entries
+  computeLeaderRunnerUpMargin();
+  if(adoptionFailureCount==1){
+    navState=NAV_EVALUATING;     // same incident, continued
+    char extra[64];
+    snprintf(extra,sizeof(extra),",\"removed_offset\":%d,\"rebased_mm\":%u",
+             (int)failed,navMm);
+    publishQuorumDecision("QUORUM_REOPENED",extra);  // record the failure first
+    decideEvaluation();          // may adopt another offset at once — same
+                                 // function, not a copy of its logic
+  }else{
+    // Second failure: the snapshot reports the reconstructed vector, both
+    // failed offsets excluded, evalCount=3, in the uncorrected frame.
+    enterNoQuorum("SECOND_ADOPTION_FAILED");
+  }
+}
+
+// §2.3: while validation is pending it owns the comparison outright. Without
+// this precedence three post-adoption disagreements would increment
+// missStreak AND adoptionDisagreeStreak, firing beginNewEvaluation()
+// alongside handleFailedAdoption().
+static void handleValidationResult(const MarkerEvent& e,uint8_t reading){
+  bool agrees=(reading==dnaAt(navMm));
+  if(agrees){
+    // Validation ends at the FIRST post-adoption agreement, and a confirming
+    // agreement still does all the ordinary work.
+    navAgree++;
+    navPublishState("AGREE",&e);
+    updateLastConfirmed(navMm,e.detectedAtMs);
+    missStreak=0;
+    endSuccessfulIncident();
+    return;
+  }
+  navDisagree++;
+  navPublishState("DISAGREE",&e);
+  adoptionDisagreeStreak++;      // NOT missStreak — it stays 0 throughout
+  if(adoptionDisagreeStreak==QUORUM_TRIGGER) handleFailedAdoption();
+}
+
+// §2.1 NAV_NORMAL — the common path, one comparison. 1.3% of readings are
+// bad; being lost is far rarer. One disagreement is free.
+static void processNormalComparison(const MarkerEvent& e){
+  uint8_t reading=e.polarity;
+  if(adoptionPendingValidation){          // §2.3 owns the result entirely
+    handleValidationResult(e,reading);
+    return;
+  }
+  if(reading==dnaAt(navMm)){
+    navAgree++;
+    navPublishState("AGREE",&e);
+    missStreak=0;
+    updateLastConfirmed(navMm,e.detectedAtMs);
+  }else{
+    navDisagree++;
+    navPublishState("DISAGREE",&e);
+    missStreak++;
+    // nothing else. no scoring, no search, no relocation.
+    if(missStreak==QUORUM_TRIGGER){       // ~one in half a million at 1.3%
+      navState=NAV_EVALUATING;
+      publishQuorumDecision("QUORUM_OPEN","");   // incident open (§5.1)
+      beginNewEvaluation();
+    }
+  }
+}
+
+// Navigation acceptance (§2.4): advance, append, dispatch on state — the
+// entry pushed is the entry scored. Do not reduce speed on entering
+// NAV_EVALUATING; only NAV_NO_QUORUM stops the locomotive (§2.5 — the old
+// LOST drop to PWM 60 drove the train into the regime that collapses the
+// baseline).
+static void acceptEvent(const MarkerEvent& e){
+  navMm=nextMm(navMm,navDir);
+  if(markersSinceConfirmed<65535) markersSinceConfirmed++;   // AGREE re-zeroes it
+  pushRing(e.polarity,navMm);
+  switch(navState){
+    case NAV_NORMAL:
+      processNormalComparison(e);
+      break;
+    case NAV_EVALUATING:
+      scoreNewestRingEntry();
+      evalCount++;
+      decideEvaluation();
+      break;
+    case NAV_NO_QUORUM:
+      // §2.5: deceleration events are real and are not pretended away. The
+      // odometer advances and the ring appends — the snapshot already
+      // preserved what mattered — but no scoring, no adoption, no
+      // last-confirmed update, no state exit, no repeated stop or alert.
+      if(lostMarkers<65535) lostMarkers++;
+      break;
+    default: break;
+  }
+}
 
 // Declares POSITION only. Direction has exactly one assignment point,
-// applyDirection(), and this is not it.
+// applyDirection(), and this is not it. BOTH cmd/start_mm and
+// cmd/start_interval land here — recovery from NAV_NO_QUORUM must not depend
+// on which one the operator uses (§2), and the console uses start_interval.
 static void navDeclare(uint8_t mm){
-  navMm=mm; navState=NAV_TRACKING;
+  navMm=mm; navState=NAV_NORMAL;
+  fullRecoveryReset();
   lostMarkers=0;
+  // A declaration has no event, so millis() is correct here — the §5 rule to
+  // stamp from e.detectedAtMs applies to marker-driven confirmations only.
   lastConfirmedMm=mm; lastConfirmedMs=millis();
   markersSinceConfirmed=0; haveConfirmed=true;
-  navConfidence=CONFIDENCE_DECLARED;
-  dnaBufLen=0; pendingValid=false;
+  // §2.5 CLEAR arm: without this the retained snapshot lingers as a ghost,
+  // like the CTO2 r10 relics mistaken for a second device on 2026-07-30.
+  desiredRetainedNoQuorum=DRS_CLEAR;
   navPublishState("DECLARED",nullptr);
 }
 
-static void navEnterLost(const char* why){
-  navState=NAV_LOST; navConfidence=CONFIDENCE_FLOOR;
-  dnaBufLen=0; pendingValid=false; pendingConfirms=0; navLostCount++;
-  lostSinceMs=millis(); lostMarkers=0;
-  // Slow to station speed as a VISIBLE SIGNAL, not as a safety measure. Solo
-  // on a closed loop there is nothing to protect against; a lost train can run
-  // all day and the only cost is battery. Sixty on the open main is
-  // unmistakable from across the garden. It does NOT stop -- reacquisition
-  // needs markers, and markers need motion.
-  //
-  // AUTO only. In manual the operator has the throttle and the navigator does
-  // not take it. Navigation observes always; navigation acts only in AUTO.
-  if(autoRunning) requestPwm(STATION_ZONE_PWM,NORMAL_STEP_MS);
-  Serial.printf("[NAV] LOST (%s) -- slowing to station speed\n",why);
-  navPublishState("LOST",nullptr);
-  publishAlert("LOST",why);
-}
+// ---------------------------------------------------------------------------
+// DEAD CODE — superseded by QUORUM's evidence ring and hypothesis set.
+// Retained BY INSTRUCTION: present, unreferenced, compiling. Do not wire up.
+// (The rest of the v2.x recovery machinery — pendingMm/pendingValid/
+// pendingConfirms, REACQ_CONFIRMS, lastOdomDisagreement, navConfidence and
+// navEnterLost() — is deleted per spec §6.2.)
+// ---------------------------------------------------------------------------
+#define DNA_W               12   // 171 unique windows verified at W=10
+#define REACQ_WINDOW_MARKERS 5
+static uint8_t dnaBuf[DNA_W] __attribute__((unused));
+static uint8_t dnaBufLen __attribute__((unused)) = 0;
 
+__attribute__((unused))
 static void dnaPush(uint8_t pol){
   if(dnaBufLen<DNA_W){ dnaBuf[dnaBufLen++]=pol; return; }
   for(uint8_t i=1;i<DNA_W;i++) dnaBuf[i-1]=dnaBuf[i];
   dnaBuf[DNA_W-1]=pol;
 }
 
-// Reacquisition search is CONSTRAINED to a window around the odometer. The
-// odometer keeps counting while LOST, so navMm is already the expected answer;
-// searching the whole ring turned a 12-bit pattern into a 1-in-171 lottery.
-// Measured: false-match probability drops from 4.17% to 0.27% at a +-5 window.
-// DNA_W stays 12 -- shortening the pattern would give most of that gain back.
-#define REACQ_WINDOW_MARKERS 5
-
 // Unique window match, searched only near navMm and only in the declared
 // direction. Returns the mm of the LAST marker in the window, or 255 if not
 // unique within the window.
+__attribute__((unused))
 static uint8_t dnaMatch(int8_t dir){
   if(dnaBufLen<DNA_W || dir==MAP_UNSET) return 255;
   uint8_t found=255, count=0;
@@ -574,113 +1027,123 @@ static uint8_t dnaMatch(int8_t dir){
   return count==1 ? found : 255;
 }
 
+// ===========================================================================
+// §3 TIMING GATE + navOnMarker — an event must earn its advance.
+// Runs on the LOOP thread (via drainMarkers). No new tasks.
+//
+// Two levels of acceptance, not the same thing (§3):
+//   received            — the detector event is real and is published by
+//                         drainMarkers(), exactly once. Nothing else.
+//   navigation-accepted — it also advances navMm, enters the evidence ring
+//                         and participates in comparison or scoring.
+// NO_DIR events are received only — the sole case where the distinction bites.
+//
+// Two timestamp streams, never merged: lastMarkerMs/dt advance on EVERY
+// received event including NO_DIR and PHANTOM_REJECTED (run 3: the 57 ms
+// interval is measured from the phantom to the real magnet — skip the
+// phantom and the pair never sums to one interval). previousAcceptedDt
+// advances only per the gate rules. Do not make dt accepted-to-accepted.
+// ===========================================================================
 static void navOnMarker(const MarkerEvent& e){
   navMarkers++;
   // Timed from DETECTION, not from when loop() got round to draining the
-  // queue. A stalled loop draining several events at once used to report
-  // near-zero segment times. Diagnostic only -- no PWM authority. (Codex)
-  lastSegmentDt = lastMarkerMs ? (uint16_t)min(e.detectedAtMs-lastMarkerMs,(unsigned long)65535) : 0;
-  lastMarkerMs = e.detectedAtMs;
+  // queue. Diagnostic only -- no PWM authority. (Codex)
+  uint16_t dt = lastMarkerMs ? (uint16_t)min(e.detectedAtMs-lastMarkerMs,(unsigned long)65535) : 0;
+  lastSegmentDt = dt;
+  lastMarkerMs  = e.detectedAtMs;
 
-  // Quality flags. A weak or drifting reading still counts, but it is a
-  // weaker vote — it can confirm but it cannot, by itself, condemn.
-  const bool weak     = (e.peak < (int)WEAK_PEAK_COUNTS + 15);
-  const bool drifting = (abs((int)e.baselineDrift) > DRIFT_SUSPECT_COUNTS);
-  const bool soft     = weak || drifting;
+  // §5: when timing values are unavailable they publish as 0 / -1.0, never
+  // omitted. Overwritten below on an ACTIVE evaluation.
+  lastDtExpected      = 0;
+  lastDtConserveRatio = -1.0f;
 
-  if(navState==NAV_LOST){
-    // The odometer advances here too. Codex was right that freezing it while
-    // LOST contradicted the architecture -- and keeping it running is not
-    // merely tidier, it gives reacquisition something to be checked against.
-    navMm = nextMm(navMm,navDir);
-
-    if(markersSinceConfirmed<65535) markersSinceConfirmed++;
-    lostMarkers++;
-    dnaPush(e.polarity);
-
-    if(pendingValid){
-      // A candidate is on probation: it must predict this reading, and it must
-      // do so REACQ_CONFIRMS times running before it is believed. navMm and
-      // pendingMm advance in lockstep, so the odometer-vs-DNA offset established
-      // when the window matched is constant across the confirmations.
-      uint8_t predicted=nextMm(pendingMm,navDir);
-      if(dnaAt(predicted)==e.polarity){
-        pendingMm=predicted;
-        if(++pendingConfirms>=REACQ_CONFIRMS){
-          // off: the accepted candidate's offset from the dead-reckoned navMm,
-          // positive when the odometer is running BEHIND -- the only direction
-          // the measured data shows it errs. Computed before navMm is moved.
-          int16_t off = offsetToCentre(pendingMm,navDir,navMm);
-          lastReacqOffset      = off;
-          lastOdomDisagreement = offsetToCentre(navMm,navDir,pendingMm); // odom vs DNA
-          navMm=pendingMm; navState=NAV_TRACKING;
-          navConfidence=CONFIDENCE_REACQUIRED;
-          pendingValid=false; pendingConfirms=0;
-          lostMarkers=0;
-          lastConfirmedMm=navMm; lastConfirmedMs=millis();
-          markersSinceConfirmed=0; haveConfirmed=true;
-          // Back to cruise, unless a station approach already owns the throttle.
-          if(autoRunning && stPhase==ST_IDLE) requestPwm(cruiseForPosition(),NORMAL_STEP_MS);
-          publishAlert("CLEAR","REACQUIRED");
-          Serial.printf("[NAV] REACQUIRED mm=%u dir=%s off=%d\n",
-                        navMm,dirName(navDir),(int)off);
-          navPublishState("REACQUIRED",&e);
-        }else{
-          // Correct so far, but not yet REACQ_CONFIRMS times. Still on probation.
-          navPublishState("CANDIDATE",&e);
-        }
-      }else{
-        pendingValid=false; pendingConfirms=0;    // candidate failed its test
-        // Codex: don't throw away a fresh window just because the old
-        // candidate failed. Promote it immediately instead of losing a marker.
-        uint8_t again=dnaMatch(navDir);
-        if(again!=255){ pendingMm=again; pendingValid=true; pendingConfirms=0; navPublishState("CANDIDATE",&e); }
-        else            navPublishState("CANDIDATE_REJECTED",&e);
-      }
-      return;
-    }
-
-    uint8_t cand=dnaMatch(navDir);
-    if(cand!=255){
-      pendingMm=cand; pendingValid=true; pendingConfirms=0;  // must survive REACQ_CONFIRMS markers
-      navPublishState("CANDIDATE",&e);
-    }else{
-      navPublishState("BUFFERING",&e);
-    }
+  // Gate evaluation, in this exact fixed order (§3, §5):
+  //   NO_POSITION -> NO_DIR -> LOW_PWM -> RAMP -> NO_PREV -> ACTIVE
+  if(navState==NAV_UNSET){
+    // Direction may be known; position is not. No advance, no ring, no
+    // last-confirmed, no conservation — navMm holds nothing meaningful to
+    // index spacingMm[] with — and no timing history to invalidate.
+    lastTimingGate="NO_POSITION";
+    return;
+  }
+  if(navDir==MAP_UNSET){
+    // Received, NOT accepted: there is no direction to advance in.
+    // nextMm(mm,MAP_UNSET) returns mm unchanged — it would silently push a
+    // duplicate ring entry, corruption rather than a crash. Defensive, not a
+    // reachable operational path: both declaration handlers refuse to declare
+    // without a direction. Do not reorder them to make this reachable.
+    lastTimingGate="NO_DIR";
+    invalidatePreviousAcceptedDt();
+    return;
+  }
+  if(e.pwmActualAtDetect < GATE_LOW_PWM_FLOOR){
+    // Below the velocity model's validity: accept the advance, and the
+    // interval must not seed a later conservation test.
+    lastTimingGate="LOW_PWM";
+    invalidatePreviousAcceptedDt();
+    acceptEvent(e);
+    return;
+  }
+  if(abs((int)e.pwmActualAtDetect-(int)e.pwmCommandedAtDetect) > GATE_RAMP_DELTA){
+    // Mid-ramp — both values from the SAME instant, event open (§3). The
+    // event-time pair is what makes this a measurement: a stop request
+    // between detection and drain cannot turn a steady 100/100 into "RAMP".
+    lastTimingGate="RAMP";
+    invalidatePreviousAcceptedDt();
+    acceptEvent(e);
+    return;
+  }
+  if(!previousAcceptedDtValid){
+    // NO_PREV is a BOOTSTRAP, not a suspension — it ESTABLISHES the
+    // predecessor rather than invalidating it (getting this backwards
+    // livelocks the gate and conservation never runs). A zero dt — the first
+    // event of a session — must never become a predecessor: the next genuine
+    // marker would test 0+dt against one expected interval and be rejected.
+    lastTimingGate="NO_PREV";
+    if(dt>0){ previousAcceptedDt=dt; previousAcceptedDtValid=true; }
+    acceptEvent(e);
     return;
   }
 
-  if(navState!=NAV_TRACKING) return;
-
-  // --- dead reckoning: the odometer always advances ---
-  navMm = nextMm(navMm,navDir);
-  uint8_t expected = dnaAt(navMm);
-  dnaPush(e.polarity);
-
-  const int8_t confBefore = navConfidence;
-  if(e.polarity==expected){
-    navAgree++;
-    if(navConfidence<CONFIDENCE_MAX) navConfidence++;
-    lastConfirmedMm=navMm; lastConfirmedMs=millis();
-    markersSinceConfirmed=0; haveConfirmed=true;
-    navPublishState("AGREE",&e);
-  }else{
-    navDisagree++;
-    if(markersSinceConfirmed<65535) markersSinceConfirmed++;
-    // A soft reading that disagrees costs one point; a clean reading that
-    // disagrees costs two. Either way the train stays where the map says.
-    navConfidence -= soft ? 1 : 2;
-    navPublishState("DISAGREE",&e);
-    if(navConfidence<=CONFIDENCE_FLOOR){ navEnterLost("sustained contradiction"); return; }
+  // ACTIVE — the conservation test, the whole rule (§3): did the previous
+  // accepted event and this one divide ONE physical interval into two pieces?
+  lastTimingGate="ACTIVE";
+  // The interval that ENDED at navMm, not the one leaving it: navMm is the
+  // marker the PREVIOUS accepted event reached, so the interval under test is
+  // the one behind it. CW at MM50: MM49->MM50 -> spacingMm[49]. CCW at MM50:
+  // MM51->MM50 -> spacingMm[50]. Off-by-one here is up to 31% — comparable to
+  // the whole tolerance.
+  uint8_t conserveIntervalIndex = (navDir==MAP_CW) ? routeMod((int32_t)navMm-1) : navMm;
+  float velocityMmPerSec = VEL_MODEL_SLOPE*(float)e.pwmActualAtDetect + VEL_MODEL_INTERCEPT;
+  // The 1000 is not optional: the model is mm/s, dt is MILLISECONDS. The unit
+  // travels with the name (§3), though the payload field stays dt_expected.
+  float expectedDtMs = (1000.0f*(float)pgm_read_word(&spacingMm[conserveIntervalIndex]))
+                       / velocityMmPerSec;
+  float combinedDtMs = (float)dt + (float)previousAcceptedDt;
+  lastDtExpected      = (uint32_t)expectedDtMs;
+  lastDtConserveRatio = (expectedDtMs>0.0f) ? (combinedDtMs/expectedDtMs) : -1.0f;
+  // fabsf, not abs: the Arduino abs() macro truncates floats (§3).
+  float errorMs = fabsf(combinedDtMs-expectedDtMs);
+  if(errorMs <= DT_CONSERVE_TOL*expectedDtMs){
+    // Two events inside one interval's worth of travel: one magnet, two
+    // events. Do NOT advance navMm, push the ring, touch missStreak — and do
+    // NOT replace previousAcceptedDt: a rejected event must never become the
+    // timing predecessor (914 -> 57 -> 879: if 57 replaced it, the real 879
+    // would be rejected too and the odometer would stop advancing). No
+    // attempt to decide which of the two was spurious — the first was
+    // consumed; declining to advance on the second leaves the count correct.
+    char extra[128];
+    snprintf(extra,sizeof(extra),
+      ",\"dt\":%u,\"prev_dt\":%u,\"sum\":%.0f,\"expected\":%.0f,\"ratio\":%.2f",
+      dt,previousAcceptedDt,(double)combinedDtMs,(double)expectedDtMs,(double)lastDtConserveRatio);
+    publishQuorumDecision("PHANTOM_REJECTED",extra);
+    return;
   }
-
-  // Confidence no longer gates anything -- these crossings are reported purely
-  // as evidence about read quality. A stop made while low is worth correlating
-  // with where it actually landed.
-  if(confBefore>=CONFIDENCE_GOOD && navConfidence<CONFIDENCE_GOOD)
-    navPublishState("CONFIDENCE_LOW",&e);
-  else if(confBefore<CONFIDENCE_GOOD && navConfidence>=CONFIDENCE_GOOD)
-    navPublishState("CONFIDENCE_RECOVERED",&e);
+  // Every accepted ACTIVE event replaces the predecessor — the variable means
+  // "the interval of the LAST ACCEPTED event", so it advances with each
+  // acceptance; only PHANTOM_REJECTED leaves it unchanged (§3).
+  previousAcceptedDt=dt; previousAcceptedDtValid=true;
+  acceptEvent(e);
 }
 
 // ===========================================================================
@@ -794,9 +1257,10 @@ static unsigned long stMPlus1AtMs=0;      // when M+1 was crossed, 0 if not yet
 static unsigned long stDepartBeganMs=0;   // for the slow-departure notice only
 static bool          stDepartWarned=false;
 
-// PWM authority: targets normally enter via requestPwm(). The deliberate
-// exceptions are servicePwmRamp() (the actuator), setup(), and E-stop.
-static int      commandedPwm=0, actualPwm=0;
+// PWM authority: commandedPwm/actualPwm are declared volatile beside the
+// detector (§3 — event-open capture). Targets normally enter via requestPwm();
+// the deliberate exceptions are servicePwmRamp() (the actuator), setup(), and
+// E-stop.
 static uint16_t pwmStepMs=NORMAL_STEP_MS;
 static unsigned long lastPwmStepMs=0;
 
@@ -828,7 +1292,14 @@ static void applyDirection(){
                    : (motorDirection==DIRECTION_FORWARD ? sessionDir : oppositeDir(sessionDir));
     if(derived!=navDir){
       navDir=derived;
-      dnaBufLen=0; pendingValid=false;    // buffer is direction-dependent
+      // §6.3: full recovery reset — readings collected in one direction cannot
+      // be scored against candidates in another, and neither can an exclusion
+      // or a failure count. Evaluation is abandoned, not continued.
+      fullRecoveryReset();
+      if(navState==NAV_EVALUATING) navState=NAV_NORMAL;
+      // A direction change in NAV_NO_QUORUM resets the diagnostics but does
+      // NOT leave the terminal state (§2) — changing direction is not
+      // evidence about where the locomotive is.
     }
     digitalWrite(MOTOR_DIR_PIN,(motorDirection==DIRECTION_FORWARD)?HIGH:LOW);
   }
@@ -839,7 +1310,9 @@ static void applyDirection(){
 // arithmetic is the same modular test the old grade boost used, which Codex
 // verified correct in both directions.
 static int cruiseForPosition(){
-  if(navState==NAV_TRACKING && navDir!=MAP_UNSET){
+  // §0.1: position is held (and probably correct) during EVALUATING, so the
+  // section map keeps working; the navState test is gone, navDir stays.
+  if(navDir!=MAP_UNSET){
     for(uint8_t i=0;i<GRADE_COUNT;i++){
       const GradeSegment& g=GRADES[i];
       if(g.dir!=navDir) continue;
@@ -870,6 +1343,15 @@ static void requestPwmOver(int target,uint16_t durationMs){
 }
 
 static void servicePwmRamp(){
+  // §3 stop-transition invalidation: three paths zero actualPwm (the NEUTRAL
+  // interlock, the E-stop clamp, the ramp decrement), so the nonzero->zero
+  // edge is detected once here rather than patched at all three. Edge-
+  // triggered, not level-triggered; the one-pass lag (~35 ms) is immaterial
+  // against ~900 ms marker intervals. Without this, a dwell then a restart
+  // would test the first marker against an interval from before the stop.
+  static int lastSeenActual = 0;
+  if (lastSeenActual > 0 && actualPwm == 0) invalidatePreviousAcceptedDt();
+  lastSeenActual = actualPwm;
   // NEUTRAL interlock: no throttle command can produce movement. This is what
   // made an accidental throttle nudge harmless in the previous system, and
   // what makes clearing an E-stop require a deliberate direction selection.
@@ -904,11 +1386,10 @@ static void serviceStations(){
   if((stPhase==ST_APPROACH || stPhase==ST_RAMP) &&
      millis()-stPhaseEnteredMs > STATION_MAX_PHASE_MS){
     stationReset("PHASE_TIMEOUT");
-    // Only return to cruise if the navigator actually knows where it is.
-    // Codex: a timeout firing while LOST would otherwise promote a
-    // navigation failure straight back to full speed. Speed is earned by
-    // evidence; while lost, hold the reduced approach speed.
-    if(autoRunning && navState==NAV_TRACKING) requestPwm(cruiseForPosition(),NORMAL_STEP_MS);
+    // Only return to cruise if the navigator's position is usable. A timeout
+    // firing in NAV_NO_QUORUM must not promote a navigation failure straight
+    // back to full speed (the stop request has already been issued there).
+    if(autoRunning && navPositionUsable()) requestPwm(cruiseForPosition(),NORMAL_STEP_MS);
     return;
   }
 
@@ -923,7 +1404,10 @@ static void serviceStations(){
     return;
   }
 
-  if(!autoRunning || navState!=NAV_TRACKING || navDir==MAP_UNSET) return;
+  // §6.1: stations must keep working during NAV_EVALUATING — position is held
+  // and probably correct; suspending arming for 3-12 markers would drive past
+  // a station, the failure the arming comment below warns against.
+  if(!autoRunning || !navPositionUsable() || navDir==MAP_UNSET) return;
 
   if(stPhase==ST_IDLE){
     // Range arming. A skipped marker or a position correction can no longer
@@ -934,16 +1418,15 @@ static void serviceStations(){
     // stopping in a slightly wrong place -- suppressing the behaviour the
     // sketch exists to produce, and hiding the sensor problem behind it.
     // The asymmetry runs the other way: a stop made on poor evidence is
-    // visible and informative, a station silently skipped is neither. It also
-    // gated a decision on navConfidence as though it were a probability, when
-    // it is a tally of recent agreements. Confidence is now REPORTED with the
-    // arming event instead of vetoing it.
+    // visible and informative, a station silently skipped is neither.
+    // (The confidence tally is gone with QUORUM; the nav state — NORMAL vs
+    // EVALUATING — is the arming-time evidence quality now.)
     for(uint8_t i=0;i<STATION_COUNT;i++){
       int16_t o=offsetToCentre(navMm,navDir,STATIONS[i].centerMm);
       if(o<=APPROACH_START && o>APPROACH_START-3){
         stIndex=(int8_t)i; stationSetPhase(ST_APPROACH);
         requestPwmOver(approachTargetForOffset(o,STATIONS[i].zonePwm),APPROACH_RAMP_MS);
-        stationPublish("ARMED",o,(navConfidence>=CONFIDENCE_GOOD)?"RANGE_ARM_CONF_HIGH":"RANGE_ARM_CONF_LOW");
+        stationPublish("ARMED",o,(navState==NAV_NORMAL)?"RANGE_ARM_NORMAL":"RANGE_ARM_EVALUATING");
         return;
       }
     }
@@ -1087,6 +1570,7 @@ static volatile uint32_t cmdDrops=0;
 static volatile uint32_t pubWindowCount=0;
 
 static char T_ONLINE[64],T_NAV[64],T_MARKER[64],T_STATION[64],T_STAT[64],T_BOOT[64],T_ALERT[64];
+static char T_NO_QUORUM[64];   // §2.5: served ONLY by the desired-retained-state mechanism
 
 // ---------------------------------------------------------------------------
 // DASHBOARD STATE TOPICS
@@ -1118,6 +1602,7 @@ static void buildTopics(){
   snprintf(T_STAT   ,64,"ngr/loco/%s/state/loopstat",id);
   snprintf(T_BOOT   ,64,"ngr/loco/%s/state/bootid"  ,id);
   snprintf(T_ALERT  ,64,"ngr/loco/%s/alert"         ,id);
+  snprintf(T_NO_QUORUM,64,"ngr/loco/%s/mm/no_quorum",id);
   snprintf(T_ST_THROTTLE ,64,"ngr/loco/%s/state/throttle"         ,id);
   snprintf(T_ST_DIRECTION,64,"ngr/loco/%s/state/direction"        ,id);
   snprintf(T_ST_BRAKE    ,64,"ngr/loco/%s/state/brake"            ,id);
@@ -1182,35 +1667,67 @@ static void pubMarker(const char* t,const char* m){
 }
 
 static void navPublishState(const char* ev,const MarkerEvent* e){
-  char b[384];
+  // §0.1/§5: every decision reconstructable from the log — nav_state,
+  // miss_streak, the full score vector, the leading offset and its margin.
+  // The confidence tally is gone and is not reintroduced as telemetry.
+  char b[512];
+  char sc[48], ex[48];
+  jsonScores(sc,sizeof(sc));
+  jsonExcluded(ex,sizeof(ex),false);
+  char ld[8], ru[8];
+  if(leaderIdx>=0)   snprintf(ld,sizeof(ld),"%d",(int)QUORUM_OFFSETS[leaderIdx]);   else strlcpy(ld,"null",sizeof(ld));
+  if(runnerUpIdx>=0) snprintf(ru,sizeof(ru),"%d",(int)QUORUM_OFFSETS[runnerUpIdx]); else strlcpy(ru,"null",sizeof(ru));
   if(e){
-    // "off" is the last reacquisition offset -- meaningful on REACQUIRED, where
-    // it sizes the search window from operational data. It carries its last
-    // value on other events; consumers filter on event=="REACQUIRED".
     snprintf(b,sizeof(b),
-      "{\"event\":\"%s\",\"state\":\"%s\",\"mm\":%u,\"landmark\":\"%s\",\"dir\":\"%s\","
-      "\"confidence\":%d,\"obs\":\"%c\",\"expected\":\"%c\",\"peak\":%d,\"ms\":%u,"
+      "{\"event\":\"%s\",\"state\":\"%s\",\"nav_state\":\"%s\",\"mm\":%u,"
+      "\"landmark\":\"%s\",\"dir\":\"%s\",\"miss_streak\":%u,"
+      "\"obs\":\"%c\",\"expected\":\"%c\",\"peak\":%d,\"ms\":%u,"
       "\"drift\":%d,\"dt\":%u,\"agree\":%lu,\"disagree\":%lu,\"lost\":%lu,"
-      "\"odom_disagreement\":%d,\"off\":%d,\"motor_dir\":\"%s\"}",
-      ev, navState==NAV_TRACKING?"TRACKING":(navState==NAV_LOST?"LOST":"UNSET"),
-      navMm, landmarkAt(navMm), dirName(navDir), navConfidence,
+      "\"scores\":%s,\"excluded\":%s,\"leader\":%s,\"runner_up\":%s,\"margin\":%d,"
+      "\"motor_dir\":\"%s\"}",
+      ev, navStateName(), navStateName(), navMm,
+      landmarkAt(navMm), dirName(navDir), (unsigned)missStreak,
       polChar(e->polarity), polChar(dnaAt(navMm)), e->peak, e->durationMs,
       e->baselineDrift, lastSegmentDt, navAgree, navDisagree, navLostCount,
-      (int)lastOdomDisagreement, (int)lastReacqOffset,
+      sc, ex, ld, ru, (int)quorumMargin,
       motorDirection==DIRECTION_FORWARD?"FWD":"REV");
   }else{
     // The short payload is what DIRECTION and SESSION_DIRECTION publish, so it
     // has to carry the direction fields — those are the events a consumer most
     // wants them on. (Codex)
     snprintf(b,sizeof(b),
-      "{\"event\":\"%s\",\"state\":\"%s\",\"mm\":%u,\"dir\":\"%s\","
-      "\"motor_dir\":\"%s\",\"session_dir\":\"%s\",\"confidence\":%d}",
-      ev, navState==NAV_TRACKING?"TRACKING":(navState==NAV_LOST?"LOST":"UNSET"),
-      navMm, dirName(navDir),
+      "{\"event\":\"%s\",\"state\":\"%s\",\"nav_state\":\"%s\",\"mm\":%u,\"dir\":\"%s\","
+      "\"motor_dir\":\"%s\",\"session_dir\":\"%s\",\"miss_streak\":%u}",
+      ev, navStateName(), navStateName(), navMm, dirName(navDir),
       motorDirection==DIRECTION_FORWARD?"FWD":"REV", dirName(sessionDir),
-      navConfidence);
+      (unsigned)missStreak);
   }
   pub(T_NAV,b);
+  Serial.printf("[NAV] %s\n",b);
+}
+
+// §5.1: QUORUM decision events — adoption, incident open/close, phantom
+// rejection, fixture — are one-time and non-re-derivable, so they ride
+// pubMarker(): a replay with the marker stream intact but the adoption event
+// evicted is unreadable. Carries the decision payload contract: state,
+// streak, score vector, exclusions, leader, runner-up, margin (+viable, §4).
+static void publishQuorumDecision(const char* ev,const char* extra){
+  char b[512];
+  char sc[48], ex[48], vb[48];
+  jsonScores(sc,sizeof(sc));
+  jsonExcluded(ex,sizeof(ex),false);
+  jsonViable(vb,sizeof(vb));
+  char ld[8], ru[8];
+  if(leaderIdx>=0)   snprintf(ld,sizeof(ld),"%d",(int)QUORUM_OFFSETS[leaderIdx]);   else strlcpy(ld,"null",sizeof(ld));
+  if(runnerUpIdx>=0) snprintf(ru,sizeof(ru),"%d",(int)QUORUM_OFFSETS[runnerUpIdx]); else strlcpy(ru,"null",sizeof(ru));
+  snprintf(b,sizeof(b),
+    "{\"event\":\"%s\",\"state\":\"%s\",\"mm\":%u,\"streak\":%u,"
+    "\"scores\":%s,\"excluded\":%s,\"leader\":%s,\"runner_up\":%s,"
+    "\"margin\":%d,\"eval\":%u,\"viable\":%s%s}",
+    ev, navStateName(), navMm, (unsigned)missStreak,
+    sc, ex, ld, ru,
+    (int)quorumMargin, (unsigned)evalCount, vb, extra);
+  pubMarker(T_NAV,b);
   Serial.printf("[NAV] %s\n",b);
 }
 
@@ -1286,28 +1803,38 @@ static void publishAlert(const char* level,const char* reason){
   if(lastSegmentDt>0 && navDir!=MAP_UNSET)
     mmPerSec = (uint32_t)spanMm(routeMod((int32_t)navMm-navDir),navDir,1)*1000UL/lastSegmentDt;
 
+  // candidate_mm: the leading QUORUM candidate's implied position while one
+  // exists (EVALUATING / NO_QUORUM), else -1. NOTE: "mm" fields carry marker
+  // indices — "mm" in this codebase means MILE MARKER, not millimetres.
+  int candMm = -1;
+  if(leaderIdx>=0 && navState!=NAV_NORMAL && navState!=NAV_UNSET && navDir!=MAP_UNSET)
+    candMm = (int)routeMod((int32_t)navMm + navDir*QUORUM_OFFSETS[leaderIdx]);
+  // §2.5 step 3: the list of viable candidate offsets — not a computed
+  // occupancy bound, which is M5.
+  char vb[48]; jsonViable(vb,sizeof(vb));
+
   snprintf(b,sizeof(b),
     "{\"level\":\"%s\",\"reason\":\"%s\",\"loco\":\"%s\",\"uptime_ms\":%lu,"
     "\"nav\":\"%s\",\"moving\":%d,\"pwm\":%d,\"est_mm_s\":%lu,"
     "\"dir\":\"%s\",\"session_dir\":\"%s\",\"motor_dir\":\"%s\","
     "\"rear_bound_mm\":%u,\"front_bound_mm\":%u,\"envelope_mm\":%lu,"
     "\"last_confirmed_mm\":%d,\"last_confirmed_landmark\":\"%s\",\"age_ms\":%lu,"
-    "\"markers_since_confirmed\":%u,\"dead_reckoned_mm\":%u,\"confidence\":%d,"
-    "\"candidate_mm\":%d,\"lost_markers\":%u,\"lost_ms\":%lu,"
+    "\"markers_since_confirmed\":%u,\"dead_reckoned_mm\":%u,"
+    "\"candidate_mm\":%d,\"viable\":%s,\"lost_markers\":%u,\"lost_ms\":%lu,"
     "\"agree\":%lu,\"disagree\":%lu,\"lost_count\":%lu,\"auto\":%d}",
     level,reason,LOCO_NAME,(unsigned long)millis(),
-    navState==NAV_TRACKING?"TRACKING":(navState==NAV_LOST?"LOST":"UNSET"),
-    (actualPwm>0)?1:0,actualPwm,(unsigned long)mmPerSec,
+    navStateName(),
+    (actualPwm>0)?1:0,(int)actualPwm,(unsigned long)mmPerSec,
     dirName(navDir),dirName(sessionDir),
     motorDirection==DIRECTION_FORWARD?"FWD":(motorDirection==DIRECTION_REVERSE?"REV":"NEU"),
     rear,front,(unsigned long)envelope,
     haveConfirmed?(int)lastConfirmedMm:-1,
     haveConfirmed?landmarkAt(lastConfirmedMm):"",
     (unsigned long)(haveConfirmed?(millis()-lastConfirmedMs):0UL),
-    (unsigned)markersSinceConfirmed,navMm,navConfidence,
-    pendingValid?(int)pendingMm:-1,
+    (unsigned)markersSinceConfirmed,navMm,
+    candMm,vb,
     (unsigned)lostMarkers,
-    (unsigned long)(navState==NAV_LOST?(millis()-lostSinceMs):0UL),
+    (unsigned long)(navState==NAV_NO_QUORUM?(millis()-lostSinceMs):0UL),
     navAgree,navDisagree,navLostCount,autoRunning?1:0);
 
   pub(T_ALERT,b,true);          // retained: a late subscriber still learns of it
@@ -1319,9 +1846,7 @@ static void publishAlert(const char* level,const char* reason){
 // moving unless the others are continuously saying where they are.
 static void serviceStatusBroadcast(){
   if(millis()-lastAlertMs < STATUS_BROADCAST_MS) return;
-  const char* level = (navState==NAV_LOST) ? "LOST"
-                    : (navState==NAV_TRACKING ? "CLEAR" : "UNSET");
-  publishAlert(level,"STATUS");
+  publishAlert(navAlertLevel(),"STATUS");   // §6.1: one helper, both sites
 }
 
 static uint8_t startIntervalA=0, startIntervalB=0;
@@ -1388,8 +1913,8 @@ static void publishSimpleStates(){
     pubStateStrChanged(T_ST_STARTINT,si,lastStartInt,sizeof(lastStartInt)); }
   pubStateIntChanged(T_ST_STARTMM  ,navMm,             &lastStartMm);
   // The console unlocks the throttle on this: a declared direction and a
-  // position it can name.
-  pubStateIntChanged(T_ST_NAVREADY ,(sessionDir!=MAP_UNSET && navState==NAV_TRACKING)?1:0,&lastNavReady);
+  // position it can name. Usable includes EVALUATING (§6.1).
+  pubStateIntChanged(T_ST_NAVREADY ,(sessionDir!=MAP_UNSET && navPositionUsable())?1:0,&lastNavReady);
 }
 
 // CHANGE 3c (v2.20) — republish ALL ten state topics, retained, on every
@@ -1409,7 +1934,7 @@ static void publishAllStatesRetained(){
   { char si[12]; formatStartInterval(si,sizeof(si)); pub(T_ST_STARTINT,si,true); }
   snprintf(b,sizeof(b),"%d",navMm);            pub(T_ST_STARTMM  ,b,true);
   pub(T_ST_MHE,"0",true);                       // no CTO hold eligibility yet
-  snprintf(b,sizeof(b),"%d",(sessionDir!=MAP_UNSET && navState==NAV_TRACKING)?1:0);
+  snprintf(b,sizeof(b),"%d",(sessionDir!=MAP_UNSET && navPositionUsable())?1:0);
   pub(T_ST_NAVREADY,b,true);
 }
 
@@ -1447,7 +1972,7 @@ static void publishStat(){
     "\"queue_high_water\":%u,\"mqtt_connect_ms\":%lu,\"mqtt_attempts\":%lu,"
     "\"pub_drops\":%lu,\"pub_queue_hw\":%u,\"cmd_drops\":%lu,\"pub_per_s\":%lu,"
     "\"marker_pub_drops\":%lu,\"marker_pub_hw\":%u,"
-    "\"nav\":\"%s\",\"mm\":%u,\"conf\":%d,\"pwm\":%d,"
+    "\"nav\":\"%s\",\"mm\":%u,\"miss_streak\":%u,\"pwm\":%d,"
     "\"lost_markers\":%u,\"lost_ms\":%lu,\"motor_dir\":\"%s\"}",
     loopMaxGapMs,(unsigned long)taskMaxGapMs,(unsigned long)(now-taskLastRunMs),
     baselineCounts,(int)lastRaw,(int)lastRaw-baselineCounts,
@@ -1455,10 +1980,10 @@ static void publishStat(){
     (unsigned)queueHighWater,(unsigned long)mqttConnectMs,(unsigned long)mqttAttempts,
     (unsigned long)pubDrops,(unsigned)pubQueueHw,(unsigned long)cmdDrops,(unsigned long)pubPerS,
     (unsigned long)markerPubDrops,(unsigned)markerPubHw,
-    navState==NAV_TRACKING?"TRACKING":(navState==NAV_LOST?"LOST":"UNSET"),
-    navMm,navConfidence,actualPwm,
+    navStateName(),
+    navMm,(unsigned)missStreak,(int)actualPwm,
     (unsigned)lostMarkers,
-    (unsigned long)(navState==NAV_LOST?(now-lostSinceMs):0UL),
+    (unsigned long)(navState==NAV_NO_QUORUM?(now-lostSinceMs):0UL),
     motorDirection==DIRECTION_FORWARD?"FWD":(motorDirection==DIRECTION_REVERSE?"REV":"NEU"));
   pub(T_STAT,b);
   loopMaxGapMs=0; taskMaxGapMs=0; queueHighWater=0; pubQueueHw=0; markerPubHw=0; pubWindowCount=0;
@@ -1466,13 +1991,15 @@ static void publishStat(){
 
 static void publishBootId(){
   char b[320];
+  // conf_max is gone with navConfidence; the QUORUM constants are the
+  // navigator identity now.
   snprintf(b,sizeof(b),
     "{\"sketch\":\"%s\",\"loco\":\"%s\",\"deadband\":%d,\"entry_margin\":%d,"
     "\"min_peak\":%d,\"floor_ms\":%lu,\"baseline\":\"median_%d_at_%lums\","
-    "\"dna_w\":%d,\"conf_max\":%d}",
+    "\"quorum_trigger\":%d,\"quorum_margin\":%d,\"quorum_max\":%d}",
     SKETCH_NAME,LOCO_NAME,(int)HALL_DEADBAND_COUNTS,(int)HALL_ENTRY_MARGIN_COUNTS,
     (int)HALL_MIN_PEAK_DELTA,EVENT_FLOOR_MS,MEDIAN_WINDOW,MEDIAN_SAMPLE_MS,
-    DNA_W,CONFIDENCE_MAX);
+    QUORUM_TRIGGER,QUORUM_MARGIN,QUORUM_MAX);
   pub(T_BOOT,b,true);          // retained: kills the stale-identity ghost
 }
 
@@ -1558,8 +2085,10 @@ static void handleCommand(const char* topic,const char* msg){
     // Every refusal says why. This one used to fall through silently: a lost
     // loco could be sent GO all night and neither move nor explain itself.
     if(!autoEnrolled){ stationPublish("GO_REFUSED",0,"NOT_ENROLLED_IN_AUTO"); return; }
-    if(navState==NAV_LOST){ stationPublish("GO_REFUSED",0,"POSITION_LOST_DECLARE_START_MM"); return; }
-    if(navState!=NAV_TRACKING){ stationPublish("GO_REFUSED",0,"NO_POSITION_DECLARE_START_MM"); return; }
+    // §6.1: refuse on NAV_NO_QUORUM and NAV_UNSET; ALLOW on NAV_EVALUATING —
+    // position is held and probably correct while evaluating.
+    if(navState==NAV_NO_QUORUM){ stationPublish("GO_REFUSED",0,"NO_QUORUM_DECLARE_POSITION"); return; }
+    if(navState==NAV_UNSET){ stationPublish("GO_REFUSED",0,"NO_POSITION_DECLARE_START_MM"); return; }
     if(navDir==MAP_UNSET){ stationPublish("GO_REFUSED",0,"NO_SESSION_DIRECTION"); return; }
     if(autoRunning){ stationPublish("GO_REFUSED",0,"ALREADY_RUNNING"); return; }
     {
@@ -1614,10 +2143,50 @@ static void handleCommand(const char* topic,const char* msg){
     if(!autoRunning && !estopped) requestPwm(atoi(msg),NORMAL_STEP_MS);   // manual only
   }
   else if(!strcmp(topic,T_CMD_FORCELOST)){
-    // TEST FIXTURE. Reacquisition essentially never fires at the measured error
-    // rate, so LOST must be inducible or M1_TEST_SPEC cannot be run. Any payload
-    // forces it. Not a guard and not on any operational path.
-    navEnterLost("TEST");
+    // TEST FIXTURE (§6.5). Topic name kept for existing scripts. Payload is a
+    // signed integer n: displace navMm by n event-steps and change NOTHING
+    // else — the locomotive does not know it has been moved, and discovers
+    // the error the way it would a real one. n=-4 reproduces a queue-drop
+    // burst; n=+1 a phantom. Payload "NOQUORUM" forces the terminal state
+    // directly, for testing the snapshot. Every rejection publishes
+    // FIXTURE_REJECTED with the offending payload — a fixture that fails
+    // silently is worse than one that does not exist. atoi() is NOT used: it
+    // returns 0 for garbage, which would silently become offset 0.
+    const char* p=msg;
+    while(*p==' '||*p=='\t') p++;                 // trim leading whitespace
+    size_t len=strlen(p);
+    while(len && (p[len-1]==' '||p[len-1]=='\t'||p[len-1]=='\r'||p[len-1]=='\n')) len--;
+    char pay[32];
+    if(len>=sizeof(pay)) len=sizeof(pay)-1;
+    memcpy(pay,p,len); pay[len]=0;
+    char extra[80];
+    if(pay[0]==0){
+      publishQuorumDecision("FIXTURE_REJECTED",",\"payload\":\"\",\"why\":\"EMPTY\"");
+      return;
+    }
+    if(!strcmp(pay,"NOQUORUM")){                  // exact, case-sensitive, before numeric
+      // Permitted from NAV_UNSET: a state fixture, not a position operation.
+      enterNoQuorum("FORCED_BY_FIXTURE");
+      return;
+    }
+    char* endp=nullptr;
+    long n=strtol(pay,&endp,10);
+    if(endp==pay || *endp!=0 || n<-8 || n>8){
+      snprintf(extra,sizeof(extra),",\"payload\":\"%s\",\"why\":\"PARSE_OR_RANGE\"",pay);
+      publishQuorumDecision("FIXTURE_REJECTED",extra);
+      return;
+    }
+    if(navState==NAV_UNSET || navDir==MAP_UNSET){ // no position/direction to displace
+      snprintf(extra,sizeof(extra),",\"payload\":\"%s\",\"why\":\"NO_POSITION_OR_DIRECTION\"",pay);
+      publishQuorumDecision("FIXTURE_REJECTED",extra);
+      return;
+    }
+    uint8_t oldMm=navMm;
+    navMm=routeMod((int32_t)navMm + navDir*(int32_t)n);
+    // change NOTHING else — not navState, not missStreak, not the ring, not
+    // the scores. NAV_EVALUATING is entered later, by ordinary disagreement.
+    snprintf(extra,sizeof(extra),",\"n\":%ld,\"old_mm\":%u,\"new_mm\":%u",n,oldMm,navMm);
+    publishQuorumDecision("FORCED_OFFSET",extra);
   }
 }
 
@@ -1685,7 +2254,7 @@ static void attemptReconnect(){
     pub(T_ONLINE,"1",true);
     publishAllStatesRetained();        // Change 3c: reseed all ten state topics
     publishBootId();
-    publishAlert(navState==NAV_LOST?"LOST":"CLEAR","MQTT_CONNECT");
+    publishAlert(navAlertLevel(),"MQTT_CONNECT");   // §6.1: mid-evaluation reconnect must not report CLEAR
     subscribeAll();                    // mqtt.subscribe; reached only from here
     Serial.println("[NET] MQTT connected");
   }
@@ -1713,6 +2282,21 @@ static void networkTask(void*){
         // the link cannot carry the traffic, and the fix for that is publish-on-
         // change (Change 3), not a bigger gulp that re-creates the starvation.
         mqtt.loop();
+        // §2.5 desired-retained-state reconciliation — the ONLY publisher of
+        // mm/no_quorum. Whenever connected and the slot is not NONE, publish
+        // the desired retained message; return to NONE only on success. In no
+        // queue, so routine telemetry can neither overwrite nor evict it, and
+        // after any reconnect this path reconciles the broker automatically —
+        // establishing the snapshot and clearing it get the same durability.
+        {
+          uint8_t want=desiredRetainedNoQuorum;
+          if(want!=DRS_NONE){
+            bool ok = (want==DRS_SNAPSHOT)
+                    ? mqtt.publish(T_NO_QUORUM,noQuorumSnapshot,true)
+                    : mqtt.publish(T_NO_QUORUM,"",true);   // empty retained = clear
+            if(ok && desiredRetainedNoQuorum==want) desiredRetainedNoQuorum=DRS_NONE;
+          }
+        }
         PubMsg m;
         // CHANGE F1/F2 (v2.22, CODEX R19 findings 3+4) — markers drain FIRST via
         // PEEK-PUBLISH-REMOVE, capped at 8. v2.21 removed the marker from the
@@ -1765,12 +2349,19 @@ static void drainMarkers(){
   }
   while(eventQueue && xQueueReceive(eventQueue,&e,0)==pdTRUE){
     navOnMarker(e);
-    char b[224];
+    // §5.1 marker payload contract — the raw event fields plus dt,
+    // timing_gate, dt_expected, dt_conserve_ratio. NOTHING else: scores,
+    // streaks, leaders and margins ride the QUORUM decision events, and conf
+    // is deleted with navConfidence. Worst case 174 bytes ≤ 320 (§5.1).
+    float ratio = (lastDtConserveRatio>99.99f) ? 99.99f : lastDtConserveRatio;
+    char b[320];
     snprintf(b,sizeof(b),
       "{\"mm\":%u,\"landmark\":\"%s\",\"obs\":\"%c\",\"peak\":%d,\"ms\":%u,"
-      "\"drift\":%d,\"dt\":%u,\"conf\":%d}",
+      "\"drift\":%d,\"dt\":%u,\"timing_gate\":\"%s\",\"dt_expected\":%lu,"
+      "\"dt_conserve_ratio\":%.2f}",
       navMm,landmarkAt(navMm),polChar(e.polarity),e.peak,e.durationMs,
-      e.baselineDrift,lastSegmentDt,navConfidence);
+      e.baselineDrift,lastSegmentDt,lastTimingGate,
+      (unsigned long)lastDtExpected,(double)ratio);
     pubMarker(T_MARKER,b);   // dedicated queue; status can no longer evict it
   }
 }
