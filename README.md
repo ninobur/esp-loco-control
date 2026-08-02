@@ -6,7 +6,7 @@ over MQTT and ESP-NOW.
 ## Layout
 
 ```
-firmware/SOLONAV/       current navigation sketch — opens directly in Arduino IDE
+firmware/QUORUM/        current navigation sketch — opens directly in Arduino IDE
 firmware/SENSORTEST/    sensor measurement rig: reports markers, no navigation
 firmware/config/        shared headers, symlinked into each sketch folder
 server/                 Raspberry Pi — Flask dashboard, dispatcher, loggers
@@ -21,7 +21,7 @@ Point the Arduino IDE at this repository once:
 
 **Settings → Sketchbook location → `<repo>/firmware`**
 
-`SOLONAV` and `SENSORTEST` then appear under **File → Sketchbook** and compile
+`QUORUM` and `SENSORTEST` then appear under **File → Sketchbook** and compile
 in place. There is no second copy anywhere, so what you edit is what you flash.
 
 **Upload Speed must be 115200.** The default 921600 fails on this adapter, and
@@ -32,8 +32,9 @@ into each sketch folder as `credentials.h` and fill it in.
 
 ## Versions
 
-The filename does not carry the version. `SOLONAV.ino` is always current;
-versions are git tags.
+The filename does not carry the version. `QUORUM.ino` is always current;
+versions are git tags. (Tags up to v2.22 predate the rename and hold the
+sketch at `firmware/SOLONAV/SOLONAV.ino` — use that path when diffing them.)
 
 ```bash
 git tag -a v2.17 -m "what changed and why"

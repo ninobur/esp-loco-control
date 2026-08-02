@@ -1,14 +1,14 @@
 /*
  * ============================================================================
- * SOLONAV_3_0  —  Ninobur Garden Railway single-locomotive navigation
- *                 v3.0: QUORUM navigator (spec R20)
+ * QUORUM_1_0  —  Ninobur Garden Railway single-locomotive navigation
  * ============================================================================
+ * Successor to SOLONAV (v2.22 final). QUORUM navigator per spec R20.
  *
  * A locomotive that knows where it has been, where it is, and what is
  * possible next.
  *
  * ---------------------------------------------------------------------------
- * v3.0 — QUORUM (docs/QUORUM_v3_0_implementation_spec.md, Revision 20)
+ * QUORUM (docs/QUORUM_v3_0_implementation_spec.md, Revision 20)
  * ---------------------------------------------------------------------------
  * Layer 3 is replaced. The tally navigator (navConfidence, LOST, windowed
  * reacquisition) could express HOW MUCH it was disagreeing but not WHICH
@@ -109,7 +109,7 @@
 #include <pgmspace.h>
 #include "LocoConfig.h"
 
-#define SKETCH_NAME "SOLONAV_3_0"
+#define SKETCH_NAME "QUORUM_1_0"
 
 // Broker lives here, not in LocoConfig.h — same as the previous lineage.
 #define MQTT_BROKER "192.168.68.142"

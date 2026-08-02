@@ -1,7 +1,7 @@
 # QUORUM — SOLONAV v3.0 implementation specification
 
-**Repo:** `~/esp-loco-control` **File:** `firmware/SOLONAV/SOLONAV.ino` **Tag:** v2.22 → v3.0
-**Navigator name:** QUORUM **SKETCH_NAME:** `"SOLONAV_3_0_QUORUM"`
+**Repo:** `~/esp-loco-control` **File:** `firmware/QUORUM/QUORUM.ino` **Tag:** v2.22 → QUORUM 1.0
+**Navigator name:** QUORUM **SKETCH_NAME:** `"QUORUM_1_0"`
 
 Revision 20. Thirteen review rounds with Sam (ChatGPT), then one with CODEX
 reading against the actual source — which found four criticals thirteen rounds
