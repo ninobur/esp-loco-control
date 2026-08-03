@@ -3,7 +3,7 @@
 **Repo:** `~/esp-loco-control` **File:** `firmware/QUORUM/QUORUM.ino` **Tag:** v2.22 → QUORUM 1.0
 **Navigator name:** QUORUM **SKETCH_NAME:** `"QUORUM_1_0"`
 
-Revision 20. Thirteen review rounds with Sam (ChatGPT), then one with CODEX
+Revision 21. Thirteen review rounds with Sam (ChatGPT), then one with CODEX
 reading against the actual source — which found four criticals thirteen rounds
 of text review could not, because they live in the seams between this document
 and `SOLONAV.ino`.
@@ -71,6 +71,15 @@ reset names the existing `stationReset()` rather than a nonexistent overshoot
 counter. Rebased onto v2.22, whose peek-publish-remove marker drain (capped at
 8) closes the silent-discard hole CODEX finding 3 predicted and the 2026-07-31
 outage test confirmed — markers 24 and 23 lost with `marker_pub_drops` reading 0.
+
+**R21** — operator architectural ruling: bicameral control is constitutional
+(new §0.2). QUORUM 1.0–1.2 issued the `NAV_NO_QUORUM` terminal stop
+unconditionally — a navigation override of a manual operator that v2.22's LOST
+handler ("navigation acts only in AUTO") never permitted; the certified
+property "NAV_NO_QUORUM stops once" was reviewed by everyone and gated by no
+one. §2.5's stop-request step and the corresponding §8 item now gate it on
+`autoRunning`. Corrected in QUORUM 1.3. Navigator logic otherwise unchanged;
+body otherwise frozen.
 
 ---
 
@@ -148,6 +157,22 @@ the station state machine's logic, or the PWM authority rules
 | `serviceStations()` | expose `stationReset(const char* why)` for §2.5 |
 | `servicePwmRamp()` | a static declaration and two statements at function entry, detecting the nonzero→zero edge on `actualPwm` and calling `invalidatePreviousAcceptedDt()` — see §3 |
 | 15 `navState` call sites | mechanical substitution — see §6.1 |
+
+### §0.2 Bicameral control (constitutional)
+
+Operator architectural ruling (2026-08-02), normative for this navigator and
+all future NGR navigators:
+
+All NGR locomotive controllers are BICAMERAL. Two chambers: MANUAL — the
+operator is sovereign; navigation observes, records, publishes, and warns,
+but NEVER writes to the motor. AUTO — navigation acts with full authority.
+E-STOP belongs to the operator and works in every chamber and every state.
+
+v2.22 stated this doctrine in its LOST handler ("AUTO only. In manual the
+operator has the throttle and the navigator does not take it. Navigation
+observes always; navigation acts only in AUTO.") and honored it. Every
+navigation-originated motor write must be gated on `autoRunning`; operator
+and dispatcher command paths are never gated by navigation state.
 
 ---
 
@@ -517,7 +542,7 @@ This ring **replaces** `dnaBuf`, `dnaPush()` and `dnaMatch()`. See §6.2.
 ### §2.5 NAV_NO_QUORUM behaviour
 
 ```
-requestPwm(0, NORMAL_STEP_MS)          // controlled stop
+if (autoRunning) requestPwm(0, NORMAL_STEP_MS)   // controlled stop — AUTO chamber only (§0.2, R21)
 ```
 
 **Retain** `navMm`, `navDir`, `autoRunning`, last-confirmed, and the evidence.
@@ -591,7 +616,10 @@ be reversed.**
    the same guarantee. Without it the snapshot lingers as a ghost, exactly like
    the CTO2 r10 retained relics that were briefly mistaken for a second device
    on Otto's topics on 2026-07-30.
-2. `requestPwm(0, NORMAL_STEP_MS)` — controlled stop.
+2. Stop request, **AUTO chamber only, gated on `autoRunning`** (§0.2, R21):
+   `if (autoRunning) requestPwm(0, NORMAL_STEP_MS)`. In MANUAL the locomotive
+   keeps the operator's commanded PWM; the operator learns of the failure
+   through every publication channel.
 2a. **`stationReset("NO_QUORUM")`.** The station machine must not retain a
    continuation that is no longer valid.
 
@@ -1453,7 +1481,7 @@ hypothesis set, and staying stopped is the correct outcome.
 - [ ] **Station machine reset.** Force `NO_QUORUM` during `ST_DEPART`, redeclare position, and confirm `stPhase` is `ST_IDLE` with no armed station. The locomotive is drivable without an `AUTO` toggle.
 - [ ] **Fixture parsing.** `cmd/force_lost garbage`, empty, `+3x` and `99` are all rejected with `FIXTURE_REJECTED`. `-4` and `NOQUORUM` are accepted. `-4` is refused while `NAV_UNSET`; `NOQUORUM` is not.
 - [ ] **Hard bound.** 12 accepted events in `NAV_EVALUATING` with a persistent margin of 1 → `NAV_NO_QUORUM`. Not indefinite collection.
-- [ ] **NO_QUORUM.** PWM 0; `navMm`, `navDir`, `autoRunning`, last-confirmed all retained; retained alert published; operator declaration through **either** `cmd/start_mm` or `cmd/start_interval` returns it to `NAV_NORMAL`.
+- [ ] **NO_QUORUM.** In AUTO: PWM 0. In MANUAL: the stop request is **not** issued (§0.2 — the gate on `autoRunning` verified) and the operator's commanded PWM is retained. In both chambers: `navMm`, `navDir`, `autoRunning`, last-confirmed all retained; retained alert published; operator declaration through **either** `cmd/start_mm` or `cmd/start_interval` returns it to `NAV_NORMAL`.
 - [ ] **Stations survive evaluation.** A station arms and completes normally while `NAV_EVALUATING`.
 - [ ] **Direction change** performs the full §2.6 reset — ring, scores, exclusions, failure count, provisional-adoption state, `previousAcceptedDt` — and returns `NAV_EVALUATING` to `NAV_NORMAL`. No state from the old direction survives.
 - [ ] **Incident reset after successful validation.** Fail one adoption, exclude its offset, adopt another, receive one agreement. A later independent evaluation starts with `adoptionFailureCount = 0` and the full candidate set restored.
