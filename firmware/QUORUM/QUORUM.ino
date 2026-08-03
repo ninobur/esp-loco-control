@@ -1,8 +1,15 @@
 /*
  * ============================================================================
- * QUORUM_1_3  —  Ninobur Garden Railway single-locomotive navigation
+ * QUORUM_1_4  —  Ninobur Garden Railway single-locomotive navigation
  * ============================================================================
  * Successor to SOLONAV (v2.22 final). QUORUM navigator per spec R21.
+ *
+ * v1.4 — CODEX constitutional hardening after ratifying the bicameral
+ * property: the M+1 station fallback gets its explicit autoRunning gate
+ * (reclassified AUTO-chamber station automation, not a motor-safety fact —
+ * behaviourally unreachable change today, constitutionally load-bearing
+ * tomorrow), and the terminal-entry log tells the truth in both chambers
+ * ("AUTO stop requested" / "MANUAL, motor unchanged").
  *
  * v1.3 — BICAMERAL CONTROL (operator ruling, spec §0.2). All NGR locomotive
  * controllers have two chambers: MANUAL — the operator is sovereign;
@@ -139,7 +146,7 @@
 #include <pgmspace.h>
 #include "LocoConfig.h"
 
-#define SKETCH_NAME "QUORUM_1_3"
+#define SKETCH_NAME "QUORUM_1_4"
 
 // Broker lives here, not in LocoConfig.h — same as the previous lineage.
 #define MQTT_BROKER "192.168.68.142"
@@ -844,6 +851,9 @@ static void buildNoQuorumSnapshot(){
 
 // --- NAV_NO_QUORUM entry (§2.5, in this order) ------------------------------
 static void enterNoQuorum(const char* reason){
+  // v1.4 (CODEX): capture the chamber at entry so the log tells the truth in
+  // both — "stopped" was false in MANUAL, where the motor is untouched.
+  bool wasAuto = autoRunning;
   navState=NAV_NO_QUORUM;
   navLostCount++;
   lostSinceMs=millis(); lostMarkers=0;
@@ -873,7 +883,10 @@ static void enterNoQuorum(const char* reason){
   // Retain navMm, navDir, autoRunning, last-confirmed and ALL diagnostics.
   // AUTO is not dropped, but the locomotive does not resume.
   closeIncidentNoQuorum();          // never endSuccessfulIncident() here
-  Serial.printf("[NAV] NO_QUORUM (%s) — stopped; operator declaration required\n",reason);
+  if(wasAuto)
+    Serial.printf("[NAV] NO_QUORUM (%s) — AUTO stop requested; operator declaration required\n",reason);
+  else
+    Serial.printf("[NAV] NO_QUORUM (%s) — MANUAL, motor unchanged; operator declaration required\n",reason);
 }
 
 // --- evaluation decisions (§2.2/§2.4) ---------------------------------------
@@ -1474,10 +1487,17 @@ static void serviceStations(){
     return;
   }
 
-  // The M+1 fallback runs regardless of navigation state. It is a fact about
-  // the motor, not about the map, and a loco that goes LOST during final
-  // approach still needs to stop.
-  if(stPhase==ST_FINAL && stMPlus1AtMs &&
+  // The M+1 fallback runs regardless of NAVIGATION state — a loco that loses
+  // position during final approach still needs to stop — but it is
+  // AUTO-chamber station automation, gated per §0.2 (v1.4, CODEX
+  // reclassification): the constitution admits no navigation-originated
+  // ungated motor write except E-stop. Today the gate changes no reachable
+  // behaviour — a non-IDLE station phase already implies AUTO, since every
+  // path that clears autoRunning also resets the station machine — but the
+  // explicit gate means a future station-reset regression cannot violate
+  // §0.2 silently.
+  if(autoRunning &&
+     stPhase==ST_FINAL && stMPlus1AtMs &&
      millis()-stMPlus1AtMs >= FINAL_M1_TIMEOUT_MS){
     stationSetPhase(ST_RAMP);
     requestPwmOver(0,STOP_RAMP_MS);
