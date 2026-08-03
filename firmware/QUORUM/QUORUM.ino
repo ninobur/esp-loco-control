@@ -1,8 +1,18 @@
 /*
  * ============================================================================
- * QUORUM_1_2  —  Ninobur Garden Railway single-locomotive navigation
+ * QUORUM_1_3  —  Ninobur Garden Railway single-locomotive navigation
  * ============================================================================
- * Successor to SOLONAV (v2.22 final). QUORUM navigator per spec R20.
+ * Successor to SOLONAV (v2.22 final). QUORUM navigator per spec R21.
+ *
+ * v1.3 — BICAMERAL CONTROL (operator ruling, spec §0.2). All NGR locomotive
+ * controllers have two chambers: MANUAL — the operator is sovereign;
+ * navigation observes, records, publishes and warns, but NEVER writes to
+ * the motor. AUTO — navigation acts with full authority. E-STOP belongs to
+ * the operator and works in every chamber and every state. The NO_QUORUM
+ * terminal stop now gates on autoRunning; 1.0-1.2 issued it
+ * unconditionally, a navigation override of a manual operator that v2.22's
+ * LOST handler never permitted. Full call-site audit in
+ * docs/QUORUM_1_3_IMPLEMENTATION_REPORT.md.
  *
  * v1.2 — generation counter closes the ABA race in retained-state
  * reconciliation (CODEX 1.1 review): the success guard compared only the
@@ -129,7 +139,7 @@
 #include <pgmspace.h>
 #include "LocoConfig.h"
 
-#define SKETCH_NAME "QUORUM_1_2"
+#define SKETCH_NAME "QUORUM_1_3"
 
 // Broker lives here, not in LocoConfig.h — same as the previous lineage.
 #define MQTT_BROKER "192.168.68.142"
@@ -839,8 +849,17 @@ static void enterNoQuorum(const char* reason){
   lostSinceMs=millis(); lostMarkers=0;
   // 1. snapshot the terminal evidence before deceleration can overwrite it
   buildNoQuorumSnapshot();
-  // 2. controlled stop — issued once, on entry, never reissued on later markers
-  requestPwm(0,NORMAL_STEP_MS);
+  // 2. controlled stop — AUTO CHAMBER ONLY, issued once on entry, never
+  //    reissued on later markers. BICAMERAL RULE (operator ruling, spec
+  //    §0.2): in MANUAL the operator is sovereign — navigation observes,
+  //    records, publishes and warns, but NEVER writes to the motor; in AUTO
+  //    navigation acts with full authority. v2.22's LOST handler stated the
+  //    same doctrine — "AUTO only. In manual the operator has the throttle
+  //    and the navigator does not take it. Navigation observes always;
+  //    navigation acts only in AUTO." — and 1.0-1.2 regressed it here, once.
+  //    In MANUAL the locomotive keeps the operator's commanded PWM and the
+  //    operator learns of NO_QUORUM through every publication channel.
+  if(autoRunning) requestPwm(0,NORMAL_STEP_MS);
   // 2a. the station machine must not retain a continuation that is no longer
   //     valid (ST_DEPART would resume without cruise; ST_FINAL without its
   //     M+1 timer). Existing routine; no new station machinery.
