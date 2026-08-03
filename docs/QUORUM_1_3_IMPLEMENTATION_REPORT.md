@@ -1,7 +1,11 @@
 # QUORUM 1.3 — implementation report: bicameral control
 
 **Describes commit f02efd1 (QUORUM 1.3) and spec amendment R21 (cb8672b).**
-CODEX ratification to follow separately.
+CODEX ratification followed: audit site 3 (the M+1 fallback) was
+reclassified from motor-safety fact to AUTO-chamber station automation and
+explicitly gated in QUORUM 1.4 — the amended table is in
+`QUORUM_1_4_IMPLEMENTATION_REPORT.md`. The table below is the 1.3-era
+record.
 
 ## The ruling and the regression
 
