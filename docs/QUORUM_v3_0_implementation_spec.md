@@ -79,7 +79,11 @@ handler ("navigation acts only in AUTO") never permitted; the certified
 property "NAV_NO_QUORUM stops once" was reviewed by everyone and gated by no
 one. §2.5's stop-request step and the corresponding §8 item now gate it on
 `autoRunning`. Corrected in QUORUM 1.3. Navigator logic otherwise unchanged;
-body otherwise frozen.
+body otherwise frozen. *R21 erratum (CODEX ratification round): two wording
+corrections — §2.5's marker-handling passage now states the deceleration is
+the AUTO case and MANUAL continues at the operator's throttle, and the M+1
+fallback is classified AUTO-chamber station automation (explicitly gated in
+QUORUM 1.4), not a motor-safety fact.*
 
 ---
 
@@ -648,8 +652,10 @@ diagnostics — scores, exclusions, `evalCount`, leader, runner-up, margin. AUTO
 not dropped, but the locomotive does not resume. Call
 `closeIncidentNoQuorum()`, never `endSuccessfulIncident()` (§2.6).
 
-**Marker handling while in `NAV_NO_QUORUM`.** The locomotive is decelerating and
-will pass more magnets. Those events are real and must not be pretended away:
+**Marker handling while in `NAV_NO_QUORUM`.** In AUTO the locomotive is
+decelerating under the stop request; in MANUAL it continues at the operator's
+unchanged throttle (§0.2). Either way it will pass more magnets. Those events
+are real and must not be pretended away:
 
 ```
 continue applying the timing acceptance gate
