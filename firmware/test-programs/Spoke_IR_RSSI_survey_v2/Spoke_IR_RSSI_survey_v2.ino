@@ -113,19 +113,52 @@
  * ============================================================================
  */
 
-#include <Arduino.h>
-#include <WiFi.h>
-#include <PubSubClient.h>
+// ---------------------------------------------------------------------------
+// IR_TELEMETRY_WIFI — the one build switch.
+//
+// DEFINED (default): WiFi + MQTT + the 2 Hz RSSI survey. This is the survey
+//   build and the one that produces telemetry.
+// COMMENTED OUT: no WiFi is compiled in at all — no radio, no MQTT, no
+//   reconnect path, nothing that can stall. Pulses log over USB only.
+//
+// This exists because validating capture and network in the same first run
+// leaves a bad result unattributable. Run the USB build first: if pulses are
+// clean with no network in the binary, capture is proven, and anything that
+// appears afterwards belongs to the radio. Stage 1 of the staged plan in
+// docs/IR_SENSOR_NOTES.md asks for exactly this.
+// ---------------------------------------------------------------------------
+#define IR_TELEMETRY_WIFI
 
-// Credentials live in credentials.h, git-ignored and never committed. Copy
-// firmware/config/credentials_template.h into this folder as credentials.h.
-#include "credentials.h"
+#include <Arduino.h>
+#ifdef IR_TELEMETRY_WIFI
+  #include <WiFi.h>
+  #include <PubSubClient.h>
+  // Credentials live in credentials.h, git-ignored and never committed. Copy
+  // firmware/config/credentials_template.h into this folder as credentials.h.
+  #include "credentials.h"
+#endif
 
 #define SKETCH_NAME "Spoke_IR_RSSI_survey_v2"
 
+const char* NODE_NAME   = "IR_SPEED_SENSOR";
+#ifdef IR_TELEMETRY_WIFI
 const char* MQTT_BROKER = "192.168.68.142";
 const int   MQTT_PORT   = 1883;
-const char* NODE_NAME   = "IR_SPEED_SENSOR";
+#endif
+
+// RSSI is only meaningful with a radio. In the USB build it publishes as 0 so
+// the payload shape is identical between builds and one parser reads both.
+// PUB_HAS_ROOM is the outbound backpressure test (see loop()); with no radio
+// there is no outbound queue to back up, so it is always true.
+#ifdef IR_TELEMETRY_WIFI
+  #define CURRENT_RSSI   ((int)WiFi.RSSI())
+  #define PUB_HAS_ROOM   (uxQueueSpacesAvailable(pubQueue) > 4)
+  #define MQTT_ATTEMPTS  ((unsigned long)mqttAttempts)
+#else
+  #define CURRENT_RSSI   0
+  #define PUB_HAS_ROOM   true
+  #define MQTT_ATTEMPTS  0UL
+#endif
 
 // ===========================================================================
 // TYPES — must precede every function. The Arduino IDE generates prototypes
@@ -142,7 +175,9 @@ struct PulseEvent {
   uint8_t  quality;      // 0=UNAVAILABLE 1=MARGINAL 2=OK
 };
 
+#ifdef IR_TELEMETRY_WIFI
 struct PubMsg { const char* topic; char payload[256]; bool retain; };
+#endif
 
 // ===========================================================================
 // HARDWARE / TUNING
@@ -173,20 +208,36 @@ const uint32_t STATUS_PUBLISH_MS = 5000;// health/diagnostic beat
 const uint32_t MQTT_RETRY_MS   = 5000;  // fixed backoff, NOT every loop pass
 const uint8_t  PUB_DRAIN_CAP   = 8;     // outbound publishes per network pass
 
-// pKPH SCALE FACTOR — UNRESOLVED, see IR_SENSOR_NOTES.md "Known errors".
-// v1 used 0.21, which corresponds to roughly 1:58 and matches no G standard
-// (1:22.5 would be 0.081, 1:29 would be 0.104). The Pi dashboard currently
-// scales measured speed by 0.162 (1:45). Three different numbers are in play,
-// so the value is NOT silently changed here — v1's constant is kept so v2
-// speeds stay comparable with v1 logs. speed_mmps is the scale-free truth and
-// should be preferred for any cross-check until this is settled.
-const float PKPH_FACTOR = 0.21f;
+// pKPH SCALE — SETTLED, matched to the navigation firmware.
+//
+// The navigation lineage divides mm/s by a single empirical constant:
+//     static const float PKPH_MM_PER_SEC = 5.37325f;
+//     measuredPkph = speedMmS / PKPH_MM_PER_SEC;
+// in both NGR_LL_DNA_CTO2_r12 (line 414 / 2100) and SOLONAV 1.x. That is the
+// number the mm/speed topic has always carried, so it is the number the IR
+// sensor must produce for the two to be comparable at all — which is the whole
+// point of an independent witness.
+//
+// It equals 0.18611 per mm/s, i.e. roughly 1:51.7 — a house unit calibrated
+// empirically, NOT a geometric scale factor. That is fine, but it means the
+// other values in circulation are all wrong for cross-comparison:
+//     v1 of this sketch  0.21    (~1:58)   <- matched nothing
+//     Pi dashboard       0.162   (1:45)    <- separate lineage, still disagrees
+//     geometric 1:22.5   0.081
+//     geometric 1:29     0.104
+// The dashboard discrepancy is real and is NOT fixed here — it is a dashboard
+// question, flagged in IR_SENSOR_NOTES.md for a separate decision.
+//
+// speed_mmps is published alongside and remains the scale-free truth.
+const float PKPH_MM_PER_SEC = 5.37325f;   // navigation firmware constant, verbatim
 
 // ===========================================================================
 // SHARED STATE
 // ===========================================================================
 static QueueHandle_t eventQueue = nullptr;   // sensorTask -> loop()
+#ifdef IR_TELEMETRY_WIFI
 static QueueHandle_t pubQueue   = nullptr;   // loop() -> networkTask
+#endif
 
 // Counters written by sensorTask, read by loop() for telemetry. Single writer,
 // aligned 32-bit, diagnostic only — volatile is sufficient.
@@ -197,6 +248,7 @@ static volatile int      lastSpan       = 0;
 static volatile uint32_t sensorTaskMaxGapMs = 0;
 static uint32_t pubDrops = 0;                // publishes lost to a full pubQueue
 
+#ifdef IR_TELEMETRY_WIFI
 static char T_ONLINE[64], T_PULSE[64], T_RSSI[64], T_STATUS[64];
 
 static WiFiClient   espClient;
@@ -205,8 +257,11 @@ static PubSubClient mqtt(espClient);
 // ---------------------------------------------------------------------------
 // pub() ENQUEUES and returns. It must never touch mqtt: networkTask is the
 // only place a message leaves the radio. Drop-oldest, because for status the
-// newest value is the truth. Pulse events do NOT come through here on the
-// critical path — they are queued as events first (see loop()).
+// newest value is the truth and evicting a stale copy is correct.
+//
+// Pulse events are NOT protected by this eviction rule — they are held in
+// eventQueue instead and only converted to a publish when there is room (see
+// loop()). A pulse happens once and cannot be re-derived; a status value can.
 // ---------------------------------------------------------------------------
 static void pub(const char* topic, const char* payload, bool retain = false) {
   if (!pubQueue) return;
@@ -219,6 +274,16 @@ static void pub(const char* topic, const char* payload, bool retain = false) {
     pubDrops++;
   }
 }
+#else
+// USB build: no radio exists. Every payload goes to the serial log instead,
+// so the two builds produce the same records through different pipes.
+static void pub(const char* topic, const char* payload, bool retain = false) {
+  (void)retain;
+  Serial.printf("[USB] %s %s\n", topic, payload);
+}
+static const char* T_PULSE  = "telem/pulse";
+static const char* T_STATUS = "telem/status";
+#endif
 
 // ===========================================================================
 // LAYER 1 — SENSOR TASK
@@ -365,13 +430,14 @@ static bool acceptInterval(uint32_t intervalMs) {
   float pulsesPerSec = 1000.0f / avgMs;
   float revsPerSec   = pulsesPerSec / SPOKES_PER_WHEEL;
   lastSpeedMmPerSec  = revsPerSec * WHEEL_CIRCUMFERENCE_MM;
-  lastPkph           = lastSpeedMmPerSec * PKPH_FACTOR;
+  lastPkph           = lastSpeedMmPerSec / PKPH_MM_PER_SEC;   // navigation's conversion
   return true;
 }
 
 // ===========================================================================
 // LAYER 3 — NETWORK TASK. The ONLY place mqtt.* is called.
 // ===========================================================================
+#ifdef IR_TELEMETRY_WIFI
 static uint32_t nextMqttTryMs = 0;
 static uint32_t mqttAttempts = 0;
 
@@ -397,15 +463,27 @@ static void networkTask(void*) {
         attemptReconnect();       // may block; harmless on this task
       } else {
         mqtt.loop();
-        // CAPPED drain. A 30 s outage buffers ~100+ pulses; flushing them all
-        // as individual blocking writes on reconnect would stampede the link
-        // that just failed — re-creating the congestion this design exists to
-        // survive. 8 per pass at a 5 ms tick clears a full backlog in about a
-        // second while leaving room for mqtt.loop() between writes.
+        // PEEK-PUBLISH-REMOVE, CAPPED. Two separate hazards, one loop:
+        //
+        // (1) A message leaves the queue only after mqtt.publish() reports
+        //     success. The locomotive firmware removed first and ignored the
+        //     result, so a publish that failed locally deleted the evidence
+        //     with the drop counter still reading 0 — markers 24 and 23
+        //     vanished exactly that way in the 2026-07-31 outage test. Here a
+        //     local failure leaves the message queued, stops this pass, and
+        //     retries on the next one.
+        //
+        // (2) A 30 s outage buffers ~105 pulses. Flushing them as individual
+        //     blocking writes on reconnect stampedes the link that just proved
+        //     marginal, recreating the congestion this design exists to
+        //     survive. 8 per pass at a 5 ms tick clears a full backlog in
+        //     about a second while leaving mqtt.loop() its turn between
+        //     writes, so inbound is never starved by outbound.
         PubMsg m;
         uint8_t n = 0;
-        while (n < PUB_DRAIN_CAP && xQueueReceive(pubQueue, &m, 0) == pdTRUE) {
-          mqtt.publish(m.topic, m.payload, m.retain);
+        while (n < PUB_DRAIN_CAP && xQueuePeek(pubQueue, &m, 0) == pdTRUE) {
+          if (!mqtt.publish(m.topic, m.payload, m.retain)) break;  // leave it queued
+          xQueueReceive(pubQueue, &m, 0);                          // remove ONLY on success
           n++;
         }
       }
@@ -413,30 +491,44 @@ static void networkTask(void*) {
     vTaskDelay(pdMS_TO_TICKS(5));
   }
 }
+#endif  // IR_TELEMETRY_WIFI
 
 // ===========================================================================
+#ifdef IR_TELEMETRY_WIFI
 static void buildTopics() {
   snprintf(T_ONLINE, sizeof(T_ONLINE), "ngr/spoke/%s/status/online", NODE_NAME);
   snprintf(T_PULSE,  sizeof(T_PULSE),  "ngr/spoke/%s/telem/pulse",   NODE_NAME);
   snprintf(T_RSSI,   sizeof(T_RSSI),   "ngr/spoke/%s/telem/rssi",    NODE_NAME);
   snprintf(T_STATUS, sizeof(T_STATUS), "ngr/spoke/%s/telem/status",  NODE_NAME);
 }
+#endif
 
 void setup() {
   Serial.begin(115200);
   delay(300);
-  Serial.printf("\n[BOOT] %s — node %s\n", SKETCH_NAME, NODE_NAME);
+#ifdef IR_TELEMETRY_WIFI
+  Serial.printf("\n[BOOT] %s — node %s — WIFI TELEMETRY BUILD\n", SKETCH_NAME, NODE_NAME);
+#else
+  Serial.printf("\n[BOOT] %s — node %s — USB-ONLY BUILD (no radio compiled in)\n",
+                SKETCH_NAME, NODE_NAME);
+#endif
 
   analogReadResolution(12);
   pinMode(SENSOR_PIN, INPUT);
-  buildTopics();
 
   eventQueue = xQueueCreate(256, sizeof(PulseEvent));   // ~6 KB, >30 s of pulses
-  pubQueue   = xQueueCreate(32,  sizeof(PubMsg));       // ~8 KB
-  if (!eventQueue || !pubQueue) {
-    Serial.println("[FATAL] queue alloc failed");
+  if (!eventQueue) {
+    Serial.println("[FATAL] event queue alloc failed");
     while (1) delay(1000);
   }
+#ifdef IR_TELEMETRY_WIFI
+  buildTopics();
+  pubQueue = xQueueCreate(32, sizeof(PubMsg));          // ~8 KB
+  if (!pubQueue) {
+    Serial.println("[FATAL] pub queue alloc failed");
+    while (1) delay(1000);
+  }
+#endif
 
   // Sampling starts BEFORE the network exists, so nothing about bringing WiFi
   // up can cost a pulse. Priority 2 pinned to core 0, above networkTask's 1.
@@ -445,6 +537,7 @@ void setup() {
     while (1) delay(1000);
   }
 
+#ifdef IR_TELEMETRY_WIFI
   // NON-BLOCKING network setup: no while loop anywhere in the connect path.
   WiFi.mode(WIFI_STA);
   WiFi.setAutoReconnect(true);
@@ -455,19 +548,28 @@ void setup() {
   WiFi.begin(WIFI_SSID, WIFI_PASS);
 
   mqtt.setServer(MQTT_BROKER, MQTT_PORT);
-  mqtt.setSocketTimeout(2);           // PubSubClient's own read timeout
-  // And the TCP connect bound, which setSocketTimeout does NOT set. On this
-  // core setTimeout() is the inherited Stream read timeout and has no effect
-  // on connect(); setConnectionTimeout() takes MILLISECONDS. This distinction
-  // cost this project real debugging time on the locomotive firmware.
+  mqtt.setSocketTimeout(2);           // PubSubClient's own READ timeout, seconds
+
+  // THE TCP CONNECT BOUND. Three similarly-named calls, only one of which does
+  // this job — the distinction has cost this project debugging time before:
+  //   mqtt.setSocketTimeout(s)          PubSubClient's read timeout. NOT connect.
+  //   espClient.setTimeout(s)           the inherited Stream READ timeout, in
+  //                                     SECONDS. Does nothing for connect().
+  //   espClient.setConnectionTimeout(ms) <- this one, in MILLISECONDS.
+  // On this core (3.3.11) WiFiClient is a typedef of NetworkClient, whose
+  // connect() timeout comes only from setConnectionTimeout(). The core default
+  // is already 3000 ms, so this is belt-and-braces and makes the bound explicit
+  // and version-independent.
   espClient.setConnectionTimeout(3000);
 
   if (xTaskCreatePinnedToCore(networkTask, "net", 8192, nullptr, 1, nullptr, 0) != pdPASS) {
     Serial.println("[FATAL] network task creation failed");
     while (1) delay(1000);
   }
-
   Serial.println("[BOOT] ready — sampling at 1 kHz, publishing when the link allows");
+#else
+  Serial.println("[BOOT] ready — sampling at 1 kHz, logging over USB");
+#endif
 }
 
 // ===========================================================================
@@ -481,7 +583,14 @@ static uint32_t lastPulseSeenMs = 0;
 
 void loop() {
   PulseEvent e;
-  while (eventQueue && xQueueReceive(eventQueue, &e, 0) == pdTRUE) {
+  // BACKPRESSURE, not a guard: events are only converted into publishes while
+  // there is outbound room. When the link is down networkTask drains nothing,
+  // pubQueue fills, and events then STAY in the 256-slot timestamped
+  // eventQueue — which is the outage buffer and is sized for it. Without this
+  // the 32-slot pubQueue would evict pulses (drop-oldest) long before the
+  // event buffer was anywhere near full, throwing away exactly the record the
+  // buffer exists to keep. The 4-slot margin leaves room for status and RSSI.
+  while (eventQueue && PUB_HAS_ROOM && xQueueReceive(eventQueue, &e, 0) == pdTRUE) {
     bool accepted = acceptInterval(e.intervalMs);
     lastPulseSeenMs = millis();
 
@@ -505,7 +614,7 @@ void loop() {
       (unsigned long)e.seq, (unsigned long)e.detectedAtMs,
       (unsigned long)e.intervalMs, (unsigned long)e.widthMs,
       lastSpeedMmPerSec, lastPkph, e.rawAtEdge, e.span,
-      q, accepted ? 1 : 0, (int)WiFi.RSSI(),
+      q, accepted ? 1 : 0, CURRENT_RSSI,
       (unsigned long)eventDrops, (unsigned long)rejectedIntervals);
     pub(T_PULSE, b, false);
 
@@ -523,15 +632,17 @@ void loop() {
     char b[128];
     snprintf(b, sizeof(b),
       "{\"seq\":%lu,\"event\":\"STOPPED\",\"speed_mmps\":0.00,\"pkph\":0.00,\"rssi\":%d}",
-      (unsigned long)pulseCount, (int)WiFi.RSSI());
+      (unsigned long)pulseCount, CURRENT_RSSI);
     pub(T_PULSE, b, false);
     Serial.println("[PULSE] STOPPED — interval buffer reset");
   }
 
+  uint32_t now = millis();
+#ifdef IR_TELEMETRY_WIFI
   // Survey payload: RSSI on a fixed 2 Hz cadence independent of pulse
   // activity, so coverage is mapped even while stopped. RSSI also rides every
   // pulse above, which is what lets dropouts be correlated with position.
-  uint32_t now = millis();
+  // This is the survey's whole purpose and exists only in the WiFi build.
   if (now - lastRssiPublish >= RSSI_PUBLISH_MS) {
     lastRssiPublish = now;
     if (WiFi.status() == WL_CONNECTED) {
@@ -540,6 +651,7 @@ void loop() {
       pub(T_RSSI, b, false);
     }
   }
+#endif
 
   // Health beat: the numbers that would explain a suspicious record. A flat
   // pulse count with a healthy span and no drops is a real optical failure —
@@ -554,8 +666,8 @@ void loop() {
       (unsigned long)pulseCount, (int)lastRaw, (int)lastSpan,
       qualityFromSpan(lastSpan) == 2 ? "OK" : (qualityFromSpan(lastSpan) == 1 ? "MARGINAL" : "UNAVAILABLE"),
       (unsigned long)eventDrops, (unsigned long)pubDrops, (unsigned long)rejectedIntervals,
-      (unsigned long)sensorTaskMaxGapMs, (unsigned long)mqttAttempts,
-      (int)WiFi.RSSI(), (unsigned long)ESP.getFreeHeap());
+      (unsigned long)sensorTaskMaxGapMs, MQTT_ATTEMPTS,
+      CURRENT_RSSI, (unsigned long)ESP.getFreeHeap());
     pub(T_STATUS, b, false);
     sensorTaskMaxGapMs = 0;   // windowed, like the locomotive's loopstat
   }

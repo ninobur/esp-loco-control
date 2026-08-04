@@ -190,42 +190,84 @@ optional; each corresponds to an observed failure.
 
 > **Status 2026-08-04.** All of the requirements below are implemented in
 > `firmware/test-programs/Spoke_IR_RSSI_survey_v2/`. The v1 sketch is retained
-> unchanged as the record of what was actually flown. Three corrections were
-> made to the requirements themselves during implementation:
+> unchanged as the record of what was actually flown.
 >
-> * **Capture is a TASK, not an ISR.** `adc1_get_raw()` is the deprecated
->   legacy driver on the installed core (3.3.11, under `driver/deprecated/`),
->   and its replacement `adc_oneshot_read()` takes a mutex and is not ISR-safe
->   either. The locomotive firmware already solved this with `hallTask` — a
->   1 ms FreeRTOS task pinned to core 0 above the network — with field
->   evidence: task gaps of 1–4 ms while `loop()` stalled 20 s. v2 copies that
->   pattern, so it also ports straight onto the locomotive's own ESP32
->   alongside `hallTask` when the sensor moves there.
-> * **The reconnect flush must be capped.** A 30 s outage buffers 100+ pulses;
->   flushing them as individual blocking writes on reconnect stampedes the
->   link that just failed. v2 drains at most 8 per network pass, as the
->   locomotive's marker queue does.
-> * **`setSocketTimeout(2)` does not bound the TCP connect.** That is
->   PubSubClient's own read timeout. The connect bound is
->   `espClient.setConnectionTimeout(3000)` — on this core `setTimeout()` is the
->   inherited Stream read timeout and has no effect on `connect()`.
+> Three of the requirements were themselves wrong and have been corrected in
+> place below — the ISR/`adc1_get_raw()` recommendation, the
+> `setSocketTimeout()` claim, and a missing hazard (the reconnect flush).
+> **All three corrections came from reading the installed toolchain and this
+> repository's own field-measured numbers, not from assumption**: the ADC
+> headers under `packages/esp32/.../3.3.11/`, the locomotive firmware's
+> `hallTask`/marker-queue implementation, and the 2026-07-31 outage test.
+>
+> The build is also split by a single `IR_TELEMETRY_WIFI` switch. Undefined,
+> no radio is compiled in at all and pulses log over USB, so the capture path
+> can be validated with nothing able to stall it; defined, it does the RSSI
+> survey. Validating capture and network in one run leaves a bad result
+> unattributable, which is why stage 1 of the staged plan asks for no WiFi.
 
-**Capture must not live in the polled loop.** Either a comparator front end
-with `attachInterrupt()`, or a hardware timer ISR sampling at 1 kHz. Note that
-Arduino's `analogRead()` is **not ISR-safe** on ESP32 — use `adc1_get_raw()`
-from the IDF driver. GPIO34 is ADC1, which is correct: ADC2 conflicts with
-WiFi.
+**Capture must not live in the polled loop — use a task, not an ISR.** A
+dedicated FreeRTOS task at priority 2, pinned to core 0 (above the network
+task), sampling on a `vTaskDelay(1)` tick, feeding a queue that `loop()`
+drains. GPIO34 is ADC1, which is required: ADC2 cannot be read while WiFi is
+up.
 
-**Ring buffer with `micros()` timestamps.** Events captured in the ISR,
-published from `loop()` whenever the link allows. A 30-second outage then costs
-nothing — every pulse is still recorded with a correct timestamp and flushed in
-a burst when the link returns.
+> **Corrected 2026-08-04.** An earlier revision of this section specified a
+> comparator ISR or a hardware timer ISR calling `adc1_get_raw()`. That was
+> checked against the installed toolchain and is wrong on two counts:
+> `adc1_get_raw()` is the **deprecated legacy driver** on core 3.3.11 (it
+> lives under `driver/deprecated/`), and its replacement
+> `adc_oneshot_read()` **takes a mutex and is not ISR-safe either**. So the
+> ISR recommendation had no safe ADC call behind it.
+>
+> The task pattern avoids the question entirely — `analogRead()` is
+> perfectly safe outside an ISR — and it is the shape this project has
+> already proven twice in the field on the Hall sensor: measured task gaps
+> of **1–4 ms while `loop()` stalled for 20 seconds**, and `loop_max_gap_ms`
+> of 80 ms against 94,033 ms before the change. A 1 ms tick gives 20–60
+> samples across a typical flag, which is ample. It also means the capture
+> task ports onto the locomotive's own ESP32 beside `hallTask()` unchanged,
+> which is where this sensor is going.
+>
+> A comparator front end plus `attachInterrupt()` remains sound — a digital
+> edge is genuinely ISR-safe — but that hardware does not exist yet.
+
+**Ring buffer with timestamps taken at detection.** Events captured in the
+sampling task and stamped there, published from `loop()` whenever the link
+allows. A 30-second outage then costs nothing — every pulse is still recorded
+with a correct timestamp and flushed when the link returns. The timestamp must
+be taken at detection, never at publication: stamping at publication is
+precisely the v1 defect that produced 21-second pulse widths.
+
+**Cap the reconnect flush — peek, publish, remove.** A 30-second outage
+buffers roughly 105 events. Flushing them as individual blocking publishes the
+moment the link returns stampedes a link that has just proved marginal, and
+recreates the congestion the buffer exists to survive. Drain a fixed number
+per network pass (8, as the locomotive's marker queue does), and remove each
+message from the queue **only after** `publish()` reports success, so a
+locally detectable failure retries instead of vanishing. The locomotive
+firmware removed first and ignored the result, and markers 24 and 23
+disappeared in the 2026-07-31 outage test with the drop counter still reading
+zero.
 
 **Non-blocking network.** No `while` loops anywhere in the connect path.
 `WiFi.setAutoReconnect(true)`, `WiFi.setSleep(false)` (modem sleep is on by
-default in STA mode and causes exactly the latency spikes observed),
-`mqtt.setSocketTimeout(2)`, and a fixed backoff timer rather than retrying
-every loop iteration.
+default in STA mode and causes exactly the latency spikes observed), and a
+fixed backoff timer rather than retrying every loop iteration.
+
+**Bound the TCP connect with `espClient.setConnectionTimeout(3000)`.**
+
+> **Corrected 2026-08-04.** An earlier revision listed `mqtt.setSocketTimeout(2)`
+> as the connect bound. It is not: that is PubSubClient's own **read**
+> timeout. Three similarly-named calls are in play and only one does this
+> job — `mqtt.setSocketTimeout(s)` (PubSubClient read timeout),
+> `espClient.setTimeout(s)` (the inherited **Stream read** timeout, in
+> seconds, no effect on `connect()`), and `espClient.setConnectionTimeout(ms)`
+> (the actual TCP connect bound, in milliseconds). On this core `WiFiClient`
+> is a typedef of `NetworkClient`, whose `connect()` timeout comes only from
+> the last of those. This distinction has already cost this project
+> debugging time on the locomotive firmware; `setSocketTimeout(2)` is still
+> worth setting, but it is not the connect bound.
 
 **One JSON message per event, not six topics.** The original published six
 topics per wedge — roughly 38 TCP writes per second at the observed 156 ms
@@ -280,6 +322,29 @@ sketch uses `mm/s × 0.21`. For 1:22.5 the correct factor is 0.081; for 1:29 it
 is 0.104. 0.21 implies roughly 1:58. If `pKPH` is a house unit calibrated
 empirically that is fine — but it must match whatever the navigation system
 uses, or cross-validation between the two is meaningless.
+
+> **Settled 2026-08-04.** The navigation lineage divides by a single empirical
+> constant:
+> ```c
+> static const float PKPH_MM_PER_SEC = 5.37325f;
+> const float measuredPkph = speedMmS / PKPH_MM_PER_SEC;
+> ```
+> — `NGR_LL_DNA_CTO2_r12` lines 414 and 2100, and identically in SOLONAV 1.x.
+> That is 0.18611 per mm/s, roughly **1:51.7**: a house unit calibrated
+> empirically, not a geometric scale factor. It is the number the `mm/speed`
+> topic has always carried, so it is the number the IR sensor must produce for
+> the two to be comparable at all. `Spoke_IR_RSSI_survey_v2` now uses
+> `PKPH_MM_PER_SEC` verbatim; v1's 0.21 matched nothing.
+>
+> **Still open, and a dashboard question rather than a firmware one:** the Pi
+> dashboard converts measured speed with `3.6 × 45 / 1000` = 0.162 (1:45),
+> which agrees with neither the firmware constant nor any G standard. Three
+> numbers were in circulation; two are now reconciled. The dashboard is the
+> remaining one and needs an operator decision, since changing it alters every
+> KpH figure the console has ever displayed.
+>
+> Current QUORUM firmware publishes `est_mm_s` raw and does no conversion at
+> all, which is the better arrangement: convert once, at the point of display.
 
 ---
 
