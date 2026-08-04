@@ -39,8 +39,17 @@ import paho.mqtt.client as mqtt
 BROKER = "127.0.0.1"
 PORT = 1883
 CLIENT_ID = "ngr-runlog"
-TOPIC = "ngr/loco/+/#"            # all topics, all locomotives
-MARKER_SILENCE_S = 120.0          # marker gap that ends a run
+# EVERY node under ngr/, not only locomotives. This was "ngr/loco/+/#", which
+# matches the second topic level LITERALLY -- so the IR survey car, which
+# publishes under ngr/spoke/<node>/..., was never recorded at all. Not one
+# ngr/spoke message appears in any field record. A missing survey file was
+# therefore evidence about the LOGGER, not about the sensor, which is the
+# worst kind of missing data: it looks like a result.
+TOPIC = "ngr/#"
+MARKER_SILENCE_S = 120.0          # marker gap that ends a locomotive run
+# Nodes that publish no markers (the survey car, the dispatcher) cannot be
+# segmented on marker silence. They close on total silence instead.
+QUIET_SILENCE_S  = 120.0
 
 # Paths are anchored to this file's directory, so runs/ and all_ land in the
 # WorkingDirectory (/home/david/NGR/telemetry) regardless of where it is run
@@ -109,10 +118,40 @@ def _counter_delta(first, last):
     return last - first if last >= first else last
 
 
-# --- run and per-locomotive state ----------------------------------------
+# --- node identity --------------------------------------------------------
+# ngr/loco/9950011/state/nav        -> ("loco",       "9950011")
+# ngr/spoke/IR_SPEED_SENSOR/telem/  -> ("spoke",      "spoke-IR_SPEED_SENSOR")
+# ngr/dispatcher/cmd/go             -> ("dispatcher", "dispatcher")
+#
+# The node id is also the filename stem, so it must stay filename-safe and
+# must not collide across namespaces -- hence the "spoke-" prefix. Locomotive
+# ids are deliberately UNCHANGED, so existing run filenames and any analysis
+# keyed on them keep working.
+#
+# The dispatcher has no per-node level: its topics are ngr/dispatcher/cmd/...,
+# so parts[2] is "cmd", not a node. Taking parts[2] blindly -- which the
+# loco-only version could afford to do -- would file every dispatcher command
+# under a node called "cmd".
+def node_identity(parts):
+    if len(parts) < 2 or parts[0] != "ngr":
+        return None, None
+    ns = parts[1]
+    if ns == "loco" and len(parts) >= 3:
+        return ns, parts[2]
+    if ns == "spoke" and len(parts) >= 3:
+        return ns, "spoke-" + parts[2]
+    if ns == "dispatcher":
+        return ns, "dispatcher"
+    if len(parts) >= 3:
+        return ns, "%s-%s" % (ns, parts[2])   # future namespaces, still filed
+    return ns, ns
+
+
+# --- run and per-node state -----------------------------------------------
 class Run(object):
-    def __init__(self, loco, dt, now):
+    def __init__(self, loco, dt, now, namespace="loco"):
         self.loco = loco
+        self.namespace = namespace
         self.started_epoch = now
         self.started_iso = dt.isoformat(timespec="milliseconds")
         self.last_activity_epoch = now
@@ -168,8 +207,8 @@ class LocoState(object):
 states = {}
 
 
-def open_run(st, loco, dt, now):
-    st.run = Run(loco, dt, now)
+def open_run(st, loco, dt, now, namespace="loco"):
+    st.run = Run(loco, dt, now, namespace)
     # Carry the last-known per-locomotive facts onto the fresh run, so a run
     # opened by silence (with no DECLARED and no fresh bootid) is still labelled.
     st.run.sketch = st.sketch
@@ -185,7 +224,11 @@ def close_run(st):
     ended_iso = datetime.fromtimestamp(run.last_activity_epoch).isoformat(
         timespec="milliseconds")
     meta = {
-        "loco": run.loco,
+        "node": run.loco,
+        "namespace": run.namespace,
+        # "loco" kept for compatibility with existing analysis; it is the node
+        # id only when this really is a locomotive, and null otherwise.
+        "loco": run.loco if run.namespace == "loco" else None,
         "started": run.started_iso,
         "ended": ended_iso,
         "duration_s": round(run.last_activity_epoch - run.started_epoch, 3),
@@ -246,7 +289,12 @@ def on_message(client, userdata, msg):
         payload_line = payload.replace("\r", " ").replace("\n", " ")
 
         parts = topic.split("/")
-        loco = parts[2] if len(parts) >= 3 else "unknown"
+        namespace, loco = node_identity(parts)
+        if loco is None:
+            # Not an ngr/ topic at all. Keep it in the rolling all_ log, which
+            # is the system of record, but do not invent a run for it.
+            all_log("%s\t%s\t%s\n" % (ts, topic, payload_line))
+            return
 
         data = None
         try:
@@ -275,6 +323,17 @@ def on_message(client, userdata, msg):
                 (now - st.last_marker_epoch) > MARKER_SILENCE_S):
             close_run(st)
 
+        # (1a) A node that has never published a marker -- the survey car, the
+        #      dispatcher, a locomotive parked before it ever moved -- cannot
+        #      be segmented on marker silence, so it segments on TOTAL silence.
+        #      last_activity_epoch is set on the run's first write, so a run
+        #      opened by this very message can never satisfy this and be closed
+        #      immediately. An idle locomotive publishing loopstat at 1 Hz is
+        #      never silent, so its runs are unaffected.
+        elif (st.run is not None and st.run.marker_count == 0 and
+                (now - st.run.last_activity_epoch) > QUIET_SILENCE_S):
+            close_run(st)
+
         # (2) A declaration always begins a fresh run.
         if declared and st.run is not None:
             close_run(st)
@@ -282,7 +341,7 @@ def on_message(client, userdata, msg):
         # (3) Ensure a run exists to log into (covers boot, post-silence, and
         #     post-declaration). This message becomes the run's first line.
         if st.run is None:
-            open_run(st, loco, dt, now)
+            open_run(st, loco, dt, now, namespace)
 
         run = st.run
 
