@@ -1,165 +1,307 @@
 # STATUS — esp-loco-control
 
-**Last updated:** 2026-07-24
+**Last updated:** 2026-08-04
 **Purpose:** Single catch-up file. Read this first to know where the project
 stands, what's decided, and what's next. Update this file in place — do not
 create STATUS2 / STATUS-final. One STATUS, always current; git keeps history.
 
+> The previous revision of this file was dated 2026-07-24 and described a
+> project that no longer exists: it named `r12_CONTINUITY_FIRST` as the
+> current firmware, listed "get onto GitHub" as the top priority, and treated
+> HL-Auto as the active work item. All three have been overtaken. This is a
+> full rewrite, not an amendment.
+
 ---
 
-## 1. What this project is
+## 1. Where the project stands, in one paragraph
 
-ESP32 firmware for two battery-powered garden-railway locomotives — **Otto
-(9950011)** and **Toby (9950012)** — controlled over MQTT from a Raspberry Pi
-running a Flask console. The current work is adding a new **Highline auto
-mode (HL-Auto)** to the existing locomotive firmware.
-
-Three operating modes: **Manual**, **LL-Auto** (Lowline DNA navigation, the
-complex existing auto mode), and **HL-Auto** (Highline, new, simple). A loco
-switches between them by operator selection at session start — **no
-reflashing**. That no-reflash requirement is why HL-Auto is a mode *inside*
-the one firmware, not a separate sketch.
-
-Full design is in `SPEC.md`. This file is the status layer on top of it.
+The locomotive firmware was rewritten twice since the last status. The DNA
+tally navigator (r12 → SOLONAV 1.x → 2.x) was replaced by **QUORUM**, which
+holds position on a disagreement instead of discarding it, and which is now at
+**1.4 and formally cleared for the M1 field campaign** after four CODEX review
+rounds. The Flask console was rebuilt three times against three separate field
+failures and is at **v1.10.2**. The repository exists, is private, has 44 MB of
+committed field evidence, and every implementation report and review finding
+now lands in `docs/` as a matter of standing practice. The active work item is
+**M1 — take QUORUM to the field** — not HL-Auto.
 
 ---
 
 ## 2. Ground truth — which file is which
 
-The project has a history of confusing, version-in-the-name filenames. This
-is the authoritative mapping as of the last update:
-
 | File | What it actually is |
 |---|---|
-| `NGR_LL_DNA_CTO2_r12_CONTINUITY_FIRST.ino` | **CURRENT locomotive firmware.** HL-Auto goes into this. ~2346 lines. ESPNOW_VERSION 14, CTO2_VERSION 3. |
-| `LocoConfig.h` | Profile selector — edit the include to pick the active loco before flashing. |
-| `LL_LocoConfig_9950011.h` | Otto's profile. |
-| `LL_LocoConfig_9950012.h` | Toby's profile. |
-| `reference/LL_MQ_CO_GC_DI_1_2.ino` | Dispatcher firmware (trackside GO/STOP unit). NOT modified for HL-Auto. Kept for reference only. |
-| `reference/LL_LocoConfig_Dispatcher.h` | Dispatcher config. Reference only. |
-| `SPEC.md` | Highline (HL-Auto) design. Active work item. Draft v3. |
-| `SPEC-voltage.md` | PARKED — voltage cleanup already done in r12. Not current work. |
-| `CLAUDE.md` / `AGENTS.md` | Shared context for AI agents. AGENTS.md points to CLAUDE.md. |
+| `firmware/QUORUM/QUORUM.ino` | **CURRENT locomotive firmware.** QUORUM_1_4. Cleared for field, untagged. |
+| `firmware/QUORUM/LocoConfig.h` | Profile selector — edit the include before flashing. Committed state selects **Otto (9950011)**. |
+| `firmware/QUORUM/LL_LocoConfig_995001{1,2}.h` | Otto's and Toby's profiles. |
+| `firmware/test-programs/SENSORTEST/` | Marker measurement rig. Standalone, own WiFi/MQTT. |
+| `firmware/test-programs/Spoke_IR_RSSI_survey/` | IR survey car **as flown**. Retained as the record; do not flash. |
+| `firmware/test-programs/Spoke_IR_RSSI_survey_v2/` | IR survey car, corrected. Not yet flown. |
+| `server/ngr_app_v1_10_2.py` | **CURRENT Flask console.** Deploys to the Pi as `~/ngr_app.py`. |
+| `server/ngr_runlog.py` | Per-run MQTT telemetry logger. Never publishes, by construction. |
+| `field-records/` | Committed field evidence: logs, cal recordings, verdicts. See its README. |
+| `docs/QUORUM_v3_0_implementation_spec.md` | The QUORUM contract. **Revision 21.** Body frozen; amendments are changelogged. |
+| `archive/` | Superseded sketches, including `r12_CONTINUITY_FIRST`. Historical only. |
 
-Renaming these to clean, stable names is planned — but only **after** the git
-repo exists (see §6), so history isn't lost in the rename.
+**Naming is settled.** Sketch folders and `.ino` names match (Arduino
+requires it), no spaces, no version in the filename — versions are
+`SKETCH_NAME` plus git. `SOLONAV` was renamed to `QUORUM` when the navigator
+was replaced, because the name is the navigator's, not the sketch's.
 
----
-
-## 3. HL-Auto design (summary — full detail in SPEC.md)
-
-- Operator selects HL-Auto at session start (loco dashboard).
-- Dispatcher GO → ramp to cruise **PWM 70**.
-- **North** magnet → slow to station speed **PWM 40**, arm the approach.
-- **South** magnet → ramp to 0, **dwell 10 s**, depart back to cruise.
-- Unarmed South is ignored (run through). Armed approach with no South
-  disarms after **30 s** and returns to cruise.
-- Single loco, forward only, no Highline traffic coordination.
-
-**Core architecture:** a separate `highlineAuto` flag. HL-Auto must NEVER set
-or reuse `dispatcherAuto` — doing so would wrongly enroll the loco in DNA /
-CTO2 / governor behaviour. Only shared motor-authority and safety paths
-recognise both auto modes. DNA nav, CTO2 packets/versions, MQTT, E-stop,
-low-voltage protection, and Manual authority all stay intact.
+Tags: `v2.16`, `v2.17`, `v2.19`, `v2.21`, `v2.22`. **QUORUM 1.0–1.4 are
+deliberately untagged** — a tag means flown, and QUORUM has not flown.
 
 ---
 
-## 4. Spec-vs-code evaluation — DONE, with two corrections
+## 3. QUORUM — what it is and where it got to
 
-A read-only compatibility review was run in Claude Code against the actual
-r12 sketch. Result: **the architecture is sound.** The `highlineAuto` flag
-coexists cleanly; all reads of `dispatcherAuto` classify unambiguously into
-"motor authority" (should also see HL-Auto) vs "DNA/CTO2 session" (must not).
+Replaces the tally navigator. `navConfidence` could express *how much am I
+disagreeing* but not *which position might I be in*, so when it emptied it
+discarded position and rebuilt from nothing.
 
-Two findings **correct the spec** and must be honoured when code is written:
+> *"I am on the tracks. I am not flying. I knew where I was a minute ago."*
 
-1. **`HALL_POLARITY_INVERTED` is defined but never used in the sketch.** The
-   spec assumed the firmware already flips polarity per-loco using this flag.
-   It does not — the symbol appears in both config headers but is referenced
-   nowhere in the code. Therefore the new `hlAutoOnMagnet()` must apply the
-   inversion *itself* (`#if HALL_POLARITY_INVERTED`) before treating
-   North=approach / South=stop. This is the one genuine spec-vs-code gap.
+- One disagreement is free; the odometer advances but position is **held**.
+- Three consecutive misses wake `NAV_EVALUATING`: six candidate offsets
+  `{-1,0,+1,+2,+3,+4}` scored against an evidence ring. **Speed is not
+  reduced while evaluating.**
+- A unique two-point lead adopts the offset — one correction, applied once,
+  validated by the next agreement.
+- Twelve readings without a margin, or a second failed adoption, is
+  `NAV_NO_QUORUM`: controlled stop, terminal evidence snapshot, operator
+  re-declares. No automatic exit.
+- A conservation timing gate rejects phantoms: two events whose intervals sum
+  to one expected interval are one magnet read twice.
 
-2. **`updateMotorAuthority()` needs no change.** The spec said it must be
-   extended to grant authority under HL-Auto. In fact it already grants
-   authority unconditionally (only E-stop and neutral zero it), so HL-Auto
-   works through it unmodified. One less edit than the spec implied.
+**Version history and why each exists:**
 
-**Exact edit points the review identified** (r12 line numbers, for whoever
-implements):
+| | |
+|---|---|
+| 1.0 | Implementation of spec R20. Twenty certified navigator properties, confirmed by CODEX against source. |
+| 1.1 | CODEX round 1 — four High findings, all terminal-evidence: snapshot offsets vs indices, tear-free cross-core handoff, reconnect reconciliation, alert sizing. Plus durable AGREE/DISAGREE. |
+| 1.2 | CODEX round 2 — an ABA race in the reconciliation completion guard. Generation counter. |
+| 1.3 | **Operator constitutional ruling: bicameral control.** See §4. |
+| 1.4 | CODEX round 3 — M+1 fallback reclassified as AUTO-chamber automation and explicitly gated; terminal log made honest in both chambers. |
 
-- Attach HL logic in `onMagnetEvent()` right after the `if(!dispatcherAuto)`
-  return (~line 2016): `if(highlineAuto){ hlAutoOnMagnet(hallPol); return; }`.
-- Motor-authority reads that need `|| highlineAuto`: the manual-override
-  blocks at ~2235–2237 (throttle/direction/brake), and the ESP-NOW GO/STOP
-  handlers at ~2317 / ~2325 need an HL branch.
-- New HL ramp state (`highlineFinalRampActive`, `highlineRampUpActive`) hooks
-  into `serviceRamp()` (~1597–1623), parallel to the LL station-ramp flags.
-- Arm-timeout and dwell timers are new state owned entirely by the HL module.
+Flash/RAM has stayed at **72% / 15%** throughout, against the v2.22 baseline.
 
-> ACTION: fold corrections 1 and 2 into SPEC.md so the spec matches reality
-> before any code is written.
-
----
-
-## 5. Three open questions — still to decide (with David + Sam)
-
-These are the last design decisions before implementation. The eval mapped
-what each touches:
-
-1. **Mode command shape.** Recommended: a dedicated `cmd/hlauto` MQTT topic,
-   parallel to the existing `cmd/auto`, leaving `cmd/auto` untouched. (A
-   unified `cmd/mode` value would couple into the existing handler — avoid.)
-2. **State reporting.** A new `state/hlauto` topic the dashboard subscribes
-   to for the HL badge. `state/auto` keeps reporting `dispatcherAuto` only.
-3. **Ramp-up rate `HIGHLINE_RAMP_UP_RATE_MS`.** Needs a value. Note: reusing
-   300 ms/step (as LL station ramp does) makes a cruise-70→0 stop take ~21 s;
-   confirm that's physically acceptable or tune before committing.
+**CODEX verdict after 1.4's predecessor:** *"Add the retained-state generation
+check, then it is ready for the §8 field/replay campaign."* That check is 1.2;
+1.3 and 1.4 are the bicameral work on top. The firmware is cleared.
 
 ---
 
-## 6. What's next — priority order
+## 4. The bicameral doctrine — constitutional, spec §0.2
 
-1. **`STATUS.md` in the folder.** (This file. Done when saved.)
-2. **Get `esp-loco-control` onto GitHub — Option B.** Highest priority,
-   ahead of writing code. Every day without the repo adds to the
-   which-file-is-latest confusion. Plan:
-   - Init git in the folder.
-   - Write `.gitignore` **first**, before any commit, excluding the real
-     credential headers (they contain the WiFi password in plaintext).
-   - Reuse the `credentials.h` / `credentials_template.h` split pattern from
-     the archived `NGR-Automated-Train-Control` repo so structure travels
-     without secrets.
-   - First commit, then push to a new **private** GitHub repo.
-   - Leave the old `NGR-Automated-Train-Control` repo alone as a
-     Blynk-era archive. Do not merge it in.
-   - Do this together, one step at a time — not via an agent.
-3. **Clean up the filenames** — only *after* git exists, so history holds the
-   old→new mapping. Mind the Arduino rule that a sketch's `.ino` must sit in a
-   folder of the same name.
-4. **Decide the three open questions** (§5), with David and Sam.
-5. **Fold the eval corrections into SPEC.md** (§4).
-6. **Then let an agent implement HL-Auto** against the corrected spec.
+Operator ruling, 2026-08-02, now normative for this and all future navigators:
 
----
+> All NGR locomotive controllers are **bicameral**. Two chambers: **MANUAL** —
+> the operator is sovereign; navigation observes, records, publishes and warns,
+> but **never** writes to the motor. **AUTO** — navigation acts with full
+> authority. **E-STOP** belongs to the operator and works in every chamber and
+> every state.
 
-## 7. Environment / tooling
+v2.22 stated this in its LOST handler and honoured it. QUORUM 1.0–1.2
+regressed it exactly once: the `NAV_NO_QUORUM` terminal stop called
+`requestPwm(0)` unconditionally — a navigation override of a manual operator.
+**The certified property "NAV_NO_QUORUM stops once" was reviewed by everyone
+and gated by no one.** That is the lesson worth keeping: a property can be
+correct as specified and still be wrong, if nobody asked which chamber it
+belonged to.
 
-- Editor: VS Code, folder `~/esp-loco-control`.
-- Agents working: **Claude Code** (CLI, v2.1.143) and **Codex** (VS Code
-  extension). Both read this folder and the shared `CLAUDE.md` / `AGENTS.md`.
-- Not yet on GitHub (see §6).
-- **Agents don't see each other's work unless it lands in a file.** Reports
-  and decisions must be saved here (or into the specs) to persist across
-  sessions — that's what this file is for.
+A full audit of every motor-write call site was run before the fix (table in
+`QUORUM_1_3_IMPLEMENTATION_REPORT.md`, amended in `1_4`). Seventeen sites; one
+stray. Class (c) — "motor-safety facts exempt from gating" — **is now empty**:
+CODEX reclassified its only member, the M+1 station fallback, as AUTO-chamber
+automation, and it is explicitly gated in 1.4. Every navigation-originated
+motor write is lexically gated on `autoRunning`; operator paths are never
+gated; the E-stop direct write is untouched.
 
 ---
 
-## 8. Collaboration
+## 5. The dashboard — three field failures, three revisions
 
-David decides; Claude and Sam (ChatGPT / Codex) trade off design and QA;
-Sam often assigns concrete tasks and reviews. Roles flex — see `CLAUDE.md`.
+The console displayed stale data as if it were live, and it cost field
+sessions. Each revision answers a specific documented failure.
 
-Addendum: 
+**v1.10.0 — "renders only what the locomotive has said, timestamped."**
+Root cause of the stale tiles was **retained MQTT ghosts**: the broker still
+holds `telem/voltage 15.40`, `telem/power 1.79`, `mm/speed pkph 12.73` from
+firmware that no longer publishes those topics, and every reconnect replayed
+them as fresh. Retained deliveries are now dropped for state and every value
+carries its arrival age. Also fixed a double-publish (slider sent on both
+debounced `oninput` and `onchange`) and an E-STOP that was gated in AUTO.
 
-| `ngr_app_v1_9_3.py` | **Flask operator console** (runs on the Pi). Was overlooked in the initial folder set, now added. NOTE: a later revision deleted some desired features — this is known, not a bug. Do not auto-restore or "fix" against SPEC §10; the current state is ground truth. HL-Auto dashboard changes (SPEC §10) are future work, not a regression to repair. |
+**v1.10.1 — gates enforce startup order only.** At 16:08:03 on 2026-08-01 the
+navigator went LOST and the dashboard re-locked the throttle **on a moving
+locomotive**; the last accepted command was too low for the terrain and Otto
+stalled with the operator locked out. Plus the QUORUM vocabulary rebind.
+
+**v1.10.2 — the dashboard must never say no to a manual operator.** Toby's tab
+demanded re-declaration after an ordinary manual stop, and every confirmation
+string said "OTTO" regardless of tab. Declaration now mirrors the locomotive's
+reported nav state and nothing else; MANUAL controls are never locked;
+confirmations inform but never gate. A **refusal inventory** (in its
+implementation report) audited all eleven blocks reachable in MANUAL: eight
+removed, two survive — E-STOP latch semantics, and SET INTERVAL while the loco
+*reports* motion, which refuses a declare and never refuses driving.
+
+Also added: a per-locomotive **polarity agreement tile** (session AGREE /
+DISAGREE, percentage, last ten verdicts as mm ticks). It diagnosed a noisy
+cable at 27% and a flipped sensor at 100% in one week and has earned permanent
+instrumentation.
+
+---
+
+## 6. Field evidence — `field-records/`
+
+Committed, not left on the Pi. Logs are renamed from content (first timestamp,
+and the locomotive whose topics they carry), cal recordings kept as captured,
+and verdicts sit beside the logs they analyse. `.gitignore` un-ignores
+`field-records/logs/` only; the repo-wide `*.log` ignore stands elsewhere.
+
+**The certification verdict worth knowing** — Toby, across the overnight
+2026-08-02/03 boundary, answering the five metrics Sam asked for:
+
+| | before | after |
+|---|---|---|
+| markers detected | 380 | 3,631 |
+| polarity agreement | **72.6%** | **90.6%** |
+| floor rejects per 100 markers | 11.1 | 3.3 |
+| median Hall peak | 103 | 187 |
+| weak reads (<80) | **21.6%** | **1.4%** |
+
+The step change is not gradual — every run before the gap is weak, every run
+after is strong. **The improvement is in the signal, which is where a
+shielding fix should show up** — not in the navigator's tolerance of bad
+signal. The payoff was bought in hardware and the firmware's job got easier as
+a result, rather than the firmware hiding the problem.
+
+Two caveats on the record, both in the verdict: phantom counts are **not
+measurable** in that data (the conservation gate is a QUORUM feature and
+postdates the run — floor rejects are the stated proxy), and **the cable
+change itself is not logged**. The overnight boundary is inference from the
+discontinuity. David should confirm the install window before this is cited as
+the cable's payoff.
+
+---
+
+## 7. The IR wheel sensor — diagnosis and correction
+
+**It was never mainly a sunlight problem.** The three largest v1 "lockouts"
+aligned exactly with MQTT dropouts; `pulse_count` advanced **+10, +9, +10**
+across them, so the sensor kept seeing wedges throughout; and the ADC never
+exceeded **2511 of 4095**, nowhere near saturation. A rising pulse count is
+not something an optical failure can produce.
+
+The mechanism was architectural. `connectWiFi()` blocks up to 30 s in a `while`
+loop called from `loop()`, and sampling was polled in that same loop — so
+wedges passed an unwatched sensor, and the pulse open when the stall began was
+closed on resume, publishing a **21-second "pulse width"** that measured CPU
+busy time, not light.
+
+`Spoke_IR_RSSI_survey_v2` rebuilds it on the pattern this project has already
+proven twice: a 1 kHz FreeRTOS task at priority 2 pinned to core 0, feeding a
+256-slot timestamped event queue that `loop()` drains, with the network on its
+own task. **Three requirements in `IR_SENSOR_NOTES.md` were themselves wrong
+and are corrected in place there**, each from reading the installed toolchain
+rather than from assumption:
+
+1. **A task, not an ISR.** `adc1_get_raw()` is the *deprecated* legacy driver
+   on core 3.3.11, and its replacement `adc_oneshot_read()` takes a mutex and
+   is not ISR-safe either — so the ISR advice had no safe ADC call behind it.
+   `hallTask` measured 1–4 ms gaps while `loop()` stalled 20 seconds.
+2. **`setSocketTimeout(2)` is not the connect bound** — it is PubSubClient's
+   read timeout. `espClient.setConnectionTimeout(3000)` is the connect bound.
+3. **The reconnect flush is a hazard.** A 30 s outage buffers ~105 events;
+   flushing them individually stampedes the link that just failed. Capped
+   peek-publish-remove, as the locomotive's marker queue does.
+
+`IR_TELEMETRY_WIFI` splits the build: undefined, no radio is compiled in at
+all (21% flash vs 69%) and pulses log over USB, so capture can be validated
+with nothing able to stall it; defined, it does the RSSI survey. **Run the USB
+build first** — validating capture and network in one run leaves a bad result
+unattributable.
+
+This makes the sensor **honest, not sun-proof**. A real optical failure will
+now show a *flat pulse count with healthy span and sane widths*, the opposite
+signature from the v1 artefact. That reading is what would justify the
+differential-sampling work, which remains gated on whether the emitter is
+broken out to a GPIO.
+
+---
+
+## 8. Open decisions — for David
+
+1. **The pKPH scale disagreement.** Settled for firmware: the navigation
+   lineage uses `PKPH_MM_PER_SEC = 5.37325` (0.18611 per mm/s, ≈1:51.7 — a
+   house unit, not a geometric scale), and the IR sketch now matches it. **The
+   Pi dashboard still uses 0.162 (1:45)** and agrees with neither. Changing it
+   alters every KpH figure the console has displayed, so it needs a decision,
+   not a silent fix.
+2. **Confirm the shielded-cable install window** (§6) before the certification
+   numbers are cited as the cable's payoff.
+3. **Is the QRE1113 emitter hard-tied to VCC on the breakout?** This gates the
+   entire differential-sampling approach — the actual optical fix.
+4. **HL-Auto / `SPEC.md` is stale.** It is written against `r12`, which is now
+   archived, and its edit points cite r12 line numbers. It is not current work
+   and should be either rebased onto QUORUM or explicitly parked. Right now it
+   is neither, which is the state that causes confusion later.
+5. **`SPEC.md` at the repository root is a one-line stub** and untracked,
+   distinct from `docs/SPEC.md` (243 lines). Delete it or fold it in.
+
+---
+
+## 9. What's next — priority order
+
+1. **M1 field campaign.** Run QUORUM 1.4 against the §8 checklist in the
+   implementation spec — the replay and field items listed in
+   `QUORUM_1_0_IMPLEMENTATION_REPORT.md`, now including the bicameral checks
+   (NO_QUORUM in MANUAL must leave the motor untouched).
+2. **Deploy dashboard v1.10.2** to the Pi and click through its verify list.
+3. **Flash `Spoke_IR_RSSI_survey_v2` USB-only** for one loop to prove capture,
+   then the WiFi build for the RSSI survey.
+4. **Tag what flies.** QUORUM 1.4 gets its tag from the field, not the desk.
+5. Resolve the open decisions in §8.
+
+---
+
+## 10. Standing practice
+
+**Every implementation report, review finding and field verdict is committed
+to `docs/` as part of finishing the job** — unprompted, as its own `docs:`
+commit. Agents do not see each other's work unless it lands in a file, and
+neither does David in three weeks. Deviations from a spec are recorded **as
+deviations**, never absorbed into a "zero deviations" claim; CODEX contested
+exactly that wording once, correctly.
+
+Current documents: five QUORUM reports, the CODEX findings file (two review
+rounds, verbatim), the dashboard report with its refusal inventory, and the
+Toby certification verdict.
+
+---
+
+## 11. Environment / tooling
+
+- Editor: VS Code, folder `~/esp-loco-control`. **On GitHub, private**
+  (`ninobur/esp-loco-control`).
+- ESP32 Arduino core **3.3.11**. Build:
+  `arduino-cli compile --fqbn esp32:esp32:esp32 <sketch-folder>`.
+- Pi: `david@192.168.68.142`. Console runs as systemd `ngr-app` from
+  `/home/david/ngr_app.py`. Broker is mosquitto on the same host.
+- Credentials live in per-sketch `credentials.h`, git-ignored at any depth;
+  `firmware/config/credentials_template.h` is the pattern to copy. **The
+  repository has never carried a plaintext password** — one arrived inline in
+  a contributed sketch and was split out before that sketch was committed.
+- The broker holds **retained ghosts** from old firmware. Any consumer must
+  treat retained state as stale when `online` is 0.
+
+---
+
+## 12. Collaboration
+
+David decides; Claude and Sam (ChatGPT / Codex) trade off design and QA; CODEX
+reviews implementations against source and has found defects that text review
+could not — the four terminal-evidence findings on QUORUM 1.0 and the ABA race
+on 1.1 all live in the seams between the spec and the code. Roles flex; see
+`CLAUDE.md`.
