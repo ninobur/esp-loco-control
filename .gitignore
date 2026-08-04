@@ -6,6 +6,12 @@ firmware/*/credentials.h
 logs/
 *.log
 
+# EXCEPT the curated field record: certification runs and cal recordings are
+# committed evidence, named by content date and locomotive. See
+# field-records/README.md.
+!field-records/logs/
+!field-records/logs/*.log
+
 # Arduino build artefacts
 build/
 *.elf

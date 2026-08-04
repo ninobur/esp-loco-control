@@ -1,0 +1,14 @@
+MM035  obs=N expected=N pos=DECLARED dir=DECLARED dt=0 dt_expected=3150 timing_mode=MOVING effective_pwm_avg=42 seg_mm=0 speed_mm_s=0.0 peakN=158 peakS=0 hallms=249
+MM036  obs=S expected=S pos=STALE dir=DECLARED dt=20288 dt_expected=3150 timing_mode=SPEED_TRANSITION effective_pwm_avg=60 seg_mm=300 speed_mm_s=14.8 peakN=0 peakS=339 hallms=17020
+MM037  obs=N expected=S pos=STALE dir=DECLARED dt=290 dt_expected=3150 timing_mode=MOVING effective_pwm_avg=60 seg_mm=300 speed_mm_s=1034.5 peakN=191 peakS=0 hallms=204
+MM038  obs=S expected=S pos=STALE dir=DECLARED dt=4602 dt_expected=3150 timing_mode=MOVING effective_pwm_avg=60 seg_mm=300 speed_mm_s=65.2 peakN=0 peakS=313 hallms=2388
+MM039  obs=N expected=S pos=STALE dir=DECLARED dt=286 dt_expected=3150 timing_mode=MOVING effective_pwm_avg=60 seg_mm=300 speed_mm_s=1049.0 peakN=193 peakS=0 hallms=195
+MM040  obs=S expected=S pos=STALE dir=DECLARED dt=9409 dt_expected=3150 timing_mode=MOVING effective_pwm_avg=60 seg_mm=300 speed_mm_s=31.9 peakN=0 peakS=335 hallms=7250
+MM041  obs=N expected=S pos=STALE dir=DECLARED dt=280 dt_expected=3150 timing_mode=MOVING effective_pwm_avg=60 seg_mm=300 speed_mm_s=1071.4 peakN=207 peakS=0 hallms=205
+MM042  obs=N expected=N pos=STALE dir=DECLARED dt=2444 dt_expected=3150 timing_mode=MOVING effective_pwm_avg=60 seg_mm=300 speed_mm_s=122.7 peakN=208 peakS=0 hallms=207
+MM043  obs=S expected=S pos=STALE dir=DECLARED dt=4763 dt_expected=3150 timing_mode=MOVING effective_pwm_avg=60 seg_mm=300 speed_mm_s=63.0 peakN=9 peakS=295 hallms=2539
+MM044  obs=N expected=N pos=STALE dir=DECLARED dt=280 dt_expected=3150 timing_mode=MOVING effective_pwm_avg=60 seg_mm=300 speed_mm_s=1071.4 peakN=217 peakS=0 hallms=220
+MM045  obs=S expected=S pos=STALE dir=DECLARED dt=0 dt_expected=2520 timing_mode=SPEED_TRANSITION effective_pwm_avg=49 seg_mm=0 speed_mm_s=0.0 peakN=0 peakS=341 hallms=27244
+MM046  obs=N expected=S pos=STALE dir=DECLARED dt=224 dt_expected=2520 timing_mode=SPEED_TRANSITION effective_pwm_avg=74 seg_mm=300 speed_mm_s=1339.3 peakN=197 peakS=0 hallms=161
+MM047  obs=S expected=S pos=STALE dir=DECLARED dt=4736 dt_expected=2520 timing_mode=MOVING effective_pwm_avg=83 seg_mm=300 speed_mm_s=63.3 peakN=4 peakS=333 hallms=3186
+MM048  obs=N expected=N pos=STALE dir=DECLARED dt=176 dt_expected=2520 timing_mode=MOVING effective_pwm_avg=85 seg_mm=300 speed_mm_s=1704.5 peakN=232 peakS=3 hallms=140

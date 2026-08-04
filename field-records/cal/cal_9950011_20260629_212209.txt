@@ -1,0 +1,2 @@
+MM034  obs=S expected=N pos=DECLARED dir=DECLARED dt=4128 dt_expected=3150 timing_mode=MOVING effective_pwm_avg=50 seg_mm=300 speed_mm_s=72.7 peakN=0 peakS=253 hallms=497
+MM033  obs=N expected=S pos=DECLARED dir=DECLARED dt=5273 dt_expected=3150 timing_mode=MOVING effective_pwm_avg=50 seg_mm=310 speed_mm_s=58.8 peakN=259 peakS=0 hallms=633

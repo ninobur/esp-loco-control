@@ -1,0 +1,15 @@
+2026-08-01T15:55:53-0700 ngr/loco/9950011/state/brake 0
+2026-08-01T15:55:53-0700 ngr/loco/9950011/state/start_mm 0
+2026-08-01T15:55:53-0700 ngr/loco/9950011/state/must_hold_eligible 0
+2026-08-01T15:55:53-0700 ngr/loco/9950011/state/bootid {"sketch":"SOLONAV_2_22","loco":"9950011","deadband":25,"entry_margin":13,"min_peak":35,"floor_ms":40,"baseline":"median_128_at_500ms","dna_w":12,"conf_max":10}
+2026-08-01T15:55:53-0700 ngr/loco/9950011/state/nav_ready 0
+2026-08-01T15:55:53-0700 ngr/loco/9950011/state/throttle 100
+2026-08-01T15:55:53-0700 ngr/loco/9950011/state/direction 2
+2026-08-01T15:55:53-0700 ngr/loco/9950011/state/estop 0
+2026-08-01T15:55:53-0700 ngr/loco/9950011/state/auto 0
+2026-08-01T15:55:53-0700 ngr/loco/9950011/state/session_direction CCW
+2026-08-01T15:55:53-0700 ngr/loco/9950011/state/start_interval 000-000
+2026-08-01T15:55:53-0700 ngr/loco/9950011/profile/status {"loco_id": "9950011", "service_online": true, "published_at": "2026-08-01T02:43:51.926940+00:00", "cw": {"available": true, "version": 4, "run_count": 4, "updated": "2026-07-02T05:58:25.299011+00:00", "loco_event": "loaded", "loco_source": "pi", "loco_ver": 3, "loco_event_ts": "2026-07-02T05:55:29.261480+00:00"}, "ccw": {"available": true, "version": 1, "run_count": 1, "updated": "2026-07-02T02:37:38.911911+00:00", "loco_event": "loaded", "loco_source": "pi", "loco_ver": 1, "loco_event_ts": "2026-07-02T05:55:29.355452+00:00"}}
+2026-08-01T15:55:53-0700 ngr/loco/9950011/online 0
+2026-08-01T15:55:53-0700 ngr/loco/9950011/status/online 1
+2026-08-01T15:55:53-0700 ngr/loco/9950011/alert {"level":"UNSET","reason":"STATUS","loco":"9950011","uptime_ms":152864,"nav":"UNSET","moving":1,"pwm":100,"est_mm_s":241,"dir":"CCW","session_dir":"CCW","motor_dir":"FWD","rear_bound_mm":0,"front_bound_mm":166,"envelope_mm":1660,"last_confirmed_mm":-1,"last_confirmed_landmark":"","age_ms":0,"markers_since_confirmed":0,"dead_reckoned_mm":0,"confidence":0,"candidate_mm":-1,"lost_markers":0,"lost_ms":0,"agree":0,"disagree":0,"lost_count":0,"auto":0}
