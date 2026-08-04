@@ -38,7 +38,7 @@ now lands in `docs/` as a matter of standing practice. The active work item is
 | `firmware/test-programs/Spoke_IR_RSSI_survey/` | IR survey car **as flown**. Retained as the record; do not flash. |
 | `firmware/test-programs/Spoke_IR_RSSI_survey_v2/` | IR survey car, corrected. Not yet flown. |
 | `server/ngr_app_v1_10_2.py` | **CURRENT Flask console.** Deploys to the Pi as `~/ngr_app.py`. |
-| `server/ngr_runlog.py` | Per-run MQTT telemetry logger. Never publishes, by construction. |
+| `server/ngr_runlog.py` | Per-run MQTT telemetry logger. Never publishes, by construction. **Not yet deployed to the Pi — see §9.** |
 | `field-records/` | Committed field evidence: logs, cal recordings, verdicts. See its README. |
 | `docs/QUORUM_v3_0_implementation_spec.md` | The QUORUM contract. **Revision 21.** Body frozen; amendments are changelogged. |
 | `archive/` | Superseded sketches, including `r12_CONTINUITY_FIRST`. Historical only. |
@@ -254,15 +254,33 @@ broken out to a GPIO.
 
 ## 9. What's next — priority order
 
-1. **M1 field campaign.** Run QUORUM 1.4 against the §8 checklist in the
+1. **Deploy `ngr_runlog.py` to the Pi.** It has *never run there* — no file,
+   no service, no process. The certification runs had to be reconstructed
+   from ad-hoc `mosquitto_sub` redirects with no per-run metadata, and the IR
+   survey car was never recorded at all because the subscription was
+   `ngr/loco/+/#` (fixed 2026-08-04 to `ngr/#`; see the file header). This is
+   first because everything below produces evidence, and there is currently
+   nothing systematically capturing it.
+   ```bash
+   scp server/ngr_runlog.py david@192.168.68.142:/home/david/NGR/telemetry/
+   ```
+   Then on the Pi: create `/home/david/NGR/telemetry/`, add a systemd unit
+   mirroring `ngr-app` (`WorkingDirectory=/home/david/NGR/telemetry`,
+   `ExecStart=/usr/bin/python3 ngr_runlog.py`, `Restart=always`,
+   `After=mosquitto.service`), then `systemctl enable --now ngr-runlog`.
+   Runs land in `telemetry/runs/`, the rolling record in `telemetry/all_*.log`.
+   Kill the stray manual `mosquitto_sub` loggers once it is up — two of them
+   captured identical topic sets, which is why concatenated logs showed every
+   message twice.
+2. **M1 field campaign.** Run QUORUM 1.4 against the §8 checklist in the
    implementation spec — the replay and field items listed in
    `QUORUM_1_0_IMPLEMENTATION_REPORT.md`, now including the bicameral checks
    (NO_QUORUM in MANUAL must leave the motor untouched).
-2. **Deploy dashboard v1.10.2** to the Pi and click through its verify list.
-3. **Flash `Spoke_IR_RSSI_survey_v2` USB-only** for one loop to prove capture,
+3. **Deploy dashboard v1.10.2** to the Pi and click through its verify list.
+4. **Flash `Spoke_IR_RSSI_survey_v2` USB-only** for one loop to prove capture,
    then the WiFi build for the RSSI survey.
-4. **Tag what flies.** QUORUM 1.4 gets its tag from the field, not the desk.
-5. Resolve the open decisions in §8.
+5. **Tag what flies.** QUORUM 1.4 gets its tag from the field, not the desk.
+6. Resolve the open decisions in §8.
 
 ---
 
