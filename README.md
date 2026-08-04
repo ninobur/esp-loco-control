@@ -7,7 +7,8 @@ over MQTT and ESP-NOW.
 
 ```
 firmware/QUORUM/        current navigation sketch — opens directly in Arduino IDE
-firmware/SENSORTEST/    sensor measurement rig: reports markers, no navigation
+firmware/test-programs/ standalone test sketches, own WiFi/MQTT setup:
+                        SENSORTEST (marker rig), Spoke_IR_RSSI_survey (survey car)
 firmware/config/        shared headers, symlinked into each sketch folder
 server/                 Raspberry Pi — Flask dashboard, dispatcher, loggers
 tools/                  align_markers.py and other analysis run by hand
@@ -21,8 +22,8 @@ Point the Arduino IDE at this repository once:
 
 **Settings → Sketchbook location → `<repo>/firmware`**
 
-`QUORUM` and `SENSORTEST` then appear under **File → Sketchbook** and compile
-in place. There is no second copy anywhere, so what you edit is what you flash.
+`QUORUM` — and the sketches under `test-programs` — then appear under
+**File → Sketchbook** and compile in place. There is no second copy anywhere, so what you edit is what you flash.
 
 **Upload Speed must be 115200.** The default 921600 fails on this adapter, and
 the setting reverts whenever the board selection changes.
