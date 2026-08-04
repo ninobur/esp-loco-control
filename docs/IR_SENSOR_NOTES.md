@@ -188,6 +188,28 @@ it admits is minor compared with letting the tunnel silt up in a garden.
 Established from analysis of `Spoke_pulse_timing_5wedge.ino`. None of these are
 optional; each corresponds to an observed failure.
 
+> **Status 2026-08-04.** All of the requirements below are implemented in
+> `firmware/test-programs/Spoke_IR_RSSI_survey_v2/`. The v1 sketch is retained
+> unchanged as the record of what was actually flown. Three corrections were
+> made to the requirements themselves during implementation:
+>
+> * **Capture is a TASK, not an ISR.** `adc1_get_raw()` is the deprecated
+>   legacy driver on the installed core (3.3.11, under `driver/deprecated/`),
+>   and its replacement `adc_oneshot_read()` takes a mutex and is not ISR-safe
+>   either. The locomotive firmware already solved this with `hallTask` — a
+>   1 ms FreeRTOS task pinned to core 0 above the network — with field
+>   evidence: task gaps of 1–4 ms while `loop()` stalled 20 s. v2 copies that
+>   pattern, so it also ports straight onto the locomotive's own ESP32
+>   alongside `hallTask` when the sensor moves there.
+> * **The reconnect flush must be capped.** A 30 s outage buffers 100+ pulses;
+>   flushing them as individual blocking writes on reconnect stampedes the
+>   link that just failed. v2 drains at most 8 per network pass, as the
+>   locomotive's marker queue does.
+> * **`setSocketTimeout(2)` does not bound the TCP connect.** That is
+>   PubSubClient's own read timeout. The connect bound is
+>   `espClient.setConnectionTimeout(3000)` — on this core `setTimeout()` is the
+>   inherited Stream read timeout and has no effect on `connect()`.
+
 **Capture must not live in the polled loop.** Either a comparator front end
 with `attachInterrupt()`, or a hardware timer ISR sampling at 1 kHz. Note that
 Arduino's `analogRead()` is **not ISR-safe** on ESP32 — use `adc1_get_raw()`
