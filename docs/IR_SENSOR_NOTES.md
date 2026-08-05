@@ -189,7 +189,7 @@ Established from analysis of `Spoke_pulse_timing_5wedge.ino`. None of these are
 optional; each corresponds to an observed failure.
 
 > **Status 2026-08-04.** All of the requirements below are implemented in
-> `firmware/test-programs/Spoke_IR_RSSI_survey_v2/`. The v1 sketch is retained
+> `firmware/test-programs/IR_TEST/`. The v1 sketch is retained
 > unchanged as the record of what was actually flown.
 >
 > Three of the requirements were themselves wrong and have been corrected in
@@ -333,7 +333,7 @@ uses, or cross-validation between the two is meaningless.
 > That is 0.18611 per mm/s, roughly **1:51.7**: a house unit calibrated
 > empirically, not a geometric scale factor. It is the number the `mm/speed`
 > topic has always carried, so it is the number the IR sensor must produce for
-> the two to be comparable at all. `Spoke_IR_RSSI_survey_v2` now uses
+> the two to be comparable at all. `IR_TEST` now uses
 > `PKPH_MM_PER_SEC` verbatim; v1's 0.21 matched nothing.
 >
 > **Still open, and a dashboard question rather than a firmware one:** the Pi

@@ -1,11 +1,16 @@
 /*
  * ============================================================================
- * Spoke_IR_RSSI_survey_v2  —  NGR survey car: QRE1113 IR wheel sensor
- *                             + Wi-Fi RSSI coverage survey
+ * IR_TEST  —  NGR survey car: QRE1113 IR wheel sensor
+ *             + Wi-Fi RSSI coverage survey
  * ============================================================================
  *
- * v2 of Spoke_IR_RSSI_survey. Same hardware, same job, rebuilt around the
- * failure analysed in docs/IR_SENSOR_NOTES.md.
+ * Formerly Spoke_IR_RSSI_survey_v2, renamed 2026-08-05. Same hardware, same
+ * job, same lineage: it succeeded Spoke_IR_RSSI_survey and was rebuilt around
+ * the failure analysed in docs/IR_SENSOR_NOTES.md.
+ *
+ * NODE_NAME stays IR_SPEED_SENSOR. That string is the MQTT topic identity
+ * (ngr/spoke/IR_SPEED_SENSOR/...), not the sketch name — renaming it would
+ * move every topic and break the Pi-side parsers and every archived record.
  *
  * ---------------------------------------------------------------------------
  * WHAT WAS WRONG WITH v1
@@ -147,7 +152,7 @@
   #include "credentials.h"
 #endif
 
-#define SKETCH_NAME "Spoke_IR_RSSI_survey_v2"
+#define SKETCH_NAME "IR_TEST"
 
 const char* NODE_NAME   = "IR_SPEED_SENSOR";
 #ifdef IR_TELEMETRY_WIFI
@@ -192,11 +197,11 @@ struct PubMsg { const char* topic; char payload[256]; bool retain; };
 // HARDWARE / TUNING
 // ===========================================================================
 const int   SENSOR_PIN            = 34;      // ADC1_CH6 — must be ADC1 with WiFi up
-const int   SPOKES_PER_WHEEL      = 2;       // TWO tape flags, 180 deg apart
+const int   SPOKES_PER_WHEEL      = 10;       //  10 lgb spokes
 const float WHEEL_CIRCUMFERENCE_MM = 115.0f; // MEASURE on the production car
 
 const uint32_t SENSOR_TICK_MS  = 1;          // 1 kHz sampling
-const uint32_t DEBOUNCE_US     = 15000;      // 15 ms — edge doubling guard
+const uint32_t DEBOUNCE_US     = 2500;      // 15 ms — edge doubling guard
 
 // SPEED_TIMEOUT_MS is tied to SPOKES_PER_WHEEL and was wrong in v1. With TWO
 // flags the interval is 5x longer than the ten-flag data it was set from: at

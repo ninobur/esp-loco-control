@@ -63,7 +63,7 @@
  * error — see the architecture note below.
  *
  * ---------------------------------------------------------------------------
- * ARCHITECTURE — inherited from Spoke_IR_RSSI_survey_v2, unchanged
+ * ARCHITECTURE — inherited from IR_TEST (formerly Spoke_IR_RSSI_survey_v2), unchanged
  * ---------------------------------------------------------------------------
  *   sensorTask   1 kHz sampling, core 0, priority 2 (above the network).
  *                Adaptive threshold, debounced edges, BOTH edge timestamps

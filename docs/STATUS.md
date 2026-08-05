@@ -37,7 +37,7 @@ now lands in `docs/` as a matter of standing practice. The active work item is
 | `firmware/QUORUM/LL_LocoConfig_995001{1,2}.h` | Otto's and Toby's profiles. |
 | `firmware/test-programs/SENSORTEST/` | Marker measurement rig. Standalone, own WiFi/MQTT. |
 | `firmware/test-programs/Spoke_IR_RSSI_survey/` | IR survey car **as flown**. Retained as the record; do not flash. |
-| `firmware/test-programs/Spoke_IR_RSSI_survey_v2/` | IR survey car, corrected. Not yet flown. |
+| `firmware/test-programs/IR_TEST/` | IR survey car, corrected. Not yet flown. |
 | `server/ngr_app_v1_9_5.py` | **RUNNING ON THE PI** — reverted to 2026-08-04 20:21 after v1.10.4 was found unreliable (throttle unusable). Verified byte-identical to the live file. |
 | `server/ngr_app_v1_10_6.py` | Newest console in the repo. NOT deployed, not field-tested. Adds a fault banner and one-in-flight throttle publishing; the v1.10.4 throttle failure is still unreproduced. |
 | `server/ngr_runlog.py` | Per-run MQTT telemetry logger. Never publishes, by construction. **Not yet deployed to the Pi — see §9.** |
@@ -202,7 +202,7 @@ wedges passed an unwatched sensor, and the pulse open when the stall began was
 closed on resume, publishing a **21-second "pulse width"** that measured CPU
 busy time, not light.
 
-`Spoke_IR_RSSI_survey_v2` rebuilds it on the pattern this project has already
+`IR_TEST` rebuilds it on the pattern this project has already
 proven twice: a 1 kHz FreeRTOS task at priority 2 pinned to core 0, feeding a
 256-slot timestamped event queue that `loop()` drains, with the network on its
 own task. **Three requirements in `IR_SENSOR_NOTES.md` were themselves wrong
@@ -279,7 +279,7 @@ broken out to a GPIO.
    `QUORUM_1_0_IMPLEMENTATION_REPORT.md`, now including the bicameral checks
    (NO_QUORUM in MANUAL must leave the motor untouched).
 3. **Deploy dashboard v1.10.2** to the Pi and click through its verify list.
-4. **Flash `Spoke_IR_RSSI_survey_v2` USB-only** for one loop to prove capture,
+4. **Flash `IR_TEST` USB-only** for one loop to prove capture,
    then the WiFi build for the RSSI survey.
 5. **Tag what flies.** QUORUM 1.4 gets its tag from the field, not the desk.
 6. Resolve the open decisions in §8.
