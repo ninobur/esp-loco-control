@@ -74,10 +74,12 @@
  *   * RSSI ON EVERY PULSE, so dropouts can be correlated against position,
  *     plus the standalone 2 Hz survey topic (which is the point of the car and
  *     is published even while stopped).
- *   * UNCONDITIONAL FIFO IN, MEDIAN OF REVOLUTION TIMES OUT. Every measured
- *     interval enters the ring; robustness lives in the output computation,
- *     not in an admission rule. The original 3x-median gate wedged in the
- *     field — see the LAYER 2 header for the trace and the reasoning.
+ *   * UNCONDITIONAL FIFO IN, MEDIAN OF INTERVALS OUT. Every measured interval
+ *     enters the ring; robustness lives in the output computation, not in an
+ *     admission rule. The original 3x-median gate wedged in the field, and
+ *     the revolution-time summing that followed stretched one glitch across
+ *     14 output pulses at ten spokes — see the LAYER 2 header for both
+ *     post-mortems.
  *   * BUFFER RESET ON TIMEOUT. v1 zeroed reported speed but left the buffer
  *     and its fill count intact, so the first pulse after a stop averaged
  *     against pre-stop garbage.
@@ -109,10 +111,12 @@
  * read dark, read lit, subtract), and that remains gated on whether the
  * emitter is hard-tied to VCC on the breakout. See IR_SENSOR_NOTES.md.
  *
- * SPOKE COUNT: SPOKES_PER_WHEEL = 2 — the survey wheel carries TWO gaffer-tape
- * flags, opposite one another (180 deg apart). Two flags = two pulses per rev.
- * (History: 10, then 5; the physical target is 2. Speed is directly
- * proportional to this constant, so it MUST match the wheel.)
+ * SPOKE COUNT: SPOKES_PER_WHEEL = 10 — the factory LGB moulded spoked wheel
+ * itself is now the target: ten spokes, evenly spaced by manufacture, ten
+ * pulses per revolution. (History: 10 hand flags, then 5, then 2 tape flags;
+ * the tape era ended 2026-08-05 when the operator switched to the bare wheel.
+ * Speed is directly proportional to this constant, so it MUST match the
+ * wheel.)
  *
  * SURVEY CORRELATION: this car has no position sense of its own. RSSI is
  * mapped to position afterward by matching timestamps against the TOW
@@ -201,7 +205,16 @@ const int   SPOKES_PER_WHEEL      = 10;       //  10 lgb spokes
 const float WHEEL_CIRCUMFERENCE_MM = 115.0f; // MEASURE on the production car
 
 const uint32_t SENSOR_TICK_MS  = 1;          // 1 kHz sampling
-const uint32_t DEBOUNCE_US     = 2500;      // 15 ms — edge doubling guard
+
+// 2.5 ms edge-doubling guard. Measured rise-to-rise (lastEdgeMicros is written
+// only in the rising branch), so it bounds the INTERVAL, not the width. The
+// fastest genuine ten-spoke interval observed is 22 ms — a comfortable 9x
+// above the guard — while 2.5 ms still swallows contact-style chatter on a
+// single optical transition. (Was 15 ms in the two-flag era; at ten spokes a
+// 15 ms guard would sit only 1.5x under the fastest real interval, one grade
+// of speed away from suppressing genuine rises — and a suppressed rise leaves
+// sensorState false, so the ENTIRE pulse vanishes, not just an edge.)
+const uint32_t DEBOUNCE_US     = 2500;
 
 // SPEED_TIMEOUT_MS is tied to SPOKES_PER_WHEEL and was wrong in v1. With TWO
 // flags the interval is 5x longer than the ten-flag data it was set from: at
@@ -529,54 +542,51 @@ static void sensorTask(void*) {
 }
 
 // ===========================================================================
-// LAYER 2 — SPEED: unconditional FIFO in, median of REVOLUTION times out
+// LAYER 2 — SPEED: unconditional FIFO in, median of INTERVALS out
 // ---------------------------------------------------------------------------
-// WHY THE OLD FILTER WAS DELETED
+// TWO DEAD ARCHITECTURES, AND WHY THIS ONE
 //
-// This buffer used to gate admission on a multiple of its OWN median: refuse
-// anything beyond 3x. That wedges permanently, and did, in the field:
+// FIRST: admission used to be gated on a multiple of the buffer's OWN median
+// (refuse beyond 3x). That wedges permanently, and did, in the field: a
+// spurious 41 ms interval seeded the buffer, the median became 41 ms, the
+// gate became 123 ms, every genuine interval (232-620 ms) was refused, and
+// refused intervals never enter so the median could not move. Speed froze at
+// 1402.44 mm/s while publishing quality "OK". ANY filter whose admission rule
+// reads its own contents has this failure mode. Admission is therefore
+// UNCONDITIONAL and stays that way — that property was field-proven on
+// 2026-08-05 when a 261632 ms interval entered the ring, corrupted a few
+// outputs, and aged out on its own. Under the gate it would have wedged.
 //
-//   1  a spurious 41 ms interval seeded the buffer (a collapsed envelope after
-//      a station dwell — the same decay fault Change B addresses);
-//   2  the median became 41 ms, so the gate became 123 ms;
-//   3  every genuine interval that followed (232-620 ms) exceeded the gate and
-//      was refused;
-//   4  refused intervals never enter, so the median could not move;
-//   5  six consecutive genuine intervals were discarded and reported speed
-//      froze at 1402.44 mm/s — still publishing quality "OK" while frozen.
+// SECOND: intervals were then summed into sliding REVOLUTION times
+// (SPOKES_PER_WHEEL consecutive intervals) and the median taken over those.
+// The summing existed to cancel unequal spacing of hand-applied tape flags.
+// Two things killed it:
+//   * The target is now the factory LGB 10-spoke wheel — moulded, evenly
+//     spaced by manufacture. Autocorrelation of interval deviations at lag 10
+//     is -0.025 across 125 field pulses: the wheel runs true. The problem the
+//     summing solved no longer exists.
+//   * The summing is what made contamination LONG. One bad interval sits in
+//     SPOKES_PER_WHEEL consecutive revolution times, so at ten spokes a
+//     single glitch poisons ten of the five median slots — the median can
+//     never hold a clean majority, and a bad edge stayed visible for
+//     SPOKES_PER_WHEEL + 5 - 1 = 14 pulses. Measured on 2026-08-05: after
+//     each dwell, 8 pulses of 0.00 then 2 of garbage before the output was
+//     right again.
 //
-// It cleared only because the 4 s stop timeout called resetIntervalBuffer().
-// A locomotive running continuously never gets that, so the wedge is permanent
-// there. ANY filter whose admission rule reads its own contents has this
-// failure mode; widening the multiplier relocates the wedge, it does not
-// remove it. The gate is gone and the robustness moved into the OUTPUT:
-//
-//   * EVERY measured interval enters the ring. Nothing is ever refused.
-//   * Intervals are summed into REVOLUTION times: SPOKES_PER_WHEEL consecutive
-//     intervals, recomputed on every pulse (sliding, not tumbling — one new
-//     revolution time per pulse, not per revolution). A revolution spans every
-//     flag EXACTLY once, so unequal flag spacing cancels exactly. The old
-//     5-interval mean averaged 2.5 revolutions, which does not cancel: it made
-//     reported speed oscillate with flag placement error.
-//   * Speed comes from the MEDIAN of the last REV_MEDIAN_N revolution times.
-//     A missed edge roughly doubles one revolution time and a spurious edge
-//     roughly halves one; a median outvotes either, a mean does not.
+// NOW: median over the last SPEED_MEDIAN_N raw intervals, and speed is
+//     circumference / (median_interval * SPOKES_PER_WHEEL).
+// One bad interval is one bad slot: the contamination window is exactly ONE
+// interval, and the median outvotes it immediately (2 good of 3, 3 of 5).
+// Nothing sums, so nothing spreads.
 //
 // This cannot wedge because no state outlives the buffer: every sample ages
-// out within REV_MEDIAN_N pulses regardless of what precedes or follows it.
+// out within SPEED_MEDIAN_N pulses regardless of what precedes or follows it.
 // ===========================================================================
-const int REV_MEDIAN_N = 5;    // revolution times in the median window
+const int SPEED_MEDIAN_N = 5;    // intervals in the median window
 
-// Exactly SPOKES_PER_WHEEL deep, so when full it holds precisely one
-// revolution's worth of intervals and summing every slot IS the sliding
-// revolution time. No windowing arithmetic, nothing to get off by one.
-static uint32_t intervalRing[SPOKES_PER_WHEEL];
+static uint32_t intervalRing[SPEED_MEDIAN_N];
 static int      intervalIndex   = 0;
 static int      intervalsFilled = 0;
-
-static uint32_t revBuffer[REV_MEDIAN_N];
-static int      revIndex   = 0;
-static int      revsFilled = 0;
 
 static float    lastSpeedMmPerSec = 0.0f;
 static float    lastPkph = 0.0f;
@@ -586,22 +596,21 @@ static float    lastPkph = 0.0f;
 // remains correct.
 static void resetIntervalBuffer() {
   intervalIndex = 0; intervalsFilled = 0;
-  revIndex = 0; revsFilled = 0;
   lastSpeedMmPerSec = 0.0f; lastPkph = 0.0f;
 }
 
 // Median over the FILLED slots only, so it can never read an uninitialised
 // entry during the warm-up after boot or after a reset.
-static uint32_t medianRevMs() {
-  if (revsFilled == 0) return 0;
-  uint32_t t[REV_MEDIAN_N];
-  for (int i = 0; i < revsFilled; i++) t[i] = revBuffer[i];
-  for (int i = 1; i < revsFilled; i++) {      // insertion sort, n<=5
+static uint32_t medianIntervalMs() {
+  if (intervalsFilled == 0) return 0;
+  uint32_t t[SPEED_MEDIAN_N];
+  for (int i = 0; i < intervalsFilled; i++) t[i] = intervalRing[i];
+  for (int i = 1; i < intervalsFilled; i++) {      // insertion sort, n<=5
     uint32_t k = t[i]; int j = i - 1;
     while (j >= 0 && t[j] > k) { t[j+1] = t[j]; j--; }
     t[j+1] = k;
   }
-  return t[revsFilled / 2];
+  return t[intervalsFilled / 2];
 }
 
 // Returns true if the argument was a measured interval and entered the ring.
@@ -615,27 +624,15 @@ static bool acceptInterval(uint32_t intervalMs) {
   if (intervalMs == 0) return false;
 
   intervalRing[intervalIndex] = intervalMs;
-  intervalIndex = (intervalIndex + 1) % SPOKES_PER_WHEEL;
-  if (intervalsFilled < SPOKES_PER_WHEEL) intervalsFilled++;
+  intervalIndex = (intervalIndex + 1) % SPEED_MEDIAN_N;
+  if (intervalsFilled < SPEED_MEDIAN_N) intervalsFilled++;
 
-  // A revolution time needs SPOKES_PER_WHEEL intervals. Until that many have
-  // been measured, speed stays at its current value rather than being
-  // extrapolated from a partial revolution. From a reset that value is 0.0.
-  if (intervalsFilled < SPOKES_PER_WHEEL) return true;
+  uint32_t medMs = medianIntervalMs();   // >= 1: only nonzero intervals enter
 
-  uint32_t revMs = 0;
-  for (int i = 0; i < SPOKES_PER_WHEEL; i++) revMs += intervalRing[i];
-
-  revBuffer[revIndex] = revMs;
-  revIndex = (revIndex + 1) % REV_MEDIAN_N;
-  if (revsFilled < REV_MEDIAN_N) revsFilled++;
-
-  uint32_t medMs = medianRevMs();
-  if (medMs == 0) return true;    // unreachable with revsFilled>0; no divide by zero
-
-  // Speed is circumference per revolution time. SPOKES_PER_WHEEL no longer
-  // appears here because it is already accounted for in the summation above.
-  lastSpeedMmPerSec = WHEEL_CIRCUMFERENCE_MM / ((float)medMs / 1000.0f);
+  // One spoke passes per interval, so a wheel revolution takes
+  // SPOKES_PER_WHEEL median intervals.
+  lastSpeedMmPerSec = WHEEL_CIRCUMFERENCE_MM /
+                      (((float)medMs / 1000.0f) * SPOKES_PER_WHEEL);
   lastPkph          = lastSpeedMmPerSec / PKPH_MM_PER_SEC;   // navigation's conversion
   return true;
 }
