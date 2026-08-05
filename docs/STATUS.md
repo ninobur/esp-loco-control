@@ -31,8 +31,8 @@ now lands in `docs/` as a matter of standing practice. The active work item is
 
 | File | What it actually is |
 |---|---|
-| `firmware/QUORUM/QUORUM.ino` | **AUTO-capable firmware.** QUORUM_1_5. Booted clean on Otto 2026-08-04; untagged. |
-| `firmware/MANUAL/MANUAL.ino` | **Manual-only firmware.** MANUAL_1_1 — QUORUM's navigator with the AUTO chamber removed rather than gated. Not yet flashed. |
+| `firmware/QUORUM/QUORUM.ino` | **THE control firmware — the only one.** QUORUM_1_6, bicameral: an automatic side and a manual side, three crossings between them (E-STOP, enlistment, release). Otto is still on 1.4. |
+| `firmware/test-programs/MANUAL/` | REFERENCE ONLY, superseded. MANUAL_1_1 — QUORUM's navigator with the automatic chamber deleted rather than gated, so zero navigation-originated motor writes exist by construction. Useful to audit QUORUM against. Do not flash. |
 | `firmware/QUORUM/LocoConfig.h` | Profile selector — edit the include before flashing. Committed state selects **Otto (9950011)**. |
 | `firmware/QUORUM/LL_LocoConfig_995001{1,2}.h` | Otto's and Toby's profiles. |
 | `firmware/test-programs/SENSORTEST/` | Marker measurement rig. Standalone, own WiFi/MQTT. |

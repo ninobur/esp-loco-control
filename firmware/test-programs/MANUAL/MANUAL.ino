@@ -1,7 +1,29 @@
 /*
  * ============================================================================
- * MANUAL_1_1  —  Ninobur Garden Railway: manual operation, with a navigator
- *                that only ever watches
+ * MANUAL_1_1  —  REFERENCE / TEST SKETCH, not the control firmware
+ *                Manual operation with a navigator that only ever watches
+ * ============================================================================
+ * SUPERSEDED. The operator's architecture is ONE bicameral control sketch —
+ * QUORUM — with an automatic side and a manual side and exactly three
+ * crossings between them: E-STOP, enlistment (manual -> auto, the
+ * locomotive's own act), and release (auto -> manual, from the dispatcher).
+ * Either side is usable from the same firmware, so a separate manual-only
+ * build is not wanted: it would mean a USB cable to change modes, and it was
+ * already drifting from QUORUM as fixes landed in one and not the other.
+ *
+ * Kept here as the REFERENCE for what "no auto authority" actually looks
+ * like: with the automatic chamber deleted rather than gated, every motor
+ * write in this binary is requestPwm()'s body, servicePwmRamp() (the
+ * actuator, plus the NEUTRAL interlock and E-stop clamp), setup(), E-stop,
+ * the throttle handler and the operator direction change. Zero
+ * navigation-originated writes — the property QUORUM has to achieve with
+ * gates, this one gets by construction. Useful for auditing QUORUM against.
+ *
+ * Its direction rule (refuse above PWM 20, obey below it) was ported into
+ * QUORUM 1.6, which is where it now lives operationally.
+ *
+ * DO NOT FLASH THIS TO A WORKING LOCOMOTIVE. It cannot run AUTO and it does
+ * not subscribe to the dispatcher.
  *
  * v1.1 — carries QUORUM 1.5's F3 and F6 (CODEX review). F3 matters more here
  * than anywhere: this sketch's entire promise is that MANUAL information is

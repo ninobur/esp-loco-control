@@ -1,8 +1,41 @@
 /*
  * ============================================================================
- * QUORUM_1_5  —  Ninobur Garden Railway single-locomotive navigation
+ * QUORUM_1_6  —  Ninobur Garden Railway single-locomotive navigation
  * ============================================================================
  * Successor to SOLONAV (v2.22 final). QUORUM navigator per spec R21.
+ *
+ * ---------------------------------------------------------------------------
+ * v1.6 — THE BICAMERAL BOUNDARY, as the operator states it
+ * ---------------------------------------------------------------------------
+ * ONE control sketch, two chambers, and EXACTLY THREE CROSSINGS between them:
+ *
+ *   E-STOP       the operator's, working in both chambers and every state.
+ *   ENLISTMENT   manual -> auto. The locomotive's OWN act: it volunteers and
+ *                gives up control (cmd/auto).
+ *   RELEASE      auto -> manual, from the dispatcher side
+ *                (cmd/dispatcher_release).
+ *
+ * Inside AUTO the locomotive runs itself; the dispatcher sends only go, stop
+ * and estop. Outside enlistment the automatic side touches NOTHING — it does
+ * not drive the manual side, ever. Either side is usable from this one
+ * firmware, so no reflash is needed to change how the locomotive is run.
+ *
+ * Three gaps closed to make that true:
+ *   * DISPATCHER STOP reached into MANUAL. It zeroed the throttle of a
+ *     locomotive that had never enlisted — the automatic side driving the
+ *     manual side, the one thing the chambers must never do to each other.
+ *     Now requires enlistment.
+ *   * THE DISPATCHER'S E-STOP HAD NEVER WORKED. The console publishes to a
+ *     broadcast topic, ngr/dispatcher/cmd/estop, that nothing in this lineage
+ *     ever subscribed to — so the big red button on the console page was
+ *     inert on SOLONAV and on every QUORUM before this one. Now subscribed,
+ *     handled, and on the callback bypass so it cannot queue behind commands.
+ *   * DIRECTION CHANGES were refused whenever motorIsMoving(), true at PWM 1,
+ *     and discarded in silence. Ported from the MANUAL reference sketch:
+ *     refuse above MOTOR_DEAD_ZONE_PWM and say the number to come below;
+ *     at or under it, snap to zero as E-stop does, apply the direction and
+ *     restore the operator's throttle. AUTO still owns the motor once the
+ *     locomotive has enlisted.
  *
  * v1.5 — CODEX review of 1.4, three findings. Navigator control logic and the
  * twenty certified properties are untouched; §1's "advance by one on every
@@ -162,7 +195,7 @@
 #include <pgmspace.h>
 #include "LocoConfig.h"
 
-#define SKETCH_NAME "QUORUM_1_5"
+#define SKETCH_NAME "QUORUM_1_6"
 
 // Broker lives here, not in LocoConfig.h — same as the previous lineage.
 #define MQTT_BROKER "192.168.68.142"
@@ -1495,6 +1528,49 @@ static void servicePwmRamp(){
   pwmWriteCompat(actualPwm);
 }
 
+
+// ---------------------------------------------------------------------------
+// OPERATOR DIRECTION CHANGE (v1.6, operator rule) — obey where obeying is
+// physically possible. Until now any direction change was refused while
+// motorIsMoving(), which is true at PWM 1: the command was discarded and the
+// operator was left guessing. The only refusal that survives is the one whose
+// reason is the hardware, not a preference.
+//
+//   actualPwm >  MOTOR_DEAD_ZONE_PWM   REFUSE, and name the number to come
+//        below. Reversing an energised H-bridge is plugging: back-EMF adds to
+//        supply voltage and current reaches roughly twice stall, which can
+//        trip the driver or brown out the ESP32 and take navigation with it.
+//   actualPwm <= MOTOR_DEAD_ZONE_PWM   OBEY. Below the tractive floor the
+//        wheels are not turning. Snap to zero exactly as E-stop does, apply
+//        the direction, restore the operator's own throttle.
+//
+// AUTO is a separate question and is tested by the callers: a locomotive that
+// has enlisted is not taking manual direction commands.
+// ---------------------------------------------------------------------------
+static bool operatorDirectionPermitted(const char* what){
+  if(actualPwm > MOTOR_DEAD_ZONE_PWM){
+    char n[96];
+    snprintf(n,sizeof(n),"REDUCE_THROTTLE_TO_%d_OR_BELOW_FIRST",MOTOR_DEAD_ZONE_PWM);
+    stationPublish(what[0]=='S'?"SESSION_DIR_REFUSED":"DIR_REFUSED",0,n);
+    char w[128];
+    snprintf(w,sizeof(w),"DIRECTION NOT CHANGED — reduce throttle to %d or below first (now %d)",
+             MOTOR_DEAD_ZONE_PWM,(int)actualPwm);
+    publishWarning(w);
+    return false;
+  }
+  return true;
+}
+
+static void applyOperatorDirection(int v,const char* what){
+  if(!operatorDirectionPermitted(what)) return;
+  int restore = commandedPwm;
+  commandedPwm=0; actualPwm=0; pwmWriteCompat(0);   // instant, like E-stop
+  motorDirection=v;
+  applyDirection();                                 // navDir follows the motor
+  if(restore>0) requestPwm(restore,NORMAL_STEP_MS); // give the operator it back
+  navPublishState("DIRECTION",nullptr);
+}
+
 static void stationSetPhase(StationPhase p){ stPhase=p; stPhaseEnteredMs=millis(); }
 
 static void stationReset(const char* note){
@@ -1723,7 +1799,7 @@ static char T_ST_THROTTLE[64],T_ST_DIRECTION[64],T_ST_BRAKE[64],T_ST_ESTOP[64],
             T_ST_AUTO[64],T_ST_SESSDIR[64],T_ST_STARTINT[64],T_ST_STARTMM[64],
             T_ST_MHE[64],T_ST_NAVREADY[64],T_ST_WARNING[64];
 static char T_CMD_AUTO[64],T_CMD_GO[64],T_CMD_STOP[64],T_CMD_DIR[64],T_CMD_SESSDIR[64];
-static char T_CMD_STARTMM[64],T_CMD_ESTOP[64],T_CMD_THROTTLE[64],T_CMD_STARTINT[64],
+static char T_CMD_STARTMM[64],T_CMD_ESTOP[64],T_CMD_ESTOP_ALL[64],T_CMD_THROTTLE[64],T_CMD_STARTINT[64],
             T_CMD_RELEASE[64],T_CMD_FORCELOST[64];
 
 static void buildTopics(){
@@ -1755,6 +1831,12 @@ static void buildTopics(){
   snprintf(T_CMD_RELEASE ,64,"ngr/loco/%s/cmd/dispatcher_release",id);
   snprintf(T_CMD_FORCELOST,64,"ngr/loco/%s/cmd/force_lost"       ,id);
   snprintf(T_CMD_ESTOP   ,64,"ngr/loco/%s/cmd/estop"            ,id);
+  // E-STOP IS THE ONE CROSSING THAT IS ALWAYS OPEN. The dispatcher console's
+  // E-STOP publishes to this BROADCAST topic, not a per-locomotive one, and
+  // nothing in the lineage had ever subscribed to it — so the big red button
+  // on the console page had never worked, on SOLONAV or QUORUM. Every other
+  // dispatcher command is auto-chamber only; this one reaches both.
+  snprintf(T_CMD_ESTOP_ALL,64,"ngr/dispatcher/cmd/estop");
   snprintf(T_CMD_THROTTLE,64,"ngr/loco/%s/cmd/throttle"         ,id);
   snprintf(T_CMD_GO      ,64,"ngr/dispatcher/cmd/go/%s"         ,id);
   snprintf(T_CMD_STOP    ,64,"ngr/dispatcher/cmd/stop/%s"       ,id);
@@ -2196,16 +2278,16 @@ static void handleCommand(const char* topic,const char* msg){
     // left autoRunning true, after which the idle branch could request cruise
     // and end the dwell early. The console blocks it; the broker did not.
     if(autoRunning){ stationPublish("SESSION_DIR_REFUSED",0,"AUTO_IN_CONTROL"); return; }
-    if(motorIsMoving()){ stationPublish("SESSION_DIR_REFUSED",0,"WAIT_FOR_STOP"); return; }
     // Anything unparseable used to become MAP_UNSET, which left the navigator
     // TRACKING with no direction: nextMm(mm,MAP_UNSET) returns mm, so the
     // odometer silently stopped advancing and judged every further reading
     // against the same marker. Refuse instead of accepting a broken state.
     int8_t req = (!strcasecmp(msg,"CW"))?MAP_CW:((!strcasecmp(msg,"CCW"))?MAP_CCW:MAP_UNSET);
     if(req==MAP_UNSET){ stationPublish("SESSION_DIR_REFUSED",0,"INVALID_MUST_BE_CW_OR_CCW"); return; }
+    // Same pin, same hazard, same rule as cmd/direction (v1.6).
+    if(!operatorDirectionPermitted("SESSION_DIR")) return;
     sessionDir = req;
-    motorDirection=DIRECTION_FORWARD;
-    applyDirection();                      // recomputes navDir, writes the pin
+    applyOperatorDirection(DIRECTION_FORWARD, "SESSION_DIR");
     stationReset("SESSION_DIRECTION_SET");
     navPublishState("SESSION_DIRECTION",nullptr);
   }
@@ -2279,19 +2361,21 @@ static void handleCommand(const char* topic,const char* msg){
     }
   }
   else if(!strcmp(topic,T_CMD_STOP)){
+    // CHAMBER BOUNDARY (v1.6): the dispatcher may stop an AUTO session. It
+    // may NOT reach into MANUAL. Without this test, a dispatcher STOP zeroed
+    // the throttle of a locomotive that had never enlisted — the auto side
+    // driving the manual side, which is the one thing the two chambers must
+    // never do to each other. Enlistment is the locomotive's own act; absent
+    // it, this command is not addressed to us.
+    if(!autoEnrolled){ stationPublish("STOP_IGNORED",0,"NOT_ENLISTED_IN_AUTO"); return; }
     autoRunning=false; requestPwm(0,NORMAL_STEP_MS);
     stationReset("DISPATCHER_STOP");
   }
   else if(!strcmp(topic,T_CMD_DIR)){
-    // Physical motor direction. Refused while moving and while AUTO is driving.
+    // AUTO owns the motor once the locomotive has enlisted; otherwise the
+    // operator's command is obeyed wherever the hardware allows it (v1.6).
     if(autoRunning){ stationPublish("DIR_REFUSED",0,"AUTO_IN_CONTROL"); return; }
-    if(motorIsMoving()){ stationPublish("DIR_REFUSED",0,"WAIT_FOR_STOP"); return; }
-    int v=constrain(atoi(msg),0,2);
-    // NEUTRAL is a real selection now, not a no-op. It engages the interlock;
-    // it is not a stop command and is refused while moving, like any other
-    // direction change.
-    motorDirection=v; applyDirection();            // navDir follows the motor
-    navPublishState("DIRECTION",nullptr);
+    applyOperatorDirection(constrain(atoi(msg),0,2), "DIR");
   }
   else if(!strcmp(topic,T_CMD_RELEASE)){
     // END CTO — hand the locomotive back to the operator. Drops AUTO
@@ -2303,7 +2387,7 @@ static void handleCommand(const char* topic,const char* msg){
     publishWarning("RELEASED: dispatcher control ended");
     navPublishState("DISPATCHER_RELEASE",nullptr);
   }
-  else if(!strcmp(topic,T_CMD_ESTOP)){
+  else if(!strcmp(topic,T_CMD_ESTOP) || !strcmp(topic,T_CMD_ESTOP_ALL)){
     estopped=(atoi(msg)!=0);
     if(!estopped){
       // Clearing E-stop drops into NEUTRAL. Motion resumes only after the
@@ -2374,7 +2458,8 @@ static void subscribeAll(){
   mqtt.subscribe(T_CMD_AUTO);     mqtt.subscribe(T_CMD_GO);
   mqtt.subscribe(T_CMD_STOP);     mqtt.subscribe(T_CMD_DIR);
   mqtt.subscribe(T_CMD_SESSDIR);  mqtt.subscribe(T_CMD_STARTMM);
-  mqtt.subscribe(T_CMD_ESTOP);    mqtt.subscribe(T_CMD_THROTTLE);
+  mqtt.subscribe(T_CMD_ESTOP);    mqtt.subscribe(T_CMD_ESTOP_ALL);
+  mqtt.subscribe(T_CMD_THROTTLE);
   mqtt.subscribe(T_CMD_STARTINT);
   mqtt.subscribe(T_CMD_RELEASE);
   mqtt.subscribe(T_CMD_FORCELOST);
@@ -2399,7 +2484,7 @@ static void onMqttEnqueue(char* topic,byte* payload,unsigned int len){
   // this version: on 2026-07-30 the E-stop sat unread and Otto could not be
   // stopped. Only ENGAGING bypasses; CLEARING stays queued (below) so resuming
   // motion is deliberate and runs the full handler.
-  if(!strcmp(c.topic,T_CMD_ESTOP) && atoi(c.payload)!=0) estopped=true;
+  if((!strcmp(c.topic,T_CMD_ESTOP) || !strcmp(c.topic,T_CMD_ESTOP_ALL)) && atoi(c.payload)!=0) estopped=true;
 
   // Fall through and ALSO enqueue, so the full handler still runs (NEUTRAL,
   // autoRunning=false, stationReset, the alert). If this send is dropped the
