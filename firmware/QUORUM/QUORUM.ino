@@ -1,8 +1,24 @@
 /*
  * ============================================================================
- * QUORUM_1_4  —  Ninobur Garden Railway single-locomotive navigation
+ * QUORUM_1_5  —  Ninobur Garden Railway single-locomotive navigation
  * ============================================================================
  * Successor to SOLONAV (v2.22 final). QUORUM navigator per spec R21.
+ *
+ * v1.5 — CODEX review of 1.4, three findings. Navigator control logic and the
+ * twenty certified properties are untouched; §1's "advance by one on every
+ * accepted event" is preserved, not weakened.
+ *   F3  REVERSING MID-INTERVAL was wrong by one marker, by construction.
+ *       navMm is the marker last REACHED and the locomotive sits between it
+ *       and the next; reverse, and the next marker met is navMm itself — but
+ *       the standard advance moved past it first. applyDirection() now steps
+ *       the odometer back along the OLD direction so the advance lands
+ *       correctly. QUORUM would have found this as offset -1 eventually;
+ *       now it never has to.
+ *   F4  cmd/session_direction refused while moving but NOT under AUTO, and
+ *       during a station dwell both PWM values are zero — so a raw MQTT
+ *       command could reset the station machine mid-session. Now matches
+ *       cmd/direction.
+ *   F6  nav payloads reported NEUTRAL as "REV". Three-way motorDirName().
  *
  * v1.4 — CODEX constitutional hardening after ratifying the bicameral
  * property: the M+1 station fallback gets its explicit autoRunning gate
@@ -146,7 +162,7 @@
 #include <pgmspace.h>
 #include "LocoConfig.h"
 
-#define SKETCH_NAME "QUORUM_1_4"
+#define SKETCH_NAME "QUORUM_1_5"
 
 // Broker lives here, not in LocoConfig.h — same as the previous lineage.
 #define MQTT_BROKER "192.168.68.142"
@@ -1385,7 +1401,23 @@ static void applyDirection(){
     int8_t derived = (sessionDir==MAP_UNSET) ? MAP_UNSET
                    : (motorDirection==DIRECTION_FORWARD ? sessionDir : oppositeDir(sessionDir));
     if(derived!=navDir){
+      int8_t prevDir = navDir;
       navDir=derived;
+      // F3 (CODEX review of 1.4) — REVERSING MID-INTERVAL. navMm is the marker
+      // last REACHED, and the locomotive is always somewhere between it and
+      // the next one along. Reverse, and the next marker it physically meets
+      // is the one it just left — navMm itself. But every accepted event
+      // advances navMm by one (§1, certified), so without this the first
+      // marker after a reversal is compared against dnaAt(navMm - 1): wrong
+      // by one, by construction, on every reversal.
+      //
+      // Step the odometer back along the OLD direction so the standard
+      // advance lands on navMm again. Self-consistent under a double
+      // reversal, which returns it exactly where it started. Only when both
+      // directions are real and a position exists — an UNSET->CW transition
+      // is initial setup, not a reversal, and has no interval to be inside.
+      if(prevDir!=MAP_UNSET && derived!=MAP_UNSET && navState!=NAV_UNSET)
+        navMm = routeMod((int32_t)navMm + prevDir);
       // §6.3: full recovery reset — readings collected in one direction cannot
       // be scored against candidates in another, and neither can an exclusion
       // or a failure count. Evaluation is abandoned, not continued.
@@ -1767,6 +1799,16 @@ static void pubMarker(const char* t,const char* m){
   if(w>markerPubHw) markerPubHw=(uint16_t)w;
 }
 
+// F6 (CODEX review of 1.4): the nav payloads reported NEUTRAL as "REV",
+// because they tested only for FORWARD. publishAlert() already had the
+// three-way form; these did not. A logging defect, not a control one — the
+// dashboard binds its direction display to the state/direction integer — but
+// a replay reading motor_dir would have been misled.
+static const char* motorDirName(){
+  return motorDirection==DIRECTION_FORWARD ? "FWD"
+       : (motorDirection==DIRECTION_REVERSE ? "REV" : "NEU");
+}
+
 static void navPublishState(const char* ev,const MarkerEvent* e){
   // §0.1/§5: every decision reconstructable from the log — nav_state,
   // miss_streak, the full score vector, the leading offset and its margin.
@@ -1791,7 +1833,7 @@ static void navPublishState(const char* ev,const MarkerEvent* e){
       polChar(e->polarity), polChar(dnaAt(navMm)), e->peak, e->durationMs,
       e->baselineDrift, lastSegmentDt, navAgree, navDisagree, navLostCount,
       sc, ex, ld, ru, (int)quorumMargin,
-      motorDirection==DIRECTION_FORWARD?"FWD":"REV");
+      motorDirName());
   }else{
     // The short payload is what DIRECTION and SESSION_DIRECTION publish, so it
     // has to carry the direction fields — those are the events a consumer most
@@ -1800,7 +1842,7 @@ static void navPublishState(const char* ev,const MarkerEvent* e){
       "{\"event\":\"%s\",\"state\":\"%s\",\"nav_state\":\"%s\",\"mm\":%u,\"dir\":\"%s\","
       "\"motor_dir\":\"%s\",\"session_dir\":\"%s\",\"miss_streak\":%u}",
       ev, navStateName(), navStateName(), navMm, dirName(navDir),
-      motorDirection==DIRECTION_FORWARD?"FWD":"REV", dirName(sessionDir),
+      motorDirName(), dirName(sessionDir),
       (unsigned)missStreak);
   }
   // F5 (CODEX findings 5/6): event-bearing publishes — AGREE/DISAGREE, one
@@ -2148,6 +2190,12 @@ static void handleCommand(const char* topic,const char* msg){
     // Same movement guard as cmd/direction: 2_1 flipped the pin here with no
     // check at all, so a manually reversing loco could be thrown over under
     // power. (Codex)
+    // F4 (CODEX review of 1.4): cmd/direction refuses under AUTO but this did
+    // not, and during a station DWELL both PWM values are zero — so a raw MQTT
+    // session_direction was accepted mid-session, reset the station machine and
+    // left autoRunning true, after which the idle branch could request cruise
+    // and end the dwell early. The console blocks it; the broker did not.
+    if(autoRunning){ stationPublish("SESSION_DIR_REFUSED",0,"AUTO_IN_CONTROL"); return; }
     if(motorIsMoving()){ stationPublish("SESSION_DIR_REFUSED",0,"WAIT_FOR_STOP"); return; }
     // Anything unparseable used to become MAP_UNSET, which left the navigator
     // TRACKING with no direction: nextMm(mm,MAP_UNSET) returns mm, so the

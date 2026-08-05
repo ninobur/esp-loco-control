@@ -1,7 +1,13 @@
 /*
  * ============================================================================
- * MANUAL_1_0  —  Ninobur Garden Railway: manual operation, with a navigator
+ * MANUAL_1_1  —  Ninobur Garden Railway: manual operation, with a navigator
  *                that only ever watches
+ *
+ * v1.1 — carries QUORUM 1.5's F3 and F6 (CODEX review). F3 matters more here
+ * than anywhere: this sketch's entire promise is that MANUAL information is
+ * accurate, and a reversal used to make the odometer wrong by one marker
+ * until the navigator noticed and corrected itself. F4 does not apply —
+ * there is no autoRunning in this build to guard against.
  * ============================================================================
  * Derived from QUORUM_1_4. Same detector, same thresholds, same DNA table,
  * same spacingMm[], same transport, and the QUORUM navigator entire and
@@ -202,7 +208,7 @@
 #include <pgmspace.h>
 #include "LocoConfig.h"
 
-#define SKETCH_NAME "MANUAL_1_0"
+#define SKETCH_NAME "MANUAL_1_1"
 
 // Broker lives here, not in LocoConfig.h — same as the previous lineage.
 #define MQTT_BROKER "192.168.68.142"
@@ -1292,7 +1298,23 @@ static void applyDirection(){
     int8_t derived = (sessionDir==MAP_UNSET) ? MAP_UNSET
                    : (motorDirection==DIRECTION_FORWARD ? sessionDir : oppositeDir(sessionDir));
     if(derived!=navDir){
+      int8_t prevDir = navDir;
       navDir=derived;
+      // F3 (CODEX review of 1.4) — REVERSING MID-INTERVAL. navMm is the marker
+      // last REACHED, and the locomotive is always somewhere between it and
+      // the next one along. Reverse, and the next marker it physically meets
+      // is the one it just left — navMm itself. But every accepted event
+      // advances navMm by one (§1, certified), so without this the first
+      // marker after a reversal is compared against dnaAt(navMm - 1): wrong
+      // by one, by construction, on every reversal.
+      //
+      // Step the odometer back along the OLD direction so the standard
+      // advance lands on navMm again. Self-consistent under a double
+      // reversal, which returns it exactly where it started. Only when both
+      // directions are real and a position exists — an UNSET->CW transition
+      // is initial setup, not a reversal, and has no interval to be inside.
+      if(prevDir!=MAP_UNSET && derived!=MAP_UNSET && navState!=NAV_UNSET)
+        navMm = routeMod((int32_t)navMm + prevDir);
       // §6.3: full recovery reset — readings collected in one direction cannot
       // be scored against candidates in another, and neither can an exclusion
       // or a failure count. Evaluation is abandoned, not continued.
@@ -1517,6 +1539,16 @@ static void pubMarker(const char* t,const char* m){
   if(w>markerPubHw) markerPubHw=(uint16_t)w;
 }
 
+// F6 (CODEX review of 1.4): the nav payloads reported NEUTRAL as "REV",
+// because they tested only for FORWARD. publishAlert() already had the
+// three-way form; these did not. A logging defect, not a control one — the
+// dashboard binds its direction display to the state/direction integer — but
+// a replay reading motor_dir would have been misled.
+static const char* motorDirName(){
+  return motorDirection==DIRECTION_FORWARD ? "FWD"
+       : (motorDirection==DIRECTION_REVERSE ? "REV" : "NEU");
+}
+
 static void navPublishState(const char* ev,const MarkerEvent* e){
   // §0.1/§5: every decision reconstructable from the log — nav_state,
   // miss_streak, the full score vector, the leading offset and its margin.
@@ -1541,7 +1573,7 @@ static void navPublishState(const char* ev,const MarkerEvent* e){
       polChar(e->polarity), polChar(dnaAt(navMm)), e->peak, e->durationMs,
       e->baselineDrift, lastSegmentDt, navAgree, navDisagree, navLostCount,
       sc, ex, ld, ru, (int)quorumMargin,
-      motorDirection==DIRECTION_FORWARD?"FWD":"REV");
+      motorDirName());
   }else{
     // The short payload is what DIRECTION and SESSION_DIRECTION publish, so it
     // has to carry the direction fields — those are the events a consumer most
@@ -1550,7 +1582,7 @@ static void navPublishState(const char* ev,const MarkerEvent* e){
       "{\"event\":\"%s\",\"state\":\"%s\",\"nav_state\":\"%s\",\"mm\":%u,\"dir\":\"%s\","
       "\"motor_dir\":\"%s\",\"session_dir\":\"%s\",\"miss_streak\":%u}",
       ev, navStateName(), navStateName(), navMm, dirName(navDir),
-      motorDirection==DIRECTION_FORWARD?"FWD":"REV", dirName(sessionDir),
+      motorDirName(), dirName(sessionDir),
       (unsigned)missStreak);
   }
   // F5 (CODEX findings 5/6): event-bearing publishes — AGREE/DISAGREE, one

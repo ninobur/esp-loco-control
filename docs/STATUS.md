@@ -31,13 +31,15 @@ now lands in `docs/` as a matter of standing practice. The active work item is
 
 | File | What it actually is |
 |---|---|
-| `firmware/QUORUM/QUORUM.ino` | **CURRENT locomotive firmware.** QUORUM_1_4. Cleared for field, untagged. |
+| `firmware/QUORUM/QUORUM.ino` | **AUTO-capable firmware.** QUORUM_1_5. Booted clean on Otto 2026-08-04; untagged. |
+| `firmware/MANUAL/MANUAL.ino` | **Manual-only firmware.** MANUAL_1_1 — QUORUM's navigator with the AUTO chamber removed rather than gated. Not yet flashed. |
 | `firmware/QUORUM/LocoConfig.h` | Profile selector — edit the include before flashing. Committed state selects **Otto (9950011)**. |
 | `firmware/QUORUM/LL_LocoConfig_995001{1,2}.h` | Otto's and Toby's profiles. |
 | `firmware/test-programs/SENSORTEST/` | Marker measurement rig. Standalone, own WiFi/MQTT. |
 | `firmware/test-programs/Spoke_IR_RSSI_survey/` | IR survey car **as flown**. Retained as the record; do not flash. |
 | `firmware/test-programs/Spoke_IR_RSSI_survey_v2/` | IR survey car, corrected. Not yet flown. |
-| `server/ngr_app_v1_10_2.py` | **CURRENT Flask console.** Deploys to the Pi as `~/ngr_app.py`. |
+| `server/ngr_app_v1_9_5.py` | **RUNNING ON THE PI** — reverted to 2026-08-04 20:21 after v1.10.4 was found unreliable (throttle unusable). Verified byte-identical to the live file. |
+| `server/ngr_app_v1_10_6.py` | Newest console in the repo. NOT deployed, not field-tested. Adds a fault banner and one-in-flight throttle publishing; the v1.10.4 throttle failure is still unreproduced. |
 | `server/ngr_runlog.py` | Per-run MQTT telemetry logger. Never publishes, by construction. **Not yet deployed to the Pi — see §9.** |
 | `field-records/` | Committed field evidence: logs, cal recordings, verdicts. See its README. |
 | `docs/QUORUM_v3_0_implementation_spec.md` | The QUORUM contract. **Revision 21.** Body frozen; amendments are changelogged. |
