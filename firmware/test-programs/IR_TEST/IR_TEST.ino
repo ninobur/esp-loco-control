@@ -221,9 +221,11 @@ struct PulseEvent {
 enum SpeedState : uint8_t { SS_UNAVAILABLE, SS_REACQUIRING, SS_VALID, SS_STOPPED };
 
 #ifdef IR_TELEMETRY_WIFI
-// 384: the pulse payload gained state/speed_valid fields and null-able speed;
-// worst case is ~310 chars (arithmetic at the snprintf), over the old 256.
-struct PubMsg { const char* topic; char payload[384]; bool retain; };
+// 512: the pulse payload gained state/speed_valid (~310 worst case) and the
+// status beat gained the envelope diagnostics (~430 worst case — arithmetic
+// at its snprintf). 32-slot queue at ~520 B/slot ≈ 17 KB heap, against
+// ~280 KB free.
+struct PubMsg { const char* topic; char payload[512]; bool retain; };
 #endif
 
 // ===========================================================================
@@ -291,37 +293,77 @@ const int      MARGINAL_SPAN   = 300;   // below this, flag the read as MARGINAL
 const uint32_t DECAY_INTERVAL_MS = 250; // how often the envelope relaxes
 const int      DECAY_STEP        = 2;   // counts per relaxation step
 
-// DECAY IS GATED ON MOTION. Decaying a wall clock against a stationary wheel
-// collapses the envelope to nothing: a stopped wheel presents a CONSTANT to
-// the ADC, so there is no information to adapt to and the relaxation just
-// walks runMin and runMax together until they meet. Measured twice in the
-// field at 7.9 counts/second:
-//     11:45:18 span 1911   11:47:18 span 951   11:48:38 span 314
-//     11:49:18 span 11  -> quality UNAVAILABLE
-// Four minutes at a station and the sensor is blind. It recovers on motion,
-// but the first pulses after the dwell arrive through a squeezed window —
-// which is what manufactured the 41 ms interval that wedged the old speed
-// filter. Station dwell is normal operation, so the two faults compounded.
+// DECAY IS GATED ON SIGNAL ACTIVITY — not on the wall clock, and not on
+// completed pulses. Both predecessors failed in the field:
 //
-// This is a design error, not a badly chosen time constant: NO value of
-// DECAY_STEP avoids it, because the input carries no information to track.
+// WALL CLOCK (v2 original): a stationary wheel presents a CONSTANT to the
+// ADC; there is no information to adapt to, and relaxation just walks runMin
+// and runMax together until they meet. Measured at 7.9 counts/second — four
+// minutes at a station and the sensor was blind.
 //
-// 2000 ms sits deliberately just UNDER SPEED_TIMEOUT_MS (2500, rederived for
-// ten spokes). The envelope therefore stops decaying BEFORE edge silence is
-// declared, so what gets frozen — and what gets written to NVS — is by
-// construction the envelope that was working while edges were still flowing,
-// never one that has already started collapsing in the ambiguous window
-// before the timeout.
-const uint32_t ENVELOPE_DECAY_MOTION_WINDOW_MS = 2000;
+// COMPLETED PULSES (Change B): decay ran only within a window of the last
+// recognised rising edge. That stopped the stationary collapse but created a
+// deadlock: if the wheel turns while the signal sits inside a stale, too-wide
+// hysteresis band, no edge completes, so the motion window expires, so decay
+// stops, so the band never narrows, so no edge ever completes. On 2026-08-05
+// this held the sensor blind for 479 s of a 30-minute run (spans 3481-3866,
+// thresholds ~2626/~1338, signal present the whole time) — decay was the only
+// recovery path and the pulse gate had disabled it.
+//
+// ACTIVITY (now): a short rolling range over recent raw samples distinguishes
+// the three situations by what the SIGNAL is doing, needing no edge opinion:
+//   stationary wheel   -> flat trace, range ~ noise      -> HOLD the envelope
+//   moving, no edges   -> varying trace, range large     -> DECAY (recovery!)
+//   moving, edges fine -> varying trace, range large     -> DECAY (normal)
+// The stationary-collapse fix survives (flat means hold), and the deadlock is
+// broken (a varying signal drives adaptation whether or not edges complete).
+//
+// Rate is bounded, not proportional: DECAY_STEP counts per interval, nothing
+// chases a transient. Two intervals exist because recovery and tracking have
+// different urgency:
+//   normal (edges flowing):     every DECAY_INTERVAL_MS (250 ms) -> 8/s/side
+//   blind (active, no rise for SPEED_TIMEOUT_MS): every
+//     REACQ_DECAY_INTERVAL_MS (50 ms) -> 40/s/side. The 2026-08-05 band was
+//     ~500 counts oversized per side: ~12 s to recover, against the 261 s
+//     the field actually paid.
+const uint32_t ACTIVITY_WINDOW_MS       = 250; // rolling-range sample window
+const int      ACTIVITY_MIN_RANGE       = 100; // counts; stationary noise is
+                                               // tens, a moving spoke signal
+                                               // is hundreds-to-thousands
+const uint32_t REACQ_DECAY_INTERVAL_MS  = 50;  // recovery decay cadence
 
 // Restored envelopes are WIDENED, never narrowed. A too-wide envelope costs a
 // missed pulse or two; a too-narrow one manufactures noise-driven edges, which
-// is the failure that started all of this.
+// is the failure that started all of this. (A restored-too-wide envelope can
+// no longer boot the sensor into permanent blindness: the activity-gated
+// decay above narrows it as soon as a varying signal appears.)
 const int      ENVELOPE_RESTORE_WIDEN_PCT = 10;
 
 const char* NVS_NAMESPACE = "irsense";
-const char* NVS_KEY_MIN   = "envmin";
-const char* NVS_KEY_MAX   = "envmax";
+const char* NVS_KEY_BLOB  = "env";      // single-key atomic blob (EnvBlob)
+const char* NVS_KEY_MIN   = "envmin";   // legacy pair — read-only migration
+const char* NVS_KEY_MAX   = "envmax";   //   path for pre-blob field devices
+
+// The envelope pair persists as ONE NVS entry so it commits atomically: NVS
+// writes the new entry before invalidating the old, so a power cut mid-write
+// yields the previous complete pair, never a half-updated one. The old
+// two-putInt scheme could be torn by power loss between the calls and the
+// mixed pair would still pass the range checks. The checksum catches partial
+// or bit-rotted entries; version gates future layout changes.
+struct EnvBlob {
+  uint32_t magic;      // 'IRNV'
+  uint16_t version;    // layout version, currently 1
+  int16_t  envMin;
+  int16_t  envMax;
+  uint32_t check;      // magic ^ (version<<16) ^ (uint16)envMin ^ ((uint16)envMax<<16)
+};
+const uint32_t ENV_BLOB_MAGIC   = 0x49524E56UL;   // "IRNV"
+const uint16_t ENV_BLOB_VERSION = 1;
+
+static uint32_t envBlobCheck(const EnvBlob& b) {
+  return b.magic ^ ((uint32_t)b.version << 16)
+       ^ (uint32_t)(uint16_t)b.envMin ^ ((uint32_t)(uint16_t)b.envMax << 16);
+}
 
 const uint32_t RSSI_PUBLISH_MS = 500;   // survey cadence, 2 Hz
 const uint32_t STATUS_PUBLISH_MS = 5000;// health/diagnostic beat
@@ -432,19 +474,66 @@ static const char* T_STATUS = "telem/status";
 static int  runMin = 4095, runMax = 0;
 static bool envelopePrimed = false;
 
-// Mirrors of the envelope for loop() to read when it writes NVS on a stop.
-// runMin/runMax themselves are sensorTask's private working state; these are
-// the same single-writer/volatile convention already used by lastRaw/lastSpan,
-// which keeps the NVS write off sensorTask entirely. Plain assignment, so no
-// compound-operation-on-volatile deprecation.
+// Mirrors of the envelope for loop() (NVS write on stop, status telemetry).
+// runMin/runMax themselves are sensorTask's private working state. The PAIR
+// is copied under envMux so a reader can never see min from one instant and
+// max from another — two separate volatiles gave no coherent snapshot, and
+// an incoherent pair could pass the save-path span check while representing
+// no envelope that ever existed. The critical section is two int copies at
+// 1 kHz: nanoseconds, no scheduling impact.
 static volatile int lastRunMin = 4095, lastRunMax = 0;
+static portMUX_TYPE envMux = portMUX_INITIALIZER_UNLOCKED;
+
+// Envelope provenance — so a restored stale envelope and a freshly learned
+// one are distinguishable in telemetry, which the 2026-08-05 analysis could
+// not do (the [ENV] line went only to serial).
+//   COLD_PRIME   envelope seeded from the first live sample this boot
+//   NVS_RESTORE  envelope restored from flash and not yet adapted live
+//   LIVE_ADAPTED at least one decay step has run on live signal this boot
+enum EnvSource : uint8_t { ENV_COLD_PRIME, ENV_NVS_RESTORE, ENV_LIVE_ADAPTED };
+static volatile uint8_t  envSource      = ENV_COLD_PRIME;
+static volatile uint32_t envLastAdaptMs = 0;   // last decay step (0 = never)
+
+// Live diagnostics from the sampler for the status beat.
+static volatile int     lastLocalRange = 0; // rolling raw range, last window
+static volatile int     lastThHi = 0, lastThLo = 0;
+static volatile uint8_t lastQuality = 0;    // assessQuality(), sampler-judged
 
 static Preferences envPrefs;
 
-static uint8_t qualityFromSpan(int span) {
-  if (span < MIN_USABLE_SPAN) return 0;   // UNAVAILABLE
-  if (span < MARGINAL_SPAN)   return 1;   // MARGINAL
-  return 2;                               // OK
+static const char* envSourceName(uint8_t s) {
+  switch (s) {
+    case ENV_NVS_RESTORE:  return "NVS_RESTORE";
+    case ENV_LIVE_ADAPTED: return "LIVE_ADAPTED";
+    default:               return "COLD_PRIME";
+  }
+}
+
+// QUALITY — the honest version. Span alone cannot see the failure that
+// mattered: on 2026-08-05 the span was a magnificent 3481-3866 while the
+// signal spent 479 s trapped inside the hysteresis band producing nothing.
+// Wide span is NOT proof of sight — it is only absence-of-collapse. Quality
+// is now judged from what the sensor is actually DOING:
+//   UNAVAILABLE  span below the usable floor (collapse — original rule), OR
+//                the signal is ACTIVE but no rising edge has come for
+//                SPEED_TIMEOUT_MS (moving and blind — the field failure), OR
+//                the current pulse has been latched past LATCH_TIMEOUT_MS
+//   MARGINAL     span below MARGINAL_SPAN, OR a pulse latched > 1 s (an
+//                early sign of the band mismatch, visible before it times
+//                out)
+//   OK           none of the above
+// Deliberately NOT a max-span ceiling: a wide envelope with edges flowing is
+// excellent contrast, and a ceiling would misclassify it. The problem was
+// never absolute width — it is width the current signal cannot cross, and
+// "active but edgeless" measures exactly that.
+static uint8_t assessQuality(int span, bool active, uint32_t sinceRiseMs,
+                             uint32_t latchMs) {
+  if (span < MIN_USABLE_SPAN)                    return 0;
+  if (active && sinceRiseMs > SPEED_TIMEOUT_MS)  return 0;
+  if (latchMs > LATCH_TIMEOUT_MS)                return 0;
+  if (latchMs > 1000)                            return 1;
+  if (span < MARGINAL_SPAN)                      return 1;
+  return 2;
 }
 
 // ---------------------------------------------------------------------------
@@ -471,8 +560,22 @@ static void restoreEnvelope() {
     Serial.println("[ENV] no stored envelope (first boot) — cold prime from first sample");
     return;
   }
-  int storedMin = envPrefs.getInt(NVS_KEY_MIN, -1);
-  int storedMax = envPrefs.getInt(NVS_KEY_MAX, -1);
+
+  // Preferred source: the atomic blob. Fallback: the legacy envmin/envmax
+  // pair, which the one field device wrote before the blob existed —
+  // read-only migration, the next save writes the blob.
+  int storedMin = -1, storedMax = -1;
+  EnvBlob blob = {};
+  size_t got = envPrefs.getBytes(NVS_KEY_BLOB, &blob, sizeof(blob));
+  if (got == sizeof(blob) && blob.magic == ENV_BLOB_MAGIC &&
+      blob.version == ENV_BLOB_VERSION && blob.check == envBlobCheck(blob)) {
+    storedMin = blob.envMin;
+    storedMax = blob.envMax;
+  } else {
+    if (got != 0) Serial.println("[ENV] stored blob failed validation — trying legacy keys");
+    storedMin = envPrefs.getInt(NVS_KEY_MIN, -1);
+    storedMax = envPrefs.getInt(NVS_KEY_MAX, -1);
+  }
   envPrefs.end();
 
   // Every way a stored pair can be absent, truncated or nonsense. ANY failure
@@ -495,15 +598,21 @@ static void restoreEnvelope() {
   int margin = (storedSpan * ENVELOPE_RESTORE_WIDEN_PCT) / 100;
   runMin = storedMin - margin; if (runMin < 0)    runMin = 0;
   runMax = storedMax + margin; if (runMax > 4095) runMax = 4095;
-  lastRunMin = runMin; lastRunMax = runMax;
+  lastRunMin = runMin; lastRunMax = runMax;   // pre-task: no reader to race
   envelopePrimed = true;    // suppress the single-sample cold prime
+  envSource = ENV_NVS_RESTORE;
   Serial.printf("[ENV] restored min=%d max=%d span=%d (stored %d/%d, widened %d%%)\n",
                 runMin, runMax, runMax - runMin, storedMin, storedMax,
                 ENVELOPE_RESTORE_WIDEN_PCT);
 }
 
 static void saveEnvelope() {
+  // Coherent snapshot: both bounds from the same instant, under the same
+  // mux the sampler updates them under.
+  taskENTER_CRITICAL(&envMux);
   int mn = lastRunMin, mx = lastRunMax;
+  taskEXIT_CRITICAL(&envMux);
+
   if (mx - mn < MIN_USABLE_SPAN) {
     Serial.printf("[ENV] not saved: span %d below MIN_USABLE_SPAN %d\n",
                   mx - mn, MIN_USABLE_SPAN);
@@ -513,9 +622,18 @@ static void saveEnvelope() {
     Serial.println("[ENV] NVS open for write failed — envelope not persisted");
     return;
   }
-  envPrefs.putInt(NVS_KEY_MIN, mn);
-  envPrefs.putInt(NVS_KEY_MAX, mx);
+  EnvBlob blob;
+  blob.magic   = ENV_BLOB_MAGIC;
+  blob.version = ENV_BLOB_VERSION;
+  blob.envMin  = (int16_t)mn;
+  blob.envMax  = (int16_t)mx;
+  blob.check   = envBlobCheck(blob);
+  size_t wrote = envPrefs.putBytes(NVS_KEY_BLOB, &blob, sizeof(blob));
   envPrefs.end();
+  if (wrote != sizeof(blob)) {
+    Serial.println("[ENV] NVS blob write FAILED — envelope not persisted");
+    return;   // say what happened; never print "saved" on a failed write
+  }
   Serial.printf("[ENV] saved on stop: min=%d max=%d span=%d\n", mn, mx, mx - mn);
 }
 
@@ -525,9 +643,16 @@ static void sensorTask(void*) {
   uint32_t pulseStartMicros = 0;
   uint32_t pulseStartMs    = 0;
   uint32_t prevRiseMs      = 0;   // previous pulse's rising edge, for interval
-  uint32_t lastPulseMs     = 0;   // last rising edge — 0 = none since boot
   uint32_t lastDecayMs     = millis();
   uint32_t prevTick        = millis();
+
+  // Activity window: min/max of raw over the last ACTIVITY_WINDOW_MS,
+  // restarted each window. localRange is the completed window's range and is
+  // the sampler's answer to "is the signal doing anything?" — the decay gate
+  // and the quality judgement both read it.
+  int      winMin = 4095, winMax = 0;
+  int      localRange   = 0;
+  uint32_t winStartMs   = millis();
 
   for (;;) {
     uint32_t now = millis();
@@ -539,46 +664,77 @@ static void sensorTask(void*) {
     lastRaw = raw;
 
     // --- adaptive envelope -------------------------------------------------
-    // EXPANSION IS UNCONDITIONAL and stays above the quality gate, so a
-    // lighting change is still tracked while stationary and a collapsed
-    // envelope can always recover. Only the DECAY is gated.
+    // EXPANSION IS UNCONDITIONAL and runs before any gate, so a lighting
+    // change is still tracked while stationary and a collapsed envelope can
+    // always recover. Only the DECAY is gated.
     if (!envelopePrimed) { runMin = runMax = raw; envelopePrimed = true; }
     if (raw < runMin) runMin = raw;
     if (raw > runMax) runMax = raw;
 
-    // Decay only while the wheel is known to be turning — see
-    // ENVELOPE_DECAY_MOTION_WINDOW_MS. lastPulseMs == 0 means no pulse has
-    // been seen since boot, which must NOT read as "just moved" during the
-    // first few seconds of uptime.
-    bool recentMotion = (lastPulseMs != 0) &&
-                        (now - lastPulseMs < ENVELOPE_DECAY_MOTION_WINDOW_MS);
-    if (recentMotion && now - lastDecayMs >= DECAY_INTERVAL_MS) {
+    // --- signal activity ---------------------------------------------------
+    if (raw < winMin) winMin = raw;
+    if (raw > winMax) winMax = raw;
+    if (now - winStartMs >= ACTIVITY_WINDOW_MS) {
+      localRange = winMax - winMin;
+      lastLocalRange = localRange;
+      winMin = 4095; winMax = 0; winStartMs = now;
+    }
+    bool active = (localRange >= ACTIVITY_MIN_RANGE);
+
+    // Blind-while-moving: the signal varies but no rise has been recognised
+    // for a full timeout. This is the 2026-08-05 failure signature, and it is
+    // what unlocks the fast recovery decay below.
+    uint32_t lr = lastRiseMs;
+    uint32_t sinceRiseMs = (lr == 0) ? UINT32_MAX : (uint32_t)(now - lr);
+    bool blindMoving = active && sinceRiseMs > SPEED_TIMEOUT_MS;
+
+    // --- decay, gated on activity ------------------------------------------
+    // Flat signal (stationary): hold, including the phase, so a long dwell
+    // earns no catch-up burst on departure. Varying signal: relax toward the
+    // middle — at the normal cadence while edges flow, at the faster bounded
+    // cadence while blind, because then decay is the ONLY path back to sight.
+    if (!active) {
       lastDecayMs = now;
-      // Relax the envelope toward the middle so it can follow a rising ambient
-      // or a fading target instead of latching onto a one-off extreme.
-      int mid = (runMin + runMax) / 2;
-      if (runMin < mid - DECAY_STEP) runMin += DECAY_STEP;
-      if (runMax > mid + DECAY_STEP) runMax -= DECAY_STEP;
-    } else if (!recentMotion) {
-      // Hold the decay phase, so standing for ten minutes does not earn a
-      // burst of catch-up relaxation the moment the car moves again.
-      lastDecayMs = now;
+    } else {
+      uint32_t decayEvery = blindMoving ? REACQ_DECAY_INTERVAL_MS
+                                        : DECAY_INTERVAL_MS;
+      if (now - lastDecayMs >= decayEvery) {
+        lastDecayMs = now;
+        int mid = (runMin + runMax) / 2;
+        bool stepped = false;
+        if (runMin < mid - DECAY_STEP) { runMin += DECAY_STEP; stepped = true; }
+        if (runMax > mid + DECAY_STEP) { runMax -= DECAY_STEP; stepped = true; }
+        if (stepped) {
+          envSource      = ENV_LIVE_ADAPTED;   // adapted on live signal
+          envLastAdaptMs = now;
+        }
+      }
     }
 
     int span = runMax - runMin;
-    lastSpan   = span;
+    lastSpan = span;
+    taskENTER_CRITICAL(&envMux);        // coherent pair for the NVS snapshot
     lastRunMin = runMin;
     lastRunMax = runMax;
-    uint8_t quality = qualityFromSpan(span);
+    taskEXIT_CRITICAL(&envMux);
 
-    // A collapsed envelope means peeling tape, a dirty lens or no target.
+    uint32_t latchMs = sensorState ? (uint32_t)(now - pulseStartMs) : 0;
+    uint8_t quality = assessQuality(span, active, sinceRiseMs, latchMs);
+    lastQuality = quality;
+
+    // A collapsed envelope means a dirty lens, no target, or no contrast.
     // Emitting edges from noise at high rate is worse than saying nothing:
-    // hold the state machine idle until real contrast returns.
-    if (quality == 0) { vTaskDelay(pdMS_TO_TICKS(SENSOR_TICK_MS)); continue; }
+    // hold the state machine idle until real contrast returns. NOTE this
+    // halt is on the SPAN FLOOR only, deliberately NOT on quality — the
+    // blind-while-moving case also reads quality 0, but halting there would
+    // stop edge detection during exactly the recovery the decay is driving.
+    if (span < MIN_USABLE_SPAN) { vTaskDelay(pdMS_TO_TICKS(SENSOR_TICK_MS)); continue; }
 
     // Thresholds at fixed fractions of the live gap, with hysteresis.
     int thresholdHigh = runMin + (span * 2) / 3;
     int thresholdLow  = runMin + span / 3;
+    lastThHi = thresholdHigh;
+    lastThLo = thresholdLow;
 
     uint32_t nowMicros = micros();
 
@@ -606,8 +762,7 @@ static void sensorTask(void*) {
         lastEdgeMicros   = nowMicros;
         pulseStartMicros = nowMicros;
         pulseStartMs     = now;
-        lastPulseMs      = now;   // the wheel is turning: decay may run
-        lastRiseMs       = now;   // sampler-owned, for loop()'s timeout
+        lastRiseMs       = now;   // sampler-owned: loop()'s timeout, decay gate
         pulseCount++;
       }
     } else if (sensorState && raw < thresholdLow) {
@@ -1070,20 +1225,38 @@ void loop() {
   }
 #endif
 
-  // Health beat: the numbers that would explain a suspicious record. A flat
-  // pulse count with a healthy span and no drops is a real optical failure —
-  // the opposite signature from v1's artefact, and now distinguishable.
+  // Health beat: the numbers that would explain a suspicious record. Now
+  // carries the full envelope picture — bounds, thresholds, provenance, age,
+  // live activity, latch state — because the 2026-08-05 analysis had to infer
+  // all of it from span alone and could not tell a restored stale envelope
+  // from a freshly learned one, nor see a latch in progress.
   if (now - lastStatusPublish >= STATUS_PUBLISH_MS) {
     lastStatusPublish = now;
-    char b[384];
+
+    taskENTER_CRITICAL(&envMux);
+    int rmn = lastRunMin, rmx = lastRunMax;   // coherent pair
+    taskEXIT_CRITICAL(&envMux);
+    uint8_t  q       = lastQuality;
+    uint32_t adaptMs = envLastAdaptMs;
+    uint8_t  latched = latchedNow;
+    uint32_t latchMs = latched ? (uint32_t)(now - latchStartMs) : 0;
+
+    char b[512];
     snprintf(b, sizeof(b),
       "{\"pulses\":%lu,\"raw\":%d,\"span\":%d,\"quality\":\"%s\","
       "\"state\":\"%s\",\"reacq\":%lu,\"latch_timeouts\":%lu,"
+      "\"run_min\":%d,\"run_max\":%d,\"th_hi\":%d,\"th_lo\":%d,"
+      "\"local_range\":%d,\"env_src\":\"%s\",\"env_age_ms\":%lu,"
+      "\"latched\":%d,\"latch_ms\":%lu,"
       "\"ev_drops\":%lu,\"pub_drops\":%lu,\"rej\":0,"
       "\"task_max_gap_ms\":%lu,\"mqtt_attempts\":%lu,\"rssi\":%d,\"heap\":%lu}",
       (unsigned long)pulseCount, (int)lastRaw, (int)lastSpan,
-      qualityFromSpan(lastSpan) == 2 ? "OK" : (qualityFromSpan(lastSpan) == 1 ? "MARGINAL" : "UNAVAILABLE"),
+      q == 2 ? "OK" : (q == 1 ? "MARGINAL" : "UNAVAILABLE"),
       speedStateName(speedState), (unsigned long)reacqCount, (unsigned long)latchTimeouts,
+      rmn, rmx, (int)lastThHi, (int)lastThLo,
+      (int)lastLocalRange, envSourceName(envSource),
+      (unsigned long)(adaptMs ? (now - adaptMs) : now),   // never adapted: uptime
+      (int)latched, (unsigned long)latchMs,
       (unsigned long)eventDrops, (unsigned long)pubDrops,
       (unsigned long)sensorTaskMaxGapMs, MQTT_ATTEMPTS,
       CURRENT_RSSI, (unsigned long)ESP.getFreeHeap());
