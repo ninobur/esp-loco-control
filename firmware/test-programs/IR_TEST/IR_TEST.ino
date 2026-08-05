@@ -268,6 +268,22 @@ const uint32_t DEBOUNCE_US     = 2500;
 // STOPPED — see SpeedState below.
 const uint32_t SPEED_TIMEOUT_MS = 2500;
 
+// LATCH TIMEOUT — the bound on how long a single pulse may stay HIGH.
+//
+// On 2026-08-05 sensorState latched true for 105.3 SECONDS: the signal rose
+// through thresholdHigh, then sat inside the hysteresis band without ever
+// crossing thresholdLow. The state machine entered a pulse and never left it,
+// and the sensor was silently blind the whole time.
+//
+// Same value as SPEED_TIMEOUT_MS, same physics: at ~50% duty a pulse lasts
+// half a spoke period, so if the wheel is above the 20 mm/s creep bound no
+// genuine pulse can be even half this long — anything past it is a latch, not
+// a flag. On expiry the incomplete pulse is DISCARDED: it never becomes an
+// event, and the artificial "fall" that eventually follows must never be
+// mistaken for an edge — a 105-second "pulse" entering the filter is worse
+// than no data at all.
+const uint32_t LATCH_TIMEOUT_MS = SPEED_TIMEOUT_MS;
+
 // Adaptive threshold. runMin/runMax track the signal and decay toward each
 // other so the window follows rising ambient and fading contrast alike.
 const int      MIN_USABLE_SPAN = 120;   // below this, declare UNAVAILABLE
@@ -359,6 +375,14 @@ static uint32_t pubDrops = 0;                // publishes lost to a full pubQueu
 // with the car moving. This timestamp is written at the edge by the task that
 // saw it and cannot be stalled by the network. 0 = no rise since boot.
 static volatile uint32_t lastRiseMs = 0;
+
+// Latch-timeout accounting (see LATCH_TIMEOUT_MS). latchTimeouts is the
+// monotonic published counter; loop() watches it to force reacquisition.
+// latchedNow/latchStartMs let the status beat report an in-progress latch
+// BEFORE it times out — a latch is visible from its first second.
+static volatile uint32_t latchTimeouts = 0;
+static volatile uint8_t  latchedNow    = 0;
+static volatile uint32_t latchStartMs  = 0;
 
 #ifdef IR_TELEMETRY_WIFI
 static char T_ONLINE[64], T_PULSE[64], T_RSSI[64], T_STATUS[64];
@@ -557,6 +581,23 @@ static void sensorTask(void*) {
     int thresholdLow  = runMin + span / 3;
 
     uint32_t nowMicros = micros();
+
+    // LATCH TIMEOUT. sensorState has been true for longer than any physical
+    // pulse can last: the signal is parked inside the hysteresis band. Abort
+    // the pulse — it is DISCARDED, never emitted — and clear the interval
+    // anchor so the next completed pulse starts a fresh measurement rather
+    // than spanning the latch. The state machine is immediately eligible to
+    // rise again; if the signal is still above thresholdHigh it will re-arm,
+    // re-latch, and re-count, which is honest: each increment of
+    // latchTimeouts is another LATCH_TIMEOUT_MS of confirmed blindness.
+    if (sensorState && (uint32_t)(now - pulseStartMs) > LATCH_TIMEOUT_MS) {
+      sensorState = false;
+      prevRiseMs  = 0;                        // aborted rise anchors nothing
+      latchTimeouts = latchTimeouts + 1;      // plain add: volatile-safe
+      latchedNow    = 0;
+    }
+    latchedNow   = sensorState ? 1 : 0;
+    latchStartMs = pulseStartMs;
 
     if (!sensorState && raw > thresholdHigh) {
       // RISING edge — the flag has entered the beam.
@@ -954,6 +995,31 @@ void loop() {
       e.rawAtEdge, e.span, q, accepted ? "" : " [interval not fed to filter]");
   }
 
+  // LATCH-TIMEOUT reaction. The sampler discards the latched pulse itself
+  // (nothing is ever emitted for it — see sensorTask); what remains for this
+  // side is the trust consequence: whatever the filter held before the latch
+  // is stale, so clear it and reacquire from scratch. No NVS write here — the
+  // envelope did not cause the latch verdict and a latch proves nothing about
+  // its quality either way.
+  {
+    static uint32_t seenLatchTimeouts = 0;
+    uint32_t lt = latchTimeouts;   // one volatile read
+    if (lt != seenLatchTimeouts) {
+      seenLatchTimeouts = lt;
+      resetIntervalBuffer();
+      speedState = SS_UNAVAILABLE;
+      char b[192];
+      snprintf(b, sizeof(b),
+        "{\"seq\":%lu,\"event\":\"LATCH_TIMEOUT\",\"state\":\"UNAVAILABLE\","
+        "\"speed_valid\":0,\"speed_mmps\":null,\"pkph\":null,"
+        "\"latch_timeouts\":%lu,\"rssi\":%d}",
+        (unsigned long)pulseCount, (unsigned long)lt, CURRENT_RSSI);
+      pub(T_PULSE, b, false);
+      Serial.printf("[PULSE] LATCH_TIMEOUT #%lu — pulse discarded, filter reset\n",
+                    (unsigned long)lt);
+    }
+  }
+
   // EDGE-SILENCE detection, from the SAMPLER-OWNED rise timestamp — not from
   // lastPulseSeenMs, which measures when loop() consumed an event and stops
   // advancing under network backpressure. With the old source, an MQTT outage
@@ -1012,12 +1078,12 @@ void loop() {
     char b[384];
     snprintf(b, sizeof(b),
       "{\"pulses\":%lu,\"raw\":%d,\"span\":%d,\"quality\":\"%s\","
-      "\"state\":\"%s\",\"reacq\":%lu,"
+      "\"state\":\"%s\",\"reacq\":%lu,\"latch_timeouts\":%lu,"
       "\"ev_drops\":%lu,\"pub_drops\":%lu,\"rej\":0,"
       "\"task_max_gap_ms\":%lu,\"mqtt_attempts\":%lu,\"rssi\":%d,\"heap\":%lu}",
       (unsigned long)pulseCount, (int)lastRaw, (int)lastSpan,
       qualityFromSpan(lastSpan) == 2 ? "OK" : (qualityFromSpan(lastSpan) == 1 ? "MARGINAL" : "UNAVAILABLE"),
-      speedStateName(speedState), (unsigned long)reacqCount,
+      speedStateName(speedState), (unsigned long)reacqCount, (unsigned long)latchTimeouts,
       (unsigned long)eventDrops, (unsigned long)pubDrops,
       (unsigned long)sensorTaskMaxGapMs, MQTT_ATTEMPTS,
       CURRENT_RSSI, (unsigned long)ESP.getFreeHeap());
