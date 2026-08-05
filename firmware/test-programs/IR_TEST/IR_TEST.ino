@@ -191,10 +191,39 @@ struct PulseEvent {
   int      rawAtEdge;    // ADC value that crossed the threshold
   int      span;         // adaptive contrast (runMax-runMin) at the edge
   uint8_t  quality;      // 0=UNAVAILABLE 1=MARGINAL 2=OK
+  uint8_t  intervalValid;// 0 = do not feed the speed filter: no prior rise,
+                         // or the gap spans an edge-silence longer than
+                         // SPEED_TIMEOUT_MS (a dwell, an outage of sight).
+                         // intervalMs still carries the measured value for
+                         // the log — the dwell length is diagnostic data.
 };
 
+// SENSOR STATE — the honest answer to "can this number be trusted?"
+//
+// Published on every pulse and every status beat. The 2026-08-05 run showed
+// why it must exist: the sensor was blind for 479 s of a 30-minute session
+// while publishing quality "OK" throughout, and 24% of pulses reported
+// speed 0.00 while the car was demonstrably under power. A published 0.00 is
+// a lie a downstream governor cannot distinguish from a real stop.
+//
+//   UNAVAILABLE   cannot see; no trustworthy output
+//   REACQUIRING   seeing edges, median window not yet filled; a PROVISIONAL
+//                 estimate is published once SPEED_PROVISIONAL_N intervals
+//                 are in, but speed_valid stays 0
+//   VALID         window filled, output trustworthy
+//   STOPPED       no edges AND independent evidence agrees the wheel is
+//                 stationary. The survey car HAS no independent witness, so
+//                 this state is currently UNREACHABLE by design — an IR
+//                 timeout alone means the sensor stopped SEEING, not that
+//                 the wheel stopped TURNING. On the production locomotive,
+//                 motionWitnessSaysStopped() gains PWM and Hall inputs and
+//                 this state becomes reachable without touching the machine.
+enum SpeedState : uint8_t { SS_UNAVAILABLE, SS_REACQUIRING, SS_VALID, SS_STOPPED };
+
 #ifdef IR_TELEMETRY_WIFI
-struct PubMsg { const char* topic; char payload[256]; bool retain; };
+// 384: the pulse payload gained state/speed_valid fields and null-able speed;
+// worst case is ~310 chars (arithmetic at the snprintf), over the old 256.
+struct PubMsg { const char* topic; char payload[384]; bool retain; };
 #endif
 
 // ===========================================================================
@@ -216,12 +245,28 @@ const uint32_t SENSOR_TICK_MS  = 1;          // 1 kHz sampling
 // sensorState false, so the ENTIRE pulse vanishes, not just an edge.)
 const uint32_t DEBOUNCE_US     = 2500;
 
-// SPEED_TIMEOUT_MS is tied to SPOKES_PER_WHEEL and was wrong in v1. With TWO
-// flags the interval is 5x longer than the ten-flag data it was set from: at
-// 115 mm circumference, 50 mm/s is already a 1150 ms interval, so v1's 1000 ms
-// timeout declared "stopped" while the car was still rolling at creep. At
-// 20 mm/s the interval is ~2.9 s, so the timeout must sit above that.
-const uint32_t SPEED_TIMEOUT_MS = 4000;
+// SPEED_TIMEOUT_MS is tied to SPOKES_PER_WHEEL and must be rederived every
+// time the spoke count changes — it has been wrong twice now for exactly that
+// reason (1000 ms set from ten-flag data was wrong for two flags; 4000 ms set
+// from two-flag arithmetic was wrong for ten spokes).
+//
+// Ten-spoke derivation: 115 mm circumference / 10 spokes = 11.5 mm per
+// interval. At the 20 mm/s creep bound the genuine interval is 575 ms. The
+// timeout must also survive consecutive MISSED spokes at creep — the measured
+// miss rate reaches 30% at low speed, so runs of misses are routine, and a
+// timeout that fires on three missed spokes would cycle the filter through
+// reset/reacquire in normal running. Tolerate three consecutive misses:
+// 4 x 575 = 2300 ms. Round up: 2500.
+//
+// What this buys over the stale 4000: edge silence is declared in 2.5 s
+// instead of 4, which shrinks the window where a blind-but-moving sensor is
+// still publishing stale speed, and shortens every recovery in Layer 2.
+//
+// IMPORTANT: exceeding this timeout does NOT mean the wheel is stopped. It
+// means the sensor has stopped SEEING. On the survey car there is no
+// independent motion witness, so the state machine reports UNAVAILABLE, never
+// STOPPED — see SpeedState below.
+const uint32_t SPEED_TIMEOUT_MS = 2500;
 
 // Adaptive threshold. runMin/runMax track the signal and decay toward each
 // other so the window follows rising ambient and fading contrast alike.
@@ -245,12 +290,13 @@ const int      DECAY_STEP        = 2;   // counts per relaxation step
 // This is a design error, not a badly chosen time constant: NO value of
 // DECAY_STEP avoids it, because the input carries no information to track.
 //
-// 3000 ms sits deliberately just UNDER SPEED_TIMEOUT_MS (4000). The envelope
-// therefore stops decaying BEFORE the car is declared stopped, so what gets
-// frozen — and what gets written to NVS on the stop — is by construction the
-// envelope that was working while the car was still rolling, never one that
-// has already started collapsing in the ambiguous window before the timeout.
-const uint32_t ENVELOPE_DECAY_MOTION_WINDOW_MS = 3000;
+// 2000 ms sits deliberately just UNDER SPEED_TIMEOUT_MS (2500, rederived for
+// ten spokes). The envelope therefore stops decaying BEFORE edge silence is
+// declared, so what gets frozen — and what gets written to NVS — is by
+// construction the envelope that was working while edges were still flowing,
+// never one that has already started collapsing in the ambiguous window
+// before the timeout.
+const uint32_t ENVELOPE_DECAY_MOTION_WINDOW_MS = 2000;
 
 // Restored envelopes are WIDENED, never narrowed. A too-wide envelope costs a
 // missed pulse or two; a too-narrow one manufactures noise-driven edges, which
@@ -305,6 +351,14 @@ static volatile int      lastRaw        = 0;
 static volatile int      lastSpan       = 0;
 static volatile uint32_t sensorTaskMaxGapMs = 0;
 static uint32_t pubDrops = 0;                // publishes lost to a full pubQueue
+
+// SAMPLER-OWNED last-rising-edge time, for loop()'s timeout detection. The
+// old detection used lastPulseSeenMs — the time loop() CONSUMED an event —
+// which stops advancing during network backpressure even while the wheel
+// turns, so an outage could fabricate a stop, reset the filter, and write NVS
+// with the car moving. This timestamp is written at the edge by the task that
+// saw it and cannot be stalled by the network. 0 = no rise since boot.
+static volatile uint32_t lastRiseMs = 0;
 
 #ifdef IR_TELEMETRY_WIFI
 static char T_ONLINE[64], T_PULSE[64], T_RSSI[64], T_STATUS[64];
@@ -512,6 +566,7 @@ static void sensorTask(void*) {
         pulseStartMicros = nowMicros;
         pulseStartMs     = now;
         lastPulseMs      = now;   // the wheel is turning: decay may run
+        lastRiseMs       = now;   // sampler-owned, for loop()'s timeout
         pulseCount++;
       }
     } else if (sensorState && raw < thresholdLow) {
@@ -524,11 +579,25 @@ static void sensorTask(void*) {
       e.detectedAtMs = pulseStartMs;
       e.widthMs      = (nowMicros - pulseStartMicros) / 1000UL;
       e.intervalMs   = 0;      // filled in below from the previous rise
+      e.intervalValid = 0;
       e.rawAtEdge    = raw;
       e.span         = span;
       e.quality      = quality;
 
-      if (prevRiseMs != 0) e.intervalMs = pulseStartMs - prevRiseMs;
+      if (prevRiseMs != 0) {
+        // The interval is ALWAYS reported — after a dwell it carries the
+        // dwell length, which is diagnostic data. But it only feeds the speed
+        // filter when it is a plausible spoke-to-spoke time: a gap longer
+        // than SPEED_TIMEOUT_MS spans an edge-silence (a stop, or a blind
+        // episode) and is not a speed measurement. This is the "treat the
+        // next pulse as having no valid prior interval" rule, implemented as
+        // a flag at measurement time rather than clearing prevRiseMs at
+        // timeout time — identical filter behaviour, one task-local owner,
+        // and the measured value survives into the log. NOTHING fabricated
+        // is ever fed to the FIFO: an invalid interval simply never arrives.
+        e.intervalMs    = pulseStartMs - prevRiseMs;
+        e.intervalValid = (e.intervalMs <= SPEED_TIMEOUT_MS) ? 1 : 0;
+      }
       prevRiseMs = pulseStartMs;
 
       if (eventQueue && xQueueSend(eventQueue, &e, 0) != pdTRUE) {
@@ -582,7 +651,30 @@ static void sensorTask(void*) {
 // This cannot wedge because no state outlives the buffer: every sample ages
 // out within SPEED_MEDIAN_N pulses regardless of what precedes or follows it.
 // ===========================================================================
-const int SPEED_MEDIAN_N = 5;    // intervals in the median window
+const int SPEED_MEDIAN_N      = 5;  // intervals in the median window
+const int SPEED_PROVISIONAL_N = 3;  // intervals before a provisional estimate
+
+static SpeedState speedState = SS_UNAVAILABLE;   // boot: cannot see yet
+static uint32_t   reacqCount = 0;                // UNAVAILABLE->REACQUIRING transitions
+
+static const char* speedStateName(SpeedState s) {
+  switch (s) {
+    case SS_REACQUIRING: return "REACQUIRING";
+    case SS_VALID:       return "VALID";
+    case SS_STOPPED:     return "STOPPED";
+    default:             return "UNAVAILABLE";
+  }
+}
+
+// THE MOTION WITNESS HOOK. STOPPED requires independent evidence that the
+// wheel is stationary — an IR timeout alone only proves the sensor stopped
+// seeing. The survey car has no such evidence, so this returns false and
+// SS_STOPPED is unreachable. On the production locomotive this is where PWM
+// and Hall/marker state plug in; the state machine above needs no other
+// change.
+static bool motionWitnessSaysStopped() {
+  return false;   // survey car: no witness exists
+}
 
 static uint32_t intervalRing[SPEED_MEDIAN_N];
 static int      intervalIndex   = 0;
@@ -798,63 +890,102 @@ void loop() {
   // event buffer was anywhere near full, throwing away exactly the record the
   // buffer exists to keep. The 4-slot margin leaves room for status and RSSI.
   while (eventQueue && PUB_HAS_ROOM && xQueueReceive(eventQueue, &e, 0) == pdTRUE) {
-    bool accepted = acceptInterval(e.intervalMs);
+    bool accepted = e.intervalValid && acceptInterval(e.intervalMs);
     lastPulseSeenMs = millis();
+
+    // State: edges are arriving, so we are at least reacquiring; VALID only
+    // when the median window is full. Entering REACQUIRING from dark counts
+    // as a reacquisition.
+    if (speedState == SS_UNAVAILABLE || speedState == SS_STOPPED) {
+      speedState = SS_REACQUIRING;
+      reacqCount++;
+    }
+    if (intervalsFilled >= SPEED_MEDIAN_N) speedState = SS_VALID;
+    bool haveEstimate = (intervalsFilled >= SPEED_PROVISIONAL_N);
+    bool speedValid   = (speedState == SS_VALID);
+
+    // The speed fields are NULL until a provisional estimate exists. The old
+    // payload published 0.00 through the whole warm-up — 24% of all pulses in
+    // the 2026-08-05 run — which a downstream consumer cannot tell from a
+    // real stop. null is parseable and unambiguous: "no estimate", never "0".
+    char spd[48];
+    if (haveEstimate)
+      snprintf(spd, sizeof(spd), "\"speed_mmps\":%.2f,\"pkph\":%.2f",
+               lastSpeedMmPerSec, lastPkph);
+    else
+      snprintf(spd, sizeof(spd), "\"speed_mmps\":null,\"pkph\":null");
 
     // ONE atomic JSON payload per pulse. Six separate topics per wedge is what
     // v1 did — ~38 blocking writes/second — and a torn set of five topics is
     // how v1 logged interval values that belonged to the previous pulse.
     //
     // Buffer arithmetic, worst case, every field at its widest output:
-    // seq/t_ms/interval_ms/width_ms 4x u32 = 4x(len+13); speed/pkph at
-    // "-99999.99"; raw "-4095"; span "4095"; quality "UNAVAILABLE";
-    // rssi "-100"; ev_drops u32; rej literal 0  ->  under 235 chars + NUL,
-    // and <= PubMsg::payload[256]. Checked, not assumed: a payload that
-    // silently truncates is invalid JSON that a replay cannot parse.
+    // seq/t_ms/interval_ms/width_ms 4x u32 ("4294967295"); speed/pkph at
+    // "-99999.99" or null; state "REACQUIRING"; speed_valid 1; raw "-4095";
+    // span "4095"; quality "UNAVAILABLE"; accepted 1; rssi "-100"; ev_drops
+    // u32; rej literal 0  ->  ~310 chars + NUL <= PubMsg::payload[384].
+    // Checked, not assumed: a payload that silently truncates is invalid
+    // JSON that a replay cannot parse.
     //
-    // "rej" is retained at a hard 0 so the Pi-side log schema is unchanged.
-    // Nothing is rejected any more; the field stays so existing parsers and
-    // every archived record keep the same shape.
+    // "rej" is retained at a hard 0 so the Pi-side log schema keeps its
+    // shape. Nothing is rejected any more; the field stays for parsers and
+    // archived records.
     const char* q = (e.quality == 2) ? "OK" : (e.quality == 1 ? "MARGINAL" : "UNAVAILABLE");
-    char b[256];
+    char b[384];
     snprintf(b, sizeof(b),
       "{\"seq\":%lu,\"t_ms\":%lu,\"interval_ms\":%lu,\"width_ms\":%lu,"
-      "\"speed_mmps\":%.2f,\"pkph\":%.2f,\"raw\":%d,\"span\":%d,"
+      "\"state\":\"%s\",\"speed_valid\":%d,%s,\"raw\":%d,\"span\":%d,"
       "\"quality\":\"%s\",\"accepted\":%d,\"rssi\":%d,"
       "\"ev_drops\":%lu,\"rej\":0}",
       (unsigned long)e.seq, (unsigned long)e.detectedAtMs,
       (unsigned long)e.intervalMs, (unsigned long)e.widthMs,
-      lastSpeedMmPerSec, lastPkph, e.rawAtEdge, e.span,
+      speedStateName(speedState), speedValid ? 1 : 0, spd,
+      e.rawAtEdge, e.span,
       q, accepted ? 1 : 0, CURRENT_RSSI,
       (unsigned long)eventDrops);
     pub(T_PULSE, b, false);
 
-    // "accepted":0 now means only one thing: no previous rising edge to
-    // measure against, i.e. the first pulse after boot or after a reset.
-    Serial.printf("[PULSE] #%lu int=%lums w=%lums %.1f mm/s raw=%d span=%d %s%s\n",
+    // "accepted":0 means the interval did not feed the filter: no prior rise
+    // (first pulse after boot) or a gap spanning an edge-silence (flagged by
+    // the sampler, intervalValid == 0).
+    Serial.printf("[PULSE] #%lu int=%lums w=%lums %s %.1f mm/s raw=%d span=%d %s%s\n",
       (unsigned long)e.seq, (unsigned long)e.intervalMs, (unsigned long)e.widthMs,
-      lastSpeedMmPerSec, e.rawAtEdge, e.span, q, accepted ? "" : " [no prior edge]");
+      speedStateName(speedState), haveEstimate ? lastSpeedMmPerSec : 0.0f,
+      e.rawAtEdge, e.span, q, accepted ? "" : " [interval not fed to filter]");
   }
 
-  // Stop detection. v1 zeroed the reported speed but left the buffer and its
-  // fill count intact, so the first pulse after a stop averaged against
-  // pre-stop garbage. Reset the whole thing.
-  if (lastPulseSeenMs && millis() - lastPulseSeenMs > SPEED_TIMEOUT_MS &&
-      (lastSpeedMmPerSec != 0.0f || intervalsFilled != 0)) {
-    resetIntervalBuffer();
+  // EDGE-SILENCE detection, from the SAMPLER-OWNED rise timestamp — not from
+  // lastPulseSeenMs, which measures when loop() consumed an event and stops
+  // advancing under network backpressure. With the old source, an MQTT outage
+  // longer than the timeout would fabricate a stop while the wheel turned:
+  // reset the filter, publish STOPPED, and write NVS mid-motion.
+  //
+  // A timeout here means the sensor stopped SEEING. Whether the wheel stopped
+  // TURNING is a separate question only an independent witness can answer —
+  // and the survey car has none, so this declares UNAVAILABLE (with STOPPED
+  // reserved for a witness-equipped build; see motionWitnessSaysStopped()).
+  {
+    uint32_t lr = lastRiseMs;   // one volatile read
+    if (lr != 0 && (uint32_t)(millis() - lr) > SPEED_TIMEOUT_MS &&
+        speedState != SS_UNAVAILABLE && speedState != SS_STOPPED) {
+      resetIntervalBuffer();
+      speedState = motionWitnessSaysStopped() ? SS_STOPPED : SS_UNAVAILABLE;
 
-    // THE moving->stopped transition, and the only place NVS is written. The
-    // guard above goes false the moment resetIntervalBuffer() runs and cannot
-    // go true again until a new pulse arrives, so this fires exactly once per
-    // stop — never in a loop, never on the capture path.
-    saveEnvelope();
+      // The edge-silence transition is the only place NVS is written. The
+      // state guard above goes false on this pass and cannot go true again
+      // until a new pulse arrives, so this fires exactly once per silence —
+      // never in a loop, never on the capture path.
+      saveEnvelope();
 
-    char b[128];
-    snprintf(b, sizeof(b),
-      "{\"seq\":%lu,\"event\":\"STOPPED\",\"speed_mmps\":0.00,\"pkph\":0.00,\"rssi\":%d}",
-      (unsigned long)pulseCount, CURRENT_RSSI);
-    pub(T_PULSE, b, false);
-    Serial.println("[PULSE] STOPPED — interval buffer reset");
+      char b[192];
+      snprintf(b, sizeof(b),
+        "{\"seq\":%lu,\"event\":\"TIMEOUT\",\"state\":\"%s\","
+        "\"speed_valid\":0,\"speed_mmps\":null,\"pkph\":null,\"rssi\":%d}",
+        (unsigned long)pulseCount, speedStateName(speedState), CURRENT_RSSI);
+      pub(T_PULSE, b, false);
+      Serial.printf("[PULSE] TIMEOUT — no edges for %lu ms, state %s, filter reset\n",
+                    (unsigned long)SPEED_TIMEOUT_MS, speedStateName(speedState));
+    }
   }
 
   uint32_t now = millis();
@@ -878,13 +1009,15 @@ void loop() {
   // the opposite signature from v1's artefact, and now distinguishable.
   if (now - lastStatusPublish >= STATUS_PUBLISH_MS) {
     lastStatusPublish = now;
-    char b[256];
+    char b[384];
     snprintf(b, sizeof(b),
       "{\"pulses\":%lu,\"raw\":%d,\"span\":%d,\"quality\":\"%s\","
+      "\"state\":\"%s\",\"reacq\":%lu,"
       "\"ev_drops\":%lu,\"pub_drops\":%lu,\"rej\":0,"
       "\"task_max_gap_ms\":%lu,\"mqtt_attempts\":%lu,\"rssi\":%d,\"heap\":%lu}",
       (unsigned long)pulseCount, (int)lastRaw, (int)lastSpan,
       qualityFromSpan(lastSpan) == 2 ? "OK" : (qualityFromSpan(lastSpan) == 1 ? "MARGINAL" : "UNAVAILABLE"),
+      speedStateName(speedState), (unsigned long)reacqCount,
       (unsigned long)eventDrops, (unsigned long)pubDrops,
       (unsigned long)sensorTaskMaxGapMs, MQTT_ATTEMPTS,
       CURRENT_RSSI, (unsigned long)ESP.getFreeHeap());
