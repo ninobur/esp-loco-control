@@ -69,9 +69,10 @@
  *   * RSSI ON EVERY PULSE, so dropouts can be correlated against position,
  *     plus the standalone 2 Hz survey topic (which is the point of the car and
  *     is published even while stopped).
- *   * OUTLIER REJECTION on the interval buffer: anything beyond 3x the current
- *     median is refused before it enters, so one stall-length interval cannot
- *     corrupt speed for the next five pulses.
+ *   * UNCONDITIONAL FIFO IN, MEDIAN OF REVOLUTION TIMES OUT. Every measured
+ *     interval enters the ring; robustness lives in the output computation,
+ *     not in an admission rule. The original 3x-median gate wedged in the
+ *     field — see the LAYER 2 header for the trace and the reasoning.
  *   * BUFFER RESET ON TIMEOUT. v1 zeroed reported speed but left the buffer
  *     and its fill count intact, so the first pulse after a stop averaged
  *     against pre-stop garbage.
@@ -384,53 +385,114 @@ static void sensorTask(void*) {
 }
 
 // ===========================================================================
-// LAYER 2 — SPEED, with outlier rejection
+// LAYER 2 — SPEED: unconditional FIFO in, median of REVOLUTION times out
+// ---------------------------------------------------------------------------
+// WHY THE OLD FILTER WAS DELETED
+//
+// This buffer used to gate admission on a multiple of its OWN median: refuse
+// anything beyond 3x. That wedges permanently, and did, in the field:
+//
+//   1  a spurious 41 ms interval seeded the buffer (a collapsed envelope after
+//      a station dwell — the same decay fault Change B addresses);
+//   2  the median became 41 ms, so the gate became 123 ms;
+//   3  every genuine interval that followed (232-620 ms) exceeded the gate and
+//      was refused;
+//   4  refused intervals never enter, so the median could not move;
+//   5  six consecutive genuine intervals were discarded and reported speed
+//      froze at 1402.44 mm/s — still publishing quality "OK" while frozen.
+//
+// It cleared only because the 4 s stop timeout called resetIntervalBuffer().
+// A locomotive running continuously never gets that, so the wedge is permanent
+// there. ANY filter whose admission rule reads its own contents has this
+// failure mode; widening the multiplier relocates the wedge, it does not
+// remove it. The gate is gone and the robustness moved into the OUTPUT:
+//
+//   * EVERY measured interval enters the ring. Nothing is ever refused.
+//   * Intervals are summed into REVOLUTION times: SPOKES_PER_WHEEL consecutive
+//     intervals, recomputed on every pulse (sliding, not tumbling — one new
+//     revolution time per pulse, not per revolution). A revolution spans every
+//     flag EXACTLY once, so unequal flag spacing cancels exactly. The old
+//     5-interval mean averaged 2.5 revolutions, which does not cancel: it made
+//     reported speed oscillate with flag placement error.
+//   * Speed comes from the MEDIAN of the last REV_MEDIAN_N revolution times.
+//     A missed edge roughly doubles one revolution time and a spurious edge
+//     roughly halves one; a median outvotes either, a mean does not.
+//
+// This cannot wedge because no state outlives the buffer: every sample ages
+// out within REV_MEDIAN_N pulses regardless of what precedes or follows it.
 // ===========================================================================
-const int WINDOW_SIZE = 5;
-static uint32_t intervalBuffer[WINDOW_SIZE];
-static int      intervalIndex = 0;
+const int REV_MEDIAN_N = 5;    // revolution times in the median window
+
+// Exactly SPOKES_PER_WHEEL deep, so when full it holds precisely one
+// revolution's worth of intervals and summing every slot IS the sliding
+// revolution time. No windowing arithmetic, nothing to get off by one.
+static uint32_t intervalRing[SPOKES_PER_WHEEL];
+static int      intervalIndex   = 0;
 static int      intervalsFilled = 0;
+
+static uint32_t revBuffer[REV_MEDIAN_N];
+static int      revIndex   = 0;
+static int      revsFilled = 0;
+
 static float    lastSpeedMmPerSec = 0.0f;
 static float    lastPkph = 0.0f;
-static uint32_t rejectedIntervals = 0;
 
+// Still called on the stop timeout. It is no longer load-bearing for wedge
+// recovery — nothing can wedge now — but clearing stale data on a stop
+// remains correct.
 static void resetIntervalBuffer() {
   intervalIndex = 0; intervalsFilled = 0;
+  revIndex = 0; revsFilled = 0;
   lastSpeedMmPerSec = 0.0f; lastPkph = 0.0f;
 }
 
-static uint32_t medianInterval() {
-  if (intervalsFilled == 0) return 0;
-  uint32_t t[WINDOW_SIZE];
-  for (int i = 0; i < intervalsFilled; i++) t[i] = intervalBuffer[i];
-  for (int i = 1; i < intervalsFilled; i++) {      // insertion sort, n<=5
+// Median over the FILLED slots only, so it can never read an uninitialised
+// entry during the warm-up after boot or after a reset.
+static uint32_t medianRevMs() {
+  if (revsFilled == 0) return 0;
+  uint32_t t[REV_MEDIAN_N];
+  for (int i = 0; i < revsFilled; i++) t[i] = revBuffer[i];
+  for (int i = 1; i < revsFilled; i++) {      // insertion sort, n<=5
     uint32_t k = t[i]; int j = i - 1;
     while (j >= 0 && t[j] > k) { t[j+1] = t[j]; j--; }
     t[j+1] = k;
   }
-  return t[intervalsFilled / 2];
+  return t[revsFilled / 2];
 }
 
-// Returns true if the interval was accepted into the average.
+// Returns true if the argument was a measured interval and entered the ring.
+//
+// The ONLY false case is the zero sentinel, which sensorTask emits when there
+// is no previous rising edge to measure against (the first pulse after boot).
+// Zero is the ABSENCE of a measurement, not a measurement being judged — no
+// path in here inspects buffer contents to decide admission, which is the
+// property that makes the wedge above structurally impossible.
 static bool acceptInterval(uint32_t intervalMs) {
   if (intervalMs == 0) return false;
-  // A stall-length interval entering the rolling average corrupts speed for
-  // the next five pulses. Refuse anything beyond 3x the current median.
-  if (intervalsFilled > 0) {
-    uint32_t med = medianInterval();
-    if (med > 0 && intervalMs > med * 3) { rejectedIntervals++; return false; }
-  }
-  intervalBuffer[intervalIndex] = intervalMs;
-  intervalIndex = (intervalIndex + 1) % WINDOW_SIZE;
-  if (intervalsFilled < WINDOW_SIZE) intervalsFilled++;
 
-  uint32_t sum = 0;
-  for (int i = 0; i < intervalsFilled; i++) sum += intervalBuffer[i];
-  float avgMs = (float)sum / intervalsFilled;
-  float pulsesPerSec = 1000.0f / avgMs;
-  float revsPerSec   = pulsesPerSec / SPOKES_PER_WHEEL;
-  lastSpeedMmPerSec  = revsPerSec * WHEEL_CIRCUMFERENCE_MM;
-  lastPkph           = lastSpeedMmPerSec / PKPH_MM_PER_SEC;   // navigation's conversion
+  intervalRing[intervalIndex] = intervalMs;
+  intervalIndex = (intervalIndex + 1) % SPOKES_PER_WHEEL;
+  if (intervalsFilled < SPOKES_PER_WHEEL) intervalsFilled++;
+
+  // A revolution time needs SPOKES_PER_WHEEL intervals. Until that many have
+  // been measured, speed stays at its current value rather than being
+  // extrapolated from a partial revolution. From a reset that value is 0.0.
+  if (intervalsFilled < SPOKES_PER_WHEEL) return true;
+
+  uint32_t revMs = 0;
+  for (int i = 0; i < SPOKES_PER_WHEEL; i++) revMs += intervalRing[i];
+
+  revBuffer[revIndex] = revMs;
+  revIndex = (revIndex + 1) % REV_MEDIAN_N;
+  if (revsFilled < REV_MEDIAN_N) revsFilled++;
+
+  uint32_t medMs = medianRevMs();
+  if (medMs == 0) return true;    // unreachable with revsFilled>0; no divide by zero
+
+  // Speed is circumference per revolution time. SPOKES_PER_WHEEL no longer
+  // appears here because it is already accounted for in the summation above.
+  lastSpeedMmPerSec = WHEEL_CIRCUMFERENCE_MM / ((float)medMs / 1000.0f);
+  lastPkph          = lastSpeedMmPerSec / PKPH_MM_PER_SEC;   // navigation's conversion
   return true;
 }
 
@@ -601,26 +663,32 @@ void loop() {
     // Buffer arithmetic, worst case, every field at its widest output:
     // seq/t_ms/interval_ms/width_ms 4x u32 = 4x(len+13); speed/pkph at
     // "-99999.99"; raw "-4095"; span "4095"; quality "UNAVAILABLE";
-    // rssi "-100"; ev_drops/rej 2x u32  ->  235 chars + NUL = 236 <= 256,
-    // and 236 <= PubMsg::payload[256]. Checked, not assumed: a payload that
+    // rssi "-100"; ev_drops u32; rej literal 0  ->  under 235 chars + NUL,
+    // and <= PubMsg::payload[256]. Checked, not assumed: a payload that
     // silently truncates is invalid JSON that a replay cannot parse.
+    //
+    // "rej" is retained at a hard 0 so the Pi-side log schema is unchanged.
+    // Nothing is rejected any more; the field stays so existing parsers and
+    // every archived record keep the same shape.
     const char* q = (e.quality == 2) ? "OK" : (e.quality == 1 ? "MARGINAL" : "UNAVAILABLE");
     char b[256];
     snprintf(b, sizeof(b),
       "{\"seq\":%lu,\"t_ms\":%lu,\"interval_ms\":%lu,\"width_ms\":%lu,"
       "\"speed_mmps\":%.2f,\"pkph\":%.2f,\"raw\":%d,\"span\":%d,"
       "\"quality\":\"%s\",\"accepted\":%d,\"rssi\":%d,"
-      "\"ev_drops\":%lu,\"rej\":%lu}",
+      "\"ev_drops\":%lu,\"rej\":0}",
       (unsigned long)e.seq, (unsigned long)e.detectedAtMs,
       (unsigned long)e.intervalMs, (unsigned long)e.widthMs,
       lastSpeedMmPerSec, lastPkph, e.rawAtEdge, e.span,
       q, accepted ? 1 : 0, CURRENT_RSSI,
-      (unsigned long)eventDrops, (unsigned long)rejectedIntervals);
+      (unsigned long)eventDrops);
     pub(T_PULSE, b, false);
 
+    // "accepted":0 now means only one thing: no previous rising edge to
+    // measure against, i.e. the first pulse after boot or after a reset.
     Serial.printf("[PULSE] #%lu int=%lums w=%lums %.1f mm/s raw=%d span=%d %s%s\n",
       (unsigned long)e.seq, (unsigned long)e.intervalMs, (unsigned long)e.widthMs,
-      lastSpeedMmPerSec, e.rawAtEdge, e.span, q, accepted ? "" : " [interval rejected]");
+      lastSpeedMmPerSec, e.rawAtEdge, e.span, q, accepted ? "" : " [no prior edge]");
   }
 
   // Stop detection. v1 zeroed the reported speed but left the buffer and its
@@ -661,11 +729,11 @@ void loop() {
     char b[256];
     snprintf(b, sizeof(b),
       "{\"pulses\":%lu,\"raw\":%d,\"span\":%d,\"quality\":\"%s\","
-      "\"ev_drops\":%lu,\"pub_drops\":%lu,\"rej\":%lu,"
+      "\"ev_drops\":%lu,\"pub_drops\":%lu,\"rej\":0,"
       "\"task_max_gap_ms\":%lu,\"mqtt_attempts\":%lu,\"rssi\":%d,\"heap\":%lu}",
       (unsigned long)pulseCount, (int)lastRaw, (int)lastSpan,
       qualityFromSpan(lastSpan) == 2 ? "OK" : (qualityFromSpan(lastSpan) == 1 ? "MARGINAL" : "UNAVAILABLE"),
-      (unsigned long)eventDrops, (unsigned long)pubDrops, (unsigned long)rejectedIntervals,
+      (unsigned long)eventDrops, (unsigned long)pubDrops,
       (unsigned long)sensorTaskMaxGapMs, MQTT_ATTEMPTS,
       CURRENT_RSSI, (unsigned long)ESP.getFreeHeap());
     pub(T_STATUS, b, false);
