@@ -17,13 +17,19 @@
  * What a fault looks like: peaks near the deadband (~<50), polarity flipping
  * randomly, baseline wandering, or NO print at all when a magnet passes.
  *
- * PIN: HALL_PIN defaults to 34 (ADC1). Change to match the locomotive's wiring
- * — SOLONAV/QUORUM use the pin in LL_LocoConfig; set the same value here.
+ * PIN: HALL_PIN is 33 (ADC1_CH5) on BOTH locomotives — the same wiring on each.
+ * It is NOT in LL_LocoConfig: it is `#define HALL_PIN 33` in QUORUM.ino, and
+ * docs/CLAUDE.md records the Hall sensor on GPIO 33.
+ *
+ * (This sketch originally shipped with 34, which is the IR wheel sensor's pin,
+ * not the Hall's. Reading 34 here would sample an unconnected input and print
+ * "baseline out of range — sensor may be disconnected" — the exact false
+ * negative this tool exists to rule out. Corrected on operator confirmation.)
  * ============================================================================
  */
 #include <Arduino.h>
 
-const int  HALL_PIN        = 34;    // MATCH the locomotive's Hall pin
+const int  HALL_PIN        = 33;    // Hall sensor, both locos. 34 is the IR sensor.
 const int  DEADBAND_COUNTS = 25;    // ignore noise below this delta (SOLONAV uses 25)
 const int  ENTRY_MARGIN    = 13;    // hysteresis, matches SOLONAV entry margin
 const int  BASELINE_SAMPLES = 128;  // median-of-128 baseline, like the nav firmware

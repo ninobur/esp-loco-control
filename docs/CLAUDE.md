@@ -93,8 +93,16 @@ current state.
 - Motor PWM GPIO 4, direction GPIO 2
 - INA219 on I²C, SDA 21 / SCL 22 — voltage, current, power
 - 4S LiPo pack, under 1 A in normal duty cycle
-- `HALL_POLARITY_INVERTED` differs between locomotives — sensors are
-  mounted in opposite orientations
+- **Hall sensors are mounted identically on both locomotives** (operator,
+  2026-08-04). `HALL_POLARITY_INVERTED` is `true` for Otto and `false` for
+  Toby, but that inconsistency is harmless because **no firmware reads the
+  symbol** — QUORUM decides polarity purely from which threshold was crossed
+  (`evOpenPole = (raw >= northEnter) ? 1 : 0`). Dead config. An earlier
+  revision of this file claimed the sensors were mounted in opposite
+  orientations; that was wrong and had begun to generate speculation about a
+  latent bug that does not exist.
+- Pin 33 is the Hall sensor; **pin 34 is the IR wheel sensor**. Both are ADC1.
+  Confusing the two is easy and produces a convincing "dead sensor" reading.
 
 ---
 
