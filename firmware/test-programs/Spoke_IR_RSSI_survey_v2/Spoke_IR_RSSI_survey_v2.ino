@@ -81,6 +81,13 @@
  *     adapts to rising ambient and fading contrast at once — a dirty lens and
  *     a sunny afternoon both present as a shrinking gap. Calibrating once and
  *     never adapting is the defect that cost weeks on the Hall sensor.
+ *   * DECAY GATED ON MOTION, AND THE ENVELOPE PERSISTED. A stationary wheel
+ *     presents a constant, so decaying against it collapses the span to zero
+ *     — measured at 7.9 counts/second, blind after four minutes at a station.
+ *     Decay now runs only while the wheel is turning, and the envelope is
+ *     restored from NVS at boot (widened, never narrowed) so the car does not
+ *     have to move before it can see. Expansion stays unconditional, so a
+ *     lighting change is still tracked while stopped.
  *   * A FLOOR UNDER THE THRESHOLD. A self-adjusting threshold squeezes itself
  *     into the noise if contrast collapses. Below MIN_USABLE_SPAN the sensor
  *     declares itself UNAVAILABLE rather than emitting garbage at high rate.
@@ -131,6 +138,7 @@
 #define IR_TELEMETRY_WIFI
 
 #include <Arduino.h>
+#include <Preferences.h>   // NVS-backed envelope persistence — no radio needed
 #ifdef IR_TELEMETRY_WIFI
   #include <WiFi.h>
   #include <PubSubClient.h>
@@ -203,6 +211,37 @@ const int      MIN_USABLE_SPAN = 120;   // below this, declare UNAVAILABLE
 const int      MARGINAL_SPAN   = 300;   // below this, flag the read as MARGINAL
 const uint32_t DECAY_INTERVAL_MS = 250; // how often the envelope relaxes
 const int      DECAY_STEP        = 2;   // counts per relaxation step
+
+// DECAY IS GATED ON MOTION. Decaying a wall clock against a stationary wheel
+// collapses the envelope to nothing: a stopped wheel presents a CONSTANT to
+// the ADC, so there is no information to adapt to and the relaxation just
+// walks runMin and runMax together until they meet. Measured twice in the
+// field at 7.9 counts/second:
+//     11:45:18 span 1911   11:47:18 span 951   11:48:38 span 314
+//     11:49:18 span 11  -> quality UNAVAILABLE
+// Four minutes at a station and the sensor is blind. It recovers on motion,
+// but the first pulses after the dwell arrive through a squeezed window —
+// which is what manufactured the 41 ms interval that wedged the old speed
+// filter. Station dwell is normal operation, so the two faults compounded.
+//
+// This is a design error, not a badly chosen time constant: NO value of
+// DECAY_STEP avoids it, because the input carries no information to track.
+//
+// 3000 ms sits deliberately just UNDER SPEED_TIMEOUT_MS (4000). The envelope
+// therefore stops decaying BEFORE the car is declared stopped, so what gets
+// frozen — and what gets written to NVS on the stop — is by construction the
+// envelope that was working while the car was still rolling, never one that
+// has already started collapsing in the ambiguous window before the timeout.
+const uint32_t ENVELOPE_DECAY_MOTION_WINDOW_MS = 3000;
+
+// Restored envelopes are WIDENED, never narrowed. A too-wide envelope costs a
+// missed pulse or two; a too-narrow one manufactures noise-driven edges, which
+// is the failure that started all of this.
+const int      ENVELOPE_RESTORE_WIDEN_PCT = 10;
+
+const char* NVS_NAMESPACE = "irsense";
+const char* NVS_KEY_MIN   = "envmin";
+const char* NVS_KEY_MAX   = "envmax";
 
 const uint32_t RSSI_PUBLISH_MS = 500;   // survey cadence, 2 Hz
 const uint32_t STATUS_PUBLISH_MS = 5000;// health/diagnostic beat
@@ -297,10 +336,91 @@ static const char* T_STATUS = "telem/status";
 static int  runMin = 4095, runMax = 0;
 static bool envelopePrimed = false;
 
+// Mirrors of the envelope for loop() to read when it writes NVS on a stop.
+// runMin/runMax themselves are sensorTask's private working state; these are
+// the same single-writer/volatile convention already used by lastRaw/lastSpan,
+// which keeps the NVS write off sensorTask entirely. Plain assignment, so no
+// compound-operation-on-volatile deprecation.
+static volatile int lastRunMin = 4095, lastRunMax = 0;
+
+static Preferences envPrefs;
+
 static uint8_t qualityFromSpan(int span) {
   if (span < MIN_USABLE_SPAN) return 0;   // UNAVAILABLE
   if (span < MARGINAL_SPAN)   return 1;   // MARGINAL
   return 2;                               // OK
+}
+
+// ---------------------------------------------------------------------------
+// ENVELOPE PERSISTENCE
+//
+// Requiring the car to move before its baseline is usable is not practical in
+// service: it boots blind, and the pulses it needs in order to become sighted
+// are the very pulses it cannot see. So the envelope survives a power cycle.
+//
+// The write happens on the moving->stopped transition ONLY. NVS has finite
+// write endurance and the 1 kHz sampler must never touch it, so nothing on
+// the capture path and nothing per-pulse ever reaches flash — a stop is a
+// once-per-station event, and the ESP-IDF NVS layer additionally skips the
+// write entirely when the stored value is unchanged.
+//
+// Restore WIDENS the stored envelope rather than narrowing it. A too-wide
+// envelope costs a missed pulse or two while expansion re-converges; a
+// too-narrow one manufactures edges out of noise, which is the failure that
+// produced the 41 ms interval that wedged the old speed filter. When in
+// doubt, be less sensitive, not more.
+// ---------------------------------------------------------------------------
+static void restoreEnvelope() {
+  if (!envPrefs.begin(NVS_NAMESPACE, true)) {          // read-only
+    Serial.println("[ENV] no stored envelope (first boot) — cold prime from first sample");
+    return;
+  }
+  int storedMin = envPrefs.getInt(NVS_KEY_MIN, -1);
+  int storedMax = envPrefs.getInt(NVS_KEY_MAX, -1);
+  envPrefs.end();
+
+  // Every way a stored pair can be absent, truncated or nonsense. ANY failure
+  // falls through to the existing cold-prime path in sensorTask, unchanged —
+  // a corrupt NVS entry must never be able to produce a working-looking but
+  // wrong envelope.
+  if (storedMin < 0 || storedMax < 0 || storedMin > 4095 || storedMax > 4095 ||
+      storedMax <= storedMin) {
+    Serial.printf("[ENV] stored envelope absent or invalid (min=%d max=%d) — cold prime\n",
+                  storedMin, storedMax);
+    return;
+  }
+  int storedSpan = storedMax - storedMin;
+  if (storedSpan < MIN_USABLE_SPAN) {
+    Serial.printf("[ENV] stored span %d below MIN_USABLE_SPAN %d — cold prime\n",
+                  storedSpan, MIN_USABLE_SPAN);
+    return;
+  }
+
+  int margin = (storedSpan * ENVELOPE_RESTORE_WIDEN_PCT) / 100;
+  runMin = storedMin - margin; if (runMin < 0)    runMin = 0;
+  runMax = storedMax + margin; if (runMax > 4095) runMax = 4095;
+  lastRunMin = runMin; lastRunMax = runMax;
+  envelopePrimed = true;    // suppress the single-sample cold prime
+  Serial.printf("[ENV] restored min=%d max=%d span=%d (stored %d/%d, widened %d%%)\n",
+                runMin, runMax, runMax - runMin, storedMin, storedMax,
+                ENVELOPE_RESTORE_WIDEN_PCT);
+}
+
+static void saveEnvelope() {
+  int mn = lastRunMin, mx = lastRunMax;
+  if (mx - mn < MIN_USABLE_SPAN) {
+    Serial.printf("[ENV] not saved: span %d below MIN_USABLE_SPAN %d\n",
+                  mx - mn, MIN_USABLE_SPAN);
+    return;   // never persist an envelope that is already unusable
+  }
+  if (!envPrefs.begin(NVS_NAMESPACE, false)) {
+    Serial.println("[ENV] NVS open for write failed — envelope not persisted");
+    return;
+  }
+  envPrefs.putInt(NVS_KEY_MIN, mn);
+  envPrefs.putInt(NVS_KEY_MAX, mx);
+  envPrefs.end();
+  Serial.printf("[ENV] saved on stop: min=%d max=%d span=%d\n", mn, mx, mx - mn);
 }
 
 static void sensorTask(void*) {
@@ -309,6 +429,7 @@ static void sensorTask(void*) {
   uint32_t pulseStartMicros = 0;
   uint32_t pulseStartMs    = 0;
   uint32_t prevRiseMs      = 0;   // previous pulse's rising edge, for interval
+  uint32_t lastPulseMs     = 0;   // last rising edge — 0 = none since boot
   uint32_t lastDecayMs     = millis();
   uint32_t prevTick        = millis();
 
@@ -322,19 +443,36 @@ static void sensorTask(void*) {
     lastRaw = raw;
 
     // --- adaptive envelope -------------------------------------------------
+    // EXPANSION IS UNCONDITIONAL and stays above the quality gate, so a
+    // lighting change is still tracked while stationary and a collapsed
+    // envelope can always recover. Only the DECAY is gated.
     if (!envelopePrimed) { runMin = runMax = raw; envelopePrimed = true; }
     if (raw < runMin) runMin = raw;
     if (raw > runMax) runMax = raw;
-    if (now - lastDecayMs >= DECAY_INTERVAL_MS) {
+
+    // Decay only while the wheel is known to be turning — see
+    // ENVELOPE_DECAY_MOTION_WINDOW_MS. lastPulseMs == 0 means no pulse has
+    // been seen since boot, which must NOT read as "just moved" during the
+    // first few seconds of uptime.
+    bool recentMotion = (lastPulseMs != 0) &&
+                        (now - lastPulseMs < ENVELOPE_DECAY_MOTION_WINDOW_MS);
+    if (recentMotion && now - lastDecayMs >= DECAY_INTERVAL_MS) {
       lastDecayMs = now;
       // Relax the envelope toward the middle so it can follow a rising ambient
       // or a fading target instead of latching onto a one-off extreme.
       int mid = (runMin + runMax) / 2;
       if (runMin < mid - DECAY_STEP) runMin += DECAY_STEP;
       if (runMax > mid + DECAY_STEP) runMax -= DECAY_STEP;
+    } else if (!recentMotion) {
+      // Hold the decay phase, so standing for ten minutes does not earn a
+      // burst of catch-up relaxation the moment the car moves again.
+      lastDecayMs = now;
     }
+
     int span = runMax - runMin;
-    lastSpan = span;
+    lastSpan   = span;
+    lastRunMin = runMin;
+    lastRunMax = runMax;
     uint8_t quality = qualityFromSpan(span);
 
     // A collapsed envelope means peeling tape, a dirty lens or no target.
@@ -355,6 +493,7 @@ static void sensorTask(void*) {
         lastEdgeMicros   = nowMicros;
         pulseStartMicros = nowMicros;
         pulseStartMs     = now;
+        lastPulseMs      = now;   // the wheel is turning: decay may run
         pulseCount++;
       }
     } else if (sensorState && raw < thresholdLow) {
@@ -578,6 +717,10 @@ void setup() {
   analogReadResolution(12);
   pinMode(SENSOR_PIN, INPUT);
 
+  // BEFORE sensorTask exists, so there is no writer to race with: the task is
+  // the sole owner of runMin/runMax from the moment it is created below.
+  restoreEnvelope();
+
   eventQueue = xQueueCreate(256, sizeof(PulseEvent));   // ~6 KB, >30 s of pulses
   if (!eventQueue) {
     Serial.println("[FATAL] event queue alloc failed");
@@ -697,6 +840,13 @@ void loop() {
   if (lastPulseSeenMs && millis() - lastPulseSeenMs > SPEED_TIMEOUT_MS &&
       (lastSpeedMmPerSec != 0.0f || intervalsFilled != 0)) {
     resetIntervalBuffer();
+
+    // THE moving->stopped transition, and the only place NVS is written. The
+    // guard above goes false the moment resetIntervalBuffer() runs and cannot
+    // go true again until a new pulse arrives, so this fires exactly once per
+    // stop — never in a loop, never on the capture path.
+    saveEnvelope();
+
     char b[128];
     snprintf(b, sizeof(b),
       "{\"seq\":%lu,\"event\":\"STOPPED\",\"speed_mmps\":0.00,\"pkph\":0.00,\"rssi\":%d}",
