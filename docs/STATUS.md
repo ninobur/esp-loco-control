@@ -37,7 +37,7 @@ now lands in `docs/` as a matter of standing practice. The active work item is
 | `firmware/QUORUM/LL_LocoConfig_995001{1,2}.h` | Otto's and Toby's profiles. |
 | `firmware/test-programs/SENSORTEST/` | Marker measurement rig. Standalone, own WiFi/MQTT. |
 | `firmware/test-programs/Spoke_IR_RSSI_survey/` | IR survey car **as flown**. Retained as the record; do not flash. |
-| `firmware/test-programs/IR_TEST/` | IR survey car, corrected. Not yet flown. |
+| `firmware/test-programs/IR_TEST/` | IR survey car. Speed filter and envelope both fixed 2026-08-05 (see `IR_TEST_FILTER_AND_ENVELOPE.md`); held for Sam's review, not flashed, not yet flown. |
 | `server/ngr_app_v1_9_5.py` | **RUNNING ON THE PI** — reverted to 2026-08-04 20:21 after v1.10.4 was found unreliable (throttle unusable). Verified byte-identical to the live file. |
 | `server/ngr_app_v1_10_6.py` | Newest console in the repo. NOT deployed, not field-tested. Adds a fault banner and one-in-flight throttle publishing; the v1.10.4 throttle failure is still unreproduced. |
 | `server/ngr_runlog.py` | Per-run MQTT telemetry logger. Never publishes, by construction. **Not yet deployed to the Pi — see §9.** |
