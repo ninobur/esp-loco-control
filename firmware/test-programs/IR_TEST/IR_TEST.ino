@@ -111,12 +111,10 @@
  * read dark, read lit, subtract), and that remains gated on whether the
  * emitter is hard-tied to VCC on the breakout. See IR_SENSOR_NOTES.md.
  *
- * SPOKE COUNT: SPOKES_PER_WHEEL = 10 — the factory LGB moulded spoked wheel
- * itself is now the target: ten spokes, evenly spaced by manufacture, ten
- * pulses per revolution. (History: 10 hand flags, then 5, then 2 tape flags;
- * the tape era ended 2026-08-05 when the operator switched to the bare wheel.
- * Speed is directly proportional to this constant, so it MUST match the
- * wheel.)
+ * SPOKE COUNT: SPOKES_PER_WHEEL = 7 — the 27.8 mm finescale steel wheel is
+ * the production target. Confirm by hand-turning one full revolution and
+ * observing exactly seven pulses before trusting speed. Speed is directly
+ * proportional to this constant, so it MUST match the wheel.
  *
  * SURVEY CORRELATION: this car has no position sense of its own. RSSI is
  * mapped to position afterward by matching timestamps against the TOW
@@ -232,8 +230,8 @@ struct PubMsg { const char* topic; char payload[512]; bool retain; };
 // HARDWARE / TUNING
 // ===========================================================================
 const int   SENSOR_PIN            = 34;      // ADC1_CH6 — must be ADC1 with WiFi up
-const int   SPOKES_PER_WHEEL      = 10;       //  10 lgb spokes
-const float WHEEL_CIRCUMFERENCE_MM = 115.0f; // MEASURE on the production car
+const int   SPOKES_PER_WHEEL       = 7;       // confirm 7 pulses by hand-turn
+const float WHEEL_CIRCUMFERENCE_MM = 87.34f;  // nominal pi * 27.8 mm; calibrate rolling value
 
 const uint32_t SENSOR_TICK_MS  = 1;          // 1 kHz sampling
 
@@ -252,15 +250,15 @@ const uint32_t DEBOUNCE_US     = 2500;
 // reason (1000 ms set from ten-flag data was wrong for two flags; 4000 ms set
 // from two-flag arithmetic was wrong for ten spokes).
 //
-// Ten-spoke derivation: 115 mm circumference / 10 spokes = 11.5 mm per
-// interval. At the 20 mm/s creep bound the genuine interval is 575 ms. The
+// Seven-spoke derivation: 87.34 mm circumference / 7 spokes = 12.48 mm per
+// interval. At the 20 mm/s creep bound the genuine interval is 624 ms. The
 // timeout must also survive consecutive MISSED spokes at creep — the measured
 // miss rate reaches 30% at low speed, so runs of misses are routine, and a
 // timeout that fires on three missed spokes would cycle the filter through
 // reset/reacquire in normal running. Tolerate three consecutive misses:
-// 4 x 575 = 2300 ms. Round up: 2500.
+// 4 x 624 = 2496 ms. Round up with margin: 2600.
 //
-// What this buys over the stale 4000: edge silence is declared in 2.5 s
+// What this buys over the stale 4000: edge silence is declared in 2.6 s
 // instead of 4, which shrinks the window where a blind-but-moving sensor is
 // still publishing stale speed, and shortens every recovery in Layer 2.
 //
@@ -268,7 +266,7 @@ const uint32_t DEBOUNCE_US     = 2500;
 // means the sensor has stopped SEEING. On the survey car there is no
 // independent motion witness, so the state machine reports UNAVAILABLE, never
 // STOPPED — see SpeedState below.
-const uint32_t SPEED_TIMEOUT_MS = 2500;
+const uint32_t SPEED_TIMEOUT_MS = 2600;
 
 // LATCH TIMEOUT — the bound on how long a single pulse may stay HIGH.
 //

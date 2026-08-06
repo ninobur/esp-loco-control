@@ -1,8 +1,29 @@
 # IR wheel sensor — findings and design
 
-Status as of 2026-08-05. The sensor exists as a bench and tow-test rig; it is
+Status as of 2026-08-06. The sensor exists as a bench and tow-test rig; it is
 not integrated into locomotive firmware. This records what has been
 established so it does not have to be rediscovered.
+
+## Current status — 2026-08-06
+
+- Production target: **seven-spoke, 27.8 mm diameter finescale steel wheel**.
+- Nominal circumference: **87.34 mm** (`pi * 27.8`); effective rolling
+  circumference still requires measured-distance calibration under load.
+- Both `IR_DIAG` and `IR_TEST` now use seven spokes and 87.34 mm. `IR_TEST`'s
+  creep-derived silence/latch timeout is 2600 ms.
+- Before trusting any speed figure, hand-turn one complete revolution and
+  confirm exactly **seven optical pulses**.
+- The steel wheel produced uniform intervals across all seven phase positions
+  in the steady dark run. Outdoor/direct-sun viability remains unproven.
+- `IR_DIAG` reports peak/trough headrooms (`rh`/`fh`), restarts phase analysis
+  after detected misses and event-ordered discard epochs, and excludes absent
+  preceding-gap troughs from `fh` aggregates (`---` in telemetry).
+- The current sketches build successfully but have not been flashed. IR has
+  no propulsion, navigation, stopping, or distance authority.
+
+Older sections below remain as the chronological test record. Statements
+about the factory 10-spoke LGB wheel, 109/115 mm circumference, or a required
+solid face describe earlier configurations and are not current calibration.
 
 ---
 
@@ -98,6 +119,13 @@ accepting a story about weather.
 ---
 
 ## Target: solid face, not spokes
+
+> **Superseded for the current wheel, 2026-08-06.** This conclusion described
+> the earlier LGB-style wheel, whose optical geometry produced a repeating
+> missed-spoke pattern. The seven-spoke finescale steel wheel subsequently
+> produced uniform intervals at all seven phase positions in the dark run.
+> Daylight validation is still required before the reflective design is
+> accepted for production.
 
 Settled by field test. A solid wheel face with a defined tape band gives one
 optical transition per boundary. Bare spokes produced 16 pulses where 10 were
@@ -608,4 +636,3 @@ duration.
   the wheel and shaded by the car body, would sidestep both the sun problem and
   the durability problem — worth considering before committing the mount
   geometry to the wheel face.
-

@@ -64,8 +64,9 @@ profile is the finding.
 ## Changes 5, 6
 
 `SPOKES_PER_WHEEL = 7` with a confirm-by-hand-turn comment;
-`WHEEL_CIRCUMFERENCE_MM` stays placeholder with a the-109-mm-was-the-LGB-
-wheel comment. `LATCH_TIMEOUT_MS` stays 2500 (the 20×median proposal and
+`WHEEL_CIRCUMFERENCE_MM` is the nominal 87.34 mm derived from the 27.8 mm
+wheel diameter; speed remains provisional until effective rolling
+circumference is measured under load. `LATCH_TIMEOUT_MS` stays 2500 (the 20×median proposal and
 its withdrawal are recorded in the source comment); `latchTimeouts` is
 documented uninterpretable as a fault count for this run; the LATCH line
 carries `w`, `fm`, `rm`, `base`, `span` at the abort — a genuine stop
@@ -169,7 +170,7 @@ technical findings were accepted and fixed, one commit each:
 | commit | finding |
 |---|---|
 | `39842d7` | 1 [P1] IR_TEST: NVS now writes the **pulse-proven** envelope snapshot (`provenMin/provenMax`, taken at each completed, filter-fed pulse), never the live pair — a flat trace also describes stuck/saturated/disconnected/sun-blinded, and unconditional expansion means the live pair may already hold the extreme of whatever ended the run. The flat test decides *whether*, the proven pair decides *what*. No proven pulse this boot → no write, logged. |
-| `e788377` | 2 [P1] `rm` is survivor-biased (an event exists only because raw crossed `thrHigh` — every emitted pulse has positive `rm`, and a spoke that never crosses produces nothing). Added **headrooms**: `rh` = pulse peak − `thrHigh`, `fh` = `thrLow` − preceding-gap trough, both against at-rise thresholds. STATS med/p10 and PHASE switch to `rh/fh`; `rm/fm` stay on PULSE as edge-slew numbers. The gap trough resets on contrast loss; `fh` reports 0 with no prior gap. |
+| `e788377` | 2 [P1] `rm` is survivor-biased (an event exists only because raw crossed `thrHigh` — every emitted pulse has positive `rm`, and a spoke that never crosses produces nothing). Added **headrooms**: `rh` = pulse peak − `thrHigh`, `fh` = `thrLow` − preceding-gap trough, both against at-rise thresholds. STATS med/p10 and PHASE switch to `rh/fh`; `rm/fm` stay on PULSE as edge-slew numbers. The gap trough resets on contrast loss; absence of a prior trough is validity-qualified and excluded from STATS and PHASE `fh` calculations. |
 | `4ec9ad6` | 3 [P1] The existing miss test (interval > 1.8× running median) now restarts the phase window **before** the event is accumulated — a missed spoke shifted every later phase and would have smeared the daylight defect flat. Detection and reaction share one branch. |
 | `9414783` | 4 [P2] A **discard epoch** stamped into each `PulseEvent` at capture replaces the counter-sampling watcher for phase resets: the reset keys on the epoch carried *in* the event, so it is ordered with the stream by construction — queued pre-discard events finish their epoch, the first post-discard event opens the new one. The watcher now only prints the LATCH line. |
 
@@ -178,15 +179,17 @@ technical findings were accepted and fixed, one commit each:
 ### Line formats after this round (supersedes §3 above)
 
 ```
-PULSE #%5lu  int=%5lums  w=%4lums  peak=%+5d  raw=%4d rm=%+5d fm=%+5d rh=%+5d fh=%+5d base=%4d span=%4d  <OK|MARGINAL|UNAVAIL>[  *SATURATED*]
+PULSE #%5lu  int=%5lums  w=%4lums  peak=%+5d  raw=%4d rm=%+5d fm=%+5d rh=%+5d fh=<signed|---> base=%4d span=%4d  <OK|MARGINAL|UNAVAIL>[  *SATURATED*]
 IDLE          raw=%4d  env=%4d/%4d  seen=%4d/%4d  base=%4d span=%4d  thr=%+5d/%+5d  pulses=%lu[   <-- NO USABLE CONTRAST]
-STATS %2lus  n=%lu rate=%.1f/s | int med=%lu min=%lu max=%lu jit=%lu | w med=%lu | peak med=%d | rh med=%+d p10=%+d | fh med=%+d p10=%+d | sat=%lu miss=%lu latch=%lu closs=%lu drops=%lu | ~%.0fmm/s ~%.1fpkph
-PHASE %2d: rh %+4d fh %+4d  n=%lu
+STATS %2lus  n=%lu rate=%.1f/s | int med=%lu min=%lu max=%lu jit=%lu | w med=%lu | peak med=%d | rh med=%+d p10=%+d | fh med=<signed|---> p10=<signed|---> | sat=%lu miss=%lu latch=%lu closs=%lu drops=%lu | ~%.0fmm/s ~%.1fpkph
+PHASE %2d: rh %+4d fh <signed|--->  n=%lu
 PHASE  note: index restarted after a discard this window — per-phase data dropped
 LATCH #%3lu  w=%lums fm=%+5d rm=%+5d base=%4d span=%4d — pulse DISCARDED, no event
 ```
 
-Deltas vs §3: PULSE appends `rh=`/`fh=` after `fm=`; STATS med/p10 fields
+Deltas vs §3: PULSE appends `rh=`/`fh=` after `fm=` (`fh= ---` means no
+preceding gap trough and is excluded from all `fh` aggregates); an aggregate
+also prints `---` if it has no valid `fh` inputs. STATS med/p10 fields
 are now `rh`/`fh` (labels changed from `rm`/`fm`); PHASE labels likewise.
 The offline per-phase replay in §7 used peak-clearance and trough-bound
 estimates that are, in retrospect, closer to `rh`/`fh` than to `rm`/`fm` —

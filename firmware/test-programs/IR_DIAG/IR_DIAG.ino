@@ -155,6 +155,8 @@ struct PulseEvent {
                            // preceding this rise: how far the dark state
                            // dipped below the falling bar. The falling-edge
                            // counterpart, immune to the same survivor bias.
+  uint8_t  fallHeadroomValid; // 1 only when a preceding gap trough exists;
+                              // invalid samples never enter fh statistics
   uint8_t  quality;        // 0=UNAVAILABLE 1=MARGINAL 2=OK
   uint8_t  saturated;      // raw hit the ADC ceiling during this pulse
   uint32_t epoch;          // discard generation at capture. Increments on
@@ -179,11 +181,10 @@ const int   SENSOR_PIN = 34;             // IR sensor. 33 is the Hall sensor.
 // by exactly 7 before trusting any speed figure this sketch prints.
 const int   SPOKES_PER_WHEEL = 7;
 
-// Placeholder. The ~109 mm figure derived on 2026-08-05 was the LGB wheel
-// and does NOT carry over to the finescale wheel; measure this wheel before
-// trusting mm/s or pkph. fm, rm, int, w and the PHASE breakdown are all
-// calibration-independent and correct regardless — only speed is wrong.
-const float WHEEL_CIRCUMFERENCE_MM = 115.0f;
+// Nominal geometry: pi * 27.8 mm = 87.34 mm. Replace this with the measured
+// effective rolling circumference before using speed for control or distance
+// authority; wheel profile and load can shift it slightly.
+const float WHEEL_CIRCUMFERENCE_MM = 87.34f;
 
 const uint32_t SENSOR_TICK_MS = 1;       // 1 kHz
 const uint32_t DEBOUNCE_US    = 15000;   // 15 ms — edge-doubling guard
@@ -486,8 +487,9 @@ static void sensorTask(void*) {
         e.fallMargin   = thrLow - raw;     // the number that predicts a latch
         e.riseMargin   = riseMarginAtRise;
         e.riseHeadroom = pulseRawMax - thrHighAtRise;
-        e.fallHeadroom = (troughOfGap == ADC_MAX) ? 0
-                         : thrLowAtRise - troughOfGap;   // 0 = no prior gap
+        e.fallHeadroomValid = (troughOfGap != ADC_MAX) ? 1 : 0;
+        e.fallHeadroom = e.fallHeadroomValid
+                         ? thrLowAtRise - troughOfGap : 0;
         e.quality      = quality;
         e.saturated    = sawSaturation ? 1 : 0;
         e.epoch        = discardEpoch;
@@ -505,6 +507,7 @@ static void sensorTask(void*) {
 const int WIN = 64;
 static uint32_t winInterval[WIN], winWidth[WIN];
 static int      winPeak[WIN], winFallH[WIN], winRiseH[WIN];
+static uint8_t  winFallHValid[WIN];
 static int      winLen = 0, winIdx = 0;
 static uint32_t statPulses = 0, statSat = 0, statMiss = 0;
 
@@ -521,20 +524,24 @@ static uint32_t statPulses = 0, statSat = 0, statMiss = 0;
 // spoke shows as one or two phases with markedly lower margins — directly,
 // instead of being inferred from interval ratios hours later.
 //
-// Per-phase rm/fm accumulate over each STATS period (last PHASE_BUF of each
+// Per-phase rh/fh accumulate over each STATS period (last PHASE_BUF of each
 // kept for the median), printed as one PHASE line per phase, then cleared.
 // ---------------------------------------------------------------------------
 const int PHASE_BUF = 32;
 static int      phaseRh[SPOKES_PER_WHEEL][PHASE_BUF];
 static int      phaseFh[SPOKES_PER_WHEEL][PHASE_BUF];
 static uint32_t phaseN[SPOKES_PER_WHEEL];
+static uint32_t phaseFhN[SPOKES_PER_WHEEL];
 static int      phaseIdx = 0;
 static bool     phaseRestarted = false;   // a discard occurred this window
 
 static void phaseReset(bool clearStats) {
   phaseIdx = 0;
   if (clearStats) {
-    for (int p = 0; p < SPOKES_PER_WHEEL; p++) phaseN[p] = 0;
+    for (int p = 0; p < SPOKES_PER_WHEEL; p++) {
+      phaseN[p] = 0;
+      phaseFhN[p] = 0;
+    }
   }
 }
 
@@ -547,6 +554,23 @@ static int pctIntSigned(int* src, int n, int pct) {
   for (int i = 1; i < n; i++) { int k = t[i]; int j = i-1;
     while (j >= 0 && t[j] > k) { t[j+1] = t[j]; j--; } t[j+1] = k; }
   return t[(n * pct) / 100];
+}
+
+// Signed percentile excluding samples whose measurement was unavailable.
+// In particular, no preceding gap is not the same thing as fh == 0.
+static int pctIntSignedValid(int* src, uint8_t* valid, int n, int pct) {
+  int t[WIN], m = 0;
+  for (int i = 0; i < n; i++) if (valid[i]) t[m++] = src[i];
+  if (m == 0) return 0;
+  for (int i = 1; i < m; i++) { int k = t[i]; int j = i-1;
+    while (j >= 0 && t[j] > k) { t[j+1] = t[j]; j--; } t[j+1] = k; }
+  return t[(m * pct) / 100];
+}
+
+static int countValid(uint8_t* valid, int n) {
+  int count = 0;
+  for (int i = 0; i < n; i++) if (valid[i]) count++;
+  return count;
 }
 
 static uint32_t medU32(uint32_t* src, int n) {
@@ -600,6 +624,7 @@ static void windowPush(const PulseEvent& e) {
   winWidth[winIdx] = e.widthMs;
   winPeak[winIdx]  = e.peakDelta;
   winFallH[winIdx] = e.fallHeadroom;
+  winFallHValid[winIdx] = e.fallHeadroomValid;
   winRiseH[winIdx] = e.riseHeadroom;
   winIdx = (winIdx + 1) % WIN;
   if (winLen < WIN) winLen++;
@@ -614,7 +639,10 @@ static void windowPush(const PulseEvent& e) {
   // which threshold is binding.
   int p = phaseIdx;
   phaseRh[p][phaseN[p] % PHASE_BUF] = e.riseHeadroom;
-  phaseFh[p][phaseN[p] % PHASE_BUF] = e.fallHeadroom;
+  if (e.fallHeadroomValid) {
+    phaseFh[p][phaseFhN[p] % PHASE_BUF] = e.fallHeadroom;
+    phaseFhN[p]++;
+  }
   phaseN[p]++;
   phaseIdx = (phaseIdx + 1) % SPOKES_PER_WHEEL;
 }
@@ -743,11 +771,14 @@ void loop() {
     windowPush(e);
     lastPulseMs = millis();
     const char* q = (e.quality == 2) ? "OK" : (e.quality == 1 ? "MARGINAL" : "UNAVAIL");
+    char fhText[8];
+    if (e.fallHeadroomValid) snprintf(fhText, sizeof(fhText), "%+d", e.fallHeadroom);
+    else                     strlcpy(fhText, "---", sizeof(fhText));
     snprintf(b, sizeof(b),
-      "PULSE #%5lu  int=%5lums  w=%4lums  peak=%+5d  raw=%4d rm=%+5d fm=%+5d rh=%+5d fh=%+5d base=%4d span=%4d  %s%s",
+      "PULSE #%5lu  int=%5lums  w=%4lums  peak=%+5d  raw=%4d rm=%+5d fm=%+5d rh=%+5d fh=%5s base=%4d span=%4d  %s%s",
       (unsigned long)e.seq, (unsigned long)e.intervalMs, (unsigned long)e.widthMs,
       e.peakDelta, e.rawAtEdge, e.riseMargin, e.fallMargin,
-      e.riseHeadroom, e.fallHeadroom, e.baseline, e.span, q,
+      e.riseHeadroom, fhText, e.baseline, e.span, q,
       e.saturated ? "  *SATURATED*" : "");
     emit(b);
   }
@@ -791,21 +822,31 @@ void loop() {
     // WHEEL_CIRCUMFERENCE_MM, which are calibration inputs, not measurements.
     float mmps = (medInt_ > 0)
                ? (1000.0f / medInt_) / SPOKES_PER_WHEEL * WHEEL_CIRCUMFERENCE_MM : 0.0f;
+    char fhMedText[8], fhP10Text[8];
+    if (countValid(winFallHValid, winLen) > 0) {
+      snprintf(fhMedText, sizeof(fhMedText), "%+d",
+               pctIntSignedValid(winFallH, winFallHValid, winLen, 50));
+      snprintf(fhP10Text, sizeof(fhP10Text), "%+d",
+               pctIntSignedValid(winFallH, winFallHValid, winLen, 10));
+    } else {
+      strlcpy(fhMedText, "---", sizeof(fhMedText));
+      strlcpy(fhP10Text, "---", sizeof(fhP10Text));
+    }
     snprintf(b, sizeof(b),
       "STATS %2lus  n=%lu rate=%.1f/s | int med=%lu min=%lu max=%lu jit=%lu | w med=%lu | "
-      "peak med=%d | rh med=%+d p10=%+d | fh med=%+d p10=%+d | sat=%lu miss=%lu latch=%lu closs=%lu drops=%lu | ~%.0fmm/s ~%.1fpkph",
+      "peak med=%d | rh med=%+d p10=%+d | fh med=%5s p10=%5s | sat=%lu miss=%lu latch=%lu closs=%lu drops=%lu | ~%.0fmm/s ~%.1fpkph",
       (unsigned long)(elapsed/1000), (unsigned long)statPulses, rate,
       (unsigned long)medInt_, (unsigned long)mn, (unsigned long)mx,
       (unsigned long)(mx > mn ? mx - mn : 0), (unsigned long)medW,
       medP, pctIntSigned(winRiseH, winLen, 50), pctIntSigned(winRiseH, winLen, 10),
-      pctIntSigned(winFallH, winLen, 50), pctIntSigned(winFallH, winLen, 10),
+      fhMedText, fhP10Text,
       (unsigned long)statSat, (unsigned long)statMiss,
       (unsigned long)latchTimeouts, (unsigned long)contrastLosses,
       (unsigned long)eventDrops,
       mmps, mmps / PKPH_MM_PER_SEC);
     emit(b);
 
-    // PHASE — one line per spoke phase: median rm/fm and the sample count.
+    // PHASE — one line per spoke phase: median rh/fh and the sample count.
     // Only meaningful while pulses were contiguous; if a discard restarted
     // the index this window, say so rather than print misaligned data.
     if (phaseRestarted) {
@@ -815,11 +856,18 @@ void loop() {
     for (int p = 0; p < SPOKES_PER_WHEEL; p++) {
       int n = (phaseN[p] > (uint32_t)PHASE_BUF) ? PHASE_BUF : (int)phaseN[p];
       if (n == 0) continue;
-      snprintf(b, sizeof(b), "PHASE %2d: rh %+4d fh %+4d  n=%lu",
-               p, pctIntSigned(phaseRh[p], n, 50), pctIntSigned(phaseFh[p], n, 50),
+      int fn = (phaseFhN[p] > (uint32_t)PHASE_BUF) ? PHASE_BUF : (int)phaseFhN[p];
+      char phaseFhText[8];
+      if (fn > 0) snprintf(phaseFhText, sizeof(phaseFhText), "%+d",
+                           pctIntSigned(phaseFh[p], fn, 50));
+      else        strlcpy(phaseFhText, "---", sizeof(phaseFhText));
+      snprintf(b, sizeof(b), "PHASE %2d: rh %+4d fh %4s  n=%lu",
+               p, pctIntSigned(phaseRh[p], n, 50),
+               phaseFhText,
                (unsigned long)phaseN[p]);
       emit(b);
       phaseN[p] = 0;   // windowed, like the STATS counters
+      phaseFhN[p] = 0;
     }
     statPulses = 0; statSat = 0; statMiss = 0;
   }

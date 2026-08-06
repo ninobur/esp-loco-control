@@ -1,11 +1,18 @@
 # IR_TEST — honest state classification and reliable reacquisition
 
-**Date:** 2026-08-05
+**Date:** 2026-08-06 (original implementation record: 2026-08-05)
 **Sketch:** `firmware/test-programs/IR_TEST/IR_TEST.ino`, node `IR_SPEED_SENSOR` (unchanged)
 **Commits:** `e0f7903` (1: interval median) · `58f0b0f` (2: sensor state) ·
 `eaae130` (3: latch timeout) · `e1ddd53` (4: decay/quality/NVS) ·
 `61abaf3` (raw ring)
-**Status:** built, simulated, **not flashed** — Sam reviews before hardware.
+**Status:** current seven-spoke build passes; **not flashed**.
+
+> **Current calibration, superseding historical values below:** seven-spoke,
+> 27.8 mm finescale steel wheel; nominal circumference 87.34 mm; 2600 ms
+> speed/latch timeout. Confirm exactly seven pulses by hand-turn and calibrate
+> effective rolling circumference before granting speed or distance authority.
+> References below to ten spokes, 115 mm, or 2500 ms document the 2026-08-05
+> implementation state rather than the current configuration.
 
 One commit per change, revertible independently. The ring buffer ("Also add")
 is a fifth commit on the same terms.
@@ -286,10 +293,14 @@ Envelope simulation (1 ms resolution, transcribed code):
    envelope hypothesis is right, the steady-fast-window miss rate falls well
    below 6.7%. The rawdump makes the alternative diagnosable either way.
 
-## Not done, deliberately
+## Calibration update, 2026-08-06
 
-- `WHEEL_CIRCUMFERENCE_MM` still 115.0 (task rule; ~109 mm derived from
-  Toby's mile markers, pending clean data — all speeds ~5% high until then).
+Wheel calibration now matches the production target: seven spokes and a
+nominal 87.34 mm circumference from the 27.8 mm diameter. Confirm exactly
+seven optical pulses by hand-turn and calibrate effective rolling
+circumference before granting speed or distance authority.
+
+## Not done, deliberately
 - Differential ambient sampling (hardware-gated: shared VCC rail).
 - Per-pulse **peak raw** (named in IR_SENSOR_NOTES as the direct
   threshold-margin test; small addition, but outside this pass's four
