@@ -31,17 +31,23 @@
  *
  * Three kinds of line:
  *
- *   PULSE #   42  int=  187ms  w=  41ms  peak= +312  raw=2054 fm= +480 base=2742 span= 980  OK
- *   IDLE          raw=2741  env=2260/3240  seen=2231/3271  base=2750 span= 980  thr= +326/ +163  pulses=42
+ *   PULSE #   42  int=  187ms  w=  41ms  peak= +312  raw=2054 rm= +410 fm= +480 base=2742 span= 980  OK
+ *   IDLE          raw=2741  env=2260/3240  seen=2231/3271  base=2750 span= 980  thr= +163/ -163  pulses=42
  *   STATS 10s  n=52 rate=5.2/s | int med=190 min=181 max=203 jit=6 | w med=42 |
- *              peak med=308 | fm med=+480 p10=+390 | sat=0 miss=0 latch=0 drops=0 | ~121mm/s
- *   LATCH #  1  inPulse stuck 2501ms > 2500ms — pulse DISCARDED, no event
+ *              peak med=308 | rm med=+410 p10=+330 | fm med=+480 p10=+390 |
+ *              sat=0 miss=0 latch=0 closs=0 drops=0 | ~121mm/s
+ *   PHASE  0: rm +412 fm +788  n=41       (one line per spoke phase, after STATS)
+ *   LATCH #  1  w=2501ms fm= -210 rm= -105 base=2750 span= 980 — pulse DISCARDED, no event
  *
- * fm is the falling-edge margin, thrLow minus raw at the fall: how far below
- * the threshold the signal actually went. It is the number that predicts a
- * latch — a small positive margin means noise is deciding which falls
- * complete. env= is the rolling-percentile envelope, seen= the true min/max
- * of the same window; when they disagree, the envelope is stale.
+ * fm is the falling-edge margin (thrLow minus raw at the fall), rm the rising
+ * margin (raw minus thrHigh at the rise): how far each crossing cleared its
+ * threshold. Small positive margins mean noise is deciding which edges
+ * complete; which of the two sits lower tells you which edge governs. The
+ * PHASE lines break both down by spoke position — seven uniform spokes
+ * should be flat, and a phase-locked dip is runout, sensor angle, or one bad
+ * spoke, seen directly. env= is the rolling-percentile envelope, seen= the
+ * true min/max of the same window; when they disagree, the envelope is
+ * stale. closs= counts contrast-loss discards (distinct from latch=).
  *
  * PULSE is the event. IDLE proves the sensor is alive between events — the
  * single most useful line when nothing is happening, because "no output" and
@@ -245,8 +251,25 @@ static volatile int lastSeenMin = 0, lastSeenMax = 0; // true window min/max
 
 // Latch-timeout accounting. Counter is monotonic and published in STATS;
 // loop() watches it to print a LATCH line with the duration.
+//
+// INTERPRETATION CAVEAT, 2026-08-05: without a motion witness, a stop with
+// a spoke parked in front of the sensor trips this timer and is
+// indistinguishable from a real sensor latch. For the daylight run,
+// latchTimeouts is UNINTERPRETABLE as a fault count — the abort itself is
+// still doing the job that matters (the state machine cannot wedge), and
+// the LATCH line carries the numbers (width, fm, rm, baseline, span) from
+// which a genuine stop and a real latch CAN be told apart, so this run
+// accumulates the evidence to design the split properly: bounded abort
+// with floor and ceiling, separate from fault classification requiring a
+// witness. (A 20 x median timeout was proposed and withdrawn: the median
+// stops updating during the very latch being diagnosed — a guard taking
+// its input from the thing that has failed.)
 static volatile uint32_t latchTimeouts  = 0;
 static volatile uint32_t lastLatchDurMs = 0;
+static volatile int      lastLatchFm    = 0;   // thrLow - raw at the abort
+static volatile int      lastLatchRm    = 0;   // raw - thrHigh at the abort
+static volatile int      lastLatchBase  = 0;
+static volatile int      lastLatchSpan  = 0;
 
 // Contrast-loss discards: the envelope collapsed (or was not yet primed)
 // while a pulse was open or an interval anchor stood, and both were thrown
@@ -390,6 +413,10 @@ static void sensorTask(void*) {
       inPulse = false;
       prevRiseMs = 0;
       lastLatchDurMs = now - pulseStartMs;
+      lastLatchFm    = thrLow - raw;    // where the signal sat vs both
+      lastLatchRm    = raw - thrHigh;   //   thresholds at the abort
+      lastLatchBase  = baseline;
+      lastLatchSpan  = span;
       latchTimeouts  = latchTimeouts + 1;   // plain add: volatile-safe
     }
 
@@ -632,10 +659,14 @@ void loop() {
     uint32_t lt = latchTimeouts, cl = contrastLosses;   // one read each
     if (lt != seenLatchTimeouts) {
       seenLatchTimeouts = lt;
+      // Everything a later design needs to split "stopped with a spoke in
+      // the beam" from "sensor latched": a stop shows raw parked mid-band
+      // with a healthy span; a real latch shows the band itself wrong.
       snprintf(b, sizeof(b),
-        "LATCH #%3lu  inPulse stuck %lums > %lums — pulse DISCARDED, no event",
+        "LATCH #%3lu  w=%lums fm=%+5d rm=%+5d base=%4d span=%4d — pulse DISCARDED, no event",
         (unsigned long)lt, (unsigned long)lastLatchDurMs,
-        (unsigned long)LATCH_TIMEOUT_MS);
+        (int)lastLatchFm, (int)lastLatchRm,
+        (int)lastLatchBase, (int)lastLatchSpan);
       emit(b);
     }
     if (lt != 0 || cl != 0) {
