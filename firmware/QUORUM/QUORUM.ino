@@ -1,8 +1,41 @@
 /*
  * ============================================================================
- * QUORUM_1_6  —  Ninobur Garden Railway single-locomotive navigation
+ * QUORUM_1_7  —  Ninobur Garden Railway single-locomotive navigation
  * ============================================================================
  * Successor to SOLONAV (v2.22 final). QUORUM navigator per spec R21.
+ *
+ * ---------------------------------------------------------------------------
+ * v1.7 — INA219 TELEMETRY RESTORED (decision 0012; CTO3 plan step 2)
+ * ---------------------------------------------------------------------------
+ * SOLONAV 2.1 dropped the INA219 service without a record and QUORUM
+ * inherited the gap; the dashboard's power tile has read a retained ghost
+ * ever since. Restored per the r12 pattern, evidence layer only — no
+ * control path reads a voltage in this version:
+ *
+ *   * telem/voltage, telem/current, telem/power every 5 s, retained as in
+ *     r12 (fresh publishes overwrite the broker's stale ghosts).
+ *   * state/lowvolt flag against LOW_VOLTAGE_THRESHOLD_V (14.4 V, r12
+ *     value), published on change and reseeded retained at every connect —
+ *     but ONLY when a sensor actually answered. A locomotive with no
+ *     working INA219 publishes no "voltage is fine", because unknown
+ *     reported as clear is the one inversion CTO3 §0/§14 forbids.
+ *     A FLAG, not a cutoff: no PWM site reads it. Whether a low-voltage
+ *     response actuates anything — and in which chamber it could ever be
+ *     allowed to — is an open design decision (see 0012/0002 lineage).
+ *   * "pwm" and "v" added to the mm/marker payload for the CTO3 §9
+ *     calibration table: pwm is pwmActualAtDetect (already sampled at event
+ *     open, §3), v is bus voltage read at drain on the loop thread. This
+ *     AMENDS the §5.1 marker payload contract (was: raw fields + timing,
+ *     "NOTHING else") — flagged for CODEX review, worst case recomputed
+ *     below the 320-byte buffer. CTO3_SPEC §9 said "alongside pwm=/dist=",
+ *     describing the SOLONAV-era key=value line this JSON contract
+ *     replaced; pwm was NOT in fact on the line, and without it the
+ *     segment×direction×PWM table cannot be built, so it rides along.
+ *   * Boot tolerates a missing/faulted INA219 (ina219Available, r12
+ *     pattern): "v":null and silent telem, never a blocked run. Otto's
+ *     open INA219 hardware fault is exactly this case until repaired.
+ *   * I2C strictly on the loop thread (setup + drainMarkers +
+ *     serviceInaTelemetry). hallTask and networkTask never touch Wire.
  *
  * ---------------------------------------------------------------------------
  * v1.6 — THE BICAMERAL BOUNDARY, as the operator states it
@@ -193,13 +226,22 @@
 #include <WiFi.h>
 #include <PubSubClient.h>
 #include <pgmspace.h>
+#include <Wire.h>
+#include <Adafruit_INA219.h>
 #include "LocoConfig.h"
 
-#define SKETCH_NAME "QUORUM_1_6"
+#define SKETCH_NAME "QUORUM_1_7"
 
 // Broker lives here, not in LocoConfig.h — same as the previous lineage.
 #define MQTT_BROKER "192.168.68.142"
 #define MQTT_PORT   1883
+
+// INA219 service (v1.7, decision 0012) — r12 values. The threshold lived in
+// the sketch in r12, not the config headers; both locomotives run 4S packs,
+// so it stays here. The Blynk-era voltage constants still present in the
+// LL_LocoConfig headers are dead config this sketch does not read.
+#define INA219_TELEM_INTERVAL_MS 5000UL
+#define LOW_VOLTAGE_THRESHOLD_V  14.4f
 
 // ===========================================================================
 // TYPES — must precede every function.
@@ -253,6 +295,13 @@ enum StationPhase : uint8_t { ST_IDLE=0, ST_APPROACH, ST_FINAL, ST_RAMP, ST_DWEL
 #define HALL_PIN            33
 #define ADC_SAMPLES          8
 #define MOTOR_DEAD_ZONE_PWM 20
+// v1.7: the ESP32 defaults, which is what r12 relied on implicitly by letting
+// Adafruit_INA219::begin() call Wire.begin() with no arguments. Named here
+// because this sketch names its pins, and because pin 34 next door is the IR
+// sensor and 33 is the Hall — an unnamed bus in that neighbourhood invites the
+// exact confusion CLAUDE.md warns about.
+#define I2C_SDA_PIN         21
+#define I2C_SCL_PIN         22
 
 static inline void pwmAttachCompat(){ ledcAttach(MOTOR_PWM_PIN,PWM_FREQUENCY,PWM_RESOLUTION); }
 static inline void pwmWriteCompat(int v){ ledcWrite(MOTOR_PWM_PIN,constrain(v,0,255)); }
@@ -1798,6 +1847,10 @@ static char T_NO_QUORUM[64];   // §2.5: served ONLY by the desired-retained-sta
 static char T_ST_THROTTLE[64],T_ST_DIRECTION[64],T_ST_BRAKE[64],T_ST_ESTOP[64],
             T_ST_AUTO[64],T_ST_SESSDIR[64],T_ST_STARTINT[64],T_ST_STARTMM[64],
             T_ST_MHE[64],T_ST_NAVREADY[64],T_ST_WARNING[64];
+// v1.7 (decision 0012) — the three r12 telemetry topics and the low-voltage
+// flag, restored under their original names so the console's power tile binds
+// without a dashboard change.
+static char T_TELEM_V[64],T_TELEM_A[64],T_TELEM_W[64],T_ST_LOWVOLT[64];
 static char T_CMD_AUTO[64],T_CMD_GO[64],T_CMD_STOP[64],T_CMD_DIR[64],T_CMD_SESSDIR[64];
 static char T_CMD_STARTMM[64],T_CMD_ESTOP[64],T_CMD_ESTOP_ALL[64],T_CMD_THROTTLE[64],T_CMD_STARTINT[64],
             T_CMD_RELEASE[64],T_CMD_FORCELOST[64];
@@ -1823,6 +1876,10 @@ static void buildTopics(){
   snprintf(T_ST_MHE      ,64,"ngr/loco/%s/state/must_hold_eligible",id);
   snprintf(T_ST_NAVREADY ,64,"ngr/loco/%s/state/nav_ready"        ,id);
   snprintf(T_ST_WARNING  ,64,"ngr/loco/%s/state/warning"          ,id);
+  snprintf(T_TELEM_V     ,64,"ngr/loco/%s/telem/voltage"          ,id);
+  snprintf(T_TELEM_A     ,64,"ngr/loco/%s/telem/current"          ,id);
+  snprintf(T_TELEM_W     ,64,"ngr/loco/%s/telem/power"            ,id);
+  snprintf(T_ST_LOWVOLT  ,64,"ngr/loco/%s/state/lowvolt"          ,id);
   snprintf(T_CMD_AUTO    ,64,"ngr/loco/%s/cmd/auto"             ,id);
   snprintf(T_CMD_DIR     ,64,"ngr/loco/%s/cmd/direction"        ,id);
   snprintf(T_CMD_SESSDIR ,64,"ngr/loco/%s/cmd/session_direction",id);
@@ -2149,6 +2206,77 @@ static void pubStateStrChanged(const char* t,const char* v,char* last,size_t las
   strlcpy(last,v,lastSz); pub(t,v,true);
 }
 
+// ===========================================================================
+// INA219 — v1.7, decision 0012. EVIDENCE ONLY.
+// ===========================================================================
+// This is a SENSOR, not an authority. Nothing here writes PWM, requests a
+// stop, or gates a command, in either chamber. state/lowvolt is a published
+// FACT; converting it into an action is a separate decision that must answer
+// the bicameral question (0002) first — r12's habit of letting a telemetry
+// value reach into control is exactly what is NOT being restored.
+//
+// Threading: I2C is touched ONLY from the loop thread — ina219Setup() in
+// setup(), serviceInaTelemetry() and drainMarkers() in loop(). hallTask (the
+// navigation-critical one) and networkTask never call Wire, so a slow or
+// faulted I2C transaction cannot delay marker detection or MQTT service.
+//
+// A missing or faulted sensor is a first-class case, not an error path:
+// begin() failing leaves ina219Available false, the service returns
+// immediately, the marker line reports "v":null, and the locomotive runs
+// exactly as it did in 1.6. Otto's open INA219 fault lives here until the
+// hardware is repaired.
+static Adafruit_INA219 ina219;
+static bool          ina219Available=false;
+static unsigned long lastInaTelemMs=0;
+static float         lastBusVoltageV=0.0f, lastCurrentA=0.0f, lastPowerW=0.0f;
+static bool          lastLowVolt=false;
+// A sensor that is PRESENT but has not been read yet is not 0.00 V. The first
+// service pass is up to INA219_TELEM_INTERVAL_MS after boot, and markers can
+// be detected in that window (a locomotive can be pushed, or driven, straight
+// off the bench). Without this the §9 table would be seeded with a handful of
+// intervals normalised against a zero denominator.
+static bool          inaHaveReading=false;
+
+static void ina219Setup(){
+  Wire.begin(I2C_SDA_PIN,I2C_SCL_PIN);
+  ina219Available = ina219.begin();
+  Serial.printf("[INA] %s\n", ina219Available ? "ready" : "unavailable — telemetry disabled, run unaffected");
+}
+
+// Bus voltage for the marker line, and whether there is one to report. The
+// value is the most recent 5 s sample, not a per-event read: a blocking I2C
+// transaction inside hallTask — the one task that must never be late — was
+// rejected outright, and §9 bins a whole segment, so a sample a few seconds
+// either side of the magnet is well inside the resolution that matters.
+static bool  inaVoltageKnown(){ return ina219Available && inaHaveReading; }
+static float inaBusVoltage()  { return lastBusVoltageV; }
+
+static void serviceInaTelemetry(){
+  if(!ina219Available) return;
+  unsigned long now=millis();
+  if(now-lastInaTelemMs < INA219_TELEM_INTERVAL_MS) return;
+  lastInaTelemMs=now;
+  lastBusVoltageV = ina219.getBusVoltage_V();
+  lastCurrentA    = ina219.getCurrent_mA()/1000.0f;
+  lastPowerW      = ina219.getPower_mW()/1000.0f;
+  inaHaveReading  = true;
+  char b[24];
+  // Retained, as in r12: the console's power tile is a current-value display,
+  // and a retained publish every 5 s is what overwrites the stale ghosts the
+  // broker has been serving since SOLONAV dropped the channel.
+  snprintf(b,sizeof(b),"%.2f",lastBusVoltageV); pub(T_TELEM_V,b,true);
+  snprintf(b,sizeof(b),"%.2f",lastCurrentA);    pub(T_TELEM_A,b,true);
+  snprintf(b,sizeof(b),"%.2f",lastPowerW);      pub(T_TELEM_W,b,true);
+  // The 0.1 V floor is r12's: a disconnected or unpowered sensor reads ~0,
+  // and calling that "low battery" would raise the flag on hardware that is
+  // simply absent. Published on CHANGE only, so the flag is an event.
+  bool low = (lastBusVoltageV > 0.1f && lastBusVoltageV < LOW_VOLTAGE_THRESHOLD_V);
+  if(low!=lastLowVolt){
+    lastLowVolt=low;
+    snprintf(b,sizeof(b),"%d",low?1:0); pub(T_ST_LOWVOLT,b,true);
+  }
+}
+
 // Last-published values for the eight changing states. Ints seeded to -1 (an
 // impossible value) so each publishes once at boot; strings seeded empty.
 static int  lastThrottle=-1,lastDirection=-1,lastEstop=-1,
@@ -2192,6 +2320,20 @@ static void publishAllStatesRetained(){
   pub(T_ST_MHE,"0",true);                       // no CTO hold eligibility yet
   snprintf(b,sizeof(b),"%d",(sessionDir!=MAP_UNSET && navPositionUsable())?1:0);
   pub(T_ST_NAVREADY,b,true);
+  // v1.7: lowvolt joins the reseed so a broker that restarted (or one holding
+  // a ghost from the r12 era) is corrected on every connect rather than
+  // waiting for the next threshold CROSSING, which may never come. The three
+  // telem topics are not reseeded here — they are measurements, and
+  // serviceInaTelemetry republishes them within 5 s of the link returning.
+  //
+  // ONLY when a sensor has actually answered. Publishing lowvolt=0 from a
+  // locomotive with no working INA219 would state "voltage is fine" on the
+  // authority of nothing — the unknown-reported-as-clear inversion CTO3 §0
+  // and §14 name as the one durable lesson of the CTO2 failure. With no
+  // sensor the topic is left as it is: absent, or visibly stale. That is a
+  // reason to look, which is what it should be. Otto, with its open INA219
+  // fault, is exactly this case today.
+  if(ina219Available){ snprintf(b,sizeof(b),"%d",lastLowVolt?1:0); pub(T_ST_LOWVOLT,b,true); }
 }
 
 static unsigned long loopMaxGapMs=0, lastStatMs=0;
@@ -2638,18 +2780,40 @@ static void drainMarkers(){
   while(eventQueue && xQueueReceive(eventQueue,&e,0)==pdTRUE){
     navOnMarker(e);
     // §5.1 marker payload contract — the raw event fields plus dt,
-    // timing_gate, dt_expected, dt_conserve_ratio. NOTHING else: scores,
-    // streaks, leaders and margins ride the QUORUM decision events, and conf
-    // is deleted with navConfidence. Worst case 174 bytes ≤ 320 (§5.1).
+    // timing_gate, dt_expected, dt_conserve_ratio. Scores, streaks, leaders
+    // and margins still ride the QUORUM decision events, and conf is still
+    // deleted with navConfidence.
+    //
+    // v1.7 AMENDS the contract with exactly two fields, for the CTO3 §9
+    // segment x direction x PWM -> pKPH table (decision 0012):
+    //   "pwm"  pwmActualAtDetect — the PWM at event OPEN, already carried on
+    //          the event per §3, so this publishes a value the sketch had and
+    //          was throwing away. The table cannot be keyed without it.
+    //   "v"    bus voltage, or null when no INA219 answered at boot. §9's
+    //          normalisation (table_pKPH x v_now/v_ref) needs the voltage at
+    //          the locomotive at the time of the interval; a fraction without
+    //          its denominator is not a measurement.
+    // Everything a consumer needs to bin one interval is now on one line, so
+    // the Pi-side parser never has to join two topics on a timestamp.
+    //
+    // Worst case recomputed: 174 + "pwm":255 (12) + "v":-13.20 (12) = 198
+    // bytes, still inside 320 and inside the 512-byte PubMsg payload. The
+    // v field is printed at %.2f from a float that is bounded by the INA219's
+    // ~26 V range, so it cannot widen unexpectedly.
     float ratio = (lastDtConserveRatio>99.99f) ? 99.99f : lastDtConserveRatio;
+    char v[12];
+    // Absent sensor and not-yet-read sensor are both null, never 0.00 V.
+    if(inaVoltageKnown()) snprintf(v,sizeof(v),"%.2f",inaBusVoltage());
+    else                  strlcpy(v,"null",sizeof(v));
     char b[320];
     snprintf(b,sizeof(b),
       "{\"mm\":%u,\"landmark\":\"%s\",\"obs\":\"%c\",\"peak\":%d,\"ms\":%u,"
       "\"drift\":%d,\"dt\":%u,\"timing_gate\":\"%s\",\"dt_expected\":%lu,"
-      "\"dt_conserve_ratio\":%.2f}",
+      "\"dt_conserve_ratio\":%.2f,\"pwm\":%u,\"v\":%s}",
       navMm,landmarkAt(navMm),polChar(e.polarity),e.peak,e.durationMs,
       e.baselineDrift,lastSegmentDt,lastTimingGate,
-      (unsigned long)lastDtExpected,(double)ratio);
+      (unsigned long)lastDtExpected,(double)ratio,
+      (unsigned)e.pwmActualAtDetect,v);
     pubMarker(T_MARKER,b);   // dedicated queue; status can no longer evict it
   }
 }
@@ -2676,6 +2840,10 @@ void setup(){
   pwmAttachCompat(); pwmWriteCompat(0);
 
   buildTopics();
+  // Before calibrate(), so the two-second baseline window is the last thing
+  // between boot and a ready detector. A faulted sensor only prints and moves
+  // on — decision 0012 requires boot to tolerate a missing INA219.
+  ina219Setup();
   calibrate();
 
   // 256 slots is ~5 min of headroom at cruise (~1.1 s/marker), up from the 32
@@ -2745,5 +2913,9 @@ void loop(){
   publishSimpleStates();
   serviceStations();
   servicePwmRamp();
+  // After servicePwmRamp, so the 5 s I2C read never sits between a command and
+  // the motor write it asks for. Self-rate-limited; a run with no INA219
+  // returns on the first line.
+  serviceInaTelemetry();
   publishStat();
 }
