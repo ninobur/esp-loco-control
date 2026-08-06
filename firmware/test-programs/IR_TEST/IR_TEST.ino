@@ -426,8 +426,45 @@ static volatile uint32_t latchTimeouts = 0;
 static volatile uint8_t  latchedNow    = 0;
 static volatile uint32_t latchStartMs  = 0;
 
+// ---------------------------------------------------------------------------
+// DIAGNOSTIC RAW RING — what did the waveform DO during a failure?
+//
+// During a blind period there are no edges, so no pulse payloads, so no raw
+// data at all beyond one snapshot per 5 s status beat. The 2026-08-05
+// analysis could show THAT the sensor was blind for 479 s but not what the
+// signal looked like while it was — every hypothesis about the mechanism is
+// inference. This ring converts the next occurrence into evidence.
+//
+// 2048 samples at 1 kHz = 2.048 s — ~3.5 spoke periods at the 20 mm/s creep
+// bound, several dozen at speed. sensorTask writes it every tick; on a
+// trigger (latch timeout, or edge-silence timeout) the ring FREEZES, loop()
+// streams it out oldest-first as hex chunks on its own topic (telem/rawdump
+// — never inflating telem/pulse), then the ring thaws and resumes. Samples
+// arriving while frozen are not recorded — the ~2 s of dump time costs ~2 s
+// of coverage, which is the acceptable price of a coherent capture.
+//
+// Handshake: either side may request a freeze (ringFreezeReq = reason);
+// sensorTask latches it into ringFrozen at a tick boundary so the snapshot
+// index is consistent; loop() dumps, sets ringDumpDone; sensorTask thaws.
+// Each variable has one writer per direction and transitions are
+// one-shot — no torn state is reachable.
+// ---------------------------------------------------------------------------
+const int      RAW_RING_N    = 2048;              // power of two
+const int      RAW_RING_MASK = RAW_RING_N - 1;
+const int      DUMP_CHUNK_SAMPLES = 96;           // 96 x 3 hex chars = 288/chunk
+const uint8_t  DUMP_REASON_LATCH   = 1;
+const uint8_t  DUMP_REASON_TIMEOUT = 2;
+
+static uint16_t rawRing[RAW_RING_N];              // 4 KB, static
+static volatile uint16_t rawRingIdx   = 0;        // next write slot
+static volatile uint8_t  ringFreezeReq = 0;       // 0 none, else DUMP_REASON_*
+static volatile uint8_t  ringFrozen    = 0;       // 0 live, else frozen reason
+static volatile uint16_t ringFrozenIdx = 0;       // oldest sample when frozen
+static volatile uint32_t ringFrozenAtMs = 0;
+static volatile uint8_t  ringDumpDone  = 0;
+
 #ifdef IR_TELEMETRY_WIFI
-static char T_ONLINE[64], T_PULSE[64], T_RSSI[64], T_STATUS[64];
+static char T_ONLINE[64], T_PULSE[64], T_RSSI[64], T_STATUS[64], T_RAWDUMP[64];
 
 static WiFiClient   espClient;
 static PubSubClient mqtt(espClient);
@@ -461,6 +498,7 @@ static void pub(const char* topic, const char* payload, bool retain = false) {
 }
 static const char* T_PULSE  = "telem/pulse";
 static const char* T_STATUS = "telem/status";
+static const char* T_RAWDUMP = "telem/rawdump";
 #endif
 
 // ===========================================================================
@@ -663,6 +701,21 @@ static void sensorTask(void*) {
     int raw = analogRead(SENSOR_PIN);   // a TASK, not an ISR — this is safe
     lastRaw = raw;
 
+    // --- diagnostic raw ring -----------------------------------------------
+    if (!ringFrozen) {
+      rawRing[rawRingIdx] = (uint16_t)raw;
+      rawRingIdx = (rawRingIdx + 1) & RAW_RING_MASK;
+      if (ringFreezeReq) {              // latch the freeze at a tick boundary
+        ringFrozen     = ringFreezeReq;
+        ringFreezeReq  = 0;
+        ringFrozenIdx  = rawRingIdx;    // next write slot = oldest sample
+        ringFrozenAtMs = now;
+      }
+    } else if (ringDumpDone) {          // loop() finished streaming: thaw
+      ringFrozen   = 0;
+      ringDumpDone = 0;
+    }
+
     // --- adaptive envelope -------------------------------------------------
     // EXPANSION IS UNCONDITIONAL and runs before any gate, so a lighting
     // change is still tracked while stationary and a collapsed envelope can
@@ -751,6 +804,8 @@ static void sensorTask(void*) {
       prevRiseMs  = 0;                        // aborted rise anchors nothing
       latchTimeouts = latchTimeouts + 1;      // plain add: volatile-safe
       latchedNow    = 0;
+      if (!ringFrozen && !ringFreezeReq)      // capture the waveform that latched
+        ringFreezeReq = DUMP_REASON_LATCH;
     }
     latchedNow   = sensorState ? 1 : 0;
     latchStartMs = pulseStartMs;
@@ -991,6 +1046,7 @@ static void buildTopics() {
   snprintf(T_PULSE,  sizeof(T_PULSE),  "ngr/spoke/%s/telem/pulse",   NODE_NAME);
   snprintf(T_RSSI,   sizeof(T_RSSI),   "ngr/spoke/%s/telem/rssi",    NODE_NAME);
   snprintf(T_STATUS, sizeof(T_STATUS), "ngr/spoke/%s/telem/status",  NODE_NAME);
+  snprintf(T_RAWDUMP,sizeof(T_RAWDUMP),"ngr/spoke/%s/telem/rawdump", NODE_NAME);
 }
 #endif
 
@@ -1198,6 +1254,11 @@ void loop() {
       // never in a loop, never on the capture path.
       saveEnvelope();
 
+      // Entry to UNAVAILABLE: capture what the waveform was doing across the
+      // silence. On a genuine stop this shows the run-down; on a blind
+      // episode it shows the trapped signal — either way, evidence.
+      if (!ringFrozen && !ringFreezeReq) ringFreezeReq = DUMP_REASON_TIMEOUT;
+
       char b[192];
       snprintf(b, sizeof(b),
         "{\"seq\":%lu,\"event\":\"TIMEOUT\",\"state\":\"%s\","
@@ -1206,6 +1267,47 @@ void loop() {
       pub(T_PULSE, b, false);
       Serial.printf("[PULSE] TIMEOUT — no edges for %lu ms, state %s, filter reset\n",
                     (unsigned long)SPEED_TIMEOUT_MS, speedStateName(speedState));
+    }
+  }
+
+  // RAW-RING DUMP, one chunk per pass, only when the outbound queue has
+  // room, so the dump never starves the live pulse stream. 22 chunks of 96
+  // hex-encoded samples (final chunk short), oldest first — ~2 s of 1 kHz
+  // waveform on telem/rawdump, then the ring thaws.
+  {
+    static bool     dumping = false;
+    static uint16_t dumpChunk = 0;
+    static uint8_t  dumpReason = 0;
+    const uint16_t  totalChunks =
+        (RAW_RING_N + DUMP_CHUNK_SAMPLES - 1) / DUMP_CHUNK_SAMPLES;
+
+    if (ringFrozen && !dumping && !ringDumpDone) {
+      dumping = true; dumpChunk = 0; dumpReason = ringFrozen;
+      Serial.printf("[DUMP] raw ring frozen (%s) — %u chunks\n",
+                    dumpReason == DUMP_REASON_LATCH ? "LATCH" : "TIMEOUT",
+                    totalChunks);
+    }
+    if (dumping && PUB_HAS_ROOM) {
+      uint16_t start = dumpChunk * DUMP_CHUNK_SAMPLES;
+      uint16_t n = (uint16_t)((start + DUMP_CHUNK_SAMPLES <= RAW_RING_N)
+                   ? DUMP_CHUNK_SAMPLES : RAW_RING_N - start);
+      char b[512];
+      int off = snprintf(b, sizeof(b),
+        "{\"part\":%u,\"of\":%u,\"reason\":\"%s\",\"t_ms\":%lu,\"hex\":\"",
+        (unsigned)(dumpChunk + 1), (unsigned)totalChunks,
+        dumpReason == DUMP_REASON_LATCH ? "LATCH" : "TIMEOUT",
+        (unsigned long)ringFrozenAtMs);
+      for (uint16_t i = 0; i < n; i++) {
+        uint16_t s = rawRing[(ringFrozenIdx + start + i) & RAW_RING_MASK];
+        off += snprintf(b + off, sizeof(b) - off, "%03x", s & 0xFFF);
+      }
+      snprintf(b + off, sizeof(b) - off, "\"}");
+      pub(T_RAWDUMP, b, false);
+
+      if (++dumpChunk >= totalChunks) {
+        dumping = false;
+        ringDumpDone = 1;   // sensorTask thaws the ring
+      }
     }
   }
 
