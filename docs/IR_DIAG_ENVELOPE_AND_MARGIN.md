@@ -1,5 +1,14 @@
 # IR_DIAG — percentile envelope, falling-edge margin, latch timeout
 
+> **SUPERSEDED, 2026-08-06.** The thresholds documented below are the old
+> asymmetric pair (`baseline + span/3` / `baseline + span/6`) — replaced by
+> the symmetric production expressions — and every line format shown here is
+> stale: PULSE gained `rm/rh/fh`, STATS switched its decision numbers to
+> headrooms and gained `closs=`, PHASE lines exist, and LATCH was
+> reformatted. **Do not check a parser against this document.** Current
+> formats: `IR_DIAG_DAYLIGHT_PREP.md` (including its CODEX addendum).
+> Retained as the record of the envelope replacement and its replay.
+
 **Date:** 2026-08-05
 **Sketch:** `firmware/test-programs/IR_DIAG/IR_DIAG.ino`, `SKETCH_NAME` still `IR_DIAG_1_0`
 **Commit:** `8c78297` (single commit, three changes, per task)
