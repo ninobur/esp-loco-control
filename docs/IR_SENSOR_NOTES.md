@@ -1,6 +1,6 @@
 # IR wheel sensor — findings and design
 
-Status as of 2026-07-27. The sensor exists as a bench and tow-test rig; it is
+Status as of 2026-08-05. The sensor exists as a bench and tow-test rig; it is
 not integrated into locomotive firmware. This records what has been
 established so it does not have to be rediscovered.
 
@@ -62,6 +62,39 @@ generate and nearly impossible to disprove. When one hood does not work you
 build a better hood, so the work never terminates. Capture data before
 accepting a story about weather.
 
+> **Amended 2026-08-05 — the same test, the opposite result.**
+>
+> The finding above rests on a good test: `pulse_count` advanced +10, +9, +10
+> across the 08-04 dropout windows, so the sensor kept seeing wedges and only
+> publishing stopped. That test was correctly applied and the conclusion holds
+> for that run.
+>
+> Applied to the 10-spoke run of 2026-08-05, it gives the opposite answer.
+> Five no-edge gaps totalling **479 seconds** of a 30-minute session:
+>
+> | gap ends | blind | status beats inside | pulse counter advance |
+> |---|---|---|---|
+> | 14:09:52 | 261.6 s | 48 | **0** |
+> | 14:33:34 | 105.4 s | 17 | **0** |
+> | 14:33:51 | 15.6 s | 4 | 5 |
+> | 14:34:29 | 39.9 s | 8 | **0** |
+> | 14:35:33 | 56.9 s | 11 | **0** |
+>
+> Forty-eight status beats arrived during the 261-second gap. The link was up,
+> telemetry was flowing, and the counter did not move once. This is not the
+> 08-04 failure wearing a new hat — **the sensor genuinely went blind.**
+>
+> Cross-referenced against the towing locomotive: Toby had `pwm > 0` for
+> 87–100% of four of the five gaps, up to `pwm` 199. The wheel was turning.
+>
+> The lesson of the original finding survives intact and is worth restating in
+> its stronger form: *capture data before accepting a story*. That applies to
+> the network story as much as the weather story. Both are easy to generate.
+>
+> **Standing rule from this run:** any gap in the IR pulse train must be
+> cross-checked against an independent motion witness before being called a
+> stop, and against the pulse counter before being called a publishing failure.
+
 ---
 
 ## Target: solid face, not spokes
@@ -85,6 +118,42 @@ predicts that bare-wheel performance looks excellent on the bench and degrades
 in the garden, which is the worst way to discover a problem.
 
 Black foam wedges behind the tape improved contrast substantially.
+
+> **Amended 2026-08-05 — edge doubling not reproduced; aperture effect
+> predicted the failure correctly.**
+>
+> The operator returned to a factory 10-spoke LGB wheel. On that run:
+>
+> **Edge doubling did not occur.** Reconstructing the pulse train over a steady
+> window gives 134 spokes traversed, with every anomalous interval an integer
+> *multiple* of the base (2.2x, 3.3x, 1.9x, 2.0x, 4.9x) and never a half.
+> Missed spokes, not doubled ones. Independently: a circumference cross-check
+> against Toby's mile markers over the same window gives ~109 mm at 10
+> pulses/rev, a plausible LGB wheel. At 16 pulses/rev it would imply ~174 mm,
+> which is not. **Ten pulses per revolution is correct.**
+>
+> Interval quality was excellent: sd 1.52 ms on a 24 ms median across 120 clean
+> pulses. Envelope span 3662–3866 of 4095, against 2600–2800 for the tape
+> flags. Autocorrelation of interval deviations at lag 10 is −0.025 — no
+> once-per-revolution wobble, the wheel runs true.
+>
+> **But the aperture argument predicted the shape of the failure.** This section
+> predicts that bare spokes look excellent on the bench and degrade in the
+> garden, because each inter-spoke gap is an aperture aimed at sky and ballast.
+> The 479 seconds of blindness in the amendment above happened outdoors, at
+> midday, on a spoked wheel that had been clean on the bench. And the miss rate
+> is **higher at low speed** — 29.8% at 50–80 ms intervals against 15.8% at
+> 20–30 ms, with duty cycle essentially unchanged (0.45 vs 0.48) — which is
+> what more dwell time per gap staring at ambient would produce.
+>
+> So the honest reconciliation is not "spokes work after all." It is:
+> **spokes give excellent interval quality and a real aperture problem, and
+> 2026-08-05 measured both.**
+>
+> This makes the black-foam finding above the cheapest untested lever. A dark
+> backing behind the spokes turns each gap from an aperture into a real dark
+> state, without touching firmware, optics, or geometry. It should be tried
+> before more firmware effort goes into compensating for the symptom.
 
 ---
 
@@ -353,6 +422,144 @@ stop.
 
 ---
 
+## 2026-08-05 — 10-spoke run: what was eliminated, and what was not
+
+Sam's framing, adopted: the question is not "is it optics?" but *why do valid
+spoke transitions occasionally not become events?* Candidates: optics,
+debounce, threshold, scheduler latency, ADC sampling phase, geometry. The
+answer comes from evidence.
+
+### Eliminated
+
+**Scheduler latency.** `task_max_gap_ms` never exceeds 2 against a 1 kHz tick,
+in every status beat of every run this day. Pulse widths at speed are 7–16 ms.
+Losing a spoke would require a stall longer than the pulse.
+
+**ADC sampling phase.** Same arithmetic — a 12 ms pulse receives ~12 samples.
+Phase can only lose a pulse narrower than the tick.
+
+**Debounce, at observed speeds.** Verified in source rather than assumed:
+`lastEdgeMicros` is written only in the rising branch, so the guard measures
+rise-to-rise — the interval itself. 22–27 ms observed against the guard. Not
+firing. Note the failure shape if it ever does: a suppressed rise leaves
+`sensorState` false, so the falling edge never emits and the whole pulse
+vanishes.
+
+**Geometry, in the "one bad spoke" sense.** Misses land after spokes 1, 4, 0,
+7 and 9 — five misses, five different positions mod 10. A bent, dirty or short
+spoke would cluster.
+
+### Speed dependence: tested, negative
+
+| interval band | spokes | missed | miss % | median width |
+|---|---|---|---|---|
+| 20–30 ms | 165 | 26 | 15.8% | 12 ms |
+| 50–80 ms | 57 | 17 | 29.8% | 29 ms |
+
+Cleanest steady fast window: 9 missed of 134 spokes = **6.7%**.
+
+Blind periods and ambiguous ratios excluded; base interval estimated from a low
+percentile of a rolling window, since a missed spoke can only inflate an
+interval, never shrink it.
+
+**Faster is not worse.** This kills the settling-time / sensor-bandwidth
+hypothesis: if the phototransistor or its RC could not keep up, misses would
+climb as widths shrank. There is no evidence of a top-end limit, and top speed
+is not the constraint to design around.
+
+Caveat: n=57 is thin at the slow end, and those samples sit adjacent in time to
+the blind periods, so they may share a cause. The defensible claim is *no
+penalty for going fast*.
+
+### The failure that mattered most: quality was dishonest
+
+All 102 status beats reported `quality:"OK"`, including through 479 seconds of
+blindness. Four pulses latched high for over a second, one for **105.3
+seconds**. 24% of published pulses reported `speed_mmps: 0.00` while the car
+was under power.
+
+`span` sat at 3481–3866 of 4095, putting `thresholdHigh` ~2626 and
+`thresholdLow` ~1338 — a **1288-count hysteresis band**. Signal was present
+(`raw` p90 2736, max 3279) but spent long stretches inside the band, crossing
+neither threshold. `qualityFromSpan()` has a floor (`MIN_USABLE_SPAN`) and no
+other input, so it saw nothing wrong.
+
+**A wide envelope is not itself the fault.** Wide can mean excellent contrast,
+and a maximum-span ceiling would misclassify a genuinely good signal. The fault
+is a *stale-envelope mismatch*: the long-term envelope no longer matches the
+waveform currently passing the sensor. The test that detects it compares recent
+local raw range against the thresholds derived from the long-term envelope —
+not the envelope's absolute width.
+
+### Reacquisition deadlock
+
+Gating envelope decay on a *completed pulse* removed the only recovery path for
+a wheel that is turning but not producing edges:
+
+```
+no completed transitions -> no recent pulse -> decay disabled
+  -> band stays stale/wide -> no completed transitions
+```
+
+The gate correctly stopped stationary envelope collapse and simultaneously
+created this. Decay must be gated on **recent signal activity** (a short
+rolling raw range), which distinguishes a stationary wheel (flat — hold the
+envelope) from a moving unrecognised one (varying — adapt until edges resume).
+
+### Diagnostic gap — blocks resolution either way
+
+During a blind period there are no edges, therefore no pulse payloads,
+therefore **no raw signal data at all** beyond one snapshot per 5-second status
+beat. Neither the existing logs nor any re-analysis of them can show what the
+waveform did during the failure. A ring buffer of recent raw samples, dumped on
+latch timeout or on entry to UNAVAILABLE, converts the next occurrence from
+inference into evidence.
+
+Also missing and cheap: **peak raw value reached during each pulse.** Only
+`raw` at the falling edge is published. If marginal spokes are failing to clear
+`thresholdHigh`, the peak distribution shows it directly.
+
+### Prediction on record
+
+Scattered missed spokes and the 479 seconds of blindness are hypothesised to be
+**the same fault at different severities**. If the aperture effect is the
+physical cause, a dark backing behind the spokes should collapse the miss rate
+with no firmware change at all.
+
+**Check on the next run:** miss rate in a steady fast window, computed the same
+way, must fall well below 6.7%. If it does not, the misses are a separate
+optical or threshold problem needing their own investigation.
+
+### What held up
+
+The unconditional-FIFO median never wedged, across five dwells and a link
+flapping 100 times. A 261632 ms interval entered the ring, corrupted a few
+outputs, and aged out on its own; the earlier 3x-median admission gate would
+have locked out every real interval permanently.
+
+But the "ages out within N pulses" claim was wrong. Contamination lasts
+`SPOKES_PER_WHEEL + REV_MEDIAN_N - 1` pulses, so the median only outvotes a bad
+interval when `REV_MEDIAN_N >= 2 x SPOKES_PER_WHEEL + 1` — 21 at ten spokes,
+against the 5 in use. At two spokes the formula gives 5, which is why it looked
+correct. This is an argument for replacing revolution summing with an interval
+median (one bad interval contaminates exactly one admission), not for enlarging
+the revolution window.
+
+### Analysis error recorded
+
+The long no-edge intervals were initially dismissed as genuine pauses in the
+pulse train. They were not — Toby was under power for 87–100% of four of the
+five gaps. Toby's log was already open and being used for a ground-speed
+cross-check; the PWM cross-reference was one step away and was not taken.
+Consequence: the problem was framed as 6.7% scattered misses when the headline
+was that the sensor was blind for 27% of the run and reported `quality:"OK"`
+across all 102 status beats.
+
+**Standing rule from this: any gap in the IR pulse train must be cross-checked
+against an independent motion witness before being called a stop.**
+
+---
+
 ## Staged plan
 
 Each stage has a result you can see in one session. Stop at any stage that
@@ -378,8 +585,22 @@ duration.
 
 ## Open questions
 
-- Is the emitter hard-tied to VCC on the breakout, or already broken out?
-- Does the power car have an undriven axle?
+- ~~Is the emitter hard-tied to VCC on the breakout, or already broken out?~~
+  **Answered 2026-08-05: hard-tied, and worse than the simple case.** The
+  ECSiNG QRE1113 module shares a single VCC rail between the emitter LED and
+  the phototransistor collector. There is no separate pad for either half, so
+  moving the supply wire to a GPIO would switch the detector off along with the
+  emitter. Enabling differential sampling requires lifting the emitter
+  resistor's leg from the shared rail and flying a wire to a GPIO — with no pad
+  to land on. Doable on the bench, not something to bury in a locomotive.
+  This is the gate on differential sampling and it is currently closed.
+  Alternatives: a module that breaks out emitter control separately, or a
+  slotted optical interrupter (sees its own emitter across a gap, rejecting
+  ambient by geometry rather than by subtraction).
+- ~~Does the power car have an undriven axle?~~ **Settled 2026-08-05:** the
+  production sensor mounts on an undriven axle, on pin 34 of the locomotive's
+  own ESP32. This avoids wheel slip, which would otherwise correlate the speed
+  error with traction — the exact coupling the sensor exists to break.
 - Is the test car the same model as the power car, or a minimal rig?
 - Is `0.21` the pKPH factor the navigation system uses, or a different one?
 - Will adhesive tape on a rotating wheel survive a Southern California summer
@@ -388,119 +609,3 @@ duration.
   the durability problem — worth considering before committing the mount
   geometry to the wheel face.
 
----
-
-## 2026-08-05 — 10-spoke run: missed spokes are NOT speed dependent
-
-Source: `ir10_20260805_140052.log` (14:00–14:39), cross-referenced against
-`toby_20260804_234225.log`. 10-spoke factory LGB wheel, survey car, firmware
-carrying Changes A and B.
-
-### Question
-
-Sam: "Why are valid spoke transitions occasionally not becoming events?"
-Candidates: optics, debounce, threshold, scheduler latency, ADC sampling
-phase, geometry. Answer to come from evidence, not assumption.
-
-### Eliminated by evidence
-
-**Scheduler latency.** `task_max_gap_ms` never exceeds 2 against a 1 kHz tick,
-in every status beat of every run this day. Pulse widths at speed are 7–16 ms.
-Losing a spoke would require a stall longer than the pulse. Never occurred.
-
-**ADC sampling phase.** Same arithmetic. A 12 ms pulse receives ~12 samples.
-Phase can only lose a pulse narrower than the tick.
-
-**Debounce, at observed speeds.** Verified in source, not assumed:
-`lastEdgeMicros` is written only in the rising branch, so the guard measures
-rise-to-rise — the interval itself. 22–27 ms observed against a 15 ms guard
-(2500 µs as actually committed). Not firing.
-NOTE the failure shape if it ever does: a suppressed rise leaves `sensorState`
-false, so the falling edge never emits and the entire pulse vanishes.
-
-**Geometry — "one bad spoke".** Misses land after spokes 1, 4, 0, 7 and 9.
-Five misses, five different positions mod 10. A bent, dirty, or short spoke
-would cluster. No clustering.
-
-### Speed dependence — TESTED, NEGATIVE
-
-Blind periods (>6x base interval) and ambiguous ratios excluded. Base interval
-estimated from the 30th percentile of a rolling 51-pulse window, since a missed
-spoke can only inflate an interval, never shrink it.
-
-| interval band | spokes | missed | miss % | median width |
-|---|---|---|---|---|
-| 20–30 ms | 165 | 26 | 15.8% | 12 ms |
-| 50–80 ms | 57 | 17 | 29.8% | 29 ms |
-
-Cleanest fast window (14:34:29–14:34:33, tightly steady): 9 missed of 134
-spokes = **6.7%**.
-
-Duty cycle is essentially unchanged across the range — 0.48 fast, 0.45 slow.
-The spoke does not get optically thinner at speed.
-
-**Conclusion: faster is not worse. If anything, slower is worse.**
-
-This kills the settling-time / sensor-bandwidth hypothesis. If the
-phototransistor or its RC could not keep up, misses would rise as widths
-shrank. They do not. **There is no evidence of a top-end bandwidth limit, and
-top speed is not the constraint to design around.**
-
-Caveats on the slow-speed figure: n=57 is thin, and those samples sit
-immediately adjacent in time to the blind periods (the run decelerated into
-them), so they are likely contaminated by the same mechanism. The defensible
-claim is *no penalty for going fast*, not *slow is genuinely worse*.
-
-### PREDICTION TO TEST ON THE NEXT RUN
-
-Misses cluster near the blind periods and are far lower in the cleanest fast
-window (6.7% vs 15.8% and 29.8%). A fixed per-spoke detection limitation would
-produce a roughly constant rate. A condition that comes and goes would produce
-exactly this.
-
-**Hypothesis: the scattered missed spokes and the 479 seconds of blindness are
-the same fault at different severities** — the long-term envelope drifting out
-of match with the current waveform, trapping the signal inside a 1288-count
-hysteresis band (`span` 3481–3866, `thresholdHigh` ~2626, `thresholdLow`
-~1338). Sometimes it costs one spoke; sometimes two minutes.
-
-**If correct, the envelope and quality work (activity-gated adaptation, honest
-quality classification, latch timeout) should collapse the miss rate as a side
-effect, with no change to optics or geometry.**
-
-Check on the next run: miss rate in a steady fast window, computed the same
-way. If it does not fall well below 6.7%, the hypothesis is wrong and the
-misses are a genuinely separate optical or threshold problem needing its own
-investigation.
-
-### DIAGNOSTIC GAP — blocks resolution either way
-
-During a blind period there are no edges, therefore no pulse payloads,
-therefore **no raw signal data at all** beyond a single `raw` snapshot per
-5-second status beat. MQTT as currently structured cannot show what the
-waveform did during the failure. No amount of re-analysis of existing logs will
-settle it.
-
-Needed: a ring buffer of recent raw samples in `sensorTask`, dumped on latch
-timeout or blind timeout. This converts the next occurrence from inference into
-evidence.
-
-Also still missing and cheap: **peak raw value reached during each pulse.**
-Currently only `raw` at the falling edge is published. If marginal spokes are
-failing to clear `thresholdHigh`, the peak distribution shows it directly — a
-population sitting just above the bar, with misses being those that fell just
-below. Lower priority than the ring buffer, but it is the direct test of the
-threshold hypothesis for the scattered misses.
-
-### Analysis error recorded
-
-The long no-edge intervals were initially dismissed as genuine pauses in the
-pulse train. They were not — Toby was under power for 87–100% of four of the
-five gaps. Toby's log was already open and being used for a ground-speed
-cross-check; the PWM cross-reference was one step away and was not taken.
-Consequence: the problem was framed as 6.7% scattered misses when the headline
-was that the sensor was blind for 27% of the run and reported `quality:"OK"`
-across all 102 status beats.
-
-**Standing rule from this: any gap in the IR pulse train must be cross-checked
-against an independent motion witness before being called a stop.**
