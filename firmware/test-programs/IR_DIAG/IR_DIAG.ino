@@ -560,7 +560,16 @@ static void windowPush(const PulseEvent& e) {
   if (e.intervalMs > 0) {
     // A gap well beyond the running median means a flag went past unseen.
     uint32_t med = medU32(winInterval, winLen);
-    if (med > 0 && e.intervalMs > (med * 9) / 5) statMiss++;   // >1.8x
+    if (med > 0 && e.intervalMs > (med * 9) / 5) {             // >1.8x
+      statMiss++;
+      // A missed spoke breaks phase alignment as surely as a discard: the
+      // next physical spoke would land in the missing one's slot and shift
+      // every later phase, smearing a phase-locked defect flat. Restart the
+      // window BEFORE accumulating this event — it becomes phase 0 of the
+      // new alignment.
+      phaseReset(true);
+      phaseRestarted = true;
+    }
     winInterval[winIdx] = e.intervalMs;
   } else {
     winInterval[winIdx] = 0;
