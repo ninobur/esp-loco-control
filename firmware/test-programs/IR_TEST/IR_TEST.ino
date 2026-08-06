@@ -522,6 +522,17 @@ static bool envelopePrimed = false;
 static volatile int lastRunMin = 4095, lastRunMax = 0;
 static portMUX_TYPE envMux = portMUX_INITIALIZER_UNLOCKED;
 
+// The PROVEN envelope: runMin/runMax as they stood at the last COMPLETED,
+// filter-fed pulse — the last moment the envelope demonstrably produced a
+// real edge pair. This is what gets written to NVS, never the live pair.
+// The live envelope keeps expanding unconditionally after edges stop, so a
+// sensor that goes stuck-flat, saturated, disconnected or sun-blinded AFTER
+// its last good pulse pushes a new extreme into the live pair — and a
+// flat-trace test at the stop would then authorize persisting exactly that
+// corruption. The flat test decides WHETHER to write; this snapshot decides
+// WHAT. -1 = no pulse has proven anything since boot.
+static volatile int provenMin = -1, provenMax = -1;
+
 // Envelope provenance — so a restored stale envelope and a freshly learned
 // one are distinguishable in telemetry, which the 2026-08-05 analysis could
 // not do (the [ENV] line went only to serial).
@@ -645,12 +656,19 @@ static void restoreEnvelope() {
 }
 
 static void saveEnvelope() {
-  // Coherent snapshot: both bounds from the same instant, under the same
-  // mux the sampler updates them under.
+  // Write the PROVEN envelope — the pair as it stood at the last completed
+  // valid pulse — never the live pair, which keeps expanding after edges
+  // stop and may already contain the extreme of whatever ended them (stuck
+  // input, saturation, disconnect, sun). The caller's flat-trace test
+  // authorizes the write; this snapshot is what gets written.
   taskENTER_CRITICAL(&envMux);
-  int mn = lastRunMin, mx = lastRunMax;
+  int mn = provenMin, mx = provenMax;
   taskEXIT_CRITICAL(&envMux);
 
+  if (mn < 0 || mx < 0) {
+    Serial.println("[ENV] not saved: no pulse-proven envelope this boot");
+    return;
+  }
   if (mx - mn < MIN_USABLE_SPAN) {
     Serial.printf("[ENV] not saved: span %d below MIN_USABLE_SPAN %d\n",
                   mx - mn, MIN_USABLE_SPAN);
@@ -850,6 +868,18 @@ static void sensorTask(void*) {
         e.intervalValid = (e.intervalMs <= SPEED_TIMEOUT_MS) ? 1 : 0;
       }
       prevRiseMs = pulseStartMs;
+
+      // A completed, filter-fed pulse is PROOF the envelope works right
+      // now: both thresholds were just crossed by a real spoke. Snapshot it
+      // for the NVS path. Deliberately gated on intervalValid so a pulse
+      // emerging from an edge-silence does not certify the envelope by
+      // itself.
+      if (e.intervalValid) {
+        taskENTER_CRITICAL(&envMux);
+        provenMin = runMin;
+        provenMax = runMax;
+        taskEXIT_CRITICAL(&envMux);
+      }
 
       if (eventQueue && xQueueSend(eventQueue, &e, 0) != pdTRUE) {
         // Drop-newest and COUNT it. A hole in the record must never be silent.
