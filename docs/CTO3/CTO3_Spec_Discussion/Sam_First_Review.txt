@@ -1,0 +1,395 @@
+Sam First Review CTO3 Spec
+
+I think this is a very strong specification. More importantly, it feels like a different architecture than CTO2 rather than a repair of CTO2. I don’t see remnants of the pairing-centric thinking that caused so much trouble.
+
+I do have several comments, which I’ll separate into Required, Strong recommendations, and Questions/Open Issues.
+
+⸻
+
+Overall assessment
+
+I’d call this roughly 9.3/10 as a systems specification.
+
+It has three characteristics CTO2 lacked:
+
+* clear layering
+* clear ownership
+* very few hidden assumptions
+
+That’s a major improvement.
+
+⸻
+
+REQUIRED
+
+1. Explicit ownership of route topology
+
+Right now §4 says
+
+relevant route
+
+but nowhere defines who owns the route graph.
+
+That matters because envelope spacing is meaningless unless the locomotive knows whether another locomotive is actually ahead.
+
+For example
+
+----switch----
+      \
+       siding
+
+Same MM values.
+
+Same direction.
+
+Completely different routes.
+
+Someone owns that truth.
+
+I’d add one sentence somewhere like
+
+Navigation owns topological position and route identity. Safety consumes that information but never infers topology itself.
+
+Otherwise different programmers could implement different route assumptions.
+
+⸻
+
+2. Separate “navigation validity” from “navigation authority”
+
+Several places use phrases like
+
+navigation confidence
+
+navigation validity
+
+Those are fine.
+
+But there is another concept:
+
+Can navigation currently authorize motion?
+
+Example:
+
+Hall sensor failed.
+
+Dispatcher positioned loco manually.
+
+Position known.
+
+Confidence moderate.
+
+Traffic ahead visible.
+
+Should movement continue?
+
+Maybe yes.
+
+Maybe no.
+
+Those are policy decisions.
+
+I’d explicitly distinguish
+
+Navigation knows where I am.
+
+versus
+
+Navigation currently authorizes autonomous motion.
+
+That distinction will become important later.
+
+⸻
+
+3. State machine for degraded traffic
+
+You intentionally left this unresolved.
+
+Good.
+
+But I think the spec should reserve it.
+
+Something like
+
+NORMAL
+↓
+PEER_STALE
+↓
+UNKNOWN_TRAFFIC
+↓
+PROTECTIVE_STOP
+
+Not define transitions.
+
+Just reserve the existence of a degradation state machine.
+
+Otherwise people will invent their own.
+
+⸻
+
+STRONG RECOMMENDATIONS
+
+⸻
+
+4. Safety should own prediction
+
+Section 8 discusses predictive slowing.
+
+Section 9 discusses predictive PWM.
+
+Those are two different predictions.
+
+I would distinguish them.
+
+Movement predicts:
+
+“I’ll need 3 more PWM.”
+
+Safety predicts:
+
+“Closing rate means I must start braking now.”
+
+Those are fundamentally different.
+
+Movement predicts itself.
+
+Safety predicts conflicts.
+
+Keeping those separate keeps the architecture cleaner.
+
+⸻
+
+5. Physical envelope should include uncertainty
+
+Right now
+
+front boundary
+rear boundary
+
+are deterministic.
+
+But later you’ll have
+
+±60 mm uncertainty.
+
+Instead of
+
+rear = 48"
+front =18"
+
+consider
+
+rear
+rear uncertainty
+front
+front uncertainty
+
+The envelope naturally expands as confidence falls.
+
+Then safety doesn’t need separate confidence math.
+
+The envelope already contains it.
+
+Very elegant.
+
+⸻
+
+6. Peer registry should not compute traffic
+
+Excellent separation already.
+
+I’d make it even more explicit.
+
+Peer registry stores facts.
+
+Safety computes relationships.
+
+Registry should never answer
+
+“who is ahead”
+
+Only
+
+“here are the peers.”
+
+That keeps it reusable.
+
+⸻
+
+7. Mission should never ask for PWM
+
+You imply this.
+
+I’d make it explicit.
+
+Mission requests
+
+Go here.
+Stop here.
+Wait.
+Resume.
+
+Movement owns speed.
+
+Safety owns permission.
+
+Mission never asks
+
+PWM 47
+
+This sounds obvious.
+
+Specs benefit from saying obvious things.
+
+⸻
+
+8. Dispatcher should never compute envelopes
+
+Again implied.
+
+Worth stating.
+
+Dispatcher declares
+
+Mission.
+Enrollment.
+Authority.
+
+Never
+
+Slow because Otto is close.
+
+That belongs onboard.
+
+⸻
+
+QUESTIONS
+
+⸻
+
+9. What is “running”?
+
+Broadcast contains
+
+running
+stopped
+motion
+
+Those are actually different.
+
+Example
+
+AUTO
+running
+waiting at station
+speed zero
+
+versus
+
+AUTO
+dispatcher STOP
+speed zero
+
+versus
+
+manual
+speed zero
+
+I suspect you’ll ultimately want
+
+mode
+authority
+motion
+mission state
+
+instead of a single running flag.
+
+⸻
+
+10. Sequence number wrap
+
+Tiny issue.
+
+Monotonic sequence.
+
+How many bits?
+
+What happens after wrap?
+
+Probably 16-bit with modular comparison.
+
+Worth defining eventually.
+
+⸻
+
+11. Time base
+
+Freshness.
+
+ESP uptime?
+
+millis()?
+
+RTC?
+
+Dispatcher time?
+
+Should eventually be defined.
+
+⸻
+
+12. Speed source
+
+Excellent hierarchy.
+
+I’d eventually consider separating
+
+speed estimate quality
+navigation quality
+
+They correlate.
+
+They’re not identical.
+
+⸻
+
+Small wording suggestions
+
+I particularly liked
+
+The turntable, not the record.
+
+I’d actually elevate that into a boxed design principle because it’s memorable.
+
+Likewise
+
+Unknown traffic is never treated as clear.
+
+I’d probably repeat it once more in the Safety section as a bold invariant.
+
+The repeated invariant becomes difficult for future contributors to accidentally violate.
+
+⸻
+
+One architectural idea I especially like
+
+The biggest improvement, in my opinion, is this sentence:
+
+The bubble is one mission.
+
+That’s the moment CTO3 stopped being “bubble software.”
+
+Everything before CTO2 tended to answer
+
+How do we make the bubble work?
+
+CTO3 answers
+
+How do we make autonomous trains work?
+
+Then the bubble becomes one customer of the architecture.
+
+That’s a much healthier direction because every subsystem has a reusable purpose.
+
+⸻
+
+Overall, I don’t see anything that fundamentally conflicts with the design philosophy you’ve been converging on over the past several months. Most of my comments are about tightening ownership boundaries and reserving interfaces for future work rather than changing the architecture itself. The specification reads like a framework that can support station stops, following, and future missions without having to rewrite the underlying control system.
