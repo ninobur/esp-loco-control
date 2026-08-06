@@ -31,10 +31,17 @@
  *
  * Three kinds of line:
  *
- *   PULSE #   42  int=  187ms  w=  41ms  peak=+312  raw=2054 base=1742 span= 480  OK
- *   IDLE          raw= 1741  base= 1742  span=  478  thr=+160/-160  pulses=42
+ *   PULSE #   42  int=  187ms  w=  41ms  peak= +312  raw=2054 fm= +480 base=2742 span= 980  OK
+ *   IDLE          raw=2741  env=2260/3240  seen=2231/3271  base=2750 span= 980  thr= +326/ +163  pulses=42
  *   STATS 10s  n=52 rate=5.2/s | int med=190 min=181 max=203 jit=6 | w med=42 |
- *              peak med=308 min=214 | sat=0 miss=0 | ~121mm/s
+ *              peak med=308 | fm med=+480 p10=+390 | sat=0 miss=0 latch=0 drops=0 | ~121mm/s
+ *   LATCH #  1  inPulse stuck 2501ms > 2500ms — pulse DISCARDED, no event
+ *
+ * fm is the falling-edge margin, thrLow minus raw at the fall: how far below
+ * the threshold the signal actually went. It is the number that predicts a
+ * latch — a small positive margin means noise is deciding which falls
+ * complete. env= is the rolling-percentile envelope, seen= the true min/max
+ * of the same window; when they disagree, the envelope is stale.
  *
  * PULSE is the event. IDLE proves the sensor is alive between events — the
  * single most useful line when nothing is happening, because "no output" and
@@ -116,6 +123,9 @@ struct PulseEvent {
   int      rawAtEdge;
   int      baseline;
   int      span;           // live contrast at the edge
+  int      fallMargin;     // thrLow - rawAtEdge at the fall: how much below
+                           // the threshold the signal actually went. Small
+                           // positive = marginal; this number predicts a latch
   uint8_t  quality;        // 0=UNAVAILABLE 1=MARGINAL 2=OK
   uint8_t  saturated;      // raw hit the ADC ceiling during this pulse
 };
@@ -138,8 +148,52 @@ const int      ADC_MAX          = 4095;
 const int      SATURATION_LEVEL = 4000;  // above this the sensor is blinded
 const int      MIN_USABLE_SPAN  = 120;   // below this, refuse to emit edges
 const int      MARGINAL_SPAN    = 300;   // below this, flag the read
-const uint32_t DECAY_INTERVAL_MS = 250;  // envelope relaxation cadence
-const int      DECAY_STEP        = 2;
+
+// ---------------------------------------------------------------------------
+// ENVELOPE — rolling percentiles, NOT latched extremes.
+//
+// The previous envelope latched the all-time min/max and relaxed them toward
+// the midpoint by DECAY_STEP (2) counts per 250 ms. One spurious extreme
+// poisoned it for minutes: on the 2026-08-05 finescale-wheel run a boot/wheel-
+// change transient anchored runMin ~2100 counts below anything the sensor was
+// actually seeing (base 1827, span 3528 => runMin ~63, against a signal that
+// never went below ~1900). Because both thresholds are fractions of span, the
+// inflated span dragged thrLow up to ~2415 against a real dark state of
+// ~2200 — a falling-edge margin of +164 median, +21 at p10, across 1170
+// pulses. Noise decided which falls completed; ~10% did not, and each miss
+// latched inPulse through every following spoke (observed widths 2621 and
+// 4073 ms).
+//
+// Now the bounds are the 5th and 95th PERCENTILES of the raw samples in a
+// rolling ~2 s window, recomputed every ENV_UPDATE_MS from a 256-bucket
+// histogram (O(1) per sample in/out, O(256) per update). Chosen over fast
+// asymmetric decay because it is robust BY CONSTRUCTION, not by tuned rate:
+// a single outlier sample moves a 5th percentile of 2048 samples by nothing
+// at all, and every sample ages out of the window in <= ~2 s. Replaying the
+// same 1170 pulses against these bounds gives a falling-edge margin of
+// ~+774 median, ~+603 at p10.
+//
+// A stationary wheel presents a flat trace, the percentiles converge, span
+// drops below MIN_USABLE_SPAN, and the sketch honestly reports NO USABLE
+// CONTRAST instead of emitting noise edges — for a diagnostic that is the
+// correct answer, and the moment the wheel turns the window refills within
+// two seconds.
+// ---------------------------------------------------------------------------
+const int      ENV_WIN_N     = 2048;     // samples in the window (~2 s @ 1 kHz)
+const int      ENV_PRIME_N   = 512;      // samples before edges may be emitted
+const uint32_t ENV_UPDATE_MS = 250;      // percentile recompute cadence
+const int      ENV_PCT_LO    = 5;        // runMin = this percentile
+const int      ENV_PCT_HI    = 95;       // runMax = this percentile
+
+// LATCH TIMEOUT — inPulse must not be able to stay true forever. Every
+// genuine width in the 2026-08-05 log is under ~210 ms; the two latch
+// artefacts were 2621 and 4073 ms. 2500 ms sits an order of magnitude above
+// any real pulse (even the stale 2-flag constants at a 20 mm/s creep bound
+// give ~2.9 s for a HALF revolution, and no optical feature spans half the
+// wheel) while catching every latch this sensor has produced. On expiry the
+// incomplete pulse is DISCARDED — no event, no interval, no width. A
+// 4-second "pulse" entering the record is worse than no data.
+const uint32_t LATCH_TIMEOUT_MS = 2500;
 
 const uint32_t IDLE_PRINT_MS  = 2000;    // "sensor is alive" heartbeat
 const uint32_t STATS_PRINT_MS = 10000;   // rolling summary
@@ -169,6 +223,17 @@ static volatile int      lastBaseline = 0;
 static volatile int      lastSpan = 0;
 static volatile uint32_t satSamples = 0;   // ADC ceiling hits since boot
 
+// Envelope bounds and the ACTUAL observed extremes of the same window, both
+// for the IDLE line — a stale bound is visible at a glance when env and seen
+// disagree, instead of being inferred from arithmetic three hours later.
+static volatile int lastRunMin = 0, lastRunMax = 0;   // percentile bounds
+static volatile int lastSeenMin = 0, lastSeenMax = 0; // true window min/max
+
+// Latch-timeout accounting. Counter is monotonic and published in STATS;
+// loop() watches it to print a LATCH line with the duration.
+static volatile uint32_t latchTimeouts  = 0;
+static volatile uint32_t lastLatchDurMs = 0;
+
 // ---------------------------------------------------------------------------
 // emit() — ONE line, to BOTH pipes, identically. Serial always; MQTT when a
 // radio is compiled in. Never blocks: the MQTT side only enqueues.
@@ -191,8 +256,16 @@ static void emit(const char* line) {
 // SENSOR TASK — 1 kHz, core 0, priority 2. Everything about a pulse is
 // captured HERE, at the edge, and travels with the event.
 // ===========================================================================
-static int  runMin = ADC_MAX, runMax = 0;
-static bool envelopePrimed = false;
+static int  runMin = 0, runMax = 0;      // percentile bounds; valid once primed
+static bool envelopePrimed = false;      // ENV_PRIME_N samples in the window
+
+// Rolling-window histogram. Samples are stored as 256-bucket indices
+// (raw >> 4, 16 counts per bucket) so the window costs 2 KB and a percentile
+// is an O(256) cumulative scan. Bucket resolution (16 counts) is noise-level
+// against margins measured in hundreds.
+static uint8_t  envWin[ENV_WIN_N];
+static uint16_t envHist[256];
+static int      envWinIdx = 0, envWinFilled = 0;
 
 static uint8_t qualityFromSpan(int span) {
   if (span < MIN_USABLE_SPAN) return 0;
@@ -203,7 +276,7 @@ static uint8_t qualityFromSpan(int span) {
 static void sensorTask(void*) {
   bool     inPulse = false;
   uint32_t lastEdgeMicros = 0, pulseStartMicros = 0, pulseStartMs = 0;
-  uint32_t prevRiseMs = 0, lastDecayMs = millis();
+  uint32_t prevRiseMs = 0, lastEnvUpdateMs = millis();
   int      peakDelta = 0;
   bool     sawSaturation = false;
 
@@ -214,30 +287,72 @@ static void sensorTask(void*) {
 
     if (raw >= SATURATION_LEVEL) { satSamples++; sawSaturation = true; }
 
-    // --- adaptive envelope: follows rising ambient and fading contrast ---
-    if (!envelopePrimed) { runMin = runMax = raw; envelopePrimed = true; }
-    if (raw < runMin) runMin = raw;
-    if (raw > runMax) runMax = raw;
-    if (now - lastDecayMs >= DECAY_INTERVAL_MS) {
-      lastDecayMs = now;
-      int mid = (runMin + runMax) / 2;
-      if (runMin < mid - DECAY_STEP) runMin += DECAY_STEP;
-      if (runMax > mid + DECAY_STEP) runMax -= DECAY_STEP;
+    // --- envelope window: sample in, oldest out, histogram in step --------
+    uint8_t bucket = (uint8_t)(raw >> 4);
+    if (envWinFilled == ENV_WIN_N) envHist[envWin[envWinIdx]]--;
+    envWin[envWinIdx] = bucket;
+    envHist[bucket]++;
+    envWinIdx = (envWinIdx + 1) % ENV_WIN_N;
+    if (envWinFilled < ENV_WIN_N) envWinFilled++;
+
+    // --- percentile bounds, recomputed every ENV_UPDATE_MS ----------------
+    if (now - lastEnvUpdateMs >= ENV_UPDATE_MS && envWinFilled >= 64) {
+      lastEnvUpdateMs = now;
+      int total   = envWinFilled;
+      int needLo  = (total * ENV_PCT_LO)  / 100;
+      int needHi  = (total * ENV_PCT_HI) / 100;
+      int cum = 0, pLo = -1, pHi = -1, seenLo = -1, seenHi = -1;
+      for (int b = 0; b < 256; b++) {
+        int c = envHist[b];
+        if (c == 0) continue;
+        if (seenLo < 0) seenLo = b;
+        seenHi = b;
+        cum += c;
+        if (pLo < 0 && cum > needLo)  pLo = b;
+        if (pHi < 0 && cum >= needHi) pHi = b;
+      }
+      if (pLo >= 0 && pHi >= 0) {
+        runMin = pLo * 16;                 // bucket floor
+        runMax = pHi * 16 + 15;            // bucket ceiling
+        lastRunMin  = runMin;  lastRunMax  = runMax;
+        lastSeenMin = seenLo * 16;         // true observed extremes of the
+        lastSeenMax = seenHi * 16 + 15;    //   same window, for the IDLE line
+      }
+      envelopePrimed = (envWinFilled >= ENV_PRIME_N);
     }
+
     int span     = runMax - runMin;
     int baseline = (runMin + runMax) / 2;
     lastSpan = span; lastBaseline = baseline;
     uint8_t quality = qualityFromSpan(span);
 
-    // A collapsed envelope means peeling tape, a dirty lens, or no target.
-    // Emitting edges out of noise at high rate is worse than saying nothing;
-    // the IDLE line keeps reporting so the failure stays visible.
-    if (quality == 0) { inPulse = false; vTaskDelay(pdMS_TO_TICKS(SENSOR_TICK_MS)); continue; }
+    // No edges before the window has a real population, and none from a
+    // collapsed span. A flat trace (stationary wheel, dead optical path)
+    // converges the percentiles, span drops below the floor, and the IDLE
+    // line reports NO USABLE CONTRAST — which for a diagnostic is the truth,
+    // not a failure to be papered over.
+    if (!envelopePrimed || quality == 0) {
+      inPulse = false;
+      vTaskDelay(pdMS_TO_TICKS(SENSOR_TICK_MS));
+      continue;
+    }
 
     int thrHigh = baseline + span / 3;
     int thrLow  = baseline + span / 6;
     uint32_t nowMicros = micros();
     int delta = raw - baseline;
+
+    // --- latch timeout: inPulse cannot stay true forever ------------------
+    // The incomplete pulse is DISCARDED: no event, and prevRiseMs is cleared
+    // so the next completed pulse cannot compute an interval spanning the
+    // latch. The eventual artificial fall finds inPulse already false and
+    // emits nothing.
+    if (inPulse && (uint32_t)(now - pulseStartMs) > LATCH_TIMEOUT_MS) {
+      inPulse = false;
+      prevRiseMs = 0;
+      lastLatchDurMs = now - pulseStartMs;
+      latchTimeouts  = latchTimeouts + 1;   // plain add: volatile-safe
+    }
 
     if (!inPulse) {
       if (raw > thrHigh && (nowMicros - lastEdgeMicros) > DEBOUNCE_US) {
@@ -262,6 +377,7 @@ static void sensorTask(void*) {
         e.rawAtEdge    = raw;
         e.baseline     = baseline;
         e.span         = span;
+        e.fallMargin   = thrLow - raw;     // the number that predicts a latch
         e.quality      = quality;
         e.saturated    = sawSaturation ? 1 : 0;
         prevRiseMs = pulseStartMs;
@@ -277,9 +393,20 @@ static void sensorTask(void*) {
 // ===========================================================================
 const int WIN = 64;
 static uint32_t winInterval[WIN], winWidth[WIN];
-static int      winPeak[WIN];
+static int      winPeak[WIN], winFallM[WIN];
 static int      winLen = 0, winIdx = 0;
 static uint32_t statPulses = 0, statSat = 0, statMiss = 0;
+
+// Signed percentile over the window — used for fallMargin, where the sign IS
+// the finding (medInt() takes abs(), which would hide a negative margin).
+static int pctIntSigned(int* src, int n, int pct) {
+  if (n <= 0) return 0;
+  int t[WIN];
+  for (int i = 0; i < n; i++) t[i] = src[i];
+  for (int i = 1; i < n; i++) { int k = t[i]; int j = i-1;
+    while (j >= 0 && t[j] > k) { t[j+1] = t[j]; j--; } t[j+1] = k; }
+  return t[(n * pct) / 100];
+}
 
 static uint32_t medU32(uint32_t* src, int n) {
   if (n <= 0) return 0;
@@ -309,6 +436,7 @@ static void windowPush(const PulseEvent& e) {
   }
   winWidth[winIdx] = e.widthMs;
   winPeak[winIdx]  = e.peakDelta;
+  winFallM[winIdx] = e.fallMargin;
   winIdx = (winIdx + 1) % WIN;
   if (winLen < WIN) winLen++;
   statPulses++;
@@ -418,24 +546,45 @@ void loop() {
     lastPulseMs = millis();
     const char* q = (e.quality == 2) ? "OK" : (e.quality == 1 ? "MARGINAL" : "UNAVAIL");
     snprintf(b, sizeof(b),
-      "PULSE #%5lu  int=%5lums  w=%4lums  peak=%+5d  raw=%4d base=%4d span=%4d  %s%s",
+      "PULSE #%5lu  int=%5lums  w=%4lums  peak=%+5d  raw=%4d fm=%+5d base=%4d span=%4d  %s%s",
       (unsigned long)e.seq, (unsigned long)e.intervalMs, (unsigned long)e.widthMs,
-      e.peakDelta, e.rawAtEdge, e.baseline, e.span, q,
+      e.peakDelta, e.rawAtEdge, e.fallMargin, e.baseline, e.span, q,
       e.saturated ? "  *SATURATED*" : "");
     emit(b);
+  }
+
+  // LATCH — the sampler discarded a pulse that would not end. Printed here
+  // because only loop() may emit; the discard itself already happened at the
+  // tick, and nothing about the aborted pulse entered the record.
+  {
+    static uint32_t seenLatchTimeouts = 0;
+    uint32_t lt = latchTimeouts;   // one volatile read
+    if (lt != seenLatchTimeouts) {
+      seenLatchTimeouts = lt;
+      snprintf(b, sizeof(b),
+        "LATCH #%3lu  inPulse stuck %lums > %lums — pulse DISCARDED, no event",
+        (unsigned long)lt, (unsigned long)lastLatchDurMs,
+        (unsigned long)LATCH_TIMEOUT_MS);
+      emit(b);
+    }
   }
 
   uint32_t now = millis();
 
   // IDLE — proves the sensor is alive between pulses. Without this line, "no
   // output" and "no pulses" are indistinguishable, which is exactly how a
-  // dead optical path gets mistaken for a stopped wheel.
+  // dead optical path gets mistaken for a stopped wheel. env= is the
+  // percentile envelope; seen= is the true min/max of the same window — when
+  // they disagree by more than a bucket or two, the envelope is stale, and
+  // that is visible at a glance instead of via arithmetic three hours later.
   if (now - lastIdlePrint >= IDLE_PRINT_MS) {
     lastIdlePrint = now;
     int span = lastSpan, base = lastBaseline;
     snprintf(b, sizeof(b),
-      "IDLE          raw=%4d  base=%4d  span=%4d  thr=%+4d/%+4d  pulses=%lu%s",
-      (int)lastRaw, base, span, span/3, span/6, (unsigned long)pulseCount,
+      "IDLE          raw=%4d  env=%4d/%4d  seen=%4d/%4d  base=%4d span=%4d  thr=%+5d/%+5d  pulses=%lu%s",
+      (int)lastRaw, (int)lastRunMin, (int)lastRunMax,
+      (int)lastSeenMin, (int)lastSeenMax, base, span, span/3, span/6,
+      (unsigned long)pulseCount,
       qualityFromSpan(span) == 0 ? "   <-- NO USABLE CONTRAST" : "");
     emit(b);
   }
@@ -461,12 +610,14 @@ void loop() {
                ? (1000.0f / medInt_) / SPOKES_PER_WHEEL * WHEEL_CIRCUMFERENCE_MM : 0.0f;
     snprintf(b, sizeof(b),
       "STATS %2lus  n=%lu rate=%.1f/s | int med=%lu min=%lu max=%lu jit=%lu | w med=%lu | "
-      "peak med=%d | sat=%lu miss=%lu drops=%lu | ~%.0fmm/s ~%.1fpkph",
+      "peak med=%d | fm med=%+d p10=%+d | sat=%lu miss=%lu latch=%lu drops=%lu | ~%.0fmm/s ~%.1fpkph",
       (unsigned long)(elapsed/1000), (unsigned long)statPulses, rate,
       (unsigned long)medInt_, (unsigned long)mn, (unsigned long)mx,
       (unsigned long)(mx > mn ? mx - mn : 0), (unsigned long)medW,
-      medP, (unsigned long)statSat, (unsigned long)statMiss,
-      (unsigned long)eventDrops, mmps, mmps / PKPH_MM_PER_SEC);
+      medP, pctIntSigned(winFallM, winLen, 50), pctIntSigned(winFallM, winLen, 10),
+      (unsigned long)statSat, (unsigned long)statMiss,
+      (unsigned long)latchTimeouts, (unsigned long)eventDrops,
+      mmps, mmps / PKPH_MM_PER_SEC);
     emit(b);
     statPulses = 0; statSat = 0; statMiss = 0;
   }
