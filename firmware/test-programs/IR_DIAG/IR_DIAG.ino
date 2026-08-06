@@ -234,6 +234,12 @@ static volatile int lastSeenMin = 0, lastSeenMax = 0; // true window min/max
 static volatile uint32_t latchTimeouts  = 0;
 static volatile uint32_t lastLatchDurMs = 0;
 
+// Contrast-loss discards: the envelope collapsed (or was not yet primed)
+// while a pulse was open or an interval anchor stood, and both were thrown
+// away rather than letting the first post-blind pulse report an interval
+// spanning the outage. Distinct from latchTimeouts. Published in STATS.
+static volatile uint32_t contrastLosses = 0;
+
 // ---------------------------------------------------------------------------
 // emit() — ONE line, to BOTH pipes, identically. Serial always; MQTT when a
 // radio is compiled in. Never blocks: the MQTT side only enqueues.
@@ -331,8 +337,19 @@ static void sensorTask(void*) {
     // converges the percentiles, span drops below the floor, and the IDLE
     // line reports NO USABLE CONTRAST — which for a diagnostic is the truth,
     // not a failure to be papered over.
+    //
+    // The interval anchor dies here too. Clearing only inPulse left
+    // prevRiseMs pointing at the last pulse BEFORE the blind period, so the
+    // first pulse after it reported an interval spanning the whole outage —
+    // arriving dressed as a normal measurement. Corrupting the record is
+    // worse than failing. Counted once per episode (the guard below is
+    // false again after the clear), distinct from latchTimeouts.
     if (!envelopePrimed || quality == 0) {
-      inPulse = false;
+      if (inPulse || prevRiseMs != 0) {
+        contrastLosses = contrastLosses + 1;   // plain add: volatile-safe
+        inPulse = false;
+        prevRiseMs = 0;
+      }
       vTaskDelay(pdMS_TO_TICKS(SENSOR_TICK_MS));
       continue;
     }
@@ -610,13 +627,14 @@ void loop() {
                ? (1000.0f / medInt_) / SPOKES_PER_WHEEL * WHEEL_CIRCUMFERENCE_MM : 0.0f;
     snprintf(b, sizeof(b),
       "STATS %2lus  n=%lu rate=%.1f/s | int med=%lu min=%lu max=%lu jit=%lu | w med=%lu | "
-      "peak med=%d | fm med=%+d p10=%+d | sat=%lu miss=%lu latch=%lu drops=%lu | ~%.0fmm/s ~%.1fpkph",
+      "peak med=%d | fm med=%+d p10=%+d | sat=%lu miss=%lu latch=%lu closs=%lu drops=%lu | ~%.0fmm/s ~%.1fpkph",
       (unsigned long)(elapsed/1000), (unsigned long)statPulses, rate,
       (unsigned long)medInt_, (unsigned long)mn, (unsigned long)mx,
       (unsigned long)(mx > mn ? mx - mn : 0), (unsigned long)medW,
       medP, pctIntSigned(winFallM, winLen, 50), pctIntSigned(winFallM, winLen, 10),
       (unsigned long)statSat, (unsigned long)statMiss,
-      (unsigned long)latchTimeouts, (unsigned long)eventDrops,
+      (unsigned long)latchTimeouts, (unsigned long)contrastLosses,
+      (unsigned long)eventDrops,
       mmps, mmps / PKPH_MM_PER_SEC);
     emit(b);
     statPulses = 0; statSat = 0; statMiss = 0;
