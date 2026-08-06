@@ -1,10 +1,22 @@
 # IR_TEST — two structural fixes: speed filter and adaptive envelope
 
+> **SUPERSEDED, 2026-08-05 (same day).** The schema and behaviour described
+> below were replaced by the state/reacquisition pass before ever flying:
+> the revolution-time median became an **interval** median, the `STOPPED`
+> event no longer exists (replaced by `TIMEOUT`/`LATCH_TIMEOUT` with
+> `state` and nullable speeds), `telem/status` gained the envelope
+> diagnostics, and Change B's pulse-gated decay — whose deadlock is
+> analysed in IR_SENSOR_NOTES — became activity-gated. **Do not check a
+> parser against this document.** Current schema:
+> `IR_TEST_STATE_AND_REACQUISITION.md` §4, plus the unverified-envelope
+> NVS guard added 2026-08-06 (commit `dcf3936`). This file is retained as
+> the record of the first pass and its field test.
+
 **Date:** 2026-08-05
 **Sketch:** `firmware/test-programs/IR_TEST/IR_TEST.ino` (formerly `Spoke_IR_RSSI_survey_v2`)
 **Node:** `IR_SPEED_SENSOR` — unchanged
 **Commits:** `24a55e3` (Change A), `dcbada0` (Change B), `73e93d5` (rename)
-**Status:** built, simulated, **not flashed** — held for Sam's review.
+**Status:** superseded same day — see banner above.
 
 Two independent faults, deliberately committed separately so they can be
 flashed and field-tested one at a time. Either can ship without the other.
