@@ -519,6 +519,12 @@ waveform currently passing the sensor. The test that detects it compares recent
 local raw range against the thresholds derived from the long-term envelope —
 not the envelope's absolute width.
 
+> **Third instance, 2026-08-06.** The same failure shape recurred as a
+> plausible non-zero speed published from pure ADC noise with a correct
+> `MARGINAL` label beside it. The resulting production requirement — quality
+> must *suppress* the speed output, not annotate it — is
+> [`IR_DEV_REQ/QUALITY_GATES_SPEED_OUTPUT.md`](IR_DEV_REQ/QUALITY_GATES_SPEED_OUTPUT.md).
+
 ### Reacquisition deadlock
 
 Gating envelope decay on a *completed pulse* removed the only recovery path for
