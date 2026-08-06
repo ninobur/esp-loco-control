@@ -1245,14 +1245,38 @@ void loop() {
     uint32_t lr = lastRiseMs;   // one volatile read
     if (lr != 0 && (uint32_t)(millis() - lr) > SPEED_TIMEOUT_MS &&
         speedState != SS_UNAVAILABLE && speedState != SS_STOPPED) {
+      SpeedState priorState = speedState;   // what we were BEFORE the silence
       resetIntervalBuffer();
       speedState = motionWitnessSaysStopped() ? SS_STOPPED : SS_UNAVAILABLE;
 
-      // The edge-silence transition is the only place NVS is written. The
-      // state guard above goes false on this pass and cannot go true again
-      // until a new pulse arrives, so this fires exactly once per silence —
-      // never in a loop, never on the capture path.
-      saveEnvelope();
+      // The edge-silence transition is the only place NVS is written — but
+      // ONLY for an envelope with evidence it was working. Saving
+      // unconditionally persisted the very envelope that caused a blind
+      // episode, restoring the failure across reboots: the system kept the
+      // state that broke it (same family as the reacquisition deadlock).
+      //
+      // Trustworthy means BOTH:
+      //   * the trace is FLAT right now (lastLocalRange below the activity
+      //     floor) — a genuinely stopped wheel presents a constant; a
+      //     blind-while-moving sensor presents a varying trace, which is the
+      //     exact signature the quality logic already keys on. Activity is
+      //     the motion witness this car has.
+      //   * the state before the silence was VALID — edges were flowing
+      //     through a full median window right up to the stop, so the
+      //     envelope demonstrably matched the signal seconds ago.
+      // A verified STOPPED (witness-equipped build) also qualifies.
+      // UNAVAILABLE with activity, or a silence out of REACQUIRING, saves
+      // nothing: better to boot with last-known-good (or cold prime) than
+      // with a bound that just went blind.
+      bool envTrustworthy =
+          (speedState == SS_STOPPED) ||
+          (priorState == SS_VALID && lastLocalRange < ACTIVITY_MIN_RANGE);
+      if (envTrustworthy) {
+        saveEnvelope();
+      } else {
+        Serial.printf("[ENV] not saved: silence out of %s with local_range=%d — unverified\n",
+                      speedStateName(priorState), (int)lastLocalRange);
+      }
 
       // Entry to UNAVAILABLE: capture what the waveform was doing across the
       // silence. On a genuine stop this shows the run-down; on a blind
