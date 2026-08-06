@@ -126,6 +126,11 @@ struct PulseEvent {
   int      fallMargin;     // thrLow - rawAtEdge at the fall: how much below
                            // the threshold the signal actually went. Small
                            // positive = marginal; this number predicts a latch
+  int      riseMargin;     // rawAtRise - thrHigh at the rise: how far the
+                           // first supra-threshold sample cleared the rising
+                           // threshold. The rising-edge counterpart of
+                           // fallMargin — which edge governs is the open
+                           // question the daylight run answers
   uint8_t  quality;        // 0=UNAVAILABLE 1=MARGINAL 2=OK
   uint8_t  saturated;      // raw hit the ADC ceiling during this pulse
 };
@@ -284,6 +289,7 @@ static void sensorTask(void*) {
   uint32_t lastEdgeMicros = 0, pulseStartMicros = 0, pulseStartMs = 0;
   uint32_t prevRiseMs = 0, lastEnvUpdateMs = millis();
   int      peakDelta = 0;
+  int      riseMarginAtRise = 0;   // captured at the rise, travels to the emit
   bool     sawSaturation = false;
 
   for (;;) {
@@ -385,6 +391,7 @@ static void sensorTask(void*) {
         pulseStartMicros = nowMicros;
         pulseStartMs = now;
         peakDelta = delta;
+        riseMarginAtRise = raw - thrHigh;   // margin at the moment of crossing
         sawSaturation = (raw >= SATURATION_LEVEL);
         pulseCount++;
       }
@@ -402,6 +409,7 @@ static void sensorTask(void*) {
         e.baseline     = baseline;
         e.span         = span;
         e.fallMargin   = thrLow - raw;     // the number that predicts a latch
+        e.riseMargin   = riseMarginAtRise;
         e.quality      = quality;
         e.saturated    = sawSaturation ? 1 : 0;
         prevRiseMs = pulseStartMs;
@@ -417,9 +425,39 @@ static void sensorTask(void*) {
 // ===========================================================================
 const int WIN = 64;
 static uint32_t winInterval[WIN], winWidth[WIN];
-static int      winPeak[WIN], winFallM[WIN];
+static int      winPeak[WIN], winFallM[WIN], winRiseM[WIN];
 static int      winLen = 0, winIdx = 0;
 static uint32_t statPulses = 0, statSat = 0, statMiss = 0;
+
+// ---------------------------------------------------------------------------
+// SPOKE-PHASE BREAKDOWN — the instrument that decides the daylight run.
+//
+// A rolling phase index (0..SPOKES_PER_WHEEL-1) advances on every consumed
+// pulse and RESETS on any discard (latch timeout or contrast loss), so a
+// phase histogram is never silently assembled across a blind period —
+// alignment before and after a gap is unknowable, and mixing them would
+// smear a phase-locked weakness flat. Absolute alignment to a physical spoke
+// is arbitrary (there is no index mark); the RELATIVE profile is the finding:
+// seven uniform spokes should be flat, and runout, sensor angle, or one bad
+// spoke shows as one or two phases with markedly lower margins — directly,
+// instead of being inferred from interval ratios hours later.
+//
+// Per-phase rm/fm accumulate over each STATS period (last PHASE_BUF of each
+// kept for the median), printed as one PHASE line per phase, then cleared.
+// ---------------------------------------------------------------------------
+const int PHASE_BUF = 32;
+static int      phaseRm[SPOKES_PER_WHEEL][PHASE_BUF];
+static int      phaseFm[SPOKES_PER_WHEEL][PHASE_BUF];
+static uint32_t phaseN[SPOKES_PER_WHEEL];
+static int      phaseIdx = 0;
+static bool     phaseRestarted = false;   // a discard occurred this window
+
+static void phaseReset(bool clearStats) {
+  phaseIdx = 0;
+  if (clearStats) {
+    for (int p = 0; p < SPOKES_PER_WHEEL; p++) phaseN[p] = 0;
+  }
+}
 
 // Signed percentile over the window — used for fallMargin, where the sign IS
 // the finding (medInt() takes abs(), which would hide a negative margin).
@@ -461,10 +499,19 @@ static void windowPush(const PulseEvent& e) {
   winWidth[winIdx] = e.widthMs;
   winPeak[winIdx]  = e.peakDelta;
   winFallM[winIdx] = e.fallMargin;
+  winRiseM[winIdx] = e.riseMargin;
   winIdx = (winIdx + 1) % WIN;
   if (winLen < WIN) winLen++;
   statPulses++;
   if (e.saturated) statSat++;
+
+  // Phase accumulation: this pulse belongs to the current phase slot, then
+  // the index advances. Ring-overwrite keeps the last PHASE_BUF per phase.
+  int p = phaseIdx;
+  phaseRm[p][phaseN[p] % PHASE_BUF] = e.riseMargin;
+  phaseFm[p][phaseN[p] % PHASE_BUF] = e.fallMargin;
+  phaseN[p]++;
+  phaseIdx = (phaseIdx + 1) % SPOKES_PER_WHEEL;
 }
 
 // ===========================================================================
@@ -565,24 +612,15 @@ void loop() {
   char b[224];
   PulseEvent e;
 
-  while (eventQueue && xQueueReceive(eventQueue, &e, 0) == pdTRUE) {
-    windowPush(e);
-    lastPulseMs = millis();
-    const char* q = (e.quality == 2) ? "OK" : (e.quality == 1 ? "MARGINAL" : "UNAVAIL");
-    snprintf(b, sizeof(b),
-      "PULSE #%5lu  int=%5lums  w=%4lums  peak=%+5d  raw=%4d fm=%+5d base=%4d span=%4d  %s%s",
-      (unsigned long)e.seq, (unsigned long)e.intervalMs, (unsigned long)e.widthMs,
-      e.peakDelta, e.rawAtEdge, e.fallMargin, e.baseline, e.span, q,
-      e.saturated ? "  *SATURATED*" : "");
-    emit(b);
-  }
-
-  // LATCH — the sampler discarded a pulse that would not end. Printed here
-  // because only loop() may emit; the discard itself already happened at the
-  // tick, and nothing about the aborted pulse entered the record.
+  // DISCARD WATCHER — before the drain, so a blind episode that just ended
+  // resets the phase index before the first post-blind pulse is indexed.
+  // Latch timeouts also print their line here (only loop() may emit; the
+  // discard itself already happened at the tick, and nothing about the
+  // aborted pulse entered the record). Contrast losses reset phase silently;
+  // their count rides STATS as closs=.
   {
     static uint32_t seenLatchTimeouts = 0;
-    uint32_t lt = latchTimeouts;   // one volatile read
+    uint32_t lt = latchTimeouts, cl = contrastLosses;   // one read each
     if (lt != seenLatchTimeouts) {
       seenLatchTimeouts = lt;
       snprintf(b, sizeof(b),
@@ -591,6 +629,29 @@ void loop() {
         (unsigned long)LATCH_TIMEOUT_MS);
       emit(b);
     }
+    if (lt != 0 || cl != 0) {
+      static uint32_t seenAny = 0;
+      if (lt + cl != seenAny) {
+        seenAny = lt + cl;
+        // Phase alignment across a gap is unknowable: restart the index and
+        // drop this window's per-phase data rather than smear a phase-locked
+        // weakness flat with misaligned samples.
+        phaseReset(true);
+        phaseRestarted = true;
+      }
+    }
+  }
+
+  while (eventQueue && xQueueReceive(eventQueue, &e, 0) == pdTRUE) {
+    windowPush(e);
+    lastPulseMs = millis();
+    const char* q = (e.quality == 2) ? "OK" : (e.quality == 1 ? "MARGINAL" : "UNAVAIL");
+    snprintf(b, sizeof(b),
+      "PULSE #%5lu  int=%5lums  w=%4lums  peak=%+5d  raw=%4d rm=%+5d fm=%+5d base=%4d span=%4d  %s%s",
+      (unsigned long)e.seq, (unsigned long)e.intervalMs, (unsigned long)e.widthMs,
+      e.peakDelta, e.rawAtEdge, e.riseMargin, e.fallMargin, e.baseline, e.span, q,
+      e.saturated ? "  *SATURATED*" : "");
+    emit(b);
   }
 
   uint32_t now = millis();
@@ -634,16 +695,34 @@ void loop() {
                ? (1000.0f / medInt_) / SPOKES_PER_WHEEL * WHEEL_CIRCUMFERENCE_MM : 0.0f;
     snprintf(b, sizeof(b),
       "STATS %2lus  n=%lu rate=%.1f/s | int med=%lu min=%lu max=%lu jit=%lu | w med=%lu | "
-      "peak med=%d | fm med=%+d p10=%+d | sat=%lu miss=%lu latch=%lu closs=%lu drops=%lu | ~%.0fmm/s ~%.1fpkph",
+      "peak med=%d | rm med=%+d p10=%+d | fm med=%+d p10=%+d | sat=%lu miss=%lu latch=%lu closs=%lu drops=%lu | ~%.0fmm/s ~%.1fpkph",
       (unsigned long)(elapsed/1000), (unsigned long)statPulses, rate,
       (unsigned long)medInt_, (unsigned long)mn, (unsigned long)mx,
       (unsigned long)(mx > mn ? mx - mn : 0), (unsigned long)medW,
-      medP, pctIntSigned(winFallM, winLen, 50), pctIntSigned(winFallM, winLen, 10),
+      medP, pctIntSigned(winRiseM, winLen, 50), pctIntSigned(winRiseM, winLen, 10),
+      pctIntSigned(winFallM, winLen, 50), pctIntSigned(winFallM, winLen, 10),
       (unsigned long)statSat, (unsigned long)statMiss,
       (unsigned long)latchTimeouts, (unsigned long)contrastLosses,
       (unsigned long)eventDrops,
       mmps, mmps / PKPH_MM_PER_SEC);
     emit(b);
+
+    // PHASE — one line per spoke phase: median rm/fm and the sample count.
+    // Only meaningful while pulses were contiguous; if a discard restarted
+    // the index this window, say so rather than print misaligned data.
+    if (phaseRestarted) {
+      emit("PHASE  note: index restarted after a discard this window — per-phase data dropped");
+      phaseRestarted = false;
+    }
+    for (int p = 0; p < SPOKES_PER_WHEEL; p++) {
+      int n = (phaseN[p] > (uint32_t)PHASE_BUF) ? PHASE_BUF : (int)phaseN[p];
+      if (n == 0) continue;
+      snprintf(b, sizeof(b), "PHASE %2d: rm %+4d fm %+4d  n=%lu",
+               p, pctIntSigned(phaseRm[p], n, 50), pctIntSigned(phaseFm[p], n, 50),
+               (unsigned long)phaseN[p]);
+      emit(b);
+      phaseN[p] = 0;   // windowed, like the STATS counters
+    }
     statPulses = 0; statSat = 0; statMiss = 0;
   }
 
