@@ -31,19 +31,26 @@
  *
  * Three kinds of line:
  *
- *   PULSE #   42  int=  187ms  w=  41ms  peak= +312  raw=2054 rm= +410 fm= +480 base=2742 span= 980  OK
+ *   PULSE #   42  int=  187ms  w=  41ms  peak= +312  raw=2054 rm= +410 fm= +480 rh= +610 fh= +530 base=2742 span= 980  OK
  *   IDLE          raw=2741  env=2260/3240  seen=2231/3271  base=2750 span= 980  thr= +163/ -163  pulses=42
  *   STATS 10s  n=52 rate=5.2/s | int med=190 min=181 max=203 jit=6 | w med=42 |
- *              peak med=308 | rm med=+410 p10=+330 | fm med=+480 p10=+390 |
+ *              peak med=308 | rh med=+610 p10=+480 | fh med=+530 p10=+410 |
  *              sat=0 miss=0 latch=0 closs=0 drops=0 | ~121mm/s
- *   PHASE  0: rm +412 fm +788  n=41       (one line per spoke phase, after STATS)
+ *   PHASE  0: rh +612 fh +588  n=41       (one line per spoke phase, after STATS)
  *   LATCH #  1  w=2501ms fm= -210 rm= -105 base=2750 span= 980 — pulse DISCARDED, no event
  *
- * fm is the falling-edge margin (thrLow minus raw at the fall), rm the rising
- * margin (raw minus thrHigh at the rise): how far each crossing cleared its
- * threshold. Small positive margins mean noise is deciding which edges
- * complete; which of the two sits lower tells you which edge governs. The
- * PHASE lines break both down by spoke position — seven uniform spokes
+ * TWO FAMILIES OF EDGE NUMBER, deliberately distinct:
+ *   rm/fm  crossing margins — how far past its threshold each detected edge
+ *          landed. Edge-slew measurements. SURVIVOR-BIASED: a pulse exists
+ *          only because it crossed, so rm is positive by construction and a
+ *          healthy rm median can coexist with weak spokes vanishing.
+ *   rh/fh  headrooms — pulse PEAK above the rising bar (rh) and preceding
+ *          gap TROUGH below the falling bar (fh), both against the
+ *          thresholds in force at the rise. These see how close the summit
+ *          and floor come to the bars, so a weakening spoke shows a
+ *          shrinking rh BEFORE it disappears. STATS and PHASE report
+ *          headrooms; that is what decides which threshold is binding.
+ * The PHASE lines break rh/fh down by spoke position — seven uniform spokes
  * should be flat, and a phase-locked dip is runout, sensor angle, or one bad
  * spoke, seen directly. env= is the rolling-percentile envelope, seen= the
  * true min/max of the same window; when they disagree, the envelope is
@@ -132,11 +139,22 @@ struct PulseEvent {
   int      fallMargin;     // thrLow - rawAtEdge at the fall: how much below
                            // the threshold the signal actually went. Small
                            // positive = marginal; this number predicts a latch
-  int      riseMargin;     // rawAtRise - thrHigh at the rise: how far the
-                           // first supra-threshold sample cleared the rising
-                           // threshold. The rising-edge counterpart of
-                           // fallMargin — which edge governs is the open
-                           // question the daylight run answers
+  int      riseMargin;     // rawAtRise - thrHigh at the rise: crossing
+                           // overshoot, an edge-SLEW measurement. Survivor-
+                           // biased by construction — the event only exists
+                           // because raw exceeded thrHigh, so rm is always
+                           // positive and says nothing about spokes that
+                           // never crossed. Do not use it to choose
+                           // thresholds; that is what the headrooms are for.
+  int      riseHeadroom;   // pulse PEAK minus thrHigh (at-rise threshold):
+                           // how much this spoke's summit cleared the rising
+                           // bar. A weak spoke shows a small rh even when
+                           // detected; the rh distribution's low tail points
+                           // at the spokes that are being lost.
+  int      fallHeadroom;   // thrLow (at-rise) minus the TROUGH of the gap
+                           // preceding this rise: how far the dark state
+                           // dipped below the falling bar. The falling-edge
+                           // counterpart, immune to the same survivor bias.
   uint8_t  quality;        // 0=UNAVAILABLE 1=MARGINAL 2=OK
   uint8_t  saturated;      // raw hit the ADC ceiling during this pulse
 };
@@ -322,6 +340,10 @@ static void sensorTask(void*) {
   uint32_t prevRiseMs = 0, lastEnvUpdateMs = millis();
   int      peakDelta = 0;
   int      riseMarginAtRise = 0;   // captured at the rise, travels to the emit
+  int      pulseRawMax = 0;        // peak raw during the current pulse
+  int      gapRawMin = ADC_MAX;    // trough raw since the previous fall
+  int      troughOfGap = ADC_MAX;  // that trough, frozen at the rise
+  int      thrHighAtRise = 0, thrLowAtRise = 0;   // thresholds in force at rise
   bool     sawSaturation = false;
 
   for (;;) {
@@ -387,6 +409,7 @@ static void sensorTask(void*) {
         contrastLosses = contrastLosses + 1;   // plain add: volatile-safe
         inPulse = false;
         prevRiseMs = 0;
+        gapRawMin = ADC_MAX;   // a trough spanning a blind period is not a trough
       }
       vTaskDelay(pdMS_TO_TICKS(SENSOR_TICK_MS));
       continue;
@@ -421,18 +444,25 @@ static void sensorTask(void*) {
     }
 
     if (!inPulse) {
+      if (raw < gapRawMin) gapRawMin = raw;   // track the inter-pulse trough
       if (raw > thrHigh && (nowMicros - lastEdgeMicros) > DEBOUNCE_US) {
         inPulse = true;
         lastEdgeMicros = nowMicros;
         pulseStartMicros = nowMicros;
         pulseStartMs = now;
         peakDelta = delta;
-        riseMarginAtRise = raw - thrHigh;   // margin at the moment of crossing
+        riseMarginAtRise = raw - thrHigh;   // crossing overshoot (edge slew)
+        pulseRawMax   = raw;
+        troughOfGap   = gapRawMin;          // freeze the preceding gap's floor
+        gapRawMin     = ADC_MAX;
+        thrHighAtRise = thrHigh;            // headrooms judged against the
+        thrLowAtRise  = thrLow;             //   thresholds in force at entry
         sawSaturation = (raw >= SATURATION_LEVEL);
         pulseCount++;
       }
     } else {
       if (abs(delta) > abs(peakDelta)) peakDelta = delta;
+      if (raw > pulseRawMax) pulseRawMax = raw;
       if (raw < thrLow) {
         inPulse = false;
         PulseEvent e;
@@ -446,6 +476,9 @@ static void sensorTask(void*) {
         e.span         = span;
         e.fallMargin   = thrLow - raw;     // the number that predicts a latch
         e.riseMargin   = riseMarginAtRise;
+        e.riseHeadroom = pulseRawMax - thrHighAtRise;
+        e.fallHeadroom = (troughOfGap == ADC_MAX) ? 0
+                         : thrLowAtRise - troughOfGap;   // 0 = no prior gap
         e.quality      = quality;
         e.saturated    = sawSaturation ? 1 : 0;
         prevRiseMs = pulseStartMs;
@@ -461,7 +494,7 @@ static void sensorTask(void*) {
 // ===========================================================================
 const int WIN = 64;
 static uint32_t winInterval[WIN], winWidth[WIN];
-static int      winPeak[WIN], winFallM[WIN], winRiseM[WIN];
+static int      winPeak[WIN], winFallH[WIN], winRiseH[WIN];
 static int      winLen = 0, winIdx = 0;
 static uint32_t statPulses = 0, statSat = 0, statMiss = 0;
 
@@ -482,8 +515,8 @@ static uint32_t statPulses = 0, statSat = 0, statMiss = 0;
 // kept for the median), printed as one PHASE line per phase, then cleared.
 // ---------------------------------------------------------------------------
 const int PHASE_BUF = 32;
-static int      phaseRm[SPOKES_PER_WHEEL][PHASE_BUF];
-static int      phaseFm[SPOKES_PER_WHEEL][PHASE_BUF];
+static int      phaseRh[SPOKES_PER_WHEEL][PHASE_BUF];
+static int      phaseFh[SPOKES_PER_WHEEL][PHASE_BUF];
 static uint32_t phaseN[SPOKES_PER_WHEEL];
 static int      phaseIdx = 0;
 static bool     phaseRestarted = false;   // a discard occurred this window
@@ -534,8 +567,8 @@ static void windowPush(const PulseEvent& e) {
   }
   winWidth[winIdx] = e.widthMs;
   winPeak[winIdx]  = e.peakDelta;
-  winFallM[winIdx] = e.fallMargin;
-  winRiseM[winIdx] = e.riseMargin;
+  winFallH[winIdx] = e.fallHeadroom;
+  winRiseH[winIdx] = e.riseHeadroom;
   winIdx = (winIdx + 1) % WIN;
   if (winLen < WIN) winLen++;
   statPulses++;
@@ -543,9 +576,13 @@ static void windowPush(const PulseEvent& e) {
 
   // Phase accumulation: this pulse belongs to the current phase slot, then
   // the index advances. Ring-overwrite keeps the last PHASE_BUF per phase.
+  // HEADROOMS, not crossing margins: rm is survivor-biased (an event exists
+  // only because raw crossed thrHigh), so its median looks healthy exactly
+  // while weak spokes vanish. Peak-vs-bar and trough-vs-bar are what decide
+  // which threshold is binding.
   int p = phaseIdx;
-  phaseRm[p][phaseN[p] % PHASE_BUF] = e.riseMargin;
-  phaseFm[p][phaseN[p] % PHASE_BUF] = e.fallMargin;
+  phaseRh[p][phaseN[p] % PHASE_BUF] = e.riseHeadroom;
+  phaseFh[p][phaseN[p] % PHASE_BUF] = e.fallHeadroom;
   phaseN[p]++;
   phaseIdx = (phaseIdx + 1) % SPOKES_PER_WHEEL;
 }
@@ -687,9 +724,10 @@ void loop() {
     lastPulseMs = millis();
     const char* q = (e.quality == 2) ? "OK" : (e.quality == 1 ? "MARGINAL" : "UNAVAIL");
     snprintf(b, sizeof(b),
-      "PULSE #%5lu  int=%5lums  w=%4lums  peak=%+5d  raw=%4d rm=%+5d fm=%+5d base=%4d span=%4d  %s%s",
+      "PULSE #%5lu  int=%5lums  w=%4lums  peak=%+5d  raw=%4d rm=%+5d fm=%+5d rh=%+5d fh=%+5d base=%4d span=%4d  %s%s",
       (unsigned long)e.seq, (unsigned long)e.intervalMs, (unsigned long)e.widthMs,
-      e.peakDelta, e.rawAtEdge, e.riseMargin, e.fallMargin, e.baseline, e.span, q,
+      e.peakDelta, e.rawAtEdge, e.riseMargin, e.fallMargin,
+      e.riseHeadroom, e.fallHeadroom, e.baseline, e.span, q,
       e.saturated ? "  *SATURATED*" : "");
     emit(b);
   }
@@ -735,12 +773,12 @@ void loop() {
                ? (1000.0f / medInt_) / SPOKES_PER_WHEEL * WHEEL_CIRCUMFERENCE_MM : 0.0f;
     snprintf(b, sizeof(b),
       "STATS %2lus  n=%lu rate=%.1f/s | int med=%lu min=%lu max=%lu jit=%lu | w med=%lu | "
-      "peak med=%d | rm med=%+d p10=%+d | fm med=%+d p10=%+d | sat=%lu miss=%lu latch=%lu closs=%lu drops=%lu | ~%.0fmm/s ~%.1fpkph",
+      "peak med=%d | rh med=%+d p10=%+d | fh med=%+d p10=%+d | sat=%lu miss=%lu latch=%lu closs=%lu drops=%lu | ~%.0fmm/s ~%.1fpkph",
       (unsigned long)(elapsed/1000), (unsigned long)statPulses, rate,
       (unsigned long)medInt_, (unsigned long)mn, (unsigned long)mx,
       (unsigned long)(mx > mn ? mx - mn : 0), (unsigned long)medW,
-      medP, pctIntSigned(winRiseM, winLen, 50), pctIntSigned(winRiseM, winLen, 10),
-      pctIntSigned(winFallM, winLen, 50), pctIntSigned(winFallM, winLen, 10),
+      medP, pctIntSigned(winRiseH, winLen, 50), pctIntSigned(winRiseH, winLen, 10),
+      pctIntSigned(winFallH, winLen, 50), pctIntSigned(winFallH, winLen, 10),
       (unsigned long)statSat, (unsigned long)statMiss,
       (unsigned long)latchTimeouts, (unsigned long)contrastLosses,
       (unsigned long)eventDrops,
@@ -757,8 +795,8 @@ void loop() {
     for (int p = 0; p < SPOKES_PER_WHEEL; p++) {
       int n = (phaseN[p] > (uint32_t)PHASE_BUF) ? PHASE_BUF : (int)phaseN[p];
       if (n == 0) continue;
-      snprintf(b, sizeof(b), "PHASE %2d: rm %+4d fm %+4d  n=%lu",
-               p, pctIntSigned(phaseRm[p], n, 50), pctIntSigned(phaseFm[p], n, 50),
+      snprintf(b, sizeof(b), "PHASE %2d: rh %+4d fh %+4d  n=%lu",
+               p, pctIntSigned(phaseRh[p], n, 50), pctIntSigned(phaseFh[p], n, 50),
                (unsigned long)phaseN[p]);
       emit(b);
       phaseN[p] = 0;   // windowed, like the STATS counters
