@@ -1,0 +1,1100 @@
+Anologous Systems
+
+
+Yes. Stripped of model-railroad context, this is a landmark-based localization system on a constrained cyclic path.
+A good neutral description:
+A mobile agent travels around a known loop. Along the loop are discrete landmarks. Each landmark produces an observable symbol, such as magnetic polarity, RFID identity, optical marker code, visual fiducial, color, barcode, beacon ID, or acoustic signature.
+
+The agent does not need continuous GPS-like position. Instead, it estimates its position by counting motion between landmarks, measuring intervals between detections, comparing observed symbol sequences to a stored map, and using special landmark patterns as absolute reference points.
+
+The system alternates between prediction and correction:
+motion predicts the next landmark,
+landmark detections confirm or reject that prediction,
+unique landmark patterns reset accumulated uncertainty.
+More formally, what we are building is:
+symbolic landmark localization
++ odometry between landmarks
++ sequence matching
++ loop-closure / absolute anchor detection
++ outlier rejection
+The magnets are just one possible landmark encoding. In your case, each landmark has:
+position on loop
+expected polarity
+expected neighbor relationships
+expected interval range
+special truth-point pattern, sometimes
+The robot has:
+recent event memory
+motion estimate
+direction estimate
+speed estimate
+current map hypothesis
+confidence score
+outlier filter
+The generalized process
+1. Detect a point landmark
+The vehicle senses a discrete environmental event:
+magnet
+RFID tag
+AprilTag
+QR marker
+colored floor mark
+inductive marker
+beacon
+reflector
+ultrasonic landmark
+UWB anchor
+rail balise
+line-code transition
+In NGR, the event is:
+Hall sensor crosses magnetic field → classify N or S
+2. Convert raw sensing into a symbolic event
+Raw analog or visual data becomes a compact symbol:
+raw sensor → qualified landmark event
+Examples:
+magnetic field delta → N or S
+RFID read → tag ID
+camera image → AprilTag ID
+reflector angle → landmark bearing
+color sensor → red/blue/yellow stripe
+This is where debounce, filtering, and phantom rejection belong.
+3. Use intervals as odometry evidence
+The time or distance since the last landmark is meaningful:
+short interval
+normal interval
+long interval
+missed landmark
+possible duplicate
+possible truth cluster
+In your system:
+dt between magnets
+expected dt from rolling average
+ratio r = observed / expected
+This is a form of event-based odometry.
+4. Maintain a map hypothesis
+The robot keeps a belief such as:
+I may be near landmark 071 traveling clockwise.
+The next expected symbol should be S.
+The following two should be N, N.
+A truth seam should appear after MM072.
+This is not full SLAM yet. It is closer to localization on a known topological map.
+5. Match observed sequences to stored map sequences
+A single symbol is ambiguous:
+N occurs many times
+S occurs many times
+A short sequence is less ambiguous:
+S N N S N N
+A special sequence is much less ambiguous:
+ordinary marker → truth pair → ordinary marker
+This is analogous to:
+fingerprint localization
+sequence alignment
+hidden Markov localization
+topological localization
+6. Anchor on unique or legal seams
+A “truth point” is a special absolute reference. Generalized:
+A truth point is a landmark pattern whose local neighborhood is distinctive enough to collapse uncertainty.
+In robotics language, that is:
+loop closure
+global localization update
+absolute landmark correction
+belief reset
+In NGR language:
+TP-WP proves we are between MM072 and MM073.
+7. Advance the map zipper
+Once anchored:
+current landmark is known
+next landmark is known
+expected symbol is known
+expected interval is known
+direction is known
+Each valid detection advances one step. That is a very good metaphor:
+zipper localization
+A formal term would be:
+deterministic topological map tracking with landmark validation
+8. Reject impossible observations
+This is where our current work is focused.
+If a detected point is too soon, wrong polarity, wrong sequence, or illegal in the current route context, it should not be allowed to corrupt the map.
+Generalized:
+raw observation ≠ accepted landmark
+Possible classifications:
+valid landmark
+duplicate
+bounce
+transition
+outlier
+missed landmark
+candidate special landmark
+confirmed special landmark
+Analogous systems outside model trains
+Automated guided vehicles
+AGVs often follow embedded wires, magnetic tape, magnets, reflectors, RFID tags, or optical markers. Some magnetic tape systems even use polarity/sequence/distance combinations to command speed, stops, or path decisions. That is very close in spirit to your magnetic mile-marker concept.  
+Fiducial-marker robot localization
+Robots using AprilTags, ArUco markers, QR codes, or visual fiducials do the same thing with cameras. They observe a marker, associate it with a known map landmark, correct their pose, then use odometry between sightings. TagSLAM is an open-source ROS package built around fiducial-marker SLAM/localization, and ArUco-based node-graph localization uses landmarks as graph nodes and odometry between them.  
+RFID / transponder localization
+Warehouse robots, inventory robots, rail vehicles, and guided vehicles can use passive tags as known points. Each tag is a discrete absolute landmark. The robot dead-reckons between tags and corrects when it sees one.
+Railway balise systems
+Real trains use fixed transponders/balises as absolute position references. Onboard odometry estimates position between them; the balise corrects accumulated uncertainty. Conceptually, your truth points are miniature balises.
+SLAM loop closure
+In SLAM, loop closure means recognizing a previously seen place and correcting the accumulated odometry error. Your truth points are deliberately engineered loop-closure landmarks. The difference is that your map is intentionally encoded, not discovered naturally.  
+Best abstract name for our system
+I would describe NGR MM as:
+A symbolic landmark localization system for a constrained cyclic route, using magnetic polarity-coded landmarks, inter-landmark timing, and special truth-point patterns to maintain map position and direction.
+A shorter version:
+Magnetic landmark localization with sequence-based map anchoring.
+Or more generally, without magnets:
+Event-coded landmark localization on a known loop.
+The key insight is that we are not merely detecting magnets. We are building a small localization stack:
+sensor layer
+event qualification layer
+symbol sequence layer
+odometry/timing layer
+map hypothesis layer
+truth-anchor layer
+outlier rejection layer
+control layer
+For 2.4a, that framing matters because the next fix belongs at the boundary between:
+raw sensor event
+and:
+accepted symbolic landmark
+We should not let a fringe transition become a map event.
+
+
+Yes. The engineered-systems clue is that we should stop thinking of this as “detect a magnet, then decide what it was” and treat it as a state-estimation problem with outlier rejection.
+The better architecture is still magnets + Hall sensors, but with a more formal localization stack.
+The key principle we underused
+Industrial/robot systems generally do not let a single sensor event immediately change the map state. They maintain a belief about where the vehicle might be, then score each observation against that belief.
+That is the big thing we have not fully implemented.
+Our grassroots versions often did this:
+Hall event → classify N/S → timing label → update SEEK/map
+The engineered approach is more like:
+Hall event → qualify event → compare against active hypotheses → accept/reject/defer → update confidence
+That is the same family as Monte Carlo localization / particle filters: maintain possible positions, predict them forward when the robot moves, then rescore them when a sensor observation arrives. MCL represents possible states as particles and resamples based on how well sensed data match the map. We do not need a full particle filter, but the logic is directly applicable.  
+The better way, still using magnets
+Instead of SEEK being a single counter like:
+SEEK+017
+SEEK+018
+SEEK+019
+SEEK should maintain a small candidate set:
+candidate A: maybe MM068 CW, score 4
+candidate B: maybe MM071 CW, score 7
+candidate C: maybe TP-WP entry, score 10
+candidate D: maybe noise, score ignored
+Each accepted magnet observation updates all candidates.
+For a loop of 171 ordinary markers plus truth markers, this is very cheap. The ESP32 can do this.
+How this applies to NGR
+The map is known. The agent is constrained to a loop. Direction is declared. Therefore the state space is tiny:
+possible state = route event index + direction + confidence
+At each event, each candidate predicts:
+next expected polarity
+expected interval range
+whether a truth-point short interval is legal here
+whether a missed MM is plausible
+Then the actual event is scored.
+Example:
+Observed: N
+dt ratio: 0.31
+Current candidate expects ordinary MM
+→ score as duplicate/transition/outlier
+
+Observed: N
+dt ratio: 0.31
+Current candidate expects TP-WPA or TP-WPB
+→ score as legal truth candidate
+That one change would address the recurring problem:
+short N after S
+In 2.3, that sometimes became TRUTH_1. In the engineered model, it only becomes TRUTH_1 if the current map hypothesis says a truth marker is legal there.
+The important distinction
+A truth point is not defined by “two short magnets.”
+It is defined by:
+legal location on map
+correct polarity pair
+correct preceding ordinary marker
+correct following ordinary marker
+correct direction
+plausible interval pattern
+So for 2.4a, I would not allow this:
+short + short = TRUTH_1 / TRUTH_2
+I would require:
+short + short + legal route window = truth candidate
+Until route position is known, use a candidate set instead of a single hard SEEK counter.
+Similar engineered ideas
+AGVs often navigate with floor wires, magnetic tape, magnets, lasers, cameras, reflectors, or tags. The key point is that the vehicle compares sensor observations against a known path or marker map, instead of blindly trusting each detection. AGV navigation includes magnet-based and wire/magnetic-field-based guidance, with steering/localization based on interpreting the sensed guidepath.  
+Robotic odometry systems also assume motion estimates drift and must be corrected by observations. Odometry is useful but error-prone, so robust systems use calibration, filtering, and repeated correction from landmarks or maps.  
+SLAM/localization systems commonly use filters such as particle filters, extended Kalman filters, or graph methods to reconcile motion prediction with sensor observations. We do not need full SLAM because your map is already known, but the prediction/observation/error-rejection discipline is the lesson.  
+What we should borrow
+1. Observation gating
+Before an event can affect navigation, ask:
+Is this observation physically plausible?
+Is it temporally plausible?
+Is it legal in at least one current map hypothesis?
+If not:
+classify as duplicate / transition / outlier
+do not advance SEEK
+do not update speed
+do not start truth cluster
+2. Multiple hypotheses in SEEK
+In SEEK, do not maintain one position. Maintain several possibilities.
+For each normal event:
+advance each candidate
+compare observed polarity to expected polarity
+increase/decrease score
+drop low-score candidates
+For a short event:
+only candidates near a legal TP seam may consume it
+all other candidates classify it as outlier
+3. Hysteresis between SEEK and LOCKED
+Do not jump from one apparent unique pattern to conf=95.
+Use stages:
+SEEKING
+CANDIDATE_ANCHOR
+PROVISIONAL_LOCK
+MAP_LOCKED
+MAP_SUSPECT
+A candidate anchor must survive the next ordinary marker before becoming locked.
+That would have prevented some false TP anchors.
+4. Outlier budget
+A robot localization system can survive occasional bad observations. It does not collapse because of one bad point.
+For us:
+one phantom: ignore
+two phantoms close together: quarantine burst
+one wrong polarity while otherwise stable: suspect, not lost
+three consecutive legal mismatches: drop to SEEK
+5. Separate sensor confidence from map confidence
+We have been mixing these.
+Better:
+sensor_event_confidence
+timing_confidence
+map_hypothesis_confidence
+speed_confidence
+A short phantom should reduce sensor/timing confidence but should not necessarily reset map lock.
+Best practical 2.4a direction
+Given the 2.2c control test, I would still build 2.4a from 2.2c. But I would slightly change the plan:
+2.4a should not add full route-map anchoring yet. It should add the engineered-system boundary layer:
+raw Hall event
+→ event qualification
+→ accepted ordinary / rejected duplicate / legal TP candidate
+→ existing 2.2c SEEK logic
+The first goal is not smarter anchoring. The first goal is:
+No impossible short event may become TRUTH_1 unless the map/hypothesis says a truth marker is legal there.
+Since 2.2c does not have full map lock context, the practical rule can be:
+In unanchored SEEK, classify very short opposite-polarity hits as INTERVAL_ANOMALY or DUPLICATE, not TRUTH_1.
+Only allow truth cluster if the timing pattern is consistent with a full truth pair and followed by a plausible exit.
+But the more advanced version, probably 2.4b, should use candidate-set localization.
+The deeper lesson
+Your system is not missing RFID. It is missing a formal belief manager.
+Magnets and Hall sensors are enough if we treat them as noisy observations rather than truth.
+A strong NGR localization rule would be:
+The map is not updated by what the Hall sensor sees.
+The map is updated by what remains plausible after the Hall event is compared with timing, direction, route context, and recent history.
+That is the engineered-system principle worth importing.
+wo thoughts. Do we need truth points. We have multiple sources of location information. Magnet pattern (although I am beginning to doubt the value of this NNS is the same as SNN)  but the measured distances pattern should provide a lot of information. Also, we are informing the locomotive of the direction. That door having been opened, why not provide bracketing MM numbers.
+
+Yes. This is a good rethink.
+1. Do we need truth points?
+Not necessarily in the current form.
+A “truth point” is one way to solve the problem:
+I am uncertain where I am.
+I encounter a special local pattern.
+That special pattern collapses uncertainty.
+But if we give the locomotive more starting information, and if the route itself has enough distinctive sequence information, truth points become less essential.
+The current system uses three sources of information:
+1. Operator-declared direction: CW / CCW
+2. Magnet polarity sequence
+3. Inter-magnet timing / distance pattern
+If we add:
+4. Operator-declared starting bracket: between MM049 and MM050
+then the locomotive no longer needs to “discover” its location from scratch. It begins with a bounded hypothesis.
+That is a major simplification.
+2. Bracketing MM numbers may be the better operator contract
+Instead of saying only:
+Session direction = CW
+the dashboard could ask:
+Starting location:
+Between MM049 and MM050
+Direction:
+CW
+Then the locomotive begins with:
+current bracket = MM049/MM050
+next expected marker = MM050 if CW
+next expected polarity = known
+expected distance/time = approximate
+That turns the problem from global localization into local tracking.
+That is much easier.
+In robotics terms:
+Without starting bracket:
+  global localization problem
+
+With starting bracket:
+  tracking problem
+Tracking is far more reliable than global localization.
+3. The NNS / SNN concern is valid
+The current repeating polarity pattern is weak.
+S N N S N N S N N
+It gives some phase information, but not much. Since it repeats every three markers, it can only tell you position modulo 3 unless combined with truth points or distance patterns.
+So polarity helps, but only modestly.
+It is useful for detecting some errors:
+expected S, saw N → maybe wrong
+expected N, saw S → maybe wrong
+But because N appears twice as often as S, and because local sequences repeat constantly, it is not a strong identifier.
+Your doubt is justified.
+4. Distance pattern may be more valuable than polarity
+This is an important point.
+Because the magnets are not perfectly spaced, the actual inter-magnet intervals may form a natural fingerprint:
+shorter gap
+normal gap
+longer gap
+curve compression
+station-area variation
+truth-cluster spacing
+That means the route has a physical “rhythm.”
+Even if the intended spacing was 300 mm, the real installed spacing is probably distinctive enough over a window of 6–12 magnets to help localize.
+So the locomotive could compare:
+observed interval ratios
+against:
+stored route interval pattern
+This is probably more powerful than the simple SNN polarity cadence.
+A better future localization score might be:
+score = polarity_match_score
+      + interval_pattern_score
+      + direction_consistency_score
+      + expected_marker_count_score
+Rather than:
+truth pair seen → anchor
+5. Your proposed richer polarity code is directionally right
+Your suggested pattern:
+S N
+S N N
+S N N N
+S N N N N
+S S N
+S S N N
+S S N N N
+...
+is a much more informative sequence than fixed S N N.
+That is basically a self-synchronizing landmark code.
+It makes local windows more unique. Instead of every 3 markers looking the same, a window of several magnets would identify where you are.
+This is analogous to using a barcode, Gray code, Barker code, or De Bruijn-like sequence along the path.
+The best version would be a designed binary sequence where every local window of length N is unique.
+For example:
+Every 8-magnet polarity window is unique around the loop.
+Then the locomotive does not need truth points. It only needs to read several consecutive magnets and match the window to the map.
+6. The ideal magnetic code would be window-unique
+For 171 markers, binary polarity gives many possibilities.
+With 8 magnets:
+2^8 = 256 possible windows
+So in theory, an 8-symbol binary window could uniquely identify every position in a 171-marker loop.
+A good design goal would be:
+Any 8 consecutive magnet polarities uniquely identify the location.
+Or to be safer:
+Any 10 consecutive magnet polarities uniquely identify the location,
+even if one polarity is misread or one extra phantom hit occurs.
+That would be far better than S N N.
+This is the big clue from engineered systems: use an encoding designed for synchronization and error detection, not merely a repeating cadence.
+7. But changing all magnets is expensive
+The downside is physical. Replacing or reorienting 171 magnets is not trivial.
+So I would not jump immediately to a new polarity map. But it is worth recognizing:
+SNN is a weak code.
+Truth points are a patch for that weakness.
+A richer polarity code could reduce or eliminate truth points.
+8. Best near-term strategy without remagnetizing
+For 2.4a, I would not redesign the physical polarity pattern yet.
+Instead, I would change the software model:
+Use operator-provided start bracket.
+Use direction.
+Track from known starting point.
+Use polarity only as a validation signal.
+Use interval timing as additional validation.
+Treat truth points as helpful landmarks, not required anchors.
+That is a major simplification.
+So the 2.4a operator setup could be:
+Session Direction: CW
+Starting Bracket: MM049–MM050
+Then firmware starts as:
+MAP_TRACKING_PROVISIONAL
+expected_next = MM050
+confidence = medium
+After 5–8 good markers:
+MAP_LOCKED
+confidence = high
+A truth point then becomes:
+extra confirmation
+not the only way to know location.
+9. Recommended conceptual change
+Move from:
+SEEK until truth point
+to:
+operator-bracketed provisional tracking
+Old model:
+I do not know where I am.
+I must find a truth point.
+New model:
+The operator tells me roughly where I am.
+I know my direction.
+I predict the next magnet.
+Each valid magnet confirms or challenges my position.
+Truth points are checkpoints, not the only source of truth.
+That is probably better.
+10. My practical recommendation
+For 2.4a, build from 2.2c and add a simple optional starting bracket:
+cmd/start_bracket = 049,050
+or simpler:
+cmd/start_mm = 050
+where start_mm means:
+the next magnet expected in declared map direction
+Example:
+session_direction = CW
+start_next_mm = 050
+Then the locomotive expects:
+MM050
+MM051
+MM052
+...
+If traveling CCW:
+session_direction = CCW
+start_next_mm = 118
+Then expects:
+MM118
+MM117
+MM116
+...
+That is cleaner than a bracket internally.
+11. Role of polarity after that
+Polarity becomes a check, not the primary locator:
+expected MM050 polarity = N
+observed N → confidence up
+observed S → confidence down / suspect
+If there is a short phantom:
+wrong timing + not expected truth seam → ignore
+If a truth point appears:
+legal TP at expected location → confidence up
+unexpected TP → map suspect
+Bottom line
+Your instinct is right.
+We have been making the locomotive solve too hard a problem: discovering global location from a weak repeating code.
+A better system is:
+Operator supplies direction + starting bracket.
+Firmware performs local map tracking.
+Polarity validates.
+Distance/timing pattern validates.
+Truth points confirm but are not mandatory.
+Longer term, if you ever remagnetize, a window-unique polarity sequence would be far superior to S N N. That could make the loop self-identifying without special truth points.
+
+
+We discover a better method then you go back to the broken status quo. Disappointing.
+
+Reorienting magnets is a 1 hour job. THey are reuseable. Pry them off, hot glue, or just turn over if embedded in ballast. 
+
+You’re right. I should not have treated magnet reorientation as a major barrier, and I should not have softened the starting-bracket idea. Both are better than letting the locomotive wander in SEEK and guess.
+The better direction is:
+Stop designing around “lost locomotive must discover itself.”
+Design around “operator initializes the locomotive into a known map bracket.”
+That changes the whole problem.
+Starting bracket should become primary
+The dashboard should require three startup facts:
+1. Locomotive
+2. Session direction: CW / CCW
+3. Starting bracket or next expected MM
+The cleanest operator input is probably:
+Next expected MM: 050
+Direction: CW
+Meaning:
+The locomotive is currently before MM050 in the declared direction of travel.
+The next valid ordinary magnet should be MM050.
+For CCW:
+Next expected MM: 118
+Direction: CCW
+Meaning:
+The next valid ordinary magnet should be MM118.
+That is better than “between 049 and 050” internally, because the firmware only needs to know the next expected landmark.
+Then the firmware starts in:
+MAP_PROVISIONAL
+not:
+SEEKING / LOST
+After 5–8 ordinary matches:
+MAP_LOCKED
+If a mismatch appears:
+MAP_SUSPECT
+If several mismatches appear:
+MAP_LOST
+That is far safer.
+Truth points become optional checkpoints
+With starting bracket + direction, truth points are no longer needed for first acquisition.
+They become validation features:
+At MM072 CW, expect TP-WPA / TP-WPB / MM073.
+If seen, confidence rises.
+If not seen, map becomes suspect.
+That is much better than:
+Any short pair might be a truth point.
+Try to anchor from it.
+So the new hierarchy should be:
+operator bracket > ordinary marker count > polarity check > timing check > truth point confirmation
+Truth points are useful, but they should not be the primary way the locomotive finds itself.
+Reorienting magnets is now a serious option
+If reorienting magnets is only about an hour, then yes: we should seriously consider replacing the weak S N N cadence.
+The current pattern is poor as an identification code:
+S N N S N N S N N...
+It only gives phase modulo 3. It is useful for sanity checking, but weak for localization.
+A better pattern would make local windows unique. The design target should be:
+Any 8–10 consecutive magnet polarities identify a unique location on the loop.
+That would let the locomotive recover even without a bracket after reading a short run of magnets.
+This is essentially a magnetic barcode around the loop.
+Best new architecture
+I would now define the next system this way:
+Primary mode:
+  Operator-initialized map tracking using next expected MM.
+
+Recovery mode:
+  If position is lost, use unique polarity-window matching plus timing pattern to reacquire.
+
+Truth points:
+  Retained only as strong validation landmarks, not as the core anchoring method.
+That is a better system.
+What 2.4a should become
+Not merely “2.2c plus cleanup.”
+It should be:
+MM_Loco_2_4a_bracketed_tracking
+Base from 2.2c because 2.2c proved the Hall/polarity path is stable.
+Add:
+cmd/start_next_mm
+state/start_next_mm
+MAP_PROVISIONAL / MAP_LOCKED / MAP_SUSPECT
+expected MM tracking
+phantom short-hit quarantine
+actual PWM in diagnostics
+idle Hall MQTT suppression
+stale speed cleanup
+Do not build another version where the locomotive must wander around waiting for a truth point. That approach caused much of the confusion.
+Magnet pattern redesign
+Parallel to 2.4a, we can design a new polarity sequence for the physical magnets.
+Requirements:
+171 positions
+binary symbols: N/S
+cyclic loop
+every 8–10 symbol window unique
+prefer no extremely long runs of same polarity
+include error tolerance if possible
+That is the right engineered answer. A unique-window sequence plus operator starting bracket is much stronger than the current S N N plus truth-point guessing.
+So: yes, starting brackets should be mandatory, and yes, a better polarity map is worth designing now rather than defending the broken cadence.
+
+I see that you embraced brackets. good. That only works on boot. Otherwise, loco needs to maintain persistent knowledge of location on circuit.
+
+Correct. Brackets solve initialization, not ongoing navigation.
+The better architecture is:
+Boot / startup:
+  operator supplies starting bracket or next expected MM
+
+After movement begins:
+  locomotive maintains its own live location state
+
+After stop / reverse / resume:
+  locomotive keeps that location unless evidence invalidates it
+
+After power loss / reboot:
+  bracket is needed again unless location was safely persisted
+The state model should be
+UNINITIALIZED
+  no bracket, no known location
+
+BRACKETED
+  operator supplied next expected MM + direction
+
+PROVISIONAL_TRACKING
+  moving, counting magnets, checking polarity/timing
+
+MAP_LOCKED
+  enough valid observations confirm position
+
+MAP_SUSPECT
+  one or more mismatches, but not lost yet
+
+MAP_LOST
+  too many contradictions; needs bracket or recovery
+What persists during one operating session
+Once initialized, the locomotive should carry:
+current_mm
+next_expected_mm
+current_map_direction
+confidence
+last_valid_event_time
+last_valid_interval
+recent polarity history
+recent interval history
+So if it starts with:
+session_direction = CW
+next_expected_mm = 050
+and passes three valid magnets:
+MM050
+MM051
+MM052
+then it now knows:
+current_mm = 052
+next_expected_mm = 053
+map_direction = CW
+If stopped, that state should remain. Stopping should reset timing/speed, not location.
+Reverse behavior
+If it stops at MM052 and reverses, the map direction flips, but the location remains known.
+Before reverse:
+current_mm = 052
+map_direction = CW
+next_expected_mm = 053
+After reverse:
+current_mm = 052
+map_direction = CCW
+next_expected_mm = 051
+No SEEK. No new bracket. No truth point required.
+That is the crucial distinction:
+Timing resets on stop.
+Location does not reset on stop.
+When should it lose location?
+Only when the evidence becomes contradictory:
+wrong polarity repeatedly
+impossible interval pattern
+missed too many expected magnets
+unexpected truth/checkpoint pattern
+operator manually moves the locomotive
+power cycle without trusted saved state
+A single bad Hall event should not erase location. It should be:
+ignored
+or marked suspect
+or counted against confidence
+Power-cycle persistence
+There are two possible levels.
+Simple 2.4a approach
+Do not persist across power cycles. On reboot, require bracket again.
+This is safest:
+reboot = operator must initialize location
+Later approach
+Persist last known location to flash or publish it to the Pi.
+But that needs caution. If someone picks up the loco and moves it while powered off, saved location becomes dangerous.
+A better later version would be:
+Last known: MM052 CW, saved at 14:22
+Resume saved location? YES / NO
+The dashboard asks the operator to confirm.
+Revised 2.4a principle
+2.4a should not be:
+Start bracket, then still wander in SEEK.
+It should be:
+Start bracket, then track continuously.
+The bracket is the entry ticket into map tracking. After that, the locomotive owns its location until it has a reason to distrust it.
+Core rule:
+Operator initializes location.
+Firmware maintains location.
+Magnets validate location.
+Truth/checkpoints confirm location.
+Only contradiction destroys location.
+
+
+Thoughts. 1/Create an effective and  more informative magnet pattern that minimizes the number of magnets I need to change.  
+
+Consider eliminating truth points entirely. Let the magnet pattern be distinctive. This allows rejection of short interval magnet hits.  
+
+Next expected Magnet  instead of brackets is better, eliminates redundancy. 
+
+Yes. That is the better design.
+The new direction should be:
+1. Operator gives direction + next expected MM.
+2. Locomotive tracks from that point.
+3. Magnet pattern validates the expected MM.
+4. If location is lost, distinctive polarity windows allow recovery.
+5. Truth points become unnecessary or only optional checkpoints.
+1. “Next expected magnet” is better than bracket
+Agreed. It removes redundancy.
+Instead of:
+Between MM049 and MM050
+Direction CW
+use:
+Direction: CW
+Next expected MM: 050
+Or:
+Direction: CCW
+Next expected MM: 118
+That is exactly what the firmware needs. It does not need to know both sides of the bracket. It needs to know the next landmark it should encounter.
+Internally:
+currentMapDirection = MAP_CW;
+nextExpectedMm = 50;
+mapState = MAP_PROVISIONAL;
+Then after each accepted ordinary magnet:
+if (currentMapDirection == MAP_CW)
+    nextExpectedMm = (nextExpectedMm + 1) % 171;
+else
+    nextExpectedMm = (nextExpectedMm + 170) % 171;
+That is simple and strong.
+2. Truth points can be eliminated as anchors
+I would not rely on truth points as the primary method anymore.
+Truth points were a workaround for weak global location knowledge. With operator-initialized nextExpectedMm, they are no longer needed for acquisition.
+The old model:
+I am lost.
+Find a truth point.
+Anchor there.
+The better model:
+I know what magnet should come next.
+Every magnet either confirms or challenges that expectation.
+That is safer, because the locomotive is never wandering around trying to interpret short noise as truth.
+Truth points can remain physically for now, but the firmware should treat them as:
+optional validation landmarks
+not as:
+required anchor sources
+Eventually, if the polarity pattern is distinctive enough, truth points can be removed entirely.
+3. A distinctive polarity pattern is better than S-N-N
+The current S N N pattern is weak. It tells the locomotive only phase modulo 3. Many local windows are identical.
+A better pattern should have this goal:
+Any short window of consecutive magnet polarities should identify the location.
+For example:
+Any 8 consecutive magnets uniquely identify the MM number.
+Since polarity is binary:
+8 magnets = 256 possible patterns
+There are only 171 ordinary MM positions. So in principle, an 8-bit cyclic pattern can identify every location around the loop.
+Better yet:
+Use 9 or 10 magnet windows
+because that gives more error tolerance.
+9 magnets = 512 patterns
+10 magnets = 1024 patterns
+That gives room to avoid fragile patterns and tolerate one bad read.
+4. Minimize magnet changes
+This is now an optimization problem:
+Given current pattern: S N N S N N ...
+Find a new cyclic N/S sequence over 171 magnets
+such that:
+  - every 8/9/10-symbol window is unique
+  - no long runs are too long
+  - the number of changed magnets is minimized
+That is exactly something we can compute.
+Inputs:
+current polarity at MM000–MM170
+desired uniqueness window length
+maximum allowed run length
+whether to preserve existing truth-point magnets or eliminate them
+Output:
+MM numbers to flip
+new polarity table
+uniqueness score
+minimum window needed for unique localization
+This is much better than inventing a pattern by hand.
+5. Short interval rejection becomes easier
+With nextExpectedMm, a short hit is easy to judge.
+Suppose expected next magnet is MM050, and normal spacing is about 300 mm. If a hit arrives at 150–220 ms immediately after a valid marker, the firmware asks:
+Is there supposed to be another magnet this close?
+If truth points are eliminated:
+No.
+So:
+classify as DUPLICATE / TRANSITION / BOUNCE
+do not advance nextExpectedMm
+do not update speed
+do not update map position
+That is far simpler than the truth-point system, where some short hits were real and some were not.
+Removing truth-point short-pair logic makes phantom rejection much cleaner.
+6. What 2.4a should become
+I would redefine 2.4a as:
+MM_Loco_2_4a_next_mm_tracking
+Base: 2.2c, because it had stable Hall behavior.
+Add only:
+cmd/session_direction
+cmd/next_expected_mm
+state/next_expected_mm
+MAP_PROVISIONAL / MAP_LOCKED / MAP_SUSPECT / MAP_LOST
+expected-polarity check
+short-hit quarantine
+actual PWM diagnostics
+stale speed cleanup
+idle MQTT suppression
+Do not add full truth-point anchoring. Do not add unique18 route anchoring. Do not add complex PWM prediction yet.
+7. Firmware logic
+At startup:
+nav_ready = false
+mapState = UNINITIALIZED
+When operator sends:
+session_direction = CW
+next_expected_mm = 050
+then:
+nav_ready = true
+mapState = MAP_PROVISIONAL
+confidence = maybe 50
+On each accepted normal magnet:
+observed polarity
+expected polarity for nextExpectedMm
+timing plausibility
+Then:
+if polarity and timing agree:
+    accept MM
+    advance nextExpectedMm
+    confidence rises
+
+if polarity wrong but timing plausible:
+    mark MAP_SUSPECT
+    maybe do not advance, or advance with low confidence depending policy
+
+if timing impossible short:
+    quarantine
+    do not advance
+
+if repeated contradictions:
+    MAP_LOST
+8. Physical magnet redesign plan
+Before changing magnets, generate candidate sequences.
+I would evaluate three levels:
+Plan A: minimal flips to make every 10-symbol window unique
+Plan B: minimal flips to make every 9-symbol window unique
+Plan C: stronger pattern with every 8-symbol window unique but more flips
+Also constrain:
+maximum run length <= 4 or 5
+avoid long NNNNNN or SSSSSS
+avoid too many changes in one physical area
+Then choose the best tradeoff.
+9. Recommended path
+Proceed in this order:
+1. Build 2.4a with next_expected_mm tracking using the current SNN map.
+2. Test that it tracks reliably when initialized correctly.
+3. In parallel, compute a better polarity map with minimal magnet flips.
+4. Reorient magnets.
+5. Update firmware polarity table.
+6. Remove truth-point dependency entirely.
+That avoids changing physical magnets and firmware logic at the same time.
+But conceptually: yes, the destination should be distinctive magnetic barcode + next expected MM tracking, not truth-point wandering.
+
+
+Truth points must be integrated into pattern. No short segments for now. Later maybe a single magnet to indicate a stopping point at a station or a siding entry.
+
+We need to answer this question: Why would a locomotive be lost?   It knows where it starts. When I am a passenger on the train, if I read a newspaper and then look out the window, I have missed several landmarks but recognize the landmarks when I look.  
+
+The Loco  will be given its starting point and direction. It will know the interval between each magnet.  It will know how often to expect magnet hits based on pwm. It should be able to hallucinate a magnet hit if one is missed and gain confidence by reading the pattern on subsequent hits. 
+
+Besides, it is not wandering around in the back yard. It is constrained by rails. Absent a malfunction (right now let's plan for proper function) The degrees of freedom are small. I am going clockwise and the next magnet is 056N. The interval per my memory is 30cm. The one after that must be 057S. The interval is also 30 cm. I get ramped up to my terminal 60 PWM by the 4th magnet after that. My  speed for this section is 30 pKpH.  I measure the time it takes to run between the 5th and 6th magnets which I know are 060 and 061. I know that interval. I know approximately how long it will take. If it is double that time, then I must have missed a magnet. I move on and call the hit 062.    
+
+
+Yes. This is the correct mental model.
+The locomotive should almost never be “lost” during normal operation. It is not navigating an open field. It is on a one-dimensional constrained loop with known direction, known next landmark, known landmark spacing, known expected polarity, known motion command, and accumulating recent history.
+So the better question is not:
+How does the locomotive find itself?
+It is:
+How does the locomotive maintain belief through imperfect observations?
+Revised principle
+The locomotive should maintain a running expectation stream:
+I am traveling CW.
+The next expected marker is MM056.
+MM056 should be N.
+Expected interval is about 300 mm / learned time at current PWM.
+After MM056 comes MM057.
+MM057 should be S.
+After MM057 comes MM058.
+MM058 should be N.
+Every sensed event is compared against that expectation.
+It should not ask:
+What magnet did I just see?
+It should ask:
+Does this sensed event fit the next expected magnet, a missed magnet, or a rejectable phantom?
+That is a much stronger design.
+Why would the locomotive be lost?
+Under proper function, only a few conditions should make it lost:
+1. It was powered up without a starting next-MM.
+2. It was physically moved by hand while powered down or stopped.
+3. It missed too many consecutive magnets to maintain confidence.
+4. It received repeated polarity/timing contradictions.
+5. The Hall sensor or wiring malfunctioned.
+6. The operator changed direction or moved it manually without telling the system.
+7. The stored map does not match the physical railroad.
+A single missed magnet should not make it lost.
+A single phantom hit should not make it lost.
+A single polarity mismatch should not make it lost.
+Those should reduce confidence or be quarantined, not destroy location.
+Your missed-magnet example is exactly right
+If the locomotive expects:
+MM060
+then MM061
+then MM062
+and it sees this:
+last accepted = MM060
+next expected = MM061
+observed interval ≈ 2x normal
+observed polarity matches MM062
+then the correct interpretation is:
+MM061 was probably missed.
+Current hit is MM062.
+Advance to MM063.
+Reduce confidence slightly.
+Log MISSED_MM_1.
+Continue.
+Not:
+I am lost.
+Go back to SEEK.
+Try to anchor on a truth point.
+This is the difference between a fragile detector and a navigator.
+Truth points should be folded into the normal pattern
+Agreed: no short segments for now.
+The old truth points created a separate class of “real short hits,” which made phantom rejection much harder. A 200–700 ms short hit could be either:
+real truth point magnet
+or:
+fringe / bounce / duplicate / transition
+That ambiguity hurt the design.
+Better:
+All ordinary MM markers are part of one regular landmark stream.
+Truth information is encoded by polarity pattern, not by short spacing.
+So TP-WP, TP-NP, TP-EP, etc. can still exist conceptually as named locations, but physically they should just be normal mile markers whose polarity pattern carries more information.
+Later, a single extra magnet at a station stop or siding entry could be added as a deliberate special marker. But for map tracking, I agree: remove short truth-pair dependency.
+The new firmware state should be expectation-based
+Instead of SEEK-first logic:
+SEEK counter
+truth cluster
+anchor
+locked
+use:
+nextExpectedMm
+currentDirection
+confidence
+recentAcceptedEvents
+timingModel
+At each sensed Hall event:
+1. Check motion gate.
+2. Check minimum impossible-short interval.
+3. Compare dt to expected interval for nextExpectedMm.
+4. Compare polarity to expected polarity for nextExpectedMm.
+5. If good: accept nextExpectedMm.
+6. If dt ≈ 2x and polarity fits marker after next: hallucinate one missed MM.
+7. If dt ≈ 3x and polarity fits marker after two: hallucinate two missed MMs, lower confidence more.
+8. If dt too short: reject as duplicate/transition.
+9. If polarity wrong but timing right: mark suspect, maybe hold candidate alternatives.
+10. If repeated contradictions: MAP_LOST.
+This is much closer to how a passenger recognizes where they are after looking out the window.
+“Hallucinated magnet” is the right concept
+I would call it something slightly more formal in the code/log:
+SYNTH_MM
+or:
+INFERRED_MM
+Example:
+accepted MM060 N
+next expected MM061 S
+next observed dt=2.05x expected
+observed polarity for MM062=N
+→ infer MM061 missed
+→ accept observed as MM062
+Diagnostic:
+MM061 INFERRED_MISSED confidence-10
+MM062 ACCEPTED dt=2.05x adjusted polarity=N
+That is much better than corrupting phase.
+Pattern redesign becomes more important
+If truth points are eliminated, the polarity pattern should become distinctive enough that a run of markers can reconfirm position.
+Current SNN is weak because many windows repeat.
+The new pattern should be designed so that:
+Any 8–10 consecutive accepted polarities identify a unique place on the loop.
+Even better:
+Any 10 consecutive accepted polarities remain mostly identifiable even with one missed or one rejected phantom.
+Then if confidence drops, the locomotive does not need to be “lost.” It can keep a rolling window and compare it against the known pattern.
+The real hierarchy
+The mature system should use evidence in this order:
+1. Operator-provided next expected MM at startup.
+2. Direction.
+3. Known route order.
+4. Known distances between magnets.
+5. PWM / learned speed expectation.
+6. Observed inter-magnet timing.
+7. Expected polarity at that MM.
+8. Rolling polarity window.
+9. Optional named landmarks/stations.
+Polarity alone is not enough. Timing alone is not enough. PWM alone is not enough. But together, on a constrained loop, they are very strong.
+What 2.4a should implement
+I would make 2.4a about this expectation model, not truth anchoring.
+Core 2.4a features:
+cmd/session_direction
+cmd/next_expected_mm
+
+nextExpectedMm tracking
+expected polarity table
+short-hit quarantine
+missed-MM inference for 2x/3x intervals
+confidence score
+MAP_PROVISIONAL / MAP_LOCKED / MAP_SUSPECT / MAP_LOST
+
+no truth-pair anchoring
+no short truth segments
+The log should read like this:
+INIT next=056 dir=CW
+MM056 N ACCEPT r=1.02 conf=55
+MM057 S ACCEPT r=0.97 conf=65
+MM058 N ACCEPT r=1.04 conf=75
+MM059 N ACCEPT r=0.99 conf=85
+MM060 S ACCEPT r=1.01 conf=95 MAP_LOCKED
+MM061 N INFERRED_MISSED r=2.08 conf=85
+MM062 N ACCEPT_AFTER_MISSED r=2.08 conf=85
+That is a navigator.
+Bottom line
+Your reasoning is right:
+The locomotive should not be wandering lost.
+It should be tracking a known sequence from a known starting point.
+A missed magnet should be inferred when timing and subsequent evidence support it.
+A phantom should be rejected when timing is impossible.
+The pattern should be made distinctive enough to reconfirm location without special short truth points.
+This is the better architecture.
+
+
+Here is what I would like. Discuss it with me. Be succinct.  Try to make this work. Be open to change.
+
+Encorporate these principles.:The locomotive should not be wandering lost.
+
+It should be tracking a known sequence from a known starting point.
+
+A missed magnet should be inferred when timing and subsequent evidence support it.
+
+A phantom should be rejected when timing is impossible.
+
+The pattern should be made distinctive enough to reconfirm location without special short truth points.
+
+But also, Please make a sketch without TP.  Include starting point in sketch for now. I will select CW. Next magnet will be 051. We will keep NNS  polarity sequence for now. I will remove all truth point magnets. The loco should still call out the stations as it passes them. It should be able to identify the MM number it is at. It should know the length of the  interval of the next MM. It should calculate speed based on the time it takes to travel to the next interval. It should be able to reverse and know that the MM sequence is reversed. It should Read and report the NNS sequence and compare it to expected. And, it should act as if it knows where it is. I want confident little locomotives.  It should be able to identify when it is lost.  But this should be a rare event. 
+
+Later, Make a sketch that rejects magnet hits that come too soon after last hit  based on known interval, relative timing of previous magnets,  and pwm. But for now. Just see how it does. It cant be much worse. Can you make this sketch for me please?
+
+Built MM_Loco_2_4a_next_mm_tracking_no_tp.
+Files:
+Download MM_Loco_2_4a_next_mm_tracking_no_tp.ino
+Download package
+What it does:
+Base: MM_Loco_2_2c_compilefix
+
+Hard-coded start:
+  START_NEXT_MM = MM051
+
+Session:
+  You still select CW from the dashboard.
+
+Truth points:
+  Disabled.
+  No TRUTH_1 / TRUTH_2 / TRUTH_EXIT logic should fire.
+  All magnets are treated as ordinary MM candidates.
+
+Location:
+  First accepted magnet should be MM051.
+  Then MM052, MM053, etc. in CW.
+  If reversed, count reverses from the current known MM.
+
+Polarity:
+  Keeps current NNS rule:
+    mm % 3 == 0 → S
+    otherwise → N
+
+Diagnostics:
+  mm/mag lines append:
+    mm=MM###
+    expPol=N/S
+    pol=OK/MISMATCH
+    pwm=###
+
+Landmarks:
+  Patio Station
+  Griller's Station
+  Arches Station
+  Bamboo Station
+  Patio Corner
+  Westpoint
+  Northpoint
+  Eastpoint
+  Southpoint
+Important test setup:
+Remove / ignore the extra truth-point magnets.
+Place locomotive so the next magnet it will encounter CW is MM051.
+Set session direction CW.
+Set motor direction for CW.
+Run at PWM 55–60 first.
+Expected first useful output should look conceptually like:
+MM051 N ... MILE_START ... expPol=N pol=OK
+MM052 N ... SEED_MM ... expPol=N pol=OK
+MM053 N/S depending actual rule ... pol=OK/MISMATCH
+Correction on polarity expectation: with the current modulo-3 rule, MM051 is S because 51 % 3 == 0. So if you physically start with next magnet MM051, the expected first polarity is S, not N.

@@ -1,0 +1,187 @@
+Dispatcher 2.0 — Core Philosophy
+
+1. The System Is Deterministic
+
+The railroad itself already constrains behavior:
+	•	trains follow fixed track
+	•	direction is forward only
+	•	turnouts are handled mechanically (magnets)
+	•	trains have only two states: STOP or GO
+
+👉 Therefore:
+
+The dispatcher does not “drive” trains — it grants or denies movement.
+P
+⸻
+
+2. Dispatcher Role = Authority, Not Intelligence
+
+Dispatcher 2.0 is not trying to be clever.
+
+It does not:
+	•	infer intent
+	•	guess locomotive positions
+	•	dynamically assign roles
+
+It does:
+	•	enforce a declared operating plan
+	•	verify identity and position
+	•	protect blocks
+	•	issue GO / HOLD decisions
+
+👉 In plain terms:
+
+The dispatcher is a referee and gatekeeper, not a driver.
+
+⸻
+
+3. Explicit Operator Control (No Guessing)
+
+Startup is no longer inferred.
+
+Instead, the operator defines the session:
+	•	Select West End locomotive
+	•	Select East End locomotive
+	•	Press Auto Start
+
+👉 This separates responsibilities cleanly:
+	•	Operator: defines intent
+	•	Dispatcher: enforces correctness
+
+⸻
+
+4. Fixed Session Assignments
+
+For each session:
+	•	West End → assigned locomotive
+	•	East End → assigned locomotive
+
+Rules:
+	•	assignments must be explicit
+	•	assignments must be different
+	•	assignments must be verified (locos alive)
+
+👉 No RSSI-based guessing
+👉 No dynamic role switching at startup
+
+⸻
+
+5. Preflight Validation (Hard Gate)
+
+Before auto mode begins, the dispatcher must confirm:
+	•	both locomotives selected
+	•	locomotives are different
+	•	both locomotives are actively reporting
+	•	system is in a safe initial state
+
+If any condition fails:
+
+Auto Start is denied with a clear reason
+
+Examples:
+	•	“West locomotive not selected”
+	•	“Same locomotive selected for both ends”
+	•	“East locomotive not detected”
+
+⸻
+
+6. State Machine Model
+
+Dispatcher 2.0 operates as a simple state machine:
+	•	IDLE – waiting for configuration
+	•	ARMED – valid configuration, ready to run
+	•	RUNNING – automatic operation active
+	•	HOLD – temporary stop due to block or rule
+	•	ALARM – mismatch or unsafe condition
+
+👉 Transitions are deterministic and testable.
+
+⸻
+
+7. Core Decision Loop
+
+At any moment, the dispatcher answers one question:
+
+Should this train be allowed to move?
+
+Inputs:
+	•	expected locomotive at point
+	•	observed locomotive
+	•	block state
+	•	hold state
+
+Outputs:
+	•	GO
+	•	HOLD
+	•	ALARM
+
+⸻
+
+8. Simplified Logic Model
+
+Because the system is constrained, logic reduces to rules like:
+	•	correct loco at correct point → allow progression
+	•	wrong loco at point → alarm
+	•	block occupied → hold
+	•	block clear → release
+	•	invalid startup → deny
+
+👉 No continuous control
+👉 No pathfinding
+👉 No ambiguity
+
+⸻
+
+9. Testability Is a First-Class Goal
+
+Dispatcher 2.0 is designed to be testable.
+
+Key principle:
+
+Separate decision logic from hardware and communication
+
+This allows:
+	•	scenario-based testing
+	•	repeatable startup validation
+	•	verification of safety rules
+	•	simulation without hardware
+
+⸻
+
+10. “8000 Tests” — Your Version
+
+Instead of complex infrastructure, your system will use:
+	•	defined scenarios
+	•	expected outcomes
+	•	state verification
+
+Examples:
+	•	start denied if locos missing
+	•	start succeeds with valid assignments
+	•	mismatch triggers alarm
+	•	block occupancy enforces hold
+
+👉 This is your practical version of automated testing.
+
+⸻
+
+11. Design Philosophy Shift
+
+From:
+	•	clever
+	•	inferred
+	•	dynamic
+	•	harder to debug
+
+To:
+	•	explicit
+	•	deterministic
+	•	rule-based
+	•	testable
+	•	operator-aligned
+
+⸻
+
+Final Statement
+
+Dispatcher 2.0 is a deterministic authority system that enforces a declared operating plan, using simple rules to grant or deny movement in a constrained railroad environment.

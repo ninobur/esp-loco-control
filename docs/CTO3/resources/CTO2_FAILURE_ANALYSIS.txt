@@ -1,0 +1,24 @@
+Grok: Thanks for the detailed test report and logs.
+The core issue is that the traffic awareness logic is not activating as expected. Both locomotives are treating the situation as solo running instead of one detecting the other as a stopped lead ahead.
+Quick Diagnosis from the Logs
+* Both locos show CTO_ROLE_SOLO and no peer data being acted upon (peer_id:0, edge_gap_mm:-1, no STOPPED_LEAD_APPROACH phase).
+* Traffic state stays in TRAFFIC_CLEAR.
+* No boundary gap calculations or proximity targets are being applied.
+* The follower continues at cruise speed until it gets too close (hence the near-miss).
+Why It’s Falling Apart
+1. Peer Detection / Pairing Not Happening The code relies on ctoPaired() / ctoPairMemory() which includes checks like same direction, valid navigation, and ctoPeer.seen. In the logs the follower isn’t consistently registering the other loco as a valid peer.
+2. Manual/AUTO Mixing You mentioned one was manual. The current Phase 1 code assumes both are in AUTO (or at least broadcasting the full CTO2 packet with autoMode=1). A pure manual loco may not be sending the right status.
+3. Timing / Freshness CTO2_PEER_STALE_MS=3000 and sequence checks may be dropping reports during startup or direction setup.
+4. Direction / Session Setup Both need consistent session_direction (CW or CCW) and start intervals before traffic logic fully arms.
+Immediate Fixes to Try
+1. Run Both in AUTO for the first proper test (even if one is “parked”). Put the lead loco in AUTO, let it stop at a station or manually command a stop via dispatcher, then launch the follower.
+2. Force Peer Broadcast Make sure both sketches are identical and both are in AUTO mode with the same direction and valid start interval.
+3. Add Debug In ctoService() or onReceive(), add more Serial prints when a packet is received to confirm the follower is seeing the lead’s Hall MM, boundaries, and running=false.
+4. Reset Everything
+    * Power cycle both.
+    * Set same session direction (CW) on both.
+    * Set adjacent start intervals on both.
+    * Launch the lead first, let it stop.
+    * Then launch the follower.
+Would you like me to give you specific code patches (small changes to add more logging or relax some pairing conditions for testing) or walk through a step-by-step test procedure with what to watch in the logs?
+We’re very close — this is classic early integration debugging. Once peer visibility works reliably, the boundary math should kick in. Let’s get it triggering the approach phase on the next run.

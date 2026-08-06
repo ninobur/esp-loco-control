@@ -1,0 +1,55 @@
+Manual operation:
+  Always available unless E-stop or AUTO is active.
+  Does not require session direction or interval.
+  Must not erase nav state if nav state exists.
+
+AUTO operation:
+  Requires checklist completion.
+
+Dashboard Checklist:
+
+1. Session Direction
+   CW / CCW
+
+2. Start Interval
+   Select interval
+   Press SET INTERVAL
+   Confirm interval
+
+3. Motor Direction
+   REV / N / FOR
+
+4. AUTO
+   Enable Auto only after 1–3 are complete
+
+5. Dispatcher Console
+   GO active only after AUTO is enabled
+   STOP active when AUTO is enabled/running
+   E-STOP always active
+   END CTO returns to manual
+
+Important distinction:
+
+Manual throttle is local locomotive control.
+Dispatcher GO is automatic-system control.
+
+Manual operation should be navigation-aware, not navigation-dependent.
+
+Manual without nav setup:
+  throttle/direction work normally
+  no reliable position command
+  no station-targeted command
+  maybe no meaningful speedometer
+
+Manual with nav setup:
+  throttle/direction still manual
+  MM counting stays active
+  speedometer works
+  location stays current
+  future voice commands become possible
+
+So the model becomes:
+
+Manual = human controls power
+Auto = program controls power
+Nav = locomotive knows where it is

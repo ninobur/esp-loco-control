@@ -1,0 +1,804 @@
+Discussion about using  PWM and MM data for speed estimation
+
+
+I asked Claude to review the latest sketch Villa V some field notes I kept I went through the 2.3c package against the v2.3a notes and the “Needed protections” list. Brace/paren/bracket counts are balanced (453/453, 1461/1461, 205/205), so no gross syntax breakage.
+
+The big one — direction pin fix is already in here, done correctly. applyDirectionPin() now matches LL_MQ_CO_GC_LO_1_0.ino exactly (REVERSE→LOW, FORWARD→HIGH), with a comment explicitly saying not to swap Cytron leads. And critically, NAV_CLOCKWISE_DIRECTION was updated from DIRECTION_REVERSE to DIRECTION_FORWARD to compensate — which is exactly the coordinated two-line fix I described to you. Whoever built this (Sam, I assume) reached the same conclusion independently. This resolves the discussion from earlier today.
+
+From the v2.3a notes / “Needed protections for 2.3C” — addressed:
+
+	•	PWM in every line — every mm/mag publish now appends pwm=<rampCurrent> motion=<band>/<pct>% dist=<lastRouteTravelMm>mm, regardless of class. Bands are none/possible_downhill/level_possible/moving_expected/strong_expected from thresholds 14/21/35/45 — recalibrated from the 25/40 you’d sketched, looks deliberate.
+	•	MISSED_MM → recovery, not phase corruption — routeTryMissedRecovery() jumps the route pointer forward by the inferred miss count along the known map, with a MAP_MISSED_RECOVER diagnostic, rather than letting it corrupt the phase.
+	•	Polarity mismatch containment — routeMapHandleObservedEvent() now calls routeEnterSuspect("polarity_mismatch") on a bad match: confidence drops, nav goes CONF_DEGRADED, reacquire window opens — it does not commit the route pointer to a bad event.
+	•	Short-pair truth detection gated by route-map context — isTruthShortInterval() is now only consulted if (!routeEventAnchored). Once the map is locked, TRUTH_1/TRUTH_2/TRUTH_EXIT come only from routeMapClassifyKnownTruthEvent(), itself gated on navConfidencePct >= 60.
+	•	FINGERPRINT_HINT removed from output — confirmPendingTruthIfReady() now silently clears pending-truth state; the string appears once in the file, in a comment explaining why it’s gone.
+	•	MILE_TIMING_REBUILD / stale pKPH — exp=0 MILEs are relabeled MILE_TIMING_REBUILD, and resetNavigationForNewSession() + clearTimingModel() together clear rollingMmDt (so perceptualKph() returns 0 cleanly rather than carrying stale values).
+	•	Griller’s Station (MM062) / Arches Station (MM108) — both present in routeEventLandmark().
+
+Gaps I’d flag for Sam before flashing — none of these are regressions, they’re just not in this build:
+
+	1.	PWM_MOTION_UNCONFIRMED (high PWM, no magnet within expected window) — not implemented.
+	2.	Quarantine of implausibly-short hits — the original 160–220ms phantom-bounce problem from the v2.3a notes doesn’t have a dedicated PWM-implausibility filter. It’s indirectly contained now (post-anchor truth detection is gated off, and a mismatching phantom triggers the suspect/freeze path), but a phantom that happens to match the next expected polarity could still get committed as a real MM.
+	3.	Overspeed is still observation-only — MM_OVERSPEED/MM_SPEED_CAUTION still just publish a warning; they don’t call routeEnterSuspect() or touch navConfidencePct, despite the “should suspend map authority, not just warn” ask.
+
+Given this is already a large architectural step (first full route-map matcher, plus the direction fix), my instinct is this is flashable as-is for bench testing — and the new pwm=/motion=/dist= fields will give you much better data on items 1–3 for a 2.3d pass. But that’s your and Sam’s call on sequencing. Want me to write this up as a short note for Sam, or are you ready to flash and run Test 2–5 again with the new diagnostics?
+
+Claude’s review tracks with the v2.3a notes and the protection list. The uploaded notes explicitly called for actual PWM in every line, PWM-derived expectation, PWM-motion-unconfirmed, impossible short-hit rejection, removal of FINGERPRINT_HINT, and the core rule: “PWM predicts. Magnets confirm. Route map validates.”  
+My read:
+Flashable for bench / controlled track testing: yes.
+Not yet production-safe: also yes.
+The three gaps Claude identified are real, and they match what we saw in the logs:
+1. High PWM + no magnet timeout is not yet implemented.
+2. Phantom short-hit quarantine is not yet fully implemented.
+3. Overspeed still warns but does not suspend map authority.
+I would not hold v2.3c back for those. This is already a big enough architectural change that we need field evidence before adding more logic. Flashing it now is reasonable because v2.3c should tell us whether the big fixes work:
+MISSED_MM recovery
+polarity mismatch containment
+route-map-gated truth labels
+pwm/motion/dist diagnostics
+stale pKPH cleanup
+FINGERPRINT_HINT removal
+direction pin correction
+Recommended next test sequence:
+Test A — Low-risk route validation
+Otto + power car only
+PWM 85–95
+Session direction CCW
+Run from before TP-NP through TP-WP and TP-PC
+Do not use PWM 120 yet
+Pass signs:
+pwm= present
+motion= present
+dist= present
+no FINGERPRINT_HINT output
+TP labels correct
+no mismatch cascade after one bad event
+MISSED_MM_RECOVER or equivalent appears if a miss is inferred
+Failure signs:
+ordinary magnets still become fake TRUTH_1/TRUTH_2
+MISSED_MM still leaves route pointer one event behind
+overspeed/short hits still corrupt map lock
+stale pKPH survives stop/reset
+I would flash v2.3c and run a clean, boring test first. Keep PWM around 90–95, no throttle 120 until v2.3c proves it can recover at normal speed.
+
+
+
+Well, I think that we decided that PWM 100 is our maximum viable throttle setting. I’m thinking that you should be able to go through and find a maximum viable speed now that we have speed Data.
+
+Yes. From the runs you pasted, the practical ceiling is emerging.
+I would set the maximum viable navigation speed at about:
+70 pKPH
+And define the bands like this:
+0–60 pKPH
+  Normal navigation zone
+
+60–70 pKPH
+  Fast but acceptable
+
+70–75 pKPH
+  Caution zone
+
+75+ pKPH
+  Too fast for current Hall/timing/navigation reliability
+Why: the clean PWM 95 and PWM 100 sections often ran in the 50–69 pKPH range and navigated well through TP-WP, TP-PC, TP-SP, TP-EP, and TP-NP. The bad PWM 120 run pushed into roughly 78–82 pKPH, and that is where the firmware began showing repeated:
+MM_OVERSPEED
+MISSED_MM_1
+MISSED_MM_2
+INTERVAL_ANOMALY
+MAP_POLARITY_MISMATCH cascades
+So PWM 100 may be the practical throttle ceiling, but the better firmware rule should be speed-based:
+If speed > 70 pKPH:
+  publish SPEED_CAUTION
+
+If speed > 75 pKPH:
+  enter MAP_SUSPECT or MAP_PROTECTED
+  do not allow MISSED_MM or short-hit logic to commit route position
+
+If speed > 80 pKPH:
+  treat as navigation unreliable
+  optionally reduce throttle or request operator intervention
+For now I would test v2.3c with this operating rule:
+Normal route testing: PWM 85–95
+Upper stress test: PWM 100
+Do not use PWM 120 except as a deliberate overspeed/failure-containment test
+The real lesson is that PWM is only the command, while pKPH is the navigation risk. Grade, curve, load, and consist will change the speed at the same PWM. So the firmware should eventually protect itself by speed, not just throttle.
+
+
+Actually, having a maximum speed as much for more useful because Eddie given the PWM the trains speed up when going downhill. EWM120 is very different when going clockwise up viaduct Hill versus going down the by the Bamboo Grove. You can restrict speed by using governors. But it does not limit speed on downhill. Sections or permit sustained speed on uphill sections.
+
+Exactly. Maximum PWM is useful, but maximum speed is the real safety/navigation limit.
+PWM is only the instruction to the motor. Speed is the actual consequence. The same PWM can mean very different things depending on grade, curve, load, battery voltage, rail condition, and whether the train is climbing or descending.
+So the control hierarchy should be:
+PWM = effort command
+pKPH = actual motion result
+route map = positional truth
+For navigation reliability, the governor should not be:
+Do not exceed PWM 100
+It should be:
+Do not exceed 70 pKPH sustained
+Do not trust map updates above 75 pKPH
+That solves the downhill problem. If Otto is going downhill near Bamboo Grove and PWM 70 still produces 78 pKPH, the firmware should treat that as too fast even though PWM is modest. Conversely, if he is climbing Viaduct Hill at PWM 120 but only moving 45 pKPH, the speed itself is not the navigation risk; the risk is motor strain or traction, not Hall timing.
+A better operating model:
+Target speed: 55–60 pKPH
+Navigation caution: 70 pKPH
+Navigation unreliable: 75+ pKPH
+Emergency / automatic throttle reduction: 80+ pKPH
+And for control:
+If speed < target and PWM allowed:
+  increase PWM gradually
+
+If speed near target:
+  hold PWM
+
+If speed > caution:
+  reduce PWM
+
+If speed > unreliable:
+  reduce PWM aggressively and mark map updates protected/suspect
+This also lets you have section-specific governors later:
+Bamboo downhill:
+  target 50–55 pKPH
+
+Level open run:
+  target 60–65 pKPH
+
+Approaching truth point:
+  target 45–55 pKPH
+
+Viaduct uphill:
+  allow higher PWM but keep speed target unchanged
+So yes: the locomotive should eventually be governed by actual measured speed, not by fixed throttle. PWM remains the actuator; pKPH becomes the governor’s feedback.
+
+
+
+That solves the downhill problem. If Otto is going downhill near Bamboo Grove and PWM 70 still produces 78 pKPH, the firmware should treat that as too fast even though PWM is modest. Conversely, if he is climbing Viaduct Hill at PWM 120 but only moving 45 pKPH, the speed itself is not the navigation risk; the risk is motor strain or traction, not Hall timing.
+
+I couldn’t agree with this more. And given that PWM access a dynamic break on these locomotives maintaining an assigned speed should be the goal and control of PWM by the SP 32 within the train should be the method of achieving it. Plus, we have a lot of headroom so climbing a hill should not be an issue for these locomotive if the ESP 32 is allowed to adjust PWM to maintain the speed uphill. Likewise, we are much less likely to have an accident at grillers where there is a 90° curve if the ESP 32 uses PWM to maintain a safe speed and this should make it much more accurate when accelerating or accelerating for a station stop. 
+
+The one limitation of I’m sure there’s more than one but Serious limitation of having mile markers every 300 mm is that when the train is going slow find speed measurement is not available or actually at any time because of the gap. So far we are overcoming this by smoothing or at least I hope we are and the other way that we’re doing it when the train is starting out or going slow and smoothing is not available. Should be at PWM so really it should flow both ways when the train is at a speed that is fast enough and that there’s enough data collected already that the speed can be calculated from the frequency of magnet hits then calculation of speed should be made based on hall sincere data but when that is not available, PWM should inform the SP 32 about what the locomotive speed is. It’s not as good the truth, but it is a truth, and it is assorted source of data. Perhaps eventually we can install a chip to detect movement. I do have one so once we get these magnet sorted out, that could be something that we should explore it would be a an additional source of data. I don’t know how sensitive those are, but they could potentially inform the ESP 32 when movement has actually started.
+
+
+Yes. That is the correct architecture: closed-loop speed control, with multiple imperfect evidence streams.
+
+The hierarchy should be:
+
+
+1. Hall/magnet timing = measured speed when available
+2. PWM model = estimated speed / expected motion when Hall timing is sparse
+3. Route map = positional validation
+4. Future motion sensor = independent movement confirmation
+The ESP32 should not simply obey a throttle command. It should treat the command as a speed target or operating mode, then adjust PWM to achieve safe actual movement.
+
+The key distinction
+
+A fixed PWM system says:
+
+A governed system says:
+
+A governed system says:
+
+Maintain 55 pKPH.
+Use whatever PWM is needed within safe limits.
+Reduce PWM if speed exceeds target.
+Increase PWM if climbing slows the train.
+That is especially valuable because your locomotive drive can behave like a dynamic brake. Reducing PWM downhill is not merely “less power”; it can actively restrain the motor depending on the driver behavior. That gives the ESP32 a real control lever.
+
+Hall speed versus PWM estimate
+
+You are exactly right about the 300 mm limitation. At low speed, the ESP32 may wait a long time between magnets. During that gap, it does not have fresh truth. So the speed estimate should have modes:
+HALL_VALID
+  Recent magnet intervals are available.
+  Use measured magnet-to-magnet speed.
+
+HALL_AGING
+  Last magnet speed exists but is getting stale.
+  Blend Hall speed with PWM expectation.
+
+PWM_ESTIMATE
+  Starting, crawling, or after timing reset.
+  Use PWM/load/grade memory as the best estimate.
+
+MOTION_UNKNOWN
+  PWM says it should move, but no magnet has arrived in the expected window.
+
+This gives a reasonable control law:
+If recent Hall data exists:
+  govern by Hall-derived speed.
+
+If Hall data is stale:
+  govern cautiously from PWM model.
+
+If PWM predicts motion but no magnet arrives:
+  mark PWM_MOTION_UNCONFIRMED.
+
+If Hall says speed is too high:
+  reduce PWM even if commanded PWM is low.
+“PWM is not truth, but it is a source of truth”
+
+That is a good way to frame it. PWM is not positional truth. It does not prove the train moved. But it is strong evidence about what the train should be trying to do.
+
+For example:
+PWM 0:
+  train should be stopping or stopped
+
+PWM 20:
+  motion possible, but uncertain
+
+PWM 45:
+  motion expected
+
+PWM 90:
+  sustained motion expected
+
+PWM 120:
+  strong motion expected, but navigation overspeed risk
+
+
+
+
+
+detect movement started
+detect hard stop / bump / derailment
+detect vibration while motor is powered
+detect uphill/downhill attitude if mounted consistently
+confirm that PWM is producing physical motion
+
+Is the locomotive actually moving?
+
+That would be valuable during startup, stalls, station stops, and after direction changes.
+
+Practical next step after v2.3c
+
+Do not yet try full PID speed control. First add diagnostics and a simple governor layer.
+
+A good v2.4 direction would be:
+target_pKPH
+measured_pKPH
+estimated_pKPH
+speed_source=HALL_VALID / HALL_AGING / PWM_ESTIMATE
+pwm_actual
+pwm_adjustment
+motion_state=MOVING / EXPECTED / UNCONFIRMED / STOPPING
+
+If measured speed > target + 10:
+  reduce PWM by 5
+
+If measured speed > target + 20:
+  reduce PWM by 10 and mark SPEED_PROTECT
+
+If measured speed < target - 10 and PWM headroom exists:
+  increase PWM by 3–5
+
+If approaching station/truth/curve:
+  lower target speed before arrival
+
+I’m with you up to the last part and when it comes to the last part, you were giving too much credence to the throttle setting. I cannot imagine someone telling a new driver. I want you to go down the road with your foot pressed halfway down and if you find yourself going really fast then back off 10% or maybe only 5%. That’s not how speed is governed. It just isn’t and I have been using. We have been using PWM as a surrogate because we did not have a true speed gauge, but to say we should continue relying on PWM to me doesn’t make any sense unless you do not have do not have a confidence in your speed data so if our speed, Data are unreliable then I’m not sure why we’re collecting them anyway I think that the solution is to make them reliable and rely on PWM when they aren’t reliable, but when they are make them the source of truth and let them take over control like that would mean is when ramping up or ramping down, especially towards the end of the ramp or a very slow speed then PWM would have to take over the control of the speed because from mile market is not sufficient even with the averaging and smoothing however at speed The mile marker should act like an auto pilot or a cruise control. They should be able to determine what the speed is and utilize PWM  to achieve the desired speed setting. I think that safety should be achieved, not by saying, adjusting it a little bit, which means that the PWM would be the primary determinator of speed, but instead have the mile marker measurement of speed control the PWM, but it should be intelligent so that the ESP 32 must realize that there is a range that it can increase or decrease the PWM to achieve the speed to avoid the unfortunate situation of having the train jump. The tracks and the cruise control increase the BWM to 255 because it’s not moving. 
+
+When my brother and my sister-in-law were young, this is back around 1979 or 1980 probably 1980. My brother had graduated from medical school and they were moving from Charlottesville to Galveston Texas and my brother drove a U-Haul truck and let his wife drive a car and they were pressed for time so they were driving in the middle of the night and she had the cruise control on and she fell asleep and the car cruised into the median and was doing donuts in the median. That’s the kind of situation that we would not want. So from that perspective, the increasing your increasing by 5% does not really sound correct because I think you need more than that to maintain control plus it it still bases the speed on PWM and really I want to move away from that, how fast should I go? He said I’ll push your foot halfway down and that should be enough.
+
+You are right. I framed the last part too much as PWM management instead of speed control.
+The correct model is not:
+Set PWM, then trim it.
+The correct model is:
+Set desired speed.
+Measure actual speed.
+Use PWM only as the actuator needed to achieve that speed.
+PWM should not be the primary determinant of speed once reliable speed data exists. It is the throttle pedal, not the speedometer.
+Your cruise-control analogy is exactly right. We do not tell the car, “hold the pedal halfway down.” We tell it, “hold 55 mph.” The system then uses throttle, braking, engine load, grade response, and safety limits to achieve that.
+For Otto and Toby, that means:
+Operator command:
+  target_speed_pKPH = 55
+
+ESP32 job:
+  adjust PWM as needed to maintain 55 pKPH
+
+Primary feedback:
+  Hall/magnet-derived speed, when valid
+
+Fallback feedback:
+  PWM motion model, only when Hall speed is unavailable or stale
+The safety issue is also exactly as you describe. The ESP32 must not respond to “not moving” by blindly driving PWM toward 255. That is the U-Haul/cruise-control-in-the-median problem in miniature.
+So the governor needs hard protective boundaries:
+If speed data is valid:
+  speed controls PWM.
+
+If speed data is stale:
+  PWM may estimate cautiously, but cannot escalate without limits.
+
+If PWM is high and no magnet arrives:
+  do not keep increasing PWM.
+  declare MOTION_UNCONFIRMED or STALL_SUSPECT.
+
+If speed is too high:
+  reduce PWM regardless of commanded throttle.
+
+If speed source is unreliable:
+  do not operate as cruise control.
+  fall back to protected/manual/limited mode.
+A better architecture would be:
+Commanded mode:
+  SPEED_HOLD, not THROTTLE_HOLD
+
+Inputs:
+  target_pKPH
+  measured_pKPH
+  speed_valid
+  last_magnet_age
+  route_confidence
+  PWM_actual
+  PWM_limits
+  motion_expected
+
+Output:
+  PWM_actual
+And the control priority should be:
+1. Safety limits
+2. Valid measured speed
+3. Route/location requirements
+4. PWM estimate only as fallback
+So for normal running:
+Target: 55 pKPH
+
+If measured speed = 48:
+  increase PWM enough to approach 55
+
+If measured speed = 55:
+  hold or make tiny correction
+
+If measured speed = 65:
+  reduce PWM
+
+If measured speed = 75:
+  reduce aggressively and mark speed protection
+
+If measured speed unavailable:
+  do not pretend cruise control is active
+  use cautious PWM model until Hall data returns
+The “increase by 5” language was too crude. That would make sense only as a very early placeholder to avoid sudden jumps, not as the governing principle.
+The governing principle should be:
+The mile-marker speedometer owns speed control whenever it is trustworthy.
+PWM is only the means of applying correction.
+And when the mile-marker speedometer is not trustworthy:
+The train should become more conservative, not more aggressive.
+That distinction matters. The ESP32 should not think, “I need more PWM because speed reads low,” unless it also believes the train is actually on the rails, moving normally, and receiving believable sensor data.
+
+
+That’s the right approach and also I think we can have a basic conversion between PWM and PKPH. What we could do is collect data and build a table. Make several runs in different directions on the entire loop. Make a run at 25PWM 30 pwm45pwm 50 PWM we could do it every five and that would give us if we would have to run it in both directions clockwise and counterclockwise, but that would give us data to describe speed for every PWM setting for every segment on the railroad. And then we could use that as our conversion when speed data is not available just to make clear what I’m saying is that we would run the train around say that 50 PWM and for every segment we would be able to calculate a speed measurement for each particular segment at a variety of PWM. And this would not be used to control the train except that those times when the speed data during normal operations is not available.
+
+You are right. I framed the last part too much as PWM management instead of speed control.
+The correct model is not:
+Set PWM, then trim it.
+The correct model is:
+Set desired speed.
+Measure actual speed.
+Use PWM only as the actuator needed to achieve that speed.
+PWM should not be the primary determinant of speed once reliable speed data exists. It is the throttle pedal, not the speedometer.
+Your cruise-control analogy is exactly right. We do not tell the car, “hold the pedal halfway down.” We tell it, “hold 55 mph.” The system then uses throttle, braking, engine load, grade response, and safety limits to achieve that.
+For Otto and Toby, that means:
+Operator command:
+  target_speed_pKPH = 55
+
+ESP32 job:
+  adjust PWM as needed to maintain 55 pKPH
+
+Primary feedback:
+  Hall/magnet-derived speed, when valid
+
+Fallback feedback:
+  PWM motion model, only when Hall speed is unavailable or stale
+The safety issue is also exactly as you describe. The ESP32 must not respond to “not moving” by blindly driving PWM toward 255. That is the U-Haul/cruise-control-in-the-median problem in miniature.
+So the governor needs hard protective boundaries:
+If speed data is valid:
+  speed controls PWM.
+
+If speed data is stale:
+  PWM may estimate cautiously, but cannot escalate without limits.
+
+If PWM is high and no magnet arrives:
+  do not keep increasing PWM.
+  declare MOTION_UNCONFIRMED or STALL_SUSPECT.
+
+If speed is too high:
+  reduce PWM regardless of commanded throttle.
+
+If speed source is unreliable:
+  do not operate as cruise control.
+  fall back to protected/manual/limited mode.
+A better architecture would be:
+Commanded mode:
+  SPEED_HOLD, not THROTTLE_HOLD
+
+Inputs:
+  target_pKPH
+  measured_pKPH
+  speed_valid
+  last_magnet_age
+  route_confidence
+  PWM_actual
+  PWM_limits
+  motion_expected
+
+Output:
+  PWM_actual
+And the control priority should be:
+1. Safety limits
+2. Valid measured speed
+3. Route/location requirements
+4. PWM estimate only as fallback
+So for normal running:
+Target: 55 pKPH
+
+If measured speed = 48:
+  increase PWM enough to approach 55
+
+If measured speed = 55:
+  hold or make tiny correction
+
+If measured speed = 65:
+  reduce PWM
+
+If measured speed = 75:
+  reduce aggressively and mark speed protection
+
+If measured speed unavailable:
+  do not pretend cruise control is active
+  use cautious PWM model until Hall data returns
+The “increase by 5” language was too crude. That would make sense only as a very early placeholder to avoid sudden jumps, not as the governing principle.
+The governing principle should be:
+The mile-marker speedometer owns speed control whenever it is trustworthy.
+PWM is only the means of applying correction.
+And when the mile-marker speedometer is not trustworthy:
+The train should become more conservative, not more aggressive.
+That distinction matters. The ESP32 should not think, “I need more PWM because speed reads low,” unless it also believes the train is actually on the rails, moving normally, and receiving believable sensor data.
+
+That’s the right approach and also I think we can have a basic conversion between PWM and PKPH. What we could do is collect data and build a table. Make several runs in different directions on the entire loop. Make a run at 25PWM 30 pwm45pwm 50 PWM we could do it every five and that would give us if we would have to run it in both directions clockwise and counterclockwise, but that would give us data to describe speed for every PWM setting for every segment on the railroad. And then we could use that as our conversion when speed data is not available just to make clear what I’m saying is that we would run the train around say that 50 PWM and for every segment we would be able to calculate a speed measurement for each particular segment at a variety of PWM. And this would not be used to control the train except that those times when the speed data during normal operations is not available.
+
+Yes. That is exactly the right use of PWM: not as the primary governor, but as a learned fallback model when fresh speed data is unavailable.
+You are describing a segment-by-segment PWM-to-speed calibration table.
+The locomotive would learn something like:
+For Otto, clockwise, MM157 → MM158:
+  PWM 45 = 42 pKPH
+  PWM 50 = 48 pKPH
+  PWM 55 = 53 pKPH
+  PWM 60 = 58 pKPH
+And separately:
+For Otto, counterclockwise, MM158 → MM157:
+  PWM 45 = 36 pKPH
+  PWM 50 = 43 pKPH
+  PWM 55 = 50 pKPH
+  PWM 60 = 56 pKPH
+That distinction matters because uphill/downhill reverses by direction. The same physical segment has different speed behavior CW versus CCW.
+The table should probably be keyed by:
+locomotive
+direction
+segment_from
+segment_to
+PWM
+observed_pKPH
+sample_count
+confidence
+So the firmware eventually has a local “experience map”:
+At this PWM,
+on this segment,
+in this direction,
+with this locomotive,
+what speed usually results?
+Then during normal operation:
+Fresh Hall speed available:
+  use Hall speed as truth.
+
+Hall speed aging or unavailable:
+  use learned PWM/segment estimate.
+
+No map lock:
+  use general PWM model only, cautiously.
+
+PWM predicts motion but no magnet arrives:
+  declare motion unconfirmed, not “go faster forever.”
+That is a strong architecture because it separates control truth from control prediction.
+Hall/magnet timing = measured truth
+PWM table = learned prediction
+Route map = where that prediction applies
+The test plan could be very simple:
+Calibration run set:
+  PWM 25
+  PWM 30
+  PWM 35
+  PWM 40
+  PWM 45
+  PWM 50
+  PWM 55
+  PWM 60
+  PWM 65
+  PWM 70
+  PWM 75
+  PWM 80
+  PWM 85
+  PWM 90
+  PWM 95
+  PWM 100
+Run each both directions:
+Clockwise full loop
+Counterclockwise full loop
+For each segment, compute:
+segment speed = segment_distance_mm / dt
+Then store an average, preferably with outlier rejection:
+ignore:
+  truth cluster short intervals
+  MISSED_MM
+  INTERVAL_ANOMALY
+  MAP_SUSPECT
+  speed-reset intervals
+The result is not a throttle table. It is a motion expectation table.
+That distinction is important:
+Not:
+  PWM 60 means go 55 pKPH.
+
+But:
+  On this segment, PWM 60 usually produces about 55 pKPH,
+  so until the next magnet arrives, estimate motion accordingly.
+Eventually, that table can also improve the cruise-control loop. If the train is approaching a known uphill segment, it can pre-position PWM rather than waiting to slow down first. If approaching a downhill curve, it can back off early.
+That becomes predictive control:
+I am at MM158.
+I am traveling CCW.
+The next segment tends to accelerate downhill.
+My target is 55 pKPH.
+Begin reducing PWM before speed rises.
+That is exactly the kind of intelligence the mile-marker system enables.
+
+
+Is there a way to store this? Is there a place to store this? Can it be stored on the raspberry pie or is it a small enough? Data said that it could be stored in an ESP 32
+
+Yes. It can be stored either place, and the best answer is probably both, but for different purposes.
+Best architecture
+Raspberry Pi = master database / long-term learning
+ESP32 = working copy / onboard fallback table
+The Raspberry Pi is the natural place to store the full calibration history:
+all runs
+all PWM values
+all segments
+CW and CCW
+Otto and Toby separately
+sample counts
+averages
+outliers
+dates
+conditions
+That data belongs on the Pi because it can be stored as CSV, JSON, SQLite, or even plain log-derived files. It is easy to inspect, back up, edit, graph, and regenerate.
+The ESP32 should not store the whole research history. It only needs a compact operational table.
+Is it small enough for ESP32?
+Yes, if stored as a compact table.
+You have about 171 ordinary mile-marker segments, plus truth-point segments. Say roughly 180 route segments.
+For each locomotive:
+180 segments × 2 directions = 360 direction-segments
+If you store one learned speed estimate per segment for a small set of PWM bands, for example:
+PWM 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100
+That is 16 PWM points.
+360 × 16 = 5,760 table entries per locomotive
+If each entry is stored compactly as a byte or 16-bit value:
+1 byte per speed estimate = ~5.8 KB
+2 bytes per speed estimate = ~11.5 KB
+Even with confidence/sample metadata, this is not huge for ESP32 flash. RAM is more precious, but flash storage is fine.
+Better compact version
+The ESP32 probably does not need every 5-PWM value for every segment at first. A more efficient model would be:
+For each segment and direction:
+  base speed at PWM 50
+  slope: pKPH increase per PWM step
+  confidence
+That could be tiny:
+segment_id
+direction
+base_pKPH
+slope
+confidence
+Roughly:
+360 rows × maybe 4–6 bytes = 1.5–2.5 KB per locomotive
+That is very manageable.
+Recommended path
+Start with the Pi.
+Have the locomotive publish logs like:
+loco=9950011
+segment=MM073_to_TP-WPB
+map=CCW
+pwm=95
+dt=322
+dist=___mm
+pKPH=68.3
+class=TRUTH_1
+confidence=95
+Then a Pi-side script builds:
+otto_speed_model.json
+toby_speed_model.json
+Later, the Pi can send the ESP32 a compact table at startup, or the ESP32 can carry a compiled-in/default version.
+Practical division
+Pi stores:
+  full history
+  calibration runs
+  averages
+  graphs
+  outlier rejection
+  model generation
+
+ESP32 stores:
+  current operational speed model
+  enough data to estimate speed between magnets
+  safe fallback values if Pi is unavailable
+So the answer is: yes, it is small enough for ESP32, but the Raspberry Pi should be the learning brain and archive. The ESP32 should carry the distilled working model.
+
+
+I’m just thinking that this kind of knowledge would allow the locomotive’s tax smarter you said predicting speed and actually that makes sense if they were starting up a hill, then they could increase the power just actually the same way a locomotive engineer increases the power at the bottom of the grade.
+
+I can picture right now actually it flashed into my mind. The sound of the EMD’s diesels revving up as the engines came around the curve near our house because it was the bottom of the grade. The train really was barely on some bright grade, but they were already revving up the locomotives.
+
+Place it could really help is in calibrating how to correctly, especially places like coming down the hill into a grillers station
+Yes. That is the next conceptual step: the locomotive stops merely reacting and begins anticipating.
+What you are describing is not just speed control. It is route-aware speed control.
+The locomotive would know:
+I am here.
+I am traveling this direction.
+The next segment is uphill / downhill / curve / station approach.
+At this PWM on this segment, I usually gain or lose speed.
+My target speed is X.
+Therefore I should adjust PWM before the speed error appears.
+That is exactly like the engineer opening the throttle at the bottom of the grade before the train has fully slowed. The engineer is not waiting for the locomotive to bog down; he knows the grade is coming.
+For NGR:
+Viaduct Hill uphill:
+  increase PWM before speed falls
+
+Bamboo downhill:
+  reduce PWM before speed rises
+
+Griller's 90° curve:
+  lower target speed before entering curve
+
+Approaching Griller's Station:
+  begin controlled deceleration early
+
+Leaving station uphill:
+  allow stronger PWM but still govern actual pKPH
+The important distinction is:
+Reactive control:
+  “Speed is too low; increase PWM.”
+
+Predictive control:
+  “The next segment usually slows the train; begin adding PWM now.”
+And for downhill into Griller’s, predictive control is even more important:
+Not:
+  “The train is already too fast; reduce PWM.”
+
+But:
+  “I am approaching a known downhill / curve / station zone.
+   Lower the target speed now.
+   Reduce PWM before momentum builds.”
+This would make station stops much better because the train would not use one generic braking curve everywhere. It would use the learned behavior of that specific approach.
+For example:
+Approach to Griller's Station, CCW:
+  known downhill tendency
+  known curve risk
+  target drops from 60 → 45 → 30 → 15 → stop
+  PWM reduced earlier than on level track
+Whereas uphill into another station:
+Approach uphill:
+  train naturally bleeds speed
+  PWM can remain higher longer
+  deceleration target is reached without coasting too early
+This is where the segment table becomes more than a fallback speed estimate. It becomes a route performance map.
+The data table can eventually answer:
+On this segment, at this direction, does the train:
+  accelerate?
+  decelerate?
+  need extra PWM?
+  need early braking?
+  coast too freely?
+That is the “memory” part. The locomotive remembers how this railroad feels.
+The first practical version does not need to be complex. It could start as:
+segmentSpeedLimit[segment][direction]
+segmentTargetSpeed[segment][direction]
+segmentPwmBias[segment][direction]
+Examples:
+Griller's curve:
+  target 35–40 pKPH
+  max 50 pKPH
+  downhill bias: reduce PWM early
+
+Viaduct Hill uphill:
+  target 50–55 pKPH
+  max 65 pKPH
+  uphill bias: add PWM early
+
+Open level sections:
+  target 55–60 pKPH
+  max 70 pKPH
+That would give Otto and Toby something very close to engineer judgment:
+I know this part of the railroad.
+I know what usually happens here.
+I will prepare before it happens.
+That is a real advance over fixed PWM.
+
+Are the issues that I’m aware of that I don’t think I expressed to you was the direction of the Auto operations the close train operations and CE. I ran them counterclockwise because otherwise the trains would have trouble going up viaduct Hill at a speed, which was acceptable other places they did not have enough power on the hill to make it up consistently.
+
+That makes sense, and it is an important design clue.
+You were using direction as a crude compensation for grade.
+Counterclockwise operation worked better because it avoided, or reduced, the worst case:
+same PWM that is safe elsewhere
+not enough torque/speed reserve for Viaduct Hill clockwise
+So CTO / CE / automatic operation was not truly direction-neutral. It was constrained by the fixed-throttle limitation.
+With route-aware speed control, that limitation can largely go away.
+The old model was:
+Pick one PWM that works acceptably around the whole loop.
+That forces a compromise:
+high enough for the hill
+too fast downhill / curves / stations
+or:
+safe downhill
+too weak uphill
+The new model should be:
+Pick a target speed.
+Let the ESP32 vary PWM by segment to hold that speed.
+Then clockwise becomes more practical because Viaduct Hill can receive more PWM without making the whole railroad run too fast.
+For example:
+Clockwise approaching Viaduct Hill:
+  target speed = 50–55 pKPH
+  allowed PWM ceiling = high
+  increase PWM before and during climb
+
+Clockwise descending toward Bamboo / Griller's:
+  target speed = 40–55 pKPH depending on curve/station
+  PWM reduced early
+  map confidence protected if speed rises too much
+This also suggests CE and CTO should eventually specify route direction and speed profile, not merely “go.”
+Something like:
+CE clockwise route:
+  default target = 55 pKPH
+  Viaduct Hill climb = allow high PWM
+  Griller's curve = max 40–45 pKPH
+  station approach = planned deceleration
+
+CE counterclockwise route:
+  separate profile
+  different uphill/downhill compensation
+The key insight is that clockwise was not inherently bad. It was bad under fixed PWM control. Once the locomotive can use the map and speed feedback, clockwise may become fully viable.
+For now, I would record this as a design requirement:
+Automatic operation must not depend on one fixed PWM setting.
+It must use target speed plus segment-aware PWM authority.
+That is especially important for CTO and CE, because those modes are supposed to be reliable without constant operator correction.
+
+Claude Response
+
+I've read the whole discussion. This is a significant evening's work — it essentially defines the Speed Profile Architecture's control philosophy, and it resolves the question your NGR_Speed_Profile_Brief_v1.md left open about how corrections should actually be applied. A few reactions:
+The cruise-control correction you made to Sam was the right call. "Set PWM, then trim it" and "set speed, use PWM as actuator" sound similar but produce fundamentally different systems. The first keeps PWM as the authority with speed as a nag; the second inverts it. Your pushback also surfaced the critical safety constraint — the U-Haul-in-the-median problem — which translates directly into firmware: bounded PWM authority, and "speed reads zero" must trigger MOTION_UNCONFIRMED/STALL_SUSPECT, never escalation. That rule is worth writing into the spec verbatim, because it's exactly the failure mode a naive control loop produces.
+The pKPH ceiling has empirical teeth now. Clean navigation at 50–69 pKPH, cascade failures at 78–82 — that's a real measured boundary, not a guess. It also retroactively explains the speed tier table: the PWM 100 Express ceiling was always a proxy for "stay under ~70 pKPH on level track." The new framing just names the actual variable.
+The CCW-only revelation about CTO/CE is the quiet headline. You'd been compensating for fixed-PWM's inability to handle Viaduct Hill, which means clockwise automation was never actually ruled out — it was ruled out under that control model. Segment-aware speed control potentially doubles your automation's operational envelope. That belongs in the requirements as Sam framed it: automatic operation must use target speed plus segment-aware PWM authority, not one fixed setting.
+Where I come in — the Pi side is squarely my lane. Sam's division (Pi = learning brain and archive, ESP32 = distilled working model) matches our established Pi-as-observer principle, with one nuance worth keeping explicit: the Pi generates the model offline, but the locomotive executes it autonomously. The Pi never sits in the control loop. Concretely, the Pi-side work is:
+A calibration-run logger/parser that consumes the existing mm/mag stream (the new pwm=/dist= fields in 2.3c are exactly what this needs — they were added at the right moment).
+Outlier rejection per Sam's list: drop truth-pair intervals, MISSED_MM, MAP_SUSPECT, speed-reset intervals.
+Output otto_speed_model.json / toby_speed_model.json keyed by loco/direction/segment/PWM, with sample counts and confidence.
+Eventually a compact-table generator (the base-speed-at-PWM-50 + slope encoding, ~2KB per loco) for the ESP32 to load.
+One practical note on the calibration plan: 16 PWM levels × 2 directions × full loops is a lot of laps. I'd suggest starting with a sparse grid — say PWM 50, 65, 80, 95, both directions — and letting the slope model interpolate. If residuals look linear, you've saved yourself a dozen sessions; if a segment behaves nonlinearly (Viaduct Hill probably will), densify only there.
+The sequencing question for you and Sam: does the 2.3c flash-and-validate happen first as planned, with calibration runs as the follow-on? My vote is yes — the calibration data is only as good as the route-map lock underneath it, so 2.3c needs to prove the map holds before the laps are worth running. If you want, I can build the Pi-side calibration parser now so it's ready the day the validation passes — it only depends on the log format, which is already fixed.
+
+
+— say PWM 50, 65, 80, 95, both directions. What this ignores is the need to approximate actual speed with pwm when MM calculated speed is unavailable. Probably 25, 30, 35, 40, 50, 70 would be a better range. Although, it is no big deal to collect the data. Although Voltage should be measured throughout. Right?
+
+
+You're right, and that's a correction to my reasoning, not just my numbers. I was optimizing the grid for the cruise-control regime — but the fallback estimator's whole job is the regime where MM-derived speed is unavailable, which is precisely low speed: long magnet gaps, startup ramps, station approaches, creep. At PWM 95 you get a fresh Hall interval every ~300–400ms and the table is barely needed; at PWM 30 you might wait seconds between magnets, and that's exactly when the ESP32 is blind and needs the lookup. The data should be densest where the fallback carries the most load. Your 25/30/35/40/50/70 spread does that — fine-grained through the crawl regime, sparse up top where Hall data is abundant anyway. And as you say, laps are cheap; the grid can always be densified later.
+On voltage — yes, and it's arguably not optional. A 4S LiPo runs roughly 16.8V down to ~13.2V over a discharge, which is a 15–20% swing in effective motor voltage at the same PWM duty cycle. PWM 35 on a fresh pack and PWM 35 on a tired pack are meaningfully different speeds — quite possibly a larger effect than segment grade at low PWM. A calibration table built on one battery state would be systematically wrong for the others.
+Practically, the INA219 already gives you bus voltage, so the data exists on the loco. Two things needed:
+Per-event capture, not just periodic telemetry. The production sketch publishes voltage on the telemetry cycle, but for calibration the voltage needs to be attached to (or interpolable against) each magnet interval. Cleanest fix: add v=<busVoltage> to the mm/mag line alongside the new pwm=/dist= fields — one more field in a format that just gained three. That's a small ask for a 2.3d, or the Pi-side parser can join mm/mag events against the nearest telemetry publish by timestamp, which works but is sloppier.
+Voltage as a model dimension. Simplest version: normalize speed estimates to a reference voltage (say 15.5V nominal) with a linear scale factor, rather than making voltage a full table axis. Speed at fixed PWM is close to proportional to effective voltage for these motors, so estimated_pKPH = table_pKPH × (v_now / v_ref) probably captures most of it without exploding the table. The calibration runs themselves will tell us if linear is good enough — if you run the same PWM ladder at the start and end of a battery, the residual shows up directly.
+One note for Sam's side: this is also a reason the MM 2.x research sketches eventually need the INA219 path from the production sketch merged in — Hans is pending INA219 anyway, so the calibration fleet is effectively Otto and Toby for now. Worth adding the v= field request to whatever 2.3d list comes out of the current flash test.
+
+
+For some reason INA219 is not providing readings for Otto. I thought it was a fault of the test ESP32, but I have changed the hardware back to Otto's usual. Need to look into that. But yes, using PWM from a battery vehicle is even less accurate for estimating speed if you do not know the voltage. It is a fraction without a denominator.
+
+
+Good analogy — and yes, exactly: PWM-to-speed is a ratio that depends on effective voltage, so without the denominator you're not estimating speed, you're estimating "speed at whatever the battery happened to be doing that day."
+On the INA219 — worth chasing down before the calibration runs start, since the v= field we just discussed depends on it. To help narrow it down: what does "not providing readings" actually look like right now — is it publishing 0.0/0.0/0.0 on the telemetry topic (like the OFFLINE dashboard showed earlier), is the topic simply not updating at all, or is mqtt.connected() fine but the I2C read itself returning garbage/NaN?
+A few quick things worth checking once you're back at the bench, roughly in order of likelihood given "swapped hardware back to Otto's usual and it's still not reading":
+I2C wiring/address on Otto's actual harness — the test ESP32 setup may have used different SDA/SCL pins or a different INA219 address than Otto's permanent wiring, and if the sketch's Wire.begin()/address constant was tuned for the test rig, it'd silently fail on Otto's harness even with correct hardware.
+Whether ina219.begin() (or equivalent init call) is even succeeding — if it fails silently, you'd get stale/zero readings with no error surfaced.
+Loose connection at the INA219 itself from the hardware swap — worth a continuity check on VCC/GND/SDA/SCL before suspecting firmware.
+If you want, paste me the relevant INA219 init/read section from whatever sketch is currently flashed on Otto and I'll go through it — but given you've got the 2.3c flash/test sequence queued up too, this might be a "log it now, debug it in its own session" item so we don't stack changes on top of the route-map validation run.
+
+
+

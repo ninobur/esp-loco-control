@@ -1,0 +1,137 @@
+Evolution from magnet hit detection to situational awareness
+
+I think this is a very good context document for Claude, but I would add one thing that is becoming increasingly apparent from our discussions:
+
+The project is not really about navigation.
+
+It’s about state estimation.
+
+Navigation is simply the first application.
+
+Right now the document says:
+
+“maintain an ongoing estimate of its location and orientation”
+
+I would broaden that slightly:
+
+“maintain an ongoing estimate of its state.”
+
+Where state includes:
+
+location
+direction
+speed
+confidence
+expectations about future observations
+
+That’s subtle, but important.
+
+A locomotive that knows:
+
+I am 1.8 meters beyond Patio
+traveling counterclockwise
+at 0.32 m/s
+with high confidence
+
+is fundamentally different from one that merely knows:
+
+I saw a magnet.
+
+⸻
+
+The other thing I like about your write-up is that it quietly resolves a philosophical tension that has existed in the NGR project for a while.
+
+Early Lowline automation was:
+
+Control-centric
+
+The system asked:
+
+What should the train do?
+
+LBO shifted that toward:
+
+Observation-centric
+
+The system asked:
+
+Is the next block occupied?
+
+The mile-marker project takes the next step:
+
+Model-centric
+
+The system asks:
+
+What do I believe is true right now?
+
+That is a major conceptual evolution.
+
+⸻
+
+One thing I would explicitly tell Claude:
+
+Do not start by solving navigation.
+
+Start by solving belief maintenance.
+
+For example:
+
+Research Sketch Phase 1:
+
+Detect individual magnets
+Measure intervals
+Measure timing
+Determine polarity
+Build event log
+
+Phase 2:
+
+Detect repeating rhythms
+Infer direction
+Infer distance traveled
+Infer expected next marker
+
+Phase 3:
+
+Maintain world model
+Compute confidence
+Recover from errors
+
+Phase 4:
+
+Use world model for operations
+
+The temptation will be to jump straight to Phase 4.
+
+I think the success of this project will come from doing exactly what you did with LBO:
+
+Build confidence in the observations first.
+
+Then build confidence in the interpretation.
+
+Then build behavior on top of that.
+
+⸻
+
+One final observation.
+
+LBO taught the locomotives:
+
+“What matters is not where the other train is, but whether the next block is occupied.”
+
+The mile-marker project teaches:
+
+“What matters is not what magnet I just saw, but what that observation means in the context of everything I already know.”
+
+That is a surprisingly large jump in sophistication while still using nothing more than:
+
+Hall sensors
+magnets
+ESP32s
+
+which is very much in keeping with the NGR philosophy of simple infrastructure and increasingly intelligent locomotives.
+
+Me: How big, how robust, should that context to be for the locomotive?
+
+How big, how robust, should that context to be for the locomotive?

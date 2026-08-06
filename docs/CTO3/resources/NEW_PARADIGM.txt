@@ -1,0 +1,21 @@
+The original CTO architecture was built around fixed blocks. A locomotive knew that it was in one of several defined sections of the Lowline, based on nearby magnet information, and the system used special two-train choreography to keep one locomotive from entering a section occupied by another.
+
+The new architecture is more like real traffic control. Each locomotive knows its Hall-confirmed mile-marker location, its direction of travel, and its estimated position between magnets. It also knows where the Hall sensor sits within its own consist, allowing it to calculate the actual front and rear boundaries of the moving train rather than treating the Hall sensor itself as the train.
+
+That gives every locomotive a useful new ability: it can see another train ahead as a moving object with a rear boundary, not merely as a train occupying a named block. It can compare that train’s rear boundary with its own front boundary and determine whether the space between them is increasing, stable, or shrinking.
+
+The controlled station-stop staircase is what makes that awareness operationally useful. The locomotive no longer just cuts power or gradually lowers PWM and hopes to stop near the desired location. It has a measured sequence of speed reductions that occupies a known amount of track before reaching zero. That same staircase can be placed at a station platform, behind a stopped train, or behind a slower moving train anywhere on the railroad.
+
+A train with open track ahead simply follows its scheduled service plan. It can stop at the platform, skip the platform, or continue at cruise speed. When it encounters a train ahead, it begins evaluating the boundary-to-boundary gap. If the gap is closing slowly because the lead train is moving more slowly, it can reduce speed enough to match the lead train and preserve the desired following distance. If the lead train is stopped, it begins the controlled deceleration staircase early enough to stop behind the lead consist without reaching its rear boundary.
+
+This means collision awareness is no longer an Otto-and-Toby feature. It becomes a capability of every autonomous locomotive. Any number of same-direction trains could, in theory, share the railroad and maintain distance naturally, much as cars on a street or people walking on a sidewalk adapt to the traffic ahead.
+
+Station behavior becomes simpler as well. A train makes its normal platform stop unless another train ahead requires it to stop sooner. There is no fixed holding marker and no special two-locomotive stop choreography. A following train stops wherever traffic requires it to stop, using the same controlled positional deceleration that it would use at a station.
+
+The old concept of pairing becomes optional service behavior rather than the basis of collision control. A locomotive at a platform can have a setting that says: remain at the platform until a following train has arrived and stopped behind. That following train does not need to be a designated partner. It can be any valid same-direction train that has reached the station area and stopped behind the platform train. Once that happens, the platform train can begin its dwell and then depart.
+
+This also simplifies Circuit Express. Express behavior becomes a station-service instruction: temporarily skip scheduled station stops while the locomotive has open track ahead. If it catches a local train, it slows and follows. If the local stops at a station, the express stops behind it through ordinary collision-aware traffic control. When the track opens again, the express resumes its own station-skip behavior.
+
+The architecture is therefore separating into four connected layers. Navigation answers where the locomotive is. The consist model answers where the actual front and rear of its train are. Traffic control answers what train is ahead and what speed preserves separation. Station service answers whether the locomotive should stop, skip, wait for a following train, or proceed.
+
+The breakthrough is that the railroad is no longer governed primarily by fixed blocks and special two-train scripts. It becomes shared track occupied by moving, position-aware train consists.

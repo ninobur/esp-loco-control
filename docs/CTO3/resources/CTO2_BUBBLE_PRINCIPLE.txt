@@ -1,0 +1,38 @@
+
+
+Summary of CTO / Bubble Design Discussion
+Core Architecture Principles
+Mile Marker (MM) System Foundation: Uses precise, measured positions (Hall sensors + DNA map) for controlled speed profiles, glidepaths, stops, and separation. This eliminates unpredictable coasting based on topography or momentum.
+Reusable Station Stop Template: A single flexible template supports multiple behaviors:
+Platform Stop (lead train/normal service): Glide from cruise → 15 pKPH at M−5 → traverse at 15 → 10 at M+1 → 5 at M+2 → final ramp to stop slightly beyond M+2.
+Holding Stop (trailing/follower): Earlier glide start (e.g., M−12 or adjusted), reaches 15 pKPH earlier, then enters final 10/5/stop sequence at a shifted target (e.g., M−5 or dynamically adjusted).
+Glidepath & Control: Linear pKPH reductions (e.g., ~5–7 pKPH per interval), measured-speed governor, gradual PWM changes. No fixed PWM jumps. Final ramp (e.g., ~150–300 ms/PWM) is tunable. ESP driver handles execution; higher logic decides why/where.
+Dwell: Configurable/randomized (e.g., min/max range like 12–20s normal, shorter 0–10s for lead in bubble). Selected on stop.
+Two-Train “Bubble” Concept
+Physical Moving Envelope: Not a fixed block. Roughly:
+2 ft ahead of lead loco Hall sensor.
+Lead loco + consist.
+Trailing loco + consist.
+5 ft behind trailing loco Hall sensor.
+Internal Safety: Trailing loco Hall sensor maintains ~5 MM margin behind lead loco Hall sensor (separate from outer envelope). Prevents overlap even as bubble “stretches/compresses like a slinky.”
+Operation:
+Lead stops at platform (M+2), waits for trailing confirmation at hold point.
+Lead does short randomized dwell (0–10s), then departs.
+Trailing (at hold) waits for adequate moving separation, then restarts toward 15 pKPH, traverses station, and does its own platform stop.
+Follower can depart hold sooner than old fixed-block rules (once dwell + separation allows), following a moving authority limit behind the lead.
+Broadcasts & Decisions: Minimal peer data via ESP-NOW (position, direction, speed, state, timestamp). Bubble layer sits above navigation/governor/station logic. Dispatcher/coordinator handles authority.
+Consist & Flexibility Enhancements (Future-Proofing)
+Dynamic Consist/Formation Offsets: Dispatcher supplies per-train details (standard/long/short consist, offsets like +1/+2 or -1). Adjusts:
+Protected rear boundary (rear of lead consist + clearance).
+Follower holding stop target (moves backward for longer consists).
+Allows mixing train lengths without hard-coded assumptions. Station template uses supplied stop targets rather than fixed offsets from center.
+Development Sequence
+Station Stop v1: Single loco, single test stop (Arches). Prove full cycle (glide → stop → dwell → reliable restart). No bubble yet.
+Station Service v2: Apply template to multiple stations, scheduled stops, randomized dwells, etc.
+CTO/Bubble v2: Add peer reporting, holding stops, moving authority, handshakes, and (later) consist offsets. Preserve R21 single-loco station logic unchanged.
+Key Agreements & Notes
+Bubble/role logic decides where/why to slow/stop/hold; motor control remains consistent (measured glide + ramp).
+Prioritize clean separation of concerns: Navigation, Station Controller, Governor, Bubble/Dispatcher layer.
+Supports future extensions (e.g., third train, opposite-direction bubbles at locations like Arches/Bamboo).
+First implementation keeps it minimal and testable; reserve slots in data structures (e.g., StopPlan.stopTarget) for dynamic elements.
+This builds on proven R21 station behavior while enabling reliable, safe multi-train “bubble” operations that feel more prototype-like. The discussion emphasizes controlled, predictable movement over legacy coasting/fixed blocks.
