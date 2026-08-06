@@ -143,8 +143,17 @@ struct PubMsg { char payload[224]; };
 // HARDWARE / TUNING
 // ===========================================================================
 const int   SENSOR_PIN = 34;             // IR sensor. 33 is the Hall sensor.
-const int   SPOKES_PER_WHEEL = 2;        // TWO tape flags, 180 deg apart
-const float WHEEL_CIRCUMFERENCE_MM = 115.0f;   // MEASURE on the production car
+// 7-spoke finescale steel wheel — the committed production target, and the
+// first to produce uniform intervals across every phase position. UNCONFIRMED
+// until counted: hand-turn one full revolution and check pulseCount advances
+// by exactly 7 before trusting any speed figure this sketch prints.
+const int   SPOKES_PER_WHEEL = 7;
+
+// Placeholder. The ~109 mm figure derived on 2026-08-05 was the LGB wheel
+// and does NOT carry over to the finescale wheel; measure this wheel before
+// trusting mm/s or pkph. fm, rm, int, w and the PHASE breakdown are all
+// calibration-independent and correct regardless — only speed is wrong.
+const float WHEEL_CIRCUMFERENCE_MM = 115.0f;
 
 const uint32_t SENSOR_TICK_MS = 1;       // 1 kHz
 const uint32_t DEBOUNCE_US    = 15000;   // 15 ms — edge-doubling guard
