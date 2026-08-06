@@ -154,6 +154,55 @@ change.
 
 ---
 
+## Field observation 2026-08-06 — a partial flash, and how it was caught
+
+Otto was flashed and reported "no INA219 stats." Broker capture
+(`mosquitto_sub -h 192.168.68.142 -t 'ngr/loco/9950011/#'`, Otto running,
+CCW, PWM 100, uptime ~4 min) shows:
+
+```
+state/bootid  {"sketch":"QUORUM_1_7", ...}
+mm/marker     {"mm":65,...,"timing_gate":"ACTIVE","dt_expected":1031,"dt_conserve_ratio":1.95}
+```
+
+**`state/bootid` says 1.7, but the marker line is the 1.6 payload** — no
+`pwm`, no `v`. Committed 1.7 emits both **unconditionally**, on every marker,
+regardless of whether a sensor answered (`v` is `null` when it did not). No
+`telem/*` and no `state/lowvolt` appeared either.
+
+**Conclusion: Otto is not running the committed 1.7.** It is running an
+intermediate build taken from the working tree after `SKETCH_NAME` was bumped
+but before the marker-payload edit and the `serviceInaTelemetry()` call in
+`loop()` were added — i.e. a build made while the change was still in
+progress.
+
+**The important consequence: this run says nothing about Otto's INA219.**
+Absent telemetry is consistent with both a faulted sensor *and* a service
+that is never called, so the hardware fault remains unconfirmed either way.
+Do not read this run as evidence about the sensor.
+
+**Lesson for verifying any future flash: `state/bootid` is not sufficient.**
+It carries `SKETCH_NAME`, which is a string edited at the top of the file and
+therefore among the first things to land in a partial build. The discriminator
+is a payload the new version changes unconditionally — for 1.7, the presence
+of `pwm` and `v` on `mm/marker`:
+
+```bash
+mosquitto_sub -h 192.168.68.142 -t 'ngr/loco/9950011/mm/marker' -C 1
+```
+
+A line containing `"pwm":` and `"v":` is genuine 1.7; a line ending at
+`dt_conserve_ratio` is not, whatever `bootid` claims. This generalizes: verify
+a flash against behaviour the version changes, not against its self-declared
+name.
+
+Healthy in the same capture, and useful as the 1.6-baseline control for the
+I²C-stall check listed above: `loop_max_gap_ms` 33–34, `hall_task_max_gap_ms`
+2–3, `queue_drops` 0, `pub_drops` 0, `marker_pub_drops` 0, nav NORMAL,
+agree 144 / disagree 5, `lost_markers` 0.
+
+---
+
 ## Open items this leaves
 
 - **Otto's INA219 hardware fault** (0012 requires it resolved as part of
