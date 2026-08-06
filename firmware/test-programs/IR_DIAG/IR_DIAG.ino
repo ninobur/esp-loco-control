@@ -157,6 +157,12 @@ struct PulseEvent {
                            // counterpart, immune to the same survivor bias.
   uint8_t  quality;        // 0=UNAVAILABLE 1=MARGINAL 2=OK
   uint8_t  saturated;      // raw hit the ADC ceiling during this pulse
+  uint32_t epoch;          // discard generation at capture. Increments on
+                           // every latch or contrast-loss discard, travels
+                           // WITH the event through the queue, so the phase
+                           // machinery resets exactly at the boundary in the
+                           // event stream — no counter-sampling race against
+                           // queued pre-discard events or mid-drain discards
 };
 
 #ifdef IR_DIAG_WIFI
@@ -344,6 +350,7 @@ static void sensorTask(void*) {
   int      gapRawMin = ADC_MAX;    // trough raw since the previous fall
   int      troughOfGap = ADC_MAX;  // that trough, frozen at the rise
   int      thrHighAtRise = 0, thrLowAtRise = 0;   // thresholds in force at rise
+  uint32_t discardEpoch = 0;       // bumps on every discard; rides each event
   bool     sawSaturation = false;
 
   for (;;) {
@@ -407,6 +414,7 @@ static void sensorTask(void*) {
     if (!envelopePrimed || quality == 0) {
       if (inPulse || prevRiseMs != 0) {
         contrastLosses = contrastLosses + 1;   // plain add: volatile-safe
+        discardEpoch++;
         inPulse = false;
         prevRiseMs = 0;
         gapRawMin = ADC_MAX;   // a trough spanning a blind period is not a trough
@@ -441,6 +449,7 @@ static void sensorTask(void*) {
       lastLatchBase  = baseline;
       lastLatchSpan  = span;
       latchTimeouts  = latchTimeouts + 1;   // plain add: volatile-safe
+      discardEpoch++;
     }
 
     if (!inPulse) {
@@ -481,6 +490,7 @@ static void sensorTask(void*) {
                          : thrLowAtRise - troughOfGap;   // 0 = no prior gap
         e.quality      = quality;
         e.saturated    = sawSaturation ? 1 : 0;
+        e.epoch        = discardEpoch;
         prevRiseMs = pulseStartMs;
         if (eventQueue && xQueueSend(eventQueue, &e, 0) != pdTRUE) eventDrops++;
       }
@@ -557,6 +567,19 @@ static int medInt(int* src, int n) {
 }
 
 static void windowPush(const PulseEvent& e) {
+  // Epoch boundary: this event was captured after a discard that some or
+  // all previously QUEUED events precede. Resetting here — keyed on the
+  // event's own generation stamp — orders the reset correctly in the event
+  // stream, which the counter-sampling watcher could not (pre-discard
+  // events already queued, discards mid-drain, post-discard events assigned
+  // before the next sample were all misordered).
+  static uint32_t seenEpoch = 0;
+  if (e.epoch != seenEpoch) {
+    seenEpoch = e.epoch;
+    phaseReset(true);
+    phaseRestarted = true;
+  }
+
   if (e.intervalMs > 0) {
     // A gap well beyond the running median means a flag went past unseen.
     uint32_t med = medU32(winInterval, winLen);
@@ -694,15 +717,14 @@ void loop() {
   char b[224];
   PulseEvent e;
 
-  // DISCARD WATCHER — before the drain, so a blind episode that just ended
-  // resets the phase index before the first post-blind pulse is indexed.
-  // Latch timeouts also print their line here (only loop() may emit; the
-  // discard itself already happened at the tick, and nothing about the
-  // aborted pulse entered the record). Contrast losses reset phase silently;
-  // their count rides STATS as closs=.
+  // LATCH REPORTER — printing only. Phase resets are NOT done here: they
+  // key on the discard epoch carried inside each PulseEvent (see
+  // windowPush), which is ordered with the event stream. This watcher just
+  // narrates, and a print that lands a few events early or late costs
+  // nothing.
   {
     static uint32_t seenLatchTimeouts = 0;
-    uint32_t lt = latchTimeouts, cl = contrastLosses;   // one read each
+    uint32_t lt = latchTimeouts;   // one volatile read
     if (lt != seenLatchTimeouts) {
       seenLatchTimeouts = lt;
       // Everything a later design needs to split "stopped with a spoke in
@@ -714,17 +736,6 @@ void loop() {
         (int)lastLatchFm, (int)lastLatchRm,
         (int)lastLatchBase, (int)lastLatchSpan);
       emit(b);
-    }
-    if (lt != 0 || cl != 0) {
-      static uint32_t seenAny = 0;
-      if (lt + cl != seenAny) {
-        seenAny = lt + cl;
-        // Phase alignment across a gap is unknowable: restart the index and
-        // drop this window's per-phase data rather than smear a phase-locked
-        // weakness flat with misaligned samples.
-        phaseReset(true);
-        phaseRestarted = true;
-      }
     }
   }
 
