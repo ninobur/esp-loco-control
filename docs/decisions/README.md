@@ -60,3 +60,5 @@ rather than a silent drift discovered later.
 | [0008](0008-finescale-steel-wheel-is-the-target.md) | The 7-spoke finescale steel wheel is the production speed target | Accepted |
 | [0009](0009-diagnostic-thresholds-match-production.md) | The diagnostic uses production detection thresholds, with a written revert criterion | Accepted |
 | [0010](0010-threshold-decisions-rest-on-headrooms.md) | Threshold decisions rest on headrooms, not crossing margins | Accepted |
+| [0011](0011-restore-the-brake-channel.md) | The brake channel is restored to the control firmware | Accepted |
+| [0012](0012-restore-ina219-telemetry.md) | INA219 telemetry is restored to the control firmware | Accepted |
