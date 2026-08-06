@@ -354,8 +354,15 @@ static void sensorTask(void*) {
       continue;
     }
 
-    int thrHigh = baseline + span / 3;
-    int thrLow  = baseline + span / 6;
+    // Symmetric about the midpoint, matching the production sketch (IR_TEST
+    // uses these exact expressions): rise at 2/3 of range, fall at 1/3. A
+    // diagnostic that validates production behaviour must not use different
+    // detection rules from production. The previous asymmetric pair
+    // (baseline + span/3 rising, baseline + span/6 falling — 0.83/0.67 of
+    // range, both in the upper third) was undocumented and nobody could
+    // establish it was deliberate.
+    int thrHigh = runMin + (span * 2) / 3;
+    int thrLow  = runMin + span / 3;
     uint32_t nowMicros = micros();
     int delta = raw - baseline;
 
@@ -600,7 +607,7 @@ void loop() {
     snprintf(b, sizeof(b),
       "IDLE          raw=%4d  env=%4d/%4d  seen=%4d/%4d  base=%4d span=%4d  thr=%+5d/%+5d  pulses=%lu%s",
       (int)lastRaw, (int)lastRunMin, (int)lastRunMax,
-      (int)lastSeenMin, (int)lastSeenMax, base, span, span/3, span/6,
+      (int)lastSeenMin, (int)lastSeenMax, base, span, span/6, -(span/6),
       (unsigned long)pulseCount,
       qualityFromSpan(span) == 0 ? "   <-- NO USABLE CONTRAST" : "");
     emit(b);
