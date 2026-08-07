@@ -146,8 +146,11 @@ so the existing capture command records everything needed.
 
 ## If confirmed, the fix is a design decision, not a patch
 
-Options, none yet chosen — this needs the operator and CODEX, and a decision
-record:
+**Update, same evening:** the operator accepted the problem and ruled it
+must be fixed before Station Stop v1. The proposed fix (motion gate) is
+specified in `QUORUM_BASELINE_MOTION_GATE_SPEC.md` and recorded as decision
+0017 (Proposed), awaiting Sam/CODEX review. The options below are preserved
+as the original analysis:
 
 - **Gate the median push on motion.** Do not push while `actualPwm == 0`, or
   while no marker has been seen recently. Closest analogue to 0006. Risk: a
