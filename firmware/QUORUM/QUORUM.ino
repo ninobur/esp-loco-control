@@ -1,8 +1,41 @@
 /*
  * ============================================================================
- * QUORUM_1_7  —  Ninobur Garden Railway single-locomotive navigation
+ * QUORUM_1_8  —  Ninobur Garden Railway single-locomotive navigation
  * ============================================================================
  * Successor to SOLONAV (v2.22 final). QUORUM navigator per spec R21.
+ *
+ * ---------------------------------------------------------------------------
+ * v1.8 — BASELINE ADAPTS ONLY IN MOTION (decision 0017; Sam+CODEX reviewed)
+ * ---------------------------------------------------------------------------
+ * One guard line. The Hall median baseline (128 samples x 500 ms) was
+ * pushed unconditionally, "in or out of an event" — but its robustness to
+ * magnets rests on an assumption that only holds while MOVING: a traversed
+ * magnet contributes <=1 sample in 128; a PARKED-ON magnet contributes all
+ * of them, and within ~32-64 s the reference BECOMES the magnet and
+ * recomputeThresholds() re-centres the +/-38-count window on it (observed
+ * magnet excursions: -254/+182). On departure every real N magnet then
+ * arrives as an S reading and every S magnet is swallowed — the 2026-08-06
+ * NO_QUORUM with the flat score vector [6,4,5,4,4,6].
+ *
+ * The fix: updateBaseline() pushes only while there is positive evidence
+ * of tractive motion (actualPwm > MOTOR_DEAD_ZONE_PWM). NOT proof of
+ * rest — a loco can coast downhill at PWM 0 — but the error cases are
+ * asymmetric: refusing to adapt while secretly moving merely postpones
+ * adaptation ~30 s; adapting while secretly parked can destroy the
+ * reference. Freeze is the safe side. Boot calibration establishes the
+ * baseline; motion maintains it; rest preserves it (0007's "persist only
+ * the proven state", applied to a live reference; the Hall twin of 0006).
+ *
+ * Consequence, deliberate: parked on a magnet, the event that opens on
+ * arrival now stays open for the whole dwell and closes at departure as
+ * ONE marker — polarity from the arrival pole, detectedAtMs stamped at
+ * arrival, durationMs saturating at 65535. Correct count, correct place.
+ * See the SENSOR layer note below; acceptance matrix in
+ * docs/QUORUM_BASELINE_MOTION_GATE_SPEC.md §5.
+ *
+ * Residual, accepted: a stall ABOVE the dead zone parked exactly on a
+ * magnet still poisons ("believed moving" is belief, not measurement).
+ * The seam for the real motion witness is decision 0005's hook.
  *
  * ---------------------------------------------------------------------------
  * v1.7 — INA219 TELEMETRY RESTORED (decision 0012; CTO3 plan step 2)
@@ -205,6 +238,14 @@
  *                  stick; an OPEN EVENT still can, if the signal never
  *                  settles inside the exit band. No guard is added for
  *                  that -- no log has yet shown it. Watch event_open_ms.
+ *                  v1.8: a DWELL ON A MAGNET now legitimately holds an
+ *                  event open for the whole stop (the baseline no longer
+ *                  migrates to close it); it closes at departure as one
+ *                  arrival-stamped marker, ms saturating at 65535. That
+ *                  signature is EXPECTED, not a stuck detector. A stuck
+ *                  event WHILE MOVING still self-heals: pushes continue
+ *                  in motion, so migration can still close it -- which is
+ *                  why the gate is on motion, not on !evActive (spec R6).
  *   2  DETECTOR    threshold crossing -> event {polarity, ms, peak, drift}.
  *                  Reports everything. Judges nothing.
  *   3  NAVIGATOR   QUORUM. Odometer is truth. Map predicts. Reading votes.
@@ -230,7 +271,7 @@
 #include <Adafruit_INA219.h>
 #include "LocoConfig.h"
 
-#define SKETCH_NAME "QUORUM_1_7"
+#define SKETCH_NAME "QUORUM_1_8"
 
 // Broker lives here, not in LocoConfig.h — same as the previous lineage.
 #define MQTT_BROKER "192.168.68.142"
@@ -466,7 +507,25 @@ static void primeMedian(int seed){
 }
 
 static void updateBaseline(int raw,unsigned long now){
+  // PRIMING INVARIANT (1.8, CODEX): this fallback is unreachable in a
+  // correct boot -- calibrate() primes the ring before hallTask exists, so
+  // medPrimed is true before the first sample arrives. It is RETAINED as
+  // last-resort defense: if a future edit ever breaks that ordering, a
+  // single-sample prime still beats a zero baseline, which would pin the
+  // thresholds at +/-38 around 0 and hold an event open forever. Do not
+  // move the motion gate above this line: a prime taken from the first
+  // moving sample could land mid-magnet.
   if(!medPrimed) primeMedian(raw);
+  // 0017: adapt only with positive evidence of tractive motion. At or
+  // below the dead zone the locomotive may still be coasting or pushed --
+  // this is not proof of rest -- but the error cases are asymmetric:
+  // refusing a push while secretly moving postpones adaptation ~30 s;
+  // accepting pushes while secretly parked over a magnet migrates the
+  // reference onto it in ~32-64 s and inverts every reading at departure.
+  // The median's robustness assumes magnets are OUTLIERS, which is a
+  // property of traversal, not of the track. actualPwm is volatile and
+  // already read on this task (s3 PWM-at-detect); no new threading.
+  if(actualPwm <= MOTOR_DEAD_ZONE_PWM) return;
   if(now-medLastPushMs < MEDIAN_SAMPLE_MS) return;
   medLastPushMs=now;
   medRing[medIndex]=(int16_t)raw;
