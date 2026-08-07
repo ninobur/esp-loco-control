@@ -66,8 +66,20 @@ static void updateBaseline(int raw,unsigned long now){
 ```
 
 One comparison, using state `detectorSample()` already reads on the hall
-task for §3's PWM-at-detect capture (aligned 32-bit access, atomic on this
-core — the existing pattern, no new threading).
+task for §3's PWM-at-detect capture (`actualPwm` is `volatile`; aligned
+32-bit access, atomic on this core — the existing pattern, no new
+threading).
+
+**Priming invariant (CODEX review, 2026-08-07).** The gate sits *after*
+`if(!medPrimed) primeMedian(raw)`, and must not be moved above it (a prime
+from a single first-motion sample could land mid-magnet). The fallback is
+unreachable in a correct boot: `calibrate()` primes the median before
+`hallTask` exists (verified in `setup()` ordering), so `medPrimed==false`
+never survives to the first sample. It is retained as last-resort defense:
+if a future edit ever breaks the ordering, a single-sample prime still
+beats a zero baseline, which would pin the thresholds at ±38 around 0 and
+hold an event open forever. QUORUM 1.8 must state this invariant and this
+reasoning in a comment at the fallback.
 
 **Why this condition.** `MOTOR_DEAD_ZONE_PWM` (20) is the tractive floor.
 At or below it there is **no positive evidence of motion** — *not* proof of
@@ -102,11 +114,14 @@ a live reference.
    "an OPEN EVENT still can [stick] … Watch event_open_ms" note becomes an
    *expected* signature of a dwell-on-magnet, not a detector anomaly;
    the header comment should say so when 1.8 lands.
-2. **No adaptation during long dwells.** Thermal/electrical drift while
-   parked is uncorrected until motion resumes. Measured drift bound: 19
-   counts across tonight's whole session *including* position changes —
-   half the entry margin, washed out by the median within ~30 s of driving.
-   Accepted.
+2. **No adaptation during long dwells.** Any drift while parked is
+   uncorrected until motion resumes. The observed **baseline-variation
+   bound** is 19 counts across the whole 2026-08-06 session, and the
+   self-review decomposed that figure as almost entirely *position
+   dependence* (per-position steadiness ±1) — so it bounds unmodelled
+   drift without being a measurement of thermal drift (CODEX wording
+   correction, 2026-08-07). Half the entry margin, washed out by the
+   median within ~30 s of driving. Accepted.
 3. **Hand-pushing a powered-off-throttle locomotive** (start-interval
    setup, IR bench work) no longer updates baseline. Conservative and
    correct: those samples were always taken at walking-pace over unknown
@@ -163,12 +178,34 @@ flat score vector. Control: same dwell clear of magnets → baseline steady
 baseline holds steady instead, the diagnosis is wrong and 1.8 is not
 built.**
 
-**Post-fix (1.8):** repeat both parks. Predictions: baseline frozen in both
-(loopstat `delta` shows a large steady offset while on the magnet — the
-*reading* is displaced, the *reference* is not); one arrival-stamped
-long-duration marker on the magnet park; no phantom at departure; clean
-AGREE run resumes immediately. Regression: a full lap with `miss_streak` 0
-and `loop_max_gap_ms`/`hall_task_max_gap_ms` unchanged from the 2026-08-06
+**Post-fix (1.8) acceptance matrix** (per CODEX review, 2026-08-07 — the
+fringe row is the one that demonstrates the motion gate's superiority over
+an excursion gate, and the stall row documents the accepted residual
+rather than hiding it):
+
+| Stop condition | Duration | Expected result |
+|---|---:|---|
+| Clear of magnets | >70 s | Baseline stable; clean restart |
+| Fringe field, offset below ±38 | >70 s | Baseline stable |
+| North magnet | >70 s | Baseline frozen; one N event |
+| South magnet | >70 s | Baseline frozen; one S event |
+| Magnet, PWM held above 20 but physically stalled | >70 s | Known residual poisoning reproduced and documented |
+
+In the frozen-baseline rows, loopstat `delta` shows a large *steady*
+offset for the whole dwell — the reading is displaced, the reference is
+not — and departure produces no phantom, with the AGREE run resuming
+immediately.
+
+**Long-dwell saturation checks** (CODEX: a compatibility *requirement*,
+not an assumption — the magnet-park dwells above must exceed 65.535 s so
+the `durationMs` u16 saturates): exactly one event emitted; `ms == 65535`;
+`drift` ≈ 0 (frozen baseline); polarity = arrival pole; navigation
+advances exactly once; the successor marker is not rejected as a phantom;
+the stale arrival timestamp produces no unexpected age or station-state
+behaviour.
+
+**Regression:** a full lap with `miss_streak` 0 and
+`loop_max_gap_ms`/`hall_task_max_gap_ms` unchanged from the 2026-08-06
 baseline (33–34 / 2–3 ms); confirm `LOW_PWM`-gated markers still navigate
 (low-throttle crawl segment).
 
