@@ -1,9 +1,14 @@
 # 0017 — The Hall baseline adapts only while the locomotive is believed moving
 
-Status: Proposed (2026-08-06). Reviewed by Sam and CODEX 2026-08-07: both
-approve the mechanism and the gate, conditional on the pre-fix
-reproduction test (`docs/QUORUM_1_8_REVIEW_FINDINGS.md`); wording below
-amended per that review. Promotion to Accepted awaits the test.
+Status: **Accepted (2026-08-07).** Reviewed by Sam and CODEX 2026-08-07,
+both approving conditional on the pre-fix reproduction
+(`docs/QUORUM_1_8_REVIEW_FINDINGS.md`); wording below amended per that
+review. **The reproduction PASSED in the field the same day** — baseline
+2019 -> 1892 during a 29 s stationary dwell on a magnet, a 129-count
+migration against a +/-38 threshold, with the predicted long open event
+and departure phantom. Evidence:
+`field-records/logs/20260807_A1_prefix-magnet-park.log`, verdict in
+`docs/QUORUM_1_8_STAGE_A_VERDICT.md`. Implemented in QUORUM 1.8.
 
 ## Decision
 
