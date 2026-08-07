@@ -29,15 +29,29 @@ loses navigation on restart. The evening incident (`NAV_NO_QUORUM` at MM
 the park-position wasn't recorded, so §5's test remains the proof.
 
 The failure has a second act the problem record did not spell out. Parked
-*on* a magnet, an event opens on arrival and cannot close (raw never
-returns inside the exit band) — until the migrating thresholds catch up
-with the parked reading, at which point the event closes with a
-tens-of-seconds duration. On departure, the swing *back* to true baseline
-crosses the far threshold of the now-recentred window and opens a **phantom
-event of opposite polarity**. So one parked dwell can produce: a
-monster-duration event with an extreme `drift` field, a phantom
-inverse-polarity marker, and a stretch of misjudged real markers. All three
-are testable signatures (§5).
+*on* a magnet (take N, raw high), an event opens on arrival and cannot
+close — until the migrating thresholds catch up with the parked reading,
+at which point it closes with a tens-of-seconds duration. Departure is
+worse than a single phantom. The swing back to true baseline crosses the
+recentred window's *far* threshold and opens a phantom **S** event; and
+because `EVENT_EXIT_HOLD_MS` is only 20 ms, each real **N** magnet the
+locomotive then passes lifts raw into the recentred exit band for
+~150 ms — long enough to *close* the open phantom and queue it — after
+which the field's return re-opens the next one. Until the median washes
+out (~30–60 s of driving), the navigator is fed a stream in which **every
+real N magnet is delivered as an S reading and every real S magnet is
+swallowed invisibly** below the window. Half-inverted, hole-riddled
+evidence plus odometer slip is unscorable: the observed terminal snapshot
+— scores `[6,4,5,4,4,6]`, everything about half right, no leader — is
+precisely what the QUORUM vector looks like against it. This mechanism
+doesn't just permit the observed `NO_QUORUM`; it predicts it specifically.
+
+One more property matters operationally: **the evidence self-erases.**
+`NO_QUORUM` fires after ~15 corrupted markers (~18 s), but the median
+finishes healing in ~30–60 s of driving — so by the time anyone inspects,
+`state/loopstat` shows a normal baseline again. A post-mortem look finds
+nothing; only a capture spanning the dwell *and* the departure shows the
+migration. This is why the failure read as sporadic for months.
 
 ## §2 Proposed fix: gate the median push on believed motion
 
@@ -55,13 +69,20 @@ One comparison, using state `detectorSample()` already reads on the hall
 task for §3's PWM-at-detect capture (aligned 32-bit access, atomic on this
 core — the existing pattern, no new threading).
 
-**Why this condition.** `MOTOR_DEAD_ZONE_PWM` (20) is the tractive floor —
-at or below it the wheels are not turning (the same physical fact the v1.6
-direction-change rule rests on). Above it the locomotive is believed
-moving, which is precisely the regime in which the median's
-magnets-are-outliers assumption holds. The gate does not freeze the
-baseline in any new sense; it restores the tracker to the operating regime
-its 128×500 ms design implicitly assumed.
+**Why this condition.** `MOTOR_DEAD_ZONE_PWM` (20) is the tractive floor.
+At or below it there is **no positive evidence of motion** — *not* proof of
+rest: a locomotive can coast downhill at PWM 0 (this railway has Viaduct
+Hill, and the SOLONAV motion bands classified "possible_downhill" from
+PWM 14). The gate is stated that way round deliberately, because the two
+error cases are asymmetric: pushing samples while wrongly assumed moving
+can corrupt the reference (the whole problem), while *refusing* pushes
+while actually moving merely postpones adaptation for the length of the
+coast — bounded, and washed out by the median within ~30 s of powered
+running. Freezing is safe in every uncertain case; adapting is not. Above
+the floor the locomotive is believed moving, the regime in which the
+median's magnets-are-outliers assumption holds. The gate does not freeze
+the baseline in any new sense; it restores the tracker to the operating
+regime its 128×500 ms design implicitly assumed.
 
 **What replaces adaptation while parked:** nothing, deliberately. The boot
 calibration (2 s, operator told "keep clear of magnets") establishes the
@@ -130,11 +151,15 @@ exactly 0006's principle applied to the Hall side. 0007's
 
 **Pre-fix (proves the diagnosis; ~6 min, no code change):**
 park Otto with the sensor **on a magnet**, powered, throttle 0, capturing
-`state/loopstat` + `mm/marker`. Predictions: baseline migrates tens-to-200+
-counts within ~60 s; an event closes with monster `ms` and extreme `drift`
-once thresholds catch up; departure yields a phantom opposite-polarity
-marker and DISAGREEs. Control: same dwell clear of magnets → baseline
-steady (±3 observed tonight), clean departure. **If the magnet-park
+`state/loopstat` + `mm/marker` + `state/nav` **continuously from before the
+stop through at least 60 s after departure** — the corruption self-heals
+(§1), so a capture that starts late proves nothing. Predictions: baseline
+migrates tens-to-200+ counts within ~60 s; an event closes with monster
+`ms` and extreme `drift` once thresholds catch up; departure yields
+opposite-polarity readings at real-marker cadence with roughly half the
+markers missing, DISAGREEs, and (if allowed to run) `EVALUATING` with a
+flat score vector. Control: same dwell clear of magnets → baseline steady
+(±1 observed tonight per position), clean departure. **If the magnet-park
 baseline holds steady instead, the diagnosis is wrong and 1.8 is not
 built.**
 
@@ -153,3 +178,63 @@ One guard line plus comments in `updateBaseline()`, a header note for the
 open-event signature, version bump to `QUORUM_1_8`, implementation report.
 No topic, payload, threshold, or navigator change. Nothing here touches the
 bicameral boundary: the gate reads `actualPwm`, it never writes anything.
+
+---
+
+## §7 Self-review findings (2026-08-06, adversarial pass before Sam)
+
+Requested by the operator. Method: re-derive every claim from source and
+from the captured log rather than re-read the prose. Three corrections were
+applied above (marked here); the rest verified clean.
+
+**R1 — corrected (§2).** The original justification claimed PWM ≤ 20 means
+"the wheels are not turning." False on grades — a locomotive coasts
+downhill at PWM 0. The gate survives because the error cases are
+asymmetric (refusing pushes while secretly moving is safe; pushing while
+secretly parked is the bug), but the wording now says what is true: the
+condition is *no positive evidence of motion*, and freeze is the safe
+default under uncertainty.
+
+**R2 — corrected (§1, §5).** With `EVENT_EXIT_HOLD_MS` = 20 ms, the
+departure sequence is not "a phantom marker and some misjudged readings":
+each real N magnet closes-and-requeues the open phantom S event, so the
+navigator receives every N magnet as an S reading while every S magnet is
+swallowed. This upgrades the diagnosis from "consistent with the incident"
+to "specifically predicts the observed flat score vector
+`[6,4,5,4,4,6]`" — and it upgrades the test predictions accordingly.
+
+**R3 — new supporting evidence (problem record updated).** The 2026-08-06
+capture contains the mechanism live at small amplitude. Parked 4 min at
+MM 29, the baseline settled at that spot's local field level (2033–2034,
+steady ±1). On departure at PWM 100 it slid to the loop-wide norm
+(2016) over **~38 s** — matching the 128 × 500 ms median wash-out constant
+the model predicts. 17 counts is 45 % of the entry margin and harmless;
+under a −254-count magnet the identical dynamics consume the margin
+several times over. The time constant is no longer theoretical.
+
+**R4 — captured above (§1, §5).** The evidence self-erases: `NO_QUORUM`
+fires (~18 s) before the median finishes healing (~30–60 s), so
+post-incident telemetry looks innocent. The pre-fix test capture must span
+the dwell and the departure, and this also explains months of
+"sporadic" losses-on-restart.
+
+**R5 — verified, no change.** `actualPwm` is `volatile`
+([QUORUM.ino:315](../firmware/QUORUM/QUORUM.ino)) and already read on the
+hall task for §3's PWM-at-detect — the gate adds no new threading
+exposure. Threshold arithmetic cross-checked against the boot print
+(2027 + 38 = 2065 = `Nent` ✓). Gate placement after the `medPrimed` check
+is correct; `calibrate()` primes before `hallTask` exists.
+
+**R6 — considered and rejected: also gating on `!evActive`** (skip pushes
+during an open event), which would close the stall-over-magnet residual
+(§3.4). Rejected because it removes an existing safety property: today a
+stuck-open event — the sketch header's explicit watch item — is
+eventually closed *by* baseline migration recentring the thresholds. With
+pushes suppressed during open events, a stuck-open event while moving
+would freeze the baseline and never close. The stall residual is the rarer
+and better-bounded hazard; it stays accepted, awaiting the real motion
+witness (decision 0005 hook).
+
+Net: diagnosis stands, strengthened; the one-line fix stands; two
+paragraphs of justification and prediction were wrong enough to matter for
+review and are now corrected.

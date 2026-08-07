@@ -79,6 +79,22 @@ Note that even parking *clear* of magnets moved the baseline 19 counts —
 half the entry margin — so the tracker is demonstrably position-sensitive at
 rest even in the benign case.
 
+**Update (self-review, same evening): the 19-count figure decomposes into a
+live measurement of the mechanism.** Tracing every baseline change in the
+capture against PWM and position: parked 4 min at MM 29 the baseline held
+that spot's local field level (2033–2034, steady ±1); on departure at
+PWM 100 it slid to the loop-wide norm (2016) over **~38 s of driving**,
+then held ±1 for the rest of the lap, including the later park at MM 112.
+That is the median's wash-out time constant, measured, matching the
+128 × 500 ms model — the identical dynamics that, under a −254-count
+magnet instead of a +17-count local field, consume the ±38 margin several
+times over. Per-position steadiness is ±1; the "spread" is position
+dependence, not noise. Note also that the corruption **self-erases**: the
+median heals within ~30–60 s of driving, faster than anyone inspects, so
+post-incident telemetry always looks innocent — which is why this read as
+sporadic for months. Full analysis: `QUORUM_BASELINE_MOTION_GATE_SPEC.md`
+§7 (R2–R4).
+
 ## Why it is intermittent
 
 Entirely dependent on **where** the locomotive stops. This predicts, and
