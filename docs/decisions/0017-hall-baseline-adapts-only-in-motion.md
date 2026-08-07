@@ -1,15 +1,22 @@
 # 0017 — The Hall baseline adapts only while the locomotive is believed moving
 
-Status: Proposed (2026-08-06). Problem accepted by operator; gate mechanism
-awaiting Sam/CODEX review of `docs/QUORUM_BASELINE_MOTION_GATE_SPEC.md`.
+Status: Proposed (2026-08-06). Reviewed by Sam and CODEX 2026-08-07: both
+approve the mechanism and the gate, conditional on the pre-fix
+reproduction test (`docs/QUORUM_1_8_REVIEW_FINDINGS.md`); wording below
+amended per that review. Promotion to Accepted awaits the test.
 
 ## Decision
 
-The Hall median baseline stops adapting while the locomotive cannot be
-moving (`actualPwm <= MOTOR_DEAD_ZONE_PWM`). A parked locomotive's
-reference frame is whatever motion last proved; rest preserves it, motion
-maintains it, and only the deliberate boot calibration establishes it from
-scratch. Target: QUORUM 1.8, before CTO3 Station Stop v1.
+The Hall median baseline adapts **only while the locomotive is believed to
+have tractive motion** (`actualPwm > MOTOR_DEAD_ZONE_PWM`); below that
+there is no positive evidence of powered motion, and adaptation stops.
+(Wording per Sam/CODEX review — the gate does not prove the locomotive
+*cannot* be moving: coasting, hand-pushing, and stalls above the dead zone
+are acknowledged, and the asymmetry of the two error cases is why freeze
+is the safe side.) A parked locomotive's reference frame is whatever
+motion last proved; rest preserves it, motion maintains it, and only the
+deliberate boot calibration establishes it from scratch. Target: QUORUM
+1.8, before CTO3 Station Stop v1.
 
 ## Context
 
@@ -44,8 +51,10 @@ the flaw would fire by design, four stations a lap.
 - Parking on a magnet becomes reference-safe and produces one legitimate
   arrival-stamped, long-duration event; the header's stuck-open-event
   warning becomes an expected dwell signature.
-- No drift correction during dwells (bounded: 19 counts observed across a
-  full session; median washes it out within ~30 s of motion).
+- No drift correction during dwells. The observed baseline-variation bound
+  is 19 counts across a full session — almost entirely position
+  dependence, not measured thermal drift (CODEX wording) — and the median
+  washes it out within ~30 s of motion.
 - Residual risk: a stall above the dead zone parked exactly on a magnet
   still poisons. The clean fix is a real motion witness; the gate's
   "believed moving" condition is the seam where decision 0005's
