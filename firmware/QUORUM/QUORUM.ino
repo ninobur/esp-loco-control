@@ -1,8 +1,37 @@
 /*
  * ============================================================================
- * QUORUM_1_9  —  Ninobur Garden Railway single-locomotive navigation
+ * QUORUM_1_10  —  Ninobur Garden Railway single-locomotive navigation
  * ============================================================================
  * Successor to SOLONAV (v2.22 final). QUORUM navigator per spec R21.
+ *
+ * ---------------------------------------------------------------------------
+ * v1.10 — CONSOLE-AUTHORITY FIRMWARE ITEMS P11/P13/P14 (spec Draft 5.1)
+ * ---------------------------------------------------------------------------
+ * Three changes, each an explicit operator ruling, from
+ * docs/NGR_DASHBOARD_AUTHORITY_ALIGNMENT_SPEC.md (five drafts, eight
+ * reviews, CODEX-approved for implementation):
+ *
+ *  P11 (R12/R15/H2) — ENLISTMENT GUARDS. cmd/auto 1 is refused, with a
+ *      published reason, unless the locomotive is de-energised, oriented
+ *      (session direction set), in gear (not NEUTRAL), and navigating
+ *      (not UNSET, not NO_QUORUM; EVALUATING usable). Enlistment is a
+ *      deliberate act; the rule lives where the truth lives, whatever the
+ *      command source. cmd/auto 0 is NEVER refused — disenrollment is a
+ *      safety action.
+ *
+ *  P13 (R14) — COMMAND RESPONSES ALWAYS OBSERVABLE. *_REFUSED and
+ *      STOP_IGNORED bypass stationPublish()'s transition dedup and carry
+ *      a monotonic "seq"; a repeated command yields a visible repeated
+ *      response, and a changed reason is never suppressed.
+ *
+ *  P14 (R13) — E-STOP PRESERVES DIRECTION, both branches. The interlock
+ *      is `estopped` itself (PWM clamped every pass; BEGIN refused with
+ *      ESTOP_ACTIVE). The dispatcher can now restart an enlisted,
+ *      E-stopped locomotive with BEGIN alone. Clear publishes
+ *      ESTOP_CLEARED (was ESTOP_CLEARED_NEUTRAL — the name would now lie).
+ *
+ * Navigation, detection, the 1.8 baseline motion gate, and the 1.9
+ * station mission filter are unchanged.
  *
  * ---------------------------------------------------------------------------
  * v1.9 — CTO3 STATION STOP v1: MISSION STATION FILTER (spec §12 step 3)
@@ -285,7 +314,7 @@
 #include <Adafruit_INA219.h>
 #include "LocoConfig.h"
 
-#define SKETCH_NAME "QUORUM_1_9"
+#define SKETCH_NAME "QUORUM_1_10"
 
 // Broker lives here, not in LocoConfig.h — same as the previous lineage.
 #define MQTT_BROKER "192.168.68.142"
@@ -2121,22 +2150,47 @@ static void serviceWarningExpiry(){
   if(warningSetMs && millis()-warningSetMs > 20000UL){ warningSetMs=0; pub(T_ST_WARNING,""); }
 }
 
+// P13 (ruling R14): monotonic sequence for operator-command RESPONSES only.
+// Counts only the bypass set below, so a repeated refusal is visibly a NEW
+// response, not a replay.
+static uint32_t stationRespSeq=0;
+
 static void stationPublish(const char* ev,int16_t off,const char* note){
   // Publish on TRANSITION only. serviceStations() runs every loop pass, so
   // 2_10 republished the same line continuously -- APPROACH at offset -10 went
   // out 79 times, 2381 station messages in one lap. Flooding the broker and
   // burying the transitions that matter.
+  //
+  // P13 (ruling R14; console-authority spec Draft 5.1): COMMAND RESPONSES
+  // are exempt from that dedup. The dedup compares event+offset and ignores
+  // the note, so it was built for state-machine transitions — applied to
+  // responses it let one refusal reason suppress a different one, and made
+  // a repeated command produce silence (CODEX Draft-3 F2). The bypass set
+  // is exactly R14's: *_REFUSED plus STOP_IGNORED — the events that answer
+  // an operator command. Each carries a monotonic "seq" so repeats are
+  // distinguishable. Routine transitions keep the dedup it was built for.
+  const bool isResponse = (strstr(ev,"_REFUSED")!=nullptr) || (strcmp(ev,"STOP_IGNORED")==0);
   static const char* lastEv=nullptr;
   static int16_t     lastOff=32767;
-  if(ev==lastEv && off==lastOff) return;
-  lastEv=ev; lastOff=off;
+  if(!isResponse){
+    if(ev==lastEv && off==lastOff) return;
+    lastEv=ev; lastOff=off;
+  }
 
-  char b[256];
+  char b[288];
   const char* nm = (stIndex>=0 && stIndex<(int8_t)STATION_COUNT) ? STATIONS[stIndex].name : "NONE";
-  snprintf(b,sizeof(b),
-    "{\"event\":\"%s\",\"phase\":%u,\"station\":\"%s\",\"offset\":%d,"
-    "\"commanded_pwm\":%d,\"actual_pwm\":%d,\"note\":\"%s\"}",
-    ev,(unsigned)stPhase,nm,off,commandedPwm,actualPwm,note);
+  if(isResponse){
+    snprintf(b,sizeof(b),
+      "{\"event\":\"%s\",\"phase\":%u,\"station\":\"%s\",\"offset\":%d,"
+      "\"commanded_pwm\":%d,\"actual_pwm\":%d,\"note\":\"%s\",\"seq\":%lu}",
+      ev,(unsigned)stPhase,nm,off,commandedPwm,actualPwm,note,
+      (unsigned long)++stationRespSeq);
+  }else{
+    snprintf(b,sizeof(b),
+      "{\"event\":\"%s\",\"phase\":%u,\"station\":\"%s\",\"offset\":%d,"
+      "\"commanded_pwm\":%d,\"actual_pwm\":%d,\"note\":\"%s\"}",
+      ev,(unsigned)stPhase,nm,off,commandedPwm,actualPwm,note);
+  }
   pub(T_STATION,b);
   Serial.printf("[STN] %s\n",b);
 
@@ -2561,9 +2615,41 @@ static void handleCommand(const char* topic,const char* msg){
     if(mm>=0 && mm<DNA_N && navDir!=MAP_UNSET) navDeclare((uint8_t)mm);
   }
   else if(!strcmp(topic,T_CMD_AUTO)){
-    autoEnrolled=(atoi(msg)!=0);
-    if(!autoEnrolled){ autoRunning=false; requestPwm(0,NORMAL_STEP_MS); }
-    stationReset("AUTO_CHANGED");
+    if(atoi(msg)!=0){
+      // P11 (rulings R12/R15/H2; console-authority spec Draft 5.1):
+      // ENLISTMENT GUARDS. Enlistment is the crossing into the AUTO chamber
+      // and must not be casual — a manual operator has few rules, auto
+      // operations have many. The rule lives where the truth lives: these
+      // refusals hold whatever the command source (console, phone, second
+      // tab, future voice). Each names its reason on state/station, using
+      // the same vocabulary as the BEGIN gates.
+      //
+      // Order: motion first (safety), then setup. The energisation test
+      // proves DE-ENERGISED, not physical rest — a pushed or coasting
+      // locomotive passes it; the honest physical-stop witness is decision
+      // 0005's motion witness (recorded residual).
+      if(motorIsMoving())                 { stationPublish("ENLIST_REFUSED",0,"WAIT_FOR_STOP"); return; }
+      if(sessionDir==MAP_UNSET)           { stationPublish("ENLIST_REFUSED",0,"NO_SESSION_DIRECTION"); return; }
+      // H2: NEUTRAL passes the energisation guard but BEGIN refuses it
+      // forever while the DIRECTION control is withdrawn — the trap the
+      // BEGIN-gate invariant (spec §8) exists to catch.
+      if(motorDirection==DIRECTION_NEUTRAL){ stationPublish("ENLIST_REFUSED",0,"NEUTRAL_SELECT_DIRECTION"); return; }
+      // CODEX-C3: the two navigation refusal states keep their distinct
+      // GO-vocabulary reasons; EVALUATING remains usable (position is held
+      // and probably correct), matching the existing BEGIN contract.
+      if(navState==NAV_UNSET)             { stationPublish("ENLIST_REFUSED",0,"NO_POSITION_DECLARE_START_MM"); return; }
+      if(navState==NAV_NO_QUORUM)         { stationPublish("ENLIST_REFUSED",0,"NO_QUORUM_DECLARE_POSITION"); return; }
+      autoEnrolled=true;
+      stationReset("AUTO_CHANGED");
+    }else{
+      // INVARIANT (Claude-G3): cmd/auto 0 is NEVER refused. Disenrollment
+      // is a safety action — it zeroes PWM and returns the locomotive to
+      // the operator. A guard written as "refuse cmd/auto while moving"
+      // would trap a rolling enlisted locomotive in AUTO; this branch must
+      // stay unconditional.
+      autoEnrolled=false; autoRunning=false; requestPwm(0,NORMAL_STEP_MS);
+      stationReset("AUTO_CHANGED");
+    }
   }
   else if(!strcmp(topic,T_CMD_GO)){
     // E-stop must be cleared explicitly. GO is not an implicit reset.
@@ -2618,15 +2704,24 @@ static void handleCommand(const char* topic,const char* msg){
   }
   else if(!strcmp(topic,T_CMD_ESTOP) || !strcmp(topic,T_CMD_ESTOP_ALL)){
     estopped=(atoi(msg)!=0);
+    // P14 (operator ruling R13; console-authority spec Draft 5): E-STOP no
+    // longer touches DIRECTION on EITHER branch. The interlock is `estopped`
+    // itself — servicePwmRamp() clamps PWM to zero every pass while it is
+    // set, and BEGIN is separately refused with ESTOP_ACTIVE — so the old
+    // NEUTRAL writes were belt-and-braces, not the protection. Preserving
+    // DIRECTION is what lets the dispatcher restart an enlisted, E-stopped
+    // locomotive with BEGIN alone (the loco-page DIRECTION control is
+    // withdrawn while enlisted, and the dispatcher console has none).
+    // Motion after a clear still requires a deliberate act: a throttle
+    // advance in MANUAL (the console zeroes its slider on E-STOP, spec P5)
+    // or BEGIN in AUTO. CODEX-C1/Claude-H1: the Draft-4 version of this
+    // change removed only the clear-path write, which was worthless — the
+    // assert path had already forced NEUTRAL before the clear arrived.
     if(!estopped){
-      // Clearing E-stop drops into NEUTRAL. Motion resumes only after the
-      // operator deliberately selects a direction. (Restores prior behaviour.)
-      motorDirection=DIRECTION_NEUTRAL; applyDirection();
-      navPublishState("ESTOP_CLEARED_NEUTRAL",nullptr);
+      navPublishState("ESTOP_CLEARED",nullptr);   // direction preserved (P14)
     }
     if(estopped){
       autoRunning=false; commandedPwm=0; actualPwm=0; pwmWriteCompat(0);
-      motorDirection=DIRECTION_NEUTRAL; applyDirection();
       // The loco has stopped somewhere unplanned; a half-finished station
       // approach must not resume against it after E-stop is cleared. (Codex)
       stationReset("ESTOP");
