@@ -14,6 +14,29 @@ authority model. This document proposes; it does not implement.
 
 ---
 
+## §0 Terminology (operator ruling, 2026-08-07)
+
+Two different things have been called "direction" throughout this project,
+including in earlier drafts of this document. They are now named
+separately:
+
+| Term | Values | Meaning | Owned by |
+|---|---|---|---|
+| **ORIENTATION** | CW / CCW | which way round the loop the locomotive travels | operator / dispatcher — it is part of the *orders* |
+| **DIRECTION** | forward / reverse / stopped | linear motion of the locomotive | see Q4 |
+
+§7's rule is restated in this vocabulary as
+`travel_orientation = session_orientation XOR motor_reverse`.
+
+Existing MQTT topics keep their names (`state/session_direction`,
+`cmd/direction`) — renaming the wire protocol is out of scope and would
+break the console/firmware contract. The *documentation and UI language*
+adopt the ruling; a future firmware revision may align the topic names
+deliberately.
+
+Note "stopped" is a DIRECTION value in this taxonomy, which maps onto the
+firmware's existing `DIRECTION_NEUTRAL`.
+
 ## §1 Fidelity check
 
 Per `AUTHORITY_MODEL.md`, stated back before proposing anything.
@@ -304,7 +327,19 @@ the intent was always a precondition, not a silent correction. **Operator
 ruling requested:** should BEGIN AUTO OPERATIONS refuse a REVERSE
 locomotive with a stated reason, as it already does for NEUTRAL?
 
-**Q4 — Enlistment preconditions. Operator thinking, 2026-08-07, explicitly
+**Q4a — A train must be stopped to initiate auto operations. RULED
+(operator, 2026-08-07).**
+
+> "Previously we conceived it to be like autopilot. But it was never run
+> that way. A train should be stopped to initiate auto operations."
+
+The autopilot conception — engage while under way, as an aircraft does —
+is retired. It was never exercised, and it is the conception that left
+`cmd/auto` with no motion guard. Auto operations begin from rest.
+
+*Remaining sub-question on mechanism: see the open item below.*
+
+**Q4b — Enlistment preconditions. Operator thinking, 2026-08-07, explicitly
 tentative** ("I recall that this decision has been made differently in the
 past, this is my thoughts on it tonight"):
 
