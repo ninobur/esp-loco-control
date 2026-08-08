@@ -1,5 +1,16 @@
 # NGR console — authority alignment and the AUTO handoff
 
+**Draft 5** — incorporates the three Draft 4 reviews
+(`…_DRAFT4_REVIEW_{CODEX,SAM,CLAUDE}_20260808.md`): CODEX C1/Claude H1
+(P14 corrected — the NEUTRAL write is removed from **both** E-STOP
+branches; `estopped` is the interlock), Claude H2 (NEUTRAL becomes an
+enlistment guard), CODEX C2 (R14 scope stated as an explicit event set),
+CODEX C3 (nav refusal mapping), CODEX C4 (§11 names all three firmware
+items; T6/T9 marked accordingly), Sam's two editorial corrections, Claude
+H3 (the BEGIN-gate invariant adopted as a standing check) and H4
+(NO_QUORUM-after-enlistment recorded as an owned residual). No new
+operator rulings were required.
+
 **Draft 4** — incorporates the three Draft 3 reviews (CODEX repository
 review; Sam; Claude chat — preserved as
 `NGR_DASHBOARD_AUTHORITY_ALIGNMENT_DRAFT3_REVIEW_{CODEX,SAM,CLAUDE}_20260808.md`).
@@ -105,10 +116,10 @@ F2).
 | **R8** | **The absence of change is the signal.** Enlisted = AUTO lights, controls grey; refused = nothing changes. The console renders enlistment from reported state, **never optimistically on button press.** |
 | **R9** | **ORIENTATION and LOCATION are required at and prior to enlistment.** Order fixed: orientation → location → enlist. |
 | **R10** | **Orientation and location are retained on release.** *(Confirmed already firmware behaviour — review C1: `T_CMD_RELEASE` touches neither `sessionDir` nor `navMm`. Confirmation, not new work.)* |
-| **R11** | **(F1) The dispatcher E-STOP becomes a toggle.** It can clear what it sets, and the dispatcher console renders E-stopped state. The surface that stopped an enlisted locomotive can restart it. |
+| **R11** | **(F1) Dispatcher E-STOP: broadcast set, per-locomotive clear.** The dispatcher can clear what it sets, and renders E-stopped state per locomotive. The surface that stopped an enlisted locomotive can restart it. *(Originally worded "toggle"; §4.3 concluded no aggregate toggle can exist — renamed per CODEX Draft-4 editorial.)* |
 | **R12** | **(F2) The motion refusal lives in firmware.** QUORUM's `cmd/auto` handler refuses enlistment while energised, with a published reason — whatever the command source. The console's R6 behaviour is presentation of that refusal, not the enforcement of it. |
 | **R13** | **(2026-08-08, CODEX-F1) E-STOP recovery is throttle-zero, not NEUTRAL.** Clearing E-STOP no longer drops DIRECTION to NEUTRAL; DIRECTION is preserved and **zero throttle is the protection** — motion resumes only when a throttle is deliberately advanced (MANUAL) or BEGIN AUTO OPERATIONS is issued (enlisted). The dispatcher restarts an enlisted, E-stopped locomotive **with BEGIN alone** — no release, no re-setup. In the operator's words: regressing to manual to reset NEUTRAL is tedious; everything is recorded on the Pi; the operator judges whether location needs re-declaring after an incident. Consequence: the console's throttle slider must also zero on E-STOP — the operator has observed it does not, so a clear could re-command the stale slider value. |
-| **R14** | **(2026-08-08, CODEX-F2) Refusals are always observable.** `*_REFUSED` responses bypass the station-transition dedup and carry a sequence number, so every operator command gets a response — repeats included. The transition dedup stays for what it was built for. |
+| **R14** | **(2026-08-08, CODEX-F2) Refusals are always observable.** Command-response events bypass the station-transition dedup and carry a sequence number, so a refused or ignored operator command always gets a response — repeats included. Scope stated explicitly *(CODEX-C2)*: the bypass set is `*_REFUSED` **plus `STOP_IGNORED`** — the events that answer an operator command. Routine transition events keep the dedup it was built for; successful-command acknowledgment rides the ordinary state topics (`state/auto`, `state/estop`, …), which is what the console renders anyway (R8). |
 | **R15** | **(2026-08-08, CODEX-F4) R9 is a firmware invariant.** `cmd/auto 1` is refused unless ORIENTATION is set and navigation is ready — alongside the motion guard, same pattern as R12: the rule lives where the truth lives. The console's pre-flight sequencing remains UI, not authority. |
 
 ---
@@ -167,9 +178,12 @@ exists in the design.
 
 R7 greys the loco page's setup controls; the dispatcher console has none.
 Without R9, a locomotive enlisted without pre-flight would be permanently
-stuck. R9 closes the trap R7 opens. Firmware position (console
-deliberately stricter, no firmware change needed): `cmd/session_direction`
-refuses only while running; `cmd/start_interval` has no AUTO guard.
+stuck. R9 closes the trap R7 opens. **R9 is enforced in both layers for
+different purposes** *(Sam, Draft-4 editorial — supersedes Draft 3's "no
+firmware change needed")*: the console sequences orientation → location →
+enlist and does not issue the request prematurely (usability, P6); QUORUM
+independently refuses `cmd/auto 1` unless orientation is set and
+navigation is ready (the authority invariant, P11/R15).
 
 ### 4.5 Why R10 is safe
 
@@ -280,8 +294,14 @@ connect; only a `cmd/report` trigger is missing. Not this iteration.
 
 **P11 (FIRMWARE, R12+R15) — Enlistment guards.** `cmd/auto 1` is refused,
 with a published reason, when: energised (`ENLIST_REFUSED` /
-`WAIT_FOR_STOP`), ORIENTATION unset (`NO_SESSION_DIRECTION`), or
-navigation not ready (`NO_POSITION_DECLARE_START_MM`). Enforced by the
+`WAIT_FOR_STOP`); ORIENTATION unset (`NO_SESSION_DIRECTION`); DIRECTION
+is NEUTRAL (`NEUTRAL_SELECT_DIRECTION` — *Claude-H2: a NEUTRAL locomotive
+passes the energisation guard, and without this it enlists into a state
+BEGIN refuses forever with the DIRECTION control greyed; matches
+established practice, where direction is set before AUTO*); or navigation
+not ready, mapped per the existing GO vocabulary (*CODEX-C3*):
+`NAV_UNSET` → `NO_POSITION_DECLARE_START_MM`, `NAV_NO_QUORUM` →
+`NO_QUORUM_DECLARE_POSITION`, `NAV_EVALUATING` remains usable. Enforced by the
 authority's owner, whatever the command source. **Invariants** *(Claude
 G3/G4)*: `cmd/auto 0` is **never** refused — disenrollment is a safety
 action that zeroes PWM; and no zero-on-enroll write is added — the guard
@@ -309,12 +329,18 @@ repeated response and a changed reason is never suppressed. The
 transition dedup remains for station-machine flooding, its original
 purpose. *(CODEX-F2)*
 
-**P14 (FIRMWARE, R13) — E-STOP clear preserves DIRECTION.** The
-clear path no longer forces `DIRECTION_NEUTRAL`; PWM zero (asserted at
-E-STOP, still zero at clear) is the protection in both chambers. An
-enlisted locomotive is then restartable by BEGIN alone; a manual one
-moves only when the operator advances the (now-zeroed, P5) throttle.
-*(CODEX-F1, T6)*
+**P14 (FIRMWARE, R13) — E-STOP preserves DIRECTION, on both branches.**
+*(Corrected per CODEX-C1 / Claude-H1: Draft 4 removed the NEUTRAL write
+from the clear path only, but the **assert** path also forces NEUTRAL —
+so the value "preserved" at clear would already be NEUTRAL and BEGIN
+would refuse. The write is removed from **both** branches.)* DIRECTION is
+unchanged across the whole E-STOP episode; the interlock is `estopped`
+itself, continuously enforced — `servicePwmRamp()` clamps PWM to zero
+every pass while E-stopped, and BEGIN is separately refused with
+`ESTOP_ACTIVE`. NEUTRAL-on-E-STOP was belt-and-braces, not the
+protection. An enlisted locomotive is then restartable by BEGIN alone; a
+manual one moves only when the operator advances the (now-zeroed, P5)
+throttle. *(T6)*
 
 ---
 
@@ -336,10 +362,31 @@ automatic operations working at all.
 - No launch or release control on the locomotive page.
 - No client-side pre-judging of BEGIN AUTO OPERATIONS conditions — QUORUM
   owns those gates and names its refusals. (The enlistment-side stance is
-  the same after R12: firmware owns the motion refusal; the console
-  presents it. The console's pre-flight refusals (P6) are the one
-  deliberate console-side strictness, because the dispatcher console has
-  no setup controls to recover with — §4.4.)
+  the same after R12: firmware owns the refusals; the console presents
+  them. The console's **pre-flight sequencing** (P6) withholds a
+  premature request — it refuses nothing — because the dispatcher console
+  has no setup controls to recover with — §4.4.)
+
+**Standing check (Claude-H3, adopted): every BEGIN gate must be either
+(i) also an enlistment gate, or (ii) clearable from the dispatcher
+console without crossing the release door.** The spec met the same trap
+three times (pre-flight/R9, E-STOP/R13, NEUTRAL/H2) before this invariant
+named it. The eight-gate sweep under it: `ESTOP_ACTIVE` (ii, P12 clear) ·
+`WAIT_FOR_STOP` (self-clearing) · `NEUTRAL_SELECT_DIRECTION` (i, P11
+per H2) · `NOT_ENROLLED_IN_AUTO` (inherent) · `NO_POSITION_DECLARE_START_MM`
+(i, R15) · `NO_SESSION_DIRECTION` (i, R15) · `ALREADY_RUNNING` (benign) ·
+`NO_QUORUM_DECLARE_POSITION` — **satisfied at enlistment (i, R15) but
+reachable mid-session: see the H4 residual below.** Re-run the sweep
+whenever a gate is added.
+
+**Accepted residual (Claude-H4, owner: CTO3 / Station Stop v1 follow-up):
+NO_QUORUM after enlistment.** Navigation can degrade to NO_QUORUM during
+a run; PAUSE then leaves an enlisted locomotive whose BEGIN is refused
+and whose declare-position control is greyed. Recovery today is END →
+declare → re-enlist (cheap, since R10 retains setup, but it crosses the
+release door). Closing it properly is entangled with what NO_QUORUM
+should mean for an enlisted locomotive — deliberately out of scope here,
+recorded beside P11's coasting-locomotive residual.
 - No firmware change **except P11, P13, P14** — each an explicit operator
   ruling (R12/R15, R14, R13). Sequencing with the QUORUM 1.9 line per
   CODEX (§11). *(Claude G2)*: the console iteration may ship with T2
@@ -403,10 +450,15 @@ automatic operations working at all.
 
 ## §11 Sequence
 
-1. CODEX/Sam review of this draft. 2. P11 implemented as the next QUORUM
-version bump (with Station Stop v1's 1.9 under review, sequencing per
-CODEX). 3. Console implemented as `ngr_app_v1_10_10.py`. 4. Deploy by
-scp + restart (no repo clone on the Pi). 5. §10 field check, in order.
+1. CODEX/Sam review of this draft. 2. **P11 + P13 + P14** implemented as
+the next QUORUM version bump *(CODEX-C4: all three named — T2 needs P11,
+T9 needs P13, T6 needs P14)*, sequenced with Station Stop v1's 1.9 line
+per CODEX; the −2 candidate window (`QUORUM_CANDIDATE_WINDOW_ANALYSIS.md`)
+rides the same bump. 3. Console implemented as `ngr_app_v1_10_10.py` —
+may ship before the firmware, with **T2, T6 and T9 explicitly marked
+blocked pending P11/P14/P13 respectively**; the §7 handoff is
+independently testable (T1, T3–T5, T7, T8, T10). 4. Deploy by scp +
+restart (no repo clone on the Pi). 5. §10 field check, in order.
 
 ## §12 References
 
