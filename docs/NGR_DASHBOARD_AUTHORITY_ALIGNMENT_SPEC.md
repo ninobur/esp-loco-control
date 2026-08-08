@@ -9,6 +9,8 @@ Date: 2026-08-08
 Author: Claude Code
 Model of record: `docs/CTO3/AUTHORITY_MODEL.md`, decision 0013
 Findings: `docs/NGR_DASHBOARD_FINDINGS_20260807.md`
+Review comments: `docs/NGR_DASHBOARD_AUTHORITY_ALIGNMENT_DRAFT2_REVIEW_20260808.md`
+— comments only; findings remain pending until operator rulings and spec edits
 Live console: v1.10.9 on ngr-pi (`/home/david/ngr_app.py`)
 
 An earlier attempt was written as code without being proposed first and
