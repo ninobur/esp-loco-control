@@ -1232,9 +1232,24 @@ this section disagree about where scores travel. The contract, stated once:
 
 1. **`mm/marker`** (every accepted or rejected detector event): the existing
    raw event fields — `mm`, `landmark`, `obs`, `peak`, `ms`, `drift` — plus
-   `dt`, `timing_gate`, `dt_expected`, `dt_conserve_ratio`. **Nothing else.**
+   `dt`, `timing_gate`, `dt_expected`, `dt_conserve_ratio`, and (**AMENDED
+   in v1.7**) `pwm` and `v`. **Nothing else.**
    `conf` is deleted along with `navConfidence`. Scores, streaks, leaders and
    margins do NOT ride the marker message.
+
+   **Amendment, QUORUM 1.7 (2026-08-06):** two evidence fields were added
+   when INA219 telemetry was restored (decision 0012) —
+
+   - `pwm` — `actualPwm` sampled at event **open**, beside `evStartBaseline`
+     (§3). Not a control input; it is the §9 calibration pairing that makes
+     `dt` interpretable, and it is what identifies `LOW_PWM`-gated events.
+   - `v` — bus volts from the INA219, `%.2f`, or **`null`** when no reading
+     has been taken (sensor absent or pre-first-read). Per decision 0016,
+     an unmeasured quantity publishes as null, never as a default value.
+
+   Both are evidence-layer only: no control path reads them, and their
+   absence degrades nothing. First field use: `20260806_quorum17_otto_run.log`
+   yielded the first real §9 data (PWM 100 → median 1125 ms/marker).
 
 2. **QUORUM decision event** (adoption, incident open/close, via
    `pubMarker()`): `state`, `streak`, the full score vector, exclusions,
@@ -1256,12 +1271,15 @@ longest `timing_gate` token is `NO_POSITION`, 11 chars):
 "dt":65535,                      11     (uint16)
 "timing_gate":"NO_POSITION",     28
 "dt_expected":4294967295,        25     (uint32)
-"dt_conserve_ratio":-1.00}       26
+"dt_conserve_ratio":-1.00,       26
+"pwm":255,                       10     (uint8, v1.7)
+"v":-100.00}                     13     (%.2f or "null", v1.7)
                                 ---
-                                173   + 1 NUL = 174
+                                197   + 1 NUL = 198
 ```
 
-174 ≤ 320 with 146 bytes (46%) of headroom — enough that no realistic field
+198 ≤ 320 with 122 bytes (38%) of headroom. (Pre-1.7 the total was 174; the
+two evidence fields cost 24 bytes.) Still enough that no realistic field
 widening (a new landmark name, a wider gate token) approaches the boundary.
 The §2.5 snapshot budget of 512 stands separately, sized against
 `PubMsg::payload`.
