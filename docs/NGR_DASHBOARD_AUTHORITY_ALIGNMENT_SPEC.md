@@ -379,6 +379,46 @@ The transition is from a regime with few rules to one with many. It
 should feel deliberate, be refused when preconditions are unmet, and
 report its outcome plainly.
 
+**Q5 — Pre-flight is required AT and PRIOR TO enlistment. RULED (operator,
+2026-08-07).**
+
+> "The locomotive must know where it is to begin participation in quorum.
+> Therefore, the orientation and location (MM interval) are required at
+> the time of and prior to auto enrollment. There is not a mechanism for
+> determining orientation and location on the dispatcher's console. After
+> handoff, the Operator does not have access to those controls."
+
+ORIENTATION (CW/CCW) and LOCATION (start interval) move from BEGIN-AUTO
+gates to **enlistment preconditions**. Enlistment is refused, with a
+stated reason, until both are set.
+
+**This ruling is not optional once P4 is adopted — the two are coupled.**
+P4 greys out the loco page's controls on enlistment, and the dispatcher
+console has no orientation or interval controls at all. So without Q5, a
+locomotive enlisted without pre-flight would be **permanently stuck**: the
+operator can no longer reach the setup controls, the dispatcher has none
+to offer, BEGIN AUTO OPERATIONS would refuse forever, and only a release
+back to MANUAL could recover it. Q5 closes a trap that P4 would otherwise
+open.
+
+**Firmware position today** (for the implementer): the console will be
+stricter than the firmware here, deliberately.
+
+- `cmd/session_direction` refuses only while `autoRunning`
+  ([QUORUM.ino], `SESSION_DIR_REFUSED / AUTO_IN_CONTROL`) — so orientation
+  remains settable while merely *enlisted*.
+- `cmd/start_interval` has no AUTO guard at all; its refusals are format,
+  range, adjacency, and `SET_SESSION_DIRECTION_FIRST`.
+
+Neither needs to change for Q5: the console simply stops offering the
+controls and refuses enlistment without them. Tightening the firmware
+guards from `autoRunning` to `autoEnrolled` would align the two, but is a
+firmware change and is **not** proposed here.
+
+**Note the ordering already enforced in firmware:** start interval refuses
+with `SET_SESSION_DIRECTION_FIRST` if orientation is unset. So the
+pre-flight sequence is fixed: **orientation → location → enlist**.
+
 **Q4b — Enlistment preconditions. Operator thinking, 2026-08-07, explicitly
 tentative** ("I recall that this decision has been made differently in the
 past, this is my thoughts on it tonight"):
