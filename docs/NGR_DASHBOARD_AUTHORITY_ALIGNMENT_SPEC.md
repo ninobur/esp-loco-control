@@ -371,8 +371,10 @@ automatic operations working at all.
 ## §10 Field check, if approved
 
 1. **T1** — enlist with pre-flight incomplete → refused, reason shown.
-2. **T2** — complete pre-flight, enlist while rolling → **firmware**
-   refusal (P11) shown by the console.
+2. **T2** — complete pre-flight, enlist while energised → **firmware**
+   refusal (P11) shown by the console. *(Claude G2: this test is blocked
+   pending P11; the console may ship with T2 outstanding, D-d recorded
+   open.)*
 3. **T3** — stop, enlist → AUTO lights, manual controls grey (throttle,
    DIRECTION, E-STOP), page states dispatcher holds it. **R8 case:**
    repeat with the locomotive unreachable — the console must show no
@@ -398,9 +400,6 @@ automatic operations working at all.
    PAUSE → RUNNING false, ENLISTED true, manual still withdrawn → BEGIN
    resumes without re-enlistment → END → ENLISTED false, manual returns.
    Proves PAUSE changes operating state; END changes authority.
-2b. **T2 note** *(Claude G2)* — T2 tests the firmware refusal and is
-   **blocked pending P11**; the console may ship with T2 outstanding,
-   D-d recorded open.
 
 ## §11 Sequence
 
