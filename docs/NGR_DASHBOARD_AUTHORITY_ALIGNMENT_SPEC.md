@@ -304,6 +304,64 @@ the intent was always a precondition, not a silent correction. **Operator
 ruling requested:** should BEGIN AUTO OPERATIONS refuse a REVERSE
 locomotive with a stated reason, as it already does for NEUTRAL?
 
+**Q4 — Enlistment preconditions. Operator thinking, 2026-08-07, explicitly
+tentative** ("I recall that this decision has been made differently in the
+past, this is my thoughts on it tonight"):
+
+> "Previously, auto operations only happened in forward. In CTO it was one
+> direction CCW and Forward for obvious reasons. The locos did not know
+> where they were, otherwise. We have eliminated that limitation. I think
+> that the throttle should be at zero. Direction should be taken over by
+> the locomotive once Manual control is relinquished. If you think about
+> it, the throttle position beforehand is immaterial as long as the loco
+> is stopped."
+
+**A defect this exposes, independent of the ruling.** `cmd/auto` has **no
+motion guard and does not zero the throttle on enrollment**
+([QUORUM.ino:2535]):
+
+```c
+autoEnrolled=(atoi(msg)!=0);
+if(!autoEnrolled){ autoRunning=false; requestPwm(0,NORMAL_STEP_MS); }
+```
+
+Disenrollment zeroes PWM; enrollment does not. Enlist a locomotive rolling
+at PWM 100 and it keeps rolling at PWM 100: `autoEnrolled` true,
+`autoRunning` false, so no AUTO code commands PWM — and MANUAL has just
+been relinquished. **Neither chamber is actively in charge while the train
+moves.** Leaving auto is safe; entering it is not. This holds regardless
+of how Q4 is decided and should be fixed either way.
+
+**The distinction worth preserving in any fix:** direction is two things,
+and §7 already relates them —
+`travel_direction = session_direction XOR motor_reverse`.
+
+- **Session direction (CW/CCW)** is *orders*: which way round the loop.
+  Belongs to the operator/dispatcher.
+- **Motor direction (forward/reverse)** is *means*: how the locomotive
+  achieves its orders. The operator's proposal hands this to the
+  locomotive on enlistment.
+
+Read that way the proposal is consistent with §7 rather than a departure
+from it, and it retires the forward-only/CCW-only constraint at its
+actual root — that constraint existed because locomotives had to move to
+discover their position, which is no longer true.
+
+**Consequent proposals, for review — not adopted:**
+
+- **Enlistment requires the locomotive to be stopped**, refused with a
+  stated reason otherwise (as GO already does for NEUTRAL). "Stopped"
+  currently means `actualPwm>0 || commandedPwm>0` — *energised*, not
+  *stopped*; a coasting locomotive reads as stopped. Adequate for
+  enlistment; the real witness is decision 0005's `motionWitnessSaysStopped()`.
+- **Enlistment zeroes the throttle**, since the locomotive now owns
+  propulsion. This makes the operator's slider position immaterial, as
+  proposed.
+- **Motor direction becomes the locomotive's on enlistment**, retiring
+  both the silent REVERSE→FORWARD flip and the need for the operator to
+  pre-set FORWARD (which supersedes the Q2.1 ruling request above, if
+  adopted).
+
 **Q3 — Refusal wording.** QUORUM's raw strings
 (`NO_QUORUM_DECLARE_POSITION`) or plain-English translation
 ("position lost — re-declare the start interval")? Raw is the
