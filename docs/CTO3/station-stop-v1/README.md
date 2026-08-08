@@ -1,6 +1,7 @@
 # CTO3 Station Stop v1 — discussion specification and implementation prompt
 
-**Status:** discussion draft; not approved for implementation
+**Status:** approved as a narrow implementation work item; field validation is
+blocked until the live dashboard can enroll a locomotive in AUTO
 **Date:** 2026-08-06
 **Proposed field subject:** Otto (9950011), CCW, Arches only
 **CTO3 plan:** `CTO3_SPEC.md` §12 step 3
@@ -12,7 +13,7 @@ station cycle at Arches—approach, full stop, dwell, restart, and clean release
 the station state machine—with no IR authority, traffic logic, peer, or bubble.
 
 The first source audit must answer whether a firmware change is needed at all.
-QUORUM 1.7 already contains the complete station phase chain and the governing
+QUORUM 1.8 inherits the complete station phase chain and the governing
 CTO3 sequence says to preserve the QUORUM R21 single-locomotive station logic
 unchanged. A controlled one-stop field run may therefore be the correct step.
 Creating a second control sketch or changing code merely to produce a new version
@@ -40,21 +41,25 @@ service.
 
 ## Governing constraints
 
-1. **One control sketch.** Work branches from `firmware/QUORUM/QUORUM.ino`.
+1. **Authority fidelity first.** Read `../AUTHORITY_MODEL.md` and explain the
+   Manual/AUTO model back before editing. The station routine may write PWM only
+   while AUTO is enrolled and running. The dashboard's current inability to
+   enroll AUTO must not be bypassed in firmware.
+2. **One control sketch.** Work branches from `firmware/QUORUM/QUORUM.ino`.
    Do not create a separate station sketch.
-2. **Bicameral authority remains constitutional.** Station code may command PWM
+3. **Bicameral authority remains constitutional.** Station code may command PWM
    only while `autoRunning`. Manual remains sovereign. E-STOP remains immediate.
-3. **Preserve R21 station logic.** Do not redesign `serviceStations()`, its phase
+4. **Preserve R21 station logic.** Do not redesign `serviceStations()`, its phase
    transitions, PWM ramp ownership, NO_QUORUM reset, overshoot escape, or M+1
    fallback for this proof.
-4. **No new MQTT contract unless approved separately.** Existing controller and
+5. **No new MQTT contract unless approved separately.** Existing controller and
    dashboard behavior must continue to work.
-5. **No IR dependency or authority.** IR development continues in parallel.
-6. **No traffic behavior.** No peer registry, ESP-NOW, envelope, pairing, role,
+6. **No IR dependency or authority.** IR development continues in parallel.
+7. **No traffic behavior.** No peer registry, ESP-NOW, envelope, pairing, role,
    MHE, hold-behind, or bubble logic belongs in this step.
-7. **No SPEED_HOLD claim.** The existing station controller is PWM-profile based.
+8. **No SPEED_HOLD claim.** The existing station controller is PWM-profile based.
    CTO3 §6's measured-speed staircase remains later work under §12 step 5.
-8. **No final precision claim.** The ±150 mm, load-invariant distance-stop gate
+9. **No final precision claim.** The ±150 mm, load-invariant distance-stop gate
    belongs to IR-backed closed-loop stopping, not this first proof.
 
 ## Existing behavior to preserve and observe
@@ -87,7 +92,8 @@ starting interval and received markers; their order and phase ownership do not.
 ## Proposed test configuration
 
 - Otto only; no other locomotive moving on the Lowline.
-- Genuine QUORUM 1.7, verified by the unconditional `pwm` and `v` fields on an
+- Genuine QUORUM 1.8, verified by `[BOOT] QUORUM_1_8` plus the unconditional
+  `pwm` and `v` fields on an
   `mm/marker` payload, not by `state/bootid` alone.
 - Repaired Hall terminal using the short solid-wire pigtail.
 - CCW session and forward motor direction.
@@ -103,7 +109,8 @@ starting interval and received markers; their order and phase ownership do not.
 
 Before a trial counts:
 
-1. The locomotive identifies genuine QUORUM 1.7 by marker payload behavior.
+1. The locomotive identifies genuine QUORUM 1.8 by boot and marker payload
+   behavior.
 2. Supply, Hall resting level, and both magnet polarities have already passed the
    post-repair electrical check.
 3. Otto sits powered and stationary for at least 60 seconds with zero phantom Hall
@@ -183,7 +190,8 @@ separate change.
 
 ## Prompt for Claude Code after this discussion is approved
 
-> Read `docs/CTO3/CTO3_STATION_STOP_V1_DISCUSSION.md`,
+> Read `docs/CTO3/station-stop-v1/README.md`,
+> `docs/CTO3/AUTHORITY_MODEL.md`,
 > `docs/CTO3/CTO3_SPEC.md` §§2, 6, and 12, QUORUM R21 §0.2, and the
 > current `firmware/QUORUM/QUORUM.ino`. First report whether the approved Station
 > Stop v1 behavior already exists in the current source. Trace the Arches path

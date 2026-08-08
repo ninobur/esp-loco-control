@@ -129,3 +129,52 @@ secrets into a separate header listed in `.gitignore`. (The archived
 `NGR-Automated-Train-Control` repo already uses a
 `credentials.h` / `credentials_template.h` split behind `.gitignore` — the
 same pattern can be reused here.)
+
+---
+
+# Decision records
+
+Short records of significant NGR design decisions: what was decided, why, what
+was rejected, and what it depends on. They capture the *reasoning* behind the
+specs and firmware, so a future reader (operator, Sam, CODEX, or a Claude
+instance) can see not just what the system does but why — and what was
+considered and rejected.
+
+## Rules
+
+- One record per significant decision. Numbered sequentially, never renumbered.
+- A decision is never edited away. When something changes, add a NEW record that
+  supersedes the old one, and mark the old one "Superseded by NNNN". The history
+  of the thinking is preserved.
+- Keep them short — half a page. Reasoning, not transcript.
+- Write the record when the decision is made, not reconstructed later.
+
+## Template
+
+```
+# NNNN — Title (the decision, stated as a sentence)
+
+Status: Proposed | Accepted | Superseded by NNNN  (date)
+
+## Decision
+What was decided.
+
+## Context
+The situation and forces that made a decision necessary.
+
+## Alternatives considered
+What else was on the table, and why each was not chosen.
+
+## Consequences
+What follows — obligations, constraints, things now easier or harder.
+
+## References
+Specs, commits, reports, resource files.
+```
+
+## Standing practice
+
+At the end of any session that makes an architectural or capability decision,
+the decision is recorded here — including capability *removals*, so a dropped
+brake/INA219/Blynk-style capability is a visible, argued record rather than a
+silent drift discovered later.

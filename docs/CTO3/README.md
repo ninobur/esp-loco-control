@@ -5,6 +5,10 @@ Lowline autonomous-operations architecture.
 
 - `CTO3_INTENT_BASELINE.md` states the current design intent. It is the entry
   point for future CTO3 design work.
+- `AUTHORITY_MODEL.md` is the required Manual/AUTO fidelity guide: propulsion
+  authority, navigation, traffic visibility, and mission state remain distinct.
+- `station-stop-v1/README.md` is the discussion draft for the deliberately
+  narrow first proof: Otto, CCW, one stop at Arches.
 - `resources/` contains source material that led to the baseline.
 - `resources/README.md` explains provenance, authority, sanitization, and which
   historical ideas have been superseded.
