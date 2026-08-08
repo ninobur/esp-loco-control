@@ -419,6 +419,57 @@ firmware change and is **not** proposed here.
 with `SET_SESSION_DIRECTION_FIRST` if orientation is unset. So the
 pre-flight sequence is fixed: **orientation → location → enlist**.
 
+**Q6 — Orientation and location are RETAINED on release. RULED (operator,
+2026-08-07).**
+
+Release to MANUAL does not clear ORIENTATION or the start interval. The
+locomotive returns to the operator still knowing where it is and which way
+round the loop it was working, and may be re-enlisted without repeating
+the pre-flight.
+
+Operator's reasons, in order of weight:
+
+1. **The transponder must stay on.** A manual locomotive running alongside
+   automatic ones has to remain visible to them — and visibility is
+   worthless without position. Clearing the setup on release would blind
+   the AUTO locomotives to the one train on the railway whose behaviour
+   they cannot predict. That is CTO2 failure W3 (a manually driven
+   locomotive invisible to collision logic) reintroduced deliberately.
+2. Establishing location requires **physically walking to the locomotive**;
+   discarding it imposes a real cost for no safety gain.
+3. In practice there is little switching back and forth.
+4. The information is not required to operate manually, so retaining it
+   costs the manual operator nothing.
+
+**Why this is safe — the analysis that was requested.** The concern
+raised against retention was that a stale declared position is a
+*confidently wrong* position, which is the failure that killed CTO2: the
+follower's traffic mathematics were correct, computed from a leader
+position asserted at certainty 1.000 after a handful of bad reads. *"CTO
+cannot be safer than the position reports it consumes."* Retained setup
+looked like the same failure arriving through housekeeping rather than
+sensing.
+
+That concern was **overstated**, and the reason matters:
+
+- **Navigation observes in both chambers.** QUORUM advances the odometer
+  on every accepted marker regardless of who holds the throttle. A
+  locomotive *driven* manually across the layout carries its position with
+  it; the retained setup does not go stale from driving.
+- **QUORUM refuses to launch when lost.** Position that stops making sense
+  produces NO_QUORUM, and BEGIN AUTO OPERATIONS refuses on NO_QUORUM. A
+  locomotive genuinely lost in MANUAL cannot be handed to the dispatcher.
+
+The residual is manual **handling**, not manual **driving** —
+hand-pushing, lifting onto the track, rolling back and forth to position.
+That is the documented hazard in
+`QUORUM_HAND_REPOSITION_HAZARD.md`, whose mitigation is the existing
+operational rule: **re-declare after handling.**
+
+**Suggested refinement, not a precondition:** the console could show *when*
+the interval was declared, so an old declaration is visible rather than
+silent. Cheap, and it converts the residual from invisible to obvious.
+
 **Q4b — Enlistment preconditions. Operator thinking, 2026-08-07, explicitly
 tentative** ("I recall that this decision has been made differently in the
 past, this is my thoughts on it tonight"):
