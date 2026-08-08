@@ -1,5 +1,12 @@
 # NGR console — authority alignment and the AUTO handoff
 
+**Draft 5.1** — CODEX Draft-5 corrections applied: the −2 candidate
+window removed from §11 (operator ruling: retained six-candidate window,
+operational mitigation; analysis deferred not rejected) and P13's bypass
+set aligned with R14 (`*_REFUSED` + `STOP_IGNORED`). CODEX disposition:
+**approved for implementation** after these corrections; no new ruling,
+no further design cycle.
+
 **Draft 5** — incorporates the three Draft 4 reviews
 (`…_DRAFT4_REVIEW_{CODEX,SAM,CLAUDE}_20260808.md`): CODEX C1/Claude H1
 (P14 corrected — the NEUTRAL write is removed from **both** E-STOP
@@ -321,13 +328,14 @@ last command sent, never the button press *(Sam S2; P4's rule)*. No
 ambiguous toggle exists; mixed and offline states render individually.
 The loco-page E-STOP toggle remains, greyed per R7 when enlisted. *(D-e)*
 
-**P13 (FIRMWARE, R14) — Always-observable command responses.**
-`*_REFUSED` publications bypass `stationPublish()`'s transition dedup
-(which compares event+offset and ignores the reason) and carry a
-monotonic sequence number, so a repeated command yields a visible
-repeated response and a changed reason is never suppressed. The
-transition dedup remains for station-machine flooding, its original
-purpose. *(CODEX-F2)*
+**P13 (FIRMWARE, R14) — Always-observable command responses.** The
+bypass set is **`*_REFUSED` plus `STOP_IGNORED`** — exactly R14's set
+(CODEX Draft-5 C2 aligned this text with the ruling). These events skip
+`stationPublish()`'s transition dedup (which compares event+offset and
+ignores the reason) and each carries a monotonic sequence number, so a
+repeated command yields a visible repeated response and a changed reason
+is never suppressed. Routine station transitions retain their existing
+deduplication. *(CODEX-F2)*
 
 **P14 (FIRMWARE, R13) — E-STOP preserves DIRECTION, on both branches.**
 *(Corrected per CODEX-C1 / Claude-H1: Draft 4 removed the NEUTRAL write
@@ -453,8 +461,13 @@ recorded beside P11's coasting-locomotive residual.
 1. CODEX/Sam review of this draft. 2. **P11 + P13 + P14** implemented as
 the next QUORUM version bump *(CODEX-C4: all three named — T2 needs P11,
 T9 needs P13, T6 needs P14)*, sequenced with Station Stop v1's 1.9 line
-per CODEX; the −2 candidate window (`QUORUM_CANDIDATE_WINDOW_ANALYSIS.md`)
-rides the same bump. 3. Console implemented as `ngr_app_v1_10_10.py` —
+per CODEX. *(The −2 candidate window is NOT in this bump — operator
+ruling, 2026-08-08: retain the six-candidate window; hand repositioning
+is mitigated operationally by re-declaring location whenever the Hall
+sensor is moved across a marker by hand. The analysis
+(`QUORUM_CANDIDATE_WINDOW_ANALYSIS.md`) stands as evidence, deferred not
+rejected. Its earlier inclusion here was unapproved scope — CODEX
+Draft-5 C1.)* 3. Console implemented as `ngr_app_v1_10_10.py` —
 may ship before the firmware, with **T2, T6 and T9 explicitly marked
 blocked pending P11/P14/P13 respectively**; the §7 handoff is
 independently testable (T1, T3–T5, T7, T8, T10). 4. Deploy by scp +

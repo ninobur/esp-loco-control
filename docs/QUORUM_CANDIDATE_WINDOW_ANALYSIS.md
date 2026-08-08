@@ -40,14 +40,15 @@ autocorrelation strong enough to matter, and it sits under the Arches
 approach. Any future widening beyond −2/+4 should re-run this analysis
 first — the margin structure, not intuition, is what decides.
 
-## Recommendation
+## Recommendation — and disposition
 
-Adopt `{−2,−1,0,+1,+2,+3,+4}` (`QUORUM_CANDIDATES` 7) in the next QUORUM
-version bump, sequenced with the other pending firmware items (P11, P13,
-P14 of the console authority spec; Station Stop v1's 1.9 under review).
-Two-line change plus this record. The hand-reposition operational rule
-(re-declare after handling) remains good practice regardless — the wider
-window is recovery, not licence.
+The analysis recommended adopting `{−2,−1,0,+1,+2,+3,+4}`.
+**Operator ruling (2026-08-08): DEFERRED, not adopted.** The
+six-candidate window is retained; hand repositioning is mitigated
+operationally — location is re-declared whenever the Hall sensor is
+moved across a marker by hand (`QUORUM_HAND_REPOSITION_HAZARD.md`).
+This record stands as evidence for any future revisit; the margin
+structure measured here, not intuition, is what should decide then.
 
 Analysis script inline in the 2026-08-09 session; reproducible from the
 DNA table at [QUORUM.ino:397](../firmware/QUORUM/QUORUM.ino).
