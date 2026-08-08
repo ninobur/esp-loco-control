@@ -64,6 +64,31 @@ Enlistment works. Automatic operations have never started. Additionally
 subscribes to at all — it listens only on
 `ngr/dispatcher/cmd/go/<id>` ([QUORUM.ino:1957]).
 
+### §2.1 Root cause of "AUTO is a non-functional button"
+
+The operator's report is: pressing AUTO flashes the phone display and does
+nothing. Every step of that is now accounted for, and there are **two
+independent faults**, either of which alone is sufficient.
+
+1. The AUTO control is an `<a href>`; clicking it navigates, the server
+   publishes, and it redirects back. **The flash is a full page reload.**
+2. `cmd/auto 1` is published and the locomotive genuinely enlists.
+3. The locomotive publishes `state/auto = 1` **retained**
+   (`pubStateIntChanged` → `pub(t,b,true)`, [QUORUM.ino:2260]). The console
+   discards every retained message (§5). **Fault A.**
+4. Independently, the console's `st["auto"]` is written from the **1 Hz
+   alert's `auto` field** ([v1.10.9:545]) — which is `autoRunning`, not
+   `autoEnrolled`. Within a second of any enlistment the alert overwrites
+   the value back to `0` and marks it fresh. **Fault B.**
+5. The console therefore displays MANUAL for an enlisted locomotive,
+   permanently, and will continue to until the locomotive is *running*.
+
+**Consequence for the fix:** repairing the retained drop alone (Fault A)
+would not have fixed the operator's complaint — Fault B would still win
+every second. Fault B is the dominant defect, and it is precisely the
+enrolled-vs-running conflation that `AUTHORITY_MODEL.md` warns against:
+the console has one flag where the model has two distinct states.
+
 ## §3 Defects, and the model each violates
 
 | # | Defect | Violates |
@@ -106,6 +131,28 @@ discharge a locomotive the dispatcher owns.
 constraint, not a change: no manual control is disabled because navigation
 is unset, telemetry is stale, or position is unknown.
 
+**P7 — Track ENLISTED and RUNNING as two separate states.** *(The primary
+fix — see §2.1.)* The console currently has one `auto` flag written from
+two different firmware variables, and the alert's `autoRunning` wins. The
+model has two states and so must the console:
+
+| Console state | Source | Meaning |
+|---|---|---|
+| **ENLISTED** | `state/auto` (`autoEnrolled`) | the locomotive has enlisted; the dispatcher holds it; manual controls withdraw |
+| **RUNNING** | alert `"auto"` (`autoRunning`) | automatic operations are under way |
+
+The alert must never write the enlistment state. Enlistment is the
+handoff the operator is asking for, and it is what the AUTO button should
+visibly accomplish — independent of, and prior to, any automatic operation
+beginning.
+
+**P8 — Rename the dispatcher control to BEGIN AUTO OPERATIONS.** Operator
+ruling (§6, Q2): GO does not mean "step on the gas," it means "assess your
+situation and start doing what you need to do." The label should say so.
+STOP becomes END/PAUSE AUTO OPERATIONS to match. Console labelling only —
+the underlying topic is unchanged, and the firmware behaviour behind it is
+a separate work item.
+
 ## §5 The retained-state problem, explained plainly
 
 *(This is item 4 from the operator's list — "I don't understand this.")*
@@ -147,20 +194,48 @@ everything not on the authority list. The ghost-tile failure was stale
 being wrong about who holds the locomotive is worse than being briefly
 blank, and worse in the dangerous direction.
 
+**Correction (added after §2.1 was traced).** This section originally
+presented the retained drop as *the* cause of the MANUAL display. It is
+not — it is Fault A of two, and the lesser one. Even with (a) implemented,
+the 1 Hz alert would overwrite the enlistment flag back to `0` within a
+second (Fault B). **P7 is the fix that actually resolves the operator's
+complaint; this section is necessary but not sufficient.** Implementing
+(a) without P7 would produce no visible change and would look like another
+failed attempt.
+
 ## §6 Open questions — operator ruling required
 
-**Q1 — E-Stop and the one-operator rule.** The operator has suggested that
-once enlisted, even E-Stop should come only from the dispatcher. Decision
-0013 and `AUTHORITY_MODEL.md` currently make E-Stop door 1: *"acts in
-either chamber and overrides everything."* These conflict. Narrowing
-E-Stop is a constitutional change requiring a new decision record
-superseding part of 0013. Practical consideration: if an operator at the
-trackside cannot stop an enlisted locomotive, the dispatcher console must
-be reachable within seconds. **No console change is proposed either way
-until this is ruled.**
+**Q1 — E-Stop and the one-operator rule. STILL OPEN.** The operator has
+suggested that once enlisted, even E-Stop should come only from the
+dispatcher. Decision 0013 and `AUTHORITY_MODEL.md` currently make E-Stop
+door 1: *"acts in either chamber and overrides everything."* These
+conflict, and narrowing E-Stop is a constitutional change requiring a
+record superseding part of 0013.
 
-**Q2 — GO semantics in firmware (not a console change).** The model says
-GO means "begin doing what you need to do." The firmware does:
+The *practical* objection is withdrawn: the operator notes the dispatcher
+console is another page of the same Flask app, reachable by anyone with it
+open, so "can you reach it in time" is not the obstacle it would be with a
+separate device. The constitutional question stands on its own.
+**No console change proposed either way until ruled.**
+
+**Q2 — GO semantics. RULED (operator, 2026-08-07).**
+
+> "GO should mean 'assess the situation', 'where are you', 'is there
+> another loco in front', 'are you at a station stop already.' In a race
+> car go means step on the gas. Probably we should change it to BEGIN AUTO
+> OPERATIONS. Like when I start my car in the garage or the street. What I
+> do depends on the info I have about the situation."
+
+Historical context supplied with the ruling: in CTO 4-block mode
+locomotives *had* to start moving on GO, because they did not know where
+they were and had to reach a magnet pair to find out — relying on the
+dispatcher having placed them somewhere that would not collide first. Once
+both had magnets they used the peer table to negotiate roles. **That
+constraint is gone.** The locomotives now know where they are on
+enlistment and have collision-avoidance ability, so the first act of
+automatic operations should be assessment, not motion.
+
+The firmware does the opposite:
 
 ```c
 autoRunning=true;
@@ -168,11 +243,15 @@ motorDirection=DIRECTION_FORWARD; applyDirection();
 requestPwm(cruiseForPosition(),NORMAL_STEP_MS);
 ```
 
-— it forces FORWARD and commands cruise, i.e. "move forward." For a
-locomotive starting a lap the two coincide, so this is latent rather than
-broken. It stops being latent when GO is pressed while a locomotive should
-dwell at a station or hold behind traffic. Flagged for CTO3; **out of
-scope** here.
+It forces FORWARD and commands cruise — the 4-block behaviour, preserved
+past the reason for it. A locomotive already standing at a station would
+be launched out of it.
+
+Console scope: **rename only** (P8). The firmware change — GO becomes
+"assess, then act on what you find," with staying put a legitimate outcome
+— is a separate CTO3 work item and belongs with Station Stop v1, since
+"already at a station" is exactly one of the situations the assessment
+must recognise. Recorded here so the ruling is not lost.
 
 **Q3 — Refusal wording.** QUORUM's raw strings
 (`NO_QUORUM_DECLARE_POSITION`) or plain-English translation
@@ -191,6 +270,25 @@ to read at speed.
 - No change to E-Stop pending Q1.
 - No weakening of the firmware authority boundary to work around a console
   defect.
+
+## §7.1 Primary objective, in the operator's words
+
+> "My complaint today about auto mode is that it is a non functional
+> button in terms of locomotive operation. It makes the dashboard flash on
+> my phone. Nothing [else]. It should at least hand off operation of the
+> locomotive to the dispatcher. This function is the predicate for
+> starting auto operations, our next goal."
+
+The deliverable is therefore narrow and testable: **pressing AUTO must
+visibly hand the locomotive to the dispatcher.** Manual controls withdraw
+(P4), the page states who holds it (P7), and the state persists across a
+reload and a reconnect (§5). Everything else in this document is
+secondary to that.
+
+Note this is achievable **without** automatic operations working at all —
+the handoff is the predicate, not the operation. A locomotive can be
+correctly enlisted, correctly displayed as enlisted, and correctly refuse
+to do anything else, and that is a complete and useful result.
 
 ## §8 Sequence if approved
 
