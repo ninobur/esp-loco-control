@@ -62,3 +62,9 @@ rather than a silent drift discovered later.
 | [0010](0010-threshold-decisions-rest-on-headrooms.md) | Threshold decisions rest on headrooms, not crossing margins | Accepted |
 | [0011](0011-restore-the-brake-channel.md) | The brake channel is restored to the control firmware | Accepted |
 | [0012](0012-restore-ina219-telemetry.md) | INA219 telemetry is restored to the control firmware | Accepted |
+| [0013](0013-bicameral-four-door-authority.md) | Bicameral locomotive authority has four crossing doors | Accepted |
+| [0014](0014-speed-hold-not-throttle-hold.md) | Speed is the controlled variable; PWM is only the actuator | Accepted; not yet implemented |
+| [0015](0015-ir-does-not-block-cto3.md) | IR speed sensing does not block CTO3 development | Accepted |
+| [0016](0016-published-evidence-carries-its-own-provenance.md) | Published evidence carries its own provenance; unknown is never fabricated | Accepted |
+| [0017](0017-hall-baseline-adapts-only-in-motion.md) | The Hall baseline adapts only while the locomotive is believed moving | Accepted |
+| [0018](0018-firmware-role-and-evidence-status.md) | Firmware role and evidence status are tracked independently | Accepted |

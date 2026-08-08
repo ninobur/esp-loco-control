@@ -9,6 +9,7 @@ over MQTT and ESP-NOW.
 firmware/QUORUM/        current navigation sketch — opens directly in Arduino IDE
 firmware/test-programs/ standalone test sketches, own WiFi/MQTT setup:
                         SENSORTEST (marker rig), Spoke_IR_RSSI_survey (survey car)
+firmware/README.md       authoritative sketch roles and validation-status catalog
 firmware/config/        shared headers, symlinked into each sketch folder
 server/                 Raspberry Pi — Flask dashboard, dispatcher, loggers
 tools/                  align_markers.py and other analysis run by hand
@@ -36,6 +37,10 @@ into each sketch folder as `credentials.h` and fill it in.
 The filename does not carry the version. `QUORUM.ino` is always current;
 versions are git tags. (Tags up to v2.22 predate the rename and hold the
 sketch at `firmware/SOLONAV/SOLONAV.ino` — use that path when diffing them.)
+
+“Current source” and “field-accepted operating baseline” are deliberately
+different concepts. See `firmware/README.md` before selecting a sketch to
+flash or describing a capability as production-ready.
 
 ```bash
 git tag -a v2.17 -m "what changed and why"

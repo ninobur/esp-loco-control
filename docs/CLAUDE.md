@@ -119,6 +119,27 @@ current state.
 - **Preserve the comment headers.** The sketch documents its own version
   history at the top. Keep that convention.
 
+### Firmware artifact classification
+
+Decision 0018 and `firmware/README.md` govern sketch organization. Treat role
+and evidence status as separate facts:
+
+- `firmware/QUORUM/QUORUM.ino` is the only production-control lineage, including
+  narrow capabilities that are still awaiting field validation.
+- `firmware/test-programs/` contains diagnostic instruments, prototypes, and
+  explicit references. A diagnostic result may justify a new scoped QUORUM
+  implementation; the test sketch itself is never promoted implicitly.
+- `archive/` is historical evidence, not an implementation starting point.
+- “Latest,” “built,” and “field accepted” are not synonyms. Update the firmware
+  catalog whenever a sketch is added, superseded, promoted, or changes evidence
+  status.
+- Do not create feature-named copies of the control sketch such as
+  `ONE_STATION.ino`. Use the stable QUORUM path, `SKETCH_NAME`, git history,
+  implementation reports, and field verdicts.
+
+Every firmware review includes a librarian check: role, status, controlling
+record, provenance, promotion outcome, and catalog currency.
+
 ---
 
 ## Secrets
