@@ -205,18 +205,29 @@ failed attempt.
 
 ## §6 Open questions — operator ruling required
 
-**Q1 — E-Stop and the one-operator rule. STILL OPEN.** The operator has
-suggested that once enlisted, even E-Stop should come only from the
-dispatcher. Decision 0013 and `AUTHORITY_MODEL.md` currently make E-Stop
-door 1: *"acts in either chamber and overrides everything."* These
-conflict, and narrowing E-Stop is a constitutional change requiring a
-record superseding part of 0013.
+**Q1 — E-Stop. RULED (operator, 2026-08-07).**
 
-The *practical* objection is withdrawn: the operator notes the dispatcher
-console is another page of the same Flask app, reachable by anyone with it
-open, so "can you reach it in time" is not the obstacle it would be with a
-separate device. The constitutional question stands on its own.
-**No console change proposed either way until ruled.**
+> "There should be an EStop on the locomotive dashboard. It should only be
+> operable when the loco is in manual operation."
+
+**No constitutional change is required, and none should be made.** The
+ruling governs the *console control*, not the firmware door, and the
+distinction matters:
+
+- **Firmware:** decision 0013 door 1 stands unchanged — E-STOP acts in
+  either chamber and overrides everything. It must, or the dispatcher's
+  E-Stop could not reach an enlisted locomotive.
+- **Console:** the locomotive page keeps its E-STOP, operable in MANUAL
+  and inert once enlisted — because an enlisted locomotive is not the loco
+  operator's to command. Consistent with P4 (all manual controls withdraw
+  on enlistment); E-Stop is simply the last of them, not an exception.
+
+An enlisted locomotive is stopped from the dispatcher console, which is
+another page of the same Flask app and reachable by anyone with it open.
+
+**Amends P4:** the withdrawal on enlistment covers throttle, direction,
+*and* E-Stop — no carve-out. Draft 1 of this spec assumed E-Stop would
+need one; it does not.
 
 **Q2 — GO semantics. RULED (operator, 2026-08-07).**
 
@@ -253,6 +264,46 @@ Console scope: **rename only** (P8). The firmware change — GO becomes
 "already at a station" is exactly one of the situations the assessment
 must recognise. Recorded here so the ruling is not lost.
 
+### Q2.1 — Iteration-1 scope (operator, 2026-08-07)
+
+> "For the first iteration, BEGIN AUTO OPERATIONS may very well mean
+> 'perform the action required for your starting position within the
+> orders you have.' In the earlier versions, the Loco had to be set to
+> forward and pointed CCW to start auto operations."
+
+This bounds the work usefully — no general situational-assessment engine
+is required for iteration 1, only *"consult where you are and what you
+were told, then do that."* With Station Stop v1's orders (run the loop,
+stop at Arches) the cases are few:
+
+| Starting position | Required action | Firmware today |
+|---|---|---|
+| Mid-loop, clear of a station | proceed at segment cruise | **correct** |
+| Already stopped at a station | dwell, then depart per the routine | launches to cruise — **wrong** |
+| Inside a station's approach staircase | continue the staircase | jumps to cruise — **wrong** |
+
+Accuracy note on the firmware: `cruiseForPosition()` ([QUORUM.ino:1579])
+*is* position-aware, but only about speed — it selects a cruise PWM from
+the grade segment, so Viaduct Hill gets more power. It never returns zero.
+GO is therefore grade-smart and situation-blind: it always commands
+motion. The iteration-1 change is to consult the station machine before
+commanding cruise, not to build an assessment framework.
+
+**Related inconsistency found while tracing this.** The GO handler refuses
+a NEUTRAL locomotive with a stated reason
+(`NEUTRAL_SELECT_DIRECTION`) but silently overrides a REVERSE one:
+
+```c
+motorDirection=DIRECTION_FORWARD; applyDirection();
+```
+
+Under §7's rule (`travel_direction = session_direction XOR motor_reverse`)
+that silently changes the locomotive's map direction. The operator's note
+that earlier versions *required* the locomotive be set FORWARD suggests
+the intent was always a precondition, not a silent correction. **Operator
+ruling requested:** should BEGIN AUTO OPERATIONS refuse a REVERSE
+locomotive with a stated reason, as it already does for NEUTRAL?
+
 **Q3 — Refusal wording.** QUORUM's raw strings
 (`NO_QUORUM_DECLARE_POSITION`) or plain-English translation
 ("position lost — re-declare the start interval")? Raw is the
@@ -267,7 +318,9 @@ to read at speed.
   names its own refusals; a console that second-guessed them would be a
   second eligibility gate, which the layer-boundary rule forbids.
 - No firmware change of any kind.
-- No change to E-Stop pending Q1.
+- No change to the E-STOP *firmware* door (Q1). The console control is
+  withdrawn on enlistment along with every other manual control; the
+  firmware continues to accept E-STOP in either chamber.
 - No weakening of the firmware authority boundary to work around a console
   defect.
 
