@@ -521,7 +521,8 @@ static void updateBaseline(int raw,unsigned long now){
   // this is not proof of rest -- but the error cases are asymmetric:
   // refusing a push while secretly moving postpones adaptation ~30 s;
   // accepting pushes while secretly parked over a magnet migrates the
-  // reference onto it in ~32-64 s and inverts every reading at departure.
+  // reference onto it in ~32-64 s and systematically corrupts the
+  // post-departure event stream.
   // The median's robustness assumes magnets are OUTLIERS, which is a
   // property of traversal, not of the track. actualPwm is volatile and
   // already read on this task (s3 PWM-at-detect); no new threading.

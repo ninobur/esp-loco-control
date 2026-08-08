@@ -1,10 +1,13 @@
-# QUORUM baseline motion gate — problem and proposed fix (for review)
+# QUORUM baseline motion gate — problem, fix, and field validation
 
 Date: 2026-08-06
-Status: **proposed, awaiting Sam/CODEX review.** No firmware written.
+Status: **implemented and field-validated in QUORUM 1.8.** Decision 0017
+Accepted 2026-08-07 after the required pre-fix reproduction and post-fix
+acceptance matrix passed; final CODEX disposition recorded in
+`QUORUM_1_8_REVIEW_FINDINGS.md` Appendix C.
 Target: QUORUM 1.8 (one change, one commit, revertible alone)
 Problem record: `docs/QUORUM_STATIONARY_BASELINE_POISONING.md`
-Decision record: `docs/decisions/0017` (Proposed)
+Decision record: `docs/decisions/0017` (Accepted)
 Operator ruling 2026-08-06: the problem is accepted and **must be fixed
 before CTO3 Station Stop v1** (plan step 3), which parks locomotives at
 mapped positions by design, four stations a lap.
@@ -28,23 +31,20 @@ loses navigation on restart. The evening incident (`NAV_NO_QUORUM` at MM
 100 after a multi-minute stop, scores tied 6–6, margin 0) matches, though
 the park-position wasn't recorded, so §5's test remains the proof.
 
-The failure has a second act the problem record did not spell out. Parked
-*on* a magnet (take N, raw high), an event opens on arrival and cannot
-close — until the migrating thresholds catch up with the parked reading,
-at which point it closes with a tens-of-seconds duration. Departure is
-worse than a single phantom. The swing back to true baseline crosses the
-recentred window's *far* threshold and opens a phantom **S** event; and
-because `EVENT_EXIT_HOLD_MS` is only 20 ms, each real **N** magnet the
-locomotive then passes lifts raw into the recentred exit band for
-~150 ms — long enough to *close* the open phantom and queue it — after
-which the field's return re-opens the next one. Until the median washes
-out (~30–60 s of driving), the navigator is fed a stream in which **every
-real N magnet is delivered as an S reading and every real S magnet is
-swallowed invisibly** below the window. Half-inverted, hole-riddled
-evidence plus odometer slip is unscorable: the observed terminal snapshot
-— scores `[6,4,5,4,4,6]`, everything about half right, no leader — is
-precisely what the QUORUM vector looks like against it. This mechanism
-doesn't just permit the observed `NO_QUORUM`; it predicts it specifically.
+The failure has a second act. Parked *on* a magnet, an event opens on
+arrival and cannot close until the migrating thresholds catch up with the
+parked reading, at which point it closes with a tens-of-seconds duration.
+Departure then drives the raw signal back through a detection window that
+has been recentered on the magnet. The field falsified this draft's
+specific prediction that every real N would be delivered as S and every S
+would be swallowed: post-departure polarity remained roughly even. What
+degraded was event rate -- 0.91/s against a healthy 0.39/s, a 2.3x flood
+of spurious and misjudged events. The conservation gate rejected 33
+phantoms, but enough survived to cause three adoptions and 45 markers of
+odometer error. The durable claim is therefore systematic corruption of
+the post-departure event stream, not universal polarity inversion. QUORUM
+can absorb isolated bad observations; it cannot absorb a displaced
+reference frame generating coherently bad evidence.
 
 One more property matters operationally: **the evidence self-erases.**
 `NO_QUORUM` fires after ~15 corrupted markers (~18 s), but the median

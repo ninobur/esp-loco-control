@@ -7,6 +7,12 @@ gate approved as proportionate; ratification and implementation conditional
 on the pre-fix reproduction test.** Neither found a flaw in the mechanism;
 all requested changes are wording, documentation, and test-coverage.
 
+Final disposition, 2026-08-08: **condition satisfied; PASS.** Decision 0017
+is accepted without qualification for the baseline-motion-gate change.
+Dedicated Stage D regression and Toby validation remain outstanding
+operational work; neither reopens the accepted design decision. See
+Appendix C.
+
 Milestone noted by Sam: the connector now fetches repository files
 directly — reviews no longer depend on pasted copies.
 
@@ -257,3 +263,33 @@ directly — reviews no longer depend on pasted copies.
 > > acceptance testing.
 > The proposed fix is proportionate, reversible, and should land before
 > Station Stop v1.
+
+---
+
+## Appendix C — CODEX final disposition after field validation
+
+Received 2026-08-08 after review of the Stage A reproduction, Stage C
+acceptance verdict, implemented guard, priming invariant, saturation tests,
+fringe-field row, and above-dead-zone residual.
+
+> The condition is met. I withdraw the conditional qualification and endorse
+> Decision 0017 as Accepted. QUORUM 1.8 is field-validated for
+> stationary-baseline poisoning.
+>
+> The evidence is unusually strong:
+>
+> - 1.7 reproduced the predicted median crossover.
+> - 1.8 held the baseline across clear, fringe, north, and south dwells.
+> - Long-event saturation behaved correctly.
+> - The known PWM-above-dead-zone residual reproduced.
+> - Motion restored the poisoned reference.
+> - The falsified polarity-stream prediction was reported honestly.
+>
+> Stage D does not block acceptance of Decision 0017 -- the targeted defect
+> and compatibility requirements passed -- but it remains required to close
+> the complete 1.8 regression program. Toby's upgrade is a separate
+> fleet-readiness requirement.
+>
+> Final disposition: **PASS. Condition satisfied. Decision 0017 accepted
+> without qualification for the baseline-motion-gate change. Dedicated Stage
+> D regression and Toby validation remain outstanding operational work.**

@@ -72,7 +72,7 @@ the flaw would fire by design, four stations a lap.
 
 ## References
 
-- `docs/QUORUM_BASELINE_MOTION_GATE_SPEC.md` (proposal under review)
+- `docs/QUORUM_BASELINE_MOTION_GATE_SPEC.md` (implemented and field-validated)
 - `docs/QUORUM_STATIONARY_BASELINE_POISONING.md` (problem record, evidence)
 - `field-records/logs/20260806_quorum17_otto_run.log`
 - Decisions 0004, 0005, 0006, 0007
