@@ -1,8 +1,22 @@
 /*
  * ============================================================================
- * QUORUM_1_8  —  Ninobur Garden Railway single-locomotive navigation
+ * QUORUM_1_9  —  Ninobur Garden Railway single-locomotive navigation
  * ============================================================================
  * Successor to SOLONAV (v2.22 final). QUORUM navigator per spec R21.
+ *
+ * ---------------------------------------------------------------------------
+ * v1.9 — CTO3 STATION STOP v1: MISSION STATION FILTER (spec §12 step 3)
+ * ---------------------------------------------------------------------------
+ * The complete R21 station phase chain (ARMED -> APPROACH/ZONE_HOLD ->
+ * FINAL_APPROACH -> FINAL_TARGET -> ZERO_RAMP -> DWELL -> DEPART ->
+ * RESET/DEPARTED) already existed and is UNCHANGED. The one missing v1
+ * capability was destination selection: the arming loop considered all four
+ * stations. A profile may now define MISSION_ONLY_STATION ("Arches" in
+ * Otto's) and the arming loop skips every other station; skipped stations
+ * fall through to the existing keep-cruise branch. No phase logic, PWM
+ * ownership, timeout, exit, MQTT topic, or navigation behaviour changed.
+ * Toby's profile has no define — his build arms all stations, as before.
+ * One added line in the arming loop; one inline predicate; nothing else.
  *
  * ---------------------------------------------------------------------------
  * v1.8 — BASELINE ADAPTS ONLY IN MOTION (decision 0017; Sam+CODEX reviewed)
@@ -271,7 +285,7 @@
 #include <Adafruit_INA219.h>
 #include "LocoConfig.h"
 
-#define SKETCH_NAME "QUORUM_1_8"
+#define SKETCH_NAME "QUORUM_1_9"
 
 // Broker lives here, not in LocoConfig.h — same as the previous lineage.
 #define MQTT_BROKER "192.168.68.142"
@@ -434,6 +448,18 @@ static const StationDefinition STATIONS[] = {
   {"Bamboo",  157,            60,   45,     1}    // was +2, stopped past 161, wanted past 159
 };
 static const uint8_t STATION_COUNT = sizeof(STATIONS)/sizeof(STATIONS[0]);
+
+// CTO3 Station Stop v1 (docs/CTO3/station-stop-v1): a profile may restrict
+// arming to one named station with MISSION_ONLY_STATION. This is the
+// smallest mission-layer mechanism around the station machine — destination
+// selection, not phase logic. Keyed on the station NAME so a table reorder
+// cannot silently change the destination. Without the define every station
+// arms, exactly as before (Toby's build).
+#ifdef MISSION_ONLY_STATION
+static inline bool stationEnabled(uint8_t i){ return strcmp(STATIONS[i].name, MISSION_ONLY_STATION)==0; }
+#else
+static inline bool stationEnabled(uint8_t i){ (void)i; return true; }
+#endif
 
 static inline uint8_t routeMod(int32_t v){ v%=DNA_N; if(v<0) v+=DNA_N; return (uint8_t)v; }
 static inline uint8_t dnaAt(uint8_t mm){ return pgm_read_byte(&NGR_DNA1[mm%DNA_N]); }
@@ -1740,6 +1766,7 @@ static void serviceStations(){
     // (The confidence tally is gone with QUORUM; the nav state — NORMAL vs
     // EVALUATING — is the arming-time evidence quality now.)
     for(uint8_t i=0;i<STATION_COUNT;i++){
+      if(!stationEnabled(i)) continue;   // Station Stop v1: mission filter
       int16_t o=offsetToCentre(navMm,navDir,STATIONS[i].centerMm);
       if(o<=APPROACH_START && o>APPROACH_START-3){
         stIndex=(int8_t)i; stationSetPhase(ST_APPROACH);

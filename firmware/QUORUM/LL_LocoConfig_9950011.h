@@ -72,3 +72,13 @@
 #define HALL_DEADBAND_COUNTS       25
 #define HALL_ENTRY_MARGIN_COUNTS   13
 #define HALL_MIN_PEAK_DELTA        35
+
+// ---------------------------------------------------------------------------
+// CTO3 Station Stop v1 (docs/CTO3/station-stop-v1/README.md, CTO3_SPEC §12
+// step 3): Otto only, Arches only. With this define, the station arming loop
+// considers ONLY the named station; all others are passed at section cruise
+// with no state change. Remove the define to restore all-stations arming.
+// Toby's profile deliberately has no equivalent — his behaviour is unchanged
+// and the v1 restriction cannot activate for him.
+// ---------------------------------------------------------------------------
+#define MISSION_ONLY_STATION "Arches"
