@@ -1,42 +1,35 @@
 # NGR console — authority alignment and the AUTO handoff
 
-**Draft 2** — restructured from eight incremental drafts; rulings
-consolidated, analysis moved behind them. Draft 1 history is in git
-(`2325144`…`a180266`).
+**Draft 3** — incorporates the 2026-08-08 Draft 2 review
+(`NGR_DASHBOARD_AUTHORITY_ALIGNMENT_DRAFT2_REVIEW_20260808.md`): F1/F2
+ruled by the operator, F3/F4 edited in, M1–M4 adopted, C1/C2 closed.
+Review revalidated against HEAD (`ede7a08`, QUORUM 1.9) before adoption —
+all findings survive; line references shifted only. Draft history in git.
 
-Status: **proposal for review (CODEX, Sam). No code written.**
+Status: **ready for implementation review (CODEX, Sam). No code written.**
 Date: 2026-08-08
 Author: Claude Code
-Model of record: `docs/CTO3/AUTHORITY_MODEL.md`, decision 0013
-Findings: `docs/NGR_DASHBOARD_FINDINGS_20260807.md`
-Review comments: `docs/NGR_DASHBOARD_AUTHORITY_ALIGNMENT_DRAFT2_REVIEW_20260808.md`
-— comments only; findings remain pending until operator rulings and spec edits
+Controlling: `docs/CTO3/AUTHORITY_MODEL.md`, decision 0013, operator
+rulings (§3)
+Findings answered: `docs/NGR_DASHBOARD_FINDINGS_20260807.md`
 Live console: v1.10.9 on ngr-pi (`/home/david/ngr_app.py`)
 
 An earlier attempt was written as code without being proposed first and
-was reverted in full (`8cd1802`). Its embedded design decisions were the
-operator's to make, and several were wrong against the authority model.
-This document proposes; it does not implement.
+was reverted in full (`8cd1802`). This document proposes; it does not
+implement.
 
 ---
 
 ## §0 Terminology
-
-Two different things have been called "direction," including in earlier
-drafts of this document.
 
 | Term | Values | Meaning | Owned by |
 |---|---|---|---|
 | **ORIENTATION** | CW / CCW | which way round the loop | operator / dispatcher — part of the *orders* |
 | **DIRECTION** | forward / reverse / stopped | linear motion | operator in MANUAL; see §5 Q4b |
 
-§7 of the CTO3 spec restated in this vocabulary:
-`travel_orientation = session_orientation XOR motor_reverse`.
-
-Wire topics keep their present names (`state/session_direction`,
-`cmd/direction`) — renaming the protocol is out of scope. Documentation
-and UI language adopt the ruling. "Stopped" maps onto the firmware's
-existing `DIRECTION_NEUTRAL`.
+CTO3 §7 restated: `travel_orientation = session_orientation XOR
+motor_reverse`. Wire topics keep their present names; documentation and UI
+adopt the ruling. "Stopped" maps onto the firmware's `DIRECTION_NEUTRAL`.
 
 ---
 
@@ -44,75 +37,68 @@ existing `DIRECTION_NEUTRAL`.
 
 Pressing AUTO on the locomotive page appears to do nothing but flash the
 display. The locomotive is innocent: it enlists every time. The console is
-structurally incapable of showing it, for two independent reasons, and
+structurally incapable of showing it (two independent faults, §4.2), and
 separately offers no way to begin automatic operations from that page —
-because beginning them is a dispatcher function and belongs there. Nothing
-in this is a firmware defect.
+because beginning them is a dispatcher function and belongs there.
 
 ---
 
 ## §2 Operating model (fidelity check)
 
-Per `AUTHORITY_MODEL.md`, stated back before proposing anything.
+Per `AUTHORITY_MODEL.md`, stated back before proposing.
 
-**Manual is the operator's, completely.** The locomotive and dispatcher
-have essentially no say. The only constraints are simulation artifices
-(ramping), mechanical reality (low-voltage cutoff), and a very few safety
-limits. **Manual runs without telemetry** — navigation, position and peer
-awareness are conveniences, never preconditions. Any "computer says no" in
+**Manual is the operator's, completely.** Constraints are simulation
+artifices (ramping), mechanical reality (low-voltage cutoff), and a very
+few safety limits. **Manual runs without telemetry** — navigation and
+position are conveniences, never preconditions. Any "computer says no" in
 the manual path is a defect.
 
-**The dispatcher starts and stops automatic operations, not locomotives.**
-GO means *"begin doing what you need to do"* — not "move forward." STOP
-can mean pause. Either may address one locomotive or both. E-Stop is for
-emergencies. The dispatcher also *initiates* sub-routines (Circuit
-Express) without running them; the locomotives renegotiate roles among
-themselves.
+**The dispatcher starts and stops automatic operations, not
+locomotives.** BEGIN means *"begin doing what you need to do"* — not
+"move forward." STOP can mean pause. E-Stop is for emergencies. The
+dispatcher *initiates* sub-routines without running them.
 
 **One operator at a time.** Enlistment is the locomotive operator's
-voluntary act, like joining the service; like the service, only the
-dispatcher can discharge. End Automatic Operations lives on the dispatcher
-console, and an enlisted locomotive accepts no commands from the loco
-page.
+voluntary act; only the dispatcher can discharge. An enlisted locomotive
+accepts no commands from the loco page.
 
 **Enrolled ≠ running.** `cmd/auto` crosses into the AUTO chamber and
 authorizes nothing to move. The dispatcher's command, after its gates,
 permits motion.
 
-**In AUTO the locomotives are the intelligence** — they assess position,
-act on it, follow rules and routines, and communicate with each other. The
-dispatcher is authority, not brains.
+**In AUTO the locomotives are the intelligence.** The dispatcher is
+authority, not brains.
 
-**Visibility is not a chamber privilege.** Every powered locomotive
-publishes self-truth in either chamber. A manual locomotive must remain
+**Visibility is not a chamber privilege.** A manual locomotive must remain
 visible to automatic ones.
 
 **The four doors:** E-STOP, enlistment, release/END, dispatcher STOP.
 
-**Governing principle for this work** (operator, 2026-08-07):
-
-> "Starting auto operations must not be done casually, since a manual
-> operator has no protocols and few rules but auto operations do."
+**Governing principle** (operator, 2026-08-07): *"Starting auto operations
+must not be done casually, since a manual operator has no protocols and
+few rules but auto operations do."*
 
 ---
 
 ## §3 Operator rulings
 
-All dated 2026-08-07 unless noted. These are settled; §5 holds what is
-not.
+R1–R10 dated 2026-08-07; R11–R12 dated 2026-08-08 (review findings F1,
+F2).
 
 | # | Ruling |
 |---|---|
 | **R1** | **GO belongs to the dispatcher console. Period.** No launch control on the locomotive page. |
-| **R2** | **Rename to BEGIN AUTO OPERATIONS.** GO means *"assess the situation — where are you, is there a loco in front, are you at a station already"* — not "step on the gas." STOP becomes END/PAUSE AUTO OPERATIONS. |
-| **R3** | **Iteration 1 scope:** BEGIN AUTO OPERATIONS means *"perform the action required for your starting position within the orders you have."* No general assessment engine. |
-| **R4** | **E-STOP stays on the locomotive page, operable in MANUAL only**, inert once enlisted. Governs the *console control*, not the firmware door — see §4.4. |
-| **R5** | **A train must be stopped to initiate auto operations.** The autopilot conception — engage while under way — is retired. It was never exercised. |
-| **R6** | **A moving locomotive's enlistment is refused, with a notification.** Not accepted-and-stopped. |
+| **R2** | **Rename to BEGIN AUTO OPERATIONS** — "assess the situation," not "step on the gas." Labels for pause/end per CODEX: distinct **PAUSE AUTO OPERATIONS** (dispatcher STOP: clears running, keeps enlistment) and **END AUTO OPERATIONS — RETURN TO MANUAL** (release: clears both). The two outcomes are materially different and must not share a label. |
+| **R3** | **Iteration 1 scope:** BEGIN means *"perform the action required for your starting position within the orders you have."* No general assessment engine. |
+| **R4** | **E-STOP stays on the locomotive page, operable in MANUAL only**, inert once enlisted. Console control, not the firmware door (§4.4). |
+| **R5** | **A train must be stopped to initiate auto operations.** The autopilot conception is retired. |
+| **R6** | **A moving locomotive's enlistment is refused, with a notification** — never accepted-and-stopped. |
 | **R7** | **Manual controls grey out on enlistment** — throttle, DIRECTION, and E-STOP, no carve-out. |
-| **R8** | **The absence of change is the signal.** Enlisted = AUTO lights, controls grey. Refused = nothing changes. The console must therefore render enlistment from the locomotive's reported state, **never optimistically on button press.** |
-| **R9** | **ORIENTATION and LOCATION are required at and prior to enlistment.** Enlistment refuses without them. Order is fixed: orientation → location → enlist. |
-| **R10** | **Orientation and location are retained on release.** A released locomotive still knows where it is and may be re-enlisted without repeating pre-flight. |
+| **R8** | **The absence of change is the signal.** Enlisted = AUTO lights, controls grey; refused = nothing changes. The console renders enlistment from reported state, **never optimistically on button press.** |
+| **R9** | **ORIENTATION and LOCATION are required at and prior to enlistment.** Order fixed: orientation → location → enlist. |
+| **R10** | **Orientation and location are retained on release.** *(Confirmed already firmware behaviour — review C1: `T_CMD_RELEASE` touches neither `sessionDir` nor `navMm`. Confirmation, not new work.)* |
+| **R11** | **(F1) The dispatcher E-STOP becomes a toggle.** It can clear what it sets, and the dispatcher console renders E-stopped state. The surface that stopped an enlisted locomotive can restart it. |
+| **R12** | **(F2) The motion refusal lives in firmware.** QUORUM's `cmd/auto` handler refuses enlistment while energised, with a published reason — whatever the command source. The console's R6 behaviour is presentation of that refusal, not the enforcement of it. |
 
 ---
 
@@ -120,270 +106,236 @@ not.
 
 ### 4.1 The two flags
 
-`state/auto` and the alert's `"auto"` are **different firmware variables**:
-
 | Published | Variable | Meaning |
 |---|---|---|
-| `state/auto` ([QUORUM.ino:2353]) | `autoEnrolled` | enlisted |
-| alert `"auto"` ([QUORUM.ino:2196]) | `autoRunning` | automatic operations under way |
+| `state/auto` | `autoEnrolled` | enlisted |
+| alert `"auto"` | `autoRunning` | automatic operations under way |
 
-The console has **one** `auto` flag fed from **both**, and the alert wins.
+The console has **one** `auto` flag fed from both, and the alert wins.
 
 ### 4.2 Why AUTO looks dead — two independent faults
 
-1. The AUTO control is an `<a href>`; clicking navigates and redirects
-   back. **The flash is a full page reload.**
+1. The AUTO control navigates and redirects — the flash is a page reload.
 2. `cmd/auto 1` publishes; the locomotive genuinely enlists.
-3. It publishes `state/auto = 1` **retained** (`pub(t,b,true)`,
-   [QUORUM.ino:2260]). The console discards all retained messages. **Fault
-   A.**
-4. Independently, the console writes `st["auto"]` from the 1 Hz alert
-   ([v1.10.9:545]) — i.e. from `autoRunning`. Within a second it
-   overwrites enlistment back to `0` and marks it fresh. **Fault B.**
+3. `state/auto = 1` is published **retained**; the console discards all
+   retained messages. **Fault A.**
+4. Independently, the console writes `st["auto"]` from the 1 Hz alert —
+   `autoRunning` — which overwrites enlistment back to `0` within a second
+   and marks it fresh. **Fault B, dominant.**
 5. The console displays MANUAL for an enlisted locomotive, permanently.
 
-**Fault B is dominant.** Repairing the retained drop alone would have
-changed nothing visible. This is exactly the enrolled-vs-running
-conflation `AUTHORITY_MODEL.md` warns against: the model has two states,
-the console has one.
+Field evidence 2026-08-07: `state/auto = 1` on the broker while the live
+alert stream showed `"auto":0` all day. Enlistment works; automatic
+operations have never been exercised under QUORUM.
 
-### 4.3 Field evidence, 2026-08-07
+### 4.3 E-STOP: console vs firmware (review C2 — closed)
 
-| Observation | Source | Meaning |
+R4 needs no constitutional change. Firmware door 1 stands (E-STOP acts in
+either chamber; `T_CMD_ESTOP_ALL` broadcast is genuinely subscribed, so
+withdrawing the loco-page control does not orphan the door). The loco
+page's E-STOP is simply the last item in R7's withdrawal. Recovery of an
+enlisted, E-stopped locomotive is R11's dispatcher toggle — the gap the
+review's F1 identified: `pub_dispatcher()` could only assert `"1"`, so
+the dispatcher could stop what it could not restart.
+
+### 4.4 R9 and R7 are coupled
+
+R7 greys the loco page's setup controls; the dispatcher console has none.
+Without R9, a locomotive enlisted without pre-flight would be permanently
+stuck. R9 closes the trap R7 opens. Firmware position (console
+deliberately stricter, no firmware change needed): `cmd/session_direction`
+refuses only while running; `cmd/start_interval` has no AUTO guard.
+
+### 4.5 Why R10 is safe
+
+Navigation observes in both chambers — a locomotive *driven* manually
+carries its position with it; QUORUM refuses BEGIN on NO_QUORUM, so a
+genuinely lost locomotive cannot be handed over. The residual is manual
+*handling* (`QUORUM_HAND_REPOSITION_HAZARD.md`); mitigation is the
+operational rule: re-declare after handling. The affirmative case is
+safety, not convenience: **the transponder must stay on** — clearing setup
+on release would blind AUTO locomotives to the one train whose behaviour
+they cannot predict (CTO2 failure W3).
+
+### 4.6 Defects
+
+| # | Defect | Proposal |
 |---|---|---|
-| `state/auto = 1` | broker | enlistment **succeeded** |
-| alert `"auto":0` all day, all three captures, 11:41–13:03 | live 1 Hz stream | **never once in AUTO running** |
+| **D-a** | Dispatcher **BOTH** GO/STOP publishes suffix-less `ngr/dispatcher/cmd/go`, which no locomotive subscribes to. *(Review M1: the broadcast convention exists for exactly one command — `estop`. The suffix-less topic is an ESP-NOW-era fossil: the Dispatcher ESP32 used to subscribe to it and fan out over ESP-NOW to BROADCAST_ID; when locomotives went direct to MQTT the fan-out left with the translator. Flask is now the only place it can live — P2 is restoration, not workaround. A future firmware decision to subscribe broadcast go/stop as estop does should be made deliberately.)* | P2 |
+| **D-b** | GO refusals published on `state/station` are discarded by the console; a refused GO is indistinguishable from a dead button. **Eight** gates, not seven — `ALREADY_RUNNING` (review M3). | P7 |
+| **D-c** | The loco page offers manual controls to an enlisted locomotive — violating one-operator-at-a-time. | P5 |
+| **D-d** | `cmd/auto` has no motion guard and does not zero the throttle on enrollment; a rolling locomotive can be enlisted into a state where neither chamber is actively in charge. | **P11** (firmware, per R12) |
+| **D-e** | *(Review F1)* The dispatcher E-STOP is a one-way assert; once R7 greys the loco page there is no path to clear an E-stopped enlisted locomotive from the surface that stopped it. | **P12** (per R11) |
+| **D-f** | *(Review F3)* A naive retained seed shows ENLISTED for a powered-off locomotive — retained state outlives the locomotive. Over-reports authority: the worse direction. | P8 as revised |
 
-Automatic operations have never been exercised under QUORUM.
-
-### 4.4 E-STOP: console vs firmware
-
-R4 requires **no constitutional change**, and none should be made.
-
-- **Firmware:** decision 0013 door 1 stands — E-STOP acts in either
-  chamber. It must, or the dispatcher's E-STOP could not reach an enlisted
-  locomotive.
-- **Console:** the loco page's E-STOP is withdrawn on enlistment along
-  with every other manual control, because an enlisted locomotive is not
-  the loco operator's to command.
-
-E-STOP is the last item in the withdrawal, not an exception to it. An
-enlisted locomotive is stopped from the dispatcher console, which is
-another page of the same Flask app.
-
-### 4.5 R9 and R7 are coupled
-
-R9 is not optional once R7 is adopted. R7 greys out the loco page's setup
-controls, and the dispatcher console has none. Without R9, a locomotive
-enlisted without pre-flight would be **permanently stuck**: operator
-locked out of setup, dispatcher unable to supply it, BEGIN AUTO OPERATIONS
-refusing forever, recoverable only by release. **R9 closes a trap R7 would
-otherwise open.**
-
-Firmware position (the console will be deliberately stricter, and no
-firmware change is needed): `cmd/session_direction` refuses only while
-`autoRunning`, so orientation stays settable while merely enlisted;
-`cmd/start_interval` has no AUTO guard at all. The console simply stops
-offering the controls and refuses enlistment without them.
-
-### 4.6 Why R10 is safe
-
-The objection to retention was that stale declared position is
-*confidently wrong* position — the failure that killed CTO2, where correct
-traffic mathematics consumed a leader position asserted at certainty 1.000
-after a handful of bad reads. *"CTO cannot be safer than the position
-reports it consumes."*
-
-That objection was **overstated**:
-
-- **Navigation observes in both chambers.** QUORUM advances the odometer
-  on every accepted marker regardless of who holds the throttle. A
-  locomotive *driven* manually carries its position with it.
-- **QUORUM refuses to launch when lost.** NO_QUORUM is a BEGIN AUTO
-  OPERATIONS gate; a genuinely lost locomotive cannot be handed over.
-
-The residual is manual **handling**, not manual **driving** — hand-pushing,
-lifting, rolling to position. That is
-`QUORUM_HAND_REPOSITION_HAZARD.md`, mitigated by the existing operational
-rule: re-declare after handling.
-
-And the affirmative case, which is a safety argument rather than a
-convenience one: **the transponder must stay on.** A manual locomotive
-running alongside automatic ones must remain visible to them, and
-visibility is worthless without position. Clearing setup on release would
-blind the AUTO locomotives to the one train whose behaviour they cannot
-predict — CTO2 failure W3 reintroduced deliberately.
-
-### 4.7 Additional defects found
-
-| | Defect |
-|---|---|
-| **D-a** | Dispatcher **BOTH** GO/STOP publishes `ngr/dispatcher/cmd/go` with no locomotive suffix. QUORUM subscribes only to `ngr/dispatcher/cmd/go/<id>` ([QUORUM.ino:1957]). **Dead buttons, silently.** |
-| **D-b** | GO refusals are published on `state/station` and discarded by the console. A refused GO is indistinguishable from a broken button. |
-| **D-c** | The loco page offers manual throttle and DIRECTION to an enlisted locomotive — violating one-operator-at-a-time. |
-| **D-d** | `cmd/auto` has **no motion guard and does not zero the throttle on enrollment** ([QUORUM.ino:2535]). Disenrollment zeroes PWM; enrollment does not. Enlist a rolling locomotive and it keeps rolling: `autoEnrolled` true, `autoRunning` false, so no AUTO code commands PWM while MANUAL has just been relinquished. **Neither chamber actively in charge while the train moves.** Firmware scope; see §6. |
+Scope note *(review M2)*: **Hans (2095111) is out of scope for this
+iteration.** He is absent from the console's dispatcher release and
+per-loco go/stop sets; that pre-existing gap is recorded here, not
+repaired. Say so if he should be in scope.
 
 ---
 
-## §5 Open — operator ruling still required
-
-**Q3 — Refusal wording.** QUORUM's raw strings
-(`NO_QUORUM_DECLARE_POSITION`) or plain English ("position lost —
-re-declare the start interval")? Raw cannot drift out of sync with the
-firmware; translated is easier to read at speed. **Cosmetic; will default
-to raw if not ruled.**
+## §5 Open — non-blocking
 
 **Q4b — Does the locomotive take over DIRECTION on enlistment?** Operator
-thinking, explicitly tentative:
+thinking (tentative): throttle zero at enlistment; DIRECTION passes to the
+locomotive. CODEX preference: enlistment requires zero throttle and
+transfers DIRECTION authority without immediately changing direction;
+BEGIN then selects direction from mission + orientation. Firmware scope —
+belongs with Station Stop v1 follow-up; its eventual ruling needs a
+decision record. Related: the GO handler's silent REVERSE→FORWARD flip is
+superseded by whatever is decided here.
 
-> "I think that the throttle should be at zero. Direction should be taken
-> over by the locomotive once Manual control is relinquished. If you think
-> about it, the throttle position beforehand is immaterial as long as the
-> loco is stopped. I recall that this decision has been made differently
-> in the past, this is my thoughts on it tonight."
-
-Consistent with §0: ORIENTATION is *orders* and stays with the
-operator/dispatcher; DIRECTION is *means* and would pass to the
-locomotive. This retires the forward-only constraint at its root — it
-existed because locomotives had to move to discover position, which is no
-longer true.
-
-Related, and superseded if Q4b is adopted: the GO handler refuses a
-NEUTRAL locomotive with a stated reason but **silently flips REVERSE to
-FORWARD**, which under §7 changes its map direction.
-
-**Firmware scope, not console. Does not block this spec.**
+**Q3 — Refusal wording: RESOLVED to raw strings** unless the operator
+overrules. The two reviews disagreed (CODEX: plain English at the surface
++ raw in the packet log; Draft-2 review: raw only, translation deferred).
+Draft 3 adopts **raw** on the strength of M3's evidence: the translated
+list drifted from the firmware within a day of being written, before any
+code consumed it. A translation layer may be revisited once the strings
+are stable.
 
 ---
 
-## §6 Proposed console changes
+## §6 Proposals
 
-**P1 — GO and STOP stay on the dispatcher console.** No launch control is
-added to the locomotive page. *(R1)*
+Console unless marked. P11 is firmware (R12).
 
-**P2 — Fix BOTH.** Fan `go`/`stop` out to one publish per locomotive on
-the topic QUORUM subscribes to. *(D-a)*
+**P1 — GO and STOP stay on the dispatcher console.** No launch control on
+the locomotive page. *(R1)*
 
-**P3 — Rename** the dispatcher controls to BEGIN AUTO OPERATIONS and
-END/PAUSE AUTO OPERATIONS. Labels only; topics unchanged. *(R2)*
+**P2 — Fix BOTH by Flask fan-out** to per-locomotive topics. *(D-a, M1)*
 
-**P4 — Track ENLISTED and RUNNING separately.** *The primary fix.*
+**P3 — Three distinct dispatcher labels** *(R2, CODEX)*:
+`BEGIN AUTO OPERATIONS` · `PAUSE AUTO OPERATIONS` (STOP: keeps
+enlistment) · `END AUTO OPERATIONS — RETURN TO MANUAL` (release: clears
+both). Labels only; topics unchanged.
 
-| Console state | Source | Meaning |
-|---|---|---|
-| **ENLISTED** | `state/auto` (`autoEnrolled`) | dispatcher holds it; manual controls withdraw |
-| **RUNNING** | alert `"auto"` (`autoRunning`) | automatic operations under way |
-
-The alert must never write enlistment state. *(§4.1, §4.2)*
+**P4 — Track ENLISTED and RUNNING separately.** ENLISTED from
+`state/auto`; RUNNING from the alert. **General rule (M4): the alert
+stream is never the source of record for any authority state — it may
+report `autoRunning` only.** Without the rule, the next key added to the
+alert JSON recreates Fault B exactly. *(Faults A/B)*
 
 **P5 — Withdraw all manual controls on enlistment** — throttle,
-DIRECTION, E-STOP. Rendered from `state/auto`, never optimistically.
+DIRECTION, E-STOP — rendered from `state/auto`, never optimistically.
 *(R7, R8, D-c)*
 
-**P6 — Refuse enlistment without pre-flight**, with a stated reason.
-Sequence: orientation → location → enlist. *(R9)*
+**P6 — Refuse enlistment without pre-flight**, stated reason, sequence
+orientation → location → enlist. *(R9)* Console-side; presentation of
+firmware refusals from P11 where they exist.
 
-**P7 — Surface the locomotive's response on the dispatcher console**, next
-to the button pressed. Subscribe to `state/station` (already arriving
-under `state/#` and discarded). *(D-b)*
+**P7 — Surface the locomotive's `state/station` responses** on the
+dispatcher console, beside the button pressed; raw reason strings (Q3).
+*(D-b)*
 
-**P8 — Authority state must survive a reconnect.** See §7.
+**P8 — Authority state survives reconnect, gated on `online == 1`**
+*(D-f, review F3 — replaces Draft 2's option (a)).* The firmware already
+publishes the governing contract: retained state is interpretable only
+while the retained `online` flag (last-will-driven) reads 1. `online` is a
+**sibling** of `state/`, subscribed separately, so arrival order is not
+guaranteed: hold any retained authority seed **provisional**, promote it
+when `online = 1` arrives, discard it on `online = 0`. Result is
+blank-until-proven — never invented, in either direction. Per-connection
+seed state; retained values carry no freshness timestamp; live messages
+always supersede the seed *(CODEX P8 notes, adopted)*. For the record:
+option (b) "ask instead of remember" is nearer than Draft 2 claimed —
+`publishAllStatesRetained()` already republishes everything on each
+connect; only a `cmd/report` trigger is missing. Not this iteration.
 
-**P9 — Enlistment stays on the loco page; release does not.** Release is
-the dispatcher's act. *(model, §2)*
+**P9 — Enlistment stays on the loco page; release does not.** *(model §2)*
 
-**P10 — Never gate manual on telemetry.** Standing constraint, not a
-change: no manual control is disabled because navigation is unset,
-telemetry stale, or position unknown.
+**P10 — Never gate manual on telemetry.** Standing constraint restated.
 
----
+**P11 (FIRMWARE, R12) — Motion guard on enlistment.** `cmd/auto 1` is
+refused while `motorIsMoving()`, publishing a stationPublish refusal
+(`ENLIST_REFUSED` / `WAIT_FOR_STOP`) like the existing gates. Enforced by
+the authority's owner, whatever the command source. Version-bumped
+firmware change, sequenced with Station Stop v1's 1.9 line; the console's
+R6 behaviour becomes presentation of this refusal. *(D-d, F4: D-d now has
+an owner and a P-number.)*
 
-## §7 The retained-state problem
-
-*(Explaining P8 — the operator asked for this in plain terms.)*
-
-MQTT lets a publisher mark a message **retained**: the broker keeps the
-last one and gives it to anyone connecting later. It is how a locomotive's
-current state survives a console restart.
-
-In July, stale retained messages from dead firmware were displayed as
-current — the ghost-tile failure. The v1.10.0 fix was blunt and effective:
-**ignore every retained message.**
-
-The side effect: on reconnect the console discards the locomotive's *real
-current* state along with the ghosts, and displays a built-in default
-instead. The default for `auto` is `0`. It is not showing stale data; it
-is showing **invented** data. The same mechanism caused the v1.10.9 Toby
-bug, where a default of NEUTRAL was presented as Toby's reported
-direction.
-
-Options:
-
-- **(a) One-shot authority seed.** On each connect, accept the *first*
-  retained value for `auto`, `estop`, `direction`, `session_direction`,
-  `start_interval`; then resume ignoring. Store without marking fresh.
-- **(b) Ask instead of remember.** Query current state on connect. Cleaner;
-  requires firmware support that does not exist.
-- **(c) Show nothing rather than a default.** "—" until the locomotive
-  speaks. Never wrong; blank about authority until the next change.
-
-**Recommendation: (a)**, narrowly scoped, with (c)'s discipline everywhere
-else. Being wrong about who holds a locomotive is worse than being briefly
-blank, and wrong in the dangerous direction.
-
-**Necessary but not sufficient:** without P4, fixing this changes nothing
-visible (§4.2).
+**P12 (R11) — Dispatcher E-STOP becomes a toggle.** `pub_dispatcher()`
+gains a payload; the dispatcher console renders E-stopped state per
+locomotive and can clear it. The loco-page E-STOP toggle remains, greyed
+per R7 when enlisted. *(D-e)*
 
 ---
 
-## §8 Primary objective
+## §7 Primary objective
 
-> "My complaint today about auto mode is that it is a non functional
-> button in terms of locomotive operation. It makes the dashboard flash on
-> my phone. Nothing [else]. It should at least hand off operation of the
-> locomotive to the dispatcher. This function is the predicate for
-> starting auto operations, our next goal."
+> "It should at least hand off operation of the locomotive to the
+> dispatcher. This function is the predicate for starting auto
+> operations, our next goal."
 
-The deliverable is narrow and testable: **pressing AUTO must visibly hand
-the locomotive to the dispatcher.** Manual controls withdraw, the page
-states who holds it, and the state survives a reload and a reconnect.
-
-Achievable **without** automatic operations working at all. A locomotive
-that enlists, displays as enlisted, and correctly refuses everything else
-is a complete and useful result — the handoff is the predicate, not the
-operation.
+Pressing AUTO must visibly hand the locomotive to the dispatcher: manual
+controls withdraw, the page states who holds it, and the state survives
+reload, reconnect, and a powered-off locomotive. Achievable without
+automatic operations working at all.
 
 ---
 
-## §9 Explicitly not proposed
+## §8 Explicitly not proposed
 
 - No launch or release control on the locomotive page.
-- No client-side pre-judging of BEGIN AUTO OPERATIONS conditions. QUORUM
-  owns those gates and names its own refusals; a console that second-
-  guessed them would be a second eligibility gate, which the layer-boundary
-  rule forbids.
-- **No firmware change of any kind.** D-d and Q4b are recorded here but
-  belong to Station Stop v1.
-- No change to the E-STOP firmware door (§4.4).
-- No weakening of the firmware authority boundary to work around a console
-  defect.
-- No renaming of MQTT topics (§0).
+- No client-side pre-judging of BEGIN AUTO OPERATIONS conditions — QUORUM
+  owns those gates and names its refusals. (The enlistment-side stance is
+  the same after R12: firmware owns the motion refusal; the console
+  presents it. The console's pre-flight refusals (P6) are the one
+  deliberate console-side strictness, because the dispatcher console has
+  no setup controls to recover with — §4.4.)
+- No firmware change **except P11**, which is R12's explicit ruling.
+- No change to the E-STOP firmware door.
+- No MQTT topic renames. No Hans scope change (§4.6 note).
 
 ---
 
-## §10 Sequence if approved
+## §9 Traceability — defect → proposal → field test
 
-1. CODEX/Sam review. Operator rules Q3.
-2. Implement as `ngr_app_v1_10_10.py` — version-bump, never edit in place.
-3. Deploy by scp + `systemctl restart ngr-app`; there is no repo clone on
-   the Pi.
-4. Field check:
-   - enlist Otto with pre-flight incomplete → **refused**, reason shown;
-   - complete pre-flight, enlist while rolling → **refused**, reason shown;
-   - stop, enlist → AUTO lights, manual controls grey, E-STOP inert;
-   - reload the page and restart the console → still shows ENLISTED;
-   - press BEGIN AUTO OPERATIONS on the dispatcher console → operations
-     begin, **or** the refusal reason is displayed.
+| Defect | Proposal | Field test (§10) |
+|---|---|---|
+| Fault A (retained dropped) | P8 | T5, T7 |
+| Fault B (alert overwrites enlistment) | P4 | T3, T5 |
+| D-a (BOTH dead) | P2 | T8 |
+| D-b (refusals invisible) | P7 | T2, T9 |
+| D-c (manual offered while enlisted) | P5 | T3, T6 |
+| D-d (rolling enlistment) | **P11** | T2 |
+| D-e (E-STOP one-way) | **P12** | T6 |
+| D-f (seed ghost) | P8 revised | T7 |
+| R2/R3 semantics | P3 | T9 |
+| R9 pre-flight | P6 | T1 |
 
-The last step is the first time automatic operations will have been
-attempted under QUORUM.
+## §10 Field check, if approved
+
+1. **T1** — enlist with pre-flight incomplete → refused, reason shown.
+2. **T2** — complete pre-flight, enlist while rolling → **firmware**
+   refusal (P11) shown by the console.
+3. **T3** — stop, enlist → AUTO lights, manual controls grey (throttle,
+   DIRECTION, E-STOP), page states dispatcher holds it.
+4. **T4** — reload the page → still ENLISTED.
+5. **T5** — restart the console with Otto powered and enlisted → still
+   ENLISTED (seed promoted on `online = 1`).
+6. **T6** — E-STOP from the dispatcher console while enlisted, then
+   **clear it from the dispatcher console** (P12); confirm recovery
+   without crossing the release door.
+7. **T7** — restart the console with Otto **switched off** → must NOT
+   display ENLISTED (the test Draft 2's option (a) would have failed).
+8. **T8** — BOTH buttons reach both locomotives (fan-out verified in the
+   packet log).
+9. **T9** — press BEGIN AUTO OPERATIONS → operations begin **or** the raw
+   refusal reason is displayed. First attempt at automatic operations
+   under QUORUM.
+
+## §11 Sequence
+
+1. CODEX/Sam review of this draft. 2. P11 implemented as the next QUORUM
+version bump (with Station Stop v1's 1.9 under review, sequencing per
+CODEX). 3. Console implemented as `ngr_app_v1_10_10.py`. 4. Deploy by
+scp + restart (no repo clone on the Pi). 5. §10 field check, in order.
+
+## §12 References
+
+`AUTHORITY_MODEL.md` · decision 0013 ·
+`NGR_DASHBOARD_FINDINGS_20260807.md` ·
+`NGR_DASHBOARD_AUTHORITY_ALIGNMENT_DRAFT2_REVIEW_20260808.md` ·
+`QUORUM_HAND_REPOSITION_HAZARD.md` · CODEX Draft-2 comments (operator
+relay, 2026-08-08)
