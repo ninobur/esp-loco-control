@@ -337,7 +337,47 @@ The autopilot conception — engage while under way, as an aircraft does —
 is retired. It was never exercised, and it is the conception that left
 `cmd/auto` with no motion guard. Auto operations begin from rest.
 
-*Remaining sub-question on mechanism: see the open item below.*
+**Mechanism RULED (operator, 2026-08-07): refuse, with a notification.**
+
+> "If you ask to drive my car and I jump out as it heads toward you down
+> the street, RUN!!! It should be refused, with a notification."
+
+A moving locomotive is **not** enlisted, brought to a stop, and handed
+over. The request is declined, the locomotive stays in MANUAL under the
+operator who is already driving it, and it says why. Accepting the
+handoff and decelerating was the alternative considered; it was rejected
+because it would have AUTO commanding the motor at *enlistment*, before
+BEGIN AUTO OPERATIONS is given — crossing the enrolled/running line the
+authority model draws.
+
+**The absence of change is itself the signal.** The operator's point:
+
+> "Hopefully, the Manual controls gray out when auto is engaged. Having
+> the button refuse to illuminate and no gray out should alert the
+> operator."
+
+This promotes P4 from an authority-enforcement measure to the operator's
+**confirmation channel**. Successful enlistment looks like: the AUTO
+control lights, the manual controls grey out. A refused enlistment looks
+like: nothing changes. The operator therefore learns the outcome from the
+same display that enforces the rule, and a silent failure is impossible
+so long as the display is driven by the locomotive's reported state
+rather than by the click (P7).
+
+**Design consequence:** the console must render enlistment from
+`state/auto`, never optimistically on button press. An optimistic
+highlight would destroy the signal — the operator would see the same
+thing whether the locomotive enlisted or refused. This is exactly the
+current defect (§2.1) seen from the other side.
+
+**The governing principle, in the operator's words:**
+
+> "Starting auto operations must not be done casually, since a manual
+> operator has no protocols and few rules but auto operations do."
+
+The transition is from a regime with few rules to one with many. It
+should feel deliberate, be refused when preconditions are unmet, and
+report its outcome plainly.
 
 **Q4b — Enlistment preconditions. Operator thinking, 2026-08-07, explicitly
 tentative** ("I recall that this decision has been made differently in the
