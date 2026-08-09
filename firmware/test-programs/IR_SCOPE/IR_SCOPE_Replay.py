@@ -225,7 +225,8 @@ def replay_session(session, frac):
     resync_spans = []
     st = {"in_pulse": False, "last_edge": -1e12,
           "pulse_start": 0.0, "prev_rise": None,
-          "unknown": False, "resync_start": None, "resync_activity": False}
+          "unknown": False, "resync_start": None, "resync_activity": False,
+          "resync_last_high": 0.0}
 
     def close(t_end, outcome, width=None, interval=None):
         episodes.append({"t_rise": st["pulse_start"], "t_end": t_end,
@@ -233,9 +234,11 @@ def replay_session(session, frac):
                          "width": width, "interval": interval})
 
     def end_unknown(t_end):
-        # The candidate's state is pinned to idle from here: raw is below
-        # thrLow (or contrast collapsed), so every variant of the detector
-        # has fallen or discarded, whatever it did inside the gap.
+        # The candidate's state AND timing are pinned from here: raw is
+        # below thrLow (or contrast collapsed), so every variant of the
+        # detector has fallen or discarded — and the debounce horizon of
+        # the latest POSSIBLE unobserved rise has expired (see below), so
+        # no future rise can be one the real detector would suppress.
         if st["resync_start"] is not None:
             if st["resync_activity"]:
                 episodes.append({"t_rise": st["resync_start"], "t_end": t_end,
@@ -246,10 +249,10 @@ def replay_session(session, frac):
         st["resync_start"] = None
         st["resync_activity"] = False
         st["in_pulse"] = False
-        # A fall just happened here (raw < thrLow): the firmware's own last
-        # rise is at least a pulse-width in the past (> DEBOUNCE_MS for any
-        # physical pulse), so the debounce guard cannot be binding.
-        st["last_edge"] = -1e12
+        # The latest possible real-detector rise is bounded by the last
+        # above-thrHigh time (tracked in resync_last_high); anchoring the
+        # debounce there is exact-or-conservative, never permissive.
+        st["last_edge"] = st["resync_last_high"]
         st["prev_rise"] = None           # nothing anchors across the gap
 
     for si, seg in enumerate(session["segments"]):
@@ -281,9 +284,22 @@ def replay_session(session, frac):
             span = mx - mn
 
             # --- post-gap resynchronization -------------------------------
+            # A below-thrLow sample pins in_pulse=false, but NOT timing: a
+            # rise the real detector accepted may have happened inside the
+            # gap (or during this unknown stretch) less than DEBOUNCE_MS
+            # before a later crossing, which the real detector would then
+            # debounce away while a naive replay would emit it. So the
+            # unknown period ends only at a sample that is BOTH below
+            # thrLow AND more than DEBOUNCE_MS after the latest possible
+            # rise — tracked as resync_last_high: initialized to the first
+            # post-gap sample time (an unobserved in-gap rise can be no
+            # later than the gap's end) and advanced by every above-thrHigh
+            # sample seen while unknown. Until both conditions hold, edges
+            # stay unattributed inside the resync span.
             if st["unknown"]:
                 if st["resync_start"] is None:
                     st["resync_start"] = t
+                    st["resync_last_high"] = t
                 if not cv:
                     # contrast loss discards any open pulse in the firmware:
                     # state is certainly idle
@@ -293,8 +309,8 @@ def replay_session(session, frac):
                 lo = thr_low_of(mn, span, frac)
                 if raw > hi:
                     st["resync_activity"] = True   # pulse activity we cannot
-                                                   # attribute — report, don't guess
-                if raw < lo:
+                    st["resync_last_high"] = t     # attribute — report, don't guess
+                if raw < lo and (t - st["resync_last_high"]) > DEBOUNCE_MS:
                     end_unknown(t)
                 continue
 
