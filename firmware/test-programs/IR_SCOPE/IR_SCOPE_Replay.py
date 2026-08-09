@@ -32,14 +32,19 @@ DISCONTINUITY SEMANTICS (matches what physically happened)
                   are absolute, so debounce and latch timing stay correct).
     GAP row       batches lost in transport: the firmware detector ran but
                   its samples are missing. The open replay pulse is closed
-                  as `gap_interrupted` (never silently dropped), the
-                  interval anchor is cleared, and at resume the replay is
-                  SEEDED from the recorded inPulse flag — a seeded pulse's
-                  rise time is unknown, so its width and the interval it
-                  would anchor are excluded from statistics (counted as
-                  `seed`), while its fall remains a real fall. Resetting to
-                  idle instead would fire a spurious rise on the first
-                  above-threshold sample after every gap.
+                  as `gap_interrupted` (never silently dropped) and the
+                  interval anchor is cleared. After the gap the candidate's
+                  state is UNKNOWN and is re-established from the waveform
+                  for THIS candidate's own thresholds — never from the
+                  recorded 1/3 detector, whose state is only exact for the
+                  1/3 candidate (a higher thrLow may have fallen inside the
+                  gap where 1/3 did not). The resync point is certain by
+                  construction: at the first sample with raw < thrLow
+                  (candidate), or at a contrast loss, EVERY variant of the
+                  detector is idle regardless of its history. The unknown
+                  stretch is reported as a `resync_unknown` episode (`unkn`
+                  column), excluded from all statistics, and drawn grey in
+                  the overlay — never guessed, never silently dropped.
     An unmarked sample-number jump is treated as a GAP (conservative).
 
 CANDIDATES
@@ -186,8 +191,8 @@ def load_sessions(path):
 #   closs            discarded by a contrast-validity loss (no fall edge)
 #   gap_interrupted  open when a transport gap began; its end is unknown
 #   open_end         still open when the record ends
-# `seeded` episodes began at a gap resume with the rise time unknown; their
-# widths/intervals are excluded from statistics, their falls are real.
+#   resync_unknown   post-gap stretch where the candidate's state could not
+#                    yet be established (see below); excluded from stats
 # ============================================================================
 def thr_low_of(mn, span, frac):
     if frac == "1/3":
@@ -198,13 +203,35 @@ def thr_low_of(mn, span, frac):
 def replay_session(session, frac):
     episodes = []
     closs_count = [0]
-    st = {"in_pulse": False, "seeded": False, "last_edge": -1e12,
-          "pulse_start": 0.0, "prev_rise": None}
+    resync_spans = []
+    st = {"in_pulse": False, "last_edge": -1e12,
+          "pulse_start": 0.0, "prev_rise": None,
+          "unknown": False, "resync_start": None, "resync_activity": False}
 
     def close(t_end, outcome, width=None, interval=None):
         episodes.append({"t_rise": st["pulse_start"], "t_end": t_end,
-                         "outcome": outcome, "seeded": st["seeded"],
+                         "outcome": outcome,
                          "width": width, "interval": interval})
+
+    def end_unknown(t_end):
+        # The candidate's state is pinned to idle from here: raw is below
+        # thrLow (or contrast collapsed), so every variant of the detector
+        # has fallen or discarded, whatever it did inside the gap.
+        if st["resync_start"] is not None:
+            if st["resync_activity"]:
+                episodes.append({"t_rise": st["resync_start"], "t_end": t_end,
+                                 "outcome": "resync_unknown",
+                                 "width": None, "interval": None})
+            resync_spans.append((st["resync_start"], t_end))
+        st["unknown"] = False
+        st["resync_start"] = None
+        st["resync_activity"] = False
+        st["in_pulse"] = False
+        # A fall just happened here (raw < thrLow): the firmware's own last
+        # rise is at least a pulse-width in the past (> DEBOUNCE_MS for any
+        # physical pulse), so the debounce guard cannot be binding.
+        st["last_edge"] = -1e12
+        st["prev_rise"] = None           # nothing anchors across the gap
 
     for si, seg in enumerate(session["segments"]):
         if si > 0:
@@ -216,14 +243,13 @@ def replay_session(session, frac):
                           "gap_interrupted")
                     st["in_pulse"] = False
                 st["prev_rise"] = None    # nothing anchors across a gap
-                st["seeded"] = False
-                if seg["rec_ip"][0]:
-                    # the firmware was (recorded) mid-pulse at resume: seed,
-                    # rather than firing a spurious replay rise on the first
-                    # above-threshold sample after every gap
-                    st["in_pulse"] = True
-                    st["seeded"] = True
-                    st["pulse_start"] = float(seg["t"][0])
+                # Candidate state after the gap is UNKNOWN and is
+                # re-established from the waveform for THIS candidate's own
+                # thresholds — never from the recorded 1/3 detector, whose
+                # state is exact only for the 1/3 candidate.
+                st["unknown"] = True
+                st["resync_start"] = None
+                st["resync_activity"] = False
             # kind == "MISSED": the detector ran continuously — carry all
             # state; absolute times keep debounce and latch arithmetic honest
 
@@ -235,6 +261,24 @@ def replay_session(session, frac):
             cv = seg["cv"][i]
             span = mx - mn
 
+            # --- post-gap resynchronization -------------------------------
+            if st["unknown"]:
+                if st["resync_start"] is None:
+                    st["resync_start"] = t
+                if not cv:
+                    # contrast loss discards any open pulse in the firmware:
+                    # state is certainly idle
+                    end_unknown(t)
+                    continue
+                hi = mn + (span * 2) // 3
+                lo = thr_low_of(mn, span, frac)
+                if raw > hi:
+                    st["resync_activity"] = True   # pulse activity we cannot
+                                                   # attribute — report, don't guess
+                if raw < lo:
+                    end_unknown(t)
+                continue
+
             # contrast gate — discard branch, as IR_DIAG
             if not cv:
                 if st["in_pulse"] or st["prev_rise"] is not None:
@@ -242,7 +286,6 @@ def replay_session(session, frac):
                     if st["in_pulse"]:
                         close(t, "closs")
                     st["in_pulse"] = False
-                    st["seeded"] = False
                     st["prev_rise"] = None
                 continue
 
@@ -253,35 +296,30 @@ def replay_session(session, frac):
             if st["in_pulse"] and (t - st["pulse_start"]) > LATCH_MS:
                 close(t, "latch")
                 st["in_pulse"] = False
-                st["seeded"] = False
                 st["prev_rise"] = None
 
             if not st["in_pulse"]:
                 if raw > hi and (t - st["last_edge"]) > DEBOUNCE_MS:
                     st["in_pulse"] = True
-                    st["seeded"] = False
                     st["last_edge"] = t
                     st["pulse_start"] = t
             else:
                 if raw < lo:
-                    if st["seeded"]:
-                        # real fall, unknown rise: no width, and the next
-                        # interval must not anchor on a synthetic rise time
-                        close(t, "completed")
-                        st["prev_rise"] = None
-                    else:
-                        width = t - st["pulse_start"]
-                        interval = ((st["pulse_start"] - st["prev_rise"])
-                                    if st["prev_rise"] is not None else None)
-                        close(t, "completed", width, interval)
-                        st["prev_rise"] = st["pulse_start"]
+                    width = t - st["pulse_start"]
+                    interval = ((st["pulse_start"] - st["prev_rise"])
+                                if st["prev_rise"] is not None else None)
+                    close(t, "completed", width, interval)
+                    st["prev_rise"] = st["pulse_start"]
                     st["in_pulse"] = False
-                    st["seeded"] = False
 
-    if st["in_pulse"]:
-        close(float(session["segments"][-1]["t"][-1]), "open_end")
+    last_t = float(session["segments"][-1]["t"][-1])
+    if st["unknown"]:
+        end_unknown(last_t)
+    elif st["in_pulse"]:
+        close(last_t, "open_end")
 
-    return {"episodes": episodes, "closs": closs_count[0]}
+    return {"episodes": episodes, "closs": closs_count[0],
+            "resync_spans": resync_spans}
 
 
 def flat_episodes(results):
@@ -311,8 +349,7 @@ def local_pct(vals, i, p):
 
 def analyse(results):
     eps = flat_episodes(results)
-    done = [ep for ep in eps if ep["outcome"] == "completed"
-            and not ep["seeded"]]
+    done = [ep for ep in eps if ep["outcome"] == "completed"]
     widths = sorted(ep["width"] for ep in done)
     intervals_sorted = sorted(ep["interval"] for ep in done
                               if ep["interval"] is not None
@@ -323,7 +360,7 @@ def analyse(results):
         "latches": len([ep for ep in eps if ep["outcome"] == "latch"]),
         "open": len([ep for ep in eps
                      if ep["outcome"] in ("open_end", "gap_interrupted")]),
-        "seeded": len([ep for ep in eps if ep["seeded"]]),
+        "resync": len([ep for ep in eps if ep["outcome"] == "resync_unknown"]),
         "closs": sum(r["closs"] for r in results),
         "w_med": pct(widths, 50), "w_p10": pct(widths, 10),
         "w_p90": pct(widths, 90),
@@ -343,7 +380,7 @@ def analyse(results):
     local_bases = []
     for r in results:
         ses_done = [ep for ep in r["episodes"]
-                    if ep["outcome"] == "completed" and not ep["seeded"]]
+                    if ep["outcome"] == "completed"]
         # widths: short vs the local median width
         ws = [ep["width"] for ep in ses_done]
         for i, w in enumerate(ws):
@@ -378,8 +415,10 @@ def analyse(results):
 
 def validate_against_recording(sessions, results):
     """1/3 replay vs the firmware's own recorded edges (tolerance +/-2 ms).
-    Seeded rises are synthetic (gap-resume time) and excluded; falls of
-    seeded episodes are real falls and included."""
+    Recorded edges inside the 1/3 candidate's resync spans are excluded:
+    the replay declares state unknown there by design (the recorded fall
+    that ENDS such a span is the resync trigger itself), so counting them
+    as misses would penalize the honesty."""
     def match(a, b, tol=2.0):
         b = sorted(b)
         used = [False] * len(b)
@@ -392,22 +431,32 @@ def validate_against_recording(sessions, results):
                     break
         return hits
 
+    spans = [sp for r in results for sp in r["resync_spans"]]
+
+    def in_resync(x):
+        return any(a <= x <= b for (a, b) in spans)
+
     rec_rises, rec_falls = [], []
     for ses in sessions:
         for seg in ses["segments"]:
             for i in range(len(seg["t"])):
+                tt = float(seg["t"][i])
+                if in_resync(tt):
+                    continue
                 if seg["rec_rise"][i]:
-                    rec_rises.append(float(seg["t"][i]))
+                    rec_rises.append(tt)
                 if seg["rec_fall"][i]:
-                    rec_falls.append(float(seg["t"][i]))
+                    rec_falls.append(tt)
     eps = flat_episodes(results)
-    rep_rises = [ep["t_rise"] for ep in eps if not ep["seeded"]]
+    rep_rises = [ep["t_rise"] for ep in eps
+                 if ep["outcome"] != "resync_unknown"]
     rep_falls = [ep["t_end"] for ep in eps if ep["outcome"] == "completed"]
     return {
         "rec_rises": len(rec_rises), "rep_rises": len(rep_rises),
         "rise_hits": match(rep_rises, rec_rises),
         "rec_falls": len(rec_falls), "rep_falls": len(rep_falls),
         "fall_hits": match(rep_falls, rec_falls),
+        "excluded_resync_spans": len(spans),
     }
 
 
@@ -463,6 +512,7 @@ def overlay(sessions, frac, results, t_start, duration, save):
         "closs":           ("#9467bd", 0.55, "xx", "replay %s: contrast discard (no fall)"),
         "gap_interrupted": ("#d62728", 0.25, "//", "replay %s: open at gap (end unknown)"),
         "open_end":        ("#d62728", 0.25, "..", "replay %s: still open at record end"),
+        "resync_unknown":  ("#7f7f7f", 0.35, "\\\\", "replay %s: state unknown (post-gap resync)"),
     }
     seen = set()
     for ses_result in results:
@@ -483,10 +533,6 @@ def overlay(sessions, frac, results, t_start, duration, save):
                 # discard instant: inPulse cleared with NO fall edge emitted
                 ax.scatter([tf], [320], marker="x", s=60, color=color,
                            zorder=5)
-            if ep["seeded"]:
-                # rise time unknown (seeded at a gap resume)
-                ax.text(tr, 430, "seeded", color=color, fontsize=6,
-                        ha="left", va="bottom")
 
     if t_start is not None:
         ax.set_xlim(t_start, t_start + (duration or 5.0))
@@ -553,7 +599,7 @@ def main():
         print("         WARNING: replay does not reproduce the recorded detector;"
               " treat candidate numbers as suspect")
 
-    hdr = ("frac    pulses  latch  open  seed  short  merged  uncls  "
+    hdr = ("frac    pulses  latch  open  unkn  short  merged  uncls  "
            "w med/p10/p90      int med/min/max        base   pulses/rev")
     print("\n" + hdr)
     print("-" * len(hdr))
@@ -562,7 +608,7 @@ def main():
         label = frac if isinstance(frac, str) else ("%.2f" % frac)
         print("%-6s  %6d  %5d  %4d  %4d  %5d  %6d  %5d  %5s/%5s/%5s ms  "
               "%6s/%6s/%6s ms  %5s  %s"
-              % (label, m["n_pulses"], m["latches"], m["open"], m["seeded"],
+              % (label, m["n_pulses"], m["latches"], m["open"], m["resync"],
                  m["short_pulses"], m["merged"], m["unclassified"],
                  fmt(m["w_med"], "%.0f"), fmt(m["w_p10"], "%.0f"),
                  fmt(m["w_p90"], "%.0f"),
