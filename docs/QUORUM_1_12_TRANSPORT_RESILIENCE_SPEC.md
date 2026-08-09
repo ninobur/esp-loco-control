@@ -58,6 +58,16 @@ metric, strictly better on at least one transport-stability metric
 (time-to-stable-session, pub_drops, or reconnect count), and must not
 increase worst-case or p95 command latency.**
 
+**Pre-registration for the A/B (CODEX Rev-2 non-blocking items, adopted
+before data collection):** *time-to-stable-session* is defined as the
+interval from an MQTT connect to the start of the first **60 s window
+containing no reconnect, no `pub_drops` increment, and no broker-side
+loopstat delivery gap > 3 s** — measured at the broker capture, stated
+per cycle. The implementation report must record how one-per-pass
+restraint is implemented, showing that inbound-first service, marker
+priority, and the no-quorum reconciliation's slot priority and
+generation protection are untouched.
+
 ## T2 — the wander tripwire (permanent loopstat fields)
 
 The Decos auto-select channels and cannot be pinned; only the EAP can

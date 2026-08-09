@@ -1,7 +1,9 @@
 # ESP-NOW command backup — Phase A: the dispatcher keeps its stop
 
-Status: **Rev 2 — CODEX review of 2026-08-09 incorporated (findings 1–5
-and its recommendations on all three open questions). No code written.**
+Status: **Rev 3 — CODEX Rev-2 review (`CODEX_REVIEW_REV2_43f1b33.md`)
+incorporated: E1 wire/validation/key contract frozen, E2 dedup redesigned
+as a bounded acted-identity cache, required gates added. Awaiting the
+focused protocol review. No code written.**
 Date: 2026-08-09
 Motivating case: 2026-08-08 — the WiFi/MQTT path degraded to 33 % loss
 and commands, **including E-STOP, became undeliverable for minutes** while
@@ -44,25 +46,57 @@ Dispatcher console (Flask) ──USB serial──► TX-bridge ESP32 ──ESP-N
          for the Phase B telemetry receiver)
 ```
 
-- **Frame** (fixed struct, nothing parsed): magic, version, **sender
-  boot-nonce u32 + seq u32** *(CODEX finding 4, adopted)*, target id u32,
-  cmd u8, CRC. Each operator command transmitted **×5** over ~250 ms —
-  the five repeats carry the SAME (nonce, seq); a new button press is a
-  new seq and always acts. Dedup therefore applies to the frames of one
-  command, never to separate presses.
-- **Dedup and epoch semantics** *(finding 4)*: the bridge draws a random
-  boot-nonce at startup; the locomotive keeps (last-nonce, last-seq) per
-  command class. A frame acts iff its nonce differs from last-nonce
-  (bridge rebooted — accept and adopt the new epoch) or its seq is newer
-  under **wrap-safe serial comparison** (`(int32_t)(new-last) > 0`). No
-  persistent storage needed; a nonce collision is a 1-in-2³² event per
-  reboot.
-- **Security** *(finding 3, adopted — blocking)*: ESP-NOW LMK-encrypted
-  **unicast only**. Encrypted broadcast is not supported, so `target=all`
-  is realised as **encrypted unicast fan-out: the bridge sends the frame
-  set to every configured peer individually, ×5 per peer.** Keys in
-  `credentials.h`, gitignored. An unencrypted stop channel is a stop
-  channel anyone owns.
+- **Wire contract (E1 — FROZEN):** packed little-endian, **exact length
+  22 bytes**, any other length rejected:
+
+  | offset | size | field | value |
+  |---|---|---|---|
+  | 0 | 4 | `u32 magic` | `0x4E475243` |
+  | 4 | 1 | `u8 version` | `1` — any other rejected |
+  | 5 | 1 | `u8 cmd` | `1` = E-STOP ENGAGE, `2` = PAUSE — **closed enum**, all else rejected |
+  | 6 | 2 | `u16 reserved` | must be `0` |
+  | 8 | 4 | `u32 nonce` | bridge boot epoch (random at bridge start) |
+  | 12 | 4 | `u32 seq` | per-command counter |
+  | 16 | 4 | `u32 target` | receiver's numeric LOCO_ID (e.g. 9950011). **No broadcast value exists on the wire** — "all" is bridge-side fan-out only, so `target` must equal the receiver's own ID exactly |
+  | 20 | 2 | `u16 crc` | CRC-16/CCITT-FALSE over bytes 0–19 |
+
+  Each operator command transmits **×5 over ~250 ms**, all five carrying
+  the same (nonce, seq); a new button press is a new seq.
+- **Validation order (E1)** — completed **before** the E-STOP fast-path
+  assertion and before queueing, in this order, each failure **closed**
+  (frame dropped, nothing asserted, nothing queued) and counted on its
+  own observability counter: (1) exact length; (2) sender MAC on the
+  configured allow-list — ESP-NOW delivers frames from unknown senders
+  to the callback, so registration alone is not the filter; (3) magic +
+  version; (4) CRC; (5) cmd in the closed enum, reserved == 0; (6)
+  target == own LOCO_ID; (7) dedup/replay (below). Only a frame passing
+  all seven reaches the finding-1 fast path.
+- **Dedup (E2 — redesigned as the bounded acted-identity cache):** the
+  receiver keeps a ring of the last **16** acted identities
+  `(nonce, seq, cmd)` with receive timestamps; a frame **acts iff its
+  identity is not present with age < 60 s**. Bounds stated: 16 × 13 B ≈
+  208 B fixed; expiry 60 s (covers the 250 ms retry burst and any
+  bridge-reboot overlap with two orders of margin); no wrap arithmetic
+  is load-bearing (identities are compared for equality, not order); no
+  epoch ordering exists to bounce (E2's re-adoption defect is dissolved,
+  not patched — a delayed old-epoch repeat is simply found in the cache
+  and dropped; a genuinely un-acted old-epoch command acts once, which
+  is correct: it was a real command). **Receiver reboot:** cache clears;
+  the only exposure is a command still inside its own 250 ms retry burst
+  acting once more — a stop-class command repeating is the safe
+  direction. The (nonce, latest-seq) pair may be kept as a fast-path
+  shortcut but the cache is the authority.
+- **Security and key contract** *(finding 3 + E1)*: ESP-NOW LMK-encrypted
+  **unicast only**; `all` is bridge-side fan-out, ×5 per configured peer.
+  PMK + per-peer LMKs are 16-byte arrays in `credentials.h` (gitignored)
+  on both ends; provisioning and rotation are manual edit-both-ends and
+  reflash, documented in the runbook — no over-the-air rotation in
+  Phase A. **No plaintext fallback exists**: if key material is missing
+  or invalid or `esp_now_add_peer` fails at boot, ESP-NOW RX/TX is
+  disabled entirely, the locomotive reports `espnow:unavailable` in its
+  counters, the bridge reports the same in its heartbeat, and the
+  dispatcher console shows **BACKUP OFFLINE**. A configuration failure
+  makes the backup *visibly absent*, never silently open.
 - **Channel** *(finding 2, adopted — blocking)*: while the locomotive's
   WiFi is **associated**, ESP-NOW rides the STA channel (the EAP's, 11),
   and the bridge matches it. While the locomotive is **disconnected** —
@@ -105,19 +139,33 @@ Pi ESP32 as receiver → Pi reconciler merging MQTT + ESP-NOW by seq.
 Yesterday's evidence: it would have kept the dashboard live at ~70 %
 delivery through the worst of the failure. Not in Phase A's scope.
 
-## Field gate (Phase A)
+## Field gate (Phase A) — including the CODEX-required cases
 
 With WiFi deliberately killed (EAP powered off) and a locomotive running
-in AUTO: dispatcher PAUSE stops it **while disconnected — this exercises
-the finding-2 channel pin and is the gate's centrepiece**; dispatcher
-E-STOP stops it in MANUAL too, via the immediate fast path; the five
-repeats of one press act once, while two presses act twice (finding 4
-semantics); a frame addressed to Toby does not touch Otto; a bridge
-reboot mid-session does not deadlock dedup (nonce epoch accepted); the
+in AUTO: dispatcher PAUSE stops it **while disconnected — the finding-2
+channel-pin centrepiece**; dispatcher E-STOP stops it in MANUAL too, via
+the immediate fast path; the five repeats of one press act once, two
+presses act twice; a frame addressed to Toby does not touch Otto; the
 console shows BACKUP OFFLINE within the heartbeat window when the bridge
-is unplugged; all transmissions verified on bridge serial. Then WiFi
-restored, the channel pin released on reassociation, and normal
-operation confirmed undisturbed.
+is unplugged; WiFi restored, pin released, normal operation undisturbed.
+
+Additionally (CODEX Rev-2 required gates, adopted verbatim):
+
+- an engaging ESP-NOW E-STOP stops the motor **with `cmdQueue`
+  deliberately full** (the fast path proven, not assumed);
+- PAUSE remains enrolled-only and produces `STOP_IGNORED` when not
+  enrolled;
+- all-locomotive E-STOP verified as encrypted unicast to each configured
+  peer, with **no plaintext transmission observed on the air**;
+- unknown sender, wrong target, bad length, bad version, bad CRC,
+  invalid command, replayed identity, and absent/invalid key **each fail
+  closed and increment their own counter**;
+- a missing/invalid key or failed peer setup marks the backup
+  unavailable at the dispatcher;
+- delayed copies from a previous bridge epoch do not act after their
+  identities are cached;
+- receiver reboot and bridge reboot both preserve the documented dedup
+  behaviour.
 
 ## Open questions — resolved by the 2026-08-09 CODEX review
 
