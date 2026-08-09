@@ -1,34 +1,23 @@
 /*
  * ============================================================================
- * QUORUM_1_11  —  Ninobur Garden Railway single-locomotive navigation
+ * QUORUM_1_12  —  Ninobur Garden Railway single-locomotive navigation
  * ============================================================================
  * Successor to SOLONAV (v2.22 final). QUORUM navigator per spec R21.
  *
  * ---------------------------------------------------------------------------
- * v1.11B — A/B VARIANT B: RESTRAINED RECONNECT DRAIN (diag stub)
+ * v1.12 — OPERATOR SPEED/RAMP TUNING (base: 1.10 per ruling; 1.11/1.11B
+ * are diagnostic stubs and contribute nothing here)
  * ---------------------------------------------------------------------------
- * QUORUM_1_12_TRANSPORT_RESILIENCE_SPEC.md T1, CODEX-approved for the
- * measured A/B. Variant A is 1.11 as committed (stock burst drain).
- * This variant caps the status drain at one publish per pass for the
- * first 10 s after each MQTT connect; markers, inbound-first service,
- * and the no-quorum reconciliation slot are untouched. STUB rules apply:
- * not a base; the measured winner is implemented in 1.12 from 1.10.
- *
- * ---------------------------------------------------------------------------
- * v1.11 — NETWORK DIAGNOSTIC INSTRUMENTATION (evidence only, no fix)
- * ---------------------------------------------------------------------------
- * The field link fails ~daily: session-scoped, reboot-curable, position-
- * indifferent; Pi-side ping shows 33% loss while uptime runs continuously.
- * MQTT cannot reliably report why MQTT is failing, so USB serial carries
- * the controlling evidence. Adds: [WIFI] event lines with reason codes
- * printed immediately; a 2 s [DIAG] health line from the network task
- * (WiFi status, RSSI, mqtt.state(), live queue depths, heap free/min,
- * task stack margin, windowed mqtt.loop()/publish() max durations,
- * disconnect count+reason+age); duplicated best-effort on state/netdiag
- * by DIRECT publish so the instrument does not load the queues. NO
- * navigation, station, authority, or transport-behaviour change; the
- * 1.10 P11/P13/P14 items and the 1.9 mission filter ride along unchanged.
- * Three-way capture protocol: Otto USB serial + Pi ping/ss + broker log.
+ * Two operating tunables, operator-directed 2026-08-09:
+ *   CRUISE_PWM     100 -> 90    (open-main cruise; the derived approach
+ *                                ramp adapts automatically by design)
+ *   DEPART_RAMP_MS 2800 -> 5600 (station departure half as steep)
+ * NOT rescaled, deliberately: the Grillers CW climb segment keeps its
+ * absolute cruisePwm 120 (a climb boost is about the hill, not the base),
+ * and STOP_RAMP_MS keeps 2800 (braking feel unchanged). Otto's profile
+ * carries the all-stations state (the v1 Arches-only define removed,
+ * operator-directed 2026-08-08). The transport-resilience work
+ * (QUORUM_1_12_TRANSPORT_RESILIENCE_SPEC.md) lands as 1.13.
  *
  * ---------------------------------------------------------------------------
  * v1.10 — CONSOLE-AUTHORITY FIRMWARE ITEMS P11/P13/P14 (spec Draft 5.1)
@@ -340,7 +329,7 @@
 #include <Adafruit_INA219.h>
 #include "LocoConfig.h"
 
-#define SKETCH_NAME "QUORUM_1_11B"
+#define SKETCH_NAME "QUORUM_1_12"
 
 // Broker lives here, not in LocoConfig.h — same as the previous lineage.
 #define MQTT_BROKER "192.168.68.142"
@@ -718,7 +707,7 @@ static void hallTask(void*){
 // navigator may ask operations for a speed; operations never reaches back into
 // navigation state.
 // ===========================================================================
-static const uint8_t  CRUISE_PWM       = 100;   // raised so the LOST drop to 60 is obvious
+static const uint8_t  CRUISE_PWM       = 90;    // v1.12 operator tuning (was 100); approach ramps derive from this automatically
 static const uint8_t  STATION_ZONE_PWM = 60;
 static const uint16_t NORMAL_STEP_MS   = 150;
 
@@ -1542,7 +1531,7 @@ static const uint8_t GRADE_COUNT = sizeof(GRADES)/sizeof(GRADES[0]);
 static const uint16_t APPROACH_RAMP_MS = 700;   // ~half a marker: settled before the next
 static const uint16_t FINAL_RAMP_MS    = 700;
 static const uint16_t STOP_RAMP_MS     = 2800;  // gentler: 1500 read as a switch opening
-static const uint16_t DEPART_RAMP_MS   = 2800;  // acceleration wants longer than deceleration
+static const uint16_t DEPART_RAMP_MS   = 5600;  // v1.12 operator tuning (was 2800): station departure half as steep
 static const int8_t   APPROACH_START      = -10;
 static const int8_t   ZONE_START          = -5;
 // (superseded by per-station stopOffset in STATIONS[])
@@ -2857,8 +2846,6 @@ static void serviceCommands(){
 // no longer stall loop(). (The online/boot/alert publishes go through pub(),
 // i.e. onto pubQueue, and are flushed by networkTask on its next pass.)
 static unsigned long nextMqttTryMs=0;
-// v1.11B (A/B variant B, spec T1): time of the last successful MQTT connect.
-static unsigned long lastMqttConnectMs=0;
 static void attemptReconnect(){
   unsigned long now=millis();
   if(now<nextMqttTryMs) return;
@@ -2868,7 +2855,6 @@ static void attemptReconnect(){
   bool ok=mqtt.connect(LOCO_NAME,T_ONLINE,0,true,"0");
   mqttConnectMs=millis()-t0;
   if(ok){
-    lastMqttConnectMs=millis();          // v1.11B: restraint window starts here
     pub(T_ONLINE,"1",true);
     publishAllStatesRetained();        // Change 3c: reseed all ten state topics
     publishBootId();
@@ -2883,91 +2869,6 @@ static void attemptReconnect(){
     portEXIT_CRITICAL(&noQuorumMux);
     Serial.println("[NET] MQTT connected");
   }
-}
-
-// ===========================================================================
-// v1.11 NETWORK DIAGNOSTIC INSTRUMENTATION (CODEX-specified, 2026-08-08)
-// ---------------------------------------------------------------------------
-// Evidence-gathering ONLY — no behavioural change. The link fails in the
-// field with a signature (session-scoped, reboot-curable, position-
-// indifferent) that MQTT telemetry cannot explain about itself; USB serial
-// is the controlling evidence during an outage. One compact [DIAG] health
-// line every 2 s, WiFi transitions printed IMMEDIATELY with reason codes,
-// and a best-effort duplicate on state/netdiag when the broker is
-// reachable (published directly from the network task, bypassing the
-// queues so the instrument does not load the patient).
-// ===========================================================================
-static volatile uint32_t diagWifiDiscCount=0;
-static volatile uint8_t  diagLastDiscReason=0;
-static volatile uint32_t diagLastDiscMs=0;
-static uint32_t diagMaxLoopMs=0, diagMaxPubMs=0;    // windowed, reset each [DIAG]
-static char     T_NETDIAG[64];
-
-static void diagOnWifiEvent(WiFiEvent_t event, WiFiEventInfo_t info){
-  // Runs on the WiFi/event task — print immediately, touch nothing else.
-  unsigned long now=millis();
-  switch(event){
-    case ARDUINO_EVENT_WIFI_STA_DISCONNECTED:
-      diagWifiDiscCount++;
-      diagLastDiscReason=info.wifi_sta_disconnected.reason;
-      diagLastDiscMs=now;
-      Serial.printf("[WIFI] t=%lu DISCONNECTED reason=%u (count=%lu)\n",
-                    now,(unsigned)info.wifi_sta_disconnected.reason,
-                    (unsigned long)diagWifiDiscCount);
-      break;
-    case ARDUINO_EVENT_WIFI_STA_CONNECTED:
-      // BSSID identifies WHICH access point (Deco node vs EAP225-Outdoor)
-      // this session landed on — the multi-AP/same-SSID hypothesis pivots
-      // entirely on this field.
-      Serial.printf("[WIFI] t=%lu CONNECTED ch=%u bssid=%02X:%02X:%02X:%02X:%02X:%02X\n",
-                    now,(unsigned)info.wifi_sta_connected.channel,
-                    info.wifi_sta_connected.bssid[0],info.wifi_sta_connected.bssid[1],
-                    info.wifi_sta_connected.bssid[2],info.wifi_sta_connected.bssid[3],
-                    info.wifi_sta_connected.bssid[4],info.wifi_sta_connected.bssid[5]);
-      break;
-    case ARDUINO_EVENT_WIFI_STA_GOT_IP:
-      Serial.printf("[WIFI] t=%lu GOT_IP %s\n",now,WiFi.localIP().toString().c_str());
-      break;
-    case ARDUINO_EVENT_WIFI_STA_LOST_IP:
-      Serial.printf("[WIFI] t=%lu LOST_IP\n",now);
-      break;
-    default: break;
-  }
-}
-
-// One compact line: everything CODEX's measurement table asks the firmware
-// for. Printed from the NETWORK task so a wedged network task is itself
-// visible as a silent [DIAG] channel while [STN]/loop prints continue.
-static void diagHealthLine(){
-  static unsigned long lastMs=0;
-  unsigned long now=millis();
-  if(now-lastMs<2000UL) return;
-  lastMs=now;
-  UBaseType_t qp = pubQueue       ? uxQueueMessagesWaiting(pubQueue)       : 0;
-  UBaseType_t qm = markerPubQueue ? uxQueueMessagesWaiting(markerPubQueue) : 0;
-  UBaseType_t qc = cmdQueue       ? uxQueueMessagesWaiting(cmdQueue)       : 0;
-  char b[240];
-  snprintf(b,sizeof(b),
-    "t=%lu wifi=%d rssi=%d mq=%d q=%u/%u/%u heap=%lu min=%lu stk=%u "
-    "loopmax=%lu pubmax=%lu disc=%lu reason=%u age=%lu bssid=%s ch=%d",
-    now,(int)WiFi.status(),(WiFi.status()==WL_CONNECTED)?WiFi.RSSI():0,
-    mqtt.state(),(unsigned)qp,(unsigned)qm,(unsigned)qc,
-    (unsigned long)esp_get_free_heap_size(),
-    (unsigned long)esp_get_minimum_free_heap_size(),
-    (unsigned)uxTaskGetStackHighWaterMark(nullptr),
-    (unsigned long)diagMaxLoopMs,(unsigned long)diagMaxPubMs,
-    (unsigned long)diagWifiDiscCount,(unsigned)diagLastDiscReason,
-    (unsigned long)(diagLastDiscMs?now-diagLastDiscMs:0),
-    (WiFi.status()==WL_CONNECTED)?WiFi.BSSIDstr().c_str():"none",
-    (WiFi.status()==WL_CONNECTED)?WiFi.channel():0);
-  Serial.printf("[DIAG] %s\n",b);
-  // Duplicate to the broker when reachable — direct publish, NOT queued.
-  if(mqtt.connected()){
-    char j[280];
-    snprintf(j,sizeof(j),"{%s}",b);   // not JSON-keyed; a log line for capture
-    mqtt.publish(T_NETDIAG,j,false);
-  }
-  diagMaxLoopMs=0; diagMaxPubMs=0;
 }
 
 // The network task owns the radio exclusively: it is the ONLY place mqtt.loop()
@@ -2991,8 +2892,7 @@ static void networkTask(void*){
         // Do NOT raise the 4 to clear a backlog faster: a persistent backlog means
         // the link cannot carry the traffic, and the fix for that is publish-on-
         // change (Change 3), not a bigger gulp that re-creates the starvation.
-        { unsigned long t0=millis(); mqtt.loop();                    // v1.11 diag
-          unsigned long d=millis()-t0; if(d>diagMaxLoopMs) diagMaxLoopMs=d; }
+        mqtt.loop();
         // §2.5 desired-retained-state reconciliation — the ONLY publisher of
         // mm/no_quorum. In no queue, so routine telemetry can neither
         // overwrite nor evict it. F3: success clears only the per-connection
@@ -3053,25 +2953,13 @@ static void networkTask(void*){
         }
         // Status keeps its bounded drain (Change 2, v2.20): at most 4 per pass so
         // a congested outbound queue cannot starve inbound mqtt.loop().
-        // v1.11B — VARIANT B (spec T1): for the first 10 s after each MQTT
-        // connect the status drain is capped at ONE publish per pass. The
-        // ~13 reseed publishes queued at connect therefore spread at >=5 ms
-        // apart (<100 ms total on a healthy link, imperceptible) instead of
-        // landing as a burst on a path that just proved impaired. Markers
-        // are untouched (their own queue, own priority); steady state
-        // reverts to the stock 4-per-pass exactly. RESTRAIN_MS is config.
-        const uint32_t RESTRAIN_MS = 10000UL;
-        uint8_t cap = (millis()-lastMqttConnectMs < RESTRAIN_MS) ? 1 : 4;
         uint8_t n=0;
-        while(n<cap && xQueueReceive(pubQueue,&m,0)==pdTRUE){
-          unsigned long t0=millis();                                 // v1.11 diag
+        while(n<4 && xQueueReceive(pubQueue,&m,0)==pdTRUE){
           mqtt.publish(m.topic,m.payload,m.retain);
-          unsigned long d=millis()-t0; if(d>diagMaxPubMs) diagMaxPubMs=d;
           n++;
         }
       }
     }
-    diagHealthLine();          // v1.11: prints even with WiFi down — that is the point
     vTaskDelay(pdMS_TO_TICKS(5));
   }
 }
@@ -3180,8 +3068,6 @@ void setup(){
   WiFi.setAutoReconnect(true);
   WiFi.persistent(false);
   WiFi.setSleep(false);
-  WiFi.onEvent(diagOnWifiEvent);                                     // v1.11 diag
-  snprintf(T_NETDIAG,64,"ngr/loco/%s/state/netdiag",LOCO_NAME);      // v1.11 diag
   WiFi.begin(WIFI_SSID,WIFI_PASS);
   mqtt.setServer(MQTT_BROKER,MQTT_PORT);
   mqtt.setSocketTimeout(2);
