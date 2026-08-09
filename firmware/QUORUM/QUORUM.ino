@@ -12,6 +12,14 @@
  *   CRUISE_PWM     100 -> 90    (open-main cruise; the derived approach
  *                                ramp adapts automatically by design)
  *   DEPART_RAMP_MS 2800 -> 5600 (station departure half as steep)
+ *   STOP_RAMP_MS   2800 -> 5600 (v1.12A, same session: final stop ramp
+ *                                half as steep. NOTE: gentler braking
+ *                                lengthens the distance covered during
+ *                                the zero ramp, so observed platform
+ *                                landings may shift slightly beyond the
+ *                                field-tuned stopOffsets; watch the
+ *                                first laps and retune stopOffset per
+ *                                station if needed)
  * NOT rescaled, deliberately: the Grillers CW climb segment keeps its
  * absolute cruisePwm 120 (a climb boost is about the hill, not the base),
  * and STOP_RAMP_MS keeps 2800 (braking feel unchanged). Otto's profile
@@ -329,7 +337,7 @@
 #include <Adafruit_INA219.h>
 #include "LocoConfig.h"
 
-#define SKETCH_NAME "QUORUM_1_12"
+#define SKETCH_NAME "QUORUM_1_12A"
 
 // Broker lives here, not in LocoConfig.h — same as the previous lineage.
 #define MQTT_BROKER "192.168.68.142"
@@ -1530,7 +1538,7 @@ static const uint8_t GRADE_COUNT = sizeof(GRADES)/sizeof(GRADES[0]);
 
 static const uint16_t APPROACH_RAMP_MS = 700;   // ~half a marker: settled before the next
 static const uint16_t FINAL_RAMP_MS    = 700;
-static const uint16_t STOP_RAMP_MS     = 2800;  // gentler: 1500 read as a switch opening
+static const uint16_t STOP_RAMP_MS     = 5600;  // v1.12A operator tuning (was 2800): final stop ramp half as steep
 static const uint16_t DEPART_RAMP_MS   = 5600;  // v1.12 operator tuning (was 2800): station departure half as steep
 static const int8_t   APPROACH_START      = -10;
 static const int8_t   ZONE_START          = -5;
