@@ -30,3 +30,4 @@ __pycache__/
 venv/
 firmware/libraries
 firmware/libraries
+firmware/test-programs/ESPNOW_CMD_TX/espnow_keys.h

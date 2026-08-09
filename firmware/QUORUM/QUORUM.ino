@@ -5,6 +5,16 @@
  * Successor to SOLONAV (v2.22 final). QUORUM navigator per spec R21.
  *
  * ---------------------------------------------------------------------------
+ * v1.11B — A/B VARIANT B: RESTRAINED RECONNECT DRAIN (diag stub)
+ * ---------------------------------------------------------------------------
+ * QUORUM_1_12_TRANSPORT_RESILIENCE_SPEC.md T1, CODEX-approved for the
+ * measured A/B. Variant A is 1.11 as committed (stock burst drain).
+ * This variant caps the status drain at one publish per pass for the
+ * first 10 s after each MQTT connect; markers, inbound-first service,
+ * and the no-quorum reconciliation slot are untouched. STUB rules apply:
+ * not a base; the measured winner is implemented in 1.12 from 1.10.
+ *
+ * ---------------------------------------------------------------------------
  * v1.11 — NETWORK DIAGNOSTIC INSTRUMENTATION (evidence only, no fix)
  * ---------------------------------------------------------------------------
  * The field link fails ~daily: session-scoped, reboot-curable, position-
@@ -330,7 +340,7 @@
 #include <Adafruit_INA219.h>
 #include "LocoConfig.h"
 
-#define SKETCH_NAME "QUORUM_1_11"
+#define SKETCH_NAME "QUORUM_1_11B"
 
 // Broker lives here, not in LocoConfig.h — same as the previous lineage.
 #define MQTT_BROKER "192.168.68.142"
@@ -2847,6 +2857,8 @@ static void serviceCommands(){
 // no longer stall loop(). (The online/boot/alert publishes go through pub(),
 // i.e. onto pubQueue, and are flushed by networkTask on its next pass.)
 static unsigned long nextMqttTryMs=0;
+// v1.11B (A/B variant B, spec T1): time of the last successful MQTT connect.
+static unsigned long lastMqttConnectMs=0;
 static void attemptReconnect(){
   unsigned long now=millis();
   if(now<nextMqttTryMs) return;
@@ -2856,6 +2868,7 @@ static void attemptReconnect(){
   bool ok=mqtt.connect(LOCO_NAME,T_ONLINE,0,true,"0");
   mqttConnectMs=millis()-t0;
   if(ok){
+    lastMqttConnectMs=millis();          // v1.11B: restraint window starts here
     pub(T_ONLINE,"1",true);
     publishAllStatesRetained();        // Change 3c: reseed all ten state topics
     publishBootId();
@@ -3040,8 +3053,17 @@ static void networkTask(void*){
         }
         // Status keeps its bounded drain (Change 2, v2.20): at most 4 per pass so
         // a congested outbound queue cannot starve inbound mqtt.loop().
+        // v1.11B — VARIANT B (spec T1): for the first 10 s after each MQTT
+        // connect the status drain is capped at ONE publish per pass. The
+        // ~13 reseed publishes queued at connect therefore spread at >=5 ms
+        // apart (<100 ms total on a healthy link, imperceptible) instead of
+        // landing as a burst on a path that just proved impaired. Markers
+        // are untouched (their own queue, own priority); steady state
+        // reverts to the stock 4-per-pass exactly. RESTRAIN_MS is config.
+        const uint32_t RESTRAIN_MS = 10000UL;
+        uint8_t cap = (millis()-lastMqttConnectMs < RESTRAIN_MS) ? 1 : 4;
         uint8_t n=0;
-        while(n<4 && xQueueReceive(pubQueue,&m,0)==pdTRUE){
+        while(n<cap && xQueueReceive(pubQueue,&m,0)==pdTRUE){
           unsigned long t0=millis();                                 // v1.11 diag
           mqtt.publish(m.topic,m.payload,m.retain);
           unsigned long d=millis()-t0; if(d>diagMaxPubMs) diagMaxPubMs=d;
