@@ -121,6 +121,12 @@ evidence instead of survivor-biased event statistics.
 
 ## Addendum, 2026-08-09 — CODEX review round (PR #3)
 
+> **Revised by the re-review addendum below.** This round's fixes 1 and 4
+> were accepted as-is; the re-review found the fix-2 and fix-3 approaches
+> insufficient (not wrong in what they fixed, but incomplete), and they
+> are corrected by fixes 5 and 6. "All four fixed" held only until the
+> re-review; the table below stands as the record of this round.
+
 CODEX raised four findings against the commit above; all four accepted and
 fixed, one commit each, on `agent/ir-scope-review`:
 
@@ -142,3 +148,27 @@ fixed, one commit each, on `agent/ir-scope-review`:
 - Table/report format change: columns `open`, `seed`, `uncls` added; the
   MQTT batch gains `miss`/`miss_n`; the CSV gains the `MISSED` row type.
   Parsers of the samples topic must tolerate the two new fields.
+
+---
+
+## Addendum 2, 2026-08-09 — CODEX re-review round (PR #3)
+
+The re-review accepted fixes 1 (missed-slot capture) and 4 (complete
+outcome overlay) and independently confirmed the clean build. Two P1
+replay issues remained; both accepted and fixed, one commit each:
+
+| finding | fix |
+|---|---|
+| 5 [P1] Post-gap candidate state was still initialized from the recorded 1/3 detector, which is exact only for the 1/3 candidate — a higher thrLow may have fallen (and re-risen) inside the gap where the recorded detector did not. | Seeding removed entirely. After a transport gap the candidate's state is **unknown** and re-established from the waveform against **its own** thresholds: the first sample with raw < thrLow(candidate), or a contrast loss, pins every detector variant to idle with certainty (a fall or discard has just happened by construction). The unknown stretch is a `resync_unknown` episode (`unkn` column), excluded from statistics, drawn grey in the overlay; validation excludes recorded edges inside the 1/3 candidate's declared resync spans (the recorded fall ending a span is the resync trigger itself). Verified: mid-pulse gap → 1 unkn + 1 gap-interrupted per candidate, zero spurious rises, 35/35 rises / 34/34 falls matched outside the span. |
+| 6 [P1] The local interval base handles gradual speed change but cannot establish physical revolutions or expose **uniform** duplication/merging — interval ratios are scale-free, so a capture where every pulse merges two spokes reads as healthy 7.00 pulses/rev. | Added a candidate-independent **waveform-structure pass**: prominence-based physical peak counting on the raw trace (≥ 0.25 × span, `--prom`), yielding `p/rev-phys` = 7 × pulses / peaks beside the renamed `p/rev-int`, `mpk` (pulses containing ≥ 2 peaks — direct merged-spoke evidence independent of intervals), per-pulse `duty%` (> 100 % is itself merge evidence), a per-capture structure summary, peak dots on the overlay, and an automatic NOTE when the two revolution figures diverge > 0.5. Documented limit: peaks/7 assumes one optical peak per spoke; per-spoke edge doubling is caught only by the hand-turn marker protocol, as a consistent 2× disagreement with hand-counted turns. Verified on a uniform-merging synthetic (alternating deep/shallow troughs): interval method reads 7.00 / 0 merged at 1/3 while the structure pass reports 56 peaks → 8.00 revolutions, p/rev-phys 3.50, mpk 28/28, NOTE fired; 0.50 recovers 56/56 with mpk 0. Mixed-merging: p/rev-phys 4.75 agrees with p/rev-int 4.71, mpk = the 18 merges. Variable-speed: both methods 7.00. |
+
+### Verification, re-review round
+
+- Firmware untouched this round; both Python tools `py_compile` clean.
+- All five synthetics re-run at final state: baseline shallow-trough, gap
+  (mid-pulse both edges), variable-speed ramp, latch plateau, and the new
+  uniform-merging capture — semantics validation passes on each, with the
+  resync-span exclusion accounting exactly for the unknowable edges.
+- Report format change vs the previous round: `seed` column replaced by
+  `unkn`; `mpk`, `duty%`, `p/rev-phys` columns added; `pulses/rev` renamed
+  `p/rev-int`; a structure summary line and divergence NOTEs added.

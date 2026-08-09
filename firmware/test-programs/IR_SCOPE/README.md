@@ -73,13 +73,26 @@ rising rule held at production. The 1/3 replay is validated against the
 firmware's own recorded edges first; if that check warns, distrust the rest.
 
 Every replayed pulse is an **episode with an explicit outcome** — completed,
-latch-discarded, contrast-discarded, open at a gap, open at record end —
-so a candidate that stops producing fall edges is reported, not hidden.
-Merged/short classification is judged against a **local** base (p25 of the
-±10 neighbouring intervals in the same session), because a hand-pushed
-wheel changes speed and a pooled base would misread slow stretches as
-merges; intervals with too few neighbours are reported as `uncls`, never
-guessed.
+latch-discarded, contrast-discarded, open at a gap, open at record end,
+post-gap state-unknown — so a candidate that stops producing fall edges is
+reported, not hidden. Merged/short classification is judged against a
+**local** base (p25 of the ±10 neighbouring intervals in the same session),
+because a hand-pushed wheel changes speed and a pooled base would misread
+slow stretches as merges; intervals with too few neighbours are reported as
+`uncls`, never guessed.
+
+Interval ratios are scale-free and blind to **uniform** distortion (every
+pulse merging two spokes shifts all intervals identically), so the report
+also runs a threshold-independent **waveform-structure pass**: a
+prominence-based peak counter over the raw trace (`--prom`, default 0.25 ×
+span) yields physical spoke passages, `p/rev-phys` = 7 × pulses / peaks
+beside the interval-based `p/rev-int`, `mpk` (pulses containing ≥ 2
+physical peaks — direct merged-spoke evidence), per-pulse `duty%` (> 100 %
+is itself a merge signal), and an automatic NOTE when the two revolution
+figures disagree. Limit: peaks/7 assumes one optical peak per spoke —
+confirm absolute revolutions with the hand-turn marker protocol; a
+consistent 2× disagreement with hand-counted turns means duplicated
+optical features per spoke.
 
 Overlay a candidate on the waveform to see exactly which troughs would emit
 a fall edge:
@@ -156,9 +169,13 @@ thr_high, thr_low, contrast_valid, in_pulse, rise, fall, info
   physically happened: `SESSION` fully resets the detector; `MISSED`
   carries **all** replay state (the firmware detector ran continuously
   through the stall); `GAP` closes the open pulse as `gap_interrupted`,
-  clears the interval anchor, and **seeds** the replay from the recorded
-  `in_pulse` flag at resume — a seeded pulse's width and anchoring
-  interval are excluded from statistics because its rise time is unknown.
+  clears the interval anchor, and then **resynchronizes each candidate
+  independently from the waveform**: state is unknown until the first
+  sample below *that candidate's* thrLow (or a contrast loss), which pins
+  any detector variant to idle with certainty. The unknown stretch is
+  reported (`unkn` column, `resync_unknown` episode), excluded from
+  statistics, and drawn grey in the overlay — never seeded from the
+  recorded 1/3 detector, whose state is exact only for the 1/3 candidate.
   An unmarked sample-number jump is treated as a GAP, conservatively.
 
 ## Scope boundaries
