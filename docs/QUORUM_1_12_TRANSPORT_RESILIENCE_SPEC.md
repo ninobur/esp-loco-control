@@ -1,6 +1,7 @@
 # QUORUM 1.12 — transport resilience: reconnect restraint and the wander tripwire
 
-Status: **proposal for review (CODEX, Sam). No code written.**
+Status: **Rev 2 — CODEX 2026-08-09: cleared to proceed to A/B testing,
+findings 6–7 incorporated. No code written.**
 Date: 2026-08-09
 Base: **QUORUM 1.10 (`c39c439`)** — operator ruling 2026-08-08; 1.11 was a
 diagnostic stub and is not a base.
@@ -50,8 +51,12 @@ stationary locomotive; impairment induced by parking the EAP back on the
 Deco-contested channel for the test window (we own a reproducible
 interference source — an unusual luxury); measure time-to-stable-session,
 pub_drops, reconnect count, and command-delivery latency (timed STOPs)
-across ≥5 impairment cycles per variant. Pass = B strictly better or
-equal on all four, never worse on command latency.
+across ≥5 impairment cycles per variant, recording **median, p95, and
+maximum** for the latency metric rather than single values. **Pass rule
+(CODEX finding 7 wording, adopted): B must be no worse than A on every
+metric, strictly better on at least one transport-stability metric
+(time-to-stable-session, pub_drops, or reconnect count), and must not
+increase worst-case or p95 command latency.**
 
 ## T2 — the wander tripwire (permanent loopstat fields)
 
@@ -59,8 +64,13 @@ The Decos auto-select channels and cannot be pinned; only the EAP can
 dodge. Early warning must therefore be permanent. Add to `state/loopstat`:
 
 - `"rssi"` — `WiFi.RSSI()` at publish time (int dBm);
-- `"pubmax"` — windowed max `mqtt.publish()` duration ms (the 1.11 field
-  that identified the disease), reset per loopstat window.
+- `"pubmax"` — windowed max `mqtt.publish()` duration ms, reset per
+  loopstat window. **Scope pinned per CODEX finding 6: exactly the 1.11
+  measurement — the status-queue drain publishes in `networkTask` only**
+  (not markers, not the no-quorum reconciliation, not the direct
+  netdiag path), preserving comparability with the 2026-08-08 evidence
+  base. Widening the scope later is a deliberate spec change, not a
+  drive-by.
 
 Signature to watch (console/operator, no automation yet): **pubmax
 spiking while rssi stays strong** = the mesh has wandered onto the EAP
