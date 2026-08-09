@@ -1,9 +1,9 @@
 # ESP-NOW command backup — Phase A: the dispatcher keeps its stop
 
-Status: **Rev 3 — CODEX Rev-2 review (`CODEX_REVIEW_REV2_43f1b33.md`)
-incorporated: E1 wire/validation/key contract frozen, E2 dedup redesigned
-as a bounded acted-identity cache, required gates added. Awaiting the
-focused protocol review. No code written.**
+Status: **Rev 4 — CODEX Rev-3 review (`CODEX_REVIEW_REV3_0963192.md`)
+incorporated: R3-1 key-observability honesty split, R3-2 dedup identity
+bound to the authorized sender. Awaiting the short confirmation review.
+No code written.**
 Date: 2026-08-09
 Motivating case: 2026-08-08 — the WiFi/MQTT path degraded to 33 % loss
 and commands, **including E-STOP, became undeliverable for minutes** while
@@ -71,11 +71,13 @@ Dispatcher console (Flask) ──USB serial──► TX-bridge ESP32 ──ESP-N
   version; (4) CRC; (5) cmd in the closed enum, reserved == 0; (6)
   target == own LOCO_ID; (7) dedup/replay (below). Only a frame passing
   all seven reaches the finding-1 fast path.
-- **Dedup (E2 — redesigned as the bounded acted-identity cache):** the
-  receiver keeps a ring of the last **16** acted identities
-  `(nonce, seq, cmd)` with receive timestamps; a frame **acts iff its
-  identity is not present with age < 60 s**. Bounds stated: 16 × 13 B ≈
-  208 B fixed; expiry 60 s (covers the 250 ms retry burst and any
+- **Dedup (E2 cache, identity per R3-2):** the receiver keeps a ring of
+  the last **16** acted identities **`(sender MAC, nonce, seq, cmd)`** —
+  the identity is bound to the authorized sender, so with multiple
+  authorized transmitters one bridge's command can never suppress
+  another's *(R3-2 option 2, preserving the allow-list design)*. A frame
+  **acts iff its identity is not present with age < 60 s**. Bounds
+  stated: 16 × 19 B ≈ 304 B fixed; expiry 60 s (covers the 250 ms retry burst and any
   bridge-reboot overlap with two orders of margin); no wrap arithmetic
   is load-bearing (identities are compared for equality, not order); no
   epoch ordering exists to bounce (E2's re-adoption defect is dissolved,
@@ -91,12 +93,26 @@ Dispatcher console (Flask) ──USB serial──► TX-bridge ESP32 ──ESP-N
   PMK + per-peer LMKs are 16-byte arrays in `credentials.h` (gitignored)
   on both ends; provisioning and rotation are manual edit-both-ends and
   reflash, documented in the runbook — no over-the-air rotation in
-  Phase A. **No plaintext fallback exists**: if key material is missing
-  or invalid or `esp_now_add_peer` fails at boot, ESP-NOW RX/TX is
-  disabled entirely, the locomotive reports `espnow:unavailable` in its
-  counters, the bridge reports the same in its heartbeat, and the
-  dispatcher console shows **BACKUP OFFLINE**. A configuration failure
-  makes the backup *visibly absent*, never silently open.
+  Phase A. **No plaintext fallback exists**, and observability is split
+  honestly *(R3-1)*:
+
+  - **Locally detectable** — missing/malformed local key material, or a
+    local `esp_now_add_peer` failure: the device disables its ESP-NOW
+    path entirely, the locomotive reports `espnow:unavailable`, the
+    bridge reports it in its heartbeat, and the console shows
+    **BACKUP OFFLINE**.
+  - **Not locally detectable** — a cross-device LMK mismatch (each side's
+    key locally valid but different) or an unreachable locomotive: Phase
+    A has no in-band acknowledgement, so **the bridge cannot diagnose
+    this and the UI must never claim it can.** Delivery working is
+    established only by the **commissioning test** (a live PAUSE observed
+    end-to-end at install and after any key change — a mandatory runbook
+    step), by observed train response, or by the locomotive's MQTT
+    counters when the primary path lives. A return-path health handshake
+    is Phase B material. Console wording accordingly: BACKUP OFFLINE
+    means *my half is broken*; BACKUP READY means *my half is healthy* —
+    never "link verified."
+  
 - **Channel** *(finding 2, adopted — blocking)*: while the locomotive's
   WiFi is **associated**, ESP-NOW rides the STA channel (the EAP's, 11),
   and the bridge matches it. While the locomotive is **disconnected** —
@@ -160,8 +176,14 @@ Additionally (CODEX Rev-2 required gates, adopted verbatim):
 - unknown sender, wrong target, bad length, bad version, bad CRC,
   invalid command, replayed identity, and absent/invalid key **each fail
   closed and increment their own counter**;
-- a missing/invalid key or failed peer setup marks the backup
-  unavailable at the dispatcher;
+- a missing/invalid **local** key or failed **local** peer setup marks
+  the backup unavailable at the dispatcher; a deliberate cross-device
+  key mismatch is verified to produce **no action, no plaintext, and no
+  false OFFLINE claim** — caught only by the commissioning test, as the
+  contract states (R3-1);
+- with two authorized senders configured on the bench, identical
+  (nonce, seq, cmd) tuples from different MACs both act (R3-2 identity
+  binding verified);
 - delayed copies from a previous bridge epoch do not act after their
   identities are cached;
 - receiver reboot and bridge reboot both preserve the documented dedup
