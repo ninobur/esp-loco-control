@@ -72,8 +72,19 @@ DEBOUNCE_MS = 15.0        # DEBOUNCE_US, IR_DIAG
 LATCH_MS    = 2500.0      # LATCH_TIMEOUT_MS, IR_DIAG
 SPOKES      = 7
 
-SHORT_WIDTH_FRACTION = 0.4    # width < 0.4 x median width => implausibly short
-MERGED_RATIO         = 1.7    # interval >= 1.7 x base => >=1 swallowed spoke
+SHORT_WIDTH_FRACTION = 0.4    # width < 0.4 x local median width => implausibly short
+MERGED_RATIO         = 1.7    # interval >= 1.7 x LOCAL base => >=1 swallowed spoke
+
+# Merged/short classification is judged against a LOCAL base, not a pooled
+# one: a hand-pushed wheel changes speed continuously, and against a pooled
+# p25 every slow-phase interval would read as "merged" while fast-phase
+# merges could hide below it. The local base is the 25th percentile of the
+# +/-LOCAL_HALF neighbouring intervals (low percentile because a swallowed
+# spoke can only INFLATE an interval, never shrink it — so even in a run
+# with many merges the local p25 sits on the single-spoke time). Intervals
+# without enough neighbours are reported as unclassified, never guessed.
+LOCAL_HALF  = 10              # neighbours each side (window of up to 21)
+LOCAL_MIN_N = 5               # minimum window population to classify
 
 
 # ============================================================================
@@ -287,13 +298,25 @@ def pct(sorted_vals, p):
     return sorted_vals[k]
 
 
+def local_pct(vals, i, p):
+    """Percentile over the chronological window vals[i-LOCAL_HALF ..
+    i+LOCAL_HALF]; None when the window is too thin to judge."""
+    lo = max(0, i - LOCAL_HALF)
+    hi = min(len(vals), i + LOCAL_HALF + 1)
+    win = sorted(vals[lo:hi])
+    if len(win) < LOCAL_MIN_N:
+        return None
+    return pct(win, p)
+
+
 def analyse(results):
     eps = flat_episodes(results)
     done = [ep for ep in eps if ep["outcome"] == "completed"
             and not ep["seeded"]]
     widths = sorted(ep["width"] for ep in done)
-    intervals = sorted(ep["interval"] for ep in done
-                       if ep["interval"] is not None and ep["interval"] > 0)
+    intervals_sorted = sorted(ep["interval"] for ep in done
+                              if ep["interval"] is not None
+                              and ep["interval"] > 0)
 
     out = {
         "n_pulses": len([ep for ep in eps if ep["outcome"] == "completed"]),
@@ -306,35 +329,50 @@ def analyse(results):
         "w_p90": pct(widths, 90),
         "w_min": widths[0] if widths else float("nan"),
         "w_max": widths[-1] if widths else float("nan"),
-        "i_med": pct(intervals, 50),
-        "i_min": intervals[0] if intervals else float("nan"),
-        "i_max": intervals[-1] if intervals else float("nan"),
-        "merged": 0, "short_pulses": 0,
+        "i_med": pct(intervals_sorted, 50),
+        "i_min": intervals_sorted[0] if intervals_sorted else float("nan"),
+        "i_max": intervals_sorted[-1] if intervals_sorted else float("nan"),
+        "merged": 0, "short_pulses": 0, "unclassified": 0,
         "spoke_passages": 0, "n_ratio_intervals": 0,
         "pulses_per_rev": float("nan"),
         "base_interval": float("nan"),
     }
 
-    if widths:
-        w_med = out["w_med"]
-        out["short_pulses"] = sum(1 for w in widths
-                                  if w < max(3.0, SHORT_WIDTH_FRACTION * w_med))
+    # Locality is judged per session and in chronological order — speed at
+    # a hand-pushed wheel is only comparable to its neighbours in time.
+    local_bases = []
+    for r in results:
+        ses_done = [ep for ep in r["episodes"]
+                    if ep["outcome"] == "completed" and not ep["seeded"]]
+        # widths: short vs the local median width
+        ws = [ep["width"] for ep in ses_done]
+        for i, w in enumerate(ws):
+            ref = local_pct(ws, i, 50)
+            if ref is None:
+                ref = out["w_med"]      # thin record: pooled median fallback
+            if not (isinstance(ref, float) and math.isnan(ref)):
+                if w < max(3.0, SHORT_WIDTH_FRACTION * ref):
+                    out["short_pulses"] += 1
+        # intervals: merged vs the LOCAL base
+        ivs = [ep["interval"] for ep in ses_done
+               if ep["interval"] is not None and ep["interval"] > 0]
+        for i, iv in enumerate(ivs):
+            base = local_pct(ivs, i, 25)
+            if base is None or base <= 0:
+                out["unclassified"] += 1
+                continue
+            local_bases.append(base)
+            ratio = iv / base
+            if ratio >= MERGED_RATIO:
+                out["merged"] += 1
+            out["spoke_passages"] += max(1, int(round(ratio)))
+            out["n_ratio_intervals"] += 1
 
-    if len(intervals) >= 5:
-        # Base interval from a low percentile: a swallowed spoke can only
-        # INFLATE an interval, never shrink it, so p25 approximates the true
-        # single-spoke time even when much of the record is merged.
-        base = pct(intervals, 25)
-        out["base_interval"] = base
-        if base > 0:
-            ratios = [i / base for i in intervals]
-            out["merged"] = sum(1 for r in ratios if r >= MERGED_RATIO)
-            rounded = [max(1, int(round(r))) for r in ratios]
-            out["spoke_passages"] = sum(rounded)
-            out["n_ratio_intervals"] = len(rounded)
-            if out["spoke_passages"] > 0:
-                out["pulses_per_rev"] = (SPOKES * len(rounded)
-                                         / out["spoke_passages"])
+    if local_bases:
+        out["base_interval"] = pct(sorted(local_bases), 50)
+    if out["spoke_passages"] > 0:
+        out["pulses_per_rev"] = (SPOKES * out["n_ratio_intervals"]
+                                 / out["spoke_passages"])
     return out
 
 
@@ -488,17 +526,17 @@ def main():
         print("         WARNING: replay does not reproduce the recorded detector;"
               " treat candidate numbers as suspect")
 
-    hdr = ("frac    pulses  latch  open  seed  short  merged  "
+    hdr = ("frac    pulses  latch  open  seed  short  merged  uncls  "
            "w med/p10/p90      int med/min/max        base   pulses/rev")
     print("\n" + hdr)
     print("-" * len(hdr))
     for frac in candidates:
         m = analyse(all_results[frac])
         label = frac if isinstance(frac, str) else ("%.2f" % frac)
-        print("%-6s  %6d  %5d  %4d  %4d  %5d  %6d  %5s/%5s/%5s ms  "
+        print("%-6s  %6d  %5d  %4d  %4d  %5d  %6d  %5d  %5s/%5s/%5s ms  "
               "%6s/%6s/%6s ms  %5s  %s"
               % (label, m["n_pulses"], m["latches"], m["open"], m["seeded"],
-                 m["short_pulses"], m["merged"],
+                 m["short_pulses"], m["merged"], m["unclassified"],
                  fmt(m["w_med"], "%.0f"), fmt(m["w_p10"], "%.0f"),
                  fmt(m["w_p90"], "%.0f"),
                  fmt(m["i_med"], "%.0f"), fmt(m["i_min"], "%.0f"),
@@ -506,10 +544,13 @@ def main():
                  fmt(m["base_interval"], "%.0f"),
                  fmt(m["pulses_per_rev"], "%.2f")))
     print("\npulses/rev: 7.00 = every spoke seen; ~3.5 = half merged."
-          "\nmerged: intervals >= %.1fx the base (p25) interval."
+          "\nmerged: interval >= %.1fx its LOCAL base (p25 of the +/-%d"
+          " neighbouring intervals, per session) — a pooled base would"
+          " misread hand-push speed changes as merges. uncls = intervals"
+          " with too few neighbours to classify."
           "\nlatch/open episodes are pulses that never produced a fall edge."
           "\nEstablish phase with a hand-turn marker before trusting"
-          " revolutions absolutely." % MERGED_RATIO)
+          " revolutions absolutely." % (MERGED_RATIO, LOCAL_HALF))
 
     if a.plot is not None:
         frac = "1/3" if a.plot.strip() == "1/3" else float(a.plot)
