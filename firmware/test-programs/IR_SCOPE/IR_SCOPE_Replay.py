@@ -69,6 +69,7 @@ REQUIREMENTS
 """
 
 import argparse
+import bisect
 import csv
 import math
 import sys
@@ -90,6 +91,24 @@ MERGED_RATIO         = 1.7    # interval >= 1.7 x LOCAL base => >=1 swallowed sp
 # without enough neighbours are reported as unclassified, never guessed.
 LOCAL_HALF  = 10              # neighbours each side (window of up to 21)
 LOCAL_MIN_N = 5               # minimum window population to classify
+
+# INTERVAL RATIOS ARE SCALE-FREE and therefore blind to UNIFORM distortion:
+# if every pulse merges exactly two spokes (or every spoke doubles), all
+# intervals shift together, every ratio reads 1.0, and the table above
+# reports a healthy 7.00 pulses/rev. The waveform STRUCTURE is not blind:
+# a merged pulse physically contains two reflective peaks separated by the
+# trough that failed to cross thrLow. So a threshold-independent peak
+# counter runs over the raw trace — a peak is a local maximum above the
+# band midpoint from which the signal falls by at least PEAK_PROM_FRAC x
+# span before the next one (hysteresis/prominence tracking, --prom to
+# adjust). Physical spoke passages = peak count; pulses per PHYSICAL
+# revolution = 7 x pulses / peaks; a completed pulse containing >= 2 peaks
+# is direct merged-spoke evidence (mpk column) independent of intervals.
+# LIMIT: peaks/7 assumes one optical peak per spoke. If each spoke presents
+# two optical features (the historic bare-spoke edge-doubling), peaks
+# double too — only the hand-turn marker protocol (README) catches that,
+# as a consistent 2x disagreement between peaks/7 and hand-counted turns.
+PEAK_PROM_FRAC = 0.25         # prominence, as a fraction of live span
 
 
 # ============================================================================
@@ -327,6 +346,55 @@ def flat_episodes(results):
 
 
 # ============================================================================
+# WAVEFORM STRUCTURE — candidate-independent physical peak count.
+# ============================================================================
+def physical_peaks(session, prom_frac):
+    """Hysteresis/prominence peak tracker over the raw trace. A peak is a
+    local maximum above the band midpoint from which the signal
+    subsequently falls by at least prom_frac*span; the tracker re-arms
+    when it rises by the same amount off the following minimum. Resets at
+    GAP boundaries and contrast-invalid stretches (structure unjudgeable
+    there); continues across MISSED (the wheel kept turning, a few-ms hole
+    does not break a spoke summit). Returns [(t_ms, value), ...]."""
+    peaks = []
+
+    def fresh():
+        return {"mode": "up", "cmax": -1, "cmax_t": 0.0, "cmin": 1 << 14}
+
+    tr = fresh()
+    for si, seg in enumerate(session["segments"]):
+        if si > 0 and session["boundaries"][si - 1] == "GAP":
+            tr = fresh()
+        for i in range(len(seg["t"])):
+            if not seg["cv"][i]:
+                tr = fresh()
+                continue
+            t = float(seg["t"][i])
+            raw = seg["raw"][i]
+            mn = seg["mn"][i]
+            span = seg["mx"][i] - mn
+            prom = max(50, int(span * prom_frac))
+            mid = mn + span // 2
+            if tr["mode"] == "up":
+                if raw > tr["cmax"]:
+                    tr["cmax"] = raw
+                    tr["cmax_t"] = t
+                elif raw < tr["cmax"] - prom:
+                    if tr["cmax"] > mid:      # bright-side peaks only: spokes
+                        peaks.append((tr["cmax_t"], tr["cmax"]))
+                    tr["mode"] = "down"
+                    tr["cmin"] = raw
+            else:
+                if raw < tr["cmin"]:
+                    tr["cmin"] = raw
+                elif raw > tr["cmin"] + prom:
+                    tr["mode"] = "up"
+                    tr["cmax"] = raw
+                    tr["cmax_t"] = t
+    return peaks
+
+
+# ============================================================================
 # METRICS
 # ============================================================================
 def pct(sorted_vals, p):
@@ -347,7 +415,7 @@ def local_pct(vals, i, p):
     return pct(win, p)
 
 
-def analyse(results):
+def analyse(results, peaks_by_session=None):
     eps = flat_episodes(results)
     done = [ep for ep in eps if ep["outcome"] == "completed"]
     widths = sorted(ep["width"] for ep in done)
@@ -373,7 +441,33 @@ def analyse(results):
         "spoke_passages": 0, "n_ratio_intervals": 0,
         "pulses_per_rev": float("nan"),
         "base_interval": float("nan"),
+        "multi_peak": 0,
+        "p_rev_phys": float("nan"),
+        "duty_med": float("nan"),
     }
+
+    # Per-pulse duty cycle: merged pulses carry the swallowed trough inside
+    # the width, so duty rises well above the ~50% of a clean spoke — a
+    # scale-free indicator that survives uniform distortion.
+    duties = sorted(100.0 * ep["width"] / ep["interval"] for ep in done
+                    if ep["interval"] is not None and ep["interval"] > 0)
+    if duties:
+        out["duty_med"] = pct(duties, 50)
+
+    # Waveform-structure comparison (candidate-independent peaks).
+    if peaks_by_session is not None:
+        n_peaks = sum(len(p) for p in peaks_by_session)
+        if n_peaks > 0 and done:
+            out["p_rev_phys"] = SPOKES * len(done) / n_peaks
+        for r, peaks in zip(results, peaks_by_session):
+            pt = [p[0] for p in peaks]        # sorted by construction
+            for ep in r["episodes"]:
+                if ep["outcome"] != "completed":
+                    continue
+                k = (bisect.bisect_right(pt, ep["t_end"])
+                     - bisect.bisect_left(pt, ep["t_rise"]))
+                if k >= 2:
+                    out["multi_peak"] += 1
 
     # Locality is judged per session and in chronological order — speed at
     # a hand-pushed wheel is only comparable to its neighbours in time.
@@ -463,7 +557,8 @@ def validate_against_recording(sessions, results):
 # ============================================================================
 # OVERLAY PLOT
 # ============================================================================
-def overlay(sessions, frac, results, t_start, duration, save):
+def overlay(sessions, frac, results, t_start, duration, save,
+            peaks_by_session=None):
     import matplotlib
     if save:
         matplotlib.use("Agg")
@@ -534,6 +629,15 @@ def overlay(sessions, frac, results, t_start, duration, save):
                 ax.scatter([tf], [320], marker="x", s=60, color=color,
                            zorder=5)
 
+    # physical peaks: the structural ground truth the thresholds interpret
+    if peaks_by_session:
+        pk = [(t / 1000.0, v) for peaks in peaks_by_session
+              for (t, v) in peaks]
+        if pk:
+            ax.scatter([p[0] for p in pk], [p[1] for p in pk], marker=".",
+                       s=30, color="#111111", zorder=6,
+                       label="physical peak (structure)")
+
     if t_start is not None:
         ax.set_xlim(t_start, t_start + (duration or 5.0))
     ax.legend(fontsize=8, loc="upper right")
@@ -564,6 +668,9 @@ def main():
     ap.add_argument("--duration", type=float, default=None,
                     help="overlay window length, seconds")
     ap.add_argument("--save", default=None, help="save overlay PNG instead of showing")
+    ap.add_argument("--prom", type=float, default=PEAK_PROM_FRAC,
+                    help="physical-peak prominence as a fraction of span "
+                         "(default %.2f)" % PEAK_PROM_FRAC)
     a = ap.parse_args()
 
     sessions = load_sessions(a.csv_path)
@@ -582,6 +689,14 @@ def main():
     print("[Replay] recorded detector: %d completed pulses in this capture"
           % rec_pulses)
 
+    # Candidate-independent waveform structure: physical spoke passages
+    # counted from the raw trace itself, immune to uniform interval shifts.
+    peaks_by_session = [physical_peaks(s, a.prom) for s in sessions]
+    n_peaks = sum(len(p) for p in peaks_by_session)
+    print("[Replay] waveform structure: %d physical peaks (prominence "
+          "%.2f x span) -> %.2f apparent revolutions (peaks/7)"
+          % (n_peaks, a.prom, n_peaks / SPOKES))
+
     candidates = ["1/3", 0.40, 0.50, 0.60] + a.frac
 
     all_results = {}
@@ -599,38 +714,62 @@ def main():
         print("         WARNING: replay does not reproduce the recorded detector;"
               " treat candidate numbers as suspect")
 
-    hdr = ("frac    pulses  latch  open  unkn  short  merged  uncls  "
-           "w med/p10/p90      int med/min/max        base   pulses/rev")
+    hdr = ("frac    pulses  latch  open  unkn  short  merged  uncls  mpk  "
+           "duty%  w med/p10/p90      int med/min/max        base   "
+           "p/rev-int  p/rev-phys")
     print("\n" + hdr)
     print("-" * len(hdr))
+    notes = []
     for frac in candidates:
-        m = analyse(all_results[frac])
+        m = analyse(all_results[frac], peaks_by_session)
         label = frac if isinstance(frac, str) else ("%.2f" % frac)
-        print("%-6s  %6d  %5d  %4d  %4d  %5d  %6d  %5d  %5s/%5s/%5s ms  "
-              "%6s/%6s/%6s ms  %5s  %s"
+        print("%-6s  %6d  %5d  %4d  %4d  %5d  %6d  %5d  %3d  %5s  "
+              "%5s/%5s/%5s ms  %6s/%6s/%6s ms  %5s  %9s  %s"
               % (label, m["n_pulses"], m["latches"], m["open"], m["resync"],
                  m["short_pulses"], m["merged"], m["unclassified"],
+                 m["multi_peak"], fmt(m["duty_med"], "%.0f"),
                  fmt(m["w_med"], "%.0f"), fmt(m["w_p10"], "%.0f"),
                  fmt(m["w_p90"], "%.0f"),
                  fmt(m["i_med"], "%.0f"), fmt(m["i_min"], "%.0f"),
                  fmt(m["i_max"], "%.0f"),
                  fmt(m["base_interval"], "%.0f"),
-                 fmt(m["pulses_per_rev"], "%.2f")))
-    print("\npulses/rev: 7.00 = every spoke seen; ~3.5 = half merged."
+                 fmt(m["pulses_per_rev"], "%.2f"),
+                 fmt(m["p_rev_phys"], "%.2f")))
+        if (not math.isnan(m["pulses_per_rev"])
+                and not math.isnan(m["p_rev_phys"])
+                and abs(m["pulses_per_rev"] - m["p_rev_phys"]) > 0.5):
+            notes.append(
+                "NOTE %s: interval-ratio p/rev %.2f disagrees with "
+                "physical-peak p/rev %.2f — uniform merging or doubling "
+                "suspected; the interval method is blind to uniform "
+                "distortion, trust the peak figure and the overlay."
+                % (label, m["pulses_per_rev"], m["p_rev_phys"]))
+    for n in notes:
+        print(n)
+    print("\np/rev-int: interval-ratio estimate (7.00 = every spoke seen;"
+          " ~3.5 = half merged). BLIND to uniform distortion."
+          "\np/rev-phys: 7 x pulses / physical peaks counted from the raw"
+          " waveform — catches uniform merging; mpk = completed pulses"
+          " containing >= 2 physical peaks (direct merged-spoke evidence)."
           "\nmerged: interval >= %.1fx its LOCAL base (p25 of the +/-%d"
           " neighbouring intervals, per session) — a pooled base would"
           " misread hand-push speed changes as merges. uncls = intervals"
           " with too few neighbours to classify."
-          "\nlatch/open episodes are pulses that never produced a fall edge."
-          "\nEstablish phase with a hand-turn marker before trusting"
-          " revolutions absolutely." % (MERGED_RATIO, LOCAL_HALF))
+          "\nlatch/open episodes are pulses that never produced a fall edge;"
+          " unkn = post-gap stretches where candidate state was unknowable."
+          "\npeaks/7 assumes one optical peak per spoke: confirm with the"
+          " hand-turn marker protocol before trusting revolutions"
+          " absolutely — a consistent 2x disagreement with hand-counted"
+          " turns means duplicated optical features per spoke."
+          % (MERGED_RATIO, LOCAL_HALF))
 
     if a.plot is not None:
         frac = "1/3" if a.plot.strip() == "1/3" else float(a.plot)
         results = all_results.get(frac)
         if results is None:
             results = [replay_session(s, frac) for s in sessions]
-        overlay(sessions, frac, results, a.start, a.duration, a.save)
+        overlay(sessions, frac, results, a.start, a.duration, a.save,
+                peaks_by_session)
 
 
 if __name__ == "__main__":
