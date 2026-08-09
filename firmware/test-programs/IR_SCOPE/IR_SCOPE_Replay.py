@@ -95,20 +95,28 @@ LOCAL_MIN_N = 5               # minimum window population to classify
 # INTERVAL RATIOS ARE SCALE-FREE and therefore blind to UNIFORM distortion:
 # if every pulse merges exactly two spokes (or every spoke doubles), all
 # intervals shift together, every ratio reads 1.0, and the table above
-# reports a healthy 7.00 pulses/rev. The waveform STRUCTURE is not blind:
-# a merged pulse physically contains two reflective peaks separated by the
-# trough that failed to cross thrLow. So a threshold-independent peak
-# counter runs over the raw trace — a peak is a local maximum above the
-# band midpoint from which the signal falls by at least PEAK_PROM_FRAC x
-# span before the next one (hysteresis/prominence tracking, --prom to
-# adjust). Physical spoke passages = peak count; pulses per PHYSICAL
-# revolution = 7 x pulses / peaks; a completed pulse containing >= 2 peaks
-# is direct merged-spoke evidence (mpk column) independent of intervals.
-# LIMIT: peaks/7 assumes one optical peak per spoke. If each spoke presents
-# two optical features (the historic bare-spoke edge-doubling), peaks
-# double too — only the hand-turn marker protocol (README) catches that,
-# as a consistent 2x disagreement between peaks/7 and hand-counted turns.
+# reports a healthy 7.00 pulses/rev. The waveform STRUCTURE is not blind
+# to merging: a merged pulse physically contains two reflective peaks
+# separated by the trough that failed to cross thrLow. So a
+# threshold-independent peak counter runs over the raw trace — a peak is a
+# local maximum above the band midpoint from which the signal falls by at
+# least PEAK_PROM_FRAC x span before the next one (hysteresis/prominence
+# tracking, --prom to adjust). A completed pulse containing >= 2 peaks is
+# direct merged-spoke evidence (mpk column) independent of intervals.
+#
+# p/7pk = 7 x pulses / peaks is APPARENT PULSES PER SEVEN PEAKS — it is
+# NOT a physical-revolution measurement, because its denominator comes
+# from the same waveform it judges: if each spoke presents two optical
+# features (the historic bare-spoke edge-doubling), peaks double along
+# with pulses and p/7pk still reads a healthy 7.00. The ONLY absolute
+# figure is pulses per OPERATOR-MARKED revolution: MARKER rows whose text
+# contains --rev-marker (default "rev"), pressed once per hand-turned
+# revolution per the README protocol, give p/rev-mk — and peaks per
+# marked revolution directly tests the one-peak-per-spoke assumption.
+# Without markers the report states that the absolute figure is
+# unavailable; it never presents p/7pk as physical truth.
 PEAK_PROM_FRAC = 0.25         # prominence, as a fraction of live span
+REV_MARKER_DEFAULT = "rev"    # marker-text substring marking one revolution
 
 
 # ============================================================================
@@ -161,6 +169,18 @@ def load_sessions(path):
                     state["pending"] = "MISSED"
                 state["last"] = None
                 continue
+            if rt == "MARKER":
+                # operator markers, kept with their session — revolution
+                # markers are the only source of absolute revolution truth
+                try:
+                    tm = float(row["t_s"]) * 1000.0
+                except (KeyError, TypeError, ValueError):
+                    continue
+                if state["session"] is None:
+                    state["session"] = {"segments": [], "boundaries": [],
+                                        "markers": []}
+                state["session"]["markers"].append((tm, row.get("info", "")))
+                continue
             if rt != "SAMPLE":
                 continue
             try:
@@ -173,7 +193,8 @@ def load_sessions(path):
             except (KeyError, ValueError):
                 continue
             if state["session"] is None:
-                state["session"] = {"segments": [], "boundaries": []}
+                state["session"] = {"segments": [], "boundaries": [],
+                                    "markers": []}
             if (state["seg"] is not None and state["last"] is not None
                     and sample != state["last"] + 1):
                 close_seg()              # unmarked jump: conservative GAP
@@ -361,6 +382,25 @@ def flat_episodes(results):
     return [ep for r in results for ep in r["episodes"]]
 
 
+def usable_rev_windows(session, substr):
+    """Consecutive revolution-marker pairs [(t0, t1), ...] with markers
+    whose text contains substr (case-insensitive). Windows that span a
+    transport-gap boundary are excluded (their pulse/peak counts would be
+    undercounts) and reported separately."""
+    ts = sorted(t for (t, txt) in session["markers"]
+                if substr in txt.lower())
+    gap_starts = [session["segments"][i + 1]["t"][0]
+                  for i, b in enumerate(session["boundaries"]) if b == "GAP"]
+    wins, excluded = [], 0
+    for i in range(len(ts) - 1):
+        a, b = ts[i], ts[i + 1]
+        if any(a <= g <= b for g in gap_starts):
+            excluded += 1
+        else:
+            wins.append((a, b))
+    return wins, excluded
+
+
 # ============================================================================
 # WAVEFORM STRUCTURE — candidate-independent physical peak count.
 # ============================================================================
@@ -431,7 +471,7 @@ def local_pct(vals, i, p):
     return pct(win, p)
 
 
-def analyse(results, peaks_by_session=None):
+def analyse(results, peaks_by_session=None, rev_windows_by_session=None):
     eps = flat_episodes(results)
     done = [ep for ep in eps if ep["outcome"] == "completed"]
     widths = sorted(ep["width"] for ep in done)
@@ -458,7 +498,8 @@ def analyse(results, peaks_by_session=None):
         "pulses_per_rev": float("nan"),
         "base_interval": float("nan"),
         "multi_peak": 0,
-        "p_rev_phys": float("nan"),
+        "p_per_7pk": float("nan"),
+        "p_rev_marked": float("nan"),
         "duty_med": float("nan"),
     }
 
@@ -470,11 +511,13 @@ def analyse(results, peaks_by_session=None):
     if duties:
         out["duty_med"] = pct(duties, 50)
 
-    # Waveform-structure comparison (candidate-independent peaks).
+    # Waveform-structure comparison (candidate-independent peaks). p_per_7pk
+    # is apparent pulses per seven peaks — structural, NOT a revolution
+    # measurement (see the header comment).
     if peaks_by_session is not None:
         n_peaks = sum(len(p) for p in peaks_by_session)
         if n_peaks > 0 and done:
-            out["p_rev_phys"] = SPOKES * len(done) / n_peaks
+            out["p_per_7pk"] = SPOKES * len(done) / n_peaks
         for r, peaks in zip(results, peaks_by_session):
             pt = [p[0] for p in peaks]        # sorted by construction
             for ep in r["episodes"]:
@@ -484,6 +527,18 @@ def analyse(results, peaks_by_session=None):
                      - bisect.bisect_left(pt, ep["t_rise"]))
                 if k >= 2:
                     out["multi_peak"] += 1
+
+    # The only ABSOLUTE pulses/revolution figure: operator-marked windows.
+    if rev_windows_by_session is not None:
+        per_rev = []
+        for r, wins in zip(results, rev_windows_by_session):
+            comp = sorted(ep["t_rise"] for ep in r["episodes"]
+                          if ep["outcome"] == "completed")
+            for (a, b) in wins:
+                per_rev.append(float(bisect.bisect_left(comp, b)
+                                     - bisect.bisect_left(comp, a)))
+        if per_rev:
+            out["p_rev_marked"] = pct(sorted(per_rev), 50)
 
     # Locality is judged per session and in chronological order — speed at
     # a hand-pushed wheel is only comparable to its neighbours in time.
@@ -687,6 +742,9 @@ def main():
     ap.add_argument("--prom", type=float, default=PEAK_PROM_FRAC,
                     help="physical-peak prominence as a fraction of span "
                          "(default %.2f)" % PEAK_PROM_FRAC)
+    ap.add_argument("--rev-marker", default=REV_MARKER_DEFAULT,
+                    help="marker-text substring that marks one hand-turned "
+                         "revolution (default '%s')" % REV_MARKER_DEFAULT)
     a = ap.parse_args()
 
     sessions = load_sessions(a.csv_path)
@@ -705,13 +763,39 @@ def main():
     print("[Replay] recorded detector: %d completed pulses in this capture"
           % rec_pulses)
 
-    # Candidate-independent waveform structure: physical spoke passages
-    # counted from the raw trace itself, immune to uniform interval shifts.
+    # Candidate-independent waveform structure: optical peaks counted from
+    # the raw trace itself, immune to uniform interval shifts. Structural
+    # evidence only — NOT a revolution count (see header comment).
     peaks_by_session = [physical_peaks(s, a.prom) for s in sessions]
     n_peaks = sum(len(p) for p in peaks_by_session)
     print("[Replay] waveform structure: %d physical peaks (prominence "
-          "%.2f x span) -> %.2f apparent revolutions (peaks/7)"
-          % (n_peaks, a.prom, n_peaks / SPOKES))
+          "%.2f x span) — structural evidence, not a revolution count"
+          % (n_peaks, a.prom))
+
+    # Absolute revolutions come ONLY from operator markers.
+    sub = a.rev_marker.lower()
+    rev_pairs = [usable_rev_windows(s, sub) for s in sessions]
+    rev_windows_by_session = [p[0] for p in rev_pairs]
+    n_wins = sum(len(w) for w in rev_windows_by_session)
+    n_excl = sum(p[1] for p in rev_pairs)
+    if n_wins:
+        peaks_per_rev = []
+        for peaks, wins in zip(peaks_by_session, rev_windows_by_session):
+            pt = sorted(p[0] for p in peaks)
+            for (w0, w1) in wins:
+                peaks_per_rev.append(float(bisect.bisect_left(pt, w1)
+                                           - bisect.bisect_left(pt, w0)))
+        ppr_med = pct(sorted(peaks_per_rev), 50)
+        print("[Replay] revolution markers ('%s'): %d usable revolution(s)"
+              "%s; peaks per marked revolution med=%.1f (7.0 = one optical "
+              "peak per spoke; ~14 = duplicated optical features per spoke)"
+              % (a.rev_marker, n_wins,
+                 (", %d excluded across gaps" % n_excl) if n_excl else "",
+                 ppr_med))
+    else:
+        print("[Replay] no revolution markers ('%s') found — absolute "
+              "pulses/revolution UNAVAILABLE; p/7pk is structural evidence "
+              "only" % a.rev_marker)
 
     candidates = ["1/3", 0.40, 0.50, 0.60] + a.frac
 
@@ -732,15 +816,16 @@ def main():
 
     hdr = ("frac    pulses  latch  open  unkn  short  merged  uncls  mpk  "
            "duty%  w med/p10/p90      int med/min/max        base   "
-           "p/rev-int  p/rev-phys")
+           "p/rev-int  p/7pk  p/rev-mk")
     print("\n" + hdr)
     print("-" * len(hdr))
     notes = []
     for frac in candidates:
-        m = analyse(all_results[frac], peaks_by_session)
+        m = analyse(all_results[frac], peaks_by_session,
+                    rev_windows_by_session)
         label = frac if isinstance(frac, str) else ("%.2f" % frac)
         print("%-6s  %6d  %5d  %4d  %4d  %5d  %6d  %5d  %3d  %5s  "
-              "%5s/%5s/%5s ms  %6s/%6s/%6s ms  %5s  %9s  %s"
+              "%5s/%5s/%5s ms  %6s/%6s/%6s ms  %5s  %9s  %5s  %s"
               % (label, m["n_pulses"], m["latches"], m["open"], m["resync"],
                  m["short_pulses"], m["merged"], m["unclassified"],
                  m["multi_peak"], fmt(m["duty_med"], "%.0f"),
@@ -750,34 +835,36 @@ def main():
                  fmt(m["i_max"], "%.0f"),
                  fmt(m["base_interval"], "%.0f"),
                  fmt(m["pulses_per_rev"], "%.2f"),
-                 fmt(m["p_rev_phys"], "%.2f")))
+                 fmt(m["p_per_7pk"], "%.2f"),
+                 fmt(m["p_rev_marked"], "%.1f")))
         if (not math.isnan(m["pulses_per_rev"])
-                and not math.isnan(m["p_rev_phys"])
-                and abs(m["pulses_per_rev"] - m["p_rev_phys"]) > 0.5):
+                and not math.isnan(m["p_per_7pk"])
+                and abs(m["pulses_per_rev"] - m["p_per_7pk"]) > 0.5):
             notes.append(
-                "NOTE %s: interval-ratio p/rev %.2f disagrees with "
-                "physical-peak p/rev %.2f — uniform merging or doubling "
-                "suspected; the interval method is blind to uniform "
-                "distortion, trust the peak figure and the overlay."
-                % (label, m["pulses_per_rev"], m["p_rev_phys"]))
+                "NOTE %s: interval-ratio p/rev-int %.2f disagrees with "
+                "structural p/7pk %.2f — the interval method is blind to "
+                "uniform distortion. Inspect mpk and the overlay; use "
+                "revolution markers for any absolute revolution claim."
+                % (label, m["pulses_per_rev"], m["p_per_7pk"]))
     for n in notes:
         print(n)
     print("\np/rev-int: interval-ratio estimate (7.00 = every spoke seen;"
           " ~3.5 = half merged). BLIND to uniform distortion."
-          "\np/rev-phys: 7 x pulses / physical peaks counted from the raw"
-          " waveform — catches uniform merging; mpk = completed pulses"
-          " containing >= 2 physical peaks (direct merged-spoke evidence)."
+          "\np/7pk: apparent pulses per seven physical peaks — structural"
+          " evidence, NOT a revolution measurement (the denominator comes"
+          " from the same waveform: per-spoke optical doubling still reads"
+          " 7.00). mpk = completed pulses containing >= 2 physical peaks"
+          " (direct merged-spoke evidence)."
+          "\np/rev-mk: pulses per operator-marked revolution (markers"
+          " containing '%s') — the ONLY absolute pulses/revolution figure;"
+          " '---' means no usable marked revolutions in this capture."
           "\nmerged: interval >= %.1fx its LOCAL base (p25 of the +/-%d"
           " neighbouring intervals, per session) — a pooled base would"
           " misread hand-push speed changes as merges. uncls = intervals"
           " with too few neighbours to classify."
           "\nlatch/open episodes are pulses that never produced a fall edge;"
           " unkn = post-gap stretches where candidate state was unknowable."
-          "\npeaks/7 assumes one optical peak per spoke: confirm with the"
-          " hand-turn marker protocol before trusting revolutions"
-          " absolutely — a consistent 2x disagreement with hand-counted"
-          " turns means duplicated optical features per spoke."
-          % (MERGED_RATIO, LOCAL_HALF))
+          % (a.rev_marker, MERGED_RATIO, LOCAL_HALF))
 
     if a.plot is not None:
         frac = "1/3" if a.plot.strip() == "1/3" else float(a.plot)
