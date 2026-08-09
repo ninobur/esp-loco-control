@@ -65,11 +65,21 @@
  *    "first":24600,             sample number of hex[0]; sample N is
  *                               exactly N milliseconds after capture start
  *    "n":200,
+ *    "miss":0,                  sample numbers SKIPPED immediately before
+ *                               `first` because the sampler stalled a full
+ *                               slot or more. Missed slots are never
+ *                               fabricated as data: the batch in progress is
+ *                               flushed short, the slot numbers are skipped,
+ *                               and the tick resynchronizes — so every
+ *                               sample in `hex` really was acquired within
+ *                               a slot of its nominal time
  *    "env":[runMin,runMax,thrHigh,thrLow],   in force at sample `first`
  *    "envu":[[off,mn,mx,hi,lo],...],         mid-batch envelope recomputes:
  *                               new values apply from sample first+off
- *    "late_us":40,              worst lateness in this batch vs nominal clock
- *    "late_n":0,"envx":0,       cumulative late samples / env-note overflows
+ *    "late_us":40,              worst residual lateness in this batch vs the
+ *                               nominal clock (always < 1000 by construction)
+ *    "late_n":0,                cumulative samples > 250 us off-grid
+ *    "miss_n":0,"envx":0,       cumulative missed slots / env-note overflows
  *    "bdrop":0,                 cumulative batches dropped at the queue
  *    "latch":0,"closs":0,       cumulative latch / contrast-loss discards
  *    "sat":0,"pulses":42,       cumulative saturated samples / rises
@@ -169,6 +179,7 @@ struct EnvUpdate {
 struct SampleBatch {
   uint32_t  seq;                 // batch sequence number since boot
   uint32_t  firstSample;         // sample number of s[0]
+  uint32_t  missBefore;          // slots skipped immediately before s[0]
   uint16_t  count;
   int16_t   runMin0, runMax0, thrHigh0, thrLow0;   // in force at s[0]
   uint8_t   nEnv;
@@ -199,7 +210,8 @@ static volatile uint32_t pulseCount     = 0;
 static volatile uint32_t latchTimeouts  = 0;
 static volatile uint32_t contrastLosses = 0;
 static volatile uint32_t droppedBatches = 0;
-static volatile uint32_t lateSamples    = 0;  // samples > 1 tick late
+static volatile uint32_t lateSamples    = 0;  // samples > 250 us off-grid
+static volatile uint32_t missedSlots    = 0;  // slots skipped, never faked
 static volatile uint32_t maxLateUsEver  = 0;
 static volatile uint32_t satSamples     = 0;
 static volatile uint32_t envNoteOverflows = 0;
@@ -230,6 +242,7 @@ static int      envWinIdx = 0, envWinFilled = 0;
 static SampleBatch cur;
 static bool        batchOpen = false;
 static uint32_t    nextBatchSeq = 0;
+static uint32_t    pendingMiss = 0;    // slots skipped since the last batch
 
 static uint8_t qualityFromSpan(int span) {
   if (span < MIN_USABLE_SPAN) return 0;
@@ -240,6 +253,8 @@ static uint8_t qualityFromSpan(int span) {
 static inline void openBatch() {
   cur.seq         = nextBatchSeq;
   cur.firstSample = sampleCount;
+  cur.missBefore  = pendingMiss;
+  pendingMiss     = 0;
   cur.count       = 0;
   cur.nEnv        = 0;
   cur.maxLateUs   = 0;
@@ -265,18 +280,21 @@ static inline void noteEnvUpdate() {
   u.thrLow  = (int16_t)(runMin + span / 3);
 }
 
+static inline void closeBatch() {
+  if (!batchOpen || cur.count == 0) { batchOpen = false; return; }
+  if (batchQueue && xQueueSend(batchQueue, &cur, 0) != pdTRUE)
+    droppedBatches = droppedBatches + 1;     // counted, never silent
+  batchesBuilt = batchesBuilt + 1;
+  nextBatchSeq++;                            // seq advances even on a drop,
+  batchOpen = false;                         //   so the gap is visible
+}
+
 static inline void recordSample(int raw, uint16_t flags, uint32_t lateUs) {
   if (!batchOpen) openBatch();
   cur.s[cur.count++] = (uint16_t)((raw & 0x0FFF) | flags);
   if (lateUs > cur.maxLateUs) cur.maxLateUs = lateUs;
   sampleCount = sampleCount + 1;
-  if (cur.count >= BATCH_N) {
-    if (batchQueue && xQueueSend(batchQueue, &cur, 0) != pdTRUE)
-      droppedBatches = droppedBatches + 1;   // counted, never silent
-    batchesBuilt = batchesBuilt + 1;
-    nextBatchSeq++;                          // seq advances even on a drop,
-    batchOpen = false;                       //   so the gap is visible
-  }
+  if (cur.count >= BATCH_N) closeBatch();
 }
 
 static void sensorTask(void*) {
@@ -293,11 +311,30 @@ static void sensorTask(void*) {
     lastRaw = raw;
 
     // --- sample-clock lateness against the nominal 1 kHz grid -------------
+    // A stall of a full slot or more is a MISSED ACQUISITION, and it is
+    // represented as exactly that: the open batch is flushed short, the
+    // missed slot numbers are SKIPPED (they carry no data anywhere), and
+    // the tick resynchronizes to the present so vTaskDelayUntil cannot
+    // burst catch-up reads. The alternative — letting the catch-up reads
+    // fill the missed slots — would fabricate an ordinary-looking 1 kHz
+    // record out of samples all acquired at the same instant, which for a
+    // scope is data corruption. Every sample that reaches a batch was
+    // acquired within one slot of its nominal time, so `first + i` is
+    // always honest; the hole is published as `miss` on the next batch.
     uint64_t nowUs = esp_timer_get_time();
     if (sampleCount == 0) t0Us = nowUs;
     int64_t lateSigned = (int64_t)(nowUs - t0Us) - (int64_t)sampleCount * 1000;
+    if (lateSigned >= 1000) {
+      uint32_t missed = (uint32_t)(lateSigned / 1000);
+      closeBatch();                          // keep every batch contiguous
+      sampleCount = sampleCount + missed;    // the slots simply never happened
+      missedSlots = missedSlots + missed;
+      pendingMiss += missed;
+      lastWake = xTaskGetTickCount();        // resume clean 1 ms cadence now
+      lateSigned -= (int64_t)missed * 1000;
+    }
     uint32_t lateUs = (lateSigned > 0) ? (uint32_t)lateSigned : 0;
-    if (lateUs > 1000) lateSamples = lateSamples + 1;
+    if (lateUs > 250) lateSamples = lateSamples + 1;
     if (lateUs > maxLateUsEver) maxLateUsEver = lateUs;
 
     if (raw >= SATURATION_LEVEL) satSamples = satSamples + 1;
@@ -427,10 +464,10 @@ static void attemptReconnect() {
 
 static bool publishBatch(const SampleBatch& b) {
   int off = snprintf(jsonBuf, sizeof(jsonBuf),
-    "{\"sid\":\"%s\",\"seq\":%lu,\"first\":%lu,\"n\":%u,"
+    "{\"sid\":\"%s\",\"seq\":%lu,\"first\":%lu,\"n\":%u,\"miss\":%lu,"
     "\"env\":[%d,%d,%d,%d],",
     sessionId, (unsigned long)b.seq, (unsigned long)b.firstSample,
-    (unsigned)b.count,
+    (unsigned)b.count, (unsigned long)b.missBefore,
     (int)b.runMin0, (int)b.runMax0, (int)b.thrHigh0, (int)b.thrLow0);
   if (b.nEnv > 0) {
     off += snprintf(jsonBuf + off, sizeof(jsonBuf) - off, "\"envu\":[");
@@ -443,9 +480,10 @@ static bool publishBatch(const SampleBatch& b) {
     off += snprintf(jsonBuf + off, sizeof(jsonBuf) - off, "],");
   }
   off += snprintf(jsonBuf + off, sizeof(jsonBuf) - off,
-    "\"late_us\":%lu,\"late_n\":%lu,\"envx\":%lu,\"bdrop\":%lu,"
+    "\"late_us\":%lu,\"late_n\":%lu,\"miss_n\":%lu,\"envx\":%lu,\"bdrop\":%lu,"
     "\"latch\":%lu,\"closs\":%lu,\"sat\":%lu,\"pulses\":%lu,\"hex\":\"",
     (unsigned long)b.maxLateUs, (unsigned long)lateSamples,
+    (unsigned long)missedSlots,
     (unsigned long)envNoteOverflows, (unsigned long)droppedBatches,
     (unsigned long)latchTimeouts, (unsigned long)contrastLosses,
     (unsigned long)satSamples, (unsigned long)pulseCount);
@@ -523,7 +561,7 @@ static void publishStatus() {
     "{\"fw\":\"%s\",\"sid\":\"%s\",\"pin\":%d,\"rate_hz\":1000,"
     "\"spokes\":%d,\"wheel_dia_mm\":%.1f,\"wheel_circ_mm\":%.2f,"
     "\"samples\":%lu,\"batches\":%lu,\"bdrop\":%lu,"
-    "\"late_n\":%lu,\"max_late_us\":%lu,\"envx\":%lu,"
+    "\"late_n\":%lu,\"miss_n\":%lu,\"max_late_us\":%lu,\"envx\":%lu,"
     "\"raw\":%d,\"run_min\":%d,\"run_max\":%d,\"span\":%d,"
     "\"thr_high\":%d,\"thr_low\":%d,\"contrast_valid\":%u,\"in_pulse\":%u,"
     "\"pulses\":%lu,\"latch\":%lu,\"closs\":%lu,\"sat\":%lu,"
@@ -532,7 +570,8 @@ static void publishStatus() {
     SPOKES_PER_WHEEL, WHEEL_DIAMETER_MM, WHEEL_CIRCUMFERENCE_MM,
     (unsigned long)sampleCount, (unsigned long)batchesBuilt,
     (unsigned long)droppedBatches,
-    (unsigned long)lateSamples, (unsigned long)maxLateUsEver,
+    (unsigned long)lateSamples, (unsigned long)missedSlots,
+    (unsigned long)maxLateUsEver,
     (unsigned long)envNoteOverflows,
     (int)lastRaw, (int)vRunMin, (int)vRunMax, (int)vSpan,
     (int)vThrHigh, (int)vThrLow, (unsigned)vContrastValid, (unsigned)vInPulse,

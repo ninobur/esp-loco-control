@@ -94,7 +94,8 @@ exactly which troughs would emit a fall edge.
   are capture-exact.
 - A stalled tick is caught up by `vTaskDelayUntil` (samples late, not lost)
   and reported via `late_us`/`late_n`; sustained starvation would appear
-  there first.
+  there first. *(Superseded by CODEX finding 1 below: a stall of a full
+  slot or more is now represented as MISSED slots, never as data.)*
 - Plotter redraws the full window each frame; keep `--window` ≤ ~20 s at
   1 kHz or the display (not the log — logging is unconditional) gets sluggish.
 - The replay trusts the recorded envelope; it does not model how a different
@@ -115,3 +116,84 @@ exactly which troughs would emit a fall edge.
 The production threshold does **not** change on this evidence alone —
 decision 0010's headroom rule still governs that call, now with waveform
 evidence instead of survivor-biased event statistics.
+
+---
+
+## Addendum, 2026-08-09 — CODEX review round (PR #3)
+
+> **Revised by the re-review addendum below.** This round's fixes 1 and 4
+> were accepted as-is; the re-review found the fix-2 and fix-3 approaches
+> insufficient (not wrong in what they fixed, but incomplete), and they
+> are corrected by fixes 5 and 6. "All four fixed" held only until the
+> re-review; the table below stands as the record of this round.
+
+CODEX raised four findings against the commit above; all four accepted and
+fixed, one commit each, on `agent/ir-scope-review`:
+
+| finding | fix |
+|---|---|
+| 1 [P1] Missed sampling slots were represented as ordinary 1 ms samples: after a stall, `vTaskDelayUntil` burst catch-up reads that filled the missed slots with samples all acquired at the same instant — fabricated data. | A stall of a full slot or more now flushes the open batch short, **skips** the missed sample numbers (no data is ever attributed to them), resynchronizes the tick, and annotates the next batch with `miss=N` (cumulative `miss_n`). `first+i` reconstruction stays exact; every published sample was acquired within a slot of its nominal time. Plotter draws firmware stalls as amber `MISSED` spans, distinct from red transport `GAP`s, and its expected-first check accounts for declared misses. `late_n` becomes residual off-grid (>250 µs); >1 slot can no longer occur by construction. |
+| 2 [P1] Variable hand-pushed speed could be falsely classified as merged spokes: merged/short were judged against a pooled p25 base, so slow-phase intervals read as merges and fast-phase merges could hide. | Each interval is judged against its **local** base — p25 of the ±10 neighbouring intervals in the same session (low percentile because a swallowed spoke can only inflate an interval). Short pulses judged against the local median width. Too-thin windows are reported `uncls`, never guessed. Verified: a 130→300 ms speed-ramp synthetic reports 0 merged / 7.00 pulses/rev at every candidate; the shallow-trough capture still reports its 15 real merges at 1/3. |
+| 3 [P1] Replay incorrectly reset detector state after transport gaps: it fired a spurious rise on the first above-threshold sample after each gap and silently dropped the pulse open at gap start. | The three discontinuities are now handled by what physically happened: `SESSION` = full reset; `MISSED` = **all** state carried (the firmware detector ran continuously; absolute times keep debounce/latch honest); `GAP` = open pulse closed explicitly as `gap_interrupted`, interval anchor cleared, replay **seeded** from the recorded `inPulse` flag at resume — seeded widths/intervals excluded from statistics, seeded falls kept as real falls. Verified on a gap cut mid-pulse at both edges: 1 gap_interrupted + 1 seeded, zero spurious rises, edges still match the recorded detector 35/35. |
+| 4 [P2] Replay overlays omitted open and latch-discarded candidate pulses — the exact failure modes under investigation were invisible in the judging picture. | Every episode outcome is drawn, styled: completed (solid, fall marker), latch discard (orange cross-hatch, × at the discard, no fall marker), contrast discard (purple), open-at-gap and open-at-end (light hatched/dotted), seeded annotated. Verified on a 3.5 s plateau synthetic: 1/3, 0.40 and 0.50 latch (orange band shown), 0.60 falls instead, the record's mid-pulse end shows as the open band. |
+
+### Verification, this round
+
+- Builds (`esp32:esp32:esp32`, `--warnings all`): IR_SCOPE 910,764 B (69%)
+  / 52,056 B RAM (15%), zero warnings.
+- `py_compile` clean on both tools after every commit.
+- Replay semantics self-check passes on all three synthetics — including
+  one whose recorded flags exercise the firmware latch discard (inPulse
+  cleared with no fall flag): 21/21 rises, 19/19 falls matched.
+- Table/report format change: columns `open`, `seed`, `uncls` added; the
+  MQTT batch gains `miss`/`miss_n`; the CSV gains the `MISSED` row type.
+  Parsers of the samples topic must tolerate the two new fields.
+
+---
+
+## Addendum 2, 2026-08-09 — CODEX re-review round (PR #3)
+
+The re-review accepted fixes 1 (missed-slot capture) and 4 (complete
+outcome overlay) and independently confirmed the clean build. Two P1
+replay issues remained; both accepted and fixed, one commit each:
+
+| finding | fix |
+|---|---|
+| 5 [P1] Post-gap candidate state was still initialized from the recorded 1/3 detector, which is exact only for the 1/3 candidate — a higher thrLow may have fallen (and re-risen) inside the gap where the recorded detector did not. | Seeding removed entirely. After a transport gap the candidate's state is **unknown** and re-established from the waveform against **its own** thresholds: the first sample with raw < thrLow(candidate), or a contrast loss, pins every detector variant to idle with certainty (a fall or discard has just happened by construction). The unknown stretch is a `resync_unknown` episode (`unkn` column), excluded from statistics, drawn grey in the overlay; validation excludes recorded edges inside the 1/3 candidate's declared resync spans (the recorded fall ending a span is the resync trigger itself). Verified: mid-pulse gap → 1 unkn + 1 gap-interrupted per candidate, zero spurious rises, 35/35 rises / 34/34 falls matched outside the span. |
+| 6 [P1] The local interval base handles gradual speed change but cannot establish physical revolutions or expose **uniform** duplication/merging — interval ratios are scale-free, so a capture where every pulse merges two spokes reads as healthy 7.00 pulses/rev. | Added a candidate-independent **waveform-structure pass**: prominence-based physical peak counting on the raw trace (≥ 0.25 × span, `--prom`), yielding `p/rev-phys` = 7 × pulses / peaks beside the renamed `p/rev-int`, `mpk` (pulses containing ≥ 2 peaks — direct merged-spoke evidence independent of intervals), per-pulse `duty%` (> 100 % is itself merge evidence), a per-capture structure summary, peak dots on the overlay, and an automatic NOTE when the two revolution figures diverge > 0.5. Documented limit: peaks/7 assumes one optical peak per spoke; per-spoke edge doubling is caught only by the hand-turn marker protocol, as a consistent 2× disagreement with hand-counted turns. Verified on a uniform-merging synthetic (alternating deep/shallow troughs): interval method reads 7.00 / 0 merged at 1/3 while the structure pass reports 56 peaks → 8.00 revolutions, p/rev-phys 3.50, mpk 28/28, NOTE fired; 0.50 recovers 56/56 with mpk 0. Mixed-merging: p/rev-phys 4.75 agrees with p/rev-int 4.71, mpk = the 18 merges. Variable-speed: both methods 7.00. |
+
+### Verification, re-review round
+
+- Firmware untouched this round; both Python tools `py_compile` clean.
+- All five synthetics re-run at final state: baseline shallow-trough, gap
+  (mid-pulse both edges), variable-speed ramp, latch plateau, and the new
+  uniform-merging capture — semantics validation passes on each, with the
+  resync-span exclusion accounting exactly for the unknowable edges.
+- Report format change vs the previous round: `seed` column replaced by
+  `unkn`; `mpk`, `duty%`, `p/rev-phys` columns added; `pulses/rev` renamed
+  `p/rev-int`; a structure summary line and divergence NOTEs added.
+
+---
+
+## Addendum 3, 2026-08-09 — CODEX re-review of `404c687`
+
+Fixes 5 and 6 were assessed as improvements but integration stayed blocked
+on two P1 correctness findings and one P2 display defect. All three
+accepted and fixed, one commit each:
+
+| finding | fix |
+|---|---|
+| 7 [P1] `end_unknown` reset the debounce anchor to −∞: a below-thrLow sample pins `in_pulse=false` but not **timing** — a rise the real detector accepted inside the gap less than 15 ms before a post-resync crossing would be debounced by the firmware but emitted by the replay (reproduction: GAP, low @100, high @105, low @110 fabricated a 105–110 pulse). | The unknown period now ends only at a sample **both** below the candidate's thrLow **and** more than `DEBOUNCE_MS` past the latest possible rise (`resync_last_high`: initialized to the first post-gap sample time, advanced by every above-thrHigh sample while unknown). Edges inside that window stay unattributed in the resync span; the exit anchors the debounce at `resync_last_high` — exact-or-conservative, never permissive. The reproduction now attributes only the pre-gap pulse. |
+| 8 [P1] `p/rev-phys` was not a physical-revolution measurement — its denominator comes from the same waveform, so per-spoke optical doubling still reads 7.00 — and the loader ignored MARKER rows. | Renamed `p/7pk` (apparent pulses per seven peaks), presented as structural evidence only; the NOTE no longer says to trust it as physical truth. The loader consumes MARKER rows; markers containing `--rev-marker` (default `rev`, one BOOT press per hand-turned revolution) define revolution windows (gap-spanning windows excluded and counted), yielding `p/rev-mk` — the only absolute pulses/revolution figure — and **peaks per marked revolution**, the direct test of one-peak-per-spoke (7.0 clean, ~14 doubled). Without markers the report states the absolute figure is UNAVAILABLE. Uniform-merge synthetic with markers: 8 usable revolutions, peaks/rev 7.0, p/rev-mk 4.0 @1/3 vs 7.0 @0.50. |
+| 9 [P2] Quiet post-gap unknown stretches (never above thrHigh) were in `resync_spans` but absent from the `unkn` count and the grey overlay band, contrary to the documented contract. | Every unknown span is recorded and rendered; activity inside it is an `activity` metadata field on the episode. Mid-band quiet-resync reproduction: `unkn`=1 at every candidate where it previously read 0. |
+
+### Verification, this round
+
+- Firmware unchanged; both Python tools `py_compile` clean after each commit.
+- CODEX's exact fix-7 reproduction and a quiet-resync reproduction added to
+  the synthetic suite; all prior synthetics re-run unchanged (uniform-merge
+  regenerated with revolution markers).
+- Report format vs previous round: `p/rev-phys` column renamed `p/7pk`;
+  `p/rev-mk` column added; structure summary no longer converts peaks to
+  revolutions; a revolution-marker summary line added (usable/excluded
+  windows, peaks per marked revolution).

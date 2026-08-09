@@ -39,9 +39,14 @@ USAGE
                                 [--outdir ~/NGR/irscope_logs]
 
 CSV COLUMNS (one row per sample; see README.md for the full contract)
-    wall_time, row_type (SAMPLE|MARKER|GAP|SESSION|STATUS), session,
+    wall_time, row_type (SAMPLE|MARKER|GAP|MISSED|SESSION|STATUS), session,
     batch_seq, sample, t_s, raw, run_min, run_max, thr_high, thr_low,
     contrast_valid, in_pulse, rise, fall, info
+
+    GAP    = batches lost in transport: firmware detector state across the
+             hole is unknown to the record.
+    MISSED = the firmware itself skipped sample slots (sampler stall): the
+             detector ran continuously, only acquisitions are absent.
 """
 
 import argparse
@@ -119,7 +124,7 @@ cv_data   = deque(maxlen=MAX_POINTS)   # contrast-valid 0/1
 rise_pts = deque(maxlen=4000)          # (t, raw)
 fall_pts = deque(maxlen=4000)
 markers  = deque(maxlen=200)           # (t, text)
-gaps     = deque(maxlen=200)           # (t_start, t_end_or_None)
+gaps     = deque(maxlen=400)           # (t_start, t_end, kind: GAP|MISSED)
 
 state = {
     "sid": None,
@@ -130,6 +135,7 @@ state = {
     "samples_rx": 0,
     "fw_late_us": 0,                   # worst batch lateness seen
     "fw_late_n": 0,
+    "fw_miss_n": 0,                    # firmware-declared missed slots
     "fw_bdrop": 0,
     "fw_latch": 0,
     "fw_closs": 0,
@@ -186,24 +192,45 @@ def handle_batch(d):
             state["last_sample_end"] = first
 
         # --- discontinuity detection ---------------------------------------
+        # Two distinct kinds, never conflated:
+        #   MISSED — the firmware itself skipped `miss` sample slots (sampler
+        #            stall); the detector ran continuously through it, only
+        #            acquisitions are absent. Amber, MISSED row.
+        #   GAP    — batches lost in transport (seq jump / unexplained sample
+        #            jump); the firmware detector state across it is unknown
+        #            to us. Red, GAP row.
+        miss = d.get("miss", 0)
         missing = 0
         if state["next_seq"] is not None and seq != state["next_seq"]:
             missing = seq - state["next_seq"]
-        sample_jump = (state["last_sample_end"] is not None
-                       and first != state["last_sample_end"])
+        expected_first = (None if state["last_sample_end"] is None
+                          else state["last_sample_end"] + miss)
+        sample_jump = (expected_first is not None and first != expected_first)
         if (missing > 0 or sample_jump) and t_data:
             gap_from = state["last_sample_end"] / 1000.0
-            gap_to   = first / 1000.0
+            gap_to   = (first - miss) / 1000.0
             state["missing_batches"] += max(missing, 0)
             info = ("missing %d batch(es), samples %d..%d (%.3f s)"
-                    % (max(missing, 0), state["last_sample_end"], first - 1,
-                       gap_to - gap_from))
+                    % (max(missing, 0), state["last_sample_end"],
+                       first - miss - 1, gap_to - gap_from))
             log_row("GAP", sid, seq, first, gap_from, info=info)
-            gaps.append((gap_from, gap_to))
+            gaps.append((gap_from, gap_to, "GAP"))
             # break the plotted line so the hole is visible, never bridged
             t_data.append(float("nan")); raw_data.append(float("nan"))
             hi_data.append(float("nan")); lo_data.append(float("nan"))
             ip_data.append(0); cv_data.append(0)
+
+        if miss > 0 and t_data:
+            miss_from = (first - miss) / 1000.0
+            miss_to   = first / 1000.0
+            log_row("MISSED", sid, seq, first, miss_from,
+                    info="%d slot(s) skipped by sampler stall (samples %d..%d)"
+                         % (miss, first - miss, first - 1))
+            gaps.append((miss_from, miss_to, "MISSED"))
+            t_data.append(float("nan")); raw_data.append(float("nan"))
+            hi_data.append(float("nan")); lo_data.append(float("nan"))
+            ip_data.append(0); cv_data.append(0)
+
         state["next_seq"] = seq + 1
         state["last_sample_end"] = first + n
 
@@ -243,6 +270,7 @@ def handle_batch(d):
         state["samples_rx"] += n
         state["fw_late_us"] = max(state["fw_late_us"], d.get("late_us", 0))
         state["fw_late_n"]  = d.get("late_n", state["fw_late_n"])
+        state["fw_miss_n"]  = d.get("miss_n", state["fw_miss_n"])
         state["fw_bdrop"]   = d.get("bdrop", state["fw_bdrop"])
         state["fw_latch"]   = d.get("latch", state["fw_latch"])
         state["fw_closs"]   = d.get("closs", state["fw_closs"])
@@ -425,11 +453,12 @@ def main():
                                color="#3355ff", alpha=0.18, zorder=1)
         transient.append(band)
 
-        # gap shading
-        for (g0, g1) in gp:
+        # gap shading — red = transport gap, amber = firmware sampler stall
+        for (g0, g1, kind) in gp:
             if g1 >= t_min:
+                color = "#ff2244" if kind == "GAP" else "#ffaa00"
                 transient.append(ax.axvspan(max(g0, t_min), min(g1, t_now + 1),
-                                            color="#ff2244", alpha=0.25, zorder=2))
+                                            color=color, alpha=0.25, zorder=2))
 
         # edges
         rr = [(t, v) for (t, v) in rp if t >= t_min]
@@ -469,13 +498,13 @@ def main():
                 rate = sum(n for (_, n) in rxw[1:]) / dt
 
         status_obj.set_text(
-            "sid %s  batch %s  sample %s | rx %.0f sa/s | fw late max %d us n=%d"
-            " | fw bdrop %d  plotter-missing %d | latch %d closs %d sat %d"
-            " | pulses %d | inPulse=%d contrast=%d %s"
+            "sid %s  batch %s  sample %s | rx %.0f sa/s | fw late max %d us"
+            " n=%d miss %d | fw bdrop %d  plotter-missing %d | latch %d"
+            " closs %d sat %d | pulses %d | inPulse=%d contrast=%d %s"
             % (st["sid"], st["last_seq"], st["last_sample"], rate,
-               st["fw_late_us"], st["fw_late_n"], st["fw_bdrop"],
-               st["missing_batches"], st["fw_latch"], st["fw_closs"],
-               st["fw_sat"], st["fw_pulses"], st["in_pulse"],
+               st["fw_late_us"], st["fw_late_n"], st["fw_miss_n"],
+               st["fw_bdrop"], st["missing_batches"], st["fw_latch"],
+               st["fw_closs"], st["fw_sat"], st["fw_pulses"], st["in_pulse"],
                st["contrast_valid"], st["status_note"]))
 
         fig.canvas.draw_idle()
