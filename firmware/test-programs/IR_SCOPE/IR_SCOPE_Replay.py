@@ -17,25 +17,36 @@ PURPOSE
       - 2500 ms latch timeout, discarding the open pulse (LATCH_TIMEOUT_MS)
 
     This is NOT a threshold-crossing counter. It is the IR_DIAG state
-    machine run sample-by-sample.
+    machine run sample-by-sample, with every pulse episode tracked to an
+    explicit OUTCOME (completed / latch-discarded / contrast-discarded /
+    gap-interrupted / open at end) so nothing disappears silently.
 
     The recorded runMin/runMax envelope is replayed as logged — the envelope
     is threshold-independent (percentiles of raw), so recorded bounds remain
     exact for every candidate.
+
+DISCONTINUITY SEMANTICS (matches what physically happened)
+    SESSION row   firmware reboot: full detector reset.
+    MISSED row    the firmware sampler skipped slots but the detector ran
+                  continuously: ALL replay state is carried across (times
+                  are absolute, so debounce and latch timing stay correct).
+    GAP row       batches lost in transport: the firmware detector ran but
+                  its samples are missing. The open replay pulse is closed
+                  as `gap_interrupted` (never silently dropped), the
+                  interval anchor is cleared, and at resume the replay is
+                  SEEDED from the recorded inPulse flag — a seeded pulse's
+                  rise time is unknown, so its width and the interval it
+                  would anchor are excluded from statistics (counted as
+                  `seed`), while its fall remains a real fall. Resetting to
+                  idle instead would fire a spurious rise on the first
+                  above-threshold sample after every gap.
+    An unmarked sample-number jump is treated as a GAP (conservative).
 
 CANDIDATES
     1/3 (current, exact integer span/3 arithmetic), 0.40, 0.50, 0.60,
     plus any extras via --frac. The 1/3 replay is also validated against the
     recorded rise/fall flags: it should reproduce the firmware's own edges,
     which proves the replay semantics before the other candidates are read.
-
-REPORT (per candidate, per contiguous segment and pooled)
-    completed pulses; width median/p10/p90/min/max; rise-to-rise interval
-    median/min/max; apparent merged/doubled pulses (interval ratio >= ~1.7x
-    the base interval); implausibly short pulses; latch/missing-fall events;
-    pulses per apparent revolution where a base interval can be established
-    (7 spokes x pulses / spoke-passages, spoke-passages = sum of rounded
-    interval ratios).
 
 USAGE
     python3 IR_SCOPE_Replay.py capture.csv
@@ -45,7 +56,7 @@ USAGE
 
     --plot overlays one candidate on the recorded waveform: recorded
     thresholds and recorded inPulse band (grey) against the candidate's
-    replayed band, fall edges, and thrLow line — so you can see exactly
+    replayed episodes, fall edges, and thrLow line — so you can see exactly
     which troughs produce a fall edge at that candidate.
 
 REQUIREMENTS
@@ -66,66 +77,106 @@ MERGED_RATIO         = 1.7    # interval >= 1.7 x base => >=1 swallowed spoke
 
 
 # ============================================================================
-# CSV LOADING — split into contiguous segments at GAP/SESSION rows and at
-# any sample discontinuity. Segments are never rejoined.
+# CSV LOADING — sessions of contiguous segments with TYPED boundaries.
 # ============================================================================
-def load_segments(path):
-    segments = []       # list of dicts of parallel lists
-    cur = None
+def new_seg():
+    return {"t": [], "raw": [], "mn": [], "mx": [], "cv": [],
+            "rec_ip": [], "rec_rise": [], "rec_fall": [],
+            "rec_hi": [], "rec_lo": []}
 
-    def new_seg():
-        return {"t": [], "raw": [], "mn": [], "mx": [], "cv": [],
-                "rec_ip": [], "rec_rise": [], "rec_fall": [],
-                "rec_hi": [], "rec_lo": []}
 
-    last_sample = None
+def load_sessions(path):
+    """Returns a list of sessions; each is
+    {"segments": [seg, ...], "boundaries": [kind, ...]} where boundaries[i]
+    ("GAP" or "MISSED") sits between segments[i] and segments[i+1]."""
+    sessions = []
+    state = {"session": None, "seg": None, "pending": None, "last": None}
+
+    def close_seg():
+        if state["seg"] is not None and state["seg"]["t"]:
+            state["session"]["segments"].append(state["seg"])
+        state["seg"] = None
+
+    def close_session():
+        if state["session"] is not None:
+            close_seg()
+            if state["session"]["segments"]:
+                sessions.append(state["session"])
+        state["session"] = None
+        state["pending"] = None
+        state["last"] = None
+
     with open(path, newline="") as f:
         rd = csv.DictReader(f)
         for row in rd:
             rt = row.get("row_type", "")
-            if rt in ("GAP", "SESSION"):
-                if cur and cur["t"]:
-                    segments.append(cur)
-                cur = None
-                last_sample = None
+            if rt == "SESSION":
+                close_session()
+                continue
+            if rt == "GAP":
+                if state["session"] is not None:
+                    close_seg()
+                state["pending"] = "GAP"          # GAP outranks MISSED
+                state["last"] = None
+                continue
+            if rt == "MISSED":
+                if state["session"] is not None:
+                    close_seg()
+                if state["pending"] != "GAP":
+                    state["pending"] = "MISSED"
+                state["last"] = None
                 continue
             if rt != "SAMPLE":
                 continue
             try:
                 sample = int(row["sample"])
-                raw    = int(row["raw"])
-                mn     = int(row["run_min"])
-                mx     = int(row["run_max"])
-                cv     = int(row["contrast_valid"])
-                ip     = int(row["in_pulse"])
-                rise   = int(row["rise"])
-                fall   = int(row["fall"])
-                hi     = int(row["thr_high"])
-                lo     = int(row["thr_low"])
+                vals = (int(row["raw"]), int(row["run_min"]),
+                        int(row["run_max"]), int(row["contrast_valid"]),
+                        int(row["in_pulse"]), int(row["rise"]),
+                        int(row["fall"]), int(row["thr_high"]),
+                        int(row["thr_low"]))
             except (KeyError, ValueError):
                 continue
-            if cur is None or (last_sample is not None and sample != last_sample + 1):
-                if cur and cur["t"]:
-                    segments.append(cur)
-                cur = new_seg()
-            cur["t"].append(sample)          # ms; sample number IS ms
-            cur["raw"].append(raw)
-            cur["mn"].append(mn)
-            cur["mx"].append(mx)
-            cur["cv"].append(cv)
-            cur["rec_ip"].append(ip)
-            cur["rec_rise"].append(rise)
-            cur["rec_fall"].append(fall)
-            cur["rec_hi"].append(hi)
-            cur["rec_lo"].append(lo)
-            last_sample = sample
-    if cur and cur["t"]:
-        segments.append(cur)
-    return segments
+            if state["session"] is None:
+                state["session"] = {"segments": [], "boundaries": []}
+            if (state["seg"] is not None and state["last"] is not None
+                    and sample != state["last"] + 1):
+                close_seg()              # unmarked jump: conservative GAP
+                if state["pending"] is None:
+                    state["pending"] = "GAP"
+            if state["seg"] is None:
+                state["seg"] = new_seg()
+                if state["session"]["segments"]:
+                    state["session"]["boundaries"].append(
+                        state["pending"] or "GAP")
+                state["pending"] = None
+            seg = state["seg"]
+            raw, mn, mx, cv, ip, rise, fall, hi, lo = vals
+            seg["t"].append(sample)      # ms; sample number IS ms
+            seg["raw"].append(raw)
+            seg["mn"].append(mn)
+            seg["mx"].append(mx)
+            seg["cv"].append(cv)
+            seg["rec_ip"].append(ip)
+            seg["rec_rise"].append(rise)
+            seg["rec_fall"].append(fall)
+            seg["rec_hi"].append(hi)
+            seg["rec_lo"].append(lo)
+            state["last"] = sample
+    close_session()
+    return sessions
 
 
 # ============================================================================
 # DETECTOR REPLAY — IR_DIAG semantics on recorded raw + envelope.
+# Every pulse becomes an EPISODE with an explicit outcome:
+#   completed        rise and fall both replayed
+#   latch            discarded by the 2500 ms latch timeout (no fall edge)
+#   closs            discarded by a contrast-validity loss (no fall edge)
+#   gap_interrupted  open when a transport gap began; its end is unknown
+#   open_end         still open when the record ends
+# `seeded` episodes began at a gap resume with the rise time unknown; their
+# widths/intervals are excluded from statistics, their falls are real.
 # ============================================================================
 def thr_low_of(mn, span, frac):
     if frac == "1/3":
@@ -133,61 +184,97 @@ def thr_low_of(mn, span, frac):
     return mn + int(span * frac)         # floor, matching integer truncation
 
 
-def replay_segment(seg, frac):
-    """Returns dict with pulses [(t_rise, t_fall, width, interval)],
-    latches, closs_discards, rises, falls, open_at_end."""
-    in_pulse = False
-    last_edge = -1e12          # debounce anchor (rise-to-rise)
-    pulse_start = 0.0
-    prev_rise = None           # interval anchor
-    pulses = []
-    latches = 0
-    closs = 0
-    rise_t = []
-    fall_t = []
+def replay_session(session, frac):
+    episodes = []
+    closs_count = [0]
+    st = {"in_pulse": False, "seeded": False, "last_edge": -1e12,
+          "pulse_start": 0.0, "prev_rise": None}
 
-    for i in range(len(seg["t"])):
-        t   = float(seg["t"][i])
-        raw = seg["raw"][i]
-        mn  = seg["mn"][i]
-        mx  = seg["mx"][i]
-        cv  = seg["cv"][i]
-        span = mx - mn
+    def close(t_end, outcome, width=None, interval=None):
+        episodes.append({"t_rise": st["pulse_start"], "t_end": t_end,
+                         "outcome": outcome, "seeded": st["seeded"],
+                         "width": width, "interval": interval})
 
-        # contrast gate — discard branch, as IR_DIAG
-        if not cv:
-            if in_pulse or prev_rise is not None:
-                closs += 1
-                in_pulse = False
-                prev_rise = None
-            continue
+    for si, seg in enumerate(session["segments"]):
+        if si > 0:
+            kind = session["boundaries"][si - 1]
+            if kind == "GAP":
+                if st["in_pulse"]:
+                    # end unknown — close explicitly, never silently
+                    close(float(session["segments"][si - 1]["t"][-1]),
+                          "gap_interrupted")
+                    st["in_pulse"] = False
+                st["prev_rise"] = None    # nothing anchors across a gap
+                st["seeded"] = False
+                if seg["rec_ip"][0]:
+                    # the firmware was (recorded) mid-pulse at resume: seed,
+                    # rather than firing a spurious replay rise on the first
+                    # above-threshold sample after every gap
+                    st["in_pulse"] = True
+                    st["seeded"] = True
+                    st["pulse_start"] = float(seg["t"][0])
+            # kind == "MISSED": the detector ran continuously — carry all
+            # state; absolute times keep debounce and latch arithmetic honest
 
-        hi = mn + (span * 2) // 3
-        lo = thr_low_of(mn, span, frac)
+        for i in range(len(seg["t"])):
+            t = float(seg["t"][i])
+            raw = seg["raw"][i]
+            mn = seg["mn"][i]
+            mx = seg["mx"][i]
+            cv = seg["cv"][i]
+            span = mx - mn
 
-        # latch timeout — pulse discarded, no fall edge, anchor cleared
-        if in_pulse and (t - pulse_start) > LATCH_MS:
-            in_pulse = False
-            prev_rise = None
-            latches += 1
+            # contrast gate — discard branch, as IR_DIAG
+            if not cv:
+                if st["in_pulse"] or st["prev_rise"] is not None:
+                    closs_count[0] += 1
+                    if st["in_pulse"]:
+                        close(t, "closs")
+                    st["in_pulse"] = False
+                    st["seeded"] = False
+                    st["prev_rise"] = None
+                continue
 
-        if not in_pulse:
-            if raw > hi and (t - last_edge) > DEBOUNCE_MS:
-                in_pulse = True
-                last_edge = t
-                pulse_start = t
-                rise_t.append(t)
-        else:
-            if raw < lo:
-                in_pulse = False
-                width = t - pulse_start
-                interval = (pulse_start - prev_rise) if prev_rise is not None else 0.0
-                pulses.append((pulse_start, t, width, interval))
-                fall_t.append(t)
-                prev_rise = pulse_start
+            hi = mn + (span * 2) // 3
+            lo = thr_low_of(mn, span, frac)
 
-    return {"pulses": pulses, "latches": latches, "closs": closs,
-            "rise_t": rise_t, "fall_t": fall_t, "open_at_end": in_pulse}
+            # latch timeout — pulse discarded, no fall edge, anchor cleared
+            if st["in_pulse"] and (t - st["pulse_start"]) > LATCH_MS:
+                close(t, "latch")
+                st["in_pulse"] = False
+                st["seeded"] = False
+                st["prev_rise"] = None
+
+            if not st["in_pulse"]:
+                if raw > hi and (t - st["last_edge"]) > DEBOUNCE_MS:
+                    st["in_pulse"] = True
+                    st["seeded"] = False
+                    st["last_edge"] = t
+                    st["pulse_start"] = t
+            else:
+                if raw < lo:
+                    if st["seeded"]:
+                        # real fall, unknown rise: no width, and the next
+                        # interval must not anchor on a synthetic rise time
+                        close(t, "completed")
+                        st["prev_rise"] = None
+                    else:
+                        width = t - st["pulse_start"]
+                        interval = ((st["pulse_start"] - st["prev_rise"])
+                                    if st["prev_rise"] is not None else None)
+                        close(t, "completed", width, interval)
+                        st["prev_rise"] = st["pulse_start"]
+                    st["in_pulse"] = False
+                    st["seeded"] = False
+
+    if st["in_pulse"]:
+        close(float(session["segments"][-1]["t"][-1]), "open_end")
+
+    return {"episodes": episodes, "closs": closs_count[0]}
+
+
+def flat_episodes(results):
+    return [ep for r in results for ep in r["episodes"]]
 
 
 # ============================================================================
@@ -201,18 +288,20 @@ def pct(sorted_vals, p):
 
 
 def analyse(results):
-    pulses = [p for r in results for p in r["pulses"]]
-    widths = sorted(p[2] for p in pulses)
-    intervals = sorted(p[3] for p in pulses if p[3] > 0)
-    latches = sum(r["latches"] for r in results)
-    closs = sum(r["closs"] for r in results)
-    open_end = sum(1 for r in results if r["open_at_end"])
+    eps = flat_episodes(results)
+    done = [ep for ep in eps if ep["outcome"] == "completed"
+            and not ep["seeded"]]
+    widths = sorted(ep["width"] for ep in done)
+    intervals = sorted(ep["interval"] for ep in done
+                       if ep["interval"] is not None and ep["interval"] > 0)
 
     out = {
-        "n_pulses": len(pulses),
-        "latches": latches,
-        "closs": closs,
-        "open_at_end": open_end,
+        "n_pulses": len([ep for ep in eps if ep["outcome"] == "completed"]),
+        "latches": len([ep for ep in eps if ep["outcome"] == "latch"]),
+        "open": len([ep for ep in eps
+                     if ep["outcome"] in ("open_end", "gap_interrupted")]),
+        "seeded": len([ep for ep in eps if ep["seeded"]]),
+        "closs": sum(r["closs"] for r in results),
         "w_med": pct(widths, 50), "w_p10": pct(widths, 10),
         "w_p90": pct(widths, 90),
         "w_min": widths[0] if widths else float("nan"),
@@ -249,8 +338,10 @@ def analyse(results):
     return out
 
 
-def validate_against_recording(segments, results):
-    """1/3 replay vs the firmware's own recorded edges (tolerance +/-2 ms)."""
+def validate_against_recording(sessions, results):
+    """1/3 replay vs the firmware's own recorded edges (tolerance +/-2 ms).
+    Seeded rises are synthetic (gap-resume time) and excluded; falls of
+    seeded episodes are real falls and included."""
     def match(a, b, tol=2.0):
         b = sorted(b)
         used = [False] * len(b)
@@ -263,16 +354,17 @@ def validate_against_recording(segments, results):
                     break
         return hits
 
-    rec_rises = []
-    rec_falls = []
-    for seg in segments:
-        for i in range(len(seg["t"])):
-            if seg["rec_rise"][i]:
-                rec_rises.append(float(seg["t"][i]))
-            if seg["rec_fall"][i]:
-                rec_falls.append(float(seg["t"][i]))
-    rep_rises = [t for r in results for t in r["rise_t"]]
-    rep_falls = [t for r in results for t in r["fall_t"]]
+    rec_rises, rec_falls = [], []
+    for ses in sessions:
+        for seg in ses["segments"]:
+            for i in range(len(seg["t"])):
+                if seg["rec_rise"][i]:
+                    rec_rises.append(float(seg["t"][i]))
+                if seg["rec_fall"][i]:
+                    rec_falls.append(float(seg["t"][i]))
+    eps = flat_episodes(results)
+    rep_rises = [ep["t_rise"] for ep in eps if not ep["seeded"]]
+    rep_falls = [ep["t_end"] for ep in eps if ep["outcome"] == "completed"]
     return {
         "rec_rises": len(rec_rises), "rep_rises": len(rep_rises),
         "rise_hits": match(rep_rises, rec_rises),
@@ -284,7 +376,7 @@ def validate_against_recording(segments, results):
 # ============================================================================
 # OVERLAY PLOT
 # ============================================================================
-def overlay(segments, frac, results, t_start, duration, save):
+def overlay(sessions, frac, results, t_start, duration, save):
     import matplotlib
     if save:
         matplotlib.use("Agg")
@@ -296,52 +388,41 @@ def overlay(segments, frac, results, t_start, duration, save):
     ax.set_xlabel("Firmware time (s)")
     ax.set_ylabel("ADC counts")
 
-    lo_t, lo_v = [], []
     first = True
-    for seg, res in zip(segments, results):
-        ts = [t / 1000.0 for t in seg["t"]]
-        if t_start is not None:
-            if ts[-1] < t_start:
-                continue
-            if duration is not None and ts[0] > t_start + duration:
-                continue
-        ax.plot(ts, seg["raw"], color="#1f77b4", lw=0.8,
-                label="raw" if first else None)
-        ax.plot(ts, seg["rec_hi"], color="#ff7f0e", lw=0.8,
-                label="thrHigh (recorded)" if first else None)
-        ax.plot(ts, seg["rec_lo"], color="#2ca02c", lw=0.8, linestyle="--",
-                label="thrLow recorded (1/3)" if first else None)
-        for i in range(len(seg["t"])):
-            mn = seg["mn"][i]
-            span = seg["mx"][i] - mn
-            lo_t.append(seg["t"][i] / 1000.0)
-            lo_v.append(thr_low_of(mn, span, frac))
-        # recorded inPulse: grey band at the bottom
-        ax.fill_between(ts, 0, 200,
-                        where=[v > 0 for v in seg["rec_ip"]],
-                        color="#888888", alpha=0.5,
-                        label="inPulse recorded" if first else None)
-        # replayed pulses for this candidate: colored band above it
-        rep_ip = [False] * len(ts)
-        for (tr, tf, _, _) in res["pulses"]:
-            a = int(tr - seg["t"][0])
-            b = int(tf - seg["t"][0])
-            for k in range(max(a, 0), min(b + 1, len(ts))):
-                rep_ip[k] = True
-        ax.fill_between(ts, 220, 420, where=rep_ip, color="#d62728", alpha=0.5,
-                        label=("inPulse replay %s" % label) if first else None)
-        if res["fall_t"]:
-            ft = [t / 1000.0 for t in res["fall_t"]]
-            fv = []
-            for t in res["fall_t"]:
-                idx = int(t - seg["t"][0])
-                fv.append(seg["raw"][idx] if 0 <= idx < len(ts) else 0)
-            ax.scatter(ft, fv, marker="v", s=50, color="#d62728", zorder=5,
-                       label=("fall replay %s" % label) if first else None)
-        first = False
+    for ses in sessions:
+        for seg in ses["segments"]:
+            ts = [t / 1000.0 for t in seg["t"]]
+            if t_start is not None:
+                if ts[-1] < t_start:
+                    continue
+                if duration is not None and ts[0] > t_start + duration:
+                    continue
+            ax.plot(ts, seg["raw"], color="#1f77b4", lw=0.8,
+                    label="raw" if first else None)
+            ax.plot(ts, seg["rec_hi"], color="#ff7f0e", lw=0.8,
+                    label="thrHigh (recorded)" if first else None)
+            ax.plot(ts, seg["rec_lo"], color="#2ca02c", lw=0.8, linestyle="--",
+                    label="thrLow recorded (1/3)" if first else None)
+            lo_v = [thr_low_of(seg["mn"][i], seg["mx"][i] - seg["mn"][i], frac)
+                    for i in range(len(seg["t"]))]
+            ax.plot(ts, lo_v, color="#d62728", lw=1.0,
+                    label=("thrLow candidate %s" % label) if first else None)
+            # recorded inPulse: grey band at the bottom
+            ax.fill_between(ts, 0, 200,
+                            where=[v > 0 for v in seg["rec_ip"]],
+                            color="#888888", alpha=0.5,
+                            label="inPulse recorded" if first else None)
+            first = False
 
-    ax.plot(lo_t, lo_v, color="#d62728", lw=1.0,
-            label="thrLow candidate %s" % label)
+    # replayed episodes: colored band above the recorded one
+    for ses_result in results:
+        for ep in ses_result["episodes"]:
+            if ep["outcome"] != "completed":
+                continue
+            tr, tf = ep["t_rise"] / 1000.0, ep["t_end"] / 1000.0
+            ax.fill_between([tr, tf], 220, 420, color="#d62728", alpha=0.5)
+            ax.scatter([tf], [300], marker="v", s=50, color="#d62728", zorder=5)
+
     if t_start is not None:
         ax.set_xlim(t_start, t_start + (duration or 5.0))
     ax.legend(fontsize=8, loc="upper right")
@@ -374,14 +455,19 @@ def main():
     ap.add_argument("--save", default=None, help="save overlay PNG instead of showing")
     a = ap.parse_args()
 
-    segments = load_segments(a.csv_path)
-    n_samples = sum(len(s["t"]) for s in segments)
+    sessions = load_sessions(a.csv_path)
+    n_samples = sum(len(seg["t"]) for s in sessions for seg in s["segments"])
+    n_segs = sum(len(s["segments"]) for s in sessions)
     if not n_samples:
         print("No SAMPLE rows found in %s" % a.csv_path)
         sys.exit(1)
-    print("[Replay] %s: %d samples in %d contiguous segment(s)"
-          % (a.csv_path, n_samples, len(segments)))
-    rec_pulses = sum(sum(s["rec_fall"]) for s in segments)
+    n_gaps = sum(1 for s in sessions for b in s["boundaries"] if b == "GAP")
+    n_miss = sum(1 for s in sessions for b in s["boundaries"] if b == "MISSED")
+    print("[Replay] %s: %d samples, %d session(s), %d segment(s) "
+          "(%d transport gap(s), %d sampler stall(s))"
+          % (a.csv_path, n_samples, len(sessions), n_segs, n_gaps, n_miss))
+    rec_pulses = sum(sum(seg["rec_fall"]) for s in sessions
+                     for seg in s["segments"])
     print("[Replay] recorded detector: %d completed pulses in this capture"
           % rec_pulses)
 
@@ -389,10 +475,10 @@ def main():
 
     all_results = {}
     for frac in candidates:
-        all_results[frac] = [replay_segment(seg, frac) for seg in segments]
+        all_results[frac] = [replay_session(s, frac) for s in sessions]
 
     # semantics validation: 1/3 must reproduce the firmware's own edges
-    v = validate_against_recording(segments, all_results["1/3"])
+    v = validate_against_recording(sessions, all_results["1/3"])
     print("\n[Replay] semantics check (1/3 vs recorded flags, +/-2 ms):")
     print("         rises  replay %d / recorded %d, matched %d"
           % (v["rep_rises"], v["rec_rises"], v["rise_hits"]))
@@ -402,16 +488,17 @@ def main():
         print("         WARNING: replay does not reproduce the recorded detector;"
               " treat candidate numbers as suspect")
 
-    hdr = ("frac    pulses  latch  short  merged  w med/p10/p90      "
-           "int med/min/max        base   pulses/rev")
+    hdr = ("frac    pulses  latch  open  seed  short  merged  "
+           "w med/p10/p90      int med/min/max        base   pulses/rev")
     print("\n" + hdr)
     print("-" * len(hdr))
     for frac in candidates:
         m = analyse(all_results[frac])
         label = frac if isinstance(frac, str) else ("%.2f" % frac)
-        print("%-6s  %6d  %5d  %5d  %6d  %5s/%5s/%5s ms  %6s/%6s/%6s ms  %5s  %s"
-              % (label, m["n_pulses"], m["latches"], m["short_pulses"],
-                 m["merged"],
+        print("%-6s  %6d  %5d  %4d  %4d  %5d  %6d  %5s/%5s/%5s ms  "
+              "%6s/%6s/%6s ms  %5s  %s"
+              % (label, m["n_pulses"], m["latches"], m["open"], m["seeded"],
+                 m["short_pulses"], m["merged"],
                  fmt(m["w_med"], "%.0f"), fmt(m["w_p10"], "%.0f"),
                  fmt(m["w_p90"], "%.0f"),
                  fmt(m["i_med"], "%.0f"), fmt(m["i_min"], "%.0f"),
@@ -420,6 +507,7 @@ def main():
                  fmt(m["pulses_per_rev"], "%.2f")))
     print("\npulses/rev: 7.00 = every spoke seen; ~3.5 = half merged."
           "\nmerged: intervals >= %.1fx the base (p25) interval."
+          "\nlatch/open episodes are pulses that never produced a fall edge."
           "\nEstablish phase with a hand-turn marker before trusting"
           " revolutions absolutely." % MERGED_RATIO)
 
@@ -427,8 +515,8 @@ def main():
         frac = "1/3" if a.plot.strip() == "1/3" else float(a.plot)
         results = all_results.get(frac)
         if results is None:
-            results = [replay_segment(seg, frac) for seg in segments]
-        overlay(segments, frac, results, a.start, a.duration, a.save)
+            results = [replay_session(s, frac) for s in sessions]
+        overlay(sessions, frac, results, a.start, a.duration, a.save)
 
 
 if __name__ == "__main__":
