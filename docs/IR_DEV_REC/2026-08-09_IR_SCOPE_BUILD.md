@@ -172,3 +172,28 @@ replay issues remained; both accepted and fixed, one commit each:
 - Report format change vs the previous round: `seed` column replaced by
   `unkn`; `mpk`, `duty%`, `p/rev-phys` columns added; `pulses/rev` renamed
   `p/rev-int`; a structure summary line and divergence NOTEs added.
+
+---
+
+## Addendum 3, 2026-08-09 — CODEX re-review of `404c687`
+
+Fixes 5 and 6 were assessed as improvements but integration stayed blocked
+on two P1 correctness findings and one P2 display defect. All three
+accepted and fixed, one commit each:
+
+| finding | fix |
+|---|---|
+| 7 [P1] `end_unknown` reset the debounce anchor to −∞: a below-thrLow sample pins `in_pulse=false` but not **timing** — a rise the real detector accepted inside the gap less than 15 ms before a post-resync crossing would be debounced by the firmware but emitted by the replay (reproduction: GAP, low @100, high @105, low @110 fabricated a 105–110 pulse). | The unknown period now ends only at a sample **both** below the candidate's thrLow **and** more than `DEBOUNCE_MS` past the latest possible rise (`resync_last_high`: initialized to the first post-gap sample time, advanced by every above-thrHigh sample while unknown). Edges inside that window stay unattributed in the resync span; the exit anchors the debounce at `resync_last_high` — exact-or-conservative, never permissive. The reproduction now attributes only the pre-gap pulse. |
+| 8 [P1] `p/rev-phys` was not a physical-revolution measurement — its denominator comes from the same waveform, so per-spoke optical doubling still reads 7.00 — and the loader ignored MARKER rows. | Renamed `p/7pk` (apparent pulses per seven peaks), presented as structural evidence only; the NOTE no longer says to trust it as physical truth. The loader consumes MARKER rows; markers containing `--rev-marker` (default `rev`, one BOOT press per hand-turned revolution) define revolution windows (gap-spanning windows excluded and counted), yielding `p/rev-mk` — the only absolute pulses/revolution figure — and **peaks per marked revolution**, the direct test of one-peak-per-spoke (7.0 clean, ~14 doubled). Without markers the report states the absolute figure is UNAVAILABLE. Uniform-merge synthetic with markers: 8 usable revolutions, peaks/rev 7.0, p/rev-mk 4.0 @1/3 vs 7.0 @0.50. |
+| 9 [P2] Quiet post-gap unknown stretches (never above thrHigh) were in `resync_spans` but absent from the `unkn` count and the grey overlay band, contrary to the documented contract. | Every unknown span is recorded and rendered; activity inside it is an `activity` metadata field on the episode. Mid-band quiet-resync reproduction: `unkn`=1 at every candidate where it previously read 0. |
+
+### Verification, this round
+
+- Firmware unchanged; both Python tools `py_compile` clean after each commit.
+- CODEX's exact fix-7 reproduction and a quiet-resync reproduction added to
+  the synthetic suite; all prior synthetics re-run unchanged (uniform-merge
+  regenerated with revolution markers).
+- Report format vs previous round: `p/rev-phys` column renamed `p/7pk`;
+  `p/rev-mk` column added; structure summary no longer converts peaks to
+  revolutions; a revolution-marker summary line added (usable/excluded
+  windows, peaks per marked revolution).

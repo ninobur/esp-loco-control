@@ -85,14 +85,22 @@ Interval ratios are scale-free and blind to **uniform** distortion (every
 pulse merging two spokes shifts all intervals identically), so the report
 also runs a threshold-independent **waveform-structure pass**: a
 prominence-based peak counter over the raw trace (`--prom`, default 0.25 ×
-span) yields physical spoke passages, `p/rev-phys` = 7 × pulses / peaks
-beside the interval-based `p/rev-int`, `mpk` (pulses containing ≥ 2
-physical peaks — direct merged-spoke evidence), per-pulse `duty%` (> 100 %
-is itself a merge signal), and an automatic NOTE when the two revolution
-figures disagree. Limit: peaks/7 assumes one optical peak per spoke —
-confirm absolute revolutions with the hand-turn marker protocol; a
-consistent 2× disagreement with hand-counted turns means duplicated
-optical features per spoke.
+span) yields `mpk` (pulses containing ≥ 2 physical peaks — direct
+merged-spoke evidence), per-pulse `duty%` (> 100 % is itself a merge
+signal), `p/7pk` (apparent pulses per seven peaks), and an automatic NOTE
+when `p/7pk` and `p/rev-int` disagree. **`p/7pk` is structural evidence,
+not a revolution measurement** — its denominator comes from the same
+waveform, so per-spoke optical doubling still reads 7.00.
+
+The only **absolute** pulses-per-revolution figure is `p/rev-mk`, from
+operator revolution markers: set the marker text to `rev` (via
+`marker/set`), hand-turn the wheel, and press BOOT once per completed
+revolution. The replay consumes those MARKER rows (`--rev-marker` sets the
+matching substring), excludes windows that span transport gaps, and also
+reports **peaks per marked revolution** — the direct test of the
+one-peak-per-spoke assumption (7.0 clean; ~14 means each spoke presents
+two optical features). Without markers the report states that the absolute
+figure is unavailable.
 
 Overlay a candidate on the waveform to see exactly which troughs would emit
 a fall edge:
@@ -170,11 +178,14 @@ thr_high, thr_low, contrast_valid, in_pulse, rise, fall, info
   carries **all** replay state (the firmware detector ran continuously
   through the stall); `GAP` closes the open pulse as `gap_interrupted`,
   clears the interval anchor, and then **resynchronizes each candidate
-  independently from the waveform**: state is unknown until the first
-  sample below *that candidate's* thrLow (or a contrast loss), which pins
-  any detector variant to idle with certainty. The unknown stretch is
-  reported (`unkn` column, `resync_unknown` episode), excluded from
-  statistics, and drawn grey in the overlay — never seeded from the
+  independently from the waveform**: state stays unknown until a sample
+  that is *both* below that candidate's thrLow (or a contrast loss, which
+  pins any detector variant to idle) *and* more than the 15 ms debounce
+  horizon past the latest possible rise — a rise inside the gap could
+  otherwise make the replay emit an edge the real detector would
+  debounce. Every unknown stretch, quiet or active, is reported (`unkn`
+  column, `resync_unknown` episode with an `activity` flag), excluded
+  from statistics, and drawn grey in the overlay — never seeded from the
   recorded 1/3 detector, whose state is exact only for the 1/3 candidate.
   An unmarked sample-number jump is treated as a GAP, conservatively.
 
