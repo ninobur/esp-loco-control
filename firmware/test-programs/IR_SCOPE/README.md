@@ -72,6 +72,15 @@ fractions **1/3 (current), 0.40, 0.50, 0.60** (`--frac` adds more), with the
 rising rule held at production. The 1/3 replay is validated against the
 firmware's own recorded edges first; if that check warns, distrust the rest.
 
+Every replayed pulse is an **episode with an explicit outcome** — completed,
+latch-discarded, contrast-discarded, open at a gap, open at record end —
+so a candidate that stops producing fall edges is reported, not hidden.
+Merged/short classification is judged against a **local** base (p25 of the
+±10 neighbouring intervals in the same session), because a hand-pushed
+wheel changes speed and a pooled base would misread slow stretches as
+merges; intervals with too few neighbours are reported as `uncls`, never
+guessed.
+
 Overlay a candidate on the waveform to see exactly which troughs would emit
 a fall edge:
 
@@ -94,10 +103,10 @@ Topics under `ngr/diag/irscope01/`:
 **Batch format** (one JSON object per 200-sample batch):
 
 ```json
-{"sid":"a1b2c3d4","seq":123,"first":24600,"n":200,
+{"sid":"a1b2c3d4","seq":123,"first":24600,"n":200,"miss":0,
  "env":[runMin,runMax,thrHigh,thrLow],
  "envu":[[off,runMin,runMax,thrHigh,thrLow]],
- "late_us":40,"late_n":0,"envx":0,"bdrop":0,
+ "late_us":40,"late_n":0,"miss_n":0,"envx":0,"bdrop":0,
  "latch":0,"closs":0,"sat":0,"pulses":42,
  "hex":"..."}
 ```
@@ -106,8 +115,15 @@ Topics under `ngr/diag/irscope01/`:
 - `seq` — batch sequence; a gap means dropped batch(es), also counted in
   `bdrop`. `first` — sample number of `hex[0]`; **sample N is exactly N ms
   after capture start** (deterministic 1 kHz via `vTaskDelayUntil`; per-batch
-  worst lateness against that grid is `late_us`, cumulative samples >1 ms
-  late are `late_n`).
+  worst residual lateness against that grid is `late_us`, cumulative samples
+  >250 µs off-grid are `late_n`).
+- `miss` — sample slots **skipped** immediately before `first` because the
+  sampler stalled a full slot or more (cumulative in `miss_n`). Missed slots
+  are never fabricated as data: the open batch is flushed short, the slot
+  numbers are skipped, and the tick resynchronizes — so every sample in
+  `hex` really was acquired within a slot of its nominal time and `first+i`
+  reconstruction stays exact. The detector itself ran continuously through
+  the stall; only acquisitions are absent.
 - `env` applies from `first`; each `envu` entry applies from `first+off`
   (envelope recomputes every 250 ms; `envx` counts the never-expected case
   of more than 4 recomputes in one batch).
@@ -131,11 +147,19 @@ wall_time, row_type, session, batch_seq, sample, t_s, raw, run_min, run_max,
 thr_high, thr_low, contrast_valid, in_pulse, rise, fall, info
 ```
 
-- `row_type` — `SAMPLE`, `MARKER` (text in `info`), `GAP` (lost batches,
-  extent in `info`), `SESSION` (new boot), `STATUS` (raw status JSON in
-  `info`).
-- `t_s` = `sample`/1000, firmware time. The replay tool splits segments at
-  every GAP/SESSION row and at any sample discontinuity.
+- `row_type` — `SAMPLE`, `MARKER` (text in `info`), `GAP` (batches lost in
+  transport, extent in `info` — red span on the live plot), `MISSED`
+  (sampler-stall slots declared by the firmware — amber span), `SESSION`
+  (new boot), `STATUS` (raw status JSON in `info`).
+- `t_s` = `sample`/1000, firmware time.
+- The replay tool distinguishes the three discontinuities by what
+  physically happened: `SESSION` fully resets the detector; `MISSED`
+  carries **all** replay state (the firmware detector ran continuously
+  through the stall); `GAP` closes the open pulse as `gap_interrupted`,
+  clears the interval anchor, and **seeds** the replay from the recorded
+  `in_pulse` flag at resume — a seeded pulse's width and anchoring
+  interval are excluded from statistics because its rise time is unknown.
+  An unmarked sample-number jump is treated as a GAP, conservatively.
 
 ## Scope boundaries
 

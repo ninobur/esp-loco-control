@@ -94,7 +94,8 @@ exactly which troughs would emit a fall edge.
   are capture-exact.
 - A stalled tick is caught up by `vTaskDelayUntil` (samples late, not lost)
   and reported via `late_us`/`late_n`; sustained starvation would appear
-  there first.
+  there first. *(Superseded by CODEX finding 1 below: a stall of a full
+  slot or more is now represented as MISSED slots, never as data.)*
 - Plotter redraws the full window each frame; keep `--window` ≤ ~20 s at
   1 kHz or the display (not the log — logging is unconditional) gets sluggish.
 - The replay trusts the recorded envelope; it does not model how a different
@@ -115,3 +116,29 @@ exactly which troughs would emit a fall edge.
 The production threshold does **not** change on this evidence alone —
 decision 0010's headroom rule still governs that call, now with waveform
 evidence instead of survivor-biased event statistics.
+
+---
+
+## Addendum, 2026-08-09 — CODEX review round (PR #3)
+
+CODEX raised four findings against the commit above; all four accepted and
+fixed, one commit each, on `agent/ir-scope-review`:
+
+| finding | fix |
+|---|---|
+| 1 [P1] Missed sampling slots were represented as ordinary 1 ms samples: after a stall, `vTaskDelayUntil` burst catch-up reads that filled the missed slots with samples all acquired at the same instant — fabricated data. | A stall of a full slot or more now flushes the open batch short, **skips** the missed sample numbers (no data is ever attributed to them), resynchronizes the tick, and annotates the next batch with `miss=N` (cumulative `miss_n`). `first+i` reconstruction stays exact; every published sample was acquired within a slot of its nominal time. Plotter draws firmware stalls as amber `MISSED` spans, distinct from red transport `GAP`s, and its expected-first check accounts for declared misses. `late_n` becomes residual off-grid (>250 µs); >1 slot can no longer occur by construction. |
+| 2 [P1] Variable hand-pushed speed could be falsely classified as merged spokes: merged/short were judged against a pooled p25 base, so slow-phase intervals read as merges and fast-phase merges could hide. | Each interval is judged against its **local** base — p25 of the ±10 neighbouring intervals in the same session (low percentile because a swallowed spoke can only inflate an interval). Short pulses judged against the local median width. Too-thin windows are reported `uncls`, never guessed. Verified: a 130→300 ms speed-ramp synthetic reports 0 merged / 7.00 pulses/rev at every candidate; the shallow-trough capture still reports its 15 real merges at 1/3. |
+| 3 [P1] Replay incorrectly reset detector state after transport gaps: it fired a spurious rise on the first above-threshold sample after each gap and silently dropped the pulse open at gap start. | The three discontinuities are now handled by what physically happened: `SESSION` = full reset; `MISSED` = **all** state carried (the firmware detector ran continuously; absolute times keep debounce/latch honest); `GAP` = open pulse closed explicitly as `gap_interrupted`, interval anchor cleared, replay **seeded** from the recorded `inPulse` flag at resume — seeded widths/intervals excluded from statistics, seeded falls kept as real falls. Verified on a gap cut mid-pulse at both edges: 1 gap_interrupted + 1 seeded, zero spurious rises, edges still match the recorded detector 35/35. |
+| 4 [P2] Replay overlays omitted open and latch-discarded candidate pulses — the exact failure modes under investigation were invisible in the judging picture. | Every episode outcome is drawn, styled: completed (solid, fall marker), latch discard (orange cross-hatch, × at the discard, no fall marker), contrast discard (purple), open-at-gap and open-at-end (light hatched/dotted), seeded annotated. Verified on a 3.5 s plateau synthetic: 1/3, 0.40 and 0.50 latch (orange band shown), 0.60 falls instead, the record's mid-pulse end shows as the open band. |
+
+### Verification, this round
+
+- Builds (`esp32:esp32:esp32`, `--warnings all`): IR_SCOPE 910,764 B (69%)
+  / 52,056 B RAM (15%), zero warnings.
+- `py_compile` clean on both tools after every commit.
+- Replay semantics self-check passes on all three synthetics — including
+  one whose recorded flags exercise the firmware latch discard (inPulse
+  cleared with no fall flag): 21/21 rises, 19/19 falls matched.
+- Table/report format change: columns `open`, `seed`, `uncls` added; the
+  MQTT batch gains `miss`/`miss_n`; the CSV gains the `MISSED` row type.
+  Parsers of the samples topic must tolerate the two new fields.
