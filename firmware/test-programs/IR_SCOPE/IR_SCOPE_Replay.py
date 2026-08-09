@@ -452,14 +452,41 @@ def overlay(sessions, frac, results, t_start, duration, save):
                             label="inPulse recorded" if first else None)
             first = False
 
-    # replayed episodes: colored band above the recorded one
+    # Replayed episodes: EVERY outcome is drawn, styled by what happened —
+    # the pulses that never produced a fall edge (latch, closs, gap, open)
+    # are precisely the failure modes under investigation and must not be
+    # invisible in the overlay.
+    STYLE = {
+        # outcome: (color, alpha, hatch, legend)
+        "completed":       ("#d62728", 0.50, None, "replay %s: completed"),
+        "latch":           ("#ff9900", 0.55, "xx", "replay %s: LATCH discard (no fall)"),
+        "closs":           ("#9467bd", 0.55, "xx", "replay %s: contrast discard (no fall)"),
+        "gap_interrupted": ("#d62728", 0.25, "//", "replay %s: open at gap (end unknown)"),
+        "open_end":        ("#d62728", 0.25, "..", "replay %s: still open at record end"),
+    }
+    seen = set()
     for ses_result in results:
         for ep in ses_result["episodes"]:
-            if ep["outcome"] != "completed":
-                continue
+            color, alpha, hatch, leg = STYLE[ep["outcome"]]
             tr, tf = ep["t_rise"] / 1000.0, ep["t_end"] / 1000.0
-            ax.fill_between([tr, tf], 220, 420, color="#d62728", alpha=0.5)
-            ax.scatter([tf], [300], marker="v", s=50, color="#d62728", zorder=5)
+            lab = None
+            if ep["outcome"] not in seen:
+                seen.add(ep["outcome"])
+                lab = leg % label
+            ax.fill_between([tr, tf], 220, 420, color=color, alpha=alpha,
+                            hatch=hatch, edgecolor=color, linewidth=0.5,
+                            label=lab)
+            if ep["outcome"] == "completed":
+                ax.scatter([tf], [300], marker="v", s=50, color="#d62728",
+                           zorder=5)
+            elif ep["outcome"] in ("latch", "closs"):
+                # discard instant: inPulse cleared with NO fall edge emitted
+                ax.scatter([tf], [320], marker="x", s=60, color=color,
+                           zorder=5)
+            if ep["seeded"]:
+                # rise time unknown (seeded at a gap resume)
+                ax.text(tr, 430, "seeded", color=color, fontsize=6,
+                        ha="left", va="bottom")
 
     if t_start is not None:
         ax.set_xlim(t_start, t_start + (duration or 5.0))
