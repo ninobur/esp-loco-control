@@ -261,10 +261,14 @@ def replay_session(session, frac):
         # the latest POSSIBLE unobserved rise has expired (see below), so
         # no future rise can be one the real detector would suppress.
         if st["resync_start"] is not None:
-            if st["resync_activity"]:
-                episodes.append({"t_rise": st["resync_start"], "t_end": t_end,
-                                 "outcome": "resync_unknown",
-                                 "width": None, "interval": None})
+            # EVERY unknown span is recorded and rendered — a quiet one
+            # (never above thrHigh) is still a stretch where the candidate's
+            # state was not established, and hiding it would contradict the
+            # documented contract. Activity rides along as metadata.
+            episodes.append({"t_rise": st["resync_start"], "t_end": t_end,
+                             "outcome": "resync_unknown",
+                             "activity": st["resync_activity"],
+                             "width": None, "interval": None})
             resync_spans.append((st["resync_start"], t_end))
         st["unknown"] = False
         st["resync_start"] = None
