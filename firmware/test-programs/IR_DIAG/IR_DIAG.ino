@@ -187,7 +187,13 @@ const int   SPOKES_PER_WHEEL = 7;
 const float WHEEL_CIRCUMFERENCE_MM = 87.34f;
 
 const uint32_t SENSOR_TICK_MS = 1;       // 1 kHz
-const uint32_t DEBOUNCE_US    = 15000;   // 15 ms — edge-doubling guard
+const uint32_t DEBOUNCE_US    = 2500;    // rise-to-rise guard, PRODUCTION
+// IR_TEST's value and derivation (see its source). 15 ms was the two-flag
+// era constant; the 2026-08-09 IR_SCOPE night replay proved it deletes
+// spokes wholesale on the 7-spoke wheel at speed (7,869 pulses detected
+// against 15,906 physical peaks at 15 ms; 15,822 at 2500 us). A diagnostic
+// that guards differently from production measures its own guard, not the
+// sensor — this IS the decision-0009 rule, applied to the debounce.
 
 const int      ADC_MAX          = 4095;
 const int      SATURATION_LEVEL = 4000;  // above this the sensor is blinded
