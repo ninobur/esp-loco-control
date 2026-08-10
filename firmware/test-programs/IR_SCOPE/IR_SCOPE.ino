@@ -44,13 +44,15 @@
  * ---------------------------------------------------------------------------
  * ARCHITECTURE — inherited from IR_DIAG/IR_TEST, unchanged
  * ---------------------------------------------------------------------------
- *   sensorTask   1 kHz, core 0, priority 2. Samples, runs the detector,
- *                packs per-sample records into batches, enqueues full
- *                batches. Never blocks on anything.
- *   batchQueue   50 batches of 200 samples (~10 s). An MQTT outage costs at
- *                most the queue depth, and every dropped batch is COUNTED
- *                (bdrop) and visible as a batch-seq gap. Nothing is joined
- *                silently.
+ *   sensorTask   1 kHz, CORE 1, priority 3 — the opposite core from the
+ *                WiFi/lwIP stack, which was measured starving a core-0
+ *                sampler during RF-stall retransmission storms. Samples,
+ *                runs the detector, packs per-sample records into batches,
+ *                enqueues full batches. Never blocks on anything.
+ *   batchQueue   200 batches of 200 samples (~40 s of RF-stall
+ *                ride-through). An outage costs at most the queue depth,
+ *                and every dropped batch is COUNTED (bdrop) and visible as
+ *                a batch-seq gap. Nothing is joined silently.
  *   networkTask  owns WiFi/MQTT alone, core 0, priority 1. Peek-publish-
  *                remove, PACED: one batch per pass, minimum spacing, live
  *                rate during post-connect warmup (see TRANSPORT PACING),
@@ -167,7 +169,17 @@ const uint32_t LATCH_TIMEOUT_MS = 2500;
 const int      BATCH_N          = 200;   // 200 ms per batch, 5 batches/s
 const int      MAX_ENV_UPDATES  = 4;     // recompute is 250 ms; >1 per batch
                                          // needs a stall, 4 is generous
-const int      BATCH_QUEUE_N    = 50;    // ~10 s of outage tolerance
+// 200 batches = ~40 s of RIDE-THROUGH (~92 KB heap, against ~171 KB free
+// measured live). Sized from field evidence, 2026-08-09 evening run: the
+// radio link stalls for ~10 s stretches while staying associated (RSSI -51,
+// zero WiFi events, zero MQTT drops — the same signature QUORUM 1.11
+// measured and attributed to the Deco/channel interference environment).
+// 10 s of buffer met a 10 s stall with nothing to spare; production dropped
+// straight into bdrop. 40 s covers every stall observed to date with
+// catch-up (20 msg/s ceiling, net 15/s over production) clearing a full
+// buffer in ~13 s. Stalls beyond 40 s still shed oldest-first into bdrop,
+// counted and gap-declared — bounded honest loss, never a stampede.
+const int      BATCH_QUEUE_N    = 200;
 const uint32_t STATUS_PERIOD_MS = 5000;
 const uint32_t MQTT_RETRY_MS    = 5000;
 
@@ -209,6 +221,19 @@ const uint32_t PUB_WARMUP_SPACING_MS = 200;  // first WARMUP after connect:
 const uint32_t PUB_WARMUP_MS    = 10000;     //   live rate only, no stampede
 const uint32_t PUB_SLOW_MS      = 250;   // a publish blocking this long is
                                          // counted as pub_slow
+const uint32_t STALL_BACKOFF_MS = 500;   // after a slow/failed publish the
+                                         // next attempt waits this long —
+                                         // keepalive and broker traffic get
+                                         // the recovering link first
+// Write-path fail-fast: NetworkClient's _timeout bounds BOTH the TCP
+// connect and each write select (verified in core 3.3.11 sources). During
+// an RF stall a write otherwise blocks up to _timeout repeatedly —
+// pub_max_ms 10,011 was measured in the field — which starves keepalive.
+// So: 3000 ms while connecting (a TCP connect deserves patience), dropped
+// to 1000 ms once the session is up (a stalled WRITE should fail fast,
+// stay queued, and retry after STALL_BACKOFF_MS).
+const uint32_t NET_TIMEOUT_CONNECT_MS = 3000;
+const uint32_t NET_TIMEOUT_WRITE_MS   = 1000;
 const uint32_t WIFI_KICK_MS     = 20000; // WiFi down this long -> kick
 const uint8_t  WIFI_KICKS_BEFORE_RESTART = 3;  // then radio off/on restart
 const uint32_t MQTT_FAILS_BEFORE_KICK    = 12; // consecutive connect fails on
@@ -532,8 +557,10 @@ static bool attemptReconnect() {
   nextMqttTryMs = now + MQTT_RETRY_MS;      // fixed backoff, never every pass
   if (WiFi.status() != WL_CONNECTED) return false;
   mqttAttempts = mqttAttempts + 1;
+  espClient.setConnectionTimeout(NET_TIMEOUT_CONNECT_MS);  // patient connect
   String cid = String("ngr-irscope-") + NODE_NAME;
   if (mqtt.connect(cid.c_str(), T_STATUS, 0, true, "{\"online\":0}")) {
+    espClient.setConnectionTimeout(NET_TIMEOUT_WRITE_MS);  // fail-fast writes
     mqttConnects = mqttConnects + 1;
     mqttConsecFails = 0;
     warmupUntilMs = now + PUB_WARMUP_MS;    // reconnect flush at live rate only
@@ -692,20 +719,29 @@ static void networkTask(void*) {
         uint32_t spacing = (now < warmupUntilMs) ? PUB_WARMUP_SPACING_MS
                                                  : PUB_SPACING_MS;
         SampleBatch b;
-        if ((uint32_t)(now - lastBatchPubMs) >= spacing &&
+        // signed compare: the stall backoff parks lastBatchPubMs in the
+        // future, which must gate as "not yet", never as unsigned wrap
+        if ((int32_t)(now - lastBatchPubMs) >= (int32_t)spacing &&
             xQueuePeek(batchQueue, &b, 0) == pdTRUE) {
           uint32_t t0 = millis();
           bool ok = publishBatch(b);
           uint32_t dt = millis() - t0;
           if (dt > pubMaxMs) pubMaxMs = dt;
-          if (dt > PUB_SLOW_MS) pubSlow = pubSlow + 1;
+          bool stalled = (dt > PUB_SLOW_MS);
+          if (stalled) pubSlow = pubSlow + 1;
           if (ok) {
             xQueueReceive(batchQueue, &b, 0);
             lastBatchPubMs = now;
           } else {
-            pubFails = pubFails + 1;  // stays queued; retried next window
-            lastBatchPubMs = now;     // failed write still spent the link's
-          }                           //   time — pace the retry too
+            pubFails = pubFails + 1;  // stays queued; retried after backoff
+            lastBatchPubMs = now;
+          }
+          if (!ok || stalled) {
+            // The link is mid-stall: give keepalive and the broker's own
+            // traffic the recovering link before offering the next 1.35 KB
+            // (backoff + normal spacing, via the signed gate above).
+            lastBatchPubMs = now + STALL_BACKOFF_MS;
+          }
         }
 
         PubMsg m; uint8_t n = 0;
@@ -854,8 +890,13 @@ void setup() {
   }
 
   // Sampling starts BEFORE the network, so nothing about bringing WiFi up
-  // can cost a sample.
-  if (xTaskCreatePinnedToCore(sensorTask, "sensorTask", 4096, nullptr, 2, nullptr, 0) != pdPASS) {
+  // can cost a sample. CORE 1, priority 3: the WiFi/lwIP tasks are pinned
+  // to core 0 at high priority, and the 2026-08-09 field run measured them
+  // starving even a priority-2 sampler there during RF-stall retransmission
+  // storms (late_n 786, miss_n 125 while the link thrashed). On core 1 the
+  // sampler shares only with loop() (button + 5 s status beat) and outranks
+  // it; the radio cannot touch the 1 kHz clock at all.
+  if (xTaskCreatePinnedToCore(sensorTask, "sensorTask", 4096, nullptr, 3, nullptr, 1) != pdPASS) {
     Serial.println("[FATAL] sensor task creation failed"); while (1) delay(1000);
   }
 
