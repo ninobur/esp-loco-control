@@ -247,47 +247,59 @@ def replay_session(session, frac):
     st = {"in_pulse": False, "last_edge": -1e12,
           "pulse_start": 0.0, "prev_rise": None,
           "unknown": False, "resync_start": None, "resync_activity": False,
-          "resync_last_high": 0.0}
+          "resync_anchor": 0.0, "resync_below_lo": False,
+          "resync_prev_above_hi": False}
 
     def close(t_end, outcome, width=None, interval=None):
         episodes.append({"t_rise": st["pulse_start"], "t_end": t_end,
                          "outcome": outcome,
                          "width": width, "interval": interval})
 
+    def record_unknown_span(t_end):
+        # EVERY unknown span is recorded and rendered — a quiet one (never
+        # above thrHigh) is still a stretch where the candidate's state was
+        # not established, and hiding it would contradict the documented
+        # contract. Activity rides along as metadata. Also called when a
+        # NEW gap arrives while still unknown, so no span is ever dropped.
+        if st["resync_start"] is None:
+            return
+        episodes.append({"t_rise": st["resync_start"], "t_end": t_end,
+                         "outcome": "resync_unknown",
+                         "activity": st["resync_activity"],
+                         "width": None, "interval": None})
+        resync_spans.append((st["resync_start"], t_end))
+        st["resync_start"] = None
+        st["resync_activity"] = False
+        st["resync_below_lo"] = False
+        st["resync_prev_above_hi"] = False
+
     def end_unknown(t_end):
         # The candidate's state AND timing are pinned from here: raw is
         # below thrLow (or contrast collapsed), so every variant of the
         # detector has fallen or discarded — and the debounce horizon of
-        # the latest POSSIBLE unobserved rise has expired (see below), so
-        # no future rise can be one the real detector would suppress.
-        if st["resync_start"] is not None:
-            # EVERY unknown span is recorded and rendered — a quiet one
-            # (never above thrHigh) is still a stretch where the candidate's
-            # state was not established, and hiding it would contradict the
-            # documented contract. Activity rides along as metadata.
-            episodes.append({"t_rise": st["resync_start"], "t_end": t_end,
-                             "outcome": "resync_unknown",
-                             "activity": st["resync_activity"],
-                             "width": None, "interval": None})
-            resync_spans.append((st["resync_start"], t_end))
+        # the latest POSSIBLE unobserved rise has expired, so no future
+        # rise can be one the real detector would suppress.
+        anchor = st["resync_anchor"]
+        record_unknown_span(t_end)
         st["unknown"] = False
-        st["resync_start"] = None
-        st["resync_activity"] = False
         st["in_pulse"] = False
-        # The latest possible real-detector rise is bounded by the last
-        # above-thrHigh time (tracked in resync_last_high); anchoring the
-        # debounce there is exact-or-conservative, never permissive.
-        st["last_edge"] = st["resync_last_high"]
+        # The latest possible real-detector rise (resync_anchor) bounds
+        # the debounce exactly-or-conservatively, never permissively.
+        st["last_edge"] = anchor
         st["prev_rise"] = None           # nothing anchors across the gap
 
     for si, seg in enumerate(session["segments"]):
         if si > 0:
             kind = session["boundaries"][si - 1]
             if kind == "GAP":
+                seg_end = float(session["segments"][si - 1]["t"][-1])
+                if st["unknown"]:
+                    # a new gap before the previous resync resolved: the
+                    # pending span is still evidence — record it, never drop
+                    record_unknown_span(seg_end)
                 if st["in_pulse"]:
                     # end unknown — close explicitly, never silently
-                    close(float(session["segments"][si - 1]["t"][-1]),
-                          "gap_interrupted")
+                    close(seg_end, "gap_interrupted")
                     st["in_pulse"] = False
                 st["prev_rise"] = None    # nothing anchors across a gap
                 # Candidate state after the gap is UNKNOWN and is
@@ -324,7 +336,9 @@ def replay_session(session, frac):
             if st["unknown"]:
                 if st["resync_start"] is None:
                     st["resync_start"] = t
-                    st["resync_last_high"] = t
+                    st["resync_anchor"] = t        # in-gap rise <= gap end
+                    st["resync_below_lo"] = False
+                    st["resync_prev_above_hi"] = False
                 if not cv:
                     # contrast loss discards any open pulse in the firmware:
                     # state is certainly idle
@@ -332,11 +346,30 @@ def replay_session(session, frac):
                     continue
                 hi = mn + (span * 2) // 3
                 lo = thr_low_of(mn, span, frac)
-                if raw > hi:
-                    st["resync_activity"] = True   # pulse activity we cannot
-                    st["resync_last_high"] = t     # attribute — report, don't guess
-                if raw < lo and (t - st["resync_last_high"]) > DEBOUNCE_MS:
-                    end_unknown(t)
+                above_hi = raw > hi
+                if above_hi:
+                    st["resync_activity"] = True   # activity we cannot
+                                                   # attribute — report it
+                    # TWO-PHASE ANCHOR (the naive "last above-thrHigh
+                    # sample" deadlocks on high-duty signals — an 84% duty
+                    # trough never sits 15 ms clear of the plateau, so
+                    # post-gap segments would never resolve). Until the
+                    # first below-thrLow observation, ANY above-hi sample
+                    # could be a real-detector rise (an in-gap pulse could
+                    # even latch-abort and re-arm mid-plateau), so the
+                    # anchor tracks every above-hi sample. The first
+                    # below-thrLow sample provably idles every detector
+                    # variant; from then on a rise can only fire at an
+                    # upward thrHigh CROSSING, so only crossings advance
+                    # the anchor — and the next trough resolves.
+                    if (not st["resync_below_lo"]
+                            or not st["resync_prev_above_hi"]):
+                        st["resync_anchor"] = t
+                if raw < lo:
+                    st["resync_below_lo"] = True
+                    if (t - st["resync_anchor"]) > DEBOUNCE_MS:
+                        end_unknown(t)
+                st["resync_prev_above_hi"] = above_hi
                 continue
 
             # contrast gate — discard branch, as IR_DIAG
