@@ -27,6 +27,8 @@ case under decision 0020:
    counted; no catch-up samples are fabricated.
 2. Rolling 5th/95th-percentile envelope, required because the daylight run
    demonstrated large baseline/span changes between sun, shade and orientation.
+   Detection continues at spans of 120-299 counts so the envelope can recover,
+   but the observed stationary-noise band proves speed must remain `MARGINAL`.
 3. Rising threshold at 2/3 span and falling threshold at 1/3 span. Hysteresis
    is the basic analog-to-pulse conversion, not a post-hoc rejection filter.
 4. Every measured nonzero completed-pulse interval enters a five-slot median.
@@ -50,6 +52,7 @@ Validity states:
 
 - `VALID`: five current intervals and usable contrast;
 - `REACQUIRING`: pulses are completing but the five-interval window is not full;
+- `MARGINAL`: detection continues at span 120-299, but speed is suppressed;
 - `INVALID_CONTRAST`: the rolling optical span is below 120 counts or unprimed;
 - `STALE`: contrast exists but no completed pulse has arrived for 2.5 s.
 
@@ -57,26 +60,28 @@ Only `VALID` carries a consumable speed. The test sketch has no motor output.
 
 ## Telemetry
 
-Existing node identity and topics are retained:
+The node identity is retained and the compact telemetry contract is:
 
-- `ngr/spoke/IR_SPEED_SENSOR/telem/pulse` — latest speed snapshot, 1 Hz;
+- `ngr/spoke/IR_SPEED_SENSOR/telem/speed` — latest speed snapshot, 1 Hz;
 - `ngr/spoke/IR_SPEED_SENSOR/telem/status` — factual health counters, 5 s;
 - `ngr/spoke/IR_SPEED_SENSOR/status/online` — retained MQTT LWT state.
 
-The `telem/pulse` name is historical. In this prototype its cadence is 1 Hz,
-not per physical pulse. Consumers must use `seq` as the local completed-pulse
-counter and must not count received messages as wheel events.
+The new topic deliberately does not reuse IR_TEST's incompatible per-pulse
+schema. Every payload carries `"schema":"ir-speed-local/1"`. Consumers must
+use `seq` as the local completed-pulse counter and must not count received
+messages as wheel events. `report_ms` advances every publish even when the
+source event fields remain frozen during `STALE`.
 
 Speed payload when valid:
 
 ```json
-{"seq":1234,"t_ms":45678,"speed_valid":1,"speed_mmps":241.30,"span":811}
+{"schema":"ir-speed-local/1","seq":1234,"t_ms":45678,"report_ms":45700,"speed_valid":1,"speed_mmps":241.30,"span":811}
 ```
 
 Invalid payload:
 
 ```json
-{"seq":1234,"t_ms":48178,"speed_valid":0,"speed_mmps":null,"state":"STALE","span":811}
+{"schema":"ir-speed-local/1","seq":1234,"t_ms":48178,"report_ms":49178,"speed_valid":0,"speed_mmps":null,"state":"STALE","span":811}
 ```
 
 The 5 s status beat reports distinct literal counters: rises, completed
@@ -104,6 +109,8 @@ and traverse the route in reverse.
 Pass requires:
 
 1. no saturation and no sustained `INVALID_CONTRAST` while Otto is moving;
+   with the car stationary and the sensor blinded or decoupled, no
+   `speed_valid:1` may be published for the duration;
 2. completed-pulse/Hall-marker ratio agrees between outbound and return within
    3%, unless differing route endpoints account for the difference;
 3. speed remains `VALID` during uninterrupted motion and becomes non-valid

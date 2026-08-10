@@ -1,5 +1,5 @@
 /*
- * IR_SPEED_LOCAL 1.0 — lean local IR speed prototype
+ * IR_SPEED_LOCAL 1.1 — lean local IR speed prototype
  *
  * ROLE: diagnostic/prototype. This is NOT QUORUM and cannot drive a motor.
  * It proves the sensor-to-local-speed contract before any production change.
@@ -23,6 +23,7 @@
  *
  * Guards retained only with evidence or an overwhelming case (decision 0020):
  *   - contrast floor: speed cannot be measured without optical contrast;
+ *   - marginal output gate: stationary ADC-noise crossings were observed;
  *   - stale timeout: a governor must not consume old speed as current speed;
  *   - open-pulse abort: open pulses lasting seconds occurred in field data.
  * Every intervention has its own literal counter. "Invalid" means no current
@@ -41,7 +42,7 @@
   #include "../../config/credentials.h"
 #endif
 
-#define SKETCH_NAME "IR_SPEED_LOCAL_1_0"
+#define SKETCH_NAME "IR_SPEED_LOCAL_1_1"
 
 // ---------------------------------------------------------------------------
 // Proven hardware and rolling calibration
@@ -49,12 +50,14 @@
 static constexpr int      SENSOR_PIN             = 34;       // ADC1_CH6
 static constexpr int      SPOKES_PER_REV          = 10;
 static constexpr float    WHEEL_CIRCUMFERENCE_MM  = 96.52f;   // measured 3.8 in
-static constexpr float    MM_PER_PULSE            = 9.652f;
+static constexpr float    MM_PER_PULSE            = WHEEL_CIRCUMFERENCE_MM /
+                                                     SPOKES_PER_REV;
 
 static constexpr uint32_t SAMPLE_PERIOD_US        = 1000;     // nominal 1 kHz
 static constexpr uint32_t SPEED_STALE_MS          = 2500;
 static constexpr uint32_t OPEN_ABORT_MS           = 2500;
 static constexpr int      MIN_USABLE_SPAN         = 120;
+static constexpr int      MARGINAL_SPAN           = 300;
 
 // Rolling percentile envelope: already replay- and field-proven by IR_SCOPE.
 static constexpr int      ENV_WIN_N               = 2048;
@@ -76,6 +79,7 @@ static constexpr uint32_t MQTT_RETRY_MS     = 5000;
 
 enum Validity : uint8_t {
   IR_INVALID_CONTRAST,
+  IR_MARGINAL,
   IR_REACQUIRING,
   IR_VALID,
   IR_STALE
@@ -126,6 +130,7 @@ static uint32_t mqttAttempts = 0, mqttConnects = 0, publishFailures = 0;
 static const char* validityName(Validity v) {
   switch (v) {
     case IR_VALID:            return "VALID";
+    case IR_MARGINAL:         return "MARGINAL";
     case IR_REACQUIRING:      return "REACQUIRING";
     case IR_STALE:            return "STALE";
     default:                  return "INVALID_CONTRAST";
@@ -207,7 +212,10 @@ static void sensorTask(void*) {
   uint32_t lastEnvelopeUpdateMs = millis();
   uint32_t intervalRing[SPEED_WINDOW_N] = {};
   int intervalIndex = 0, intervalCount = 0;
+  int strongIntervalCount = 0;
   float speed = 0.0f;
+  HealthCounters localHealth = {};
+  uint32_t lastHealthSnapshotMs = 0;
 
   int64_t previousSampleUs = esp_timer_get_time();
   TickType_t wake = xTaskGetTickCount();
@@ -216,45 +224,59 @@ static void sensorTask(void*) {
     const int64_t sampleUs = esp_timer_get_time();
     const uint32_t gapUs = (uint32_t)(sampleUs - previousSampleUs);
     previousSampleUs = sampleUs;
-    if (gapUs > health.sampleMaxGapUs) health.sampleMaxGapUs = gapUs;
+    if (gapUs > localHealth.sampleMaxGapUs) localHealth.sampleMaxGapUs = gapUs;
     if (gapUs > SAMPLE_PERIOD_US + SAMPLE_PERIOD_US / 2) {
       uint32_t slots = (gapUs + SAMPLE_PERIOD_US / 2) / SAMPLE_PERIOD_US;
-      if (slots > 1) health.sampleMissedSlots += slots - 1;
+      if (slots > 1) localHealth.sampleMissedSlots += slots - 1;
       wake = xTaskGetTickCount(); // resynchronise; never fabricate catch-up samples
     }
 
     const uint32_t now = millis();
     const int raw = analogRead(SENSOR_PIN);
-    if (raw >= 4000) health.saturatedSamples++;
+    if (raw >= 4000) localHealth.saturatedSamples++;
     updateEnvelope(raw, now, lastEnvelopeUpdateMs);
     const int span = runMax - runMin;
     const bool contrastGood = envelopePrimed && span >= MIN_USABLE_SPAN;
 
     if (!contrastGood) {
-      if (!contrastInvalid) health.contrastInvalidEpisodes++;
+      if (!contrastInvalid) localHealth.contrastInvalidEpisodes++;
       contrastInvalid = true;
+      // If contrast vanished with a pulse open, recovery cannot establish a
+      // new rise until the old high episode physically returns below thrLow.
+      // Preserve an existing abort wait for the same reason.
+      awaitLowAfterAbort = awaitLowAfterAbort || inPulse;
       inPulse = false;
-      awaitLowAfterAbort = false;
       openAbortCounted = false;
       previousRiseMs = 0;
       intervalCount = 0;
       intervalIndex = 0;
+      strongIntervalCount = 0;
       speed = 0.0f;
-      publishLocalSnapshot(now, health.completedPulses, 0, 0.0f,
+      publishLocalSnapshot(now, localHealth.completedPulses, 0, 0.0f,
                            raw, runMin, runMax, IR_INVALID_CONTRAST);
     } else {
       contrastInvalid = false;
+      const bool contrastMarginal = span < MARGINAL_SPAN;
       const int thresholdHigh = runMin + (span * 2) / 3;
       const int thresholdLow  = runMin + span / 3;
 
+      if (contrastMarginal) {
+        strongIntervalCount = 0;
+        if (latest.validity != IR_MARGINAL) {
+          publishLocalSnapshot(now, localHealth.completedPulses, 0, 0.0f,
+                               raw, runMin, runMax, IR_MARGINAL);
+        }
+      }
+
       if (inPulse && (uint32_t)(now - riseMs) > OPEN_ABORT_MS) {
-        if (!openAbortCounted) health.openAborts++;
+        if (!openAbortCounted) localHealth.openAborts++;
         openAbortCounted = true;
         inPulse = false;
         awaitLowAfterAbort = true;
         previousRiseMs = 0;
         intervalCount = 0;
         intervalIndex = 0;
+        strongIntervalCount = 0;
         speed = 0.0f;
       }
 
@@ -269,10 +291,10 @@ static void sensorTask(void*) {
         inPulse = true;
         openAbortCounted = false;
         riseMs = now;
-        health.rises++;
+        localHealth.rises++;
       } else if (inPulse && raw < thresholdLow) {
         inPulse = false;
-        health.completedPulses++;
+        localHealth.completedPulses++;
         lastCompletedMs = now;
 
         uint32_t intervalMs = 0;
@@ -283,33 +305,57 @@ static void sensorTask(void*) {
             intervalRing[intervalIndex] = intervalMs;
             intervalIndex = (intervalIndex + 1) % SPEED_WINDOW_N;
             if (intervalCount < SPEED_WINDOW_N) intervalCount++;
+            if (contrastMarginal) {
+              // Keep measuring so the envelope can recover, but none of the
+              // stationary-noise band can satisfy the governor's validity
+              // contract. Five later strong intervals are required.
+              strongIntervalCount = 0;
+            } else if (strongIntervalCount < SPEED_WINDOW_N) {
+              strongIntervalCount++;
+            }
             uint32_t medMs = median5(intervalRing, intervalCount);
             if (medMs > 0) speed = MM_PER_PULSE * 1000.0f / medMs;
           }
         }
         previousRiseMs = riseMs;
 
-        const Validity validity = intervalCount >= SPEED_WINDOW_N
-                                ? IR_VALID : IR_REACQUIRING;
-        publishLocalSnapshot(now, health.completedPulses, intervalMs, speed,
+        const Validity validity = contrastMarginal ? IR_MARGINAL
+                                : (intervalCount >= SPEED_WINDOW_N &&
+                                   strongIntervalCount >= SPEED_WINDOW_N)
+                                  ? IR_VALID : IR_REACQUIRING;
+        publishLocalSnapshot(now, localHealth.completedPulses, intervalMs, speed,
                              raw, runMin, runMax, validity);
 #ifdef IR_LOCAL_DEBUG
         Serial.printf("[IR] pulse=%lu int=%lu speed=%.2f valid=%s span=%d\n",
-                      (unsigned long)health.completedPulses,
+                      (unsigned long)localHealth.completedPulses,
                       (unsigned long)intervalMs, speed,
                       validityName(validity), span);
 #endif
       }
 
-      if (lastCompletedMs == 0 || (uint32_t)(now - lastCompletedMs) > SPEED_STALE_MS) {
+      if (!contrastMarginal &&
+          (lastCompletedMs == 0 ||
+           (uint32_t)(now - lastCompletedMs) > SPEED_STALE_MS)) {
         if (latest.validity != IR_STALE) {
           intervalCount = 0;
           intervalIndex = 0;
+          strongIntervalCount = 0;
+          previousRiseMs = 0; // no interval may span an edge-silence episode
           speed = 0.0f;
-          publishLocalSnapshot(now, health.completedPulses, 0, 0.0f,
+          publishLocalSnapshot(now, localHealth.completedPulses, 0, 0.0f,
                                raw, runMin, runMax, IR_STALE);
         }
       }
+    }
+
+    // The sampler owns localHealth. Export one coherent diagnostic snapshot
+    // at low rate; the network never reads fields while they are being
+    // modified, and the 1 kHz path does not take a mutex per sample.
+    if ((uint32_t)(now - lastHealthSnapshotMs) >= 100) {
+      lastHealthSnapshotMs = now;
+      portENTER_CRITICAL(&snapshotMux);
+      health = localHealth;
+      portEXIT_CRITICAL(&snapshotMux);
     }
 
     vTaskDelayUntil(&wake, pdMS_TO_TICKS(1));
@@ -350,16 +396,20 @@ static void networkTask(void*) {
         char payload[256];
         if (s.validity == IR_VALID) {
           snprintf(payload, sizeof(payload),
-                   "{\"seq\":%lu,\"t_ms\":%lu,\"speed_valid\":1,"
+                   "{\"schema\":\"ir-speed-local/1\",\"seq\":%lu,"
+                   "\"t_ms\":%lu,\"report_ms\":%lu,\"speed_valid\":1,"
                    "\"speed_mmps\":%.2f,\"span\":%d}",
                    (unsigned long)s.completedPulses,
-                   (unsigned long)s.capturedMs, s.speedMmPerSec, s.span);
+                   (unsigned long)s.capturedMs, (unsigned long)now,
+                   s.speedMmPerSec, s.span);
         } else {
           snprintf(payload, sizeof(payload),
-                   "{\"seq\":%lu,\"t_ms\":%lu,\"speed_valid\":0,"
+                   "{\"schema\":\"ir-speed-local/1\",\"seq\":%lu,"
+                   "\"t_ms\":%lu,\"report_ms\":%lu,\"speed_valid\":0,"
                    "\"speed_mmps\":null,\"state\":\"%s\",\"span\":%d}",
                    (unsigned long)s.completedPulses,
-                   (unsigned long)s.capturedMs, validityName(s.validity), s.span);
+                   (unsigned long)s.capturedMs, (unsigned long)now,
+                   validityName(s.validity), s.span);
         }
         publishText(topicSpeed, payload, false);
       }
@@ -417,9 +467,9 @@ void setup() {
 #ifdef IR_LOCAL_WIFI
   snprintf(topicOnline, sizeof(topicOnline),
            "ngr/spoke/%s/status/online", NODE_NAME);
-  // Existing IR_TEST JSON topic, now deliberately latest-state at 1 Hz.
+  // New contract and cadence: never reuse IR_TEST's per-pulse schema/topic.
   snprintf(topicSpeed, sizeof(topicSpeed),
-           "ngr/spoke/%s/telem/pulse", NODE_NAME);
+           "ngr/spoke/%s/telem/speed", NODE_NAME);
   snprintf(topicStatus, sizeof(topicStatus),
            "ngr/spoke/%s/telem/status", NODE_NAME);
 

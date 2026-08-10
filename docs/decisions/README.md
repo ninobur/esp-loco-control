@@ -57,7 +57,7 @@ rather than a silent drift discovered later.
 | [0005](0005-timeout-means-blind-not-stopped.md) | An IR timeout means the sensor stopped seeing; STOPPED requires an independent witness | Accepted |
 | [0006](0006-envelope-decay-gates-on-signal-activity.md) | Envelope adaptation gates on signal activity, not wall clock or completed pulses | Accepted |
 | [0007](0007-nvs-persists-only-the-proven-envelope.md) | NVS persists only a pulse-proven envelope snapshot | Accepted |
-| [0008](0008-finescale-steel-wheel-is-the-target.md) | The 7-spoke finescale steel wheel is the production speed target | Accepted |
+| [0008](0008-finescale-steel-wheel-is-the-target.md) | The 7-spoke finescale steel wheel is the production speed target | Superseded by 0022 |
 | [0009](0009-diagnostic-thresholds-match-production.md) | The diagnostic uses production detection thresholds, with a written revert criterion | Accepted |
 | [0010](0010-threshold-decisions-rest-on-headrooms.md) | Threshold decisions rest on headrooms, not crossing margins | Accepted |
 | [0011](0011-restore-the-brake-channel.md) | The brake channel is restored to the control firmware | Accepted |
@@ -68,3 +68,7 @@ rather than a silent drift discovered later.
 | [0016](0016-published-evidence-carries-its-own-provenance.md) | Published evidence carries its own provenance; unknown is never fabricated | Accepted |
 | [0017](0017-hall-baseline-adapts-only-in-motion.md) | The Hall baseline adapts only while the locomotive is believed moving | Accepted |
 | [0018](0018-firmware-role-and-evidence-status.md) | Firmware role and evidence status are tracked independently | Accepted |
+| [0019](0019-merged-pulse-evidence-is-the-raw-waveform.md) | The merged-pulse question is answered by a raw-waveform scope, not threshold tuning on event telemetry | Accepted |
+| [0020](0020-compensation-requires-observed-evidence.md) | No compensation mechanism is added without demonstrated need | Accepted |
+| [0021](0021-ir-speed-is-local-and-telemetry-is-summary.md) | IR speed is computed locally and telemetry reports summaries | Accepted |
+| [0022](0022-plastic-ten-spoke-wheel-is-the-ir-target.md) | The LGB plastic 10-spoke wheel is the IR speed target | Accepted |

@@ -1,6 +1,6 @@
 # 0008 — The 7-spoke finescale steel wheel is the production speed target
 
-Status: Accepted  (operator, 2026-08-05; recorded 2026-08-06)
+Status: Superseded by 0022 (2026-08-10)
 
 ## Decision
 The survey car and the production locomotives use the 7-spoke, 27.8 mm

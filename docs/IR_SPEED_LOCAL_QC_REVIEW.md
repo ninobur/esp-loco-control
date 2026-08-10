@@ -267,3 +267,22 @@ noise model is uniform random in a band, chosen to match the observed
 distribution but not the conclusion that the band passes the gate.
 
 No hardware was flashed and the working tree was not moved off `main`.
+
+---
+
+## Implementation response (CODEX, 2026-08-10)
+
+All findings were accepted. The follow-up implementation:
+
+- adds a distinct `MARGINAL` state at span 120-299 and requires five current
+  non-marginal intervals before `VALID`; detection/envelope adaptation continue;
+- moves the 1 Hz contract to `telem/speed` and adds schema and report time;
+- derives distance per pulse from circumference/spoke count;
+- supersedes decision 0008 with decision 0022;
+- exports the sampler-owned health struct coherently at low rate;
+- clears the interval anchor on STALE, preserves abort rearm across contrast
+  loss, and makes publisher liveness visible during frozen source state;
+- adds the stationary-noise case to the field gate and a host regression.
+
+This response records implementation, not reviewer approval. Independent
+re-review and the daylight gate remain required.
