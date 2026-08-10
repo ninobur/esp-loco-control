@@ -351,7 +351,7 @@
 #include <Adafruit_INA219.h>
 #include "LocoConfig.h"
 
-#define SKETCH_NAME "QUORUM_1_12B"
+#define SKETCH_NAME "QUORUM_1_12C"
 
 // Broker lives here, not in LocoConfig.h — same as the previous lineage.
 #define MQTT_BROKER "192.168.68.142"
@@ -506,12 +506,18 @@ static const uint16_t spacingMm[DNA_N] PROGMEM = {
 // stopOffset is where passengers actually end up, set from observed stops on
 // the 2026-07-27 run rather than from geometry. Grillers and Bamboo both
 // overran the platform at +2 and were pulled back a marker.
+// v1.12C (operator, 2026-08-09, both orientations): every stop one marker
+// earlier — the passenger-gentle 200 ms/step brake (v1.12B) needs more
+// road, so the landings drifted a marker past the platforms. stopOffset
+// reduced by one across the board; Grillers and Bamboo (already pulled
+// back once for the same reason at the old ramp) now stop from the
+// centre marker itself.
 //                          centre  zone  final  stop
 static const StationDefinition STATIONS[] = {
-  {"Patio",    15,            60,   45,     2},   // observed good
-  {"Grillers", 63,            72,   58,     1},   // was +2, stopped past 65 -- too far up
-  {"Arches",  107,            60,   45,     2},   // observed good, stops just past 109
-  {"Bamboo",  157,            60,   45,     1}    // was +2, stopped past 161, wanted past 159
+  {"Patio",    15,            60,   45,     1},   // was 2 (obs. good at old ramp)
+  {"Grillers", 63,            72,   58,     0},   // was 1
+  {"Arches",  107,            60,   45,     1},   // was 2 (obs. good at old ramp)
+  {"Bamboo",  157,            60,   45,     0}    // was 1
 };
 static const uint8_t STATION_COUNT = sizeof(STATIONS)/sizeof(STATIONS[0]);
 
@@ -1896,7 +1902,10 @@ static void serviceStations(){
         // M+1 : ease to finalPwm -- the speed the stop is made from
         requestPwmOver(o==0?STATIONS[stIndex].zonePwm:STATIONS[stIndex].finalPwm,
                        FINAL_RAMP_MS);
-        if(o==1 && stMPlus1AtMs==0) stMPlus1AtMs=millis();  // start the fallback clock
+        // v1.12C: with stopAt down to 1 (or 0) the fallback clock must arm
+        // at the CENTRE marker — o==1 is now at/after the stop trigger for
+        // every station, so the old arming point would never fire.
+        if(o==0 && stMPlus1AtMs==0) stMPlus1AtMs=millis();  // start the fallback clock
         stationPublish("FINAL_TARGET",o,o==0?"AT_CENTRE_ZONE_SPEED":"M_PLUS_1_FINAL_SPEED");
       }else if(o>=stopAt){
         stationSetPhase(ST_RAMP);
