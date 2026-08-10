@@ -60,7 +60,12 @@ from collections import deque
 from datetime import datetime
 
 import matplotlib
-matplotlib.use("TkAgg")          # change to "MacOSX" if TkAgg is missing
+# Backend: Apple's system Python ships Tk 8.5.9, whose TkpInit aborts the
+# whole process on current macOS — TkAgg dies before the first frame
+# (observed 2026-08-09, macOS 26.3 / CLT Python 3.9.6). Use the native
+# MacOSX backend on Macs; TkAgg elsewhere.
+import platform
+matplotlib.use("MacOSX" if platform.system() == "Darwin" else "TkAgg")
 import matplotlib.pyplot as plt
 import paho.mqtt.client as mqtt
 
