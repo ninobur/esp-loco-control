@@ -79,3 +79,43 @@ the open axis; neither is decided.
 4. Channel-11 occupancy survey (WiFi analyzer during an evening stall).
 
 No production change is proposed from this data alone.
+
+---
+
+## Addendum, same night — operator reframe: the processing was the defect
+
+The operator rejected the wheel-selection framing: *great waveforms
+producing unreliable data was the Hall story (27% "missed" with clean
+magnets), and the cause there was processing.* Tested immediately against
+tonight's metal-wheel captures by replaying with production IR_TEST's
+2.5 ms debounce in place of IR_DIAG's 15 ms (which IR_SCOPE inherited):
+
+| metal-wheel data | 15 ms guard | 2.5 ms guard |
+|---|---|---|
+| cruise session pulses | 1,369 | **1,606** (+17%) |
+| cruise pulses per 7 peaks | 5.94 | **6.97** |
+| full night, all metal sessions | 7,869 pulses / 14,278 peaks (p/7pk 3.86) | **15,822 pulses / 15,906 peaks (p/7pk 6.96)** |
+
+**With production's debounce constant, the metal wheel detects
+essentially 1:1 pulse-per-peak across the entire night, fast runs
+included.** The 15 ms guard — sized in the two-tape-flag era, already
+identified and fixed in IR_TEST's own source comments, never reconciled
+into IR_DIAG — was silently deleting up to half the spokes at speed. The
+founding "merged/doubled pulses" telemetry that motivated this instrument
+was IR_DIAG data: the mystery is, in substantial part, the diagnostic's
+own guard. Same failure class as the Hall history: excellent optics,
+stale processing constant.
+
+Consequences (for CODEX ruling, not unilateral change):
+1. Propose `DEBOUNCE_US` 15000 → 2500 in IR_DIAG and IR_SCOPE, citing
+   IR_TEST's own derivation — this is *compliance* with decision 0009
+   (diagnostic matches production), not tuning: production is already at
+   2500 and was right.
+2. The wheel verdict REOPENS: with correct processing both wheels detect
+   cleanly at every speed driven tonight. Wheel choice returns to being
+   a genuine trade (25× contrast margin vs 4× trough-duration margin,
+   daylight behaviour of each) instead of a forced retreat from a
+   detector defect.
+3. Residual at 2.5 ms: ~1.5% merged + 32 multi-peak pulses concentrated
+   at the fastest stretches — the true geometry/resolution tail, now
+   small enough to measure honestly.
