@@ -283,6 +283,9 @@ All findings were accepted. The follow-up implementation:
 - clears the interval anchor on STALE, preserves abort rearm across contrast
   loss, and makes publisher liveness visible during frozen source state;
 - adds the stationary-noise case to the field gate and a host regression.
+- after the first 1.1 flash exposed a missing 5 s status beat, raises
+  PubSubClient's packet buffer from its 256-byte default to 512 bytes; the
+  correction is evidence-driven and is identified as IR_SPEED_LOCAL 1.2.
 
 This response records implementation, not reviewer approval. Independent
 re-review and the daylight gate remain required.

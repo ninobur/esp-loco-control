@@ -1,5 +1,5 @@
 /*
- * IR_SPEED_LOCAL 1.1 — lean local IR speed prototype
+ * IR_SPEED_LOCAL 1.2 — lean local IR speed prototype
  *
  * ROLE: diagnostic/prototype. This is NOT QUORUM and cannot drive a motor.
  * It proves the sensor-to-local-speed contract before any production change.
@@ -42,7 +42,7 @@
   #include "../../config/credentials.h"
 #endif
 
-#define SKETCH_NAME "IR_SPEED_LOCAL_1_1"
+#define SKETCH_NAME "IR_SPEED_LOCAL_1_2"
 
 // ---------------------------------------------------------------------------
 // Proven hardware and rolling calibration
@@ -75,6 +75,9 @@ static constexpr int MQTT_PORT = 1883;
 static constexpr uint32_t SPEED_PUBLISH_MS  = 1000;
 static constexpr uint32_t STATUS_PUBLISH_MS = 5000;
 static constexpr uint32_t MQTT_RETRY_MS     = 5000;
+// PubSubClient's default 256-byte packet cannot hold topic + status JSON.
+// The missing status beat was observed immediately after the first 1.1 flash.
+static constexpr uint16_t MQTT_BUFFER_BYTES = 512;
 #endif
 
 enum Validity : uint8_t {
@@ -479,6 +482,9 @@ void setup() {
   WiFi.setSleep(false);
   WiFi.begin(WIFI_SSID, WIFI_PASS);
   mqtt.setServer(MQTT_BROKER, MQTT_PORT);
+  if (!mqtt.setBufferSize(MQTT_BUFFER_BYTES)) {
+    Serial.println("[WARN] MQTT 512-byte buffer allocation failed");
+  }
   mqtt.setSocketTimeout(2);
   wifiClient.setConnectionTimeout(3000);
 

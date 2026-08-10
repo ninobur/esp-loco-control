@@ -1,7 +1,7 @@
 # Signal quality must gate the speed output, not label it
 
 **Date:** August 6, 2026
-**Status:** Requirement — accepted; implemented in the IR_SPEED_LOCAL 1.1
+**Status:** Requirement — accepted; implemented in the IR_SPEED_LOCAL 1.2
 prototype, pending independent review, field gate, and production integration
 **Applies to:** any IR speed output consumed by a governor, fusion layer, or
 mission logic. Not a constraint on the diagnostic sketches' human-readable text.
