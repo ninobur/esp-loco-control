@@ -115,11 +115,11 @@ Topics under `ngr/diag/irscope01/`:
 
 | topic | direction | content |
 |---|---|---|
-| `status` | out | LWT retained `{"online":0}`; retained `{"online":1,...}` on connect; 5 s JSON health beat (includes wheel metadata: 7 spokes, 27.8 mm dia, 87.34 mm circ — metadata only, never used by the detector; **no speed is computed**) |
+| `status` | out | LWT retained `{"online":0}`; retained `{"online":1,"ch","bssid","rssi",...}` on connect; 5 s JSON health beat: wheel metadata (7 spokes, 27.8 mm dia, 87.34 mm circ — metadata only; **no speed is computed**) plus the network diagnostic set: `wifi` (WL status), `ch`, `bssid`, `rssi`, `wifi_disc`/`wifi_reason` (disconnect events + last reason code), `wifi_kicks`, `wifi_restarts`, `mqtt_state`, `mqtt_att`/`mqtt_ok`, `pub_fail`/`pub_slow`/`pub_max_ms`, `q`/`q_hw` (batch-queue depth and high-water), `fdrops` (forced bench drops) |
 | `samples` | out | ~5/s sample batches, format below |
 | `marker` | out | `{"sid","sample","text"}` |
 | `marker/set` | in | replaces the marker text |
-| `control` | in | `marker` = publish marker now, `status` = beat now |
+| `control` | in | `marker` = publish marker now, `status` = beat now, `netdrop` = force-drop the MQTT socket, `wifidrop` = force-drop WiFi (bench recovery drills — recovery must be automatic) |
 
 **Batch format** (one JSON object per 200-sample batch):
 
@@ -156,8 +156,72 @@ Topics under `ngr/diag/irscope01/`:
   edge; bit 14 fall edge; bit 15 contrast-valid.
 
 Acquisition never waits on MQTT: sensorTask (core 0, prio 2) fills a bounded
-25-batch queue (~5 s); the network task drains it peek-publish-remove with a
-per-pass cap. On overflow the newest batch is dropped and counted.
+50-batch queue (~10 s); the network task drains it peek-publish-remove. On
+overflow the newest batch is dropped and counted.
+
+## Telemetry transport (2026-08-09 field dropout fix)
+
+The first field capture flapped — repeated LWT `online 0/1`, ~17 s logger
+gaps, `bdrop` racing, and at least one state only a reboot cleared, with
+sampling continuing throughout (same `sid`). Cause, established from the
+library sources and reproduced arithmetic, was in this sketch's own network
+path, not in the sensor, the broker, or the AP:
+
+1. **Stampede → keepalive starvation.** The drain published up to 4 ×
+   ~1.35 KB batches per 5 ms pass. lwIP's TCP send buffer (~5.7 KB) holds
+   ~4 such batches, so a full-queue flush after any reconnect filled it
+   instantly, and every further `publish()` then *blocked* inside
+   `NetworkClient::write` (up to 3 s each — bounded by the same `_timeout`
+   that `setConnectionTimeout` sets) with `mqtt.loop()` never running.
+   Keepalive is 15 s: the broker timed the client out, fired the LWT, the
+   client reconnected, blasted the full queue again, and the flap sustained
+   itself.
+2. **Wi-Fi wedge, reboot-only.** With `WL_CONNECTED` false the task did
+   nothing — recovery depended entirely on `setAutoReconnect`, which is
+   known to stall after some deauth reasons. That is the state a reboot
+   "fixed".
+
+The fix, all inside the network task (the sampler and detector are
+untouched):
+
+- **Pacing:** at most one batch publish per pass (`mqtt.loop()` runs between
+  every large write), minimum 50 ms between batch publishes (catch-up
+  ceiling 20 msg/s ≈ 4× the live rate), and 200 ms spacing (live rate) for
+  the first 10 s after every MQTT connect so a reconnect flush cannot
+  outrun the link that just failed. Queue deepened to 50 batches (~10 s).
+  Backlog beyond that still drops-and-counts (`bdrop`) and appears as seq
+  gaps — evidence is never silently discarded.
+- **Wi-Fi supervision:** disconnect-reason logging via Wi-Fi events; a kick
+  (`disconnect`+`begin`) after 20 s down, escalating to a full radio
+  off/on restart after 3 kicks; and a zombie-association kick when MQTT
+  connects fail ~60 s straight on a "connected" Wi-Fi. Every action is
+  counted (`wifi_kicks`, `wifi_restarts`) and printed on serial.
+- **Diagnostics:** see the `status` topic row above — channel, BSSID,
+  Wi-Fi status and disconnect reasons, MQTT state and connect counters,
+  publish failure/slowness, queue depth/high-water, forced-drop count.
+
+Limitations: catch-up is deliberately capped at 20 msg/s, so an outage
+longer than ~13 s begins dropping oldest-first into `bdrop`; the stream
+favours bounded, honest gaps over unbounded stampedes. Channel/BSSID are
+reported, not pinned — if the diagnostics show roaming between APs, pinning
+is a follow-up decision, not something this sketch imposes silently.
+
+### Bench soak + recovery drill (run before the next field capture)
+
+1. **Quiet soak:** bench, wheel stationary, plotter logging. Run **≥ 60
+   min** (comfortably beyond the observed failure interval). Expect zero
+   `online` flaps; any flap must come with its own evidence
+   (`wifi_disc`/`wifi_reason`, `pub_*`, `q_hw`).
+2. **Forced MQTT drops:** `mosquitto_pub -h 192.168.68.142 -t
+   ngr/diag/irscope01/control -m netdrop` — three times, ≥ 2 min apart.
+3. **Forced Wi-Fi drops:** same with `-m wifidrop`, three times.
+4. **AP-level outage:** power off the AP (or block the device) for ~2 min,
+   restore, wait.
+5. **Judge:** `python3 tests/soak_report.py <the CSV>`. Pass requires:
+   every gap attributable (forced drop or the AP outage), every recovery
+   ≤ 30 s from transport restoration, no still-offline end state, no
+   reboot at any point (single `sid` throughout), and coverage gaps
+   consistent with `bdrop` accounting.
 
 ## CSV contract
 

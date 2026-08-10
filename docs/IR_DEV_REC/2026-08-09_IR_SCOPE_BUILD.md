@@ -197,3 +197,71 @@ accepted and fixed, one commit each:
   `p/rev-mk` column added; structure summary no longer converts peaks to
   revolutions; a revolution-marker summary line added (usable/excluded
   windows, peaks per marked revolution).
+
+---
+
+## Addendum 4, 2026-08-09 — field telemetry dropout: cause and transport fix
+
+The first field capture is **evidence of a telemetry-transport defect, not
+an optical-detector result**. Quantified from the largest capture
+(`irscope_20260809_184934.csv`, ~30 min wall time) with the new
+`tests/soak_report.py`: **six firmware session ids** (five operator
+reboots to restore streaming), **32 transport gaps** (largest **88.1 s**;
+two >75 s, two ~21 s), per-session coverage **46–99 %**, **13 LWT
+`online 0/1` flaps** (recoveries up to 70.2 s), 213 sampler-stall MISSED
+rows. Sampling itself never stopped (session ids persisted across
+interruptions) — the sensor path performed as designed while the
+transport thrashed.
+
+### Cause (established from library sources, not conjecture)
+
+1. **Stampede → keepalive starvation.** The network task published up to
+   4 × ~1.35 KB batches per 5 ms pass. lwIP's TCP send buffer (~5.7 KB)
+   holds ~4 such batches: a full-queue flush after any reconnect filled
+   it instantly, and each further `publish()` then blocked inside
+   `NetworkClient::write` for up to 3 s (`_timeout` — the same variable
+   `setConnectionTimeout(3000)` sets, confirmed in core 3.3.11 sources)
+   with `mqtt.loop()` never running. Keepalive is 15 s → broker timeout →
+   LWT `online:0` → reconnect → full-queue blast into the link that just
+   failed → self-sustaining flap. Matches the observed flap cadence and
+   the 17 s logger gap.
+2. **Wi-Fi wedge, reboot-only.** With `WL_CONNECTED` false the task did
+   nothing; recovery depended entirely on `setAutoReconnect`, which can
+   stall after some deauth reasons. That is the state only a reboot
+   cleared.
+
+### Changes (network task only; sampler and detector untouched)
+
+- Paced drain: ONE batch per pass (`mqtt.loop()` between every large
+  write), ≥ 50 ms between batch publishes (catch-up ceiling 20 msg/s =
+  4× live), 200 ms spacing for 10 s after every MQTT connect (reconnect
+  flush at live rate). Failed publishes stay queued and are paced too.
+- Queue 25 → 50 batches (~10 s absorption); overflow still
+  drops-and-counts (`bdrop`) — explicit gaps, never silent loss.
+- Wi-Fi supervision: event-handler logging of disconnect reasons; kick
+  (`disconnect`+`begin`) after 20 s down; radio off/on restart after 3
+  kicks; zombie-association kick after ~60 s of MQTT connect failures on
+  a "connected" Wi-Fi. All counted and printed.
+- Diagnostics in the 5 s status beat and retained online message:
+  `wifi`, `ch`, `bssid`, `rssi`, `wifi_disc`/`wifi_reason`,
+  `wifi_kicks`/`wifi_restarts`, `mqtt_state`, `mqtt_att`/`mqtt_ok`,
+  `pub_fail`/`pub_slow`/`pub_max_ms`, `q`/`q_hw`, `fdrops`. Serial [NET]
+  lines on every transition and recovery action.
+- Bench drills: control `netdrop` (force MQTT socket drop) and `wifidrop`
+  (force Wi-Fi drop); recovery must be automatic. `fdrops` counts them.
+- `tests/soak_report.py` judges a soak CSV: coverage, gaps, flap/recovery
+  times, counter deltas. The soak protocol (≥ 60 min quiet + 3× netdrop +
+  3× wifidrop + AP outage, all recoveries ≤ 30 s, single sid, no reboot)
+  is in the README.
+
+### Status / limitations
+
+Build: 916,300 B flash (69 %) / 52,136 B RAM (15 %), zero warnings.
+**Bench soak and forced-interruption verification are pending — CODEX
+review first; not field-approved.** Catch-up is deliberately bounded, so
+outages > ~13 s shed oldest batches into `bdrop`. Channel/BSSID are
+reported, not pinned; if diagnostics show AP roaming, pinning is a
+follow-up decision. The 213 MISSED sampler stalls during transport thrash
+suggest Wi-Fi-stack CPU contention on core 0 reaches the sampler under
+pathological flapping; the pacing fix removes the pathology, and miss_n
+in the soak will confirm.
