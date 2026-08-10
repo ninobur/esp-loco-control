@@ -265,3 +265,39 @@ follow-up decision. The 213 MISSED sampler stalls during transport thrash
 suggest Wi-Fi-stack CPU contention on core 0 reaches the sampler under
 pathological flapping; the pacing fix removes the pathology, and miss_n
 in the soak will confirm.
+
+---
+
+## Addendum 5, 2026-08-09 — authorized short diagnostic tow
+
+The operator authorized flashing the transport-fix build to the dedicated
+IR_SCOPE data car for a short Lowline tow. This is an **instrument trial**,
+not approval of the implementation and not field approval. Otto's control
+firmware is out of scope and must remain unchanged.
+
+Practical trial protocol:
+
+- Confirm the live plot starts after flashing, then tow for approximately
+  10–15 minutes through sun and shade.
+- If the plot stops, leave IR_SCOPE powered and allow up to 30 seconds for
+  automatic recovery; do not immediately hide the failure with a reboot.
+- Record the interruption time and preserve the CSV/status evidence.
+- When convenient, hand-turn slowly and press BOOT once per counted wheel
+  revolution so absolute pulses/revolution can be assessed.
+- Stop the tow if the instrument housing risks contacting trackwork.
+
+The immediate operational question is whether live telemetry remains
+available and recovers without reboot. The formal 60-minute soak and forced
+interruption gates remain pending and are not replaced by this tow.
+
+### Interpretation of the first optical evidence
+
+Casual visual inspection and the clean 260–270 s bright-metal segment both
+show a regular waveform, with no visible repeating five-of-seven pattern.
+That segment contained 222 waveform peaks and 222 rises/falls with valid
+contrast throughout; all four replay threshold candidates produced 221
+completed pulses. This supports one optical excursion per spoke in that
+interval and makes the earlier five-of-seven result more likely to be a
+baseline/envelope/state interpretation failure than absent physical spoke
+signals. It is not yet an absolute seven-spokes-per-revolution result because
+the capture contained no revolution markers.
