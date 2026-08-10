@@ -47,12 +47,18 @@
  *   sensorTask   1 kHz, core 0, priority 2. Samples, runs the detector,
  *                packs per-sample records into batches, enqueues full
  *                batches. Never blocks on anything.
- *   batchQueue   25 batches of 200 samples (~5 s). An MQTT outage costs at
+ *   batchQueue   50 batches of 200 samples (~10 s). An MQTT outage costs at
  *                most the queue depth, and every dropped batch is COUNTED
  *                (bdrop) and visible as a batch-seq gap. Nothing is joined
  *                silently.
  *   networkTask  owns WiFi/MQTT alone, core 0, priority 1. Peek-publish-
- *                remove with a per-pass cap.
+ *                remove, PACED: one batch per pass, minimum spacing, live
+ *                rate during post-connect warmup (see TRANSPORT PACING),
+ *                so a catch-up flush can never starve the MQTT keepalive.
+ *                Supervises WiFi: kick after 20 s down, escalating to a
+ *                radio restart; zombie-association kick when MQTT stays
+ *                unreachable on a "connected" WiFi. Recovery never needs
+ *                a reboot.
  *   loop()       button marker + 5 s status beat only.
  *
  * ---------------------------------------------------------------------------
@@ -95,14 +101,19 @@
  * closs counters say why.
  *
  * OTHER TOPICS (all under ngr/diag/irscope01/)
- *   status       LWT retained {"online":0}; retained {"online":1,...} on
- *                connect; 5 s JSON health beat (includes wheel metadata:
- *                seven spokes, 27.8 mm — metadata only, the detector never
- *                uses it, and NO speed is computed: speed stays untrusted
- *                until a hand-turn shows exactly 7 pulses per revolution)
+ *   status       LWT retained {"online":0}; retained {"online":1,ch,bssid,
+ *                rssi,...} on connect; 5 s JSON health beat (wheel metadata
+ *                — seven spokes, 27.8 mm, metadata only, NO speed computed —
+ *                plus the full network diagnostic set: wifi status/ch/bssid/
+ *                rssi, wifi_disc + wifi_reason, wifi_kicks, wifi_restarts,
+ *                mqtt_state, mqtt_att/mqtt_ok, pub_fail/pub_slow/pub_max_ms,
+ *                q depth + q_hw high-water, fdrops)
  *   marker       {"sid":..,"sample":N,"text":".."} on BOOT press or control
  *   marker/set   subscribe: replaces the marker text
- *   control      subscribe: "marker" = publish marker, "status" = beat now
+ *   control      subscribe: "marker" = publish marker, "status" = beat now,
+ *                "netdrop" = force-drop the MQTT socket, "wifidrop" =
+ *                force-drop WiFi — bench drills for the recovery soak test;
+ *                recovery from either must be automatic
  *
  * SETUP: copy firmware/config/credentials_template.h beside this sketch as
  * credentials.h (git-ignored), flash, run IR_SCOPE_Plotter.py on the laptop.
@@ -156,11 +167,53 @@ const uint32_t LATCH_TIMEOUT_MS = 2500;
 const int      BATCH_N          = 200;   // 200 ms per batch, 5 batches/s
 const int      MAX_ENV_UPDATES  = 4;     // recompute is 250 ms; >1 per batch
                                          // needs a stall, 4 is generous
-const int      BATCH_QUEUE_N    = 25;    // ~5 s of outage tolerance
+const int      BATCH_QUEUE_N    = 50;    // ~10 s of outage tolerance
 const uint32_t STATUS_PERIOD_MS = 5000;
 const uint32_t MQTT_RETRY_MS    = 5000;
-const uint8_t  BATCH_DRAIN_CAP  = 4;     // batches per network pass
-const uint8_t  PUB_DRAIN_CAP    = 4;     // status/marker msgs per pass
+
+// ---------------------------------------------------------------------------
+// TRANSPORT PACING — the 2026-08-09 field dropout fix.
+//
+// The first field capture flapped: repeated LWT online 0/1, ~17 s logger
+// gaps, bdrop racing, and at least one state only a reboot cleared. Two
+// mechanisms, both in this file's original network path:
+//
+//  1. STAMPEDE -> KEEPALIVE STARVATION. The drain published up to 4 x
+//     ~1.35 KB batches per 5 ms pass. lwIP's TCP send buffer (~5.7 KB)
+//     holds ~4 such batches, so a full-queue flush after any reconnect
+//     filled it instantly; every further write then BLOCKS inside
+//     NetworkClient::write for up to _timeout (3 s, the same knob as
+//     setConnectionTimeout) — up to ~12 s per pass with mqtt.loop() never
+//     running. Keepalive is 15 s: the broker times the client out, fires
+//     the LWT, the client reconnects, blasts the full queue again, and
+//     the flap sustains itself. The fix: at most ONE batch publish per
+//     pass (mqtt.loop() runs between every publish), a minimum spacing
+//     between batch publishes, and a gentler production-rate warmup for
+//     the first seconds after every MQTT connect — the reconnect flush
+//     can no longer outrun the link that just failed.
+//
+//  2. WIFI WEDGE, REBOOT-ONLY. When WL_CONNECTED was false the task did
+//     nothing at all — recovery depended entirely on setAutoReconnect,
+//     which is known to stall after some deauth reasons. Now the task
+//     supervises: a kick (disconnect+begin) after WIFI_KICK_MS down,
+//     escalating to a full radio off/on restart, and a zombie-association
+//     kick when MQTT connects keep failing on a "connected" WiFi. Every
+//     action is counted and printed; recovery never needs a reboot.
+// ---------------------------------------------------------------------------
+const uint8_t  BATCH_DRAIN_CAP  = 1;     // ONE batch per pass — keepalive
+                                         // work runs between every publish
+const uint8_t  PUB_DRAIN_CAP    = 2;     // small status/marker msgs per pass
+const uint32_t PUB_SPACING_MS   = 50;    // min gap between batch publishes:
+                                         // catch-up ceiling 20/s (4x live)
+const uint32_t PUB_WARMUP_SPACING_MS = 200;  // first WARMUP after connect:
+const uint32_t PUB_WARMUP_MS    = 10000;     //   live rate only, no stampede
+const uint32_t PUB_SLOW_MS      = 250;   // a publish blocking this long is
+                                         // counted as pub_slow
+const uint32_t WIFI_KICK_MS     = 20000; // WiFi down this long -> kick
+const uint8_t  WIFI_KICKS_BEFORE_RESTART = 3;  // then radio off/on restart
+const uint32_t MQTT_FAILS_BEFORE_KICK    = 12; // consecutive connect fails on
+                                               // "up" WiFi (~60 s) -> zombie
+                                               // association, kick WiFi
 
 // Per-sample flag bits packed above the 12-bit raw value.
 const uint16_t FLAG_INPULSE  = 0x1000;
@@ -188,7 +241,7 @@ struct SampleBatch {
   uint16_t  s[BATCH_N];          // flags | raw
 };
 
-struct PubMsg { char topic[64]; char payload[512]; bool retain; };
+struct PubMsg { char topic[64]; char payload[896]; bool retain; };
 
 // ===========================================================================
 // SHARED STATE
@@ -224,6 +277,23 @@ static volatile uint8_t  vContrastValid = 0, vInPulse = 0;
 static char markerText[128] = "marker / position / direction / illumination";
 static volatile uint8_t markerRequested = 0;   // set by control, served by loop()
 static volatile uint8_t statusRequested = 0;
+
+// Network diagnostics — enough to tell WiFi association loss, roaming,
+// TCP/MQTT disconnect, publish failure, queue saturation, and every
+// recovery action apart from one another, in the status beat and on serial.
+static volatile uint32_t wifiDiscEvents = 0;   // STA_DISCONNECTED events
+static volatile uint32_t lastDiscReason = 0;   // last disconnect reason code
+static volatile uint32_t wifiKicks      = 0;   // disconnect+begin recoveries
+static volatile uint32_t wifiRestarts   = 0;   // full radio off/on recoveries
+static volatile uint32_t mqttAttempts   = 0;   // connect() calls
+static volatile uint32_t mqttConnects   = 0;   // connect() successes
+static volatile uint32_t pubFails       = 0;   // publish() returned false
+static volatile uint32_t pubSlow        = 0;   // publishes > PUB_SLOW_MS
+static volatile uint32_t pubMaxMs       = 0;   // worst single publish block
+static volatile uint32_t qHighWater     = 0;   // batch queue depth high-water
+static volatile uint32_t forcedNetDrops = 0;   // bench "netdrop"/"wifidrop"
+static volatile uint8_t  netDropRequested  = 0;  // control: force MQTT drop
+static volatile uint8_t  wifiDropRequested = 0;  // control: force WiFi drop
 
 // ===========================================================================
 // SENSOR TASK — 1 kHz, core 0, priority 2.
@@ -284,6 +354,8 @@ static inline void closeBatch() {
   if (!batchOpen || cur.count == 0) { batchOpen = false; return; }
   if (batchQueue && xQueueSend(batchQueue, &cur, 0) != pdTRUE)
     droppedBatches = droppedBatches + 1;     // counted, never silent
+  uint32_t depth = (uint32_t)uxQueueMessagesWaiting(batchQueue);
+  if (depth > qHighWater) qHighWater = depth;   // saturation evidence
   batchesBuilt = batchesBuilt + 1;
   nextBatchSeq++;                            // seq advances even on a drop,
   batchOpen = false;                         //   so the gap is visible
@@ -442,24 +514,48 @@ static void onMqttMessage(char* topic, byte* payload, unsigned int length) {
   } else if (strcmp(topic, T_CONTROL) == 0) {
     if (length == 6 && memcmp(payload, "marker", 6) == 0) markerRequested = 1;
     if (length == 6 && memcmp(payload, "status", 6) == 0) statusRequested = 1;
+    // Bench soak drills (README): force a transport interruption so
+    // automatic recovery can be tested without touching the AP. Flags
+    // only — the action happens in networkTask's own pass, never inside
+    // this callback (which runs inside mqtt.loop()).
+    if (length == 7 && memcmp(payload, "netdrop", 7) == 0) netDropRequested = 1;
+    if (length == 8 && memcmp(payload, "wifidrop", 8) == 0) wifiDropRequested = 1;
   }
 }
 
-static void attemptReconnect() {
+static uint32_t mqttConsecFails = 0;      // networkTask-private
+static uint32_t warmupUntilMs   = 0;      // gentle pacing after each connect
+
+static bool attemptReconnect() {
   uint32_t now = millis();
-  if (now < nextMqttTryMs) return;
+  if (now < nextMqttTryMs) return false;
   nextMqttTryMs = now + MQTT_RETRY_MS;      // fixed backoff, never every pass
-  if (WiFi.status() != WL_CONNECTED) return;
+  if (WiFi.status() != WL_CONNECTED) return false;
+  mqttAttempts = mqttAttempts + 1;
   String cid = String("ngr-irscope-") + NODE_NAME;
   if (mqtt.connect(cid.c_str(), T_STATUS, 0, true, "{\"online\":0}")) {
-    char b[160];
-    snprintf(b, sizeof(b), "{\"online\":1,\"fw\":\"%s\",\"sid\":\"%s\",\"rate_hz\":1000}",
-             SKETCH_NAME, sessionId);
+    mqttConnects = mqttConnects + 1;
+    mqttConsecFails = 0;
+    warmupUntilMs = now + PUB_WARMUP_MS;    // reconnect flush at live rate only
+    char b[224];
+    snprintf(b, sizeof(b),
+             "{\"online\":1,\"fw\":\"%s\",\"sid\":\"%s\",\"rate_hz\":1000,"
+             "\"ch\":%d,\"bssid\":\"%s\",\"rssi\":%d}",
+             SKETCH_NAME, sessionId, (int)WiFi.channel(),
+             WiFi.BSSIDstr().c_str(), (int)WiFi.RSSI());
     mqtt.publish(T_STATUS, b, true);
     mqtt.subscribe(T_MARKER_SET);
     mqtt.subscribe(T_CONTROL);
-    Serial.println("[NET] MQTT connected");
+    Serial.printf("[NET] MQTT connected (attempt %lu) ch=%d bssid=%s rssi=%d\n",
+                  (unsigned long)mqttAttempts, (int)WiFi.channel(),
+                  WiFi.BSSIDstr().c_str(), (int)WiFi.RSSI());
+    return true;
   }
+  mqttConsecFails++;
+  Serial.printf("[NET] MQTT connect FAILED (state=%d, consec=%lu, wifi=%d ch=%d rssi=%d)\n",
+                mqtt.state(), (unsigned long)mqttConsecFails,
+                (int)WiFi.status(), (int)WiFi.channel(), (int)WiFi.RSSI());
+  return false;
 }
 
 static bool publishBatch(const SampleBatch& b) {
@@ -502,27 +598,142 @@ static bool publishBatch(const SampleBatch& b) {
   return mqtt.publish(T_SAMPLES, jsonBuf, false);
 }
 
+// WiFi event bookkeeping — the event task writes, everyone else reads.
+// Association loss and its reason code are otherwise invisible: WL status
+// alone cannot distinguish a deauth from a roam from a stack wedge.
+static void onWiFiEvent(WiFiEvent_t event, WiFiEventInfo_t info) {
+  if (event == ARDUINO_EVENT_WIFI_STA_DISCONNECTED) {
+    wifiDiscEvents = wifiDiscEvents + 1;
+    lastDiscReason = info.wifi_sta_disconnected.reason;
+    Serial.printf("[NET] WiFi STA_DISCONNECTED reason=%lu (event #%lu)\n",
+                  (unsigned long)lastDiscReason,
+                  (unsigned long)wifiDiscEvents);
+  } else if (event == ARDUINO_EVENT_WIFI_STA_GOT_IP) {
+    Serial.printf("[NET] WiFi GOT_IP %s ch=%d bssid=%s rssi=%d\n",
+                  WiFi.localIP().toString().c_str(), (int)WiFi.channel(),
+                  WiFi.BSSIDstr().c_str(), (int)WiFi.RSSI());
+  }
+}
+
+// networkTask-private WiFi supervision state.
+static uint32_t wifiDownSinceMs  = 0;   // 0 = not currently down
+static uint32_t nextWifiActionMs = 0;
+static uint8_t  kicksThisOutage  = 0;
+static uint32_t lastBatchPubMs   = 0;
+
+static void kickWifi(const char* why) {
+  Serial.printf("[NET] WiFi KICK (%s): disconnect+begin\n", why);
+  WiFi.disconnect();
+  WiFi.begin(WIFI_SSID, WIFI_PASS);
+  wifiKicks = wifiKicks + 1;
+}
+
+static void restartWifiRadio() {
+  Serial.println("[NET] WiFi RESTART: radio off/on + begin");
+  WiFi.disconnect(true);              // also powers the STA interface down
+  vTaskDelay(pdMS_TO_TICKS(100));
+  WiFi.mode(WIFI_OFF);
+  vTaskDelay(pdMS_TO_TICKS(200));
+  WiFi.mode(WIFI_STA);
+  WiFi.setAutoReconnect(true);
+  WiFi.persistent(false);
+  WiFi.setSleep(false);
+  WiFi.begin(WIFI_SSID, WIFI_PASS);
+  wifiRestarts = wifiRestarts + 1;
+}
+
 static void networkTask(void*) {
   for (;;) {
+    uint32_t now = millis();
+
+    // --- bench soak drills (control: netdrop / wifidrop) ------------------
+    if (netDropRequested) {
+      netDropRequested = 0;
+      forcedNetDrops = forcedNetDrops + 1;
+      Serial.println("[NET] forced MQTT drop (control netdrop)");
+      espClient.stop();               // recovery must be automatic from here
+    }
+    if (wifiDropRequested) {
+      wifiDropRequested = 0;
+      forcedNetDrops = forcedNetDrops + 1;
+      Serial.println("[NET] forced WiFi drop (control wifidrop)");
+      WiFi.disconnect();              // supervision + autoreconnect recover
+    }
+
     if (WiFi.status() == WL_CONNECTED) {
+      // ---- WiFi healthy: reset the outage ladder ------------------------
+      if (wifiDownSinceMs != 0) {
+        Serial.printf("[NET] WiFi up after %lu ms down (ch=%d bssid=%s rssi=%d)\n",
+                      (unsigned long)(now - wifiDownSinceMs), (int)WiFi.channel(),
+                      WiFi.BSSIDstr().c_str(), (int)WiFi.RSSI());
+        wifiDownSinceMs = 0;
+        kicksThisOutage = 0;
+      }
+
       if (!mqtt.connected()) {
         attemptReconnect();
-      } else {
-        mqtt.loop();
-        // PEEK-PUBLISH-REMOVE, capped: a batch leaves the queue only after
-        // publish() reports success; the cap stops a reconnect flush from
-        // stampeding the link that just failed.
-        SampleBatch b; uint8_t n = 0;
-        while (n < BATCH_DRAIN_CAP && xQueuePeek(batchQueue, &b, 0) == pdTRUE) {
-          if (!publishBatch(b)) break;
-          xQueueReceive(batchQueue, &b, 0);
-          n++;
+        // ZOMBIE ASSOCIATION: WiFi claims connected but MQTT connects keep
+        // failing — the association passes no traffic. Kick the radio;
+        // counted separately from down-time kicks by the serial reason.
+        if (mqttConsecFails >= MQTT_FAILS_BEFORE_KICK) {
+          mqttConsecFails = 0;
+          kickWifi("zombie association: MQTT unreachable on connected WiFi");
         }
-        PubMsg m; n = 0;
+      } else {
+        mqtt.loop();                  // keepalive FIRST, every single pass
+
+        // PEEK-PUBLISH-REMOVE, paced: at most ONE batch per pass so
+        // mqtt.loop() runs between every large write, with a minimum
+        // spacing so a full-queue catch-up is bounded at 20 msg/s — and
+        // at the live rate only during the post-connect warmup. The TCP
+        // send buffer (~5.7 KB, ~4 batches) can therefore never be
+        // saturated by our own flush, which is what starved keepalive
+        // and flapped the link in the field.
+        uint32_t spacing = (now < warmupUntilMs) ? PUB_WARMUP_SPACING_MS
+                                                 : PUB_SPACING_MS;
+        SampleBatch b;
+        if ((uint32_t)(now - lastBatchPubMs) >= spacing &&
+            xQueuePeek(batchQueue, &b, 0) == pdTRUE) {
+          uint32_t t0 = millis();
+          bool ok = publishBatch(b);
+          uint32_t dt = millis() - t0;
+          if (dt > pubMaxMs) pubMaxMs = dt;
+          if (dt > PUB_SLOW_MS) pubSlow = pubSlow + 1;
+          if (ok) {
+            xQueueReceive(batchQueue, &b, 0);
+            lastBatchPubMs = now;
+          } else {
+            pubFails = pubFails + 1;  // stays queued; retried next window
+            lastBatchPubMs = now;     // failed write still spent the link's
+          }                           //   time — pace the retry too
+        }
+
+        PubMsg m; uint8_t n = 0;
         while (n < PUB_DRAIN_CAP && xQueuePeek(pubQueue, &m, 0) == pdTRUE) {
-          if (!mqtt.publish(m.topic, m.payload, m.retain)) break;
+          if (!mqtt.publish(m.topic, m.payload, m.retain)) { pubFails = pubFails + 1; break; }
           xQueueReceive(pubQueue, &m, 0);
           n++;
+        }
+      }
+    } else {
+      // ---- WiFi down: SUPERVISED recovery, never wait-and-hope ----------
+      // setAutoReconnect alone is known to wedge after some deauth
+      // reasons; that wedge was the field's reboot-only state. Escalate:
+      // kick (disconnect+begin) after each WIFI_KICK_MS of downtime, and
+      // after WIFI_KICKS_BEFORE_RESTART kicks, restart the radio outright.
+      if (wifiDownSinceMs == 0) {
+        wifiDownSinceMs  = now;
+        nextWifiActionMs = now + WIFI_KICK_MS;
+        Serial.printf("[NET] WiFi DOWN (status=%d, last reason=%lu)\n",
+                      (int)WiFi.status(), (unsigned long)lastDiscReason);
+      } else if ((int32_t)(now - nextWifiActionMs) >= 0) {
+        nextWifiActionMs = now + WIFI_KICK_MS;
+        if (kicksThisOutage < WIFI_KICKS_BEFORE_RESTART) {
+          kicksThisOutage++;
+          kickWifi("association not recovering");
+        } else {
+          kicksThisOutage = 0;
+          restartWifiRadio();
         }
       }
     }
@@ -556,7 +767,9 @@ static void publishMarker() {
 }
 
 static void publishStatus() {
-  char b[512];
+  char b[896];
+  // mqtt.state() is a plain int field owned by networkTask; reading it here
+  // is a benign diagnostic race, same class as the other volatiles.
   snprintf(b, sizeof(b),
     "{\"fw\":\"%s\",\"sid\":\"%s\",\"pin\":%d,\"rate_hz\":1000,"
     "\"spokes\":%d,\"wheel_dia_mm\":%.1f,\"wheel_circ_mm\":%.2f,"
@@ -565,7 +778,11 @@ static void publishStatus() {
     "\"raw\":%d,\"run_min\":%d,\"run_max\":%d,\"span\":%d,"
     "\"thr_high\":%d,\"thr_low\":%d,\"contrast_valid\":%u,\"in_pulse\":%u,"
     "\"pulses\":%lu,\"latch\":%lu,\"closs\":%lu,\"sat\":%lu,"
-    "\"rssi\":%d,\"heap\":%lu}",
+    "\"wifi\":%d,\"ch\":%d,\"bssid\":\"%s\",\"rssi\":%d,"
+    "\"wifi_disc\":%lu,\"wifi_reason\":%lu,\"wifi_kicks\":%lu,"
+    "\"wifi_restarts\":%lu,\"mqtt_state\":%d,\"mqtt_att\":%lu,"
+    "\"mqtt_ok\":%lu,\"pub_fail\":%lu,\"pub_slow\":%lu,\"pub_max_ms\":%lu,"
+    "\"q\":%u,\"q_hw\":%lu,\"fdrops\":%lu,\"heap\":%lu}",
     SKETCH_NAME, sessionId, SENSOR_PIN,
     SPOKES_PER_WHEEL, WHEEL_DIAMETER_MM, WHEEL_CIRCUMFERENCE_MM,
     (unsigned long)sampleCount, (unsigned long)batchesBuilt,
@@ -577,7 +794,16 @@ static void publishStatus() {
     (int)vThrHigh, (int)vThrLow, (unsigned)vContrastValid, (unsigned)vInPulse,
     (unsigned long)pulseCount, (unsigned long)latchTimeouts,
     (unsigned long)contrastLosses, (unsigned long)satSamples,
-    (int)WiFi.RSSI(), (unsigned long)ESP.getFreeHeap());
+    (int)WiFi.status(), (int)WiFi.channel(), WiFi.BSSIDstr().c_str(),
+    (int)WiFi.RSSI(),
+    (unsigned long)wifiDiscEvents, (unsigned long)lastDiscReason,
+    (unsigned long)wifiKicks, (unsigned long)wifiRestarts,
+    (int)mqtt.state(), (unsigned long)mqttAttempts,
+    (unsigned long)mqttConnects, (unsigned long)pubFails,
+    (unsigned long)pubSlow, (unsigned long)pubMaxMs,
+    (unsigned)(batchQueue ? uxQueueMessagesWaiting(batchQueue) : 0),
+    (unsigned long)qHighWater, (unsigned long)forcedNetDrops,
+    (unsigned long)ESP.getFreeHeap());
   enqueuePub(T_STATUS, b, false);
   Serial.printf("[SCOPE] %s\n", b);
 }
@@ -633,6 +859,7 @@ void setup() {
     Serial.println("[FATAL] sensor task creation failed"); while (1) delay(1000);
   }
 
+  WiFi.onEvent(onWiFiEvent);       // disconnect reasons + IP/roam evidence
   WiFi.mode(WIFI_STA);
   WiFi.setAutoReconnect(true);
   WiFi.persistent(false);
