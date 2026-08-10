@@ -5,6 +5,20 @@
  * Successor to SOLONAV (v2.22 final). QUORUM navigator per spec R21.
  *
  * ---------------------------------------------------------------------------
+ * v1.12B — PASSENGER-GENTLE STATION RAMPS (operator ruling 2026-08-09)
+ * ---------------------------------------------------------------------------
+ * "Passenger stops must be gentle. The customers complain, although the
+ * chiropractors love it." Station stops and departures abandon the
+ * duration-based requestPwmOver (whose step rate depended on the span,
+ * leaving departures 2.4x steeper than a manual crawl) for the per-step
+ * pacing everything else uses: UP 150 ms/step, DOWN 200 ms/step. A
+ * departure 0->90 now takes ~13.5 s to full cruise; the final stop from
+ * 45 takes ~9 s. Watch on first laps: landing distance grows with the
+ * gentler stop (retune stopOffsets per station if needed), and the slow
+ * pull-out may occasionally trip the DEPARTURE_SLOW advisory (cosmetic).
+ * STOP/DEPART_RAMP_MS retired. Approach/zone trims keep duration ramps.
+ *
+ * ---------------------------------------------------------------------------
  * v1.12 — OPERATOR SPEED/RAMP TUNING (base: 1.10 per ruling; 1.11/1.11B
  * are diagnostic stubs and contribute nothing here)
  * ---------------------------------------------------------------------------
@@ -337,7 +351,7 @@
 #include <Adafruit_INA219.h>
 #include "LocoConfig.h"
 
-#define SKETCH_NAME "QUORUM_1_12A"
+#define SKETCH_NAME "QUORUM_1_12B"
 
 // Broker lives here, not in LocoConfig.h — same as the previous lineage.
 #define MQTT_BROKER "192.168.68.142"
@@ -1538,8 +1552,15 @@ static const uint8_t GRADE_COUNT = sizeof(GRADES)/sizeof(GRADES[0]);
 
 static const uint16_t APPROACH_RAMP_MS = 700;   // ~half a marker: settled before the next
 static const uint16_t FINAL_RAMP_MS    = 700;
-static const uint16_t STOP_RAMP_MS     = 5600;  // v1.12A operator tuning (was 2800): final stop ramp half as steep
-static const uint16_t DEPART_RAMP_MS   = 5600;  // v1.12 operator tuning (was 2800): station departure half as steep
+// v1.12B (operator ruling 2026-08-09): "Passenger stops must be gentle."
+// Station stops and departures move from DURATION-based ramps (reach the
+// target in N ms — which made the step rate depend on the PWM span, and
+// left departures 2.4x steeper than a manual crawl) to PER-STEP pacing,
+// the same mechanism as manual/BEGIN/PAUSE. One PWM count per:
+static const uint16_t STATION_UP_STEP_MS   = 150;  // departure: matches the gentlest ramp on the railway
+static const uint16_t STATION_DOWN_STEP_MS = 200;  // final stop: gentler still
+// (Approach/zone adjustments between nonzero speeds keep their short
+// duration ramps — they are speed trims, not passenger jolts.)
 static const int8_t   APPROACH_START      = -10;
 static const int8_t   ZONE_START          = -5;
 // (superseded by per-station stopOffset in STATIONS[])
@@ -1795,7 +1816,7 @@ static void serviceStations(){
      stPhase==ST_FINAL && stMPlus1AtMs &&
      millis()-stMPlus1AtMs >= FINAL_M1_TIMEOUT_MS){
     stationSetPhase(ST_RAMP);
-    requestPwmOver(0,STOP_RAMP_MS);
+    requestPwm(0,STATION_DOWN_STEP_MS);
     stationPublish("ZERO_RAMP",1,"TRIGGER_M1_TIMEOUT_DID_NOT_REACH_M2");
     return;
   }
@@ -1879,7 +1900,7 @@ static void serviceStations(){
         stationPublish("FINAL_TARGET",o,o==0?"AT_CENTRE_ZONE_SPEED":"M_PLUS_1_FINAL_SPEED");
       }else if(o>=stopAt){
         stationSetPhase(ST_RAMP);
-        requestPwmOver(0,STOP_RAMP_MS);
+        requestPwm(0,STATION_DOWN_STEP_MS);
         // Which trigger fired is a fact worth logging: repeated M1_TIMEOUT at
         // one station means that approach profile is too aggressive there.
         stationPublish("ZERO_RAMP",o,"TRIGGER_M2_REACHED");
@@ -1907,7 +1928,7 @@ static void serviceStations(){
         // magnet events stretched to four seconds, occupancy of the median
         // window reached 90%, the baseline was corrupted and navigation was
         // lost. A throttle number caused a navigation failure.
-        requestPwmOver(cruiseForPosition(),DEPART_RAMP_MS);
+        requestPwm(cruiseForPosition(),STATION_UP_STEP_MS);
         stationPublish("DWELL_COMPLETE",o,"DEPART_TO_CRUISE");
       }
       break;
