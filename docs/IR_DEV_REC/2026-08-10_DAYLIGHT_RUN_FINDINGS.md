@@ -1,0 +1,79 @@
+# IR daylight run — 2026-08-10 09:26–09:40
+
+**Firmware:** IR_DIAG with the corrected 2500 us debounce
+(`agent/ir-diag-debounce`), flashed 2026-08-09.
+**Capture:** `~/NGR/logs/dualcap_20260810_092644.log` on the Pi — Otto and
+the IR car in one broker-local file (5,208 lines).
+**Route:** sunny start, longer shade, sunny again (operator-marked), then
+the test car physically reversed front-to-back and Otto run back over the
+same route.
+
+## 1. The sensor was NOT sun-blinded
+
+- **`sat=0` in every STATS line.** Max raw across the whole run: **3,187 of
+  4,095**. The phototransistor never approached its ceiling. The historic
+  "sunlight lockout" failure mode did not occur.
+- Ambient swung enormously and was tracked: median raw-at-fall ranged from
+  **359 (deep shade) to 3,122 (full sun)** across minutes of the same run.
+- Detection continued throughout: the pulse counter reached **6,525**.
+
+## 2. The daylight cost is MARGIN COMPRESSION, not blindness
+
+Published pulses, by minute (median):
+
+| min | n | raw | span | rh | fh | fh<0 |
+|---|---|---|---|---|---|---|
+| 6 | 490 | 1426 | 1855 | +587 | +554 | 1 |
+| 8 | 137 | 1344 | 1967 | +198 | +616 | 0 |
+| 9 | 78 | 359 | 1023 | +523 | +336 | 0 |
+| **11** | **369** | **3122** | **415** | **+126** | **+116** | **6** |
+| 13 | 289 | 905 | 2399 | +778 | +785 | 2 |
+
+Minute 11 is the daylight signature: high ambient (raw 3,122) drives the
+span down to **415 counts — a 4.5× compression** against the same run's
+shaded stretches, with headrooms falling to ~+120 and six pulses showing
+negative `fh`. Detection survived, but the margin is where a further
+increase in ambient would start costing spokes. **Sun squeezes; it did not
+blind.**
+
+## 3. THE RUN'S REAL FAULT: 77 % of the pulse train was never published
+
+Applying the standing rule (cross-check every gap against the motion
+witness AND the pulse counter):
+
+- Otto under power **451 s**; IR pulse train silent for **345 s of it (77 %)**.
+- **Eleven silences ≥3 s.** In the large ones the pulse COUNTER advanced
+  massively across the silence — e.g. **+1,498 pulses during an 85 s
+  silence**, +895 during 46 s, +729 during 60 s.
+- **Twelve LWT `online 0/1` transitions** bracket those silences.
+- Sensor detected **6,525** pulses; only **1,477** reached the broker.
+
+The sensor saw the wheel the entire time. The telemetry did not arrive.
+This is the 2026-08-05 failure shape exactly, and precisely what the
+standing rule exists to catch — an optical conclusion drawn from this
+pulse train would have been wrong.
+
+**Cause:** IR_DIAG has *none* of the transport hardening developed for
+IR_SCOPE on 2026-08-09 (paced publishing, supervised WiFi recovery,
+network diagnostics). It carries the original stampede-prone drain and the
+reboot-only WiFi wedge.
+
+## 4. Consequences
+
+1. **No optical/daylight verdict is claimed from the published subset**
+   beyond §1–2, which rest on counters and on-pulse fields that survive
+   publishing loss.
+2. **Proposed:** port IR_SCOPE's transport fix into IR_DIAG (pacing, WiFi
+   supervision, `ch`/`bssid`/`wifi_disc`/`pub_*` diagnostics). Scoped,
+   review-gated, CODEX's call.
+3. Wheel calibration attempted against Otto's markers: **inconclusive**
+   (pulses per marker interval median 26, p10 5, p90 397 — the silences and
+   marker spacing confound it). Needs a run with a working telemetry path.
+4. The direction reversal cannot be evaluated: the second half sits almost
+   entirely inside the publishing silences.
+
+## 5. What held
+
+The corrected debounce: where telemetry flowed, intervals were tight and
+uniform (min 6: 490 pulses, jit as low as 5–12 ms) with `latch` and `closs`
+near zero — no sign of the merged/doubled pattern that motivated IR_SCOPE.
