@@ -13,7 +13,7 @@ PURPOSE
 
       - contrast validity gate (recorded contrast_valid column; a loss
         discards the open pulse and the interval anchor, as IR_DIAG does)
-      - 15 ms rise-to-rise debounce (DEBOUNCE_US)
+      - 2.5 ms rise-to-rise debounce (DEBOUNCE_US, production value)
       - 2500 ms latch timeout, discarding the open pulse (LATCH_TIMEOUT_MS)
 
     This is NOT a threshold-crossing counter. It is the IR_DIAG state
@@ -74,7 +74,7 @@ import csv
 import math
 import sys
 
-DEBOUNCE_MS = 15.0        # DEBOUNCE_US, IR_DIAG
+DEBOUNCE_MS = 2.5         # DEBOUNCE_US, production value (2026-08-09)
 LATCH_MS    = 2500.0      # LATCH_TIMEOUT_MS, IR_DIAG
 SPOKES      = 7
 

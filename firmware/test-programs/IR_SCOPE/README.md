@@ -12,7 +12,7 @@ IR_SCOPE streams the **raw 1 kHz waveform together with the exact thresholds
 and detector state that interpreted it**. The detector is IR_DIAG's, verbatim
 (decision 0009: diagnostic thresholds match production): rolling 5/95
 percentile envelope, `thrHigh = runMin + 2·span/3`, `thrLow = runMin +
-span/3`, 15 ms rise-to-rise debounce, 2500 ms latch discard, contrast gate.
+span/3`, 2.5 ms rise-to-rise debounce (production IR_TEST's value — the inherited 15 ms guard was proven on 2026-08-09 to delete spokes at speed), 2500 ms latch discard, contrast gate.
 One ADC acquisition per sample feeds both the stream and the detector — the
 plotted value IS the judged value.
 

@@ -28,7 +28,7 @@
  *     histogram, recomputed every 250 ms, primed at 512 samples
  *   thrHigh = runMin + 2*span/3        thrLow = runMin + span/3
  *   MIN_USABLE_SPAN 120 / MARGINAL_SPAN 300 contrast gate
- *   DEBOUNCE_US 15000 (rise-to-rise), LATCH_TIMEOUT_MS 2500 discard
+ *   DEBOUNCE_US 2500 (rise-to-rise, production value), LATCH_TIMEOUT_MS 2500 discard
  *   contrast-loss discard of open pulse + interval anchor
  *
  * ONE analogRead() per 1 kHz tick feeds BOTH the stream and the detector.
@@ -148,7 +148,13 @@ const float WHEEL_DIAMETER_MM      = 27.8f;
 const float WHEEL_CIRCUMFERENCE_MM = 87.34f;   // nominal pi * 27.8
 
 const uint32_t SENSOR_TICK_MS = 1;       // 1 kHz
-const uint32_t DEBOUNCE_US    = 15000;   // 15 ms rise-to-rise, as IR_DIAG
+const uint32_t DEBOUNCE_US    = 2500;    // rise-to-rise guard, PRODUCTION
+// IR_TEST's value and derivation (see its source): 15 ms was the two-flag
+// era constant, and the 2026-08-09 night replay proved it deletes spokes
+// wholesale at speed on the 7-spoke wheel (7,869 detected vs 15,906
+// physical peaks; 15,822 with 2500 us). IR_DIAG still carries 15000 —
+// flagged for its own scoped fix; matching production here IS the
+// decision-0009 rule.
 
 const int      ADC_MAX          = 4095;
 const int      SATURATION_LEVEL = 4000;
