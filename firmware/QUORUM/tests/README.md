@@ -101,6 +101,22 @@ passes unnoticed. That is worth knowing, and is why the position is stated.
 adoption was wrong, so without a case that *must* adopt, a navigator that never
 adopts would pass everything else.
 
+## The counterfactual
+
+Section 5 replays the real event stream with the two Bamboo phantom events
+(capture lines 24662 and 24669) removed:
+
+```
+adoptions: 0 (was 1 — the wrong +3 at line 24800)
+NO_QUORUM at mm [87, 100] (was [23, 87, 100]) — incident C gone
+```
+
+Incidents A and B are unaffected. This is what establishes those two events as
+the *sole cause* of incident C rather than merely correlated with it, and it is
+the acceptance target for the low-PWM phantom proposal in
+`docs/QUORUM_LOW_PWM_PHANTOM_DESIGN_PROPOSAL.md`: any rule that rejects exactly
+those two inherits this outcome.
+
 ## Evidence properties
 
 `run_suite.py` also checks facts about the map itself, independent of firmware,

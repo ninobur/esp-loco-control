@@ -11,6 +11,10 @@ Builds the host harness (real firmware, host-compiled), then runs:
      checked here so a map change cannot silently invalidate it.
   4. SYNTHETIC CASES — negatives the capture does not contain, plus the
      legitimate-recovery control.
+  5. COUNTERFACTUAL — drops the two Bamboo phantom events from the real event
+     stream and shows the whole incident-C chain disappears. This is what makes
+     them causal rather than merely correlated, and it is the acceptance target
+     for the low-PWM phantom proposal.
 
 Usage:  python3 run_suite.py [--harness /path/to/binary]
 """
@@ -218,6 +222,54 @@ def advisory_of(summary):
     return None
 
 
+# The two events at these capture lines are the phantoms accepted during the
+# Bamboo departure, localised by change-point fit (0 mismatches over 39 events).
+PHANTOM_LINES = {24662, 24669}
+
+
+def counterfactual(harness):
+    """Replay the real run with the two phantom events removed.
+
+    The empirical test of causation. If those two events are what put the
+    odometer 2 ahead, dropping them must remove the wrong adoption at capture
+    line 24800 and the HARD_BOUND at 25092, while leaving incidents A and B —
+    which happen elsewhere, for other reasons — untouched.
+
+    This is also the acceptance target for the low-PWM phantom proposal: any
+    rule that rejects exactly these two events inherits this outcome.
+    """
+    expected = json.loads((HERE / 'fixtures/full_run.expected').read_text())
+    lines = [e['line'] for e in expected if e.get('event') == 'MARKER']
+    src = (HERE / 'fixtures/full_run.replay').read_text().splitlines()
+    out, i = [], 0
+    for ln in src:
+        if ln.startswith('event'):
+            drop = lines[i] in PHANTOM_LINES
+            i += 1
+            if drop:
+                continue
+        out.append(ln)
+    su = qrun.summarise(qrun.run_lines(harness, out))
+    adoptions = [d for d in su['decisions'] if d['event'] == 'QUORUM_ADOPTED']
+    noquorum = sorted(d['mm'] for d in su['decisions']
+                      if d['event'] == 'NO_QUORUM')
+    fails = []
+    if adoptions:
+        fails.append(f'counterfactual: still adopts {adoptions} — the phantoms '
+                     'would then not be the sole cause of the wrong adoption')
+    if 23 in noquorum:
+        fails.append('counterfactual: incident C still occurs — the phantoms '
+                     'would then not be its sole cause')
+    if noquorum != [87, 100]:
+        fails.append(f'counterfactual: NO_QUORUM at mm {noquorum}, expected '
+                     '[87, 100] — incidents A and B must be unaffected')
+    print(f'    dropped the {len(PHANTOM_LINES)} phantom events at capture '
+          f'lines {sorted(PHANTOM_LINES)}')
+    print(f'    adoptions: {len(adoptions)} (was 1 — the wrong +3 at line 24800)')
+    print(f'    NO_QUORUM at mm {noquorum} (was [23, 87, 100]) — incident C gone')
+    return fails
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument('--harness', default='/tmp/quorum_harness')
@@ -278,6 +330,9 @@ def main():
         f, ev = check_synthetic(args.harness, name, spec)
         print(f'    {"OK  " if not f else "FAIL"} {name}: {ev}')
         failures += f
+
+    print('\n== 5. counterfactual: are the two Bamboo phantoms causal? ==')
+    failures += counterfactual(args.harness)
 
     print('\n== result ==')
     if failures:
