@@ -54,8 +54,25 @@ Any *new* divergence fails the suite.
 | `extract_fixture.py` | capture → `full_run.replay` + `.expected` |
 | `make_synthetic.py` | cases the capture lacks, with expectations as data |
 | `verify_replay.py` | fidelity + decision-sequence comparison |
+| `verify_inert.py` | proves a diagnostic-only change alters nothing else |
 | `run_suite.py` | the entry point |
 | `qrun.py` | shared run/summarise helper |
+
+## Proving a change is diagnostic-only
+
+```bash
+python3 verify_inert.py --base HEAD~1 --allow-added adv,advw,advr,advn
+```
+
+Builds the same harness against two versions of `QUORUM.ino` and requires
+byte-identical output on every fixture once the declared new fields are
+removed. This is what enforces decision 0023's contract for the HARD_BOUND
+advisory: it may publish, and it may do nothing else. If a later edit lets it
+move `navMm`, adopt a candidate, touch the throttle or the station machine,
+alter `NAV_NO_QUORUM` or change any published decision, the outputs diverge and
+this fails.
+
+The Phase 2 advisory passes on all ten fixtures.
 
 The capture at `field-records/logs/20260810_IR_SPEED_LOCAL_1_2_otto.log` is the
 authority and is never modified.

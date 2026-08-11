@@ -171,9 +171,12 @@ def build(capture, lo, hi, name, outdir, start_mm=None, start_dir='CW',
             continue
 
         if topic.endswith('/mm/no_quorum') and d:
+            # No 'snapshot' command: the harness emits the retained slot when
+            # the firmware commits it. The capture publishes mm/no_quorum
+            # BEFORE the marker that provoked it, so asking here would sample
+            # one event early.
             expected.append({'line': n, 'event': 'NO_QUORUM_SNAPSHOT',
                              'snapshot': d})
-            cmds.append('snapshot')
             continue
 
     cmds.append('dump')

@@ -791,6 +791,17 @@ static void publishQuorumDecision(const char* ev, const char* extra);
 // logged queue_drops 0->4 and the recovery returned off=+4).
 static const int8_t QUORUM_OFFSETS[QUORUM_CANDIDATES] = { -1, 0, +1, +2, +3, +4 };
 
+// HARD_BOUND advisory (decision 0023). Parameters of a live, diagnostic-only
+// feature, so they live with the other navigator constants; the matcher itself
+// is still down in the v2.x block with the notes on why it is not an authority.
+// DNA_W 12 >= 10 is what makes the match unambiguous: every window of length
+// 10 or more is unique across the 171-marker route, W=9 still collides four
+// ways. REACQ_WINDOW_MARKERS bounds the search to the locomotive's own
+// neighbourhood so the advisory can never name a remote position.
+#define DNA_W                12
+#define REACQ_WINDOW_MARKERS  5
+#define ADVISORY_NONE       255   // no exact unique window; 0..170 are markers
+
 // §3 timing gate
 #define GATE_LOW_PWM_FLOOR 40   // below this the velocity model is invalid
 #define GATE_RAMP_DELTA    10   // |actual-commanded| beyond this = mid-ramp
@@ -897,6 +908,9 @@ static char noQuorumSnapshot[512];   // §2.5: sized to PubMsg::payload — do N
 
 static void navPublishState(const char* ev,const MarkerEvent* e);
 static void publishAlert(const char* level,const char* reason);
+// HARD_BOUND advisory (decision 0023); defined with dnaMatch() below, called
+// only by buildNoQuorumSnapshot(). Diagnostic — it never moves the locomotive.
+static uint8_t quorumAdvisoryMarker();
 
 // §6.1 — the only navState vocabulary the rest of the sketch uses.
 static inline bool navPositionUsable(){ return navState==NAV_NORMAL || navState==NAV_EVALUATING; }
@@ -1077,14 +1091,27 @@ static void buildNoQuorumSnapshot(){
   // candidate indices 0..5. null when no leader/runner-up exists.
   if(leaderIdx>=0)   snprintf(ld,sizeof(ld),"%d",(int)QUORUM_OFFSETS[leaderIdx]);   else strlcpy(ld,"null",sizeof(ld));
   if(runnerUpIdx>=0) snprintf(ru,sizeof(ru),"%d",(int)QUORUM_OFFSETS[runnerUpIdx]); else strlcpy(ru,"null",sizeof(ru));
+  // Advisory (decision 0023): exact unique window match, or nothing. Computed
+  // here because the ring, navMm and navDir are all still intact — step 2's
+  // stop and step 2a's stationReset() have not run yet. Read-only.
+  uint8_t adv=quorumAdvisoryMarker();
+  char av[8];
+  if(adv==ADVISORY_NONE) strlcpy(av,"null",sizeof(av));
+  else                   snprintf(av,sizeof(av),"%u",adv);
   // F2: build into a loop-thread local buffer, then hand off under the mux.
   char tmp[512];
   int w=snprintf(tmp,sizeof(tmp),
     "{\"e\":\"NO_QUORUM\",\"mm\":%u,\"lm\":\"%s\",\"since\":%u,\"dir\":\"%s\","
-    "\"sc\":%s,\"ex\":%s,\"ld\":%s,\"ru\":%s,\"mg\":%d,\"ev\":%u,\"ring\":[",
+    "\"sc\":%s,\"ex\":%s,\"ld\":%s,\"ru\":%s,\"mg\":%d,\"ev\":%u,"
+    // adv/advw/advr/advn are the advisory and the three inputs that decide it,
+    // so silence can be told apart from a match: advn<advw means the ring was
+    // short, otherwise no unique exact window existed at that width and radius.
+    // With those, navMm, dir and the ring below, the verdict is recomputable.
+    "\"adv\":%s,\"advw\":%u,\"advr\":%u,\"advn\":%u,\"ring\":[",
     navMm, haveConfirmed?landmarkAt(lastConfirmedMm):"",
     (unsigned)markersSinceConfirmed, dirName(navDir),
-    sc, ex, ld, ru, (int)quorumMargin, (unsigned)evalCount);
+    sc, ex, ld, ru, (int)quorumMargin, (unsigned)evalCount,
+    av, (unsigned)DNA_W, (unsigned)REACQ_WINDOW_MARKERS, (unsigned)evRingLen);
   for(uint8_t i=0;i<evRingLen && w<(int)sizeof(tmp);i++){
     const RingEntry* r=ringAt(i);
     w+=snprintf(tmp+w,sizeof(tmp)-w,
@@ -1339,16 +1366,36 @@ static void navDeclare(uint8_t mm){
 }
 
 // ---------------------------------------------------------------------------
-// DEAD CODE — superseded by QUORUM's evidence ring and hypothesis set.
-// Retained BY INSTRUCTION: present, unreferenced, compiling. Do not wire up.
+// The v2.x window matcher. dnaPush()/the streaming buffer remain DEAD BY
+// INSTRUCTION — present, unreferenced, compiling, not wired up.
+//
+// dnaMatch() itself is now called from ONE place: buildNoQuorumSnapshot(), to
+// put an advisory marker on the terminal record (decision 0023). It is not an
+// authority and never was allowed to be. The lineage QUORUM replaced asked
+// "where am I?" from scratch at every marker and let the matcher outvote the
+// odometer, which is how a locomotive at MM133 concluded at certainty 1.000
+// that it was at MM105 travelling the other way. The advisory differs in three
+// ways that keep that failure unreachable:
+//
+//   * it runs ONCE, at HARD_BOUND — after the navigator has already concluded
+//     it is lost and is stopping anyway;
+//   * it PUBLISHES, never adopts. navMm, the throttle, the station machine,
+//     NAV_NO_QUORUM and the operator's declaration are all untouched;
+//   * it demands an EXACT, UNIQUE window. Every DNA window of length >= 10 is
+//     unique route-wide (W=9 still collides four ways), so a 12-wide exact
+//     match names one marker or none. One bad reading in twelve silences it.
+//
+// Exact-or-silent is the whole contract: a wrong non-null advisory is a
+// blocking defect, because its only purpose is to save the operator a walk and
+// a wrong hint is worse than no hint.
 // (The rest of the v2.x recovery machinery — pendingMm/pendingValid/
 // pendingConfirms, REACQ_CONFIRMS, lastOdomDisagreement, navConfidence and
 // navEnterLost() — is deleted per spec §6.2.)
 // ---------------------------------------------------------------------------
-#define DNA_W               12   // 171 unique windows verified at W=10
-#define REACQ_WINDOW_MARKERS 5
-static uint8_t dnaBuf[DNA_W] __attribute__((unused));
-static uint8_t dnaBufLen __attribute__((unused)) = 0;
+// DNA_W and REACQ_WINDOW_MARKERS are defined with the navigator constants
+// above, alongside the rest of the advisory's parameters.
+static uint8_t dnaBuf[DNA_W];
+static uint8_t dnaBufLen = 0;
 
 __attribute__((unused))
 static void dnaPush(uint8_t pol){
@@ -1360,7 +1407,6 @@ static void dnaPush(uint8_t pol){
 // Unique window match, searched only near navMm and only in the declared
 // direction. Returns the mm of the LAST marker in the window, or 255 if not
 // unique within the window.
-__attribute__((unused))
 static uint8_t dnaMatch(int8_t dir){
   if(dnaBufLen<DNA_W || dir==MAP_UNSET) return 255;
   uint8_t found=255, count=0;
@@ -1375,6 +1421,23 @@ static uint8_t dnaMatch(int8_t dir){
     if(ok){ if(++count>1) return 255; found=end; }
   }
   return count==1 ? found : 255;
+}
+
+// HARD_BOUND advisory (decision 0023). Loads the evidence ring — oldest first,
+// which is the order dnaMatch() walks — and asks for an exact unique window.
+// Returns the marker, or ADVISORY_NONE when there is nothing exact and unique
+// to say. Pure: it writes only the scratch buffer, and the caller publishes the
+// result without acting on it.
+//
+// evRingLen < DNA_W means fewer than twelve readings survive, so the question
+// cannot be asked. That is silence, not an error: HARD_BOUND fires at
+// evalCount 12 but the ring is cleared on adoption, so a late adoption inside
+// the same incident can leave it short.
+static uint8_t quorumAdvisoryMarker(){
+  if(evRingLen<DNA_W) return ADVISORY_NONE;
+  for(uint8_t i=0;i<DNA_W;i++) dnaBuf[i]=ringAt(i)->polarity;
+  dnaBufLen=DNA_W;
+  return dnaMatch(navDir);
 }
 
 // ===========================================================================

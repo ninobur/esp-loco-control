@@ -41,13 +41,16 @@ DNA_W = 12                    # mirrors QUORUM.ino:1348
 INCIDENTS = {
     'A': dict(line=14945, mm=100, scores=[7, 3, 7, 8, 4, 6], leader=2,
               runner_up=-1, margin=1,
-              ring='N S S N S S N S S S N N', true_offset=8, true_mm=108),
+              ring='N S S N S S N S S S N N', true_offset=8, true_mm=108,
+              advisory=None),   # +8 lies outside the +/-5 advisory window
     'B': dict(line=19608, mm=87, scores=[3, 6, 6, 5, 5, 6], leader=0,
               runner_up=1, margin=0,
-              ring='S S S S N S S N S S N N', true_offset=None, true_mm=None),
+              ring='S S S S N S S N S S N N', true_offset=None, true_mm=None,
+              advisory=None),   # latched readings match nothing at any width
     'C': dict(line=25092, mm=23, scores=[5, 3, 5, 5, 6, 6], leader=3,
               runner_up=4, margin=0,
-              ring='S S S S N N N N S S N S', true_offset=-5, true_mm=18),
+              ring='S S S S N N N N S S N S', true_offset=-5, true_mm=18,
+              advisory=18),     # exact, unique, and inside +/-5
 }
 
 
@@ -117,8 +120,8 @@ def check_evidence_properties():
     return fails
 
 
-def check_incident(tag, decisions):
-    """Assert one incident's published NO_QUORUM decision."""
+def check_incident(tag, decisions, snapshots):
+    """Assert one incident's published NO_QUORUM decision and advisory."""
     inc = INCIDENTS[tag]
     got = [d for d in decisions
            if d['event'] == 'NO_QUORUM' and d.get('mm') == inc['mm']]
@@ -135,6 +138,30 @@ def check_incident(tag, decisions):
                      'expected HARD_BOUND')
     if d.get('eval') != 12:
         fails.append(f'incident {tag}: eval = {d.get("eval")}, expected 12')
+
+    # The advisory, from the retained terminal record.
+    snap = None
+    for s_ in snapshots:
+        try:
+            cand = json.loads(s_['snapshot']) if s_['snapshot'] else None
+        except ValueError:
+            continue
+        if cand and cand.get('mm') == inc['mm'] and cand.get('e') == 'NO_QUORUM':
+            snap = cand
+    if snap is None:
+        fails.append(f'incident {tag}: no retained snapshot captured')
+        return fails
+    got = snap.get('adv')
+    if got != inc['advisory']:
+        fails.append(f'incident {tag}: advisory {got}, expected {inc["advisory"]}'
+                     + (' — a wrong non-null advisory is a BLOCKING DEFECT'
+                        if got is not None else ''))
+    if snap.get('advw') != DNA_W or snap.get('advr') != REACQ_WINDOW_MARKERS:
+        fails.append(f'incident {tag}: advisory audit fields advw/advr = '
+                     f'{snap.get("advw")}/{snap.get("advr")}, expected '
+                     f'{DNA_W}/{REACQ_WINDOW_MARKERS}')
+    if len(json.dumps(snap, separators=(',', ':'))) > 512:
+        fails.append(f'incident {tag}: snapshot exceeds the 512-byte buffer')
     return fails
 
 
@@ -228,10 +255,12 @@ def main():
 
     print('\n== 2. incident goldens ==')
     for tag in ('A', 'B', 'C'):
-        f = check_incident(tag, decisions)
+        f = check_incident(tag, decisions, su['snapshots'])
         inc = INCIDENTS[tag]
         print(f'    incident {tag} (capture line {inc["line"]}, mm {inc["mm"]}): '
-              + ('OK' if not f else 'FAIL'))
+              + ('OK' if not f else 'FAIL')
+              + f'  advisory={inc["advisory"]}'
+              + (f' (true position {inc["true_mm"]})' if inc['true_mm'] else ''))
         failures += f
     n_adopt = sum(1 for d in decisions if d['event'] == 'QUORUM_ADOPTED')
     if n_adopt != 1:

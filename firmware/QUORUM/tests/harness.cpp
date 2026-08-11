@@ -97,6 +97,23 @@ static void emitSnapshot(){
          (unsigned)desiredRetainedNoQuorum, esc(noQuorumSnapshot).c_str());
 }
 
+// The retained slot is emitted whenever the firmware commits a new one, rather
+// than when a fixture remembers to ask. noQuorumGeneration is incremented under
+// the mux by every commit — buildNoQuorumSnapshot() and navDeclare() alike — so
+// this catches each terminal record at the instant it is built.
+//
+// Asking at a fixed point in the command stream is not good enough: the capture
+// publishes mm/no_quorum BEFORE the marker record that provoked it, so a
+// fixture-driven 'snapshot' lands one event early and misses the last incident
+// of a run entirely.
+static uint32_t lastSeenGeneration = 0;
+static void emitSnapshotIfChanged(){
+  if(noQuorumGeneration != lastSeenGeneration){
+    lastSeenGeneration = noQuorumGeneration;
+    emitSnapshot();
+  }
+}
+
 // setup() is not called: it starts tasks and a radio. The harness creates
 // exactly the queues the navigator publishes into, and nothing else.
 static void harnessInit(){
@@ -167,6 +184,7 @@ int main(){
     } else {
       printf("{\"error\":\"unknown command\",\"line\":\"%s\"}\n", esc(line.c_str()).c_str());
     }
+    emitSnapshotIfChanged();
     drainPublications();
     fflush(stdout);
   }
