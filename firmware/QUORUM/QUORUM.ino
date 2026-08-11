@@ -1082,7 +1082,10 @@ static void updateLastConfirmed(uint8_t mm,unsigned long detectedAtMs){
 // safely precede the stop request. If this mechanism is ever replaced by a
 // synchronous publish, the order must be reversed. Short keys are acceptable
 // here and nowhere else — this message is read by a human doing forensics.
-static void buildNoQuorumSnapshot(){
+// `reason` is the terminal reason, forwarded from enterNoQuorum(). It exists
+// solely to scope the advisory: decision 0023 grants it to HARD_BOUND and to
+// nothing else.
+static void buildNoQuorumSnapshot(const char* reason){
   char sc[48], ex[24], ld[8], ru[8];
   jsonScores(sc,sizeof(sc));
   jsonExcluded(ex,sizeof(ex),true);
@@ -1094,7 +1097,26 @@ static void buildNoQuorumSnapshot(){
   // Advisory (decision 0023): exact unique window match, or nothing. Computed
   // here because the ring, navMm and navDir are all still intact — step 2's
   // stop and step 2a's stationReset() have not run yet. Read-only.
-  uint8_t adv=quorumAdvisoryMarker();
+  //
+  // HARD_BOUND ONLY. This function serves all three terminal reasons, and the
+  // other two carry evidence the advisory has no right to interpret:
+  //
+  //   SECOND_ADOPTION_FAILED — handleFailedAdoption() has REBASED the ring's
+  //     navMm values to undo the failed adoption and rescored only the last
+  //     three entries, so evalCount is 3 while evRingLen may still be 12. The
+  //     ring is in what the code at the call site calls "the uncorrected
+  //     frame": the polarities dnaMatch() reads are real, but the incident is
+  //     one where the navigator has already been wrong once about position.
+  //   FORCED_BY_FIXTURE — the operator forced the terminal state. The ring can
+  //     hold anything, including readings from an unrelated stretch, and a
+  //     confident marker number offered on that basis is exactly the wrong
+  //     hint this advisory exists to avoid being.
+  //
+  // Neither has field evidence behind it, so neither gets an advisory. The
+  // audit fields still publish, so a null here is distinguishable from a null
+  // caused by a short ring or a failed match: advn reports the ring length.
+  const bool advisoryAllowed = (strcmp(reason,"HARD_BOUND")==0);
+  uint8_t adv = advisoryAllowed ? quorumAdvisoryMarker() : ADVISORY_NONE;
   char av[8];
   if(adv==ADVISORY_NONE) strlcpy(av,"null",sizeof(av));
   else                   snprintf(av,sizeof(av),"%u",adv);
@@ -1141,7 +1163,7 @@ static void enterNoQuorum(const char* reason){
   navLostCount++;
   lostSinceMs=millis(); lostMarkers=0;
   // 1. snapshot the terminal evidence before deceleration can overwrite it
-  buildNoQuorumSnapshot();
+  buildNoQuorumSnapshot(reason);
   // 2. controlled stop — AUTO CHAMBER ONLY, issued once on entry, never
   //    reissued on later markers. BICAMERAL RULE (operator ruling, spec
   //    §0.2): in MANUAL the operator is sovereign — navigation observes,

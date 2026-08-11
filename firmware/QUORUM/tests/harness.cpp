@@ -147,6 +147,15 @@ int main(){
       int v; in >> v;
       motorDirection = v;
       applyDirection();
+    } else if(cmd=="noquorum"){
+      // Terminal entry with a given reason. The FORCED_BY_FIXTURE path in the
+      // sketch is exactly this call and nothing else (the cmd/force_lost
+      // handler calls enterNoQuorum("FORCED_BY_FIXTURE") directly), so driving
+      // it here is faithful. SECOND_ADOPTION_FAILED also has a synthetic that
+      // reaches it through handleFailedAdoption(), because there the
+      // surrounding rebased-ring state is the point.
+      std::string reason; in >> reason;
+      enterNoQuorum(reason.c_str());
     } else if(cmd=="auto"){
       int a; in >> a;
       autoRunning = (a!=0);
@@ -174,6 +183,31 @@ int main(){
              "\"dt_expected\":%u,\"state\":\"%s\"}\n",
              navMm, lastTimingGate, (unsigned)lastSegmentDt,
              (unsigned)lastDtExpected, navStateName());
+    } else if(cmd=="constants"){
+      // The firmware's own map and advisory parameters, so no test has to keep
+      // a second copy of NGR_DNA1 that could drift from it. Emitted through
+      // dnaAt()/pgm_read_byte, the same accessor the navigator scores with.
+      // ADVISORY_NONE arrived with the advisory. Guarding it keeps this
+      // harness buildable against PRE-advisory revisions of the sketch, which
+      // verify_inert.py needs in order to diff old against new.
+      #ifdef ADVISORY_NONE
+      const unsigned advisoryNone = ADVISORY_NONE;
+      #else
+      const unsigned advisoryNone = 255;
+      #endif
+      printf("{\"dna_n\":%u,\"dna_w\":%u,\"reacq\":%u,\"quorum_max\":%u,"
+             "\"quorum_margin\":%u,\"quorum_trigger\":%u,\"advisory_none\":%u,"
+             "\"gate_low_pwm_floor\":%u,\"offsets\":[",
+             (unsigned)DNA_N,(unsigned)DNA_W,(unsigned)REACQ_WINDOW_MARKERS,
+             (unsigned)QUORUM_MAX,(unsigned)QUORUM_MARGIN,
+             (unsigned)QUORUM_TRIGGER,advisoryNone,
+             (unsigned)GATE_LOW_PWM_FLOOR);
+      for(uint8_t i=0;i<QUORUM_CANDIDATES;i++)
+        printf("%s%d", i?",":"", (int)QUORUM_OFFSETS[i]);
+      printf("],\"dna\":[");
+      for(uint16_t i=0;i<DNA_N;i++)
+        printf("%s%u", i?",":"", (unsigned)dnaAt((uint8_t)i));
+      printf("]}\n");
     } else if(cmd=="mark"){
       std::string label; in >> label;
       printf("{\"mark\":\"%s\"}\n", esc(label.c_str()).c_str());

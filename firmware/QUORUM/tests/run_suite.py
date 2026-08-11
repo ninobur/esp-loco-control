@@ -6,9 +6,10 @@ Builds the host harness (real firmware, host-compiled), then runs:
   1. FIDELITY + REGRESSION — the whole 2026-08-10 session replayed against
      what the locomotive actually published.
   2. INCIDENT GOLDENS — A, B and C asserted individually.
-  3. EVIDENCE PROPERTIES — what the DNA map says about each incident's ring,
-     independent of firmware. These are the facts an advisory would rely on,
-     checked here so a map change cannot silently invalidate it.
+  3. EVIDENCE PROPERTIES — what the map says about each incident's ring. The
+     map and constants are read back FROM THE COMPILED FIRMWARE, so a future
+     map edit that introduced a window collision fails here instead of being
+     certified by a stale copy.
   4. SYNTHETIC CASES — negatives the capture does not contain, plus the
      legitimate-recovery control.
   5. COUNTERFACTUAL — drops the two Bamboo phantom events from the real event
@@ -21,6 +22,7 @@ Usage:  python3 run_suite.py [--harness /path/to/binary]
 
 import argparse
 import json
+import os
 import pathlib
 import subprocess
 import sys
@@ -30,16 +32,34 @@ import qrun
 HERE = pathlib.Path(__file__).resolve().parent
 CAPTURE = HERE.parent.parent.parent / 'field-records/logs/20260810_IR_SPEED_LOCAL_1_2_otto.log'
 
-DNA = [
-    1,1,0,0,0,1,1,0,0,0,0,1,1,1,1,0,0,1,0,0, 0,1,0,1,1,1,0,0,1,1,1,1,1,0,1,1,0,0,0,0,
-    0,0,1,0,1,0,0,0,1,1,0,1,0,0,0,0,1,0,0,1, 0,1,0,1,0,1,1,0,0,1,0,1,0,1,1,0,1,1,1,0,
-    1,1,1,1,0,0,0,1,1,0,1,1,0,0,1,0,1,1,0,0, 1,0,0,1,0,0,0,1,1,1,1,1,1,1,0,1,0,0,1,1,
-    1,0,0,0,1,0,1,1,0,1,0,1,1,0,0,1,1,0,0,0, 0,0,1,0,1,1,1,1,0,1,0,1,1,1,0,1,0,1,0,0,
-    1,0,1,0,0,0,0,1,1,1,0,
-]
-DNA_N = 171
-REACQ_WINDOW_MARKERS = 5      # mirrors QUORUM.ino:1349
-DNA_W = 12                    # mirrors QUORUM.ino:1348
+# The map and the advisory's parameters come FROM THE COMPILED FIRMWARE, read
+# back through the harness's `constants` command. Nothing here is a copy.
+#
+# A hand-transcribed NGR_DNA1 was the obvious way to write these checks and the
+# wrong one: a future map edit could introduce a window collision — the exact
+# thing §3 exists to catch — while a stale copy went on certifying the old
+# table. Loaded once in main() and injected here.
+DNA = []
+DNA_N = 0
+DNA_W = 0
+REACQ_WINDOW_MARKERS = 0
+
+
+def load_firmware_constants(harness):
+    """Read the map and constants out of the compiled sketch."""
+    global DNA, DNA_N, DNA_W, REACQ_WINDOW_MARKERS
+    rows = qrun.run_lines(harness, ['constants'], label='constants')
+    c = next((r for r in rows if 'dna' in r), None)
+    if c is None:
+        sys.exit('harness did not report firmware constants — cannot verify '
+                 'the map without a second copy, which is what this avoids')
+    DNA = c['dna']
+    DNA_N = c['dna_n']
+    DNA_W = c['dna_w']
+    REACQ_WINDOW_MARKERS = c['reacq']
+    if len(DNA) != DNA_N:
+        sys.exit(f'firmware reported {len(DNA)} DNA entries for DNA_N {DNA_N}')
+    return c
 
 # The three HARD_BOUND incidents, as published by the locomotive.
 INCIDENTS = {
@@ -185,41 +205,68 @@ def check_synthetic(harness, name, spec):
         if got != exp['adopted_offset']:
             fails.append(f'{name}: adopted offset {got}, '
                          f'expected {exp["adopted_offset"]}')
-    if 'final_state' in exp and final and final['state'] != exp['final_state']:
-        fails.append(f'{name}: final state {final["state"]}, '
-                     f'expected {exp["final_state"]}')
-    if 'final_mm' in exp and final and final['mm'] != exp['final_mm']:
-        fails.append(f'{name}: final mm {final["mm"]}, expected {exp["final_mm"]}')
-    if 'final_dir' in exp and final and final['dir'] != exp['final_dir']:
-        fails.append(f'{name}: final dir {final["dir"]}, expected {exp["final_dir"]}')
+    # A missing final dump means the assertion has nothing to check. Skipping
+    # it silently would let a truncated run report success, so it fails here.
+    needs_final = [k for k in ('final_state', 'final_mm', 'final_dir')
+                   if k in exp]
+    if needs_final and final is None:
+        fails.append(f'{name}: no final state dump, so {needs_final} could not '
+                     'be checked — treated as failure, not skipped')
+    elif final is not None:
+        for key, field in (('final_state', 'state'), ('final_mm', 'mm'),
+                           ('final_dir', 'dir')):
+            if key in exp and final[field] != exp[key]:
+                fails.append(f'{name}: final {field} {final[field]}, '
+                             f'expected {exp[key]}')
+
     if 'snapshot_desired' in exp:
         snaps = su['snapshots']
-        got = snaps[-1]['snapshot_desired'] if snaps else None
-        if got != exp['snapshot_desired']:
-            fails.append(f'{name}: snapshot_desired {got}, '
+        if not snaps:
+            fails.append(f'{name}: expected snapshot_desired '
+                         f'{exp["snapshot_desired"]} but no snapshot was emitted')
+        elif snaps[-1]['snapshot_desired'] != exp['snapshot_desired']:
+            fails.append(f'{name}: snapshot_desired '
+                         f'{snaps[-1]["snapshot_desired"]}, '
                          f'expected {exp["snapshot_desired"]}')
+
+    snaps = qrun.snapshots_json(su)
+
     if 'advisory' in exp:
-        adv = advisory_of(su)
-        if adv != exp['advisory']:
-            fails.append(f'{name}: advisory {adv}, expected {exp["advisory"]} '
-                         '— a wrong non-null advisory is a blocking defect')
+        adv = snaps[-1].get('adv') if snaps else None
+        if not snaps:
+            fails.append(f'{name}: expected advisory {exp["advisory"]} but no '
+                         'retained snapshot was emitted')
+        elif adv != exp['advisory']:
+            fails.append(f'{name}: advisory {adv}, expected {exp["advisory"]}'
+                         + (' — a wrong non-null advisory is a BLOCKING DEFECT'
+                            if adv is not None else ''))
+
+    # Ordered advisories, one per terminal entry. Pins the HARD_BOUND-only
+    # scope: the same ring under a different reason must go silent.
+    if 'advisory_sequence' in exp:
+        got = [s.get('adv') for s in snaps]
+        if got != exp['advisory_sequence']:
+            fails.append(f'{name}: advisory sequence {got}, expected '
+                         f'{exp["advisory_sequence"]} — the advisory is '
+                         'HARD_BOUND-only (decision 0023)')
+    if 'advn_sequence' in exp:
+        got = [s.get('advn') for s in snaps]
+        if got != exp['advn_sequence']:
+            fails.append(f'{name}: advn sequence {got}, expected '
+                         f'{exp["advn_sequence"]} — advn proves a null advisory '
+                         'came from the reason gate, not a short ring')
+
+    reasons = [d.get('reason') for d in su['decisions']
+               if d['event'] == 'NO_QUORUM']
+    if 'terminal_reason' in exp and exp['terminal_reason'] not in reasons:
+        fails.append(f'{name}: terminal reasons {reasons}, expected to include '
+                     f'{exp["terminal_reason"]} — the fixture no longer reaches '
+                     'the path it exists to cover')
+    if 'terminal_reasons' in exp and reasons != exp['terminal_reasons']:
+        fails.append(f'{name}: terminal reasons {reasons}, expected '
+                     f'{exp["terminal_reasons"]} — the fixture no longer '
+                     'reaches the paths it exists to cover')
     return fails, sorted(set(ev))
-
-
-def advisory_of(summary):
-    """The advisory marker in the retained snapshot, or None.
-
-    Absent until Phase 2 adds it; None is then the correct reading for
-    'advised nothing'.
-    """
-    for s in reversed(summary['snapshots']):
-        try:
-            d = json.loads(s['snapshot']) if s['snapshot'] else {}
-        except ValueError:
-            continue
-        if 'adv' in d:
-            return d['adv']
-    return None
 
 
 # The two events at these capture lines are the phantoms accepted during the
@@ -272,15 +319,34 @@ def counterfactual(harness):
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument('--harness', default='/tmp/quorum_harness')
+    ap.add_argument('--harness', default='/tmp/quorum_harness',
+                    help='where to build the harness (or which prebuilt '
+                         'binary to use, with --no-build)')
+    ap.add_argument('--no-build', action='store_true',
+                    help='use --harness as-is instead of rebuilding it. Lets '
+                         'the suite run against a deliberately altered '
+                         'firmware, which is how the map checks in section 3 '
+                         'are shown to be able to fail.')
     args = ap.parse_args()
     failures = []
 
     print('== build ==')
-    warn = build(args.harness)
-    print(f'    harness built, {len(warn)} warnings')
-    for w in warn[:5]:
-        print(f'      {w}')
+    if args.no_build:
+        if not os.path.exists(args.harness):
+            sys.exit(f'{args.harness} not found')
+        print(f'    using prebuilt harness {args.harness} (--no-build)')
+    else:
+        warn = build(args.harness)
+        print(f'    harness built, {len(warn)} warnings')
+    consts = load_firmware_constants(args.harness)
+    print(f"    firmware constants: DNA_N {consts['dna_n']}, DNA_W "
+          f"{consts['dna_w']}, REACQ +/-{consts['reacq']}, "
+          f"QUORUM_MAX {consts['quorum_max']}, margin {consts['quorum_margin']}, "
+          f"offsets {consts['offsets']}")
+    if consts['offsets'] != [-1, 0, 1, 2, 3, 4]:
+        failures.append(f"QUORUM_OFFSETS is {consts['offsets']}, not the "
+                        'reviewed fence — fence width is a coupled defect and '
+                        'must not move without its own decision record')
 
     print('\n== regenerate fixtures ==')
     for script in ('extract_fixture.py', 'make_synthetic.py'):

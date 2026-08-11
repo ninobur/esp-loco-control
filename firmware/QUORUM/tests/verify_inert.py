@@ -61,9 +61,22 @@ def build_at_ref(ref, workdir):
     return out
 
 
-def run(binary, path):
-    return subprocess.run([str(binary)], stdin=open(path),
-                          capture_output=True, text=True).stdout.splitlines()
+def run(binary, path, which):
+    """Run one fixture. A crash must fail loudly.
+
+    Comparing two truncated outputs that happen to be truncated identically
+    would report 'IDENTICAL' and prove nothing, so a non-zero exit is fatal
+    here rather than a difference to be reported.
+    """
+    r = subprocess.run([str(binary)], stdin=open(path), capture_output=True,
+                       text=True)
+    if r.returncode != 0:
+        detail = (f'signal {-r.returncode}' if r.returncode < 0
+                  else f'exit {r.returncode}')
+        sys.exit(f'{which} harness failed with {detail} on '
+                 f'{os.path.basename(path)}\n'
+                 f'  last stderr: {r.stderr.strip()[-1500:]}')
+    return r.stdout.splitlines()
 
 
 def main():
@@ -101,8 +114,8 @@ def main():
     print(f'allowed added fields: {fields}\n')
     failures = 0
     for f in fixtures:
-        a = [strip(l) for l in run(base, f)]
-        b = [strip(l) for l in run(args.current, f)]
+        a = [strip(l) for l in run(base, f, 'baseline')]
+        b = [strip(l) for l in run(args.current, f, 'current')]
         same = a == b
         print(f'  {"IDENTICAL" if same else "*** DIFFERS ***":>16}  '
               f'{os.path.basename(f)}')

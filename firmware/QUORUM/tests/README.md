@@ -117,10 +117,60 @@ the acceptance target for the low-PWM phantom proposal in
 `docs/QUORUM_LOW_PWM_PHANTOM_DESIGN_PROPOSAL.md`: any rule that rejects exactly
 those two inherits this outcome.
 
+## The advisory is HARD_BOUND-only
+
+`buildNoQuorumSnapshot()` serves all three terminal reasons —  `HARD_BOUND`,
+`SECOND_ADOPTION_FAILED` and `FORCED_BY_FIXTURE`. Decision 0023 grants the
+advisory to the first only, so the reason is passed in and gates it.
+
+`syn_forced_by_fixture_no_advisory` is the discriminating test: it forces a
+second terminal entry immediately after a HARD_BOUND, so both snapshots carry
+the **same full ring** and the **same navMm** and differ only in reason.
+
+```
+HARD_BOUND         mm 24  advn 12  adv 21
+FORCED_BY_FIXTURE  mm 24  advn 12  adv null
+```
+
+`advn 12` on both is the point — it proves the reason silenced the advisory,
+not a short ring.
+
+`syn_second_adoption_failed` reaches the other path through
+`handleFailedAdoption()`. It proves the path is exercised and silent, but it
+does **not** discriminate the gate: the pre-fix firmware advised null there
+too. A sweep of 21 375 synthetic streams found no `SECOND_ADOPTION_FAILED`
+whose ring would have matched exactly, which looks structural — a ring that
+matches a window exactly is one that would have resolved rather than failed
+twice. The gate there is defence in depth.
+
+## Failures are loud, not silent
+
+The suite's assertions mostly check that bad things are *absent*, so a harness
+that crashed after partial output could pass everything. `qrun.py` raises
+`HarnessError` on a non-zero exit or signal, on any output line that is not
+valid JSON, and when a requested `dump` produced no state row. Synthetic
+`final_*` assertions fail rather than skip when there is no final state.
+`verify_inert.py` exits on a non-zero status from either binary, because two
+identically-truncated outputs would otherwise compare equal and prove nothing.
+
+Verified by feeding the checker a stub that exits 3, one that emits malformed
+JSON, and one that returns no dump — all three are caught.
+
 ## Evidence properties
 
-`run_suite.py` also checks facts about the map itself, independent of firmware,
-because the exact-or-silent advisory depends on them:
+`run_suite.py` also checks facts about the map, **read back from the compiled
+firmware** through the harness's `constants` command rather than transcribed
+here. A hand-copied `NGR_DNA1` was the obvious way to write these checks and
+the wrong one: a future map edit could introduce a window collision — the exact
+thing this section exists to catch — while a stale copy went on certifying the
+old table.
+
+Demonstrated: building a sketch whose `NGR_DNA1` has one duplicated 12-window
+makes this section report `W=12 has 5 collisions — exact-or-silent is NOT safe
+at this window width`, and the run fails. Reproduce with `--no-build` against a
+deliberately altered harness.
+
+The checks:
 
 - every DNA window of length ≥ 10 is unique route-wide (W=9 still has 4
   collisions) — this is what makes an exact 12-window match unambiguous

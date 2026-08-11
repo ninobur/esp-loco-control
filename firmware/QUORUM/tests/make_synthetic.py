@@ -226,6 +226,80 @@ add('syn_declaration_mid_incident',
      'snapshot_desired': 2})
 
 
+# --- the advisory is HARD_BOUND-only (decision 0023) -----------------------
+# buildNoQuorumSnapshot() serves all three terminal reasons. These two cases
+# pin the scope, because a reason gate that silently stopped working would
+# otherwise be invisible: the advisory would simply appear more often.
+
+# Three phantoms at mm 0 reach HARD_BOUND at navMm 24 with a full ring and an
+# exact match at marker 21. Forcing a second terminal entry immediately after
+# leaves the ring and navMm untouched, so the ONLY difference between the two
+# snapshots is the reason. HARD_BOUND must advise 21; FORCED_BY_FIXTURE must
+# advise nothing while still reporting advn 12 — proving the reason silenced
+# it, not a short ring.
+cmds = ['dir CW', 'declare 0', 'auto 1']
+_t = 0
+for _ in range(6):
+    _t = (_t + 1) % DNA_N
+    cmds.append(ev(pol(_t)))
+for _ in range(3):
+    cmds.append(ev(pol(_t)))
+for _ in range(15):
+    _t = (_t + 1) % DNA_N
+    cmds.append(ev(pol(_t)))
+cmds.append('noquorum FORCED_BY_FIXTURE')
+add('syn_forced_by_fixture_no_advisory',
+    'An operator-forced terminal entry immediately after a HARD_BOUND, with '
+    'the same full ring and the same navMm. HARD_BOUND advises marker 21; the '
+    'forced entry must advise nothing, because the ring behind a forced state '
+    'can hold anything — including readings from an unrelated stretch — and a '
+    'confident marker offered on that basis is the wrong hint this advisory '
+    'exists to avoid being.',
+    cmds + ['dump'],
+    # The stream adopts and reopens once on its way to HARD_BOUND. That is
+    # incidental — this fixture exists for the advisory scope, and the two
+    # sequences are the assertion: same ring (advn 12 both times), same navMm,
+    # advisory present under HARD_BOUND and absent under the forced reason.
+    {'must_contain': ['NO_QUORUM'],
+     'terminal_reasons': ['HARD_BOUND', 'FORCED_BY_FIXTURE'],
+     'advisory_sequence': [21, None],
+     'advn_sequence': [12, 12]})
+
+# Two adoptions, both contradicted: handleFailedAdoption() fires twice and the
+# second failure enters NO_QUORUM by its own path. Found by sweeping start
+# positions and displacement triples through this harness; only this
+# combination reaches it.
+cmds = ['dir CW', 'declare 9', 'auto 1']
+_t = 9
+for _ in range(5):
+    _t = (_t + 1) % DNA_N
+    cmds.append(ev(pol(_t)))
+for burst, tail in ((2, 4), (1, 4), (1, 18)):
+    for _ in range(burst):
+        cmds.append(ev(pol(_t)))          # phantoms: odometer runs ahead
+    for _ in range(tail):
+        _t = (_t + 1) % DNA_N
+        cmds.append(ev(pol(_t)))
+add('syn_second_adoption_failed',
+    'A genuine SECOND_ADOPTION_FAILED, reached through handleFailedAdoption() '
+    'rather than forced. That path REBASES the evidence ring to undo the '
+    'failed adoption and rescores only three entries, leaving evalCount 3 '
+    'while evRingLen may still be 12 — the code calls it the uncorrected '
+    'frame. The advisory must stay silent there: the navigator has already '
+    'been wrong about position once in this incident. '
+    'HONEST LIMIT: this case proves the path is reached and is silent, but it '
+    'does NOT discriminate the reason gate — the pre-fix firmware advised null '
+    'here too. A sweep of 21375 synthetic streams (171 starts x 5 x 5 x 5 '
+    'displacements) found no SECOND_ADOPTION_FAILED whose ring would have '
+    'matched exactly, which appears structural: a ring that matches a window '
+    'exactly is one that would have resolved rather than failed twice. '
+    'syn_forced_by_fixture_no_advisory is what proves the gate.',
+    cmds + ['dump'],
+    {'must_contain': ['QUORUM_ADOPTED', 'QUORUM_REOPENED', 'NO_QUORUM'],
+     'terminal_reason': 'SECOND_ADOPTION_FAILED',
+     'advisory': None})
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument('--outdir', default='fixtures')
