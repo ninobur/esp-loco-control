@@ -39,7 +39,13 @@
  * and STOP_RAMP_MS keeps 2800 (braking feel unchanged). Otto's profile
  * carries the all-stations state (the v1 Arches-only define removed,
  * operator-directed 2026-08-08). The transport-resilience work
- * (QUORUM_1_12_TRANSPORT_RESILIENCE_SPEC.md) lands as 1.13.
+ * (QUORUM_1_12_TRANSPORT_RESILIENCE_SPEC.md) was reserved here as 1.13;
+ * it is still unimplemented and now lands as **1.14**. 1.13 was taken by
+ * the HARD_BOUND advisory below — named, flashed to Otto and field-tested
+ * on 2026-08-11 before this reservation was noticed. The number is not
+ * reclaimed because committed field evidence
+ * (field-records/logs/20260811_QUORUM_1_13_beta_otto.log) carries
+ * "sketch":"QUORUM_1_13" and renaming would orphan it.
  *
  * ---------------------------------------------------------------------------
  * v1.10 — CONSOLE-AUTHORITY FIRMWARE ITEMS P11/P13/P14 (spec Draft 5.1)
