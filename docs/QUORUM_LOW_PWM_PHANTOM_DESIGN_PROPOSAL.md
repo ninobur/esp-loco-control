@@ -1,7 +1,17 @@
 # Low-PWM phantom acceptance — narrow design proposal
 
 **Date:** 2026-08-11
-**Status:** proposal only. Nothing implemented, nothing flashed.
+**Status: SUPERSEDED 2026-08-11 by `QUORUM_TIMING_EXPECTATION_PROPOSAL.md`.
+Do not implement.** The QUORUM_1_13 beta showed the scope here is wrong: the
+recurring phantoms occur at pwm 72 and 90 with the gate fully ACTIVE, not
+below the pwm-40 floor this proposal targets. Low PWM is only the extreme case
+of a deeper fault — the expected interval is predicted from PWM rather than
+measured. The peak threshold proposed below is also not viable: the detector's
+peak scale moved ~1.8x (median 80 -> 144) when the Hall sensor was re-glued on
+2026-08-11, so any fixed absolute floor calibrated on one session is wrong for
+the other. Retained for the evidence in sections 2-4, which remains valid.
+
+Original status: proposal only. Nothing implemented, nothing flashed.
 **Observed failure:** two phantom marker events accepted during the Bamboo
 departure of 2026-08-10, capture lines **24662** and **24669**.
 **Evidence:** `field-records/logs/20260810_IR_SPEED_LOCAL_1_2_otto.log`
