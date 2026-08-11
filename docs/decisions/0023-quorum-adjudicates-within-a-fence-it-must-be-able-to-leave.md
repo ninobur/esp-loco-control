@@ -1,6 +1,18 @@
 # 0023 — QUORUM will not rank candidates it cannot trust; the defect is the fence, not the scorer
 
-Status: Proposed (2026-08-11)
+Status: Accepted in part (operator review, 2026-08-11)
+
+Accepted and implemented: the rejection of a ranking prior, and the
+exact-or-silent HARD_BOUND advisory (commits 70cab5b, 160eff5, 723f0b4).
+Approval covers the replay harness and the diagnostic advisory only.
+
+NOT approved by that review, and still proposal-only:
+  * closing the low-PWM phantom hole — see
+    `docs/QUORUM_LOW_PWM_PHANTOM_DESIGN_PROPOSAL.md`, which recommends
+    gathering a targeted sample before any rule is implemented;
+  * the joint fence-width / adoption-evidence-floor redesign, which owes its
+    own record;
+  * flashing or field deployment. Nothing has been flashed.
 
 ## Decision
 
