@@ -1,0 +1,3 @@
+# The raw 4 MB dumps stay local; the gzipped copy is committed (653 KB) and
+# restores to a byte-identical image — verified by sha256 in README.md.
+*.bin
