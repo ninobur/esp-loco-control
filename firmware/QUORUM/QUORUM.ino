@@ -351,7 +351,14 @@
 #include <Adafruit_INA219.h>
 #include "LocoConfig.h"
 
-#define SKETCH_NAME "QUORUM_1_12C"
+// 1.13, not 1.12D: the letter suffixes through 1.12A-C were refinements of one
+// theme (speed and ramp tuning). This adds a capability — the exact-or-silent
+// HARD_BOUND advisory of decision 0023 — so it takes a minor. 1.11 is the
+// precedent: diagnostic instrumentation, its own minor, "evidence stub, not a
+// base". The name is published retained on state/bootid, which is what lets a
+// capture be attributed to a build; leaving it at 1_12C would have made a beta
+// log indistinguishable from a pre-advisory one.
+#define SKETCH_NAME "QUORUM_1_13"
 
 // Broker lives here, not in LocoConfig.h — same as the previous lineage.
 #define MQTT_BROKER "192.168.68.142"

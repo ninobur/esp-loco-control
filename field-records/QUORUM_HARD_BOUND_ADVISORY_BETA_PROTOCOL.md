@@ -1,6 +1,8 @@
 # HARD_BOUND advisory — controlled beta test protocol
 
-**Build under test:** commit `723f0b4`, sketch `QUORUM_1_12C`
+**Build under test:** sketch **`QUORUM_1_13`**
+(the advisory landed in `723f0b4`; the build is identified by name, not by
+SHA, because `state/bootid` is what a capture actually carries)
 **Scope:** the diagnostic HARD_BOUND advisory and the replay harness. Nothing else.
 **Not in this build:** the low-PWM phantom fix (documented only), any fence or
 adoption change.
@@ -15,13 +17,19 @@ recovery are byte-for-byte unchanged; proven by `verify_inert.py` against both
 1. **Preserve the running image.** The advisory does not change behaviour, but
    rollback should not depend on that being true.
    ```bash
-   esptool.py --port <PORT> read_flash 0x0 0x400000 otto_pre_723f0b4.bin
+   esptool.py --port <PORT> read_flash 0x0 0x400000 otto_pre_QUORUM_1_13.bin
    ```
-2. **Record the commit** in the run log: `723f0b4`.
-3. **Note a gap in build identity.** `SKETCH_NAME` is still `QUORUM_1_12C` —
-   unchanged, because changing it was outside the approved scope. A log
-   therefore cannot be attributed to this build by sketch name alone. Test 1
-   below closes that gap in ten seconds, and should be run first.
+2. **Record the flashed commit** in the run log — `git rev-parse --short HEAD`
+   at the moment of the build. The capture identifies itself by sketch name;
+   the SHA is for you.
+3. **Confirm the build from telemetry.** `SKETCH_NAME` is now `QUORUM_1_13`
+   (was `QUORUM_1_12C`). It is published **retained** on
+   `ngr/loco/9950011/state/bootid`, so subscribing to that one topic attributes
+   the whole capture:
+   ```
+   ngr/loco/9950011/state/bootid  {"sketch":"QUORUM_1_13","loco":"9950011",...}
+   ```
+   If it still reads `QUORUM_1_12C`, the flash did not take — stop.
 4. **Clear the retained ghost.** `ngr/loco/9950011/mm/no_quorum` is retained.
    A stale snapshot from 2026-08-10 will otherwise appear the moment anything
    subscribes and will be mistaken for a fresh result. Confirm it is cleared by
@@ -29,7 +37,7 @@ recovery are byte-for-byte unchanged; proven by `verify_inert.py` against both
 
 ---
 
-## 1. Build-identity stamp, and the null case (do first, 10 seconds, stationary)
+## 1. The null case (do first, 10 seconds, stationary)
 
 Publish to `ngr/loco/9950011/cmd/force_lost`:
 
@@ -43,8 +51,6 @@ NOQUORUM
 {"e":"NO_QUORUM", ... ,"adv":null,"advw":12,"advr":5,"advn":<0-12>, "ring":[...]}
 ```
 
-- The presence of `adv`/`advw`/`advr`/`advn` **is** the proof the loco is
-  running `723f0b4`. No other build emits them.
 - `adv` **must** be `null`. This is `FORCED_BY_FIXTURE`, not `HARD_BOUND`, and
   the advisory is scoped to HARD_BOUND alone.
 - Then declare position to clear the state.
@@ -124,7 +130,8 @@ pass:
   `mm/no_quorum` payload is the object under test.
 - `mm/marker` (this carries `peak`, `ms`, `pwm`, `timing_gate`),
   `state/nav`, `state/loopstat`, `state/station`, `state/throttle`.
-- Boot serial, for `[BOOT] QUORUM_1_12C`.
+- Boot serial, for `[BOOT] QUORUM_1_13`, and the retained
+  `state/bootid` record that attributes the capture to this build.
 
 `state/throttle` matters more than it looks: it is the only source for
 reconstructing `pwmCommandedAtDetect`, without which the replay harness cannot
