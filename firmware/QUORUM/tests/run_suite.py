@@ -207,14 +207,15 @@ def check_synthetic(harness, name, spec):
                          f'expected {exp["adopted_offset"]}')
     # A missing final dump means the assertion has nothing to check. Skipping
     # it silently would let a truncated run report success, so it fails here.
-    needs_final = [k for k in ('final_state', 'final_mm', 'final_dir')
-                   if k in exp]
+    needs_final = [k for k in ('final_state', 'final_mm', 'final_dir',
+                               'final_agree', 'final_disagree') if k in exp]
     if needs_final and final is None:
         fails.append(f'{name}: no final state dump, so {needs_final} could not '
                      'be checked — treated as failure, not skipped')
     elif final is not None:
         for key, field in (('final_state', 'state'), ('final_mm', 'mm'),
-                           ('final_dir', 'dir')):
+                           ('final_dir', 'dir'), ('final_agree', 'agree'),
+                           ('final_disagree', 'disagree')):
             if key in exp and final[field] != exp[key]:
                 fails.append(f'{name}: final {field} {final[field]}, '
                              f'expected {exp[key]}')

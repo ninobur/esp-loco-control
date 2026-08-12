@@ -300,6 +300,65 @@ add('syn_second_adoption_failed',
      'advisory': None})
 
 
+# --- the two close-pair orderings, from Toby QUORUM_1_6, 2026-08-11 ---------
+# PR #4 / field-records/20260811_TOBY_QUORUM_1_6_CROSS_LOCO_FINDINGS.md.
+#
+# Toby reproduced Otto's Grillers phantom on a different locomotive with a
+# different Hall installation, which places the source at the railway rather
+# than in Otto's sensor. It also supplied the ordering that a timing-only rule
+# cannot resolve. Both are pinned here because they differ in the thing that
+# matters and NOT in the event count — so a suite that only counted accepted
+# events would call them the same.
+#
+# Lead-in interval matters and is not cosmetic. On Toby the Grillers weak event
+# was accepted only because the preceding interval was long (2532 ms,
+# decelerating into the station); at an ordinary 1200 ms lead-in the same pair
+# is rejected and the failure does not reproduce.
+
+_TGT = 7                      # map polarity at mm 7 is S, mirroring Toby's mm 84
+def _pair(lead, pair):
+    cmds = ['dir CW', 'declare 0', 'auto 1']
+    t = 0
+    for _ in range(6):
+        t = (t + 1) % DNA_N
+        cmds.append(ev(pol(t), dt=lead, peak=180, dur=175))
+    for p_, dt_, pk_, du_ in pair:
+        cmds.append(ev(p_, dt=dt_, peak=pk_, dur=du_))
+    t = _TGT
+    for _ in range(5):
+        t = (t + 1) % DNA_N
+        cmds.append(ev(pol(t), dt=lead, peak=180, dur=175))
+    return cmds
+
+_S = pol(_TGT)                # 'S'
+_N = 'N' if _S == 'S' else 'S'
+
+add('syn_pair_strong_then_weak',
+    'Toby Event A, the Grillers ordering: a genuine strong read followed 303 ms '
+    'later by a weak one (peak 41, 42 ms), after a LONG decelerating interval. '
+    'The weak event is accepted because the long predecessor puts the pair '
+    'outside the reject band, so BOTH advance the odometer — a COUNT error of '
+    '+1. This is the case the measured-predecessor rule would fix.',
+    _pair(2500, [(_S, 2532, 170, 302), (_N, 303, 41, 42)]) + ['dump'],
+    {'must_not_contain': ['PHANTOM_REJECTED'],
+     'final_mm': 13,            # 12 would be correct; +1 is the defect
+     'final_disagree': 2})
+
+add('syn_pair_weak_then_strong',
+    'Toby Event B, believed mm 84: a WEAK map-inconsistent read arrives first at '
+    'an ordinary 1166 ms interval and is accepted; the strong map-consistent '
+    'read arrives 115 ms later and is rejected. The count is correct — one '
+    'event per magnet — but the retained reading has the WRONG POLARITY, so the '
+    'evidence ring is poisoned rather than the odometer. The '
+    'measured-predecessor rule does NOT fix this: 1166 > 0.30*1338 accepts the '
+    'weak one, then 115 <= 0.30*1166 rejects the strong one. Assert the '
+    'disagreement, not just the count — the count is identical to a healthy lap.',
+    _pair(1200, [(_N, 1166, 40, 40), (_S, 115, 216, 189)]) + ['dump'],
+    {'must_contain': ['PHANTOM_REJECTED'],
+     'final_mm': 12,            # count correct
+     'final_disagree': 1})      # but one wrong-polarity reading retained
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument('--outdir', default='fixtures')

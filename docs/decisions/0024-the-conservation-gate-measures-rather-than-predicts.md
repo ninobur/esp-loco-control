@@ -81,15 +81,39 @@ railway.
   false rejects (peak 40-46) may themselves be phantoms. It is a sanity check,
   not evidence. Binding evidence requires independently labelled events and a
   STATEFUL harness replay.
-- **The source of the extra events is not identified.** Containment reduces the
-  cost of a phantom; it does not stop one being generated. The discriminating
-  experiment is a second locomotive over the same markers: if the mm 101 event
-  recurs for Toby, the source is at the track; if it does not, it is Otto's
-  detector or its mounting. That test needs no firmware change (QUORUM_1_6
-  already publishes `peak`, `ms`, `drift` and `dt` on AGREE/DISAGREE).
+- **The source is now partly identified, and it is NOT Otto's sensor.** The
+  discriminating experiment was run on 2026-08-11: Toby, on `QUORUM_1_6`, with a
+  different Hall installation, **reproduced the Grillers extra event** — genuine
+  strong read at believed mm 63 (peak 170) followed 303 ms later by a weak one
+  (peak 41, 42 ms wide) which the gate accepted, advancing the odometer and
+  triggering `ZERO_RAMP` a marker early. Evidence: PR #4,
+  `field-records/20260811_TOBY_QUORUM_1_6_CROSS_LOCO_FINDINGS.md`. The source is
+  therefore associated with the **railway** at that location, not with Otto's
+  recently re-glued sensor. Physical inspection at Grillers, and near believed
+  mm 84, is now the first action — ahead of any firmware containment.
+- **Two distinct failure classes, and this record only addresses one.**
+  *Count* errors (an extra event advances the odometer) produce a uniform offset,
+  which the fence exists to express and which QUORUM recovers from — Toby's
+  Grillers event became offset -1, was adopted and closed. *Identity* errors (the
+  wrong member of a close pair is retained) leave the count correct and poison
+  the evidence instead: a wrong-polarity reading enters the ring, no offset
+  explains it, and the exact-window advisory of decision 0023 is silenced by it.
+  Identity errors are the less recoverable of the two.
 - Anything touching acceptance now owes: a decision record, the full replay
   suite, and an explicit enumerated diff from `verify_inert.py` — which for this
   change must show it is deliberately **not** inert.
+- **The proposed rule does NOT resolve identity, and this is now measured, not
+  assumed.** Toby's Event B near believed mm 84: a weak, map-inconsistent read
+  arrived first at an ordinary 1166 ms interval and was accepted; the strong,
+  map-consistent read arrived 115 ms later and was rejected. Under the proposed
+  rule the same inversion holds — `1166 > 0.30*1338` accepts the weak one, then
+  `115 <= 0.30*1166` rejects the strong one. The rule is **order-preserving**: it
+  always keeps the FIRST of a close pair, so it can fix a count error and can
+  never fix an identity error. It is a partial containment, not a phantom
+  discriminator, and the record should not be read as claiming otherwise.
+  Resolving identity would require comparing the two members of a pair — a
+  relative comparison needing no absolute calibration, but also deferral or
+  amendment machinery. Not proposed here.
 - Adversarial cases required before implementation (CODEX): maximum genuine
   acceleration combined with route-spacing variation; a missed marker followed by
   acceleration; a correctly rejected phantom followed by the genuine remainder of

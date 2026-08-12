@@ -152,6 +152,46 @@ the harness with the change implemented.
 
 ---
 
+## 4b. What it does NOT fix — Toby Event B, measured
+
+Cross-locomotive evidence of 2026-08-11 (PR #4) supplies the ordering this rule
+cannot resolve. Near believed mm 84, where the map expects `S`:
+
+```
+mm 83  N  peak 197  dt 1338   AGREE
+mm 84  N  peak  40  dt 1166   accepted  <- weak, map-INCONSISTENT
+mm 84  S  peak 216  dt  115   REJECTED  <- strong, map-consistent
+mm 85  S  peak 201  dt 1298   AGREE
+```
+
+Under the proposed rule:
+
+```
+weak    1166 >  0.30 * 1338 = 401  ->  ACCEPT
+strong   115 <= 0.30 * 1166 = 350  ->  REJECT
+```
+
+Unchanged. The rule is **order-preserving** — it always keeps the first of a
+close pair — so it fixes the Grillers ordering (strong first, weak second: the
+weak extra is rejected and the count error prevented) and cannot fix this one.
+
+The consequence is not merely cosmetic. The count is correct, so nothing
+downstream flags it, but the retained reading has the **wrong polarity**. That
+enters the evidence ring, produces a DISAGREE the adjudicator must absorb, and —
+because the ring is what `dnaMatch()` reads — silently denies the decision-0023
+advisory any exact window. A count error is a uniform offset the fence can
+express and QUORUM can adopt away; an identity error is noise no offset explains.
+
+Resolving identity needs a comparison **between** the members of a pair (keep the
+stronger), which is relative and so needs no absolute calibration — but it needs
+deferral or after-the-fact amendment, which is real machinery and is not proposed
+here. Both orderings are pinned in the harness as `syn_pair_strong_then_weak`
+and `syn_pair_weak_then_strong`, asserting the retained polarity and the
+disagreement count rather than the event count, because **the event count is
+identical between a healthy lap and Event B.**
+
+---
+
 ## 5. How it could be defeated
 
 | condition | effect | assessment |
@@ -171,6 +211,11 @@ Beyond the existing suite passing unchanged:
 
 1. **Both recurring phantoms rejected** — 2026-08-11 mm 101 (every lap) and
    mm 63 (two laps). Assert the adoption count drops from 18 towards 2.
+1b. **Both close-pair orderings** — `syn_pair_strong_then_weak` must flip from a
+   count error to count-correct; `syn_pair_weak_then_strong` must be reported as
+   UNCHANGED and still carrying its wrong-polarity disagreement. A run that
+   reports only accepted-event counts would call these the same and must be
+   treated as not having run the test.
 2. **The 10 Aug Bamboo pair rejected**, and `syn_phantom_pair_outside_fence`
    with it — the counterfactual already shows this removes incident C entirely.
 3. **No new false rejects** across both full captures; any genuine marker lost
