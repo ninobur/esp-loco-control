@@ -243,6 +243,20 @@ Recorded because most of it was not predicted by this runbook:
 - The OS installed was Raspberry Pi OS **Debian 13 (trixie), 64-bit desktop** —
   Lite was not offered in Imager 2.0.7 at the top level.
 
+### Verified in the field, same day
+
+Otto ran on the rebuilt broker with the operator driving from the dashboard:
+
+- `QUORUM_1_13` online, `auto=1`, moving CW at PWM 90, nav `NORMAL`
+- `mqtt_attempts: 1`, `mqtt_connect_ms: 26` — connected on the first attempt
+- `agree: 14, disagree: 0`, `pub_drops: 0`, `queue_drops: 0`, `marker_pub_drops: 0`
+- IR speed spoke also online, reporting ~247 mm/s alongside the loco's 245 mm/s
+- Pack 16.20 V / 0.39 A
+
+The rebuild is therefore confirmed on all three legs — dashboard, broker, and
+both publishers. Nothing about the loco firmware changed; it found the broker
+because the host returned on `.142`.
+
 ## The standing lesson
 
 Capture and evidence already moved off the Pi (commit 60ec7ea). This runbook
