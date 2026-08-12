@@ -1,6 +1,17 @@
 # 0024 — The phantom CONTAINMENT defect is the gate's PWM-predicted expectation
 
-Status: Proposed (2026-08-11)
+Status: Analysis retained; **proposed change NOT to be implemented** — superseded
+in part by decision 0025 (2026-08-12)
+
+> **Outcome, 2026-08-12.** The phantom's *source* was found and corrected
+> physically: stacked double magnets installed as a weak-marker remedy. Replacing
+> them with single disks took weak events from 12 in 235 markers to 0 in 214 on
+> the same firmware image. Under the governing rule the
+> `expectedDt = previousAcceptedDt` change proposed here **loses its
+> justification and is not to be implemented on phantom grounds**. The analysis
+> below of *why containment failed* remains correct and is worth keeping.
+> See `docs/decisions/0025-*` and
+> `field-records/20260812_MAGNET_REPLACEMENT_PHANTOM_VERDICT.md`.
 
 ## Decision
 

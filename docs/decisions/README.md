@@ -72,3 +72,6 @@ rather than a silent drift discovered later.
 | [0020](0020-compensation-requires-observed-evidence.md) | No compensation mechanism is added without demonstrated need | Accepted |
 | [0021](0021-ir-speed-is-local-and-telemetry-is-summary.md) | IR speed is computed locally and telemetry reports summaries | Accepted |
 | [0022](0022-plastic-ten-spoke-wheel-is-the-ir-target.md) | The LGB plastic 10-spoke wheel is the IR speed target | Accepted |
+| [0023](0023-quorum-adjudicates-within-a-fence-it-must-be-able-to-leave.md) | QUORUM adjudicates within a fence it must be able to leave; ranking prior rejected, exact-or-silent advisory added | Accepted in part |
+| [0024](0024-the-conservation-gate-measures-rather-than-predicts.md) | The phantom CONTAINMENT defect is the gate's PWM-predicted expectation | Analysis retained; change not implemented (see 0025) |
+| [0025](0025-the-phantom-was-a-maintenance-artefact-not-a-firmware-defect.md) | The phantom was stacked double magnets, not a firmware defect; no containment will be added | Accepted |
