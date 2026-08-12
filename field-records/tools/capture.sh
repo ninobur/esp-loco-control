@@ -21,6 +21,18 @@
 # Stop with Ctrl-C.
 
 set -u
+
+# Refuse to start alongside another capture. On 2026-08-11 a leftover self-test
+# kept running after its output file was deleted — a live process writing to a
+# deleted inode, producing nothing while looking healthy. That is the exact
+# failure this tool exists to prevent, so it is now refused rather than trusted.
+if pgrep -f 'capture\.sh' | grep -qv "^$$\$"; then
+  echo "refusing: another capture.sh is already running:" >&2
+  pgrep -af 'capture\.sh' | grep -v "^$$ " >&2
+  echo "stop it first, or pass a different broker host." >&2
+  exit 1
+fi
+
 NAME="${1:?usage: capture.sh <name> [host]}"
 HOST="${2:-192.168.68.142}"
 OUT="$(cd "$(dirname "$0")/../logs" && pwd)/${NAME}.log"

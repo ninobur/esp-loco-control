@@ -1,0 +1,135 @@
+# NGR Session Summary — through 2026-08-06
+
+## Headline
+A long multi-day session that took the railway from "QUORUM specced but never
+flown" to: QUORUM navigator built and reviewed through 1.6, both locomotives'
+sensor chains certified, the dashboard's manual-control regression diagnosed and
+rolled back, the whole fleet's latency root-caused, and CTO3 (multi-train)
+carried from scattered history into a committed intent baseline + draft spec +
+a decision-record system.
+
+Repo: github.com/ninobur/esp-loco-control
+
+## QUORUM navigator — built, reviewed, NOT yet flown
+- Renamed from SOLONAV v3.0 to its own identity: QUORUM_1_0, now at QUORUM_1_6.
+- Self-correcting nav: ring buffer of 6 offsets, retroactive scoring, ≥2 margin
+  to adopt, timing-conservation gate; self-heals off-by-one in ~6-12 markers
+  without stopping. Replaces the tally navigator that died of "sustained
+  contradiction."
+- Version arc: 1.0 initial → 1.1-1.4 CODEX-driven fixes (snapshot offsets,
+  tear-free portMUX handoff, reconnect reconciliation + generation counter for
+  an ABA race, alert sizing ≤512B, durable AGREE/DISAGREE) → 1.5 (restore
+  INA219 + linear brake, dropped at SOLONAV 2.1) → 1.6 (bicameral chamber
+  boundaries; MANUAL sketch retired to test-programs).
+- BICAMERAL doctrine codified: manual sovereign, auto acts only when
+  autoRunning; all 17 requestPwm sites audited/gated; CODEX-ratified. Spec §0.2.
+- STILL PENDING: CODEX §8 formal field clearance for latest QUORUM; flash to a
+  sensor-healthy Otto; the §8 field campaign. QUORUM has never turned a wheel.
+
+## Sensor chains — both locomotives certified (chain-v3 = coax + rigid mount)
+- Toby: 335 AGREE / 0 DISAGREE, peaks median ~182. Certified.
+- Otto: recovered from a 47% (cold/stationary artifact) to 95% running; the
+  remaining ~15 disagreements are non-repeating, single-pass, on strong magnets
+  in two corridors (mm 30-43, 86-95) = NOISE from Otto's still-unshielded cable.
+  OTTO NEEDS THE COAX UPGRADE TOBY HAS.
+- Magnets exonerated: Toby reads Otto's problem markers clean. The magnets are
+  good; Otto's cable is the weak link.
+- HALL_DIAG.ino bench diagnostic written and filed (serial-only, per-magnet
+  peak+polarity).
+
+## Dashboard saga (Flask ngr_app.py)
+- v1.10.x progressively added "smart" confirmation-gating that DEGRADED manual
+  control from "delightful" to inert — the opposite of the bicameral ruling.
+- Root causes found: throttle published on release not drag; direction waited on
+  an echo QUORUM's vocabulary didn't send ("Waiting for Otto" = the wrong-loco
+  listener, later found to be a WORDING bug not a binding bug); server mqtt_lock
+  made manual commands wait behind telemetry parsing while E-STOP skipped it;
+  stale telemetry disabled the throttle.
+- DECISION: live Pi ROLLED BACK to v1.9.5 (pre-degradation, works). Repo raced
+  ahead to v1.10.9. Live Pi != repo.
+- Governing principle going forward: manual = dumb/direct/unblockable (E-stop
+  model); informational features (telemetry, polarity tile) belong on a separate
+  diagnostic view, NEVER wired into control enabled-state. The polarity
+  agreement tile is a keeper — it diagnosed a dead sensor and a flipped sensor
+  live.
+- Real bugs still open on the repo dashboards: E-stop doesn't zero throttle,
+  brake does nothing (no firmware channel), INA219 blank (no firmware channel).
+
+## Latency — root-caused, not signal
+- 5-hour RSSI survey (survey car built this session, IR-speed + RSSI on one
+  ESP32): NO dropout, -38 to -65 dBm loop-wide. Wi-Fi shadows RULED OUT.
+- Latency was the dashboard's "smart" logic in the command path. E-stop was
+  responsive because it bypassed the logic; throttle/direction weren't. Fixed in
+  the command-path rewrite (oninput, lock removed, ~0.5ms to broker measured).
+
+## Survey / IR car
+- Merged IR-spoke-speed + Wi-Fi-RSSI sketch, non-blocking task architecture.
+- Field lesson: gaps in the MQTT log were sometimes real dropouts, sometimes
+  logging artifacts (competing subscribers, -W timeouts). A clean position-
+  mapped coverage survey still needs a declared lapping loco + towed car in one
+  logger. Owed.
+
+## CTO3 (multi-train) — carried from history into the repo
+- Operator's key architectural restatement: ONE bicameral control sketch; the
+  ONLY chamber crossings are E-STOP, enlistment (manual->auto, loco's own act),
+  release (dispatcher->manual), and dispatcher STOP (enrolled locos only).
+  QUORUM 1.6 already implements this — audited and confirmed.
+- Physical envelope: 18" forward, 48" behind the Hall sensor (config, not
+  constant). Supersedes old 2ft/5ft bubbles.
+- Travel-direction rule (operator insight, explains "QUORUM doesn't do
+  reverse"): travel_direction = session_direction XOR motor_reverse. Needs
+  SOURCE VERIFICATION before any firmware change.
+- Speed: SPEED_HOLD not THROTTLE_HOLD. PWM is actuator, measured pKPH is
+  controlled variable. Source hierarchy HALL_VALID->HALL_AGING->PWM_ESTIMATE->
+  MOTION_UNCONFIRMED. Hard "U-Haul in the median" law: never escalate PWM on a
+  zero-speed reading. Empirical ceiling ~70/75/80 pKPH. Speed floor ~2.5s/marker.
+- Learned segment x direction x PWM -> pKPH table (Pi = brain/archive, ESP32 =
+  ~2KB distilled copy; Pi never in the control loop). Voltage a required
+  dimension (INA219). Calibration grid PWM 25/30/35/40/50/70 both directions.
+- Documents committed: docs/CTO3/CTO3_INTENT_BASELINE.md, CTO3_SPEC.md (draft 1,
+  14 sections), resources/. IR does NOT block CTO3 (decision 0003) — build the
+  IR-independent core now; only the calibration campaign waits for IR evidence.
+- CTO3 is Lowline-only; blocks are gone; station stops are mapped locations, not
+  QUORUM positions. Collision awareness is a property of every loco, not a pair.
+  CTO2 failure lesson: unknown/stale traffic is NEVER converted to clearance.
+
+## Decision-record system — the anti-amnesia machine
+- docs/decisions/ created with a template and standing-practice rule: at the end
+  of any session that makes an architectural/capability decision, a record is
+  written — INCLUDING capability removals, so a dropped feature is a visible,
+  argued record not a silent drift. Never edit away a record; supersede it.
+- Standing practice saved to Claude Code's persistent memory + belongs in the
+  root CLAUDE.md.
+- Ten founding records filed (0001-0010). NOTE: several cover parallel IR/sensor
+  sessions Claude (this chat) was not part of; operator should read them for
+  fidelity. Brake and INA219 flagged as decided-to-restore (QUORUM 1.5) — need
+  records 0011/0012.
+
+## Standing practices established
+- All firmware branches from QUORUM, never SOLONAV. Version-bump, never edit in
+  place. Test sketches too (except deliberately-minimal bench diagnostics).
+- Reports/reviews/verdicts committed to docs/ unprompted.
+- Rewrites must report dropped capabilities in the commit message.
+- Log analyses presented as timestamped timelines; distinguish retained-message
+  dumps (many topics, one timestamp at connect) from live traffic.
+- Documents delivered as PDF where read off-repo. Sam = ChatGPT (she/her).
+- Deploy reality: NO repo clone on the Pi. Dashboard deploys via scp-from-Mac
+  then swap+restart. This is why v1.10.3 sat undeployed — a recurring trap.
+
+## Immediate open items
+1. Otto: coax upgrade (reach 100%), then flash QUORUM (1.5+), then §8 campaign.
+2. CODEX §8 clearance for latest QUORUM; and read the 1.5/1.6 reports.
+3. Verify QUORUM travel-direction handling in source (the reverse-map rule).
+4. Dashboard: decide fix-forward vs stay-on-1.9.5 + rebuild info features as a
+   separate diagnostic view. E-stop-zeros-throttle and brake are real bugs.
+5. Records 0011 (brake) + 0012 (INA219) to catch up to the restore decision.
+6. CTO3 spec -> Sam + CODEX review -> Draft 2. (Sam's response in hand.)
+7. Position-mapped RSSI tow survey still owed.
+8. Commit uncommitted repo items: .claude/, SPEC.md, archive/block-era/.
+
+## Starting the CTO3 chat
+Open with: Claude Code reads docs/CTO3/CTO3_INTENT_BASELINE.md, CTO3_SPEC.md,
+and docs/decisions/, then summarizes the 7 layers + 4 doors back as a fidelity
+check. Bring Sam's response. The work is RECONCILING reviews into Draft 2 — NOT
+implementing yet. First implementation item per §12 is travel-direction
+verification, not the bubble.

@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mosquitto_sub *)",
+      "Bash(python3 -m py_compile *)"
+    ]
+  }
+}

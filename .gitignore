@@ -31,3 +31,7 @@ venv/
 firmware/libraries
 firmware/libraries
 firmware/test-programs/ESPNOW_CMD_TX/espnow_keys.h
+
+# Claude Code local overrides: machine-specific allow-rules, scratchpad paths
+# and session UUIDs. The shared project config is .claude/settings.json.
+.claude/settings.local.json
