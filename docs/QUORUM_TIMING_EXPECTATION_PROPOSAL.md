@@ -5,7 +5,14 @@
 **Evidence:** `field-records/logs/20260811_QUORUM_1_13_beta_otto.log`,
 `field-records/logs/20260810_IR_SPEED_LOCAL_1_2_otto.log`
 
-**Recommendation: implement, behind the replay suite.** The need is demonstrated
+**Recommendation (revised after CODEX review): implement IN THE HARNESS ONLY.**
+Not approved for firmware. See §7.
+
+**Scope: this is containment, not cause.** The extra event is produced by the
+Hall detector or the physical field; the PWM-derived expectation is why the gate
+fails to catch it. Identifying the source is a separate, unanswered question.
+
+Original recommendation, superseded by the boundary above: The need is demonstrated
 across two sessions, two directions and two failure modes; the change removes a
 constant rather than adding one, and an offline replay of the whole 2026-08-11
 session catches 44/44 phantoms at a 0.13% false-reject cost.
@@ -133,8 +140,12 @@ mm 101    prev 1870, dt 335  ->  335 <= 561  REJECT
 mm 149/150 echoes  prev ~1200, dt ~250       REJECT
 ```
 
-**Limit of this evidence, stated plainly:** this is an open-loop replay of the
-*decision*, not of the stateful interaction. Changing acceptance changes every
+**Limit of this evidence, stated plainly.** Two limits, not one. First the
+labels: a phantom here is `dt < 700 and peak < 80`, which is close to the
+condition being tested, so the count is partly circular — and the three
+"genuine" losses carry peak 40-46, so they are probably phantoms the classifier
+missed. Second, this is an open-loop replay of the *decision*, not of the
+stateful interaction. Changing acceptance changes every
 subsequent `previousAcceptedDt`, so real behaviour will diverge from these
 numbers. The figure is an indication, not a result. The result must come from
 the harness with the change implemented.
@@ -176,7 +187,14 @@ Beyond the existing suite passing unchanged:
 
 ---
 
-## 7. Recommendation
+## 7. Approval boundary
+
+Operator and CODEX, 2026-08-11: **implement in the host replay harness only.**
+Run both complete captures statefully and enumerate every changed acceptance,
+rejection, adoption and terminal outcome before any flashable firmware is
+touched. The figures in §4 do not clear this bar.
+
+## 8. Recommendation, once that evidence exists
 
 **Implement, behind the suite.** Unlike the superseded proposal this adds no
 threshold to calibrate, no new state, and no dependence on a sensor scale that

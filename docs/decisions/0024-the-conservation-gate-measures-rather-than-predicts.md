@@ -1,4 +1,4 @@
-# 0024 — The phantom defect is the gate's PWM-predicted expectation, not low PWM
+# 0024 — The phantom CONTAINMENT defect is the gate's PWM-predicted expectation
 
 Status: Proposed (2026-08-11)
 
@@ -8,7 +8,13 @@ The low-PWM peak-threshold approach in
 `docs/QUORUM_LOW_PWM_PHANTOM_DESIGN_PROPOSAL.md` is **abandoned**. That document
 is marked superseded and must not be implemented.
 
-The phantom defect is instead attributed to the conservation gate deriving its
+**Scope correction (CODEX review, 2026-08-11):** this record concerns
+CONTAINMENT, not the source. The extra event is produced by the Hall detector or
+by the physical magnetic field; the PWM-derived expectation is why the gate fails
+to contain it. Nothing here identifies or addresses the source, and that
+question remains open — see Consequences.
+
+The containment failure is attributed to the conservation gate deriving its
 expected interval from a PWM velocity model. The replacement direction —
 `expectedDt = previousAcceptedDt`, reducing the test to *"reject an event
 arriving within 30% of the previous accepted interval"* — is specified in
@@ -69,12 +75,31 @@ railway.
 - It dissolves the poisoning trap observed at the 2026-08-11 derailment, where a
   short phantom predecessor made the gate reject 18 consecutive genuine markers
   with no escape short of a power cycle.
-- Offline replay indicates 44/44 phantoms caught at 0.13% false rejects, but that
-  is an open-loop replay of the decision only; the binding result must come from
-  the harness with the change implemented.
+- The "44/44 phantoms caught at 0.13% false rejects" figure is **preliminary and
+  partly circular** (CODEX): the classifier labels a phantom as `dt < 700 and
+  peak < 80`, which is close to the condition under test, and the three purported
+  false rejects (peak 40-46) may themselves be phantoms. It is a sanity check,
+  not evidence. Binding evidence requires independently labelled events and a
+  STATEFUL harness replay.
+- **The source of the extra events is not identified.** Containment reduces the
+  cost of a phantom; it does not stop one being generated. The discriminating
+  experiment is a second locomotive over the same markers: if the mm 101 event
+  recurs for Toby, the source is at the track; if it does not, it is Otto's
+  detector or its mounting. That test needs no firmware change (QUORUM_1_6
+  already publishes `peak`, `ms`, `drift` and `dt` on AGREE/DISAGREE).
 - Anything touching acceptance now owes: a decision record, the full replay
   suite, and an explicit enumerated diff from `verify_inert.py` — which for this
   change must show it is deliberately **not** inert.
+- Adversarial cases required before implementation (CODEX): maximum genuine
+  acceleration combined with route-spacing variation; a missed marker followed by
+  acceleration; a correctly rejected phantom followed by the genuine remainder of
+  that interval; stops, dwell, reversal and declaration; consecutive phantoms;
+  and recovery from a short poisoned predecessor.
+- **Approval boundary (operator/CODEX, 2026-08-11):** this record as a proposal
+  is acceptable; implementing the timing change is NOT approved. The next step is
+  implementation in the host replay harness only, run statefully over both
+  complete captures, enumerating every changed acceptance, rejection, adoption
+  and terminal outcome, before any flashable firmware is touched.
 - The fence and adoption floor stay untouched. All 18 beta adoptions were inside
   the fence and 16 closed successfully, so the fence is not today's constraint.
 
