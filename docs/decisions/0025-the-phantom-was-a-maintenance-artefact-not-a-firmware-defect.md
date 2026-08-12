@@ -109,9 +109,14 @@ the incident-C cascade followed.
   addressed by the magnet work. Root cause is not established because the capture
   lost the marker trail. This does **not** reopen phantom containment; it is its
   own investigation.
-- **The Pi SD card must be replaced before the next CW run.** It has now cost
+- ~~**The Pi SD card must be replaced before the next CW run.** It has now cost
   evidence in three sessions, and it is the likely reason ~860 of 1075 markers
-  were never delivered.
+  were never delivered.~~ **CORRECTED 2026-08-12 by decision 0026:** the SD card
+  did not cause that loss. The MacBook running the capture was on battery and
+  idle-slept three times; the locomotive's own `mqtt_attempts` counter stayed at
+  1 throughout, and every silence boundary matches a `pmset` sleep/wake within
+  seconds. The card should still be replaced, but it did not cost this evidence
+  and **it does not block re-running CW**.
 - Route maintenance owes an audit: **enumerate every marker that received the
   doubling remedy**, since each is a predicted phantom site. mm 149 and 150 are
   already corrected; 99–102 and 61–63 are now replaced.

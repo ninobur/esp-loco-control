@@ -119,25 +119,48 @@ anything in decision 0024.
 
 **Root cause not established.** See the next section for why.
 
-## 5. The capture is incomplete, and the broker is the likely reason
+## 5. The capture is incomplete — CORRECTED 2026-08-12: the Mac slept
 
 `agree` reached 1047 and `disagree` 28 — about **1075 markers processed, 214
 captured**. The entire CW leg between mm 5 and the failure near mm 120 is
 missing.
 
-`capture.sh` logged **zero RECONNECT lines**, so the subscriber never lost the
-broker. The messages were never delivered. The broker runs on the Pi whose SD
-card went read-only on 2026-08-11 and has not been replaced. A degraded broker
-drops QoS 0 publishes silently.
+> **This section originally read:** *"`capture.sh` logged zero RECONNECT lines,
+> so the subscriber never lost the broker. The messages were never delivered.
+> The broker runs on the Pi whose SD card went read-only on 2026-08-11 and has
+> not been replaced. A degraded broker drops QoS 0 publishes silently."* and
+> concluded *"The SD card must be replaced before the next CW run."*
+>
+> **That was wrong, and it was wrong in a way worth recording.** The reasoning
+> inverted the meaning of its own strongest fact: zero RECONNECT lines was read
+> as proof the subscriber was healthy, when it was in fact proof the detector
+> could not fire. See decision 0026.
+
+The measured cause: the loss falls inside **three total-silence windows** —
+1117 s, 626 s, 374 s — with no message from any publisher on any topic. Across
+all three the locomotive's `mqtt_attempts` stayed at **1** and `uptime_ms`
+advanced exactly with wall time, so it never reconnected and never rebooted; its
+`agree` counter advanced 511, 244 and 80 into the holes, which is 835 of the
+~860 missing. Each window ends with a burst of **retained topics only** — the
+resubscribe signature. `pmset -g log` matches every boundary to a sleep/wake
+transition within seconds: `Idle Sleep` 22:32:55 against last data 22:32:56,
+`DarkWake` 22:51:32 against resumption 22:51:33, and so on.
+
+**The MacBook was on battery and idle-slept three times.** `mosquitto_sub` 2.1.2
+reconnects internally via `mosquitto_loop_forever`, so it never exited and
+`capture.sh`'s reconnect logging — which assumed it would — never ran.
 
 Consequences for this record:
 
 - Sections 2 and 3 rest on markers that **did** arrive, including full route
-  coverage, and stand.
+  coverage 0–170, and stand unchanged.
 - Section 4 rests on the terminal snapshot alone. It establishes *what* failed,
   not *where the divergence began*.
-- **The SD card must be replaced before the next CW run.** This is the third
-  session in which that card has cost evidence.
+- ~~The SD card must be replaced before the next CW run.~~ **The SD card is
+  exonerated for this loss and is not a blocker for re-running CW.** It should
+  still be replaced — it did cost evidence on 2026-08-11 — but it would not have
+  saved this session, and capture no longer runs on the Pi.
+- `capture.sh` now holds the host awake and writes `# STALL` lines. Decision 0026.
 
 ## 6. Segmenting the capture
 

@@ -74,4 +74,5 @@ rather than a silent drift discovered later.
 | [0022](0022-plastic-ten-spoke-wheel-is-the-ir-target.md) | The LGB plastic 10-spoke wheel is the IR speed target | Accepted |
 | [0023](0023-quorum-adjudicates-within-a-fence-it-must-be-able-to-leave.md) | QUORUM adjudicates within a fence it must be able to leave; ranking prior rejected, exact-or-silent advisory added | Accepted in part |
 | [0024](0024-the-conservation-gate-measures-rather-than-predicts.md) | The phantom CONTAINMENT defect is the gate's PWM-predicted expectation | Analysis retained; change not implemented (see 0025) |
-| [0025](0025-the-phantom-was-a-maintenance-artefact-not-a-firmware-defect.md) | The phantom was stacked double magnets, not a firmware defect; no containment will be added | Accepted |
+| [0025](0025-the-phantom-was-a-maintenance-artefact-not-a-firmware-defect.md) | The phantom was stacked double magnets, not a firmware defect; no containment will be added | Accepted (one consequence corrected by 0026) |
+| [0026](0026-a-capture-must-hold-the-host-awake-and-timestamp-its-own-silence.md) | A capture holds the host awake and timestamps its own silence; the 2026-08-12 marker loss was Mac sleep, not the SD card | Accepted |
