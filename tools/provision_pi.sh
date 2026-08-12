@@ -48,24 +48,33 @@ ssh "$PI" 'printf "listener 1883 0.0.0.0\nallow_anonymous true\n" \
   sudo systemctl restart mosquitto'
 
 say "Creating directories the app expects"
-# CAL_LOG_DIR in the app; telemetry/ kept for parity with ngr-runlog.service,
-# which is deliberately NOT enabled — see the runbook on card wear.
-ssh "$PI" 'mkdir -p /home/david/NGR/logs /home/david/NGR/telemetry'
+ssh "$PI" 'mkdir -p /home/david/NGR/logs /home/david/NGR/telemetry/runs'
 
 say "Copying the dashboard ($APP)"
 scp -q "$APP" "$PI:/home/david/ngr_app.py.new"
 ssh "$PI" 'mv /home/david/ngr_app.py.new /home/david/ngr_app.py'
 
-say "Installing the systemd unit"
+say "Copying the continuous logger"
+# Measured 2026-08-12: ~1.6 KB/s with a train running, so a few tens of GB a
+# year at most. Nothing on a 128 GB card. Decision 0028 supersedes 0027, which
+# had refused this on write-wear grounds that the measurement did not support.
+scp -q server/ngr_runlog.py "$PI:/home/david/NGR/telemetry/ngr_runlog.py"
+
+say "Installing the systemd units"
 scp -q server/ngr-app.service "$PI:/tmp/ngr-app.service"
+scp -q server/ngr-runlog.service "$PI:/tmp/ngr-runlog.service"
 ssh "$PI" 'sudo mv /tmp/ngr-app.service /etc/systemd/system/ngr-app.service
+  sudo mv /tmp/ngr-runlog.service /etc/systemd/system/ngr-runlog.service
   sudo systemctl daemon-reload
-  sudo systemctl enable ngr-app
-  sudo systemctl restart ngr-app'
+  sudo systemctl enable ngr-app ngr-runlog
+  sudo systemctl restart ngr-app ngr-runlog'
 
 say "Verifying"
-sleep 3
-ssh "$PI" 'systemctl is-active ngr-app && systemctl is-active mosquitto'
+sleep 6
+ssh "$PI" 'for s in ngr-app ngr-runlog mosquitto; do printf "%-12s %s\n" "$s" "$(systemctl is-active $s)"; done
+  echo "--- log growing? ---"
+  ls -la /home/david/NGR/telemetry/all_*.log 2>/dev/null || echo "(no log yet — normal if nothing is publishing)"
+  df -h / | tail -1'
 
 host="${PI#*@}"
 # The app binds 8080, not 80 (ngr_app_v1_10_11.py: app.run(host="0.0.0.0",

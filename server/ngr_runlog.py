@@ -63,6 +63,7 @@ RUNS_DIR = os.path.join(BASE, "runs")
 # the local date changes.
 _all_fh = None
 _all_date = None
+_connect_count = 0
 
 
 def all_log(line):
@@ -271,6 +272,26 @@ def on_connect(client, userdata, flags, rc, properties=None):
     # Subscribe only. This logger never publishes.
     client.subscribe(TOPIC)
     sys.stderr.write("[ngr_runlog] connected rc=%s, subscribed %s\n" % (rc, TOPIC))
+    # Record the (re)connection IN THE LOG, not only in the journal. The
+    # locomotives publish at QoS 0 (PubSubClient supports nothing else), so
+    # anything published while this process was disconnected is simply gone —
+    # there is no broker-side queue to replay. What must never happen is that
+    # the loss is invisible: an unmarked gap reads as quiet running, which is
+    # the exact failure that cost fifty minutes on 2026-08-11 (commit 60ec7ea).
+    # Same principle as decision 0026 — a capture timestamps its own silence.
+    global _connect_count
+    _connect_count += 1
+    kind = "START" if _connect_count == 1 else "RECONNECT"
+    all_log("%s\t# %s\tconnected rc=%s subscribed %s\n"
+            % (datetime.now().isoformat(timespec="milliseconds"), kind, rc, TOPIC))
+
+
+def on_disconnect(client, userdata, *a, **kw):
+    # Mark the near side of the gap too, so its start is known and not merely
+    # inferred from the next message's timestamp.
+    all_log("%s\t# DISCONNECT\tbroker link lost\n"
+            % datetime.now().isoformat(timespec="milliseconds"))
+    sys.stderr.write("[ngr_runlog] disconnected\n")
 
 
 def on_message(client, userdata, msg):
@@ -428,6 +449,7 @@ def main():
             c = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2, client_id=CLIENT_ID)
             c.on_connect = on_connect
             c.on_message = on_message
+            c.on_disconnect = on_disconnect
             c.connect(BROKER, PORT, keepalive=60)
             c.loop_forever()
         except SystemExit:

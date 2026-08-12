@@ -1,6 +1,11 @@
 # 0027 — The Pi serves and brokers; it does not log to its own card
 
-Status: Accepted  (2026-08-12)
+Status: Superseded by 0028  (2026-08-12)
+
+> Superseded the same day it was written. The write load was measured at ~1.6
+> KB/s rather than estimated, and at that rate the wear argument below does not
+> hold. The second half of this record — that the Pi's *configuration* is
+> repository state — survives into 0028 unchanged.
 
 ## Decision
 
