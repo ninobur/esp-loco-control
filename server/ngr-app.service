@@ -1,0 +1,18 @@
+[Unit]
+# RECONSTRUCTED 2026-08-12 — the original unit lived only on the failed SD card
+# and was never committed. Modelled on ngr-runlog.service. If the original is
+# ever recovered from the old card, diff it against this and correct.
+Description=NGR Flask dashboard
+After=network.target mosquitto.service
+Wants=mosquitto.service
+
+[Service]
+Type=simple
+User=david
+WorkingDirectory=/home/david
+ExecStart=/usr/bin/python3 /home/david/ngr_app.py
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
