@@ -68,8 +68,10 @@ sleep 3
 ssh "$PI" 'systemctl is-active ngr-app && systemctl is-active mosquitto'
 
 host="${PI#*@}"
-code=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 10 "http://${host}/" || echo "no answer")
-echo "dashboard http://${host}/ -> ${code}"
+# The app binds 8080, not 80 (ngr_app_v1_10_11.py: app.run(host="0.0.0.0",
+# port=8080)). It answers 302 on / and redirects to /console, so follow it.
+code=$(curl -sSL -o /dev/null -w '%{http_code}' --max-time 10 "http://${host}:8080/" || echo "no answer")
+echo "dashboard http://${host}:8080/console -> ${code}"
 
 say "Retained topics on the rebuilt broker"
 # Expect both locomotives' retained bootid if they are powered up. A silent

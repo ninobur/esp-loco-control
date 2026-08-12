@@ -202,12 +202,46 @@ sudo systemctl daemon-reload && sudo systemctl enable --now ngr-app ngr-runlog
 
 ```bash
 systemctl status ngr-app --no-pager
-curl -sS -o /dev/null -w '%{http_code}\n' http://192.168.68.142/
+curl -sSL -o /dev/null -w '%{http_code}\n' http://192.168.68.142:8080/
 mosquitto_sub -h 192.168.68.142 -t 'ngr/#' -v -W 5
 ```
 
-Dashboard should answer 200, and both locomotives' retained bootid should come
-back on the subscribe.
+The dashboard is on **port 8080**, not 80, and `/` answers 302 redirecting to
+`/console` — so follow redirects or the check looks like a failure. With the
+locomotives powered up, both should return their retained bootid.
+
+## What actually happened on the 2026-08-12 rebuild
+
+Recorded because most of it was not predicted by this runbook:
+
+- **Power was clean.** `throttled=0x0` on the rebuilt host. The undervoltage
+  hypothesis is *disproved* for this failure — the card was the cause, not a
+  symptom. The check was still worth running; it is what closed the question.
+- **Wi-Fi never associated.** `wlan0` came up `NO-CARRIER` despite Imager's
+  Wi-Fi settings, and the Pi was invisible on the network until an Ethernet
+  cable was run to the Deco. Unresolved — the Pi currently runs wired.
+- **Ethernet has a different MAC from the Wi-Fi radio** (`88:a2:9e:c4:58:ca` vs
+  `…:cb`), so the router's `.142` reservation did not match and DHCP handed out
+  `192.168.68.73`. Fixed by adding `.142` as a *second* address on the wired
+  connection, keeping the DHCP address as a fallback so a bad edit cannot lock
+  you out with no monitor attached:
+
+  ```bash
+  sudo nmcli con mod "Wired connection 1" +ipv4.addresses 192.168.68.142/24
+  sudo nmcli con up "Wired connection 1"
+  ```
+
+- **The Imager SSH public key was not installed.** Key auth failed on first
+  contact; `ssh-copy-id -i ~/.ssh/id_ed25519_github.pub david@<addr>` fixed it.
+- **Passwordless sudo is no longer the Pi OS default** on Debian 13 (trixie).
+  Provisioning over SSH needs it, or every `sudo` fails with "a terminal is
+  required". Granted with `ssh -t … 'echo "david ALL=(ALL) NOPASSWD: ALL" |
+  sudo tee /etc/sudoers.d/010-david-nopasswd'`. Note `ssh -t` — without a TTY
+  the password prompt cannot be answered.
+- **The SSH host key changed**, as it must after an OS reinstall. Clear the old
+  entry with `ssh-keygen -R 192.168.68.142`.
+- The OS installed was Raspberry Pi OS **Debian 13 (trixie), 64-bit desktop** —
+  Lite was not offered in Imager 2.0.7 at the top level.
 
 ## The standing lesson
 
