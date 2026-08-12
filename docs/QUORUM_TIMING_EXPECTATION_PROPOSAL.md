@@ -192,6 +192,31 @@ identical between a healthy lap and Event B.**
 
 ---
 
+## 4c. Converse evidence — containment works when the model is right
+
+Otto, 118→050 CCW, constant 91 pwm, no station armed (PR #4,
+`20260811_OTTO_118-050_CCW_91PWM.log`, 69 markers, 68 AGREE, 0 DISAGREE):
+
+```
+mm 80  N  dt 1136  exp 1173  ratio 1.91  peak 151     genuine
+mm 80  S  dt  195  exp 1173  ratio 1.13  peak  39     REJECTED
+```
+
+The preceding interval (1136 ms) matches the model (1173 ms) within 3%, so the
+pair lands at ratio 1.13 — inside the reject band — and the same weak-event
+signature that is admitted during a ramp is contained here. Paired with the
+ramped case at mm 102→101 (model error +56%, ratio 1.84, admitted), this is a
+controlled before/after on one variable: **whether the expectation matched
+reality.** It is the strongest single piece of evidence for this proposal, and
+it argues that the rule would have contained both.
+
+Note also what it does NOT show. mm 101 produced no weak event at all at
+constant speed, and mm 84 was clean — so speed appears to affect whether the
+extra event is generated, not merely whether it is caught. Containment is
+therefore not a substitute for finding the physical source.
+
+---
+
 ## 5. How it could be defeated
 
 | condition | effect | assessment |

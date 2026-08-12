@@ -48,6 +48,29 @@ Cost of the defect in one session: 16 of 18 adoptions were offset −1 phantom
 repairs; on 2026-08-10 a *pair* produced offset −2, which the fence cannot
 express, and the whole incident-C cascade followed.
 
+**Converse test, 2026-08-11 (Otto, 118→050 CCW, constant 91 pwm, no station
+armed).** The diagnosis above says containment fails when the PWM model
+disagrees with reality. The converse — that containment succeeds when the model
+is right — is now measured on the same locomotive, track and direction:
+
+| condition | prev dt | model | model error | weak dt | ratio | outcome |
+|---|---|---|---|---|---|---|
+| ramped, decelerating into Arches (mm 102→101) | 1862 | 1191 | **+56%** | 335 | 1.84 | **ACCEPTED** — offset −1, 9/9 laps |
+| constant 91 pwm (mm 80) | 1136 | 1173 | **−3%** | 195 | 1.13 | **REJECTED** — 0 disagreements |
+
+Same weak-event signature both times (peak 41 and 39 against a session median of
+145). The gate rejects on a ratio inside [0.7, 1.3]. At constant speed the model
+error is −3% and the pair lands at 1.13, inside the band, contained. Under the
+ramp the error is +56% and the pair lands at 1.84, outside, admitted. That is a
+controlled confirmation, not an inference from correlation.
+
+**A second, separable finding from the same run: speed affects GENERATION, not
+only containment.** At constant 91 pwm, mm 101 was crossed with an entirely
+normal read (peak 144, no weak event at all) where the ramped approach produced
+one on 9 of 9 crossings. The weak event there was not merely contained — it was
+not produced. mm 84, Toby's Event B location, was likewise clean on Otto
+(peak 180, width 197). Caveat: one lap, so each location was crossed once.
+
 ## Alternatives considered
 
 **Peak threshold at low PWM** (the superseded proposal). Rejected: wrong scope,
