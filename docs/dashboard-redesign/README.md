@@ -182,3 +182,24 @@ Worth doing on the first run, because none of it has met a real locomotive:
   including fields the new layout no longer draws (`miss_streak`,
   `viable`, `candidate_mm`, `lowvolt`, `nav_event`). Harmless, and cheaper
   to leave than to prune while the layout is still settling.
+
+## Deployment log
+
+- **2026-08-12 21:47** — v1.11.0 first deployed to the Pi and `ngr-app`
+  restarted. That build predated two fixes and showed an EMPTY console,
+  because nothing was switched on and named locomotives did not yet get a
+  column.
+- **2026-08-12 21:55** — current build deployed (`md5 6990932f…`), including
+  the held-backlog P8 fix and always-visible named columns. Verified:
+  `/console`, `/loco/<name>`, `/loco/<id>`, the legacy `/otto` redirect and
+  the state endpoint all answer; three columns render blank-and-honest with
+  no locomotive powered; service log clean apart from the expected MQTT
+  reconnect chatter.
+- Rollback remains `/home/david/ngr_app_v1_10_11_ROLLBACK.py` (v1.10.11,
+  `md5 0cec9716…`).
+
+**Still unproven: v1.11.0 has never seen a locomotive that is talking.**
+Every check so far has been against an empty layout. When one is next
+switched on, watch for the things listed under "Before deploying" — above
+all that its column appears reading ENLISTED or RUNNING rather than blank,
+which is the P8 held-backlog fix doing its job.
