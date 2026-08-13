@@ -679,13 +679,50 @@ def loco_slug(lid):
     return LOCO_NAMES.get(lid, lid).lower()
 
 
-def discovered_order():
-    """Stable order: the known names in their listed order, then anything else
-    by id. Arrival order would shuffle between sessions, and BEGIN has to be
-    where it was yesterday."""
-    known = [l for l in LOCO_NAMES if l in loco_state]
+def console_order():
+    """Every NAMED locomotive, always, followed by anything unnamed that has
+    been heard.
+
+    Naming a locomotive in LOCO_NAMES says "I expect to see this one", and it
+    gets a column whether or not it is switched on — otherwise the console is
+    blank until something speaks, which reads as broken and leaves nowhere to
+    reach for a locomotive you are about to power up. That is NOT a retreat
+    from discovery and it does not reopen the ghost-column hole: a named
+    locomotive that has never been heard shows UNKNOWN and STALE with no
+    authority and no figures, because its state comes from _fresh_state(),
+    never from the broker's retained backlog. Blank-until-proven (P8) is
+    exactly what it displays.
+
+    Order is stable: named ones in their listed order, strangers after by id.
+    Arrival order would shuffle between sessions and BEGIN has to be where it
+    was yesterday."""
+    named = list(LOCO_NAMES)
     rest = sorted(l for l in loco_state if l not in LOCO_NAMES)
-    return known + rest
+    return named + rest
+
+
+def discovered_order():
+    """Only locomotives actually heard this session. The console shows more
+    than this; the packet log and anything counting real traffic wants this."""
+    named = [l for l in LOCO_NAMES if l in loco_state]
+    rest = sorted(l for l in loco_state if l not in LOCO_NAMES)
+    return named + rest
+
+
+# A locomotive on the console that has never been heard has no state dict at
+# all. It gets a blank one rather than an entry in loco_state, so that being
+# LISTED never counts as having been HEARD anywhere else in the app.
+_BLANK_STATE = None
+
+
+def state_or_blank(lid):
+    global _BLANK_STATE
+    st = loco_state.get(lid)
+    if st is not None:
+        return st
+    if _BLANK_STATE is None:
+        _BLANK_STATE = _fresh_state()
+    return _BLANK_STATE
 
 
 def resolve_loco(ref):
@@ -765,7 +802,7 @@ def nav(active):
     parts = ['<a href="/console" class="nav-btn %s">Console</a>'
              % ("active" if active == "console" else "")]
     with mqtt_lock:
-        order = discovered_order()
+        order = console_order()
     for lid in order:
         parts.append('<a href="/loco/%s" class="nav-btn %s">%s</a>'
                      % (loco_slug(lid), "active" if active == lid else "", loco_name(lid)))
@@ -824,8 +861,32 @@ CONSOLE_HTML = """<!DOCTYPE html>
 .b-ce  { background:#2d6ea8; color:#fff; border:none; }
 
 .cgrid { display:grid; gap:10px; }
+/* Grid items default to min-width:auto and refuse to shrink below their own
+   content, which pushed the third column off a phone screen entirely. */
+.cgrid > div { min-width:0; }
+/* Type scales with the column count so the fleet always fits the width. The
+   figures stay the largest thing in the column at every size. */
+.cgrid.cols-3 .col-name { font-size:15px; letter-spacing:0; }
+.cgrid.cols-3 .namerow { gap:3px; }
+.cgrid.cols-3 .readout .rl, .cgrid.cols-3 .readout .rv { font-size:18px; }
+.cgrid.cols-3 .readout { padding:5px 7px; }
+.cgrid.cols-3 .pill .pv { font-size:14px; }
+.cgrid.cols-3 .cbtn, .cgrid.cols-3 .cbtn-estop { font-size:13px; padding:12px 2px; }
+.cgrid.cols-3 .link-tiny { min-width:44px; font-size:8px; }
+.cgrid.cols-4 .col-name { font-size:14px; letter-spacing:0; }
+.cgrid.cols-4 .readout .rl, .cgrid.cols-4 .readout .rv { font-size:15px; }
+.cgrid.cols-4 .readout { padding:4px 5px; }
+.cgrid.cols-4 .pill .pv { font-size:11px; }
+.cgrid.cols-4 .pill { padding:7px 2px; }
+.cgrid.cols-4 .cbtn, .cgrid.cols-4 .cbtn-estop { font-size:11px; padding:11px 1px; }
+.cgrid.cols-4 .mode { font-size:9px; padding:2px 3px; }
+.cgrid.cols-4 .link-tiny { min-width:36px; font-size:8px; padding:2px 3px; }
+.cgrid.cols-4 .namerow { gap:3px; }
 .col-hdr { text-align:center; padding-bottom:7px; border-bottom:1px solid #444; margin-bottom:9px; }
-.col-name { color:#fff; font-size:19px; font-weight:bold; letter-spacing:2px; }
+/* min-width:0 + ellipsis: a long name must shorten cleanly rather than be
+   sliced through the middle of a letter by the row's overflow:hidden. */
+.col-name { color:#fff; font-size:19px; font-weight:bold; letter-spacing:2px;
+  min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 /* The tiny link chip rides beside the name, where the width is already spare.
    Both header rows are FIXED HEIGHT so the columns' figures always line up,
    whatever the states say. */
@@ -991,6 +1052,8 @@ function pollStatus(){
       return;
     }
     grid.style.gridTemplateColumns = 'repeat('+locos.length+',1fr)';
+    grid.className = 'cgrid' + (locos.length >= 4 ? ' cols-4'
+                              : (locos.length === 3 ? ' cols-3' : ''));
     grid.innerHTML = locos.map(colHtml).join('');
   }).catch(e=>{});
 }
@@ -1972,9 +2035,9 @@ def dispatcher_state():
     now = time.monotonic()
     with mqtt_lock:
         out = []
-        for lid in discovered_order():
-            st = loco_state[lid]
-            t = loco_rx[lid].get("heard")
+        for lid in console_order():
+            st = state_or_blank(lid)
+            t = loco_rx.get(lid, {}).get("heard")
             heard = (t is not None and now - t <= 10)
             out.append({
                 "id": lid,
@@ -2006,8 +2069,11 @@ def dispatcher_cmd(subcmd):
     parts = subcmd.split("/")
     verb = parts[0]
     target = parts[1] if len(parts) > 1 else None
+    # The commandable set is the set ON SCREEN. A column you can see but not
+    # press would be worse than no column, and publishing to a locomotive
+    # that is not listening costs nothing.
     with mqtt_lock:
-        known = list(loco_state)
+        known = console_order()
     if target is not None and target not in known:
         return "", 204
     if verb in ("go", "stop"):
@@ -2035,10 +2101,11 @@ def dispatcher_endcto():
     """v1.11.0: BOTH halves walk the discovered set. v1.10.11 released Otto and
     Toby by hardcoded id and then fanned stop/ across all of LOCO_IDS — Hans
     was in that tuple, so END AO stopped Hans and never released it. Deriving
-    the list from who is actually out there means the bug cannot recur by
-    someone forgetting to extend a tuple."""
+    the list from what the console shows means the bug cannot recur by someone
+    forgetting to extend a tuple, and END AO cannot miss a locomotive that is
+    enlisted but currently between telemetry."""
     with mqtt_lock:
-        known = list(loco_state)
+        known = console_order()
     for lid in known:
         pub_loco(lid, "dispatcher_release", "1")
     for lid in known:

@@ -34,13 +34,31 @@ A.pub = lambda topic, value: PUBLISHED.append((topic, str(value)))
 
 c = A.app.test_client()
 
-print("\n== empty console ==")
+print("\n== console with nothing switched on ==")
 r = c.get("/console")
-ok(r.status_code == 200, "console renders with nothing discovered", r.status_code)
-r = c.get("/dispatcher/state")
-ok(r.get_json() == {"locos": []}, "dispatcher state is empty", r.get_json())
+ok(r.status_code == 200, "console renders with nothing heard", r.status_code)
+j = c.get("/dispatcher/state").get_json()
+ok([l["name"] for l in j["locos"]] == ["Otto", "Toby", "Hans"],
+   "every NAMED locomotive has a column before anything speaks",
+   [l["name"] for l in j["locos"]])
+o = j["locos"][0]
+ok(o["heard"] is False and o["mode"] == "NONE" and o["quorum"] == "UNKNOWN",
+   "and it is credited with nothing: not heard, no authority, no quorum",
+   (o["heard"], o["mode"], o["quorum"]))
+ok(o["mm"] == "--" and o["pwm"] == "--" and o["agree_pct"] is None,
+   "no figures are invented for a locomotive that has never spoken")
+ok(dict(A.loco_state) == {},
+   "being LISTED is not being HEARD — loco_state is still empty", list(A.loco_state))
 r = c.get("/")
 ok(r.status_code == 302 and "/console" in r.headers["Location"], "root redirects to console")
+
+print("\n== END AO reaches a column that has not been heard ==")
+PUBLISHED.clear()
+c.post("/dispatcher/endcto")
+ok(sorted(t.split("/")[2] for t, v in PUBLISHED if t.endswith("/cmd/dispatcher_release"))
+   == ["2095111", "9950011", "9950012"],
+   "release goes to every column on screen, heard or not", PUBLISHED)
+PUBLISHED.clear()
 
 print("\n== the discovery gate ==")
 feed("ngr/loco/9950011/state/mm", "42", retain=True)
@@ -106,6 +124,8 @@ ok(len(A.pending_seed) <= A.PENDING_SEED_MAX,
    "a flood of unknown ids cannot grow the buffer without limit", len(A.pending_seed))
 ok(not any(k.startswith("JUNK") for k in A.loco_state),
    "and none of them became a column")
+ok(not any(str(l["id"]).startswith("JUNK") for l in c.get("/dispatcher/state").get_json()["locos"]),
+   "nor reached the console")
 A.pending_seed.clear(); A.pending_seed_online.clear()
 feed("ngr/loco/9950011/alert", json.dumps({"nav": "NORMAL", "dead_reckoned_mm": 82,
                                            "moving": 1, "pwm": 146, "auto": 0,
@@ -122,6 +142,8 @@ feed("ngr/loco/9950012/alert", json.dumps({"nav": "NORMAL", "dead_reckoned_mm": 
 order = A.discovered_order()
 ok(order == ["9950011", "9950012", "2095111", "7777777"],
    "known names in listed order, strangers after", order)
+ok(A.console_order() == order,
+   "console order matches once everything named has been heard", A.console_order())
 # arrival order was 9950011, 7777777, 2095111, 9950012 — deliberately not this
 ok(order != list(A.loco_state.keys()), "order is NOT arrival order")
 
@@ -230,7 +252,7 @@ ok(r.status_code == 204 and PUBLISHED == [("ngr/loco/9950011/cmd/throttle", "120
 print("\n== console reflects discovery ==")
 j = c.get("/dispatcher/state").get_json()
 ok(len(j["locos"]) == 4, "every discovered locomotive is offered to the console")
-ok([l["id"] for l in j["locos"]] == A.discovered_order(), "console order matches the stable order")
+ok([l["id"] for l in j["locos"]] == A.console_order(), "console order matches the stable order")
 ok(all(k in j["locos"][0] for k in ("mode", "quorum", "mm", "pkph", "pwm", "voltage", "agree_pct")),
    "console payload carries the new figures", list(j["locos"][0]))
 
