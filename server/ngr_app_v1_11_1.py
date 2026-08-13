@@ -1744,10 +1744,25 @@ function renderAgreement(s){
   // st["verdicts"] is ALREADY oldest-first: the handler appends and pops(0).
   // Reversing it here computed every step backwards round the loop and
   // reported "168 silent" between two consecutive markers.
+  // THE GAP IS DIRECTION-BLIND, and it has to be. Marker numbers ASCEND
+  // clockwise and DESCEND counter-clockwise, so a single modular step
+  // forward reads 170 backwards: running CCW, the old formula printed
+  // "169 silent" between every consecutive pair (field, 2026-08-13, Otto
+  // reversed at marker ~1000). Worse than clutter — with a genuine 8-marker
+  // gap running CCW it reported 161, so the number was wrong exactly when
+  // it mattered.
+  //
+  // Take the shorter arc between the two markers. Two consecutive
+  // detections cannot be most of a lap apart, so the short way round is the
+  // distance actually travelled, whichever way the locomotive is pointing.
+  // This also survives a reversal INSIDE the ten-verdict window, which a
+  // fixed direction would not.
   var out = [], asc = v;
   for (var j=0;j<asc.length;j++){
     if (j>0){
-      var step = (asc[j][0] - asc[j-1][0] + MM_TOTAL) % MM_TOTAL;
+      var fwd  = (asc[j][0] - asc[j-1][0] + MM_TOTAL) % MM_TOTAL;
+      var back = (asc[j-1][0] - asc[j][0] + MM_TOTAL) % MM_TOTAL;
+      var step = Math.min(fwd, back);
       if (asc[j][0] >= 0 && asc[j-1][0] >= 0 && step > 1){
         out.push('<span class="tickgap">'+(step-1)+' silent</span>');
       }
