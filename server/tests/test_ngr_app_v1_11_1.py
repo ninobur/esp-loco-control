@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Exercise ngr_app_v1_11_0 without a broker or locomotives: feed
+"""Exercise ngr_app_v1_11_1 without a broker or locomotives: feed
 on_mqtt_message() directly and drive the routes through Flask's test client.
 
-    python3 server/tests/test_ngr_app_v1_11_0.py
+    python3 server/tests/test_ngr_app_v1_11_1.py
 
 The MQTT thread will print "Connection refused" on the way past; that is the
 app trying to reach a broker that is not there, and is not a test failure.
@@ -11,7 +11,7 @@ import sys, os, json
 # repo-relative: server/tests/ -> server/
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 
-import ngr_app_v1_11_0 as A
+import ngr_app_v1_11_1 as A
 
 FAILS = []
 def ok(cond, label, extra=""):
