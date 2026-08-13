@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.ngr.fetch-telemetry</string>
+
+  <!-- Runs the copy in ~/ngr-telemetry/bin, NOT the one in the git working
+       tree. A branch switch can delete tracked files, which is exactly how an
+       active capture was lost on 2026-08-13. The repo holds the canonical
+       source; this holds the thing that actually runs. -->
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/sh</string>
+    <string>/Users/davidbrown/ngr-telemetry/bin/fetch_pi_telemetry.sh</string>
+  </array>
+
+  <!-- Midnight, every day. If the Mac is asleep at 00:00, launchd runs this
+       once on the next wake rather than skipping the night. -->
+  <key>StartCalendarInterval</key>
+  <dict>
+    <key>Hour</key><integer>0</integer>
+    <key>Minute</key><integer>0</integer>
+  </dict>
+
+  <key>StandardOutPath</key>
+  <string>/Users/davidbrown/ngr-telemetry/launchd.out</string>
+  <key>StandardErrorPath</key>
+  <string>/Users/davidbrown/ngr-telemetry/launchd.err</string>
+
+  <key>RunAtLoad</key>
+  <false/>
+</dict>
+</plist>
