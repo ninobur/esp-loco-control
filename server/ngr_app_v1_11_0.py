@@ -35,8 +35,14 @@
 #
 #   CONSOLE — three commands across the top (E-STOP ALL, END AO, CIRCUIT
 #     EXPRESS), then one column per discovered locomotive. Each column:
-#     name and a tiny ONLINE/STALE link chip, mode and role chips, BEGIN /
-#     PAUSE / E-STOP, then QUORUM, then % agreement, then MM / KPH / PWM / V.
+#     name and a tiny ONLINE/STALE link chip, the mode chip, BEGIN / PAUSE /
+#     E-STOP, then QUORUM, then % agreement, then MM / KPH / PWM / V.
+#
+#     LEAD / TRAIL chips were designed for the chip row and removed before
+#     first run: nothing publishes the roles, and deriving them from position
+#     is only safe behind an envelope-overlap test (two locomotives on the
+#     same piece of track otherwise get labelled confidently and wrongly).
+#     The design survives in docs/dashboard-redesign/mockup_v7.html.
 #
 #     QUORUM OUTRANKS THE LINK. A locomotive can be talking steadily and
 #     have no idea where it is; that is the more important fact and it is
@@ -45,9 +51,9 @@
 #     the locomotive has not got, collapsing it down stops a locomotive that
 #     is still working it out.
 #
-#     NOTHING MAY MOVE WHEN A LOCOMOTIVE GOES QUIET. The mode and role chips
-#     hold a fixed half-row each and read UNKNOWN rather than collapsing to
-#     a hyphen; the link chip has a floor width; no status string may wrap.
+#     NOTHING MAY MOVE WHEN A LOCOMOTIVE GOES QUIET. The mode chip holds a
+#     fixed row and reads UNKNOWN rather than collapsing to a hyphen; the
+#     link chip has a floor width; no status string may wrap.
 #     The two columns are meant to be read across, and a column that
 #     re-flows as its locomotive gets into trouble breaks exactly when it is
 #     needed. A stale locomotive's figures are kept but dimmed: true once,
@@ -777,9 +783,12 @@ CONSOLE_HTML = """<!DOCTYPE html>
   height:24px; overflow:hidden; }
 .chiprow { display:flex; gap:5px; justify-content:center; align-items:center;
   flex-wrap:nowrap; margin-top:4px; height:20px; overflow:hidden; }
-/* Both chips take a fixed half of the row, so no wording change can nudge
-   anything sideways as a locomotive changes state or goes quiet. */
-.chiprow .mode, .chiprow .role { flex:1 1 0; text-align:center; white-space:nowrap;
+/* The chip takes the whole row at a fixed size, so no wording change can
+   nudge anything sideways as a locomotive changes state or goes quiet.
+   (LEAD / TRAIL chips were designed to share this row — removed 2026-08-12
+   because nothing publishes the roles. The design is preserved in
+   docs/dashboard-redesign/mockup_v7.html for whenever CTO/Bubble v2 does.) */
+.chiprow .mode { flex:1 1 0; text-align:center; white-space:nowrap;
   overflow:hidden; text-overflow:ellipsis; }
 .mode { font-size:10px; font-weight:bold; letter-spacing:1px; padding:3px 6px; border-radius:4px; }
 .mode.m-run  { background:rgba(42,122,42,0.35); color:#baffba; border:1px solid #4fc34f; }
@@ -787,11 +796,6 @@ CONSOLE_HTML = """<!DOCTYPE html>
 .mode.m-man  { background:rgba(60,60,80,0.5);   color:#ccd8ff; border:1px solid #8888aa; }
 .mode.m-ce   { background:rgba(45,110,168,0.4); color:#cfe6ff; border:1px solid #2d6ea8; }
 .mode.m-none { background:rgba(40,40,40,0.6);   color:#888;    border:1px solid #555; }
-.role { display:inline-block; font-size:10px; font-weight:bold; letter-spacing:1px;
-  padding:3px 6px; border-radius:4px; }
-.role.lead  { background:#1a3a5a; color:#b8e2ff; border:1px solid #2a6aa8; }
-.role.trail { background:#3a2a5a; color:#d0b8ff; border:1px solid #6a4aa8; }
-.role.none  { background:rgba(40,40,40,0.6); color:#888; border:1px solid #555; }
 .link-tiny { font-size:9px; font-weight:bold; letter-spacing:1px; padding:2px 5px;
   border-radius:3px; white-space:nowrap; min-width:52px; text-align:center; }
 .link-tiny.up   { background:rgba(42,122,42,0.22); color:#9ada9a; border:1px solid #3a7a3a; }
@@ -910,7 +914,6 @@ function colHtml(l){
       '</div>'+
       '<div class="chiprow">'+
         '<span class="mode '+m[1]+'">'+m[0]+'</span>'+
-        '<span class="role none">UNKNOWN</span>'+
       '</div>'+
     '</div>'+
     '<button class="cbtn btn-go"   onclick="dc(\\'go/'+l.id+'\\')">BEGIN</button>'+

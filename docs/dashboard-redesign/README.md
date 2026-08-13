@@ -172,10 +172,12 @@ Worth doing on the first run, because none of it has met a real locomotive:
 
 - Per-locomotive END AO, bubbles and the separation readout stay parked,
   with reasons above.
-- The console shows no role chip content yet: LEAD/TRAIL was designed and
-  the styling is in place, but with separation removed there is nothing
-  deriving the roles, so every column reads `UNKNOWN`. Either derive it
-  from position (see the overlap warning above) or let the operator set it.
+- **LEAD / TRAIL removed** (operator ruling, 2026-08-12). Nothing publishes
+  the roles, and with separation gone there was nothing deriving them
+  either. The chips and their styling are out of the app; the design is
+  preserved in `mockup_v7.html`. If they return, deriving them from
+  position needs the envelope-overlap test first — see the separation note
+  above, which is the same trap wearing a different hat.
 - `state_payload()` still ships the full state dict to the loco page,
   including fields the new layout no longer draws (`miss_streak`,
   `viable`, `candidate_mm`, `lowvolt`, `nav_event`). Harmless, and cheaper
