@@ -2,8 +2,15 @@
 
 Status: **Proposed. Not implemented. No firmware changed.**
 Date: 2026-08-12
-Evidence: one session, Otto (9950011), QUORUM_1_13, 13 laps, 2,368 marker reads,
-captured by `ngr_runlog.py` on ngr-pi (decision 0028).
+Evidence: Otto (9950011), QUORUM_1_13, CW and CCW running, captured by
+`ngr_runlog.py` on ngr-pi (decision 0028).
+
+> **Revision 2, same day.** CCW running was added after the first draft, as
+> validation §8.1 asked for. It found four more phantoms, all rejected by the
+> proposed floor, and one finding materially worse than anything in revision 1 —
+> a corrupted speed estimate that **persisted for 33 seconds across a stop**
+> rather than spiking for a single sample. See §4b. Revision 1's directional
+> prediction was also wrong; see §8.1.
 
 ## 1. What is being asked
 
@@ -99,7 +106,56 @@ If CTO coordination consumes `est_mm_s`, it is currently consuming ten
 impossible values per session, at unpredictable moments, seven of them while
 running at constant throttle.
 
-## 5. What the change fixes, and what it does not
+## 4b. CCW validation, and a worse failure than §4 describes
+
+CCW running produced four further phantoms:
+
+| time | mm | obs | peak | ms | dt | follows real marker |
+|---|---|---|---|---|---|---|
+| 16:46:30.587 | 79 | N | 38 | 78 | 168 | mm 79, **S**, peak 169 |
+| 16:59:09.039 | 89 | S | 42 | 40 | 334 | mm 90, **N**, peak 152 |
+| 17:05:34.646 | 89 | S | 38 | 74 | 271 | mm 90, **N**, peak 168 |
+| 17:06:11.001 | 60 | S | 40 | 42 | 561 | mm 61, **N**, peak 213 |
+
+Every one is the opposite polarity to the real marker it follows — four for
+four, matching all nine CW cases. Every one has a duration well under the floor.
+
+**Running total: 13 phantoms, 13 rejected by `floor_ms=85`, 0 genuine markers
+lost, across both directions.**
+
+Note also what they follow: peaks of 169, 152, 168, 213 — the *strong* magnets.
+A stronger pole face throws a stronger return-flux lobe. This is a caution about
+"fix it with a bigger magnet": the replacement disk at mm 64 took that marker
+from ~120 to ~211, which by this pattern raises rather than lowers the phantom
+risk at that location.
+
+### The 33-second frozen speed estimate
+
+The mm 60 phantom did not produce a one-sample spike. It produced a wrong value
+that persisted across an entire station stop:
+
+```
+17:06:10.906  est_mm_s=139   last good value, decelerating
+17:06:11.001  marker mm=60 admitted — peak 40, ms 42, dt 561
+17:06:11.906  est_mm_s=561   300 mm / 0.561 s ≈ 535 mm/s
+17:06:21.910  moving=0       ← locomotive STOPPED
+17:06:11 .. 17:06:43         est_mm_s = 561, unchanged, for 33 s
+17:06:36.908  moving=1       ← departed, estimate still 561
+17:06:44.906  est_mm_s=9     recovers, 33 s after it went wrong
+```
+
+For roughly fifteen of those seconds the locomotive reported **561 mm/s while
+`moving=0`** — a stationary locomotive publishing a speed 1.6× its true maximum.
+
+This is worse than §4 in kind, not only degree. Ten transient spikes can be
+filtered by a consumer with a sanity bound. A value that is wrong, stable, and
+self-consistent for 33 seconds, spanning a stop and a departure, cannot be — it
+looks exactly like valid telemetry. Any CTO coordination consuming `est_mm_s`
+would have believed it.
+
+The internal signals do not contradict each other: `moving` and `est_mm_s`
+disagree, but nothing reconciles them. Only the IR spoke, or the fact that the
+wheels are visibly still, reveals it.
 
 **Fixes.** All nine short-duration secondary lobes, including the 15:18 read
 that fragmented an existing phantom into two crossings, shifted marker phase by
@@ -160,12 +216,24 @@ far. Raised so the constant is understood as a first step, not an end state.
 
 ## 8. Validation before flashing
 
-1. **CCW running.** The strongest available test, and the operator has proposed
-   it independently. If these are return-flux lobes, direction reverses which
-   side of each magnet the sensor traverses first: a *trailing* lobe in CW should
-   appear as a *leading* lobe in CCW — before the genuine marker rather than
-   after. Confirmation would establish the mechanism; absence would mean the
-   model is wrong and this proposal rests only on a duration statistic.
+1. **CCW running — DONE, see §4b.** The mechanism is confirmed: phantoms occur
+   in both directions, at opposite polarity to the magnet just passed, with
+   marginal peak and sub-80 ms duration.
+
+   **Revision 1's prediction was wrong and is corrected here.** It predicted a
+   trailing lobe in CW would present as a *leading* lobe in CCW, arriving before
+   the genuine marker. It does not. In both directions the phantom arrives
+   **after** the real marker, 168–561 ms behind it.
+
+   The likely reason is that the entry lobe is absorbed into the main detection —
+   the detector latches on the approach and does not release until the field
+   falls back through the exit threshold — whereas the exit lobe fires as a
+   separate event once it has released. Only the exit lobe can become its own
+   marker, and there is an exit lobe in either direction of travel.
+
+   This does not weaken the case; it corrects the model. The proposal never
+   depended on the directional signature, only on the duration separation, and
+   that separation held on entirely independent data.
 2. **A speed sweep**, to fix the real minimum dwell at the fastest speed the
    railway is actually operated at. The 122 ms figure is the binding constraint
    and it comes from PWM ≤ 120.
@@ -177,10 +245,17 @@ Items 1 and 2 are ordinary running with the logger enabled — no special protoc
 
 ## 9. For the reviewer
 
-- Is `floor_ms` applied before or after the value is used for speed estimation?
-  The proposal assumes rejection also suppresses the speed sample; if the
-  estimator sees the read regardless, §4 does not follow and the change is worth
-  much less.
+- **Is `floor_ms` applied before or after the value is used for speed
+  estimation?** This is the question the proposal most needs answered, and it
+  cannot be answered from telemetry. If rejection also suppresses the speed
+  sample, §4 and §4b follow and the change is worth a great deal. If the
+  estimator sees the read regardless, the change fixes marker phase only and the
+  33-second frozen estimate in §4b survives it — in which case a separate fix is
+  needed and is more urgent than this one.
+- **Why did `est_mm_s` hold 561 for 33 seconds rather than decaying?** A speed
+  estimate that does not age out while `moving=0` is arguably a defect
+  independent of phantoms. Should it be bounded by `moving`, or by a staleness
+  timeout, regardless of what causes the bad value?
 - Is 15 ms of margin above the observed spurious maximum enough, given only 9
   observations?
 - Does anything else consume marker duration such that raising the floor has a
