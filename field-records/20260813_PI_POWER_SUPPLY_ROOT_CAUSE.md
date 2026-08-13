@@ -3,6 +3,13 @@
 **Verdict: a failing 5 V supply destroyed two filesystems in 36 hours. Neither
 SD card was faulty. Replacing the supply fixed it; both cards work.**
 
+> **Companion record.** `field-records/20260813_PI_READONLY_UNDERVOLTAGE.md` was
+> written independently in a concurrent session and reached the same conclusion
+> from the 01:27 failure alone — worth reading as corroboration arrived at
+> separately. It stops at the diagnosis. This record adds the second card, the
+> fresh-boot measurement that removed the remaining doubt, the verification
+> after the supply was replaced, and the wrong turns taken along the way.
+
 ---
 
 ## The decisive measurement
