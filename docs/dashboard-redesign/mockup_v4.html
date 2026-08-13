@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html><head>
+<meta charset="utf-8">
+<title>NGR redesign — mockup v4</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+body { margin:0; font-family:Arial,sans-serif;
+  background:linear-gradient(135deg,#a8a8a8 0%,#d9d9d9 20%,#8f8f8f 50%,#d7d7d7 80%,#9c9c9c 100%);
+  background-attachment:fixed; color:#111; padding-bottom:60px; }
+
+.mock-bar { background:#111; color:#ddd; padding:8px 10px; font-size:12px;
+  display:flex; gap:6px; align-items:center; flex-wrap:wrap; position:sticky; top:0; z-index:50;
+  border-bottom:2px solid #444; }
+.mock-bar b { color:#ffd080; letter-spacing:1px; font-size:11px; }
+.mock-btn { background:#2a2a2a; border:1px solid #555; color:#ccc; font-size:11px;
+  padding:5px 9px; border-radius:5px; cursor:pointer; font-weight:bold; }
+.mock-btn.on { background:#1a3a5a; color:#b8e2ff; border-color:#2a6aa8; }
+
+.page-rule { max-width:700px; margin:26px auto 4px; text-align:center;
+  color:#222; font-size:13px; font-weight:800; letter-spacing:5px; }
+.page-sub { max-width:700px; margin:0 auto 10px; text-align:center;
+  color:#444; font-size:12px; font-weight:bold; }
+
+.nav-bar { display:flex; gap:5px; padding:10px 10px 0; max-width:700px; margin:0 auto; flex-wrap:wrap; }
+.nav-btn { flex:1; text-align:center; padding:12px 2px; border-radius:10px;
+  background:rgba(40,40,40,0.7); color:#ccc; font-size:14px; font-weight:bold;
+  border:2px solid #555; min-width:60px; }
+.nav-btn.active { background:rgba(60,60,60,0.95); color:#fff; border-color:#aaa; }
+
+.container { max-width:700px; margin:auto; padding:8px; }
+.panel { background:rgba(40,40,40,0.92); border-radius:12px; padding:10px 12px;
+  margin-bottom:8px; box-shadow:0 3px 8px rgba(0,0,0,0.3); border:2px solid #666; }
+.sec-hdr { text-align:center; color:#fff; font-size:17px; font-weight:800;
+  letter-spacing:2px; margin-bottom:8px; }
+
+.header-wrap { position:relative; display:flex; align-items:center; justify-content:flex-end; width:100%; }
+.loco-title { position:absolute; left:50%; transform:translateX(-50%);
+  font-size:24px; font-weight:bold; color:#fff; letter-spacing:2px; }
+.badge { font-size:13px; font-weight:bold; padding:5px 11px; border-radius:20px; letter-spacing:1px; }
+.badge-online  { background:#2a7a2a; color:#baffba; border:1px solid #4fc34f; }
+.badge-offline { background:#5a2020; color:#ffb3b3; border:1px solid #b32020; }
+
+.status-line { text-align:center; color:#fff; font-size:18px; font-weight:800;
+  letter-spacing:1px; margin-top:10px; min-height:22px; line-height:1.3; }
+.status-line.bad  { color:#ffb3b3; }
+.status-line.ok   { color:#baffba; }
+
+.motion-bar { text-align:center; font-size:26px; font-weight:900; letter-spacing:4px;
+  padding:14px 4px; border-radius:10px; margin-top:8px; }
+.motion-bar.moving  { background:#7a2508; color:#ffc9a8; border:2px solid #ff7040; }
+.motion-bar.stopped { background:#14421a; color:#a8ffa8; border:2px solid #2a7a2a; }
+.motion-bar.unknown { background:#333;    color:#ccc;    border:2px solid #777; }
+
+.dir-row { display:flex; gap:8px; }
+.dir-btn { flex:1; text-align:center; padding:16px 2px; border-radius:8px;
+  border:2px solid #555; background:rgba(30,30,30,0.8); color:#ccc;
+  font-size:17px; font-weight:bold; cursor:pointer; letter-spacing:1px; }
+.dir-btn.active-rev { background:#5a2020; color:#ffb3b3; border-color:#b32020; }
+.dir-btn.active-fwd { background:#1a4a1a; color:#7fff7f; border-color:#2a7a2a; }
+.dir-btn.locked { opacity:0.35; pointer-events:none; }
+.neutral-chip { text-align:center; margin-top:8px; font-size:14px; font-weight:bold;
+  letter-spacing:1px; padding:8px; border-radius:6px; display:none;
+  background:#4a4a10; color:#ffd080; border:1px solid #aa8800; }
+
+/* ---- throttle: commanded and actual, side by side, both large ---- */
+.thr-pair { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:10px; }
+.thr-cell { text-align:center; }
+.thr-num { font-size:38px; font-weight:bold; font-family:monospace; line-height:1; }
+.thr-num span { font-size:14px; color:#aaa; font-weight:normal; }
+.thr-cap { font-size:12px; font-weight:bold; letter-spacing:2px; margin-top:4px; }
+
+.slider-row { display:flex; align-items:center; gap:8px; }
+.slider-lbl { color:#ddd; font-size:15px; font-weight:bold; letter-spacing:1px; min-width:70px; }
+.slider-val { font-size:19px; font-weight:bold; min-width:36px; text-align:right; }
+.slider-val.green  { color:#4fc34f; }
+.slider-val.yellow { color:#ffc040; }
+input[type=range] { flex:1; height:30px; cursor:pointer; -webkit-appearance:none;
+  appearance:none; border-radius:15px; outline:none; border:none; background:#333; }
+input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; appearance:none;
+  width:34px; height:34px; border-radius:50%; background:#eee; border:2px solid #aaa;
+  cursor:pointer; box-shadow:0 2px 6px rgba(0,0,0,0.5); }
+input[type=range]:disabled { opacity:0.35; }
+input.interval-slider { height:34px; border-radius:17px;
+  background:linear-gradient(to right,#4a2a8a 0%,#7050c0 100%); }
+.gate-note { text-align:center; color:#ffe0a0; font-size:14px; font-weight:bold; margin-top:8px; }
+
+.estop-btn { width:100%; padding:20px; border-radius:50px; border:3px solid #b32020;
+  background:rgba(40,40,40,0.92); color:#ff5050; font-size:21px; font-weight:bold;
+  letter-spacing:3px; cursor:pointer; text-align:center; display:block; }
+.estop-btn.active { background:#b32020; color:#fff; }
+
+.num-row { display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; }
+.num-cell { text-align:center; }
+.big-num { font-size:46px; font-weight:bold; font-family:monospace; line-height:1; }
+.big-num.stale { color:#777 !important; }
+.num-lbl { font-size:19px; font-weight:bold; letter-spacing:2px; margin-top:4px; }
+.age-chip { font-size:11px; color:#999; min-height:13px; font-weight:bold; }
+.mm-landmark { text-align:center; font-size:15px; color:#9fd6ff; font-weight:bold;
+  letter-spacing:1px; margin-top:8px; }
+.mm-countdown { text-align:center; font-size:13px; color:#8ec8f0; font-weight:bold;
+  letter-spacing:1px; font-style:italic; margin-top:2px; }
+.telem-grid { display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; }
+.telem-cell { background:#222; border-radius:7px; padding:9px 4px; text-align:center; }
+.telem-lbl  { font-size:13px; color:#ddd; margin-bottom:3px; font-weight:bold; }
+.telem-val  { font-size:21px; font-weight:bold; color:#4fc34f; }
+.telem-val.stale { color:#777; }
+.telem-age  { font-size:10px; color:#999; min-height:12px; font-weight:bold; }
+
+.tickmm { display:inline-block; min-width:34px; text-align:center; padding:4px 3px;
+  border-radius:5px; font-family:monospace; font-size:13px; font-weight:bold; }
+.tickmm.a { background:#14421a; color:#7fff7f; border:1px solid #2a7a2a; }
+.tickmm.d { background:#5a2020; color:#ffb3b3; border:1px solid #b32020; }
+.tickgap { display:inline-block; padding:4px 5px; font-size:11px; font-weight:bold;
+  color:#ffd080; font-family:monospace; border-radius:5px;
+  background:rgba(90,74,16,0.45); border:1px dashed #aa8800; }
+.roll-lbl { color:#ddd; font-size:13px; font-weight:bold; letter-spacing:1px;
+  margin-top:2px; line-height:1.35; }
+.session-note { text-align:center; color:#999; font-size:12px; font-weight:bold; margin-top:10px; }
+
+.startup-rule { text-align:center; color:#ddd; font-size:15px; font-weight:800;
+  letter-spacing:4px; margin:22px 0 10px; position:relative; }
+.startup-rule:before, .startup-rule:after { content:""; position:absolute; top:50%;
+  width:26%; height:2px; background:rgba(40,40,40,0.55); }
+.startup-rule:before { left:2%; } .startup-rule:after { right:2%; }
+.sdir-row { display:flex; gap:8px; }
+.sdir-btn { flex:1; text-align:center; padding:14px 2px; border-radius:8px;
+  border:2px solid #555; background:rgba(30,30,30,0.8); color:#ccc;
+  font-size:15px; font-weight:bold; cursor:pointer; }
+.sdir-btn.active { background:#1a3a5a; color:#b8e2ff; border-color:#2a6aa8; }
+.badge-line { text-align:center; font-size:13px; font-weight:bold; letter-spacing:1px;
+  margin-top:8px; padding:7px; border-radius:6px; }
+.badge-line.ready { color:#a8ffa8; background:rgba(42,122,42,0.25); }
+.badge-line.set   { color:#d0b8ff; background:rgba(60,30,100,0.35); }
+.interval-display { text-align:center; font-size:30px; font-weight:bold;
+  color:#d0b8ff; letter-spacing:3px; margin-bottom:8px; font-family:monospace; }
+.interval-display span { font-size:14px; color:#aaa; font-weight:normal; }
+.interval-tick-row { display:flex; justify-content:space-between; color:#999;
+  font-size:10px; font-family:monospace; padding:0 2px; margin-top:2px; }
+.send-btn { display:block; width:100%; margin-top:10px; padding:13px; border-radius:8px;
+  border:2px solid #7050c0; background:rgba(60,30,100,0.5); color:#d0b8ff;
+  font-size:16px; font-weight:bold; letter-spacing:1px; cursor:pointer; }
+.auto-btn { display:block; width:100%; padding:18px; border-radius:10px;
+  border:2px solid #4a4; background:rgba(40,70,40,0.6); color:#7f7;
+  font-size:19px; font-weight:bold; letter-spacing:3px; cursor:pointer; text-align:center; }
+.auto-btn.on { background:#1a4a1a; color:#7fff7f; border-color:#2a7a2a; }
+
+.log-hdr { display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; }
+.log-btn { background:#333; border:1px solid #555; color:#ccc; font-size:12px;
+  padding:6px 13px; border-radius:6px; cursor:pointer; font-weight:bold; }
+.log-body { color:#fff; background:#0a0a0a; font-size:11px; font-family:monospace;
+  padding:8px; border-radius:6px; max-height:200px; overflow-y:auto; }
+
+/* ---- console A: columns ---- */
+.cgrid { display:grid; gap:5px; }
+.col-hdr { text-align:center; color:#fff; font-size:12px; font-weight:bold;
+  padding-bottom:5px; border-bottom:1px solid #444; margin-bottom:6px; white-space:nowrap; }
+.col-hdr .chip { display:block; font-size:9px; color:#8c8; margin-top:2px; min-height:11px; }
+.cbtn { border:none; border-radius:7px; padding:12px 2px; width:100%;
+  font-size:11px; font-weight:bold; cursor:pointer; margin-bottom:5px; color:#fff;
+  box-shadow:inset 0 1px 2px rgba(255,255,255,0.25),0 2px 4px rgba(0,0,0,0.4); }
+.btn-go { background:#3fa34d; } .btn-stop { background:#d9a21b; }
+.btn-ce { background:#2d6ea8; }
+.btn-end { background:#7a3a00; color:#ffd080; border:2px solid #aa6000; }
+.cbtn-estop { background:rgba(30,30,30,0.9); color:#ff5050; border:2px solid #b32020;
+  border-radius:7px; padding:11px 2px; width:100%; font-size:10px; font-weight:bold;
+  cursor:pointer; margin-bottom:5px; }
+.cbtn-estop-all { background:rgba(30,30,30,0.9); color:#ff5050; border:3px solid #b32020;
+  border-radius:7px; width:100%; height:88px; font-size:12px; font-weight:bold;
+  cursor:pointer; margin-bottom:5px; line-height:1.3; }
+.readout { background:#222; border-radius:5px; padding:5px 2px; margin-bottom:4px; text-align:center; }
+.readout .rl { font-size:9px; color:#aaa; font-weight:bold; }
+.readout .rv { font-size:15px; font-weight:bold; font-family:monospace; color:#eee; }
+.readout .rv.stale { color:#777; }
+
+/* ---- console B: one row per loco ---- */
+.locorow { background:rgba(30,30,30,0.75); border:1px solid #555; border-radius:10px;
+  padding:8px; margin-bottom:8px; }
+.locorow-top { display:flex; align-items:center; gap:8px; margin-bottom:7px; }
+.locorow-name { font-size:17px; font-weight:bold; color:#fff; letter-spacing:1px;
+  min-width:66px; }
+.locorow-chip { font-size:10px; color:#8c8; font-weight:bold; min-width:56px; }
+.locorow-btns { display:flex; gap:5px; flex:1; }
+.rbtn { flex:1; border:none; border-radius:7px; padding:11px 2px; font-size:12px;
+  font-weight:bold; color:#fff; cursor:pointer;
+  box-shadow:inset 0 1px 2px rgba(255,255,255,0.25),0 2px 4px rgba(0,0,0,0.4); }
+.rbtn-estop { flex:1; background:rgba(20,20,20,0.9); color:#ff5050; border:2px solid #b32020;
+  border-radius:7px; padding:9px 2px; font-size:12px; font-weight:bold; cursor:pointer; }
+.strip { display:grid; grid-template-columns:repeat(6,1fr); gap:4px; }
+.strip .s { background:#222; border-radius:5px; padding:4px 2px; text-align:center; }
+.strip .sl { font-size:9px; color:#aaa; font-weight:bold; }
+.strip .sv { font-size:15px; font-weight:bold; font-family:monospace; color:#eee; }
+.strip .sv.stale { color:#777; }
+</style></head><body>
+
+<div class="mock-bar">
+  <b>MOCKUP</b>
+  <button class="mock-btn on" id="sc-run"  onclick="setScenario('run')">RUNNING</button>
+  <button class="mock-btn"    id="sc-lost" onclick="setScenario('lost')">POSITION LOST</button>
+  <button class="mock-btn"    id="sc-stop" onclick="setScenario('estop')">E-STOP</button>
+  <button class="mock-btn"    id="sc-off"  onclick="setScenario('off')">OFFLINE</button>
+  <button class="mock-btn"    id="sc-auto" onclick="setScenario('auto')">ENLISTED / AUTO</button>
+</div>
+
+<div class="page-rule">— DASHBOARD —</div>
+
+<div class="nav-bar">
+  <div class="nav-btn">Console</div>
+  <div class="nav-btn active">Otto</div>
+  <div class="nav-btn">Toby</div>
+  <div class="nav-btn">Hans</div>
+  <div class="nav-btn">Franz</div>
+  <div class="nav-btn">Oscar</div>
+</div>
+
+<div class="container">
+
+  <div class="panel">
+    <div class="header-wrap">
+      <span class="loco-title">OTTO</span>
+      <span class="badge badge-online" id="online-badge">ONLINE</span>
+    </div>
+    <div class="status-line ok" id="status-line">TRACKING — MM 082</div>
+    <div class="motion-bar moving" id="motion-bar">MOVING</div>
+  </div>
+
+  <div class="panel">
+    <div class="sec-hdr">DIRECTION</div>
+    <div class="dir-row">
+      <button class="dir-btn" id="dir-rev">REV</button>
+      <button class="dir-btn active-fwd" id="dir-fwd">FOR</button>
+    </div>
+    <div class="neutral-chip" id="neutral-chip">REPORTING NEUTRAL</div>
+    <div class="gate-note" id="dir-gate"></div>
+  </div>
+
+  <div class="panel">
+    <div class="sec-hdr">THROTTLE</div>
+    <!-- commanded and actual, side by side, both large -->
+    <div class="thr-pair">
+      <div class="thr-cell">
+        <div class="thr-num" id="thr-display" style="color:#7fff9f;">148<span> / 255</span></div>
+        <div class="thr-cap" style="color:#7fff9f;">COMMANDED</div>
+      </div>
+      <div class="thr-cell">
+        <div class="thr-num" id="thr-actual" style="color:#9fd6ff;">146</div>
+        <div class="thr-cap" style="color:#9fd6ff;">PWM</div>
+      </div>
+    </div>
+    <div class="slider-row">
+      <input type="range" min="0" max="255" value="148" id="thr-slider"
+             oninput="document.getElementById('thr-val').textContent=this.value;
+                      document.getElementById('thr-display').innerHTML=this.value+'<span> / 255</span>';">
+      <span class="slider-val green" id="thr-val">148</span>
+    </div>
+    <div class="gate-note" id="thr-gate"></div>
+  </div>
+
+  <div class="panel">
+    <div class="slider-row">
+      <span class="slider-lbl">BRAKE</span>
+      <input type="range" min="0" max="255" value="0" id="brk-slider" style="direction:rtl;"
+             oninput="document.getElementById('brk-val').textContent=this.value;">
+      <span class="slider-val yellow" id="brk-val">0</span>
+    </div>
+  </div>
+
+  <div class="panel">
+    <button class="estop-btn" id="estop-btn" onclick="toggleEstop()">E-STOP</button>
+  </div>
+
+  <div class="panel">
+    <div class="num-row">
+      <div class="num-cell">
+        <div class="big-num" id="n-mm" style="color:#9fd6ff;">082</div>
+        <div class="age-chip" id="n-mm-age">0.4s</div>
+        <div class="num-lbl" style="color:#9fd6ff;">MM</div>
+      </div>
+      <div class="num-cell">
+        <div class="big-num" id="n-kph" style="color:#ffd080;">14</div>
+        <div class="age-chip" id="n-kph-age">0.4s</div>
+        <div class="num-lbl" style="color:#ffd080;">KPH</div>
+      </div>
+      <div class="num-cell">
+        <div class="big-num" id="n-pwm" style="color:#7fff9f;">146</div>
+        <div class="age-chip" id="n-pwm-age">0.4s</div>
+        <div class="num-lbl" style="color:#7fff9f;">PWM</div>
+      </div>
+    </div>
+    <div class="mm-landmark" id="mm-landmark">GRILLERS</div>
+    <div class="mm-countdown" id="mm-countdown">GRILLERS → 3</div>
+  </div>
+
+  <div class="panel">
+    <div class="telem-grid">
+      <div class="telem-cell"><div class="telem-lbl">Voltage</div>
+        <div class="telem-val" id="t-v">15.4</div><div class="telem-age" id="t-v-age">2s</div></div>
+      <div class="telem-cell"><div class="telem-lbl">Current</div>
+        <div class="telem-val" id="t-c">0.42</div><div class="telem-age" id="t-c-age">2s</div></div>
+      <div class="telem-cell"><div class="telem-lbl">Power</div>
+        <div class="telem-val" id="t-p">6.5</div><div class="telem-age" id="t-p-age">2s</div></div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="sec-hdr">POLARITY AGREEMENT</div>
+    <div style="display:flex;justify-content:space-around;align-items:center;">
+      <div style="text-align:center;">
+        <div class="big-num" id="agree-pct" style="font-size:44px;">20</div>
+        <div class="roll-lbl">AGREE %<br><span style="color:#9fd6ff;">LAST 10 VERDICTS</span></div>
+      </div>
+      <div style="text-align:left;color:#ddd;font-size:15px;font-weight:bold;line-height:1.7;">
+        <span style="color:#7fff7f;font-family:monospace;" id="a-n">2</span> agree<br>
+        <span style="color:#ff8080;font-family:monospace;" id="d-n">8</span> disagree
+      </div>
+    </div>
+    <div style="display:flex;gap:5px;justify-content:center;margin-top:10px;flex-wrap:wrap;align-items:center;" id="ticks"></div>
+    <div class="session-note" id="session-note">session total: 4015 agree / 30 disagree — 99%</div>
+  </div>
+
+  <div class="startup-rule">STARTUP</div>
+
+  <div class="panel">
+    <div class="sec-hdr">SESSION ORIENTATION</div>
+    <div class="sdir-row">
+      <button class="sdir-btn active">CLOCKWISE</button>
+      <button class="sdir-btn">COUNTER-CLOCKWISE</button>
+    </div>
+    <div class="badge-line ready">ORIENTATION SET — CW — CONFIRMED</div>
+  </div>
+
+  <div class="panel">
+    <div class="sec-hdr">SET LOCATION</div>
+    <div class="interval-display" id="iv-display"><b>081</b><span> — </span><b>082</b></div>
+    <input type="range" min="0" max="170" step="1" value="81" class="interval-slider"
+           oninput="slideIv(this.value)">
+    <div class="interval-tick-row">
+      <span>000</span><span>017</span><span>034</span><span>051</span><span>068</span>
+      <span>085</span><span>102</span><span>119</span><span>136</span><span>153</span><span>170</span>
+    </div>
+    <button class="send-btn">SET LOCATION</button>
+    <div class="badge-line set">LOCATION SET — 081-082 — CONFIRMED</div>
+  </div>
+
+  <div class="panel">
+    <button class="auto-btn" id="auto-btn" onclick="toggleAuto()">AUTO</button>
+    <div class="gate-note" id="auto-gate"></div>
+  </div>
+
+  <div class="panel">
+    <div class="log-hdr">
+      <span style="color:#ddd;font-size:13px;font-weight:bold;letter-spacing:1px;">PACKET LOG</span>
+      <button class="log-btn" onclick="toggleLog()" id="log-toggle">EXPAND</button>
+    </div>
+    <div class="log-body" id="log-body" style="display:none;">
+      12:41:07  state/mm  082<br>
+      12:41:06  nav  DISAGREE 082<br>
+      12:41:05  telem/voltage  15.40
+    </div>
+  </div>
+</div>
+
+<div class="page-rule">— CONSOLE A —</div>
+<div class="page-sub">the sketch, faithfully: one column per locomotive</div>
+
+<div class="container">
+  <div class="panel">
+    <div class="sec-hdr">AUTO OPERATIONS</div>
+    <div class="cgrid" id="cgrid"></div>
+  </div>
+</div>
+
+<div class="page-rule">— CONSOLE B —</div>
+<div class="page-sub">same controls, one row per locomotive</div>
+
+<div class="container">
+  <div class="panel">
+    <button class="estop-btn" style="padding:16px;font-size:19px;">&#9888; E-STOP ALL</button>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px;">
+      <button class="cbtn btn-end" style="font-size:13px;margin:0;">END AO</button>
+      <button class="cbtn btn-ce"  style="font-size:13px;margin:0;">CIRCUIT EXPRESS</button>
+    </div>
+  </div>
+  <div class="panel">
+    <div class="sec-hdr">AUTO OPERATIONS</div>
+    <div id="rowlist"></div>
+  </div>
+</div>
+
+<script>
+// Franz and Oscar have no IDs in the code yet — placeholders, flagged.
+var LOCOS = [
+  {id:'9950011', name:'Otto',  slug:'otto'},
+  {id:'9950012', name:'Toby',  slug:'toby'},
+  {id:'2095111', name:'Hans',  slug:'hans'},
+  {id:'TBD',     name:'Franz', slug:'franz'},
+  {id:'TBD',     name:'Oscar', slug:'oscar'}
+];
+
+// last ten verdicts, newest first. The 076 -> 067 step is a real gap:
+// nine markers passed without a verdict.
+var VERDICTS = [[82,0],[81,0],[80,1],[79,1],[78,0],[77,0],[76,0],[67,0],[66,0],[65,0]];
+
+var S = {
+  run:  {badge:'ONLINE', bcls:'badge-online', status:'TRACKING — MM 082', scls:'ok',
+         motion:'MOVING', mcls:'moving', mm:'082', kph:'14', pwm:'146', thr:148,
+         dir:'fwd', estop:false, auto:false, land:'GRILLERS', cd:'GRILLERS → 3',
+         v:'15.4', c:'0.42', p:'6.5', gate:'', autogate:''},
+  lost: {badge:'ONLINE', bcls:'badge-online',
+         status:'POSITION LOST — MANUAL CONTROL RETAINED — STOP AND RE-DECLARE WHEN READY', scls:'bad',
+         motion:'MOVING', mcls:'moving', mm:'—', kph:'11', pwm:'132', thr:132,
+         dir:'fwd', estop:false, auto:false, land:'', cd:'',
+         v:'15.2', c:'0.39', p:'5.9', gate:'', autogate:'AUTO UNAVAILABLE — POSITION NOT ESTABLISHED'},
+  estop:{badge:'ONLINE', bcls:'badge-online', status:'E-STOP ACTIVE', scls:'bad',
+         motion:'STOPPED', mcls:'stopped', mm:'082', kph:'0', pwm:'0', thr:0,
+         dir:'neu', estop:true, auto:false, land:'GRILLERS', cd:'',
+         v:'16.1', c:'0.02', p:'0.3', gate:'', autogate:'AUTO UNAVAILABLE — E-STOP ACTIVE'},
+  off:  {badge:'OFFLINE', bcls:'badge-offline',
+         status:'OTTO SILENT — NO TELEMETRY THIS SESSION', scls:'bad',
+         motion:'UNKNOWN', mcls:'unknown', mm:'—', kph:'—', pwm:'—', thr:0,
+         dir:'none', estop:false, auto:false, land:'', cd:'',
+         v:'—', c:'—', p:'—', gate:'', autogate:''},
+  auto: {badge:'ONLINE', bcls:'badge-online', status:'TRACKING — MM 082', scls:'ok',
+         motion:'MOVING', mcls:'moving', mm:'082', kph:'16', pwm:'168', thr:168,
+         dir:'fwd', estop:false, auto:true, land:'GRILLERS', cd:'GRILLERS → 3',
+         v:'15.3', c:'0.51', p:'7.8',
+         gate:'WITHDRAWN — DISPATCHER HAS CONTROL', autogate:'ENLISTED — RELEASE FROM CONSOLE'}
+};
+var cur = 'run';
+
+function setScenario(k){
+  cur = k;
+  var m = {run:'sc-run',lost:'sc-lost',estop:'sc-stop',off:'sc-off',auto:'sc-auto'};
+  Object.keys(m).forEach(function(n){ document.getElementById(m[n]).classList.toggle('on', n===k); });
+  render();
+}
+function rollingPct(v){
+  if(!v.length) return null;
+  return Math.round(100*v.filter(function(x){return x[1]===1;}).length/v.length);
+}
+
+function render(){
+  var s = S[cur], stale = (cur==='off');
+  document.getElementById('online-badge').textContent = s.badge;
+  document.getElementById('online-badge').className = 'badge '+s.bcls;
+  document.getElementById('status-line').textContent = s.status;
+  document.getElementById('status-line').className = 'status-line '+s.scls;
+  document.getElementById('motion-bar').textContent = s.motion;
+  document.getElementById('motion-bar').className = 'motion-bar '+s.mcls;
+
+  document.getElementById('dir-rev').className = 'dir-btn'+(s.dir==='rev'?' active-rev':'')+(s.auto?' locked':'');
+  document.getElementById('dir-fwd').className = 'dir-btn'+(s.dir==='fwd'?' active-fwd':'')+(s.auto?' locked':'');
+  document.getElementById('neutral-chip').style.display = (s.dir==='neu')?'block':'none';
+  document.getElementById('dir-gate').textContent = s.gate;
+
+  document.getElementById('thr-slider').value = s.thr;
+  document.getElementById('thr-val').textContent = s.thr;
+  document.getElementById('thr-display').innerHTML = s.thr+'<span> / 255</span>';
+  var ta = document.getElementById('thr-actual');
+  ta.textContent = s.pwm;
+  ta.style.color = stale ? '#777' : '#9fd6ff';
+  document.getElementById('thr-slider').disabled = s.auto;
+  document.getElementById('thr-gate').textContent = s.gate;
+  document.getElementById('brk-slider').disabled = s.auto;
+
+  var eb = document.getElementById('estop-btn');
+  eb.textContent = s.estop ? 'E-STOP ACTIVE — TAP TO CLEAR' : 'E-STOP';
+  eb.className = 'estop-btn'+(s.estop?' active':'');
+
+  [['n-mm',s.mm],['n-kph',s.kph],['n-pwm',s.pwm]].forEach(function(p){
+    var el=document.getElementById(p[0]); el.textContent=p[1];
+    el.classList.toggle('stale', stale || p[1]==='—');
+  });
+  ['n-mm-age','n-kph-age','n-pwm-age'].forEach(function(i){
+    document.getElementById(i).textContent = stale?'':'0.4s';
+  });
+  document.getElementById('mm-landmark').textContent = s.land;
+  document.getElementById('mm-countdown').textContent = s.cd;
+
+  [['t-v',s.v],['t-c',s.c],['t-p',s.p]].forEach(function(p){
+    var el=document.getElementById(p[0]); el.textContent=p[1];
+    el.classList.toggle('stale', p[1]==='—');
+  });
+
+  var pct = rollingPct(VERDICTS);
+  var pe = document.getElementById('agree-pct');
+  pe.textContent = (pct===null)?'—':pct;
+  pe.style.color = (pct===null)?'#777':(pct>=90?'#7fff7f':(pct>=70?'#ffd080':'#ff8080'));
+  document.getElementById('a-n').textContent = VERDICTS.filter(function(x){return x[1]===1;}).length;
+  document.getElementById('d-n').textContent = VERDICTS.filter(function(x){return x[1]!==1;}).length;
+
+  // ticks, oldest first, with an explicit marker for a gap in mm
+  var out = [], asc = VERDICTS.slice().reverse();
+  for (var i=0;i<asc.length;i++){
+    if (i>0){
+      var step = (asc[i][0] - asc[i-1][0] + 171) % 171;
+      if (step > 1) out.push('<span class="tickgap">'+(step-1)+' silent</span>');
+    }
+    out.push('<span class="tickmm '+(asc[i][1]===1?'a':'d')+'">'+('000'+asc[i][0]).slice(-3)+'</span>');
+  }
+  document.getElementById('ticks').innerHTML = out.join('');
+
+  var ab = document.getElementById('auto-btn');
+  ab.textContent = s.auto ? 'AUTO — DISPATCHER IN CONTROL' : 'AUTO';
+  ab.className = 'auto-btn'+(s.auto?' on':'');
+  document.getElementById('auto-gate').textContent = s.autogate;
+
+  renderConsoleA();
+  renderConsoleB();
+}
+
+function liveFor(idx){
+  var s = S[cur];
+  if (idx===0) return {online:(cur==='off'?'NO':'YES'), mm:s.mm, kph:s.kph, pwm:s.pwm,
+                       agree:'20', v:s.v, chip:s.auto?'RUNNING':'', es:s.estop};
+  if (idx===1) return {online:'YES', mm:'112', kph:'12', pwm:'138', agree:'100', v:'15.8',
+                       chip:'ENLISTED', es:false};
+  return {online:'NO', mm:'—', kph:'—', pwm:'—', agree:'—', v:'—', chip:'', es:false};
+}
+
+function renderConsoleA(){
+  var grid = document.getElementById('cgrid');
+  grid.style.gridTemplateColumns = 'repeat('+(LOCOS.length+1)+',1fr)';
+  var html = '<div><div class="col-hdr">ALL<span class="chip"></span></div>' +
+    '<button class="cbtn-estop-all">&#9888;<br>E-STOP<br>ALL</button>' +
+    '<button class="cbtn btn-end">END AO</button>' +
+    '<button class="cbtn btn-ce">CIRCUIT EXPRESS</button></div>';
+  LOCOS.forEach(function(l, idx){
+    var v = liveFor(idx);
+    var st = function(x){ return (x==='—')?' stale':''; };
+    html += '<div><div class="col-hdr">'+l.name.toUpperCase()+
+      '<span class="chip">'+v.chip+'</span></div>'+
+      '<button class="cbtn btn-go">BEGIN</button>'+
+      '<button class="cbtn btn-stop">PAUSE</button>'+
+      '<button class="cbtn-estop">'+(v.es?'CLEAR':'E-STOP')+'</button>'+
+      '<div class="readout"><div class="rl">ONLINE</div><div class="rv'+(v.online==='NO'?' stale':'')+'">'+v.online+'</div></div>'+
+      '<div class="readout"><div class="rl">MM</div><div class="rv'+st(v.mm)+'">'+v.mm+'</div></div>'+
+      '<div class="readout"><div class="rl">KPH</div><div class="rv'+st(v.kph)+'">'+v.kph+'</div></div>'+
+      '<div class="readout"><div class="rl">PWM</div><div class="rv'+st(v.pwm)+'">'+v.pwm+'</div></div>'+
+      '<div class="readout"><div class="rl">%AGR</div><div class="rv'+st(v.agree)+'">'+v.agree+'</div></div>'+
+      '<div class="readout"><div class="rl">VOLTS</div><div class="rv'+st(v.v)+'">'+v.v+'</div></div>'+
+      '</div>';
+  });
+  grid.innerHTML = html;
+}
+
+function renderConsoleB(){
+  var out = '';
+  LOCOS.forEach(function(l, idx){
+    var v = liveFor(idx);
+    var st = function(x){ return (x==='—')?' stale':''; };
+    out += '<div class="locorow">'+
+      '<div class="locorow-top">'+
+        '<span class="locorow-name">'+l.name.toUpperCase()+'</span>'+
+        '<span class="locorow-chip">'+(v.chip?'('+v.chip+')':'')+'</span>'+
+        '<span class="locorow-btns">'+
+          '<button class="rbtn btn-go">BEGIN</button>'+
+          '<button class="rbtn btn-stop">PAUSE</button>'+
+          '<button class="rbtn-estop">'+(v.es?'CLEAR':'E-STOP')+'</button>'+
+        '</span>'+
+      '</div>'+
+      '<div class="strip">'+
+        '<div class="s"><div class="sl">ONLINE</div><div class="sv'+(v.online==='NO'?' stale':'')+'">'+v.online+'</div></div>'+
+        '<div class="s"><div class="sl">MM</div><div class="sv'+st(v.mm)+'">'+v.mm+'</div></div>'+
+        '<div class="s"><div class="sl">KPH</div><div class="sv'+st(v.kph)+'">'+v.kph+'</div></div>'+
+        '<div class="s"><div class="sl">PWM</div><div class="sv'+st(v.pwm)+'">'+v.pwm+'</div></div>'+
+        '<div class="s"><div class="sl">% AGR</div><div class="sv'+st(v.agree)+'">'+v.agree+'</div></div>'+
+        '<div class="s"><div class="sl">VOLTS</div><div class="sv'+st(v.v)+'">'+v.v+'</div></div>'+
+      '</div></div>';
+  });
+  document.getElementById('rowlist').innerHTML = out;
+}
+
+function toggleEstop(){ S[cur].estop = !S[cur].estop; render(); }
+function toggleAuto(){ S[cur].auto = !S[cur].auto; render(); }
+function toggleLog(){
+  var b=document.getElementById('log-body'), t=document.getElementById('log-toggle');
+  var open = b.style.display==='none';
+  b.style.display = open?'':'none'; t.textContent = open?'COLLAPSE':'EXPAND';
+}
+function slideIv(v){
+  var mm=parseInt(v), lo=('000'+mm).slice(-3), hi=('000'+((mm+1)%171)).slice(-3);
+  document.getElementById('iv-display').innerHTML='<b>'+lo+'</b><span> — </span><b>'+hi+'</b>';
+}
+render();
+</script>
+</body></html>

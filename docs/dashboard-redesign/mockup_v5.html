@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html><head>
+<meta charset="utf-8">
+<title>NGR redesign — mockup v5</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+body { margin:0; font-family:Arial,sans-serif;
+  background:linear-gradient(135deg,#a8a8a8 0%,#d9d9d9 20%,#8f8f8f 50%,#d7d7d7 80%,#9c9c9c 100%);
+  background-attachment:fixed; color:#111; padding-bottom:60px; }
+
+.mock-bar { background:#111; color:#ddd; padding:8px 10px; font-size:12px;
+  display:flex; gap:6px; align-items:center; flex-wrap:wrap; position:sticky; top:0; z-index:50;
+  border-bottom:2px solid #444; }
+.mock-bar b { color:#ffd080; letter-spacing:1px; font-size:11px; }
+.mock-bar .sep { color:#666; margin:0 2px; }
+.mock-btn { background:#2a2a2a; border:1px solid #555; color:#ccc; font-size:11px;
+  padding:5px 9px; border-radius:5px; cursor:pointer; font-weight:bold; }
+.mock-btn.on { background:#1a3a5a; color:#b8e2ff; border-color:#2a6aa8; }
+.mock-btn.present { background:#1a4a1a; color:#7fff7f; border-color:#2a7a2a; }
+
+.page-rule { max-width:700px; margin:26px auto 4px; text-align:center;
+  color:#222; font-size:13px; font-weight:800; letter-spacing:5px; }
+.page-sub { max-width:700px; margin:0 auto 10px; text-align:center;
+  color:#444; font-size:12px; font-weight:bold; padding:0 12px; }
+
+.nav-bar { display:flex; gap:5px; padding:10px 10px 0; max-width:700px; margin:0 auto; flex-wrap:wrap; }
+.nav-btn { flex:1; text-align:center; padding:12px 2px; border-radius:10px;
+  background:rgba(40,40,40,0.7); color:#ccc; font-size:14px; font-weight:bold;
+  border:2px solid #555; min-width:60px; }
+.nav-btn.active { background:rgba(60,60,60,0.95); color:#fff; border-color:#aaa; }
+
+.container { max-width:700px; margin:auto; padding:8px; }
+.panel { background:rgba(40,40,40,0.92); border-radius:12px; padding:10px 12px;
+  margin-bottom:8px; box-shadow:0 3px 8px rgba(0,0,0,0.3); border:2px solid #666; }
+.sec-hdr { text-align:center; color:#fff; font-size:17px; font-weight:800;
+  letter-spacing:2px; margin-bottom:8px; }
+
+.header-wrap { position:relative; display:flex; align-items:center; justify-content:flex-end; width:100%; }
+.loco-title { position:absolute; left:50%; transform:translateX(-50%);
+  font-size:24px; font-weight:bold; color:#fff; letter-spacing:2px; }
+.badge { font-size:13px; font-weight:bold; padding:5px 11px; border-radius:20px; letter-spacing:1px; }
+.badge-online { background:#2a7a2a; color:#baffba; border:1px solid #4fc34f; }
+.status-line { text-align:center; color:#baffba; font-size:18px; font-weight:800;
+  letter-spacing:1px; margin-top:10px; }
+.motion-bar { text-align:center; font-size:26px; font-weight:900; letter-spacing:4px;
+  padding:14px 4px; border-radius:10px; margin-top:8px;
+  background:#7a2508; color:#ffc9a8; border:2px solid #ff7040; }
+
+.dir-row { display:flex; gap:8px; }
+.dir-btn { flex:1; text-align:center; padding:16px 2px; border-radius:8px;
+  border:2px solid #555; background:rgba(30,30,30,0.8); color:#ccc;
+  font-size:17px; font-weight:bold; cursor:pointer; letter-spacing:1px; }
+.dir-btn.active-fwd { background:#1a4a1a; color:#7fff7f; border-color:#2a7a2a; }
+
+.thr-pair { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:10px; }
+.thr-cell { text-align:center; }
+.thr-num { font-size:38px; font-weight:bold; font-family:monospace; line-height:1; }
+.thr-num span { font-size:14px; color:#aaa; font-weight:normal; }
+.thr-cap { font-size:12px; font-weight:bold; letter-spacing:2px; margin-top:4px; }
+
+.slider-row { display:flex; align-items:center; gap:8px; }
+.slider-lbl { color:#ddd; font-size:15px; font-weight:bold; letter-spacing:1px; min-width:70px; }
+.slider-val { font-size:19px; font-weight:bold; min-width:36px; text-align:right; }
+.slider-val.green { color:#4fc34f; } .slider-val.yellow { color:#ffc040; }
+input[type=range] { flex:1; height:30px; cursor:pointer; -webkit-appearance:none;
+  appearance:none; border-radius:15px; outline:none; border:none; background:#333; }
+input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; appearance:none;
+  width:34px; height:34px; border-radius:50%; background:#eee; border:2px solid #aaa;
+  cursor:pointer; box-shadow:0 2px 6px rgba(0,0,0,0.5); }
+input.interval-slider { height:34px; border-radius:17px;
+  background:linear-gradient(to right,#4a2a8a 0%,#7050c0 100%); }
+
+.estop-btn { width:100%; padding:20px; border-radius:50px; border:3px solid #b32020;
+  background:rgba(40,40,40,0.92); color:#ff5050; font-size:21px; font-weight:bold;
+  letter-spacing:3px; cursor:pointer; text-align:center; display:block; }
+
+.num-row { display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; }
+.num-cell { text-align:center; }
+.big-num { font-size:46px; font-weight:bold; font-family:monospace; line-height:1; }
+.num-lbl { font-size:19px; font-weight:bold; letter-spacing:2px; margin-top:4px; }
+.age-chip { font-size:11px; color:#999; min-height:13px; font-weight:bold; }
+.mm-landmark { text-align:center; font-size:15px; color:#9fd6ff; font-weight:bold; margin-top:8px; }
+.telem-grid { display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; }
+.telem-cell { background:#222; border-radius:7px; padding:9px 4px; text-align:center; }
+.telem-lbl { font-size:13px; color:#ddd; margin-bottom:3px; font-weight:bold; }
+.telem-val { font-size:21px; font-weight:bold; color:#4fc34f; }
+.telem-age { font-size:10px; color:#999; min-height:12px; font-weight:bold; }
+
+.tickmm { display:inline-block; min-width:34px; text-align:center; padding:4px 3px;
+  border-radius:5px; font-family:monospace; font-size:13px; font-weight:bold; }
+.tickmm.a { background:#14421a; color:#7fff7f; border:1px solid #2a7a2a; }
+.tickmm.d { background:#5a2020; color:#ffb3b3; border:1px solid #b32020; }
+.tickgap { display:inline-block; padding:4px 5px; font-size:11px; font-weight:bold;
+  color:#ffd080; font-family:monospace; border-radius:5px;
+  background:rgba(90,74,16,0.45); border:1px dashed #aa8800; }
+.roll-lbl { color:#ddd; font-size:13px; font-weight:bold; letter-spacing:1px; margin-top:2px; line-height:1.35; }
+.session-note { text-align:center; color:#999; font-size:12px; font-weight:bold; margin-top:10px; }
+
+.startup-rule { text-align:center; color:#ddd; font-size:15px; font-weight:800;
+  letter-spacing:4px; margin:22px 0 10px; position:relative; }
+.startup-rule:before, .startup-rule:after { content:""; position:absolute; top:50%;
+  width:26%; height:2px; background:rgba(40,40,40,0.55); }
+.startup-rule:before { left:2%; } .startup-rule:after { right:2%; }
+.sdir-row { display:flex; gap:8px; }
+.sdir-btn { flex:1; text-align:center; padding:14px 2px; border-radius:8px;
+  border:2px solid #555; background:rgba(30,30,30,0.8); color:#ccc;
+  font-size:15px; font-weight:bold; cursor:pointer; }
+.sdir-btn.active { background:#1a3a5a; color:#b8e2ff; border-color:#2a6aa8; }
+.badge-line { text-align:center; font-size:13px; font-weight:bold; letter-spacing:1px;
+  margin-top:8px; padding:7px; border-radius:6px; }
+.badge-line.ready { color:#a8ffa8; background:rgba(42,122,42,0.25); }
+.badge-line.set { color:#d0b8ff; background:rgba(60,30,100,0.35); }
+.interval-display { text-align:center; font-size:30px; font-weight:bold;
+  color:#d0b8ff; letter-spacing:3px; margin-bottom:8px; font-family:monospace; }
+.interval-display span { font-size:14px; color:#aaa; font-weight:normal; }
+.interval-tick-row { display:flex; justify-content:space-between; color:#999;
+  font-size:10px; font-family:monospace; padding:0 2px; margin-top:2px; }
+.send-btn { display:block; width:100%; margin-top:10px; padding:13px; border-radius:8px;
+  border:2px solid #7050c0; background:rgba(60,30,100,0.5); color:#d0b8ff;
+  font-size:16px; font-weight:bold; letter-spacing:1px; cursor:pointer; }
+.auto-btn { display:block; width:100%; padding:18px; border-radius:10px;
+  border:2px solid #4a4; background:rgba(40,70,40,0.6); color:#7f7;
+  font-size:19px; font-weight:bold; letter-spacing:3px; cursor:pointer; text-align:center; }
+
+.log-hdr { display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; }
+.log-btn { background:#333; border:1px solid #555; color:#ccc; font-size:12px;
+  padding:6px 13px; border-radius:6px; cursor:pointer; font-weight:bold; }
+.log-body { color:#fff; background:#0a0a0a; font-size:11px; font-family:monospace;
+  padding:8px; border-radius:6px; }
+
+/* ---- console: bubble groups ---- */
+.bubble { border:2px solid #4a6a8a; border-radius:11px; padding:8px; margin-bottom:10px;
+  background:rgba(20,32,44,0.55); }
+.bubble-hdr { display:flex; align-items:center; justify-content:space-between;
+  margin-bottom:7px; padding-bottom:5px; border-bottom:1px solid #3a5a7a; }
+.bubble-name { color:#b8e2ff; font-size:13px; font-weight:bold; letter-spacing:2px; }
+.bubble-sep { font-size:12px; font-weight:bold; font-family:monospace; }
+.unassigned { border:2px dashed #666; border-radius:11px; padding:8px; margin-bottom:10px;
+  background:rgba(30,30,30,0.4); }
+.unassigned .bubble-name { color:#aaa; }
+
+.locorow { background:rgba(30,30,30,0.8); border:1px solid #555; border-radius:9px;
+  padding:8px; margin-bottom:6px; }
+.locorow:last-child { margin-bottom:0; }
+.locorow-top { display:flex; align-items:center; gap:7px; margin-bottom:7px; }
+.locorow-name { font-size:16px; font-weight:bold; color:#fff; letter-spacing:1px; min-width:62px; }
+.role { font-size:9px; font-weight:bold; letter-spacing:1px; padding:3px 6px;
+  border-radius:4px; white-space:nowrap; }
+.role.lead  { background:#1a3a5a; color:#b8e2ff; border:1px solid #2a6aa8; }
+.role.trail { background:#3a2a5a; color:#d0b8ff; border:1px solid #6a4aa8; }
+.locorow-btns { display:flex; gap:5px; flex:1; justify-content:flex-end; }
+.rbtn { border:none; border-radius:7px; padding:10px 8px; font-size:11px;
+  font-weight:bold; color:#fff; cursor:pointer;
+  box-shadow:inset 0 1px 2px rgba(255,255,255,0.25),0 2px 4px rgba(0,0,0,0.4); }
+.btn-go { background:#3fa34d; } .btn-stop { background:#d9a21b; }
+.btn-ce { background:#2d6ea8; }
+.btn-end { background:#7a3a00; color:#ffd080; border:2px solid #aa6000; }
+.rbtn-estop { background:rgba(20,20,20,0.9); color:#ff5050; border:2px solid #b32020;
+  border-radius:7px; padding:8px 8px; font-size:11px; font-weight:bold; cursor:pointer; }
+.strip { display:grid; grid-template-columns:repeat(6,1fr); gap:4px; }
+.strip .s { background:#222; border-radius:5px; padding:4px 2px; text-align:center; }
+.strip .sl { font-size:9px; color:#aaa; font-weight:bold; }
+.strip .sv { font-size:15px; font-weight:bold; font-family:monospace; color:#eee; }
+.strip .sv.stale { color:#777; }
+
+.notreal { background:rgba(90,74,16,0.35); border:1px dashed #aa8800; border-radius:7px;
+  color:#ffe0a0; font-size:11px; font-weight:bold; padding:7px 9px; margin-bottom:10px;
+  line-height:1.4; }
+.empty-note { color:#aaa; font-size:13px; font-weight:bold; text-align:center; padding:14px 8px; }
+</style></head><body>
+
+<div class="mock-bar">
+  <b>MOCKUP</b>
+  <span style="color:#888;">present:</span>
+  <button class="mock-btn present" id="p-0" onclick="togglePresent(0)">Otto</button>
+  <button class="mock-btn present" id="p-1" onclick="togglePresent(1)">Toby</button>
+  <button class="mock-btn present" id="p-2" onclick="togglePresent(2)">Hans</button>
+  <button class="mock-btn present" id="p-3" onclick="togglePresent(3)">Franz</button>
+  <button class="mock-btn"         id="p-4" onclick="togglePresent(4)">Oscar</button>
+  <span class="sep">|</span>
+  <button class="mock-btn on" id="g-on" onclick="setGrouping(true)">bubbles</button>
+  <button class="mock-btn"    id="g-off" onclick="setGrouping(false)">flat</button>
+</div>
+
+<div class="page-rule">— CONSOLE —</div>
+<div class="page-sub">columns are not declared anywhere: a locomotive appears when it is heard</div>
+
+<div class="container">
+  <div class="nav-bar" id="navbar"></div>
+
+  <div class="panel" style="margin-top:8px;">
+    <button class="estop-btn" style="padding:16px;font-size:19px;">&#9888; E-STOP ALL</button>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px;">
+      <button class="rbtn btn-end" style="font-size:13px;padding:13px;">END AO</button>
+      <button class="rbtn btn-ce"  style="font-size:13px;padding:13px;">CIRCUIT EXPRESS</button>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="sec-hdr">AUTO OPERATIONS</div>
+    <div class="notreal" id="notreal">
+      BUBBLE GROUPING IS NOT REPORTED BY ANY FIRMWARE. Roles and separation below are
+      drawn from a console-side pairing, not from anything a locomotive has said.
+      Nothing publishes lead/trailing today — CTO/Bubble v2 in the development sequence.
+    </div>
+    <div id="grouplist"></div>
+  </div>
+</div>
+
+<div class="page-rule">— DASHBOARD —</div>
+<div class="page-sub">unchanged from v4</div>
+
+<div class="container">
+  <div class="panel">
+    <div class="header-wrap">
+      <span class="loco-title">OTTO</span>
+      <span class="badge badge-online">ONLINE</span>
+    </div>
+    <div class="status-line">TRACKING — MM 082</div>
+    <div class="motion-bar">MOVING</div>
+  </div>
+
+  <div class="panel">
+    <div class="sec-hdr">DIRECTION</div>
+    <div class="dir-row">
+      <button class="dir-btn">REV</button>
+      <button class="dir-btn active-fwd">FOR</button>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="sec-hdr">THROTTLE</div>
+    <div class="thr-pair">
+      <div class="thr-cell">
+        <div class="thr-num" id="thr-display" style="color:#7fff9f;">148<span> / 255</span></div>
+        <div class="thr-cap" style="color:#7fff9f;">COMMANDED</div>
+      </div>
+      <div class="thr-cell">
+        <div class="thr-num" style="color:#9fd6ff;">146</div>
+        <div class="thr-cap" style="color:#9fd6ff;">PWM</div>
+      </div>
+    </div>
+    <div class="slider-row">
+      <input type="range" min="0" max="255" value="148" id="thr-slider"
+             oninput="document.getElementById('thr-val').textContent=this.value;
+                      document.getElementById('thr-display').innerHTML=this.value+'<span> / 255</span>';">
+      <span class="slider-val green" id="thr-val">148</span>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="slider-row">
+      <span class="slider-lbl">BRAKE</span>
+      <input type="range" min="0" max="255" value="0" style="direction:rtl;"
+             oninput="document.getElementById('brk-val').textContent=this.value;">
+      <span class="slider-val yellow" id="brk-val">0</span>
+    </div>
+  </div>
+
+  <div class="panel"><button class="estop-btn">E-STOP</button></div>
+
+  <div class="panel">
+    <div class="num-row">
+      <div class="num-cell"><div class="big-num" style="color:#9fd6ff;">082</div>
+        <div class="age-chip">0.4s</div><div class="num-lbl" style="color:#9fd6ff;">MM</div></div>
+      <div class="num-cell"><div class="big-num" style="color:#ffd080;">14</div>
+        <div class="age-chip">0.4s</div><div class="num-lbl" style="color:#ffd080;">KPH</div></div>
+      <div class="num-cell"><div class="big-num" style="color:#7fff9f;">146</div>
+        <div class="age-chip">0.4s</div><div class="num-lbl" style="color:#7fff9f;">PWM</div></div>
+    </div>
+    <div class="mm-landmark">GRILLERS → 3</div>
+  </div>
+
+  <div class="panel">
+    <div class="telem-grid">
+      <div class="telem-cell"><div class="telem-lbl">Voltage</div>
+        <div class="telem-val">15.4</div><div class="telem-age">2s</div></div>
+      <div class="telem-cell"><div class="telem-lbl">Current</div>
+        <div class="telem-val">0.42</div><div class="telem-age">2s</div></div>
+      <div class="telem-cell"><div class="telem-lbl">Power</div>
+        <div class="telem-val">6.5</div><div class="telem-age">2s</div></div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="sec-hdr">POLARITY AGREEMENT</div>
+    <div style="display:flex;justify-content:space-around;align-items:center;">
+      <div style="text-align:center;">
+        <div class="big-num" id="agree-pct" style="font-size:44px;color:#ff8080;">20</div>
+        <div class="roll-lbl">AGREE %<br><span style="color:#9fd6ff;">LAST 10 VERDICTS</span></div>
+      </div>
+      <div style="text-align:left;color:#ddd;font-size:15px;font-weight:bold;line-height:1.7;">
+        <span style="color:#7fff7f;font-family:monospace;">2</span> agree<br>
+        <span style="color:#ff8080;font-family:monospace;">8</span> disagree
+      </div>
+    </div>
+    <div style="display:flex;gap:5px;justify-content:center;margin-top:10px;flex-wrap:wrap;align-items:center;" id="ticks"></div>
+    <div class="session-note">session total: 4015 agree / 30 disagree — 99%</div>
+  </div>
+
+  <div class="startup-rule">STARTUP</div>
+
+  <div class="panel">
+    <div class="sec-hdr">SESSION ORIENTATION</div>
+    <div class="sdir-row">
+      <button class="sdir-btn active">CLOCKWISE</button>
+      <button class="sdir-btn">COUNTER-CLOCKWISE</button>
+    </div>
+    <div class="badge-line ready">ORIENTATION SET — CW — CONFIRMED</div>
+  </div>
+
+  <div class="panel">
+    <div class="sec-hdr">SET LOCATION</div>
+    <div class="interval-display" id="iv-display"><b>081</b><span> — </span><b>082</b></div>
+    <input type="range" min="0" max="170" step="1" value="81" class="interval-slider"
+           oninput="slideIv(this.value)">
+    <div class="interval-tick-row">
+      <span>000</span><span>017</span><span>034</span><span>051</span><span>068</span>
+      <span>085</span><span>102</span><span>119</span><span>136</span><span>153</span><span>170</span>
+    </div>
+    <button class="send-btn">SET LOCATION</button>
+    <div class="badge-line set">LOCATION SET — 081-082 — CONFIRMED</div>
+  </div>
+
+  <div class="panel"><button class="auto-btn">AUTO</button></div>
+</div>
+
+<script>
+var MM_TOTAL = 171;
+
+// Display names only. An unknown id still gets a row, labelled with its number.
+var NAMES = {'9950011':'Otto','9950012':'Toby','2095111':'Hans','9950013':'Franz','9950014':'Oscar'};
+
+// The mock "fleet". `present` stands in for heard-recently on a NON-RETAINED
+// message — the only thing allowed to bring a row into being.
+var FLEET = [
+  {id:'9950011', present:true,  mm:82,  kph:'14', pwm:'146', agree:'20',  v:'15.4', rear:80, front:85, chip:'RUNNING'},
+  {id:'9950012', present:true,  mm:75,  kph:'12', pwm:'138', agree:'100', v:'15.8', rear:73, front:78, chip:'RUNNING'},
+  {id:'2095111', present:true,  mm:140, kph:'13', pwm:'142', agree:'98',  v:'15.1', rear:138,front:143,chip:'ENLISTED'},
+  {id:'9950013', present:true,  mm:132, kph:'11', pwm:'130', agree:'97',  v:'15.6', rear:130,front:135,chip:'ENLISTED'},
+  {id:'9950014', present:false, mm:null,kph:'—',  pwm:'—',   agree:'—',   v:'—',    rear:null,front:null,chip:''}
+];
+
+// Console-side pairing. Nothing publishes this.
+var BUBBLES = [
+  {name:'BUBBLE 1', lead:'9950011', trail:'9950012'},
+  {name:'BUBBLE 2', lead:'2095111', trail:'9950013'}
+];
+
+var grouped = true;
+
+function togglePresent(i){
+  FLEET[i].present = !FLEET[i].present;
+  document.getElementById('p-'+i).classList.toggle('present', FLEET[i].present);
+  render();
+}
+function setGrouping(g){
+  grouped = g;
+  document.getElementById('g-on').classList.toggle('on', g);
+  document.getElementById('g-off').classList.toggle('on', !g);
+  document.getElementById('notreal').style.display = g ? '' : 'none';
+  render();
+}
+function byId(id){ for(var i=0;i<FLEET.length;i++) if(FLEET[i].id===id) return FLEET[i]; return null; }
+function nameOf(id){ return NAMES[id] || id; }
+
+// Forward gap, in markers, from the trailing loco's front to the lead's rear.
+function separation(lead, trail){
+  if(!lead || !trail || lead.rear===null || trail.front===null) return null;
+  return (lead.rear - trail.front + MM_TOTAL) % MM_TOTAL;
+}
+
+function rowHtml(l, role){
+  var st = function(x){ return (x==='—')?' stale':''; };
+  var mm = (l.mm===null) ? '—' : ('000'+l.mm).slice(-3);
+  return '<div class="locorow">'+
+    '<div class="locorow-top">'+
+      '<span class="locorow-name">'+nameOf(l.id).toUpperCase()+'</span>'+
+      (role ? '<span class="role '+role.cls+'">'+role.txt+'</span>' : '')+
+      '<span class="locorow-btns">'+
+        '<button class="rbtn btn-go">BEGIN</button>'+
+        '<button class="rbtn btn-stop">PAUSE</button>'+
+        '<button class="rbtn-estop">E-STOP</button>'+
+      '</span>'+
+    '</div>'+
+    '<div class="strip">'+
+      '<div class="s"><div class="sl">ONLINE</div><div class="sv">YES</div></div>'+
+      '<div class="s"><div class="sl">MM</div><div class="sv'+st(mm)+'">'+mm+'</div></div>'+
+      '<div class="s"><div class="sl">KPH</div><div class="sv'+st(l.kph)+'">'+l.kph+'</div></div>'+
+      '<div class="s"><div class="sl">PWM</div><div class="sv'+st(l.pwm)+'">'+l.pwm+'</div></div>'+
+      '<div class="s"><div class="sl">% AGR</div><div class="sv'+st(l.agree)+'">'+l.agree+'</div></div>'+
+      '<div class="s"><div class="sl">VOLTS</div><div class="sv'+st(l.v)+'">'+l.v+'</div></div>'+
+    '</div></div>';
+}
+
+function render(){
+  // nav bar: discovered locomotives only, stable order (fleet order = id order)
+  var present = FLEET.filter(function(l){ return l.present; });
+  var nav = '<div class="nav-btn active">Console</div>';
+  present.forEach(function(l){ nav += '<div class="nav-btn">'+nameOf(l.id)+'</div>'; });
+  document.getElementById('navbar').innerHTML = nav;
+
+  var out = '';
+  if(!present.length){
+    out = '<div class="empty-note">No locomotive has been heard this session.</div>';
+    document.getElementById('grouplist').innerHTML = out;
+    return;
+  }
+
+  if(!grouped){
+    present.forEach(function(l){ out += rowHtml(l, null); });
+    document.getElementById('grouplist').innerHTML = out;
+    return;
+  }
+
+  var claimed = {};
+  BUBBLES.forEach(function(b){
+    var lead = byId(b.lead), trail = byId(b.trail);
+    var lp = lead && lead.present, tp = trail && trail.present;
+    if(!lp && !tp) return;                       // no bubble without a member present
+    if(lp) claimed[b.lead]=1;
+    if(tp) claimed[b.trail]=1;
+
+    var sep = (lp && tp) ? separation(lead, trail) : null;
+    var sepTxt, sepCol;
+    if(sep===null){ sepTxt = 'SEPARATION —'; sepCol = '#888'; }
+    else {
+      sepTxt = 'SEPARATION ' + sep + (sep===1?' MARKER':' MARKERS');
+      sepCol = sep>=5 ? '#7fff7f' : (sep>=3 ? '#ffd080' : '#ff8080');
+    }
+    out += '<div class="bubble"><div class="bubble-hdr">'+
+      '<span class="bubble-name">'+b.name+'</span>'+
+      '<span class="bubble-sep" style="color:'+sepCol+';">'+sepTxt+'</span></div>';
+    if(lp) out += rowHtml(lead,  {cls:'lead',  txt:'LEAD'});
+    if(tp) out += rowHtml(trail, {cls:'trail', txt:'TRAILING'});
+    out += '</div>';
+  });
+
+  var loose = present.filter(function(l){ return !claimed[l.id]; });
+  if(loose.length){
+    out += '<div class="unassigned"><div class="bubble-hdr">'+
+      '<span class="bubble-name">NOT IN A BUBBLE</span></div>';
+    loose.forEach(function(l){ out += rowHtml(l, null); });
+    out += '</div>';
+  }
+  document.getElementById('grouplist').innerHTML = out;
+}
+
+// dashboard bits
+var VERDICTS = [[82,0],[81,0],[80,1],[79,1],[78,0],[77,0],[76,0],[67,0],[66,0],[65,0]];
+(function(){
+  var out = [], asc = VERDICTS.slice().reverse();
+  for(var i=0;i<asc.length;i++){
+    if(i>0){
+      var step = (asc[i][0]-asc[i-1][0]+MM_TOTAL)%MM_TOTAL;
+      if(step>1) out.push('<span class="tickgap">'+(step-1)+' silent</span>');
+    }
+    out.push('<span class="tickmm '+(asc[i][1]===1?'a':'d')+'">'+('000'+asc[i][0]).slice(-3)+'</span>');
+  }
+  document.getElementById('ticks').innerHTML = out.join('');
+})();
+function slideIv(v){
+  var mm=parseInt(v), lo=('000'+mm).slice(-3), hi=('000'+((mm+1)%MM_TOTAL)).slice(-3);
+  document.getElementById('iv-display').innerHTML='<b>'+lo+'</b><span> — </span><b>'+hi+'</b>';
+}
+render();
+</script>
+</body></html>
