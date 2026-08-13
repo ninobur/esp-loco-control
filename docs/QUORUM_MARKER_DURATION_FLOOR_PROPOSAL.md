@@ -16,8 +16,13 @@ Evidence: Otto (9950011), QUORUM_1_13, CW and CCW running, captured by
 
 Raise `floor_ms` from **40** to **85**.
 
-That single number rejects every spurious marker read observed in the session
-(9 of 9) and rejects none of the genuine ones (0 of 2,359).
+That single number rejects every spurious marker read observed — **13 of 13,
+across both directions of travel** — and rejects none of the genuine ones
+(0 of 2,359). Nine were found running CW (§2), four more running CCW (§4b).
+
+It is **not** a fix for the speed estimate, despite §4. See §9 — the estimate is
+stale independently of phantoms, and this change removes the only *detectable*
+symptom of that. `docs/QUORUM_SPEED_STALENESS_FINDING.md` is the companion.
 
 A second, larger change — making the floor scale with measured speed rather than
 being a constant — is described in §7 and is **not** part of this request.
@@ -157,7 +162,9 @@ The internal signals do not contradict each other: `moving` and `est_mm_s`
 disagree, but nothing reconciles them. Only the IR spoke, or the fact that the
 wheels are visibly still, reveals it.
 
-**Fixes.** All nine short-duration secondary lobes, including the 15:18 read
+## 5. What the change fixes, and what it does not
+
+**Fixes.** All thirteen short-duration secondary lobes, including the 15:18 read
 that fragmented an existing phantom into two crossings, shifted marker phase by
 one, and produced the session's only four DISAGREE events. And, consequently,
 all ten corrupted speed samples.
@@ -243,19 +250,53 @@ far. Raised so the constant is understood as a first step, not an end state.
 
 Items 1 and 2 are ordinary running with the logger enabled — no special protocol.
 
-## 9. For the reviewer
+## 9. Reviewer response — CODEX, 2026-08-12
 
-- **Is `floor_ms` applied before or after the value is used for speed
-  estimation?** This is the question the proposal most needs answered, and it
-  cannot be answered from telemetry. If rejection also suppresses the speed
-  sample, §4 and §4b follow and the change is worth a great deal. If the
-  estimator sees the read regardless, the change fixes marker phase only and the
-  33-second frozen estimate in §4b survives it — in which case a separate fix is
-  needed and is more urgent than this one.
-- **Why did `est_mm_s` hold 561 for 33 seconds rather than decaying?** A speed
-  estimate that does not age out while `moving=0` is arguably a defect
-  independent of phantoms. Should it be bounded by `moving`, or by a staleness
-  timeout, regardless of what causes the bad value?
+**Answered from source.** `EVENT_FLOOR_MS` rejection occurs **before**
+`MarkerEvent` queueing, so raising the floor to 85 suppresses a phantom's speed
+sample as well as its navigation effect. §4 and §4b stand.
+
+**But the speed estimate is stale independently of phantoms.** `est_mm_s` is
+derived from a persistent `lastSegmentDt` with no age or stopped-state
+invalidation. Applied to the mm 60 incident, the floor would freeze the estimate
+at the previous valid **139 mm/s** instead of the corrupted 561 — for the same
+33 seconds. CODEX's direction: treat speed staleness as a separate fix, landed
+before CTO consumes the field operationally.
+
+### What that means for this proposal
+
+The floor is still worth doing. It fixes marker phase, which is independently
+evidenced by 13 phantoms and 11 DISAGREE events across both directions.
+
+**It must not be mistaken for a speed fix, and it makes the speed defect harder
+to see.** Field measurement over this session:
+
+```
+samples with moving=0 :                3290
+   reporting est_mm_s > 0 :            3290   (100%)
+reported while stationary :            min 59   median 133   max 561 mm/s
+longest stationary interval :          1964 s (32.7 min) holding 133 mm/s
+```
+
+Of those 3,290 wrong values, **only the 561 exceeds physical maximum** — the one
+the phantom caused. Every other stale reading sits inside the normal operating
+band and would pass any sanity bound a consumer could apply.
+
+So this proposal removes the single detectable instance and leaves 3,289
+undetectable ones. That is a net loss in observability, and an argument about
+*sequencing*, not about whether to do it.
+
+**Recommended order:** land the speed staleness fix first, or at minimum land it
+before CTO consumes `est_mm_s`. See `docs/QUORUM_SPEED_STALENESS_FINDING.md`.
+
+## 10. Remaining question for the reviewer
+
+- Is 15 ms of margin above the observed spurious maximum (70 ms in CW, 78 ms in
+  CCW) sufficient, given 13 observations at speeds from PWM 45 to 120?
+- Does anything else consume marker duration such that raising the floor has a
+  second-order effect not considered here?
+- Is leaving the systematic mm 65 phantom in the position map the right call
+  (§5), or should renumbering be taken on deliberately?
 - Is 15 ms of margin above the observed spurious maximum enough, given only 9
   observations?
 - Does anything else consume marker duration such that raising the floor has a
@@ -264,7 +305,7 @@ Items 1 and 2 are ordinary running with the logger enabled — no special protoc
   renumbering be taken on deliberately while the railway is already being
   examined?
 
-## 10. References
+## 11. References
 
 - `field-records/20260812_otto_grillers_westpoint_disagree_cluster.md` — the mm
   64/65 return-flux analysis this came out of
