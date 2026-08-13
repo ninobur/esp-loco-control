@@ -130,6 +130,27 @@ Location, AUTO, Packet Log.
   is a large, reassuring, false number. Testing produced *165 markers of
   apparent clearance* for two locomotives occupying the same track. The
   overlap test is in `mockup_v7.html`, unused, for whenever that is.
+- **"Which locomotives are running today?"** — the operator's answer to
+  *who names the locomotives*, 2026-08-12, **not built, held deliberately.**
+  Today the names live in a `LOCO_NAMES` dict in the app source, so naming a
+  locomotive means editing Python on the Pi; and since named locomotives now
+  always get a column, that one dict does two jobs at once (what it is called,
+  and whether it is on screen). The proposal is to make the roster a
+  DECLARATION rather than configuration, in the same vocabulary as SESSION
+  ORIENTATION and SET LOCATION: the console asks which locomotives are running
+  today, the operator taps, and those get columns immediately, blank until
+  they speak. Naming happens on the same screen the first time an unknown id
+  turns up, so the roster leaves the source entirely.
+
+  **The rule that keeps it safe: the declaration is ADDITIVE ONLY.** It says
+  which columns to show in advance and must never suppress a locomotive that
+  is actually talking — otherwise "who is running today" becomes a way to hide
+  a running locomotive from the dispatcher.
+
+  Open: what "today" means. Persist until changed (favoured — the dashboard
+  restarts for reasons unrelated to an operating session), expire at midnight,
+  or expire once nothing declared has been heard for an hour.
+
 - **Five locomotives.** Otto, Toby, Hans, Franz, Oscar were explored in v4.
   Franz and Oscar have no ids in the repo. Discovery makes ids unnecessary in
   advance, which is why it was adopted.
