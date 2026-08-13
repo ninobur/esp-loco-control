@@ -72,4 +72,4 @@ rather than a silent drift discovered later.
 | [0020](0020-compensation-requires-observed-evidence.md) | No compensation mechanism is added without demonstrated need | Accepted |
 | [0021](0021-ir-speed-is-local-and-telemetry-is-summary.md) | IR speed is computed locally and telemetry reports summaries | Accepted |
 | [0022](0022-plastic-ten-spoke-wheel-is-the-ir-target.md) | The LGB plastic 10-spoke wheel is the IR speed target | Accepted |
-| [0030](0030-train-extent-is-a-distance-and-the-producer-applies-it.md) | Train extent is 2 ft ahead / 4 ft behind the Hall, in mm, applied by the producer | Accepted |
+| [0030](0030-train-extent-is-a-distance-and-the-producer-applies-it.md) | Train extent is +2 / -4 markers, in per-loco config, applied by the producer | Accepted |

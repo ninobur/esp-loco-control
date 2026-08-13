@@ -1,27 +1,45 @@
-# 0030 — Train extent is a distance, and the producer applies it
+# 0030 — Train extent, and the producer applies it
 
-Status: Accepted (2026-08-13)
+Status: Accepted (2026-08-13), **amended the same day — see Decision**
 
 ## Decision
 
-A train's physical extent, relative to its Hall sensor, is:
+A train's physical extent, relative to its Hall sensor, is **+2 markers ahead
+and −4 markers behind**.
 
-| | | |
-|---|---|---|
-| ahead of the sensor | **2 ft** | 610 mm |
-| behind the sensor | **4 ft** | 1219 mm |
+Two rules follow.
 
-Three rules follow.
-
-1. **Extent is expressed as a distance in millimetres, never as a marker
-   count.** Marker spacing on the Lowline runs from 280 to 355 mm
-   (`spacingMm[]`), so a marker-count extent is not a fixed quantity. The
-   consist's length is.
-2. **Extent lives in per-locomotive configuration**, alongside the station
+1. **Extent lives in per-locomotive configuration**, alongside the station
    speeds, in `LL_LocoConfig_<id>.h`. It is a property of the consist and
    changes when cars are added or removed.
-3. **The producing locomotive applies its own extent before publishing.** A
+2. **The producing locomotive applies its own extent before publishing.** A
    consumer receives occupied track, not a sensor location it must correct.
+
+### Amendment, 2026-08-13 — the unit is markers, not feet
+
+~~ahead of the sensor: 2 ft / 610 mm; behind the sensor: 4 ft / 1219 mm,
+expressed in millimetres and never as a marker count.~~
+
+**Struck rather than deleted.** The original version of this record specified
+extent as a distance in millimetres, on the reasoning that marker spacing varies
+280–355 mm so a marker count is not a fixed quantity.
+
+Operator ruling: **the feet figure was an AI recommendation, and the railway
+does not measure in feet.** Nothing on the layout is surveyed in feet, no
+consist has been measured in feet, and the 2 ft / 4 ft numbers were a conversion
+of the original +2 / −4 marker approximation rather than an independent
+measurement. Reasoning from a converted number as though it were measured is how
+false precision enters a system.
+
+Markers are what the railway measures, what QUORUM reasons in, and what the
+operator thinks in. The unit is markers.
+
+The variable-spacing objection is real but small and is now explicit: at the
+extremes an extent of "+2 markers" spans 560 mm to 710 mm. That imprecision is
+carried knowingly, and it errs in the safe direction only if consumers treat
+extent as a minimum. If it ever needs to be exact, `spacingMm[]` makes the
+conversion available per interval — but that is a change to make on evidence,
+not in advance.
 
 ## Context
 

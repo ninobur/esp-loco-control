@@ -96,9 +96,17 @@ declaration. Healthy fresh boot.
 
 ## Profile differences worth knowing during the test
 
-`HALL_POLARITY_INVERTED` is **`true` for Otto, `false` for Toby**. The two read
-the field with opposite sign convention, resolved in config, but raw marker
-streams are not directly comparable without accounting for it.
+`HALL_POLARITY_INVERTED` is `true` for Otto and `false` for Toby, and **this is
+dead config with no effect**. Per `docs/CLAUDE.md`, the Hall sensors are mounted
+identically on both locomotives (operator, 2026-08-04) and **no firmware reads
+the symbol** — QUORUM derives polarity solely from which threshold was crossed
+(`evOpenPole = (raw >= northEnter) ? 1 : 0`).
+
+**Correction, 2026-08-13:** an earlier revision of this record claimed the two
+locomotives read the field with opposite sign convention and that raw marker
+streams were not directly comparable. That was wrong, and it is the same
+speculation `CLAUDE.md` warns this symbol has already generated once. The
+streams are directly comparable.
 
 Toby's Hall profile is the measured original (NGR Hall Probe, 2026-06-26): noise
 mean 4.2 counts, observed max 19, weakest real magnet 39. Otto's thresholds were

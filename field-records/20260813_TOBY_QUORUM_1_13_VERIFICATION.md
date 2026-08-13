@@ -37,9 +37,17 @@ Against Otto's pre-replacement baseline in the same week:
 | minimum peak | 39 | 113 | **123** |
 | `PHANTOM_REJECTED` | 4 | 0 | **0** |
 
-This is independent confirmation of decision 0025 on different hardware, a
-different Hall installation, and the **opposite `HALL_POLARITY_INVERTED`
-setting** (Otto `true`, Toby `false`). The stacked double magnets were the cause;
+This is independent confirmation of decision 0025 on a different locomotive and
+a different Hall installation.
+
+**Correction, 2026-08-13:** an earlier revision of this record also cited "the
+opposite `HALL_POLARITY_INVERTED` setting" as evidence of independence. That was
+wrong. Per `docs/CLAUDE.md` the Hall sensors are mounted identically on both
+locomotives and **no firmware reads that symbol** — polarity comes solely from
+which threshold was crossed. It is dead config and carries no evidential weight
+here. The cross-locomotive result stands on the different installation alone.
+
+The stacked double magnets were the cause;
 replacing them with single disks on the crosstie tops fixed it. Nothing in
 firmware was changed to achieve this.
 
