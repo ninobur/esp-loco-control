@@ -216,8 +216,20 @@ Worth doing on the first run, because none of it has met a real locomotive:
   the state endpoint all answer; three columns render blank-and-honest with
   no locomotive powered; service log clean apart from the expected MQTT
   reconnect chatter.
+- **2026-08-13 ~11:15** — first real field test, by the operator. Three
+  faults, all mine, all introduced by the redesign; fixed in v1.11.1. See
+  that file's header.
+- **2026-08-13** — deploying v1.11.1 was blocked for several hours: the Pi's
+  root filesystem had gone read-only at 01:32 under I/O errors, with
+  under-voltage flagged. Not a dashboard fault, and not the SD card either —
+  `field-records/20260813_PI_READONLY_UNDERVOLTAGE.md`.
+- **2026-08-13 ~12:1x** — v1.11.1 deployed (`md5 dc326051…`) once the Pi was
+  writable again. Verified: version banner, `/console`, both loco pages, the
+  legacy redirect, the width:100% slider rule present and no live code path
+  to a confirmation wait; service log clean.
 - Rollback remains `/home/david/ngr_app_v1_10_11_ROLLBACK.py` (v1.10.11,
-  `md5 0cec9716…`).
+  `md5 0cec9716…`); `/home/david/ngr_app_v1_11_0.py` is also still on the Pi
+  if only the v1.11.1 changes need backing out.
 
 **Still unproven: v1.11.0 has never seen a locomotive that is talking.**
 Every check so far has been against an empty layout. When one is next
