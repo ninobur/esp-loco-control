@@ -83,8 +83,20 @@ one showing a greyed column with UNKNOWN in it.
 - A locomotive that has never been heard but IS named answers with a blank
   state rather than a 404, so its page can say "silent this session" —
   the same blank-until-proven answer P8 gives.
-- The console shows nothing at all until something speaks. That is honest,
-  and it is a visible change from a console that always drew two columns.
+- ~~The console shows nothing at all until something speaks.~~ **Amended
+  2026-08-12, same day, on the operator's objection.** A blank console until
+  you switch a locomotive on is a real regression from a console that always
+  drew Otto and Toby greyed — it reads as broken, and leaves nowhere to
+  reach for a locomotive you are about to power up. A locomotive named in
+  `LOCO_NAMES` now always has a column; discovery is unchanged for anything
+  unnamed. Naming means "I expect to see this one", not "only these may
+  appear". A listed-but-unheard locomotive renders from `_fresh_state()` and
+  is never written into `loco_state`, so being listed is not being heard
+  anywhere else in the app, and the retained backlog still creates nothing.
+- The commandable set is the set on screen, for the per-locomotive buttons
+  and the fan-outs alike — including a column that has not been heard, since
+  END AO must not miss a locomotive that is enlisted but momentarily between
+  telemetry.
 - `/dispatcher/state` returns a list rather than `otto_*`/`toby_*` keys, and
   carries MM, KPH, PWM, voltage and rolling agreement per locomotive.
 - **No authority rule changes.** P2–P14, the drop-retained rule, the P8
