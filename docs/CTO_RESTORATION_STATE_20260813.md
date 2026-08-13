@@ -24,15 +24,55 @@ If the second, it is waste.
 | | milestone | state |
 |---|---|---|
 | M0 | Established baseline | **done**, recorded |
-| M1 | Position that cannot be confidently wrong | **built, not crossed** |
-| M2 | Independent speed (IR) | prototype flying, test not run |
-| M3 | Closed-loop stops | not started (needs M2) |
+| M1 | Position that cannot be confidently wrong | **satisfied by operator ruling, 2026-08-13** |
+| M2 | Independent speed (IR) | **active work — integrate IR onto the locomotive** |
+| M3 | Closed-loop stops | deferred; revisit after M2 |
 | M4 | Correct behaviour when lost | largely built, not verified |
 | M5 | Trustworthy self-report | payload exists, **never validated** |
 | M6 | Peer awareness | harvest written, audit inventory not produced |
 | M7 | Two-train operation | not started |
 
-### M1 — built, not crossed. This is the gate.
+### M1 — satisfied. Operator ruling, 2026-08-13.
+
+> **Operator ruling, 2026-08-13.** M1 is considered achieved to a reasonable
+> degree. The milestone tests were commissioned from Sam as a planning aid and
+> **are not to delay the project indefinitely.** The formal offline-aligned
+> crossing test is not required before proceeding to M2.
+
+The evidence supports the ruling on the plan's own terms. `ROAD_TO_CTO.md` sets
+the viability threshold as *"at 0.5% error and 15-marker reacquisition, LOST
+essentially never fires and the bounds are a formality"*. Toby, 2026-08-13,
+`QUORUM_1_13`, 1682 markers over 64 minutes in both directions:
+
+- **0.48% polarity mismatch** — below the stated threshold
+- and that figure **overstates the error**: all 8 mismatches came from a single
+  direction-reversal artefact, not 8 independent failures. Excluding it, **0%**
+- 171 of 171 distinct markers crossed, `lost=0`, **zero weak events**
+- the one offset that did occur was inside the fence, adopted and closed
+  unaided in four seconds
+
+The plan was written when the railway produced a phantom roughly once per lap.
+Decision 0025 removed that condition. The threshold was set against a noise
+floor that no longer exists.
+
+**What remains formally undemonstrated**, recorded for honesty rather than as a
+blocker: the offline alignment against the map was never run, so "zero position
+assertions inconsistent with the odometer by more than 2 markers" is inferred
+from firmware self-report rather than independently verified. The replay harness
+in `firmware/QUORUM/tests/` can do this from existing captures at any time, with
+no track time, if it is ever wanted.
+
+<details>
+<summary>The original M1 crossing test, for reference</summary>
+
+Five laps, both directions, offline-aligned against the map: zero position
+assertions inconsistent with the odometer by more than 2 markers; every phantom
+and missed marker found by the aligner also flagged by the firmware at the time;
+reacquisition landing within 2 markers of dead reckoning.
+
+</details>
+
+### What M1 delivered
 
 All three parts of M1 are implemented in `QUORUM_1_13`:
 
@@ -224,19 +264,29 @@ already built.
 
 ## 5. Recommended first moves
 
-1. **Run M1's crossing test.** It is the viability gate, it has never been run,
-   and for the first time everything needed exists: a phantom-free railway, both
-   locomotives on one navigator, continuous Pi recording that marks its own
-   gaps, nightly retrieval, and a replay harness for the offline alignment. Five
-   laps, both directions, one locomotive, no other changes.
-2. **Resolve the mm 120 CW failure** — or reproduce it with a full trail now
-   that recording works. It is an instance of the CTO2 killer and should not be
-   carried into M5/M6.
-3. **Do the CTO2 audit in parallel.** No dependency, and it is the one M6 task
-   that costs nothing to have ready early.
-4. **Then M2's crossing test**, which unblocks M3 and is required by M5.
+M1 is closed by operator ruling. The active work is **M2 — integrate the IR
+sensor onto the locomotive.**
 
-Do not start M6 until M5 has passed. That ordering is what CTO2 violated.
+1. **Integrate IR with the locomotive.** Operator direction, 2026-08-13. Today
+   the IR sensor is a separate spoke on a towed car publishing
+   `ngr/spoke/IR_SPEED_SENSOR/#`; M2 as specified wants it on the power car,
+   read by the same ESP32 that runs QUORUM, with no radio in the measurement
+   path. `IR_SPEED_LOCAL 1.2` already proves that contract and exposes
+   `LocalSpeedSnapshot` as the integration seam. Decision 0021 is explicit that
+   *"nothing is promoted to QUORUM by this decision alone"* — promotion owes its
+   own record. Known constraint: QUORUM's Hall sits on GPIO 33 with a 1 ms
+   sampler task pinned to core 0, so IR needs a second ADC pin and a second
+   task on the same chip.
+2. **Do the CTO2 audit in parallel.** No dependency, and it is the one M6 task
+   that costs nothing to have ready early. The disposition inventory, not a
+   port.
+3. **Carry the mm 120 CW failure as an open item** — see §3. It is an offset
+   outside the fence, which is the shape that killed CTO2, so it should be
+   resolved before M5 and M6 consume published bounds. It is not a blocker on
+   M2.
+
+Do not start M6 until M5 has passed. That ordering is what CTO2 violated, and
+it is the one sequencing rule worth keeping strictly.
 
 ---
 
