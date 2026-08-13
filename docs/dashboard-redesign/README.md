@@ -1,10 +1,16 @@
 # Dashboard and console redesign — design record
 
-Design phase only. **Nothing here is implemented.** The running app is still
-`server/ngr_app_v1_10_11.py`; this directory holds the agreed layout and the
-reasoning behind it, for whoever builds `ngr_app_v1_11_0.py`.
+**Implemented in `server/ngr_app_v1_11_0.py`** (2026-08-12). This directory
+holds the agreed layout and the reasoning behind it; the decision record for
+the discovery change is `docs/decisions/0025`.
 
 Branch: `dashboard-redesign`, cut from `main` 2026-08-12.
+
+**Not yet run against locomotives.** Verified against synthetic telemetry
+only — `server/tests/test_ngr_app_v1_11_0.py` (50 assertions, no broker
+needed) plus a manual look at both pages driven by a fake 1 Hz feed. The
+deployed app is still v1.10.11 until someone points the service at the new
+file. See "Before deploying" at the foot of this file.
 
 ## Current mockup
 
@@ -138,9 +144,39 @@ Location, AUTO, Packet Log.
 - **RUNNING does not mean manual.** It is `autoRunning` — the locomotive under
   dispatcher control and executing. MANUAL is its own state.
 
-## Next
+## Before deploying
 
-Build `ngr_app_v1_11_0.py`, then a decision record in `docs/decisions/` (next
-number 0018) covering the authority-display choices: discovery, the
-retained-message rule, quorum outranking link, and the removal of CAL
-recording.
+The service still runs v1.10.11. `server/ngr-app.service` executes
+`/home/david/ngr_app.py`, so deploying means copying the new file over that
+path on the Pi (192.168.68.142) and restarting `ngr-app`. Rolling back is
+copying v1.10.11 back.
+
+Worth doing on the first run, because none of it has met a real locomotive:
+
+1. **Watch the console come up empty** and fill as each locomotive is
+   switched on. If a column appears for something that is NOT powered on,
+   the discovery gate has a hole and the retained backlog is getting
+   through — that is the one failure that matters.
+2. **Restart the app while locomotives are running.** Columns should
+   reappear only for the ones actually talking, and P8 should re-promote
+   the authority state as each `online=1` arrives live.
+3. **END AO with three locomotives enlisted**, and confirm all three
+   report back to MANUAL — that is the Hans bug's regression test.
+4. **Check the "N silent" gaps against a known incident.** The count is
+   markers passed without a verdict; it should match a stretch of
+   EVALUATING/NO_QUORUM in the runlog, not appear during ordinary running.
+5. **Confirm the legacy links** — `/otto`, `/toby`, `/hans` — still land,
+   since they are on a phone home screen.
+
+## Known-not-done
+
+- Per-locomotive END AO, bubbles and the separation readout stay parked,
+  with reasons above.
+- The console shows no role chip content yet: LEAD/TRAIL was designed and
+  the styling is in place, but with separation removed there is nothing
+  deriving the roles, so every column reads `UNKNOWN`. Either derive it
+  from position (see the overlap warning above) or let the operator set it.
+- `state_payload()` still ships the full state dict to the loco page,
+  including fields the new layout no longer draws (`miss_streak`,
+  `viable`, `candidate_mm`, `lowvolt`, `nav_event`). Harmless, and cheaper
+  to leave than to prune while the layout is still settling.
