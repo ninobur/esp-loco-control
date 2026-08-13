@@ -105,7 +105,8 @@ from flask import Flask, render_template_string, request, jsonify, redirect, url
 from markupsafe import Markup
 import threading
 import time
-# subprocess/os/glob went with CAL RECORDING — the continuous runlog
+import os
+# subprocess/glob went with CAL RECORDING — the continuous runlog
 # (server/ngr_runlog.py) supersedes the per-loco mosquitto_sub processes.
 import json
 import re
@@ -208,6 +209,36 @@ AUTHORITY_SEED_TOPICS = {
 loco_seed = {}          # lid -> {sub: provisional value}
 loco_seed_online = {}   # lid -> None until online seen
 
+# v1.11.0 — SEEDS FOR A LOCOMOTIVE THAT DOES NOT EXIST YET.
+# The broker replays its retained backlog the instant we subscribe, which is
+# BEFORE any locomotive has said anything live. Under discovery that means
+# loco_state is still empty when the P8 seeds arrive, and the discovery gate
+# would drop every one of them — leaving an enlisted locomotive reading
+# "never proven this session" until it next happened to change state/auto,
+# which for a running locomotive can be a very long time. (Caught on the
+# first side-by-side run against the live broker: Otto was enlisted and the
+# candidate console showed no authority at all.)
+#
+# So hold them here instead. NOTHING IN THIS BUFFER IS EVER RENDERED, so it
+# cannot raise a ghost column; it is replayed into the ordinary P8 machinery
+# only at the moment the locomotive proves itself alive.
+PENDING_SEED_MAX = 64           # a flood of bad ids cannot grow this
+pending_seed = {}               # lid -> {sub: retained value}
+pending_seed_online = {}        # lid -> retained online payload
+
+
+def _hold_seed(lid, sub, payload):
+    if sub != "online" and sub not in AUTHORITY_SEED_TOPICS:
+        return
+    if sub == "online":
+        pending_seed_online[lid] = payload
+        if payload != "1":
+            pending_seed.pop(lid, None)   # last will fired: the seeds are void
+        return
+    if lid not in pending_seed and len(pending_seed) >= PENDING_SEED_MAX:
+        return
+    pending_seed.setdefault(lid, {})[sub] = payload
+
 mqtt_lock = threading.Lock()
 mqtt_conn = None
 
@@ -250,9 +281,17 @@ def _ensure_loco(lid):
     loco_state[lid] = _fresh_state()
     loco_rx[lid] = {}
     loco_epoch[lid] = 0
-    loco_seed[lid] = {}
-    loco_seed_online[lid] = None
     loco_log[lid] = deque(maxlen=300)
+    # P8, replayed: anything the broker handed us from the retained backlog
+    # before this locomotive existed. Promoted on exactly the same contract as
+    # ever — retained state is interpretable ONLY while the retained online
+    # flag reads 1, and never _touch()ed, because a seed is reported state,
+    # not a live report.
+    loco_seed[lid] = pending_seed.pop(lid, {})
+    loco_seed_online[lid] = pending_seed_online.pop(lid, None)
+    if loco_seed_online[lid] == "1":
+        for k, v in loco_seed[lid].items():
+            loco_state[lid][AUTHORITY_SEED_TOPICS[k]] = v
     return True
 
 
@@ -303,6 +342,8 @@ def on_mqtt_connect(client, userdata, flags, rc, properties=None):
             for lid in list(loco_state):
                 loco_seed[lid].clear()
                 loco_seed_online[lid] = None    # P8: seeds are per-connection
+            pending_seed.clear()                # ... and so is the held backlog
+            pending_seed_online.clear()
         # ONE WILDCARD PER TOPIC FAMILY. The id slot is '+', so a locomotive
         # nobody has ever heard of is already subscribed to before it speaks.
         for pat in ("online", "state/#", "telem/#", "alert", "mm/#",
@@ -331,7 +372,10 @@ def on_mqtt_message(client, userdata, msg):
             # locomotives that are not there. A cmd/ echo is this dashboard's
             # own voice and may not conjure one either. Only something live,
             # from the locomotive itself, counts as an arrival.
-            if retained or sub.startswith("cmd/"):
+            if retained:
+                _hold_seed(lid, sub, payload)   # held, never rendered
+                return
+            if sub.startswith("cmd/"):
                 return
             _ensure_loco(lid)
             _log(lid, "dashboard", "DISCOVERED — %s" % LOCO_NAMES.get(lid, lid))
@@ -604,7 +648,13 @@ def mqtt_thread():
     global mqtt_conn
     while True:
         try:
-            c = mqtt_client.Client(mqtt_client.CallbackAPIVersion.VERSION2, client_id="ngr-flask")
+            # The client id is overridable so a SECOND instance can be run
+            # alongside the live one for validation. Two clients sharing an id
+            # kick each other off the broker in a loop, which would take the
+            # running dashboard's telemetry down with it.
+            c = mqtt_client.Client(
+                mqtt_client.CallbackAPIVersion.VERSION2,
+                client_id=os.environ.get("NGR_MQTT_CLIENT_ID", "ngr-flask"))
             c.on_connect = on_mqtt_connect
             c.on_message = on_mqtt_message
             mqtt_conn = c
@@ -2114,4 +2164,6 @@ def legacy_loco(any_slug):
 
 # ============================================================================
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=8080, threaded=True)
+    # 8080 is the operator's address and the default. NGR_PORT exists so a
+    # candidate build can be run beside the live one before it takes over.
+    app.run(host="0.0.0.0", port=int(os.environ.get("NGR_PORT", "8080")), threaded=True)

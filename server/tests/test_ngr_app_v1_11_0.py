@@ -62,6 +62,55 @@ feed("ngr/loco/9950011/state/auto", "1", retain=True)
 ok(A.loco_state["9950011"]["enlisted"] == "1", "P8 seed promoted once online=1 proved alive",
    A.loco_state["9950011"]["enlisted"])
 
+print("\n== the retained backlog arrives BEFORE anything live ==")
+# The real connect order, and the bug found on the first side-by-side run
+# against the live broker: the broker replays retained topics the instant we
+# subscribe, so loco_state is still empty when the P8 seeds turn up. Dropping
+# them left an ENLISTED locomotive reading "never proven this session".
+for k in list(A.loco_state):
+    A.loco_state.pop(k); A.loco_rx.pop(k, None); A.loco_epoch.pop(k, None)
+    A.loco_seed.pop(k, None); A.loco_seed_online.pop(k, None); A.loco_log.pop(k, None)
+A.pending_seed.clear(); A.pending_seed_online.clear()
+
+feed("ngr/loco/9950011/online", "1", retain=True)           # backlog...
+feed("ngr/loco/9950011/state/auto", "1", retain=True)
+feed("ngr/loco/9950011/state/estop", "0", retain=True)
+ok("9950011" not in A.loco_state, "the backlog alone still creates nothing")
+ok(A.pending_seed.get("9950011", {}).get("state/auto") == "1",
+   "the seed is held aside rather than thrown away")
+feed("ngr/loco/9950011/alert", json.dumps({"nav": "NORMAL", "dead_reckoned_mm": 29,
+                                           "moving": 0, "auto": 0}))   # ...then live
+ok("9950011" in A.loco_state, "the live message is what creates the locomotive")
+ok(A.loco_state["9950011"]["enlisted"] == "1",
+   "and the held P8 seed is promoted, so ENLISTED survives a restart",
+   A.loco_state["9950011"]["enlisted"])
+ok(A._mode_of(A.loco_state["9950011"]) == "ENL",
+   "the console reads ENLISTED, not NONE", A._mode_of(A.loco_state["9950011"]))
+ok("9950011" not in A.pending_seed, "the held seed is consumed, not left to leak")
+
+print("\n== a last will in the backlog voids the seeds ==")
+A.loco_state.pop("9950011"); A.loco_rx.pop("9950011", None)
+A.pending_seed.clear(); A.pending_seed_online.clear()
+feed("ngr/loco/9950012/state/auto", "1", retain=True)
+feed("ngr/loco/9950012/online", "0", retain=True)      # last will fired
+feed("ngr/loco/9950012/alert", json.dumps({"nav": "NORMAL", "dead_reckoned_mm": 7}))
+ok(A.loco_state["9950012"]["enlisted"] == "--",
+   "a locomotive whose last will fired is not credited with authority",
+   A.loco_state["9950012"]["enlisted"])
+
+print("\n== the held buffer is bounded ==")
+A.pending_seed.clear(); A.pending_seed_online.clear()
+for i in range(A.PENDING_SEED_MAX + 40):
+    feed("ngr/loco/JUNK%04d/state/auto" % i, "1", retain=True)
+ok(len(A.pending_seed) <= A.PENDING_SEED_MAX,
+   "a flood of unknown ids cannot grow the buffer without limit", len(A.pending_seed))
+ok(not any(k.startswith("JUNK") for k in A.loco_state),
+   "and none of them became a column")
+A.pending_seed.clear(); A.pending_seed_online.clear()
+feed("ngr/loco/9950011/alert", json.dumps({"nav": "NORMAL", "dead_reckoned_mm": 82,
+                                           "moving": 1, "pwm": 146, "auto": 0,
+                                           "agree": 4015, "disagree": 30}))
+
 print("\n== an unnamed locomotive is first-class ==")
 feed("ngr/loco/7777777/alert", json.dumps({"nav": "NO_QUORUM", "moving": 0}))
 ok("7777777" in A.loco_state, "unknown id discovered without being named anywhere")
