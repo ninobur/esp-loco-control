@@ -14,8 +14,22 @@ unflashed.
 | magic / version | `0xC5` / 1 (`Cto3RoleEcho`) |
 | fields | senderId, role, partnerId, pairEpochMs |
 | cadence | 1 Hz |
-| freshness | echo older than 6 s ⇒ no verdict (conflict check abstains) |
-| mixed-version | r12-era receivers drop it on magic mismatch; absence of echo never blocks — it only withholds the cross-check |
+| freshness | echo older than 6 s ⇒ UNCONFIRMED |
+| mixed-version | r12-era receivers drop it on magic mismatch |
+
+**Revised per CODEX review, 2026-08-13 (finding 5 — the original "absence of
+echo never blocks" is withdrawn as unsafe).** The echo is three-valued and
+**CONFIRMED is the only state that permits formed-bubble choreography**:
+
+- **CONFIRMED** — fresh echo, *opposite* role, `partnerId == me`. Release
+  choreography and the follower's 20 s dwell run.
+- **CONFLICT** — fresh echo claiming *my* role with `partnerId == me`. Both
+  stop, alert, hold until the echoes agree.
+- **UNCONFIRMED** — everything else: stale, absent, role NONE, wrong partner,
+  or an older peer that cannot echo. Universal traffic protection stays fully
+  active; a paired leader holds at the platform indefinitely and a paired
+  follower runs solo dwell rules. A mixed-version bubble therefore degrades
+  to operator-supervised running, never to unconfirmed automation.
 
 The frozen `CtoPeerPacket` v3 is transmitted unchanged, field-for-field;
 fields QUORUM cannot honestly fill (speedX10, speedValid, lastMoveAgeDs) are

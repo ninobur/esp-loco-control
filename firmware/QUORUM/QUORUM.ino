@@ -494,6 +494,7 @@ struct CtoPeer {
   int8_t   mapDir=MAP_UNSET;
   bool     autoMode=false, running=false;
   uint8_t  motionState=0, rampPwm=0, truthSource=0, stationPhase=0, trafficPhase=0;
+  bool     rampFalling=false;    // finding 2: previous-sample comparison
   uint32_t stopForId=0;
   uint8_t  echoRole=CTO_ROLE_NONE; uint32_t echoPartner=0, echoRxMs=0;
 };
@@ -501,6 +502,7 @@ static CtoPeer  ctoPeers[CTO_MAX_PEERS];
 static bool     ctoEnabled=true;          // cmd/cto off|on
 static bool     ctoRadioUp=false;
 static CtoRole  ctoRole=CTO_ROLE_NONE;    // latched role (PAIRED when != NONE)
+static int8_t   ctoPairDir=MAP_UNSET;     // finding 4: direction at latch
 static uint32_t ctoPartnerId=0;           // latched partner
 static uint32_t ctoPairEpochMs=0;
 static uint32_t ctoExpectedId=0;          // 0031 membership: armed on first fresh sighting
@@ -508,6 +510,7 @@ static CtoTrafficPhase ctoTraffic=CTRAF_CLEAR;
 static uint32_t ctoTrafficForId=0;
 static bool     ctoFleetHold=false;
 static bool     ctoEchoConflict=false;
+static bool     ctoEchoConfirmed=false;   // finding 5: fresh reciprocal echo
 static uint32_t ctoFollowerArrivedMs=0;   // leader side: when follower confirmed at hold
 static uint32_t ctoTxSeq=0, ctoLastTxMs=0, ctoLastEchoMs=0, ctoLastStateMs=0;
 static uint32_t ctoRxAccepted=0, ctoTxAttempts=0, ctoTxErrors=0, ctoRxDropped=0;
@@ -1899,8 +1902,18 @@ static int cruiseForPosition(){
   return CRUISE_PWM;
 }
 
+// LAYER 5 (CODEX 1.14 review, finding 1): the CTO limiter lives HERE, inside
+// the only two writers of commandedPwm, so no AUTO request path can restore
+// speed past an active traffic cap, fleet stop or role conflict — the
+// original five call-site wrappers missed ST_APPROACH/ST_FINAL, which
+// re-request zone/final speed every pass and were overwriting a CTO stop
+// within one loop. AUTO chamber only: MANUAL authority is untouched (§0.2),
+// and a cap can only lower a request, so E-stop and NEUTRAL behave exactly
+// as before.
 static void requestPwm(int target,uint16_t stepMs){
-  commandedPwm=constrain(target,0,255);
+  int t=constrain(target,0,255);
+  if(autoRunning) t=ctoLimitPwm(t);
+  commandedPwm=t;
   pwmStepMs=stepMs;
 }
 
@@ -1908,6 +1921,7 @@ static void requestPwm(int target,uint16_t stepMs){
 // the step rate from the distance still to travel.
 static void requestPwmOver(int target,uint16_t durationMs){
   int t=constrain(target,0,255);
+  if(autoRunning) t=ctoLimitPwm(t);
   int delta=abs(t-actualPwm);
   commandedPwm=t;
   pwmStepMs = (delta>0) ? (uint16_t)max(5UL,(unsigned long)durationMs/(unsigned long)delta) : 50;
@@ -2003,7 +2017,7 @@ static void serviceStations(){
     // Only return to cruise if the navigator's position is usable. A timeout
     // firing in NAV_NO_QUORUM must not promote a navigation failure straight
     // back to full speed (the stop request has already been issued there).
-    if(autoRunning && navPositionUsable()) requestPwm(ctoLimitPwm(cruiseForPosition()),NORMAL_STEP_MS);
+    if(autoRunning && navPositionUsable()) requestPwm(cruiseForPosition(),NORMAL_STEP_MS);
     return;
   }
 
@@ -2054,9 +2068,7 @@ static void serviceStations(){
     }
     // No station armed: keep cruise following the section map through the
     // normal path. requestPwmOver() remains the sole writer of commandedPwm.
-    // LAYER 5 gate: traffic protection may cap or zero the cruise request.
-    // The station machine stays the sole author of motion; CTO only limits.
-    int want = ctoLimitPwm(cruiseForPosition());
+    int want = cruiseForPosition();
     if(commandedPwm != want) requestPwmOver(want, APPROACH_RAMP_MS);
     return;
   }
@@ -2067,7 +2079,7 @@ static void serviceStations(){
   if(o > OVERSHOOT_ABANDON && stPhase!=ST_DWELL && stPhase!=ST_DEPART){
     stationPublish("MISSED",o,"OVERSHOT_CENTRE_RETURNING_TO_IDLE");
     stationReset("MISSED");
-    requestPwm(ctoLimitPwm(cruiseForPosition()),NORMAL_STEP_MS);
+    requestPwm(cruiseForPosition(),NORMAL_STEP_MS);
     return;
   }
 
@@ -2146,7 +2158,7 @@ static void serviceStations(){
         // magnet events stretched to four seconds, occupancy of the median
         // window reached 90%, the baseline was corrupted and navigation was
         // lost. A throttle number caused a navigation failure.
-        requestPwm(ctoLimitPwm(cruiseForPosition()),STATION_UP_STEP_MS);
+        requestPwm(cruiseForPosition(),STATION_UP_STEP_MS);
         stationPublish("DWELL_COMPLETE",o,"DEPART_TO_CRUISE");
       }
       break;
@@ -3334,9 +3346,13 @@ static inline bool ctoPeerSameDir(const CtoPeer& p){
 // only: its own declared traffic phase, a station stop in progress, or a
 // stationary broadcast. Silence is handled by freshness + fleet stop, never here.
 static inline bool ctoPeerStopping(const CtoPeer& p){
+  // CODEX 1.14 review, finding 2: a leader in ST_APPROACH/ST_FINAL is
+  // already committed to stopping — waiting for ST_RAMP denied the follower
+  // its 18 MM pre-slow for the whole approach. A falling ramp is intent too.
   return p.trafficPhase!=CTRAF_CLEAR ||
-         (p.stationPhase>=ST_RAMP && p.stationPhase<=ST_DWELL) ||
-         (p.motionState==0 && p.rampPwm==0);
+         (p.stationPhase>=ST_APPROACH && p.stationPhase<=ST_DWELL) ||
+         (p.motionState==0 && p.rampPwm==0) ||
+         p.rampFalling;
 }
 
 static int8_t ctoPeerIdx(uint32_t id){
@@ -3411,7 +3427,9 @@ static void ctoAcceptPeer(const CtoPeerPacket& p){
   q.seen=true; q.id=p.senderId; q.seq=p.sequence; q.rxMs=millis();
   q.hallMm=p.hallMm; q.frontB=p.frontBoundaryMm; q.rearB=p.rearBoundaryMm;
   q.mapDir=p.mapDir; q.autoMode=p.autoMode; q.running=p.running;
-  q.motionState=p.motionState; q.rampPwm=p.rampPwm; q.truthSource=p.truthSource;
+  q.motionState=p.motionState;
+  q.rampFalling=(q.seen && p.rampPwm+2 < q.rampPwm);   // 2-count hysteresis
+  q.rampPwm=p.rampPwm; q.truthSource=p.truthSource;
   q.stationPhase=p.stationPhase; q.trafficPhase=p.trafficPhase; q.stopForId=p.trafficStopForId;
   ctoRxAccepted++;
   // 0031 membership, v1 lifecycle (recorded in the implementation report as a
@@ -3434,11 +3452,12 @@ static void ctoDissolve(const char* why){
     char b[96]; snprintf(b,sizeof(b),"{\"event\":\"CTO_UNPAIRED\",\"why\":\"%s\",\"partner\":%lu}",why,(unsigned long)ctoPartnerId);
     pub(T_ST_CTO,b,false);
   }
-  ctoRole=CTO_ROLE_NONE; ctoPartnerId=0; ctoPairEpochMs=0;
-  ctoFollowerArrivedMs=0; ctoEchoConflict=false;
+  ctoRole=CTO_ROLE_NONE; ctoPartnerId=0; ctoPairEpochMs=0; ctoPairDir=MAP_UNSET;
+  ctoFollowerArrivedMs=0; ctoEchoConflict=false; ctoEchoConfirmed=false;
 }
 static void ctoLatch(CtoRole r,uint32_t partner){
   ctoRole=r; ctoPartnerId=partner; ctoPairEpochMs=millis();
+  ctoPairDir=navDir;
   ctoFollowerArrivedMs=0; ctoEchoConflict=false;
   char b[112];
   snprintf(b,sizeof(b),"{\"event\":\"CTO_PAIRED\",\"role\":\"%s\",\"partner\":%lu}",
@@ -3454,8 +3473,14 @@ static void ctoEvaluateRoles(){
   int8_t pi=ctoPartnerIdx();
   if(ctoRole!=CTO_ROLE_NONE){
     // dissolution paths; staleness does NOT silently dissolve — fleet stop
-    // owns that (0031). Direction mismatch does.
-    if(pi>=0 && ctoPeerFresh(ctoPeers[pi]) && !ctoPeerSameDir(ctoPeers[pi]))
+    // owns that (0031). ANY direction change does: comparing only against
+    // the partner missed the case where BOTH locomotives reverse — the
+    // directions agree again while the physical front/rear order has
+    // inverted (CODEX 1.14 review, finding 4). The direction at latch is
+    // the reference, so one reversing or both reversing dissolves alike.
+    if(navDir!=ctoPairDir)
+      ctoDissolve("DIRECTION_CHANGED_SINCE_LATCH");
+    else if(pi>=0 && ctoPeerFresh(ctoPeers[pi]) && !ctoPeerSameDir(ctoPeers[pi]))
       ctoDissolve("PARTNER_DIRECTION_CHANGED");
     return;                                    // latched roles persist (0032)
   }
@@ -3499,8 +3524,9 @@ static bool ctoProvisionalLeader(){
 
 // ---- the three hooks the station machine consults ---------------------------
 static uint32_t ctoDwellMs(){
-  // Paired follower at a platform dwells 20 s (operator, supersedes 15).
-  return (ctoRole==CTO_ROLE_FOLLOWER)?CTO_FOLLOWER_DWELL_MS:DWELL_MS;
+  // Paired follower at a platform dwells 20 s (operator, supersedes 15) —
+  // but only on a CONFIRMED pairing (finding 5); unconfirmed runs solo rules.
+  return (ctoRole==CTO_ROLE_FOLLOWER && ctoEchoConfirmed)?CTO_FOLLOWER_DWELL_MS:DWELL_MS;
 }
 static bool ctoHoldDeparture(){
   if(!ctoEnabled) return false;
@@ -3510,6 +3536,12 @@ static bool ctoHoldDeparture(){
   // follower to close (spec sec.6 step 2). Worst mis-tie: both wait. Safe.
   if(ctoRole==CTO_ROLE_NONE) return ctoProvisionalLeader();
   if(ctoRole!=CTO_ROLE_LEADER) return false;
+  // Finding 5 / 0034 as revised: the RELEASE choreography — departing a
+  // platform with a follower parked behind — runs only on a CONFIRMED
+  // reciprocal pairing. Unconfirmed (older peer, stale echo) means keep
+  // holding: safe, visible, and it degrades a mixed-version bubble to
+  // operator-supervised running instead of unconfirmed automation.
+  if(!ctoEchoConfirmed) return true;
   int8_t pi=ctoPartnerIdx();
   if(pi<0||!ctoPeerFresh(ctoPeers[pi])) return true;   // no fresh partner: hold (0031 will also fire)
   CtoPeer& p=ctoPeers[pi];
@@ -3535,13 +3567,19 @@ static int ctoLimitPwm(int want){
   for(uint8_t i=0;i<CTO_MAX_PEERS;i++){
     CtoPeer& p=ctoPeers[i];
     if(!ctoPeerFresh(p)||!ctoPeerSameDir(p)) continue;
+    // Contact guard FIRST (CODEX 1.14 review, finding 3): once bounds cross,
+    // the forward arc wraps toward 170 and the ahead/behind comparator
+    // classifies the peer as "behind" — skipping every check below exactly
+    // when contact is imminent. Symmetric hall-arc proximity runs before any
+    // topology rejection can discard the peer.
+    uint16_t hallFwd=ctoArc(navMm,p.hallMm);
+    uint16_t hallNear=(hallFwd<=(uint16_t)(DNA_N-hallFwd))?hallFwd:(uint16_t)(DNA_N-hallFwd);
+    if(hallNear<=(uint16_t)(CONSIST_EXTENT_FRONT_MARKERS+CONSIST_EXTENT_REAR_MARKERS)){
+      cap=0; newPhase=CTRAF_HOLD; forId=p.id; break;
+    }
     uint16_t ga=ctoGapAhead(p), gb=ctoGapBehind(p);
     if(ga>=gb) continue;                                     // peer not ahead of me
-    // Contact guard: bounds already touching or crossed — stop, uncondition-
-    // ally, before the arc arithmetic can read an overlap as "far ahead".
-    uint16_t hallFwd=ctoArc(navMm,p.hallMm);
-    if(hallFwd<=(uint16_t)(CONSIST_EXTENT_FRONT_MARKERS+CONSIST_EXTENT_REAR_MARKERS)
-       || ga<=CTO_CLEAR_GAP_MARKERS){
+    if(ga<=CTO_CLEAR_GAP_MARKERS){
       cap=0; newPhase=CTRAF_HOLD; forId=p.id; break;
     }
     if(ctoPeerStopping(p)){
@@ -3585,14 +3623,23 @@ static void ctoServiceFleetStop(){
 
 // ---- role echo cross-check (0032) ------------------------------------------
 static void ctoServiceEchoCheck(){
-  if(ctoRole==CTO_ROLE_NONE){ ctoEchoConflict=false; return; }
+  // CODEX 1.14 review, finding 5, and the 0034 ruling: three-valued, and
+  // CONFIRMED is the only state that permits formed-bubble choreography.
+  //   CONFIRMED   — fresh echo, OPPOSITE role, partnerId == me.
+  //   CONFLICT    — fresh echo claiming MY role with partnerId == me.
+  //   UNCONFIRMED — everything else: stale, absent, role NONE, wrong or no
+  //                 partner, an older peer that cannot echo at all.
+  // Universal traffic protection never consults this; only the release and
+  // dwell choreography does (ctoHoldDeparture, ctoDwellMs).
+  if(ctoRole==CTO_ROLE_NONE){ ctoEchoConflict=false; ctoEchoConfirmed=false; return; }
   int8_t i=ctoPartnerIdx();
-  if(i<0) return;
+  if(i<0){ ctoEchoConfirmed=false; return; }
   CtoPeer& p=ctoPeers[i];
-  if(p.echoRxMs==0 || (uint32_t)(millis()-p.echoRxMs)>2*CTO_PEER_STALE_MS) return; // no echo: no verdict
-  bool conflict=false;
-  if(ctoRole==CTO_ROLE_LEADER   && p.echoRole==(uint8_t)CTO_ROLE_LEADER   && p.echoPartner==LOCO_ID) conflict=true;
-  if(ctoRole==CTO_ROLE_FOLLOWER && p.echoRole==(uint8_t)CTO_ROLE_FOLLOWER && p.echoPartner==LOCO_ID) conflict=true;
+  bool echoFresh = p.echoRxMs!=0 && (uint32_t)(millis()-p.echoRxMs)<=2*CTO_PEER_STALE_MS;
+  if(!echoFresh){ ctoEchoConfirmed=false; return; }          // no verdict, and not confirmed
+  uint8_t expectRole=(ctoRole==CTO_ROLE_LEADER)?(uint8_t)CTO_ROLE_FOLLOWER:(uint8_t)CTO_ROLE_LEADER;
+  ctoEchoConfirmed = (p.echoRole==expectRole && p.echoPartner==LOCO_ID);
+  bool conflict = (p.echoRole==(uint8_t)ctoRole && p.echoPartner==LOCO_ID);
   if(conflict && !ctoEchoConflict){
     ctoEchoConflict=true;
     if(autoRunning) requestPwm(0,NORMAL_STEP_MS);
@@ -3606,16 +3653,23 @@ static void ctoServiceEchoCheck(){
 
 // ---- operator command -------------------------------------------------------
 static void ctoHandleClear(const char* msg){
-  if(!strncmp(msg,"clear",5)){
+  // CODEX 1.14 review, finding 6: EXACT match after trim. strncmp accepted
+  // "clear-anything" — and "clear" disarms fleet protection, so a prefix
+  // match is not a convenience, it is a hazard.
+  char pay[16]; size_t n=0;
+  while(*msg==' '||*msg=='\t') msg++;
+  while(msg[n] && msg[n]!='\r' && msg[n]!='\n' && msg[n]!=' ' && n<sizeof(pay)-1){ pay[n]=msg[n]; n++; }
+  pay[n]=0;
+  if(!strcmp(pay,"clear")){
     for(uint8_t i=0;i<CTO_MAX_PEERS;i++) ctoPeers[i]=CtoPeer{};
     ctoDissolve("OPERATOR_CLEAR");
     ctoExpectedId=0; ctoFleetHold=false; ctoTraffic=CTRAF_CLEAR; ctoTrafficForId=0;
     pub(T_ST_CTO,"{\"event\":\"CTO_CLEARED\"}",false);
-  }else if(!strncmp(msg,"off",3)){
+  }else if(!strcmp(pay,"off")){
     ctoEnabled=false; ctoDissolve("CTO_OFF");
     ctoExpectedId=0; ctoFleetHold=false; ctoTraffic=CTRAF_CLEAR; ctoTrafficForId=0;
     pub(T_ST_CTO,"{\"event\":\"CTO_OFF\"}",false);
-  }else if(!strncmp(msg,"on",2)){
+  }else if(!strcmp(pay,"on")){
     ctoEnabled=true;
     pub(T_ST_CTO,"{\"event\":\"CTO_ON\"}",false);
   }else{

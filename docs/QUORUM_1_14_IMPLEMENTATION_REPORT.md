@@ -62,6 +62,41 @@ E-stop and manual authority are unmodified.
 - `state/cto` rendering on the console — the dashboard knows nothing of the
   topic yet.
 
+## Review round 1 (CODEX, 2026-08-13) — six findings, all applied
+
+The first build carried five deployment blockers. Dispositions:
+
+1. **CTO stops overwritten during station approaches** — the worst one:
+   `ST_APPROACH`/`ST_FINAL` re-request speed every pass and bulldozed a CTO
+   zero within one loop. Fixed structurally: **the limiter moved inside
+   `requestPwm()`/`requestPwmOver()`** — the only two writers of
+   `commandedPwm` — applied under `autoRunning` only. The five call-site
+   wrappers are gone; no AUTO request path can bypass the cap.
+2. **Stopping intent detected too late** — `ctoPeerStopping()` now fires from
+   `ST_APPROACH` onward and on a falling ramp (2-count hysteresis on
+   consecutive broadcasts), so the follower pre-slows through the leader's
+   whole approach.
+3. **Contact guard skipped after bounds cross** — the symmetric hall-arc
+   proximity check now runs *before* the ahead/behind topology rejection that
+   was discarding an overlapped peer exactly when contact was imminent.
+4. **Simultaneous reversal preserved stale roles** — direction is stored at
+   latch (`ctoPairDir`); *any* local direction change dissolves the pair, so
+   one train reversing and both trains reversing dissolve alike.
+5. **Echo did not require agreement** — three-valued now (0034 revised):
+   CONFIRMED (fresh, opposite role, names me) is the only state that runs
+   release choreography or the 20 s follower dwell; CONFLICT stops both;
+   UNCONFIRMED leaves traffic protection active and the leader holding.
+   A mixed-version bubble degrades to supervised running, never to
+   unconfirmed automation.
+6. **`cmd/cto` accepted prefixes** — exact match after trim; `clear-anything`
+   no longer disarms fleet protection.
+
+Reverified after the fixes: both profiles compile clean under
+`--warnings all` (995,815 bytes, +188 over round 0); the full replay suite
+passes unmodified — the solo-inertness proof holds with the limiter inside
+the request functions, because with no peer ever heard `ctoLimitPwm()` is
+the identity.
+
 ## Deployment gate
 
 Per the spec and standing practice: **operator + CODEX review of this report
