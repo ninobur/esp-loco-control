@@ -1,9 +1,11 @@
 # QUORUM 1.14 implementation report — LAYER 5, CTO3 peer coordination
 
-**Status: built and verified on the desk. NOT flashed, NOT field-tested,
-NOT approved for deployment.** Two-locomotive behaviour has never executed
-anywhere — the harness cannot exercise it (single instance). Operator order
-2026-08-13: "write the sketch."
+**Status: `4b593b6` CLEARED by CODEX (2026-08-13, round 4 verdict) for the
+supervised, hands-on two-locomotive test. Deployment and unattended running
+remain ON HOLD** pending the measured mid-cruise stop gap and the other
+field gates. Two-locomotive behaviour has still never executed anywhere —
+the harness cannot exercise it. Four review rounds, sixteen findings, all
+closed. Operator order 2026-08-13: "write the sketch."
 
 **Spec:** `docs/CTO3/BUBBLE_V1_SPEC.md`. **Contracts:** decision 0034
 (Proposed). **Source:** `firmware/QUORUM/QUORUM.ino`, `SKETCH_NAME
@@ -177,8 +179,10 @@ parameter: **both explicit zero-requests are removed.** The assertions set
 their flags and publish; the continuous enforcement pass — which runs later
 in the same `ctoService()` pass — sees `cap(desired) = 0 < commandedPwm`,
 brakes at the measured 200 ms/PWM, and preserves the uncapped desired
-intent for the resume. Every CTO stop now reaches the motor through exactly
-one mechanism at exactly one rate.
+intent for the resume. Precision per CODEX's verification note: there is
+**one limiter policy** — `ctoLimitPwm()` — applied at three sites (the two
+request writers and continuous enforcement), and all three now agree on the
+braking rate. LAYER 5 itself contains no PWM request.
 
 Also adopted: the semantic correction — the braking-rate condition is "CTO
 reduced requested authority," which can include capping an acceleration
