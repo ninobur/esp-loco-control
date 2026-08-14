@@ -377,12 +377,18 @@
 // NOTE: 1.14 had been pencilled for transport-resilience work when 1.13 took
 // the advisory; that work moves to 1.15. Same collision as last time —
 // recorded here so the librarian can object once, not twice.
-// 1.14A (2026-08-14): operator changes after the first paired sessions. A
-// letter, not a minor: no new capability — three behaviour corrections and a
-// deletion. (a) the leader's departure no longer depends on the follower at
-// all, which removes a deterministic deadlock; (b) follower hold gap 12 -> 9;
-// (c) CCW station landings one marker earlier. The uncommitted-at-the-time
-// CTO mode layer rides along from the preceding WIP commit.
+// 1.14A (2026-08-14): three operator corrections on the reviewed 1.14 base.
+// A letter, not a minor — no new capability. (a) the leader's departure no
+// longer depends on the follower at all, removing a deterministic deadlock;
+// (b) follower hold gap 12 -> 9 markers; (c) CCW station landings one marker
+// earlier. Also carries the 5 s follower dwell that was flashed on
+// 2026-08-13 but never committed on its own.
+//
+// Deliberately NOT here: the CTO mode layer (BUBBLE/UNPAIRED/CE). It was
+// briefly mixed into this branch, and CODEX correctly refused the mixture —
+// unreviewed mode code plus a new echo wire version does not belong in a
+// narrow behavioural test. It is preserved on agent/cto-mode-1-15 and will
+// land as 1.15 with its own review and decision record.
 #define SKETCH_NAME "QUORUM_1_14A"
 
 // Broker lives here, not in LocoConfig.h — same as the previous lineage.
@@ -451,7 +457,7 @@ enum StationPhase : uint8_t { ST_IDLE=0, ST_APPROACH, ST_FINAL, ST_RAMP, ST_DWEL
 static const uint8_t  CTO2_MAGIC   = 0xC4;
 static const uint8_t  CTO2_VERSION = 3;
 static const uint8_t  CTO3_ECHO_MAGIC   = 0xC5;  // new type; old receivers drop it
-static const uint8_t  CTO3_ECHO_VERSION = 2;   // v2 adds mode (CTO modes, 2026-08-14)
+static const uint8_t  CTO3_ECHO_VERSION = 1;
 typedef struct __attribute__((packed)) {
   uint8_t  magic; uint8_t version;
   uint32_t senderId; uint32_t sequence;
@@ -473,42 +479,29 @@ typedef struct __attribute__((packed)) {
   uint8_t  role;                 // CtoRole — MY conclusion about MY role
   uint32_t partnerId;            // whom I believe I am paired with (0 none)
   uint32_t pairEpochMs;          // my millis() at latch; telemetry only
-  uint8_t  mode;                 // v2: CtoMode — my operating mode, always valid
 } Cto3RoleEcho;
 
 enum CtoTrafficPhase : uint8_t { CTRAF_CLEAR=0, CTRAF_DECEL=1, CTRAF_HOLD=3 };
 enum CtoRole    : uint8_t { CTO_ROLE_NONE=0, CTO_ROLE_LEADER=1, CTO_ROLE_FOLLOWER=2 };
-// CTO operating MODE — distinct from role. Role is a derived state that Q1/Q2
-// latches; mode is an operator/dispatcher choice about what kind of automatic
-// operation this locomotive is running (spec: CTO is automatic operations and
-// the bubble is one mode of it).
-//   BUBBLE    — paired station operations: formation, roles, choreography.
-//   UNPAIRED  — runs its own missions and station stops, never pairs. Full
-//               traffic protection and fleet stop still apply. This is the
-//               operator's "unpaired mode", not the transient role NONE.
-//   CE        — reserved: express/local missions after a dispatcher severance.
-//               Not implemented; the enum slot exists so the wire format does
-//               not need to change when it is.
-enum CtoMode : uint8_t { CTO_MODE_BUBBLE=0, CTO_MODE_UNPAIRED=1, CTO_MODE_CE=2 };
 
 // ---- tunables (route-common; per-loco extent lives in LL_LocoConfig) ------
 static const uint16_t CTO_TX_INTERVAL_MS      = 500;    // r12 cadence
 static const uint16_t CTO_ECHO_INTERVAL_MS    = 1000;
 static const uint32_t CTO_PEER_STALE_MS       = 3000;   // r12 value
 static const uint8_t  CTO_CLEAR_GAP_MARKERS   = 6;      // 0033: the invariant
-// Operator 2026-08-14: the follower was stopping too far back — 12 -> 9, i.e.
-// three markers closer. Still comfortably above CTO_CLEAR_GAP_MARKERS (6), so
-// decision 0033's invariant (bubble + 6 clear, bound-to-bound) is preserved
-// with 3 markers of margin.
+// Operator 2026-08-14: the follower was stopping too far back — 12 -> 9, three
+// markers closer. NOTE (CODEX): this is not a stronger guarantee, it is a
+// smaller experimental margin. Zero is already requested at 9, so crossing the
+// 6-marker clearance boundary cannot brake any harder; 6 remains the invariant
+// of decision 0033 but the field test must MEASURE the minimum bound gap
+// actually achieved rather than assume it.
 static const uint8_t  CTO_STOP_GAP_MARKERS    = 9;      // bound gap: begin decel-to-stop
 static const uint8_t  CTO_SLOW_GAP_MARKERS    = 18;     // bound gap: pre-slow to zone speed
 static const uint8_t  CTO_PAIR_RANGE_MARKERS  = 12;     // bound gap: Q1/Q2 latch range
 static const uint8_t  CTO_TIE_BAND_MARKERS    = 12;     // long-range order hysteresis
-// Operator, 2026-08-13, after the first two-train session: 20 s -> 5 s. The
-// 20 s dwell plus the station geometry was holding the pair 30-49 markers
-// apart, so the 18/12/6 traffic ladder never engaged and the bubble proper
-// was never exercised. A 5 s follower dwell lets the follower close up, which
-// is the point of the bubble. Expect CTO_TRAFFIC to start doing real work.
+// Operator 2026-08-13, flashed to both locomotives that evening: 20 s -> 5 s.
+// The 20 s dwell plus the station geometry held the pair 30-49 markers apart,
+// so the 18/12/6 ladder never engaged and the bubble was never exercised.
 static const uint32_t CTO_FOLLOWER_DWELL_MS   = 5000;   // follower platform dwell
 #define CTO_MAX_PEERS 8
 
@@ -523,12 +516,10 @@ struct CtoPeer {
   bool     rampFalling=false;    // finding 2: previous-sample comparison
   uint32_t stopForId=0;
   uint8_t  echoRole=CTO_ROLE_NONE; uint32_t echoPartner=0, echoRxMs=0;
-  uint8_t  echoMode=CTO_MODE_BUBBLE;   // v2: peer's own declared mode
 };
 static CtoPeer  ctoPeers[CTO_MAX_PEERS];
 static bool     ctoEnabled=true;          // cmd/cto off|on
 static bool     ctoRadioUp=false;
-static CtoMode  ctoMode=CTO_MODE_BUBBLE;  // operating mode; cmd/cto selects
 static CtoRole  ctoRole=CTO_ROLE_NONE;    // latched role (PAIRED when != NONE)
 static int8_t   ctoPairDir=MAP_UNSET;     // finding 4: direction at latch
 static uint32_t ctoPartnerId=0;           // latched partner
@@ -656,19 +647,19 @@ static const StationDefinition STATIONS[] = {
 };
 static const uint8_t STATION_COUNT = sizeof(STATIONS)/sizeof(STATIONS[0]);
 
-// Operator 2026-08-14: CCW landings were consistently one marker past the
-// platform. stopOffset is direction-agnostic in the table, so the correction
-// is applied per direction here rather than by splitting every row. CW is
-// unchanged. A negative result is legitimate — it starts the zero ramp one
-// marker BEFORE centre, which is the only way to gain a marker at the two
-// stations already sitting at stopOffset 0.
+// Operator 2026-08-14: CCW landings sat consistently one marker past the
+// platform. stopOffset is direction-agnostic in the table above, so the
+// correction is applied per direction here rather than by splitting every row.
+// CW is unchanged. A negative result is deliberate and legitimate: it starts
+// the zero ramp one marker BEFORE centre, which is the only way to gain a
+// marker at the two stations already sitting at stopOffset 0.
 static inline int8_t effStopOffset(uint8_t idx){
   int8_t s = STATIONS[idx].stopOffset;
   if(navDir==MAP_CCW) s -= 1;
   return s;
 }
-// Where ST_APPROACH hands over to ST_FINAL: normally the centre marker, or
-// earlier still when the effective stop offset is negative.
+// Where ST_APPROACH hands over to ST_FINAL: the centre marker normally, or
+// earlier when the effective stop offset is negative.
 static inline int8_t finalEntryOffset(uint8_t idx){
   const int8_t s = effStopOffset(idx);
   return (s < 0) ? s : 0;
@@ -907,7 +898,7 @@ static void stationReset(const char* note);   // §2.5 step 2a; defined in LAYER
 // LAYER 5 (CTO3) hooks, defined after MQTT. All are inert until a peer has
 // been seen; with none they cost one branch each and change no behaviour.
 static int      ctoLimitPwm(int want);     // speed ceiling from traffic protection
-static uint32_t ctoDwellMs();              // confirmed follower dwell, else DWELL_MS
+static uint32_t ctoDwellMs();              // paired follower dwells 20 s, else DWELL_MS
 static void     ctoService();              // 10 Hz: registry, roles, gates; loop thread
 static void     ctoRadioInit();            // esp_now up, once, after WiFi connects
 static void     ctoHandleClear(const char* msg); // cmd/cto — operator clear/off
@@ -2221,18 +2212,20 @@ static void serviceStations(){
 
     case ST_DWELL:
       // Operator ruling 2026-08-14: the leader's departure does not depend on
-      // the follower's position AT ALL. The old choreography held the leader
-      // at the platform until the follower had arrived within a window and a
-      // 10 s release dwell had run -- and on 2026-08-14 that deadlocked the
-      // railway: the follower stopped at gap 11 (exactly where the traffic
-      // limiter told it to) while the leader's arrival test demanded <= 10, so
-      // the release timer reset every pass and both sat indefinitely.
+      // the follower's position AT ALL.
       //
-      // The deeper fault was that the logic ran backwards. A leader with clear
-      // track ahead cannot improve separation by standing still; departing is
-      // what opens the gap and releases the follower. Spacing is the
-      // FOLLOWER's constraint, carried by ctoLimitPwm(), and a stopped
-      // follower must never inhibit the leader.
+      // What was here held the leader at the platform until the follower had
+      // arrived within a window and a 10 s release dwell had run. On
+      // 2026-08-14 that deadlocked the railway at Arches: the follower stopped
+      // at bound gap 11 -- exactly where CTO_STOP_GAP_MARKERS(12) told it to --
+      // while the arrival test demanded <= CLEAR(6)+TOL(4) = 10, so the release
+      // timer reset every pass and both locomotives sat indefinitely.
+      //
+      // The threshold was only the symptom. The logic ran backwards: a leader
+      // with clear track ahead cannot improve separation by standing still,
+      // and departing is precisely what opens the gap. Spacing is the
+      // FOLLOWER's constraint, carried by ctoLimitPwm(). A stopped follower
+      // must never inhibit the leader.
       //
       // Fleet stop and role conflict still stop this locomotive -- through the
       // limiter's continuous enforcement, not through the station machine.
@@ -3499,7 +3492,7 @@ static void ctoTxEcho(){
   Cto3RoleEcho e={};
   e.magic=CTO3_ECHO_MAGIC; e.version=CTO3_ECHO_VERSION;
   e.senderId=LOCO_ID; e.role=(uint8_t)ctoRole; e.partnerId=ctoPartnerId;
-  e.pairEpochMs=ctoPairEpochMs; e.mode=(uint8_t)ctoMode;
+  e.pairEpochMs=ctoPairEpochMs;
   esp_now_send(CTO_BCAST,(uint8_t*)&e,sizeof(e));
 }
 
@@ -3541,7 +3534,7 @@ static void ctoAcceptEcho(const Cto3RoleEcho& e){
   if(e.senderId==LOCO_ID) return;
   int8_t i=ctoPeerIdx(e.senderId); if(i<0) return;   // echo without status: ignore
   ctoPeers[i].echoRole=e.role; ctoPeers[i].echoPartner=e.partnerId;
-  ctoPeers[i].echoMode=e.mode; ctoPeers[i].echoRxMs=millis();
+  ctoPeers[i].echoRxMs=millis();
 }
 
 // ---- roles (decision 0032: derived, latched, echoed) -----------------------
@@ -3584,23 +3577,11 @@ static void ctoEvaluateRoles(){
       ctoDissolve("PARTNER_DIRECTION_CHANGED");
     return;                                    // latched roles persist (0032)
   }
-  // MODE GATE (2026-08-14): pairing happens only in BUBBLE mode, and only
-  // with a peer that declares BUBBLE in its own fresh echo. A mode mismatch
-  // therefore produces no pair at all rather than a half-pair — which matters
-  // because a latched leader whose partner never reciprocates would hold at a
-  // platform indefinitely under the reciprocal-confirmation rule. Both trains
-  // simply run independently, with traffic protection and the fleet stop
-  // untouched. Mode is in every echo regardless of role, so it is available
-  // before any pairing exists.
-  if(ctoMode!=CTO_MODE_BUBBLE) return;
   // pick the nearest fresh same-direction quorum-holding peer
   int8_t best=-1; uint16_t bestGap=0xFFFF; bool bestAhead=true;
   for(uint8_t i=0;i<CTO_MAX_PEERS;i++){
     CtoPeer& p=ctoPeers[i];
     if(!ctoPeerFresh(p)||!ctoPeerSameDir(p)||!ctoPeerNavOk(p)) continue;
-    // peer must declare BUBBLE in a fresh echo of its own
-    bool peerEchoFresh = p.echoRxMs!=0 && (uint32_t)(millis()-p.echoRxMs)<=2*CTO_PEER_STALE_MS;
-    if(!peerEchoFresh || p.echoMode!=(uint8_t)CTO_MODE_BUBBLE) continue;
     uint16_t ga=ctoGapAhead(p), gb=ctoGapBehind(p);
     uint16_t g=(ga<gb)?ga:gb;
     if(g<bestGap){ bestGap=g; best=(int8_t)i; bestAhead=(ga<gb); }
@@ -3617,17 +3598,17 @@ static void ctoEvaluateRoles(){
   // tie band the lower loco ID leads. The ONLY behaviour this drives is the
 }
 static uint32_t ctoDwellMs(){
-  // Paired follower at a platform dwells CTO_FOLLOWER_DWELL_MS (operator set
-  // this to 5 s on 2026-08-14), but only on a CONFIRMED reciprocal pairing;
-  // an unconfirmed or solo locomotive uses the ordinary station dwell.
+  // Paired follower at a platform dwells 20 s (operator, supersedes 15) —
+  // but only on a CONFIRMED pairing (finding 5); unconfirmed runs solo rules.
   return (ctoRole==CTO_ROLE_FOLLOWER && ctoEchoConfirmed)?CTO_FOLLOWER_DWELL_MS:DWELL_MS;
 }
 
+
 // ctoProvisionalLeader() and ctoHoldDeparture() were DELETED 2026-08-14 on the
-// operator's ruling that the leader's departure must not depend on the
-// follower's position. They implemented station-formation waiting, the
-// follower-arrival window and the 10 s release dwell. See the ST_DWELL
-// comment for why the logic was backwards, and what deadlocked because of it.
+// operator's ruling above. They implemented station-formation waiting, the
+// follower-arrival window and the 10 s release dwell -- the mechanism that
+// deadlocked at Arches. Nothing replaced them: spacing belongs to the
+// follower's limiter, and the leader simply runs its mission.
 
 static int ctoLimitPwm(int want){
   // Universal traffic protection (spec sec.7): one deceleration profile; the
@@ -3766,28 +3747,6 @@ static void ctoHandleClear(const char* msg){
     pub(T_ST_CTO,"{\"event\":\"CTO_CMD_REFUSED\",\"why\":\"TRAILING_CONTENT\"}",false);
     return;
   }
-  // Mode selection (2026-08-14). Safety rules are identical in every mode;
-  // only pairing, formation and choreography differ.
-  if(!strcmp(pay,"bubble") || !strcmp(pay,"unpaired")){
-    CtoMode want = (!strcmp(pay,"bubble")) ? CTO_MODE_BUBBLE : CTO_MODE_UNPAIRED;
-    if(want!=ctoMode){
-      ctoMode=want;
-      // Leaving BUBBLE dissolves any pair; the peer sees the mode change in
-      // the next echo and stops treating this locomotive as pairable.
-      if(ctoMode!=CTO_MODE_BUBBLE) ctoDissolve("MODE_CHANGED");
-      ctoTxEcho();                      // announce immediately, do not wait 1 s
-    }
-    char b[80];
-    snprintf(b,sizeof(b),"{\"event\":\"CTO_MODE\",\"mode\":\"%s\"}",
-             ctoMode==CTO_MODE_BUBBLE?"BUBBLE":"UNPAIRED");
-    pub(T_ST_CTO,b,false);
-    return;
-  }
-  if(!strcmp(pay,"ce")){
-    // Reserved; refusing loudly is better than silently running the wrong mode.
-    pub(T_ST_CTO,"{\"event\":\"CTO_CMD_REFUSED\",\"why\":\"CE_NOT_IMPLEMENTED\"}",false);
-    return;
-  }
   if(!strcmp(pay,"clear")){
     for(uint8_t i=0;i<CTO_MAX_PEERS;i++) ctoPeers[i]=CtoPeer{};
     ctoDissolve("OPERATOR_CLEAR");
@@ -3842,13 +3801,14 @@ static void ctoService(){
   if(now-ctoLastStateMs>=5000){
     ctoLastStateMs=now;
     int8_t pi=ctoPartnerIdx();
-    char b[224];
+    char b[288];   // CODEX 1.14A review: 224 was ~14 short of the worst case
+                   // with full-width counters; truncation would publish
+                   // invalid JSON rather than merely a short line.
     snprintf(b,sizeof(b),
-      "{\"event\":\"CTO_STATUS\",\"on\":%d,\"mode\":\"%s\",\"role\":\"%s\",\"partner\":%lu,"
+      "{\"event\":\"CTO_STATUS\",\"on\":%d,\"role\":\"%s\",\"partner\":%lu,"
       "\"expected\":%lu,\"fleet_hold\":%d,\"traffic\":%u,\"gap_ahead\":%d,"
       "\"front_b\":%u,\"rear_b\":%u,\"rx\":%lu,\"tx\":%lu,\"txe\":%lu,\"rxd\":%lu}",
       ctoEnabled?1:0,
-      ctoMode==CTO_MODE_BUBBLE?"BUBBLE":ctoMode==CTO_MODE_UNPAIRED?"UNPAIRED":"CE",
       ctoRole==CTO_ROLE_LEADER?"LEADER":ctoRole==CTO_ROLE_FOLLOWER?"FOLLOWER":"NONE",
       (unsigned long)ctoPartnerId,(unsigned long)ctoExpectedId,
       ctoFleetHold?1:0,(unsigned)ctoTraffic,
