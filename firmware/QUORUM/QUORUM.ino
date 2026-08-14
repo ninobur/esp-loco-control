@@ -445,7 +445,7 @@ enum StationPhase : uint8_t { ST_IDLE=0, ST_APPROACH, ST_FINAL, ST_RAMP, ST_DWEL
 static const uint8_t  CTO2_MAGIC   = 0xC4;
 static const uint8_t  CTO2_VERSION = 3;
 static const uint8_t  CTO3_ECHO_MAGIC   = 0xC5;  // new type; old receivers drop it
-static const uint8_t  CTO3_ECHO_VERSION = 1;
+static const uint8_t  CTO3_ECHO_VERSION = 2;   // v2 adds mode (CTO modes, 2026-08-14)
 typedef struct __attribute__((packed)) {
   uint8_t  magic; uint8_t version;
   uint32_t senderId; uint32_t sequence;
@@ -467,10 +467,23 @@ typedef struct __attribute__((packed)) {
   uint8_t  role;                 // CtoRole — MY conclusion about MY role
   uint32_t partnerId;            // whom I believe I am paired with (0 none)
   uint32_t pairEpochMs;          // my millis() at latch; telemetry only
+  uint8_t  mode;                 // v2: CtoMode — my operating mode, always valid
 } Cto3RoleEcho;
 
 enum CtoTrafficPhase : uint8_t { CTRAF_CLEAR=0, CTRAF_DECEL=1, CTRAF_HOLD=3 };
 enum CtoRole    : uint8_t { CTO_ROLE_NONE=0, CTO_ROLE_LEADER=1, CTO_ROLE_FOLLOWER=2 };
+// CTO operating MODE — distinct from role. Role is a derived state that Q1/Q2
+// latches; mode is an operator/dispatcher choice about what kind of automatic
+// operation this locomotive is running (spec: CTO is automatic operations and
+// the bubble is one mode of it).
+//   BUBBLE    — paired station operations: formation, roles, choreography.
+//   UNPAIRED  — runs its own missions and station stops, never pairs. Full
+//               traffic protection and fleet stop still apply. This is the
+//               operator's "unpaired mode", not the transient role NONE.
+//   CE        — reserved: express/local missions after a dispatcher severance.
+//               Not implemented; the enum slot exists so the wire format does
+//               not need to change when it is.
+enum CtoMode : uint8_t { CTO_MODE_BUBBLE=0, CTO_MODE_UNPAIRED=1, CTO_MODE_CE=2 };
 
 // ---- tunables (route-common; per-loco extent lives in LL_LocoConfig) ------
 static const uint16_t CTO_TX_INTERVAL_MS      = 500;    // r12 cadence
@@ -483,7 +496,12 @@ static const uint8_t  CTO_PAIR_RANGE_MARKERS  = 12;     // bound gap: Q1/Q2 latc
 static const uint8_t  CTO_TIE_BAND_MARKERS    = 12;     // long-range order hysteresis
 static const uint8_t  CTO_ARRIVE_TOL_MARKERS  = 4;      // follower "at hold point" window
 static const uint32_t CTO_RELEASE_DWELL_MS    = 10000;  // leader, after follower arrives
-static const uint32_t CTO_FOLLOWER_DWELL_MS   = 20000;  // follower platform dwell
+// Operator, 2026-08-13, after the first two-train session: 20 s -> 5 s. The
+// 20 s dwell plus the station geometry was holding the pair 30-49 markers
+// apart, so the 18/12/6 traffic ladder never engaged and the bubble proper
+// was never exercised. A 5 s follower dwell lets the follower close up, which
+// is the point of the bubble. Expect CTO_TRAFFIC to start doing real work.
+static const uint32_t CTO_FOLLOWER_DWELL_MS   = 5000;   // follower platform dwell
 #define CTO_MAX_PEERS 8
 
 // ---- state -----------------------------------------------------------------
@@ -497,10 +515,12 @@ struct CtoPeer {
   bool     rampFalling=false;    // finding 2: previous-sample comparison
   uint32_t stopForId=0;
   uint8_t  echoRole=CTO_ROLE_NONE; uint32_t echoPartner=0, echoRxMs=0;
+  uint8_t  echoMode=CTO_MODE_BUBBLE;   // v2: peer's own declared mode
 };
 static CtoPeer  ctoPeers[CTO_MAX_PEERS];
 static bool     ctoEnabled=true;          // cmd/cto off|on
 static bool     ctoRadioUp=false;
+static CtoMode  ctoMode=CTO_MODE_BUBBLE;  // operating mode; cmd/cto selects
 static CtoRole  ctoRole=CTO_ROLE_NONE;    // latched role (PAIRED when != NONE)
 static int8_t   ctoPairDir=MAP_UNSET;     // finding 4: direction at latch
 static uint32_t ctoPartnerId=0;           // latched partner
@@ -3448,7 +3468,7 @@ static void ctoTxEcho(){
   Cto3RoleEcho e={};
   e.magic=CTO3_ECHO_MAGIC; e.version=CTO3_ECHO_VERSION;
   e.senderId=LOCO_ID; e.role=(uint8_t)ctoRole; e.partnerId=ctoPartnerId;
-  e.pairEpochMs=ctoPairEpochMs;
+  e.pairEpochMs=ctoPairEpochMs; e.mode=(uint8_t)ctoMode;
   esp_now_send(CTO_BCAST,(uint8_t*)&e,sizeof(e));
 }
 
@@ -3490,7 +3510,7 @@ static void ctoAcceptEcho(const Cto3RoleEcho& e){
   if(e.senderId==LOCO_ID) return;
   int8_t i=ctoPeerIdx(e.senderId); if(i<0) return;   // echo without status: ignore
   ctoPeers[i].echoRole=e.role; ctoPeers[i].echoPartner=e.partnerId;
-  ctoPeers[i].echoRxMs=millis();
+  ctoPeers[i].echoMode=e.mode; ctoPeers[i].echoRxMs=millis();
 }
 
 // ---- roles (decision 0032: derived, latched, echoed) -----------------------
@@ -3533,11 +3553,23 @@ static void ctoEvaluateRoles(){
       ctoDissolve("PARTNER_DIRECTION_CHANGED");
     return;                                    // latched roles persist (0032)
   }
+  // MODE GATE (2026-08-14): pairing happens only in BUBBLE mode, and only
+  // with a peer that declares BUBBLE in its own fresh echo. A mode mismatch
+  // therefore produces no pair at all rather than a half-pair — which matters
+  // because a latched leader whose partner never reciprocates would hold at a
+  // platform indefinitely under the reciprocal-confirmation rule. Both trains
+  // simply run independently, with traffic protection and the fleet stop
+  // untouched. Mode is in every echo regardless of role, so it is available
+  // before any pairing exists.
+  if(ctoMode!=CTO_MODE_BUBBLE) return;
   // pick the nearest fresh same-direction quorum-holding peer
   int8_t best=-1; uint16_t bestGap=0xFFFF; bool bestAhead=true;
   for(uint8_t i=0;i<CTO_MAX_PEERS;i++){
     CtoPeer& p=ctoPeers[i];
     if(!ctoPeerFresh(p)||!ctoPeerSameDir(p)||!ctoPeerNavOk(p)) continue;
+    // peer must declare BUBBLE in a fresh echo of its own
+    bool peerEchoFresh = p.echoRxMs!=0 && (uint32_t)(millis()-p.echoRxMs)<=2*CTO_PEER_STALE_MS;
+    if(!peerEchoFresh || p.echoMode!=(uint8_t)CTO_MODE_BUBBLE) continue;
     uint16_t ga=ctoGapAhead(p), gb=ctoGapBehind(p);
     uint16_t g=(ga<gb)?ga:gb;
     if(g<bestGap){ bestGap=g; best=(int8_t)i; bestAhead=(ga<gb); }
@@ -3557,6 +3589,9 @@ static void ctoEvaluateRoles(){
 static bool ctoProvisionalLeader(){
   if(ctoRole==CTO_ROLE_LEADER) return true;
   if(ctoRole==CTO_ROLE_FOLLOWER) return false;
+  // Formation is bubble-specific: an UNPAIRED locomotive never waits at a
+  // station for another train to close up. It just runs.
+  if(ctoMode!=CTO_MODE_BUBBLE) return false;
   if(!ctoEnabled||navDir==MAP_UNSET||!navPositionUsable()) return false;
   for(uint8_t i=0;i<CTO_MAX_PEERS;i++){
     CtoPeer& p=ctoPeers[i];
@@ -3741,6 +3776,28 @@ static void ctoHandleClear(const char* msg){
     pub(T_ST_CTO,"{\"event\":\"CTO_CMD_REFUSED\",\"why\":\"TRAILING_CONTENT\"}",false);
     return;
   }
+  // Mode selection (2026-08-14). Safety rules are identical in every mode;
+  // only pairing, formation and choreography differ.
+  if(!strcmp(pay,"bubble") || !strcmp(pay,"unpaired")){
+    CtoMode want = (!strcmp(pay,"bubble")) ? CTO_MODE_BUBBLE : CTO_MODE_UNPAIRED;
+    if(want!=ctoMode){
+      ctoMode=want;
+      // Leaving BUBBLE dissolves any pair; the peer sees the mode change in
+      // the next echo and stops treating this locomotive as pairable.
+      if(ctoMode!=CTO_MODE_BUBBLE) ctoDissolve("MODE_CHANGED");
+      ctoTxEcho();                      // announce immediately, do not wait 1 s
+    }
+    char b[80];
+    snprintf(b,sizeof(b),"{\"event\":\"CTO_MODE\",\"mode\":\"%s\"}",
+             ctoMode==CTO_MODE_BUBBLE?"BUBBLE":"UNPAIRED");
+    pub(T_ST_CTO,b,false);
+    return;
+  }
+  if(!strcmp(pay,"ce")){
+    // Reserved; refusing loudly is better than silently running the wrong mode.
+    pub(T_ST_CTO,"{\"event\":\"CTO_CMD_REFUSED\",\"why\":\"CE_NOT_IMPLEMENTED\"}",false);
+    return;
+  }
   if(!strcmp(pay,"clear")){
     for(uint8_t i=0;i<CTO_MAX_PEERS;i++) ctoPeers[i]=CtoPeer{};
     ctoDissolve("OPERATOR_CLEAR");
@@ -3797,10 +3854,11 @@ static void ctoService(){
     int8_t pi=ctoPartnerIdx();
     char b[224];
     snprintf(b,sizeof(b),
-      "{\"event\":\"CTO_STATUS\",\"on\":%d,\"role\":\"%s\",\"partner\":%lu,"
+      "{\"event\":\"CTO_STATUS\",\"on\":%d,\"mode\":\"%s\",\"role\":\"%s\",\"partner\":%lu,"
       "\"expected\":%lu,\"fleet_hold\":%d,\"traffic\":%u,\"gap_ahead\":%d,"
       "\"front_b\":%u,\"rear_b\":%u,\"rx\":%lu,\"tx\":%lu,\"txe\":%lu,\"rxd\":%lu}",
       ctoEnabled?1:0,
+      ctoMode==CTO_MODE_BUBBLE?"BUBBLE":ctoMode==CTO_MODE_UNPAIRED?"UNPAIRED":"CE",
       ctoRole==CTO_ROLE_LEADER?"LEADER":ctoRole==CTO_ROLE_FOLLOWER?"FOLLOWER":"NONE",
       (unsigned long)ctoPartnerId,(unsigned long)ctoExpectedId,
       ctoFleetHold?1:0,(unsigned)ctoTraffic,
