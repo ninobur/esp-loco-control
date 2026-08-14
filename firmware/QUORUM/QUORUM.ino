@@ -377,6 +377,18 @@
 // NOTE: 1.14 had been pencilled for transport-resilience work when 1.13 took
 // the advisory; that work moves to 1.15. Same collision as last time —
 // recorded here so the librarian can object once, not twice.
+// 1.14B (2026-08-14): two operator rulings about being told the truth.
+//   (a) COMMAND ORDER MUST NOT MATTER. A start interval sent before the
+//       session direction is now HELD and declared the moment the direction
+//       arrives, instead of being refused. The old rule cost a session: one
+//       locomotive's interval arrived a second early, was refused, and BEGIN
+//       then reported NOT_ENROLLED_IN_AUTO — two steps from the cause — while
+//       the other locomotive, given the same pair in the opposite order,
+//       worked first time.
+//   (b) IF BEGIN IS ACCEPTED, THE LOCOMOTIVE MOVES. BEGIN now evaluates the
+//       CTO cap before committing and REFUSES with the specific condition
+//       rather than publishing "GO / LAUNCH" and sitting still at PWM 0.
+//
 // 1.14A (2026-08-14): three operator corrections on the reviewed 1.14 base.
 // A letter, not a minor — no new capability. (a) the leader's departure no
 // longer depends on the follower at all, removing a deterministic deadlock;
@@ -389,7 +401,7 @@
 // unreviewed mode code plus a new echo wire version does not belong in a
 // narrow behavioural test. It is preserved on agent/cto-mode-1-15 and will
 // land as 1.15 with its own review and decision record.
-#define SKETCH_NAME "QUORUM_1_14A"
+#define SKETCH_NAME "QUORUM_1_14B"
 
 // Broker lives here, not in LocoConfig.h — same as the previous lineage.
 #define MQTT_BROKER "192.168.68.142"
@@ -898,6 +910,7 @@ static void stationReset(const char* note);   // §2.5 step 2a; defined in LAYER
 // LAYER 5 (CTO3) hooks, defined after MQTT. All are inert until a peer has
 // been seen; with none they cost one branch each and change no behaviour.
 static int      ctoLimitPwm(int want);     // speed ceiling from traffic protection
+static const char* ctoRefusalReason();     // why BEGIN would not move (operator 2026-08-14)
 static uint32_t ctoDwellMs();              // paired follower dwells 20 s, else DWELL_MS
 static void     ctoService();              // 10 Hz: registry, roles, gates; loop thread
 static void     ctoRadioInit();            // esp_now up, once, after WiFi connects
@@ -1011,6 +1024,10 @@ static float       lastDtConserveRatio=-1.0f;
 
 // The last marker whose reading actually AGREED with the map. Everything after
 // it is inference; this is the position a following locomotive can trust.
+// Operator ruling 2026-08-14: a start interval sent before the session
+// direction is HELD, not refused, and applied as soon as the direction lands.
+static uint8_t       pendingIntervalA=0, pendingIntervalB=0;
+static bool          havePendingInterval=false;
 static uint8_t       lastConfirmedMm=0;
 static unsigned long lastConfirmedMs=0;
 static uint16_t      markersSinceConfirmed=0;
@@ -2932,6 +2949,27 @@ static void handleCommand(const char* topic,const char* msg){
     applyOperatorDirection(DIRECTION_FORWARD, "SESSION_DIR");
     stationReset("SESSION_DIRECTION_SET");
     navPublishState("SESSION_DIRECTION",nullptr);
+    // Operator ruling 2026-08-14: complete a held declaration now that the
+    // direction is known. Which end of the interval the locomotive occupies
+    // depends on the direction, which is exactly why this had to wait — but
+    // waiting is the firmware's job, not the operator's.
+    if(havePendingInterval && navDir!=MAP_UNSET){
+      const uint8_t a=pendingIntervalA, b=pendingIntervalB;
+      havePendingInterval=false;
+      uint8_t behind; bool ok=true;
+      if(nextMm(a,MAP_CW)==b)       behind = (navDir==MAP_CW)?a:b;
+      else if(nextMm(b,MAP_CW)==a)  behind = (navDir==MAP_CW)?b:a;
+      else { ok=false; behind=0; }
+      if(!ok){
+        stationPublish("START_INTERVAL_REFUSED",0,"MARKERS_NOT_ADJACENT");
+      }else{
+        startIntervalA=a; startIntervalB=b; haveStartInterval=true;
+        navDeclare(behind);
+        stationPublish("START_INTERVAL_SET",0,
+                       (navDir==MAP_CW)?"CW_DECLARED_AT_LOWER_DEFERRED"
+                                       :"CCW_DECLARED_AT_UPPER_DEFERRED");
+      }
+    }
   }
   else if(!strcmp(topic,T_CMD_STARTINT)){
     // "AAA-BBB" — the two magnets the locomotive is standing between. This is
@@ -2954,8 +2992,22 @@ static void handleCommand(const char* topic,const char* msg){
     if(a<0||a>=DNA_N||b<0||b>=DNA_N){
       stationPublish("START_INTERVAL_REFUSED",0,"MARKER_OUT_OF_RANGE"); return;
     }
+    // Operator ruling 2026-08-14: THE ORDER MUST NOT MATTER. This used to
+    // refuse outright when the direction was not yet set, which punished the
+    // operator for sending two correct commands one second apart in the
+    // "wrong" sequence — and on 2026-08-14 it silently cost a session: Toby's
+    // interval arrived one second before his direction, was refused, and the
+    // downstream BEGIN then reported NOT_ENROLLED_IN_AUTO, two steps removed
+    // from the cause. Otto got the same pair in the opposite order and worked
+    // first time.
+    //
+    // Now the interval is REMEMBERED and declared the moment the direction
+    // arrives (see T_CMD_SESSDIR). Nothing is lost and nothing is refused; the
+    // declaration simply completes when it has everything it needs.
     if(navDir==MAP_UNSET){
-      stationPublish("START_INTERVAL_REFUSED",0,"SET_SESSION_DIRECTION_FIRST"); return;
+      pendingIntervalA=(uint8_t)a; pendingIntervalB=(uint8_t)b; havePendingInterval=true;
+      stationPublish("START_INTERVAL_PENDING",0,"HELD_UNTIL_SESSION_DIRECTION_SET");
+      return;
     }
     // Adjacency is checked geometrically, in either order, so the console's
     // ascending pair is accepted whichever way the session runs.
@@ -3027,10 +3079,27 @@ static void handleCommand(const char* topic,const char* msg){
     if(navState==NAV_UNSET){ stationPublish("GO_REFUSED",0,"NO_POSITION_DECLARE_START_MM"); return; }
     if(navDir==MAP_UNSET){ stationPublish("GO_REFUSED",0,"NO_SESSION_DIRECTION"); return; }
     if(autoRunning){ stationPublish("GO_REFUSED",0,"ALREADY_RUNNING"); return; }
+    // Operator ruling 2026-08-14: IF BEGIN IS ACCEPTED, THE LOCOMOTIVE MOVES.
+    // On 2026-08-14 BEGIN was accepted and published "GO / LAUNCH" while the
+    // CTO limiter capped the request to zero five milliseconds later — the
+    // locomotives sat still, the console said they had launched, and nothing
+    // said why. Silent acceptance that produces no movement is worse than a
+    // refusal: it tells the operator the railway is running when it is not.
+    //
+    // So the CTO cap is evaluated BEFORE committing. If it would hold this
+    // locomotive at zero, BEGIN is REFUSED and says which condition did it.
+    // Nothing here caps or moves anything — ctoLimitPwm() is a pure function
+    // of peer state — and every one of these conditions clears by itself when
+    // the railway allows movement, so BEGIN then simply works.
     {
+      const int want = cruiseForPosition();
+      if(ctoLimitPwm(want) <= 0){
+        stationPublish("GO_REFUSED",0,ctoRefusalReason());
+        return;
+      }
       autoRunning=true;
       motorDirection=DIRECTION_FORWARD; applyDirection();
-      requestPwm(cruiseForPosition(),NORMAL_STEP_MS);
+      requestPwm(want,NORMAL_STEP_MS);
       stationPublish("GO",0,"LAUNCH");
     }
   }
@@ -3653,6 +3722,28 @@ static int ctoLimitPwm(int want){
     pub(T_ST_CTO,b,false);
   }
   return cap;
+}
+
+// Why would ctoLimitPwm() hold this locomotive at zero right now? Used only by
+// the BEGIN refusal (operator ruling 2026-08-14) so the console can say which
+// condition is in the way instead of accepting a launch that cannot happen.
+// Order matches the limiter's own precedence.
+static const char* ctoRefusalReason(){
+  if(!ctoEnabled) return "CTO_OFF_BUT_HELD";       // unreachable unless the cap came from elsewhere
+  if(ctoFleetHold) return "CTO_FLEET_STOP_PEER_STALE_OR_LOST";
+  if(ctoEchoConflict) return "CTO_ROLE_CONFLICT";
+  // A traffic condition: name the peer geometry the operator can act on.
+  for(uint8_t i=0;i<CTO_MAX_PEERS;i++){
+    const CtoPeer& p=ctoPeers[i];
+    if(!ctoPeerFresh(p)||!ctoPeerSameDir(p)) continue;
+    uint16_t hallFwd=ctoArc(navMm,p.hallMm);
+    uint16_t hallNear=(hallFwd<=(uint16_t)(DNA_N-hallFwd))?hallFwd:(uint16_t)(DNA_N-hallFwd);
+    if(hallNear<=(uint16_t)(CONSIST_EXTENT_FRONT_MARKERS+CONSIST_EXTENT_REAR_MARKERS))
+      return "CTO_TOO_CLOSE_TO_PEER_MOVE_APART";
+    uint16_t ga=ctoGapAhead(p), gb=ctoGapBehind(p);
+    if(ga<gb && ga<=CTO_STOP_GAP_MARKERS) return "CTO_TRAFFIC_AHEAD_HOLDING";
+  }
+  return "CTO_HOLDING";
 }
 
 // ---- fleet stop (decision 0031: by absence, never announcement) ------------
