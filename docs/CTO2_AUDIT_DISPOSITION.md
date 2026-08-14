@@ -47,6 +47,47 @@ lose, and a negotiated role is exactly the kind of state that goes wrong when a
 peer drops. If negotiation is still wanted, it should be argued against this
 history rather than assumed absent.
 
+### Amendment, 2026-08-13 — the invariant was stated too absolutely (Sam)
+
+The operator had Sam trace the invariant's provenance. Sam's finding, adopted
+here: the rule "no packet may transmit leader/follower identity" (r9 originally,
+carried into r12) was an implementation discipline — **packets carry truth, not
+authority** — that overshot by lumping a *relationship* in with *commands*. A
+motor command says "you do this"; a latched leader/follower relationship is
+shared coordination state, the same category as position. CTO3 had already
+re-adopted persistence: `CTO3_DESIGN_NOTES.md:231-237` — relative order cannot
+change; roles are assigned once from the peer table and stay assigned; "that is
+the whole coordination model."
+
+**r12 itself already crosses the purist line, in the healthy direction.** The
+frozen `CtoPeerPacket` carries `trafficStopForId` — "I am stopped *for
+locomotive X*" — a conclusion about a peer relationship, broadcast as
+self-truth, and consumed by the other side's restart logic
+(`p.trafficStopForId == LOCO_ID`). A broadcast "I have concluded I follow X" is
+the same category of fact.
+
+The rule as restated (Sam's phrasing, adopted): *a locomotive may not transmit
+another locomotive's required behavior. Each locomotive broadcasts its own
+physical and operational truth. Leader/follower relationship may be established
+from shared peer information and retained — and stated — as coordination
+state.*
+
+**Design consequence.** Role assignment is derived, not negotiated: each
+locomotive computes the same gap comparison from the same pair of broadcasts
+(smallest my-rear-to-your-front leads), with a ~12-marker hysteresis band
+resolved by lower-loco-ID, latched at formation, dissolved on peer staleness.
+Pure derivation has a race: near a tie, the two locomotives may latch from
+*different packet pairs* and each conclude it leads — both wait, silent
+deadlock. The corrected rule permits the fix: **after latching, each broadcasts
+its derived role as its own state.** Disagreement between the two broadcasts is
+then a detectable fault with a conservative response (hold, do not form),
+rather than an undetectable split-brain. This supersedes the paragraph above
+only in what "negotiation" covers: handshake-assigned roles stay abandoned;
+persistent derived roles, stated on the wire as self-truth, are legitimate and
+were part of the original CTO's working design (persistent LEADER/TRAILING
+profiles; `trailingLeaderId` in the v3.2 CircuitExpress lineage — Sam's
+citation, not present in this repository).
+
 ---
 
 ## Disposition inventory
