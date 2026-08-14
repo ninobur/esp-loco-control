@@ -33,6 +33,14 @@
 #define PWM_FREQUENCY 20000
 #define PWM_RESOLUTION 8
 
+// CTO3 consist extent — decision 0030/0033, spec docs/CTO3/BUBBLE_V1_SPEC.md.
+// Occupied track relative to the Hall sensor, in MARKERS (mile markers, the
+// control frame — never millimetres). A property of the CONSIST: change these
+// when cars are added or removed. The producer applies them to its own
+// published bounds; consumers receive occupied track, not a sensor point.
+#define CONSIST_EXTENT_FRONT_MARKERS 2
+#define CONSIST_EXTENT_REAR_MARKERS  4
+
 // Direction values
 #define DIRECTION_REVERSE 0
 #define DIRECTION_NEUTRAL 1

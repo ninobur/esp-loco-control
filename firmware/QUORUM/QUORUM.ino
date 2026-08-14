@@ -352,6 +352,7 @@
 #include <Arduino.h>
 #include <WiFi.h>
 #include <PubSubClient.h>
+#include <esp_now.h>   // LAYER 5 (CTO3): loco-to-loco peer truth. Shimmed inert in tests/.
 #include <pgmspace.h>
 #include <Wire.h>
 #include <Adafruit_INA219.h>
@@ -364,7 +365,19 @@
 // base". The name is published retained on state/bootid, which is what lets a
 // capture be attributed to a build; leaving it at 1_12C would have made a beta
 // log indistinguishable from a pre-advisory one.
-#define SKETCH_NAME "QUORUM_1_13"
+//
+// 1.14 (2026-08-13): LAYER 5 — CTO3 peer coordination, the Bubble v1 spec
+// (docs/CTO3/BUBBLE_V1_SPEC.md; decisions 0030-0033). ESP-NOW peer truth at
+// 2 Hz using the frozen CtoPeerPacket v3 layout, producer-applied occupancy
+// bounds in markers, Q1/Q2-derived latched roles with a role-echo packet,
+// one deceleration profile with a resume flag, leader hold-for-follower at
+// stations, and the 0031 fleet stop enforced by absence. Solo behaviour is
+// intended to be UNCHANGED: with no fresh peer ever seen, every CTO path is
+// inert and the navigator/station machine run exactly as 1.13.
+// NOTE: 1.14 had been pencilled for transport-resilience work when 1.13 took
+// the advisory; that work moves to 1.15. Same collision as last time —
+// recorded here so the librarian can object once, not twice.
+#define SKETCH_NAME "QUORUM_1_14"
 
 // Broker lives here, not in LocoConfig.h — same as the previous lineage.
 #define MQTT_BROKER "192.168.68.142"
@@ -422,6 +435,85 @@ struct CmdMsg { char topic[64]; char payload[128]; };
 // §2: the QUORUM state machine. NAV_TRACKING and NAV_LOST are deleted.
 enum NavState     : uint8_t { NAV_UNSET=0, NAV_NORMAL, NAV_EVALUATING, NAV_NO_QUORUM };
 enum StationPhase : uint8_t { ST_IDLE=0, ST_APPROACH, ST_FINAL, ST_RAMP, ST_DWELL, ST_DEPART };
+
+// LAYER 5 (CTO3) types and state — hoisted above all functions so the Arduino
+// prototype generator sees them; the layer's code lives before setup().
+// ---- wire formats ----------------------------------------------------------
+// CtoPeerPacket: layout copied field-for-field from r12 (CTO2_VERSION 3,
+// frozen). Fields QUORUM cannot honestly fill are zeroed, never guessed:
+// speedX10/speedValid stay 0 until IR is aboard (decision 0021 lineage).
+static const uint8_t  CTO2_MAGIC   = 0xC4;
+static const uint8_t  CTO2_VERSION = 3;
+static const uint8_t  CTO3_ECHO_MAGIC   = 0xC5;  // new type; old receivers drop it
+static const uint8_t  CTO3_ECHO_VERSION = 1;
+typedef struct __attribute__((packed)) {
+  uint8_t  magic; uint8_t version;
+  uint32_t senderId; uint32_t sequence;
+  uint8_t  hallMm; uint8_t frontBoundaryMm; uint8_t rearBoundaryMm;
+  int8_t   mapDir;
+  uint8_t  autoMode; uint8_t running; uint8_t motionState; uint8_t rampPwm;
+  uint8_t  speedValid; uint16_t lastMoveAgeDs; uint16_t speedX10;
+  uint8_t  frontOffset; uint8_t rearOffset;
+  uint8_t  truthSource;          // 0 none/lost, 1 declared/evaluating, 2 confirmed
+  uint8_t  stationPhase;         // OUR StationPhase enum; peers run this firmware
+  uint8_t  trafficPhase;         // CtoTrafficPhase below, r12 numbering
+  uint8_t  mustHoldEligible;     // always 0 in 1.14 — MHE not ported yet
+  uint32_t trafficStopForId;
+  uint32_t senderRxAccepted; uint32_t senderTxAttempts; uint32_t senderTxImmediateErrors;
+} CtoPeerPacket;
+typedef struct __attribute__((packed)) {
+  uint8_t magic; uint8_t version;
+  uint32_t senderId;
+  uint8_t  role;                 // CtoRole — MY conclusion about MY role
+  uint32_t partnerId;            // whom I believe I am paired with (0 none)
+  uint32_t pairEpochMs;          // my millis() at latch; telemetry only
+} Cto3RoleEcho;
+
+enum CtoTrafficPhase : uint8_t { CTRAF_CLEAR=0, CTRAF_DECEL=1, CTRAF_HOLD=3 };
+enum CtoRole    : uint8_t { CTO_ROLE_NONE=0, CTO_ROLE_LEADER=1, CTO_ROLE_FOLLOWER=2 };
+
+// ---- tunables (route-common; per-loco extent lives in LL_LocoConfig) ------
+static const uint16_t CTO_TX_INTERVAL_MS      = 500;    // r12 cadence
+static const uint16_t CTO_ECHO_INTERVAL_MS    = 1000;
+static const uint32_t CTO_PEER_STALE_MS       = 3000;   // r12 value
+static const uint8_t  CTO_CLEAR_GAP_MARKERS   = 6;      // 0033: the invariant
+static const uint8_t  CTO_STOP_GAP_MARKERS    = 12;     // bound gap: begin decel-to-stop
+static const uint8_t  CTO_SLOW_GAP_MARKERS    = 18;     // bound gap: pre-slow to zone speed
+static const uint8_t  CTO_PAIR_RANGE_MARKERS  = 12;     // bound gap: Q1/Q2 latch range
+static const uint8_t  CTO_TIE_BAND_MARKERS    = 12;     // long-range order hysteresis
+static const uint8_t  CTO_ARRIVE_TOL_MARKERS  = 4;      // follower "at hold point" window
+static const uint32_t CTO_RELEASE_DWELL_MS    = 10000;  // leader, after follower arrives
+static const uint32_t CTO_FOLLOWER_DWELL_MS   = 20000;  // follower platform dwell
+#define CTO_MAX_PEERS 8
+
+// ---- state -----------------------------------------------------------------
+struct CtoPeer {
+  bool     seen=false;
+  uint32_t id=0, seq=0, rxMs=0;
+  uint8_t  hallMm=255, frontB=255, rearB=255;
+  int8_t   mapDir=MAP_UNSET;
+  bool     autoMode=false, running=false;
+  uint8_t  motionState=0, rampPwm=0, truthSource=0, stationPhase=0, trafficPhase=0;
+  uint32_t stopForId=0;
+  uint8_t  echoRole=CTO_ROLE_NONE; uint32_t echoPartner=0, echoRxMs=0;
+};
+static CtoPeer  ctoPeers[CTO_MAX_PEERS];
+static bool     ctoEnabled=true;          // cmd/cto off|on
+static bool     ctoRadioUp=false;
+static CtoRole  ctoRole=CTO_ROLE_NONE;    // latched role (PAIRED when != NONE)
+static uint32_t ctoPartnerId=0;           // latched partner
+static uint32_t ctoPairEpochMs=0;
+static uint32_t ctoExpectedId=0;          // 0031 membership: armed on first fresh sighting
+static CtoTrafficPhase ctoTraffic=CTRAF_CLEAR;
+static uint32_t ctoTrafficForId=0;
+static bool     ctoFleetHold=false;
+static bool     ctoEchoConflict=false;
+static uint32_t ctoFollowerArrivedMs=0;   // leader side: when follower confirmed at hold
+static uint32_t ctoTxSeq=0, ctoLastTxMs=0, ctoLastEchoMs=0, ctoLastStateMs=0;
+static uint32_t ctoRxAccepted=0, ctoTxAttempts=0, ctoTxErrors=0, ctoRxDropped=0;
+static QueueHandle_t ctoRxQueue=nullptr;  // recv callback -> loop thread, like cmdQueue
+static const uint8_t CTO_BCAST[6]={0xFF,0xFF,0xFF,0xFF,0xFF,0xFF};
+
 
 // ===========================================================================
 // HARDWARE
@@ -764,6 +856,14 @@ static StationPhase stPhase=ST_IDLE;
 static void requestPwm(int target,uint16_t stepMs);
 static int  cruiseForPosition();   // section cruise speed; defined in LAYER 4
 static void stationReset(const char* note);   // §2.5 step 2a; defined in LAYER 4
+// LAYER 5 (CTO3) hooks, defined after MQTT. All are inert until a peer has
+// been seen; with none they cost one branch each and change no behaviour.
+static int      ctoLimitPwm(int want);     // speed ceiling from traffic protection
+static bool     ctoHoldDeparture();        // leader holds at platform for follower
+static uint32_t ctoDwellMs();              // paired follower dwells 20 s, else DWELL_MS
+static void     ctoService();              // 10 Hz: registry, roles, gates; loop thread
+static void     ctoRadioInit();            // esp_now up, once, after WiFi connects
+static void     ctoHandleClear(const char* msg); // cmd/cto — operator clear/off
 // QUORUM decision events (adoption, incident open/close, phantom, fixture)
 // ride pubMarker() per §5.1; defined after the transport, called from Layer 3.
 // `extra` is a pre-formatted JSON fragment beginning with a comma, or "".
@@ -1903,7 +2003,7 @@ static void serviceStations(){
     // Only return to cruise if the navigator's position is usable. A timeout
     // firing in NAV_NO_QUORUM must not promote a navigation failure straight
     // back to full speed (the stop request has already been issued there).
-    if(autoRunning && navPositionUsable()) requestPwm(cruiseForPosition(),NORMAL_STEP_MS);
+    if(autoRunning && navPositionUsable()) requestPwm(ctoLimitPwm(cruiseForPosition()),NORMAL_STEP_MS);
     return;
   }
 
@@ -1954,7 +2054,9 @@ static void serviceStations(){
     }
     // No station armed: keep cruise following the section map through the
     // normal path. requestPwmOver() remains the sole writer of commandedPwm.
-    int want = cruiseForPosition();
+    // LAYER 5 gate: traffic protection may cap or zero the cruise request.
+    // The station machine stays the sole author of motion; CTO only limits.
+    int want = ctoLimitPwm(cruiseForPosition());
     if(commandedPwm != want) requestPwmOver(want, APPROACH_RAMP_MS);
     return;
   }
@@ -1965,7 +2067,7 @@ static void serviceStations(){
   if(o > OVERSHOOT_ABANDON && stPhase!=ST_DWELL && stPhase!=ST_DEPART){
     stationPublish("MISSED",o,"OVERSHOT_CENTRE_RETURNING_TO_IDLE");
     stationReset("MISSED");
-    requestPwm(cruiseForPosition(),NORMAL_STEP_MS);
+    requestPwm(ctoLimitPwm(cruiseForPosition()),NORMAL_STEP_MS);
     return;
   }
 
@@ -2024,7 +2126,16 @@ static void serviceStations(){
       break;
 
     case ST_DWELL:
-      if(millis()-stDwellStartedMs>=DWELL_MS){
+      // LAYER 5: a paired LEADER completes its dwell and then HOLDS at the
+      // platform until the follower is stopped at its hold point and the
+      // 10 s release dwell has run (spec sec.8 step 3). ctoHoldDeparture()
+      // is false in every solo/unpaired state.
+      if(millis()-stDwellStartedMs>=ctoDwellMs() && ctoHoldDeparture()){
+        stationPublish("HOLD_FOR_FOLLOWER",o,"CTO_LEADER_AWAITING_RELEASE");
+        stDwellStartedMs=millis()-ctoDwellMs(); // re-arm; publish dedup guards spam
+        break;
+      }
+      if(millis()-stDwellStartedMs>=ctoDwellMs()){
         stationSetPhase(ST_DEPART);
         stDepartBeganMs=millis(); stDepartWarned=false;
         // Straight to cruise. Station speed exists to arrive accurately; once
@@ -2035,7 +2146,7 @@ static void serviceStations(){
         // magnet events stretched to four seconds, occupancy of the median
         // window reached 90%, the baseline was corrupted and navigation was
         // lost. A throttle number caused a navigation failure.
-        requestPwm(cruiseForPosition(),STATION_UP_STEP_MS);
+        requestPwm(ctoLimitPwm(cruiseForPosition()),STATION_UP_STEP_MS);
         stationPublish("DWELL_COMPLETE",o,"DEPART_TO_CRUISE");
       }
       break;
@@ -2120,7 +2231,8 @@ static char T_ST_THROTTLE[64],T_ST_DIRECTION[64],T_ST_BRAKE[64],T_ST_ESTOP[64],
 static char T_TELEM_V[64],T_TELEM_A[64],T_TELEM_W[64],T_ST_LOWVOLT[64];
 static char T_CMD_AUTO[64],T_CMD_GO[64],T_CMD_STOP[64],T_CMD_DIR[64],T_CMD_SESSDIR[64];
 static char T_CMD_STARTMM[64],T_CMD_ESTOP[64],T_CMD_ESTOP_ALL[64],T_CMD_THROTTLE[64],T_CMD_STARTINT[64],
-            T_CMD_RELEASE[64],T_CMD_FORCELOST[64];
+            T_CMD_RELEASE[64],T_CMD_FORCELOST[64],T_CMD_CTO[64];
+static char T_ST_CTO[64];   // LAYER 5 state topic: role, partner, gaps, holds
 
 static void buildTopics(){
   const char* id=LOCO_NAME;
@@ -2154,6 +2266,8 @@ static void buildTopics(){
   snprintf(T_CMD_STARTINT,64,"ngr/loco/%s/cmd/start_interval"   ,id);
   snprintf(T_CMD_RELEASE ,64,"ngr/loco/%s/cmd/dispatcher_release",id);
   snprintf(T_CMD_FORCELOST,64,"ngr/loco/%s/cmd/force_lost"       ,id);
+  snprintf(T_CMD_CTO     ,64,"ngr/loco/%s/cmd/cto"              ,id);
+  snprintf(T_ST_CTO      ,64,"ngr/loco/%s/state/cto"            ,id);
   snprintf(T_CMD_ESTOP   ,64,"ngr/loco/%s/cmd/estop"            ,id);
   // E-STOP IS THE ONE CROSSING THAT IS ALWAYS OPEN. The dispatcher console's
   // E-STOP publishes to this BROADCAST topic, not a per-locomotive one, and
@@ -2881,6 +2995,13 @@ static void handleCommand(const char* topic,const char* msg){
   else if(!strcmp(topic,T_CMD_THROTTLE)){
     if(!autoRunning && !estopped) requestPwm(atoi(msg),NORMAL_STEP_MS);   // manual only
   }
+  else if(!strcmp(topic,T_CMD_CTO)){
+    // LAYER 5 operator command. "clear" empties the peer registry, dissolves
+    // any pair and disarms the fleet stop — the LBO CMD_CLEAR_ALL lesson: a
+    // removed locomotive must not hold the survivors hostage. "off"/"on"
+    // gate the whole layer. Anything else is refused loudly.
+    ctoHandleClear(msg);
+  }
   else if(!strcmp(topic,T_CMD_FORCELOST)){
     // TEST FIXTURE (§6.5). Topic name kept for existing scripts. Payload is a
     // signed integer n: displace navMm by n event-steps and change NOTHING
@@ -2938,6 +3059,7 @@ static void subscribeAll(){
   mqtt.subscribe(T_CMD_STARTINT);
   mqtt.subscribe(T_CMD_RELEASE);
   mqtt.subscribe(T_CMD_FORCELOST);
+  mqtt.subscribe(T_CMD_CTO);
 }
 
 // The MQTT callback runs on the NETWORK task. It must not touch locomotive
@@ -3015,6 +3137,10 @@ static void attemptReconnect(){
 static void networkTask(void*){
   for(;;){
     if(WiFi.status()==WL_CONNECTED){
+      // LAYER 5: ESP-NOW must init after the STA has a channel; once, guarded.
+      // Runs on the network task — esp_now_init/register are its only calls
+      // here, and the recv callback only ever copies into ctoRxQueue.
+      ctoRadioInit();   // self-guarded; returns immediately once up
       if(!mqtt.connected()){
         attemptReconnect();            // may block; that is now harmless
       }else{
@@ -3162,6 +3288,380 @@ static void calibrate(){
                 baselineCounts,northEnter,northExit,southExit,southEnter);
 }
 
+// ===========================================================================
+// LAYER 5 — CTO3 PEER COORDINATION  (docs/CTO3/BUBBLE_V1_SPEC.md)
+// ---------------------------------------------------------------------------
+// Two-train bubble operations: peer truth over ESP-NOW, derived latched
+// roles, one deceleration profile with a resume flag, leader hold at
+// stations, and the 0031 fleet stop enforced by absence.
+//
+// Constitutional position (§0.2): this layer NEVER writes the motor. It
+// limits what the AUTO station machine may request (ctoLimitPwm), extends a
+// dwell (ctoHoldDeparture/ctoDwellMs), and that is all. In MANUAL it only
+// broadcasts self-truth. E-stop and manual authority are untouched.
+//
+// The wire carries truth, never authority (decision 0032): the peer packet
+// is the sender's own operational facts in the FROZEN CtoPeerPacket v3
+// layout (docs/CLAUDE.md); the role echo is a separate new packet type that
+// r12-era receivers ignore by magic mismatch. Nobody is told what to do.
+//
+// Every distance here is MARKERS along direction of travel — the control
+// frame ruling. Bounds are producer-applied: hall marker composed with the
+// consist extents from LL_LocoConfig (decisions 0030/0033). The navigation
+// uncertainty term is deliberately absent in v1 and owed at M5 validation.
+// ===========================================================================
+
+// ---- geometry (markers, along travel; bounds only — decision 0033) --------
+static inline uint8_t ctoMyFrontB(){ return routeMod((int32_t)navMm + navDir*CONSIST_EXTENT_FRONT_MARKERS); }
+static inline uint8_t ctoMyRearB(){  return routeMod((int32_t)navMm - navDir*CONSIST_EXTENT_REAR_MARKERS); }
+// forward arc a->b in my travel direction, 0..170
+static inline uint16_t ctoArc(uint8_t a,uint8_t b){
+  return (navDir==MAP_CW) ? routeMod((int32_t)b-(int32_t)a) : routeMod((int32_t)a-(int32_t)b);
+}
+// bound gap from MY front to PEER rear (peer ahead of me)
+static inline uint16_t ctoGapAhead(const CtoPeer& p){ return ctoArc(ctoMyFrontB(),p.rearB); }
+// bound gap from PEER front to MY rear (peer behind me)
+static inline uint16_t ctoGapBehind(const CtoPeer& p){ return ctoArc(p.frontB,ctoMyRearB()); }
+
+static inline bool ctoPeerFresh(const CtoPeer& p){
+  return p.seen && (uint32_t)(millis()-p.rxMs)<=CTO_PEER_STALE_MS;
+}
+static inline bool ctoPeerNavOk(const CtoPeer& p){ return p.truthSource>=1; }
+static inline bool ctoPeerSameDir(const CtoPeer& p){
+  return navDir!=MAP_UNSET && p.mapDir==navDir;
+}
+// A peer counts as stopping/stopped for traffic purposes on POSITIVE evidence
+// only: its own declared traffic phase, a station stop in progress, or a
+// stationary broadcast. Silence is handled by freshness + fleet stop, never here.
+static inline bool ctoPeerStopping(const CtoPeer& p){
+  return p.trafficPhase!=CTRAF_CLEAR ||
+         (p.stationPhase>=ST_RAMP && p.stationPhase<=ST_DWELL) ||
+         (p.motionState==0 && p.rampPwm==0);
+}
+
+static int8_t ctoPeerIdx(uint32_t id){
+  for(uint8_t i=0;i<CTO_MAX_PEERS;i++) if(ctoPeers[i].seen && ctoPeers[i].id==id) return (int8_t)i;
+  return -1;
+}
+static int8_t ctoPartnerIdx(){ return ctoPartnerId?ctoPeerIdx(ctoPartnerId):-1; }
+
+// ---- radio -----------------------------------------------------------------
+static void ctoOnRecv(const esp_now_recv_info_t*,const uint8_t* data,int len){
+  // WiFi-task context: copy and leave, exactly like onMqttEnqueue. All state
+  // belongs to the loop thread.
+  if(len!=(int)sizeof(CtoPeerPacket) && len!=(int)sizeof(Cto3RoleEcho)) return;
+  uint8_t buf[sizeof(CtoPeerPacket)]; // echo is smaller; length rides the queue item
+  memcpy(buf,data,len);
+  struct { uint8_t b[sizeof(CtoPeerPacket)]; int l; } item;
+  memcpy(item.b,buf,len); item.l=len;
+  if(ctoRxQueue && xQueueSend(ctoRxQueue,&item,0)!=pdTRUE) ctoRxDropped++;
+}
+static void ctoRadioInit(){
+  if(ctoRadioUp) return;
+  if(esp_now_init()!=ESP_OK){ Serial.println("[CTO] esp_now init FAILED"); return; }
+  esp_now_peer_info_t pi={}; memcpy(pi.peer_addr,CTO_BCAST,6);
+  pi.channel=0; pi.encrypt=false;
+  if(!esp_now_is_peer_exist(CTO_BCAST)) esp_now_add_peer(&pi);
+  esp_now_register_recv_cb(ctoOnRecv);
+  ctoRadioUp=true;
+  Serial.println("[CTO] radio up (ESP-NOW, broadcast)");
+}
+static void ctoTxStatus(){
+  CtoPeerPacket p={};
+  p.magic=CTO2_MAGIC; p.version=CTO2_VERSION;
+  p.senderId=LOCO_ID; p.sequence=++ctoTxSeq;
+  p.hallMm=navMm; p.mapDir=navDir;
+  p.frontBoundaryMm=(navDir==MAP_UNSET)?navMm:ctoMyFrontB();
+  p.rearBoundaryMm =(navDir==MAP_UNSET)?navMm:ctoMyRearB();
+  p.frontOffset=CONSIST_EXTENT_FRONT_MARKERS; p.rearOffset=CONSIST_EXTENT_REAR_MARKERS;
+  p.autoMode=autoRunning?1:0;
+  p.running=(commandedPwm>0||actualPwm>0)?1:0;
+  p.motionState=(actualPwm==0&&commandedPwm==0)?0:3;   // STOPPED_INFERRED / MOVING
+  p.rampPwm=(uint8_t)constrain(actualPwm,0,255);
+  p.speedValid=0; p.speedX10=0;                        // no independent speed yet
+  p.lastMoveAgeDs=0;
+  p.truthSource=(navState==NAV_NORMAL)?2:(navState==NAV_EVALUATING)?1:0;
+  p.stationPhase=(uint8_t)stPhase;
+  p.trafficPhase=(uint8_t)ctoTraffic;
+  p.mustHoldEligible=0;
+  p.trafficStopForId=ctoTrafficForId;
+  p.senderRxAccepted=ctoRxAccepted; p.senderTxAttempts=ctoTxAttempts;
+  p.senderTxImmediateErrors=ctoTxErrors;
+  ctoTxAttempts++;
+  if(esp_now_send(CTO_BCAST,(uint8_t*)&p,sizeof(p))!=ESP_OK) ctoTxErrors++;
+}
+static void ctoTxEcho(){
+  Cto3RoleEcho e={};
+  e.magic=CTO3_ECHO_MAGIC; e.version=CTO3_ECHO_VERSION;
+  e.senderId=LOCO_ID; e.role=(uint8_t)ctoRole; e.partnerId=ctoPartnerId;
+  e.pairEpochMs=ctoPairEpochMs;
+  esp_now_send(CTO_BCAST,(uint8_t*)&e,sizeof(e));
+}
+
+// ---- registry --------------------------------------------------------------
+static void ctoAcceptPeer(const CtoPeerPacket& p){
+  if(p.magic!=CTO2_MAGIC || p.version!=CTO2_VERSION) return;   // r9-and-below: reject, never guess
+  if(p.senderId==LOCO_ID) return;
+  int8_t i=ctoPeerIdx(p.senderId);
+  if(i<0){ for(uint8_t k=0;k<CTO_MAX_PEERS;k++) if(!ctoPeers[k].seen){ i=(int8_t)k; break; } }
+  if(i<0){ // full: evict stalest — r12 LRU rule
+    uint32_t worst=0; for(uint8_t k=0;k<CTO_MAX_PEERS;k++){ uint32_t age=millis()-ctoPeers[k].rxMs; if(age>=worst){worst=age;i=(int8_t)k;} }
+  }
+  CtoPeer& q=ctoPeers[i];
+  q.seen=true; q.id=p.senderId; q.seq=p.sequence; q.rxMs=millis();
+  q.hallMm=p.hallMm; q.frontB=p.frontBoundaryMm; q.rearB=p.rearBoundaryMm;
+  q.mapDir=p.mapDir; q.autoMode=p.autoMode; q.running=p.running;
+  q.motionState=p.motionState; q.rampPwm=p.rampPwm; q.truthSource=p.truthSource;
+  q.stationPhase=p.stationPhase; q.trafficPhase=p.trafficPhase; q.stopForId=p.trafficStopForId;
+  ctoRxAccepted++;
+  // 0031 membership, v1 lifecycle (recorded in the implementation report as a
+  // PROPOSAL): the first fresh same-direction peer seen this boot becomes the
+  // expected peer. Cleared only by cmd/cto "clear" or power cycle. A second
+  // distinct loco does not replace it in v1 (two-train spec).
+  if(ctoEnabled && ctoExpectedId==0 && p.senderId!=0) ctoExpectedId=p.senderId;
+}
+static void ctoAcceptEcho(const Cto3RoleEcho& e){
+  if(e.magic!=CTO3_ECHO_MAGIC || e.version!=CTO3_ECHO_VERSION) return;
+  if(e.senderId==LOCO_ID) return;
+  int8_t i=ctoPeerIdx(e.senderId); if(i<0) return;   // echo without status: ignore
+  ctoPeers[i].echoRole=e.role; ctoPeers[i].echoPartner=e.partnerId;
+  ctoPeers[i].echoRxMs=millis();
+}
+
+// ---- roles (decision 0032: derived, latched, echoed) -----------------------
+static void ctoDissolve(const char* why){
+  if(ctoRole!=CTO_ROLE_NONE){
+    char b[96]; snprintf(b,sizeof(b),"{\"event\":\"CTO_UNPAIRED\",\"why\":\"%s\",\"partner\":%lu}",why,(unsigned long)ctoPartnerId);
+    pub(T_ST_CTO,b,false);
+  }
+  ctoRole=CTO_ROLE_NONE; ctoPartnerId=0; ctoPairEpochMs=0;
+  ctoFollowerArrivedMs=0; ctoEchoConflict=false;
+}
+static void ctoLatch(CtoRole r,uint32_t partner){
+  ctoRole=r; ctoPartnerId=partner; ctoPairEpochMs=millis();
+  ctoFollowerArrivedMs=0; ctoEchoConflict=false;
+  char b[112];
+  snprintf(b,sizeof(b),"{\"event\":\"CTO_PAIRED\",\"role\":\"%s\",\"partner\":%lu}",
+           r==CTO_ROLE_LEADER?"LEADER":"FOLLOWER",(unsigned long)partner);
+  pub(T_ST_CTO,b,false);
+  ctoTxEcho();
+}
+// Q1/Q2 at pairing range; long-range provisional order for who-waits.
+// Evaluated every service pass — cheap, and formation while stationary needs
+// packet-driven evaluation, not only marker-driven (spec sec.5 note).
+static void ctoEvaluateRoles(){
+  if(!ctoEnabled || navDir==MAP_UNSET || !navPositionUsable()){ return; }
+  int8_t pi=ctoPartnerIdx();
+  if(ctoRole!=CTO_ROLE_NONE){
+    // dissolution paths; staleness does NOT silently dissolve — fleet stop
+    // owns that (0031). Direction mismatch does.
+    if(pi>=0 && ctoPeerFresh(ctoPeers[pi]) && !ctoPeerSameDir(ctoPeers[pi]))
+      ctoDissolve("PARTNER_DIRECTION_CHANGED");
+    return;                                    // latched roles persist (0032)
+  }
+  // pick the nearest fresh same-direction quorum-holding peer
+  int8_t best=-1; uint16_t bestGap=0xFFFF; bool bestAhead=true;
+  for(uint8_t i=0;i<CTO_MAX_PEERS;i++){
+    CtoPeer& p=ctoPeers[i];
+    if(!ctoPeerFresh(p)||!ctoPeerSameDir(p)||!ctoPeerNavOk(p)) continue;
+    uint16_t ga=ctoGapAhead(p), gb=ctoGapBehind(p);
+    uint16_t g=(ga<gb)?ga:gb;
+    if(g<bestGap){ bestGap=g; best=(int8_t)i; bestAhead=(ga<gb); }
+  }
+  if(best<0) return;
+  CtoPeer& p=ctoPeers[best];
+  uint16_t ga=ctoGapAhead(p), gb=ctoGapBehind(p);
+  // Q1: peer ahead within pairing range -> I FOLLOW
+  if(bestAhead && ga<=CTO_PAIR_RANGE_MARKERS){ ctoLatch(CTO_ROLE_FOLLOWER,p.id); return; }
+  // Q2: peer behind within pairing range -> I LEAD
+  if(!bestAhead && gb<=CTO_PAIR_RANGE_MARKERS){ ctoLatch(CTO_ROLE_LEADER,p.id); return; }
+  // Long range: no latch. Provisional who-waits only (spec sec.6): my
+  // behind-arc vs his (= my ahead-arc); smaller behind-arc leads; inside the
+  // tie band the lower loco ID leads. The ONLY behaviour this drives is the
+  // leader-designate holding at its next station via ctoHoldDeparture().
+}
+static bool ctoProvisionalLeader(){
+  if(ctoRole==CTO_ROLE_LEADER) return true;
+  if(ctoRole==CTO_ROLE_FOLLOWER) return false;
+  if(!ctoEnabled||navDir==MAP_UNSET||!navPositionUsable()) return false;
+  for(uint8_t i=0;i<CTO_MAX_PEERS;i++){
+    CtoPeer& p=ctoPeers[i];
+    if(!ctoPeerFresh(p)||!ctoPeerSameDir(p)||!ctoPeerNavOk(p)) continue;
+    uint16_t myBehind=ctoGapBehind(p);      // arc from his front to my rear
+    uint16_t hisBehind=ctoGapAhead(p);      // arc from my front to his rear
+    int32_t diff=(int32_t)myBehind-(int32_t)hisBehind;
+    if(diff<-(int32_t)CTO_TIE_BAND_MARKERS) return true;    // clearly smaller behind-arc
+    if(diff>(int32_t)CTO_TIE_BAND_MARKERS)  return false;
+    return LOCO_ID < p.id;                                   // tie band: lower ID leads
+  }
+  return false;
+}
+
+// ---- the three hooks the station machine consults ---------------------------
+static uint32_t ctoDwellMs(){
+  // Paired follower at a platform dwells 20 s (operator, supersedes 15).
+  return (ctoRole==CTO_ROLE_FOLLOWER)?CTO_FOLLOWER_DWELL_MS:DWELL_MS;
+}
+static bool ctoHoldDeparture(){
+  if(!ctoEnabled) return false;
+  if(ctoFleetHold) return true;              // never depart into a fleet stop
+  if(ctoEchoConflict) return true;           // 0032: disagreement -> both hold
+  // Formation: an unpaired provisional leader waits at its station for the
+  // follower to close (spec sec.6 step 2). Worst mis-tie: both wait. Safe.
+  if(ctoRole==CTO_ROLE_NONE) return ctoProvisionalLeader();
+  if(ctoRole!=CTO_ROLE_LEADER) return false;
+  int8_t pi=ctoPartnerIdx();
+  if(pi<0||!ctoPeerFresh(ctoPeers[pi])) return true;   // no fresh partner: hold (0031 will also fire)
+  CtoPeer& p=ctoPeers[pi];
+  // follower "arrived": stopped, at the hold gap behind me (positive evidence)
+  bool arrived = ctoPeerStopping(p) && p.motionState==0 &&
+                 ctoGapBehind(p) <= (uint16_t)(CTO_CLEAR_GAP_MARKERS+CTO_ARRIVE_TOL_MARKERS);
+  if(!arrived){ ctoFollowerArrivedMs=0; return true; }
+  if(ctoFollowerArrivedMs==0){
+    ctoFollowerArrivedMs=millis();
+    pub(T_ST_CTO,"{\"event\":\"CTO_FOLLOWER_ARRIVED\"}",false);
+  }
+  return (millis()-ctoFollowerArrivedMs) < CTO_RELEASE_DWELL_MS;   // 10 s release dwell
+}
+static int ctoLimitPwm(int want){
+  // Universal traffic protection (spec sec.7): one deceleration profile; the
+  // flag that differs is simply WHICH machine resumes — station or cruise —
+  // and both already exist above this layer. This function only caps.
+  if(!ctoEnabled) return want;
+  if(ctoFleetHold) return 0;
+  if(navDir==MAP_UNSET||!navPositionUsable()) return want;   // solo rules apply
+  int cap=want;
+  CtoTrafficPhase newPhase=CTRAF_CLEAR; uint32_t forId=0;
+  for(uint8_t i=0;i<CTO_MAX_PEERS;i++){
+    CtoPeer& p=ctoPeers[i];
+    if(!ctoPeerFresh(p)||!ctoPeerSameDir(p)) continue;
+    uint16_t ga=ctoGapAhead(p), gb=ctoGapBehind(p);
+    if(ga>=gb) continue;                                     // peer not ahead of me
+    // Contact guard: bounds already touching or crossed — stop, uncondition-
+    // ally, before the arc arithmetic can read an overlap as "far ahead".
+    uint16_t hallFwd=ctoArc(navMm,p.hallMm);
+    if(hallFwd<=(uint16_t)(CONSIST_EXTENT_FRONT_MARKERS+CONSIST_EXTENT_REAR_MARKERS)
+       || ga<=CTO_CLEAR_GAP_MARKERS){
+      cap=0; newPhase=CTRAF_HOLD; forId=p.id; break;
+    }
+    if(ctoPeerStopping(p)){
+      if(ga<=CTO_STOP_GAP_MARKERS){ if(cap>0){cap=0; newPhase=CTRAF_HOLD; forId=p.id;} }
+      else if(ga<=CTO_SLOW_GAP_MARKERS){ if(cap>STATION_ZONE_PWM){cap=STATION_ZONE_PWM; newPhase=CTRAF_DECEL; forId=p.id;} }
+    }else if(ga<=CTO_STOP_GAP_MARKERS){
+      // moving leader, small gap: shadow its actual PWM rather than close
+      int shadow=(int)p.rampPwm; if(cap>shadow){cap=shadow; newPhase=CTRAF_DECEL; forId=p.id;}
+    }
+  }
+  if(newPhase!=ctoTraffic || forId!=ctoTrafficForId){
+    ctoTraffic=newPhase; ctoTrafficForId=forId;
+    char b[112];
+    snprintf(b,sizeof(b),"{\"event\":\"CTO_TRAFFIC\",\"phase\":%u,\"for\":%lu,\"cap\":%d}",
+             (unsigned)newPhase,(unsigned long)forId,cap);
+    pub(T_ST_CTO,b,false);
+  }
+  return cap;
+}
+
+// ---- fleet stop (decision 0031: by absence, never announcement) ------------
+static void ctoServiceFleetStop(){
+  if(!ctoEnabled || ctoExpectedId==0){ ctoFleetHold=false; return; }
+  int8_t i=ctoPeerIdx(ctoExpectedId);
+  bool ok = (i>=0) && ctoPeerFresh(ctoPeers[i]) && ctoPeerNavOk(ctoPeers[i]);
+  if(!ok && !ctoFleetHold){
+    ctoFleetHold=true;
+    if(autoRunning) requestPwm(0,NORMAL_STEP_MS);   // AUTO chamber only (§0.2)
+    char b[128];
+    snprintf(b,sizeof(b),"{\"event\":\"CTO_FLEET_STOP\",\"expected\":%lu,\"why\":\"%s\"}",
+             (unsigned long)ctoExpectedId,(i<0)?"NEVER_HEARD":!ctoPeerFresh(ctoPeers[i])?"STALE":"NO_POSITION");
+    pub(T_ST_CTO,b,false);
+    publishAlert("CTO","FLEET_STOP");
+  }else if(ok && ctoFleetHold){
+    ctoFleetHold=false;
+    pub(T_ST_CTO,"{\"event\":\"CTO_FLEET_CLEAR\"}",false);
+    // No autonomous surge back to speed: the station machine's own cruise
+    // path restores speed through ctoLimitPwm on its next pass.
+  }
+}
+
+// ---- role echo cross-check (0032) ------------------------------------------
+static void ctoServiceEchoCheck(){
+  if(ctoRole==CTO_ROLE_NONE){ ctoEchoConflict=false; return; }
+  int8_t i=ctoPartnerIdx();
+  if(i<0) return;
+  CtoPeer& p=ctoPeers[i];
+  if(p.echoRxMs==0 || (uint32_t)(millis()-p.echoRxMs)>2*CTO_PEER_STALE_MS) return; // no echo: no verdict
+  bool conflict=false;
+  if(ctoRole==CTO_ROLE_LEADER   && p.echoRole==(uint8_t)CTO_ROLE_LEADER   && p.echoPartner==LOCO_ID) conflict=true;
+  if(ctoRole==CTO_ROLE_FOLLOWER && p.echoRole==(uint8_t)CTO_ROLE_FOLLOWER && p.echoPartner==LOCO_ID) conflict=true;
+  if(conflict && !ctoEchoConflict){
+    ctoEchoConflict=true;
+    if(autoRunning) requestPwm(0,NORMAL_STEP_MS);
+    pub(T_ST_CTO,"{\"event\":\"CTO_ROLE_CONFLICT\",\"action\":\"HOLD\"}",false);
+    publishAlert("CTO","ROLE_CONFLICT");
+  }else if(!conflict && ctoEchoConflict){
+    ctoEchoConflict=false;
+    pub(T_ST_CTO,"{\"event\":\"CTO_ROLE_CONFLICT_CLEARED\"}",false);
+  }
+}
+
+// ---- operator command -------------------------------------------------------
+static void ctoHandleClear(const char* msg){
+  if(!strncmp(msg,"clear",5)){
+    for(uint8_t i=0;i<CTO_MAX_PEERS;i++) ctoPeers[i]=CtoPeer{};
+    ctoDissolve("OPERATOR_CLEAR");
+    ctoExpectedId=0; ctoFleetHold=false; ctoTraffic=CTRAF_CLEAR; ctoTrafficForId=0;
+    pub(T_ST_CTO,"{\"event\":\"CTO_CLEARED\"}",false);
+  }else if(!strncmp(msg,"off",3)){
+    ctoEnabled=false; ctoDissolve("CTO_OFF");
+    ctoExpectedId=0; ctoFleetHold=false; ctoTraffic=CTRAF_CLEAR; ctoTrafficForId=0;
+    pub(T_ST_CTO,"{\"event\":\"CTO_OFF\"}",false);
+  }else if(!strncmp(msg,"on",2)){
+    ctoEnabled=true;
+    pub(T_ST_CTO,"{\"event\":\"CTO_ON\"}",false);
+  }else{
+    pub(T_ST_CTO,"{\"event\":\"CTO_CMD_REFUSED\",\"why\":\"UNKNOWN\"}",false);
+  }
+}
+
+// ---- service (loop thread, self-rate-limited) -------------------------------
+static void ctoService(){
+  if(!ctoRadioUp) return;
+  // drain radio queue (recv callback only copies)
+  if(ctoRxQueue){
+    struct { uint8_t b[sizeof(CtoPeerPacket)]; int l; } item;
+    while(xQueueReceive(ctoRxQueue,&item,0)==pdTRUE){
+      if(item.l==(int)sizeof(CtoPeerPacket)){ CtoPeerPacket p; memcpy(&p,item.b,sizeof(p)); ctoAcceptPeer(p); }
+      else if(item.l==(int)sizeof(Cto3RoleEcho)){ Cto3RoleEcho e; memcpy(&e,item.b,sizeof(e)); ctoAcceptEcho(e); }
+    }
+  }
+  uint32_t now=millis();
+  if(now-ctoLastTxMs>=CTO_TX_INTERVAL_MS){ ctoLastTxMs=now; ctoTxStatus(); }
+  if(now-ctoLastEchoMs>=CTO_ECHO_INTERVAL_MS){ ctoLastEchoMs=now; ctoTxEcho(); }
+  ctoEvaluateRoles();
+  ctoServiceEchoCheck();
+  ctoServiceFleetStop();
+  // 5 s state heartbeat so the console can render the layer without waiting
+  // for a transition.
+  if(now-ctoLastStateMs>=5000){
+    ctoLastStateMs=now;
+    int8_t pi=ctoPartnerIdx();
+    char b[224];
+    snprintf(b,sizeof(b),
+      "{\"event\":\"CTO_STATUS\",\"on\":%d,\"role\":\"%s\",\"partner\":%lu,"
+      "\"expected\":%lu,\"fleet_hold\":%d,\"traffic\":%u,\"gap_ahead\":%d,"
+      "\"front_b\":%u,\"rear_b\":%u,\"rx\":%lu,\"tx\":%lu,\"txe\":%lu,\"rxd\":%lu}",
+      ctoEnabled?1:0,
+      ctoRole==CTO_ROLE_LEADER?"LEADER":ctoRole==CTO_ROLE_FOLLOWER?"FOLLOWER":"NONE",
+      (unsigned long)ctoPartnerId,(unsigned long)ctoExpectedId,
+      ctoFleetHold?1:0,(unsigned)ctoTraffic,
+      (pi>=0&&ctoPeerFresh(ctoPeers[pi])&&navDir!=MAP_UNSET)?(int)ctoGapAhead(ctoPeers[pi]):-1,
+      (navDir!=MAP_UNSET)?ctoMyFrontB():navMm,(navDir!=MAP_UNSET)?ctoMyRearB():navMm,
+      (unsigned long)ctoRxAccepted,(unsigned long)ctoTxAttempts,
+      (unsigned long)ctoTxErrors,(unsigned long)ctoRxDropped);
+    pub(T_ST_CTO,b,false);
+  }
+}
+
 void setup(){
   Serial.begin(115200); delay(300);
   Serial.printf("\n[BOOT] %s — %s\n",SKETCH_NAME,LOCO_NAME);
@@ -3198,6 +3698,8 @@ void setup(){
   pubQueue=xQueueCreate(32,sizeof(PubMsg));         // ~17 KB
   markerPubQueue=xQueueCreate(128,sizeof(PubMsg));  // ~66 KB heap, marker path only
   cmdQueue=xQueueCreate(16,sizeof(CmdMsg));
+  { struct CtoRxItem { uint8_t b[sizeof(CtoPeerPacket)]; int l; };
+    ctoRxQueue=xQueueCreate(8,sizeof(CtoRxItem)); }   // LAYER 5 radio inbox
   if(!pubQueue||!markerPubQueue||!cmdQueue){ Serial.println("[FATAL] mqtt queue alloc failed"); while(1) delay(1000); }
 
   WiFi.mode(WIFI_STA);
@@ -3245,6 +3747,7 @@ void loop(){
   serviceWarningExpiry();
   publishSimpleStates();
   serviceStations();
+  ctoService();        // LAYER 5: peer truth, roles, fleet stop. Loop thread.
   servicePwmRamp();
   // After servicePwmRamp, so the 5 s I2C read never sits between a command and
   // the motor write it asks for. Self-rate-limited; a run with no INA219
