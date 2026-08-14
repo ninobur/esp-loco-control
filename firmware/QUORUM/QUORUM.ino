@@ -1923,10 +1923,22 @@ static int cruiseForPosition(){
 // standing cap makes them re-request forever and recompute the ramp from a
 // shrinking delta (round 2 finding 3).
 static int ctoDesiredPwm=0;
+// Round 3 (CODEX): ONE deceleration profile, literally. Every CTO-caused
+// reduction — request-time cap in either writer, or the continuous
+// enforcement pass — brakes at STATION_DOWN_STEP_MS (200 ms/PWM), the rate
+// the 18/12/6 ladder's measured stopping distance was derived from. Without
+// this, the same traffic condition braked at 150, 200 or a duration-derived
+// rate depending on which path saw it first, and the ladder's justification
+// did not hold. Restores (cap lifting) are not braking and keep their own
+// rates.
 static void requestPwm(int target,uint16_t stepMs){
   int t=constrain(target,0,255);
   ctoDesiredPwm=t;
-  if(autoRunning) t=ctoLimitPwm(t);
+  if(autoRunning){
+    int c=ctoLimitPwm(t);
+    if(c<t) stepMs=STATION_DOWN_STEP_MS;   // CTO is braking: the one profile
+    t=c;
+  }
   commandedPwm=t;
   pwmStepMs=stepMs;
 }
@@ -1936,10 +1948,16 @@ static void requestPwm(int target,uint16_t stepMs){
 static void requestPwmOver(int target,uint16_t durationMs){
   int t=constrain(target,0,255);
   ctoDesiredPwm=t;
-  if(autoRunning) t=ctoLimitPwm(t);
+  bool ctoBraking=false;
+  if(autoRunning){
+    int c=ctoLimitPwm(t);
+    if(c<t) ctoBraking=true;
+    t=c;
+  }
   int delta=abs(t-actualPwm);
   commandedPwm=t;
-  pwmStepMs = (delta>0) ? (uint16_t)max(5UL,(unsigned long)durationMs/(unsigned long)delta) : 50;
+  pwmStepMs = ctoBraking ? STATION_DOWN_STEP_MS
+            : (delta>0) ? (uint16_t)max(5UL,(unsigned long)durationMs/(unsigned long)delta) : 50;
 }
 
 static void servicePwmRamp(){
@@ -3664,7 +3682,15 @@ static void ctoServiceEchoCheck(){
   // dwell choreography does (ctoHoldDeparture, ctoDwellMs).
   if(ctoRole==CTO_ROLE_NONE){ ctoEchoConflict=false; ctoEchoConfirmed=false; return; }
   int8_t i=ctoPartnerIdx();
-  if(i<0){ ctoEchoConfirmed=false; return; }
+  if(i<0){
+    // Round 3 residual: a partner evicted from the registry clears BOTH
+    // flags — a vanished partner is the fleet stop's jurisdiction (0031),
+    // and a conflict latched against nobody is not a clean state.
+    ctoEchoConfirmed=false;
+    if(ctoEchoConflict){ ctoEchoConflict=false;
+      pub(T_ST_CTO,"{\"event\":\"CTO_ROLE_CONFLICT_CLEARED\",\"why\":\"PARTNER_GONE\"}",false); }
+    return;
+  }
   CtoPeer& p=ctoPeers[i];
   // Round 2 finding 5: an echo only counts if it is fresh AND postdates THIS
   // latch — a still-fresh echo from an earlier pairing with the same
@@ -3751,8 +3777,9 @@ static void ctoService(){
   if(autoRunning && !estopped){
     int cap=ctoLimitPwm(ctoDesiredPwm);
     if(cap!=commandedPwm){
+      // Braking uses the ONE profile (round 3); a restore is not braking.
+      pwmStepMs = (cap<commandedPwm) ? STATION_DOWN_STEP_MS : NORMAL_STEP_MS;
       commandedPwm=cap;
-      pwmStepMs=NORMAL_STEP_MS;
     }
   }
   // 5 s state heartbeat so the console can render the layer without waiting

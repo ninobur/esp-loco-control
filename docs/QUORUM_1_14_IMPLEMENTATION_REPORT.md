@@ -140,6 +140,30 @@ of this — its ESP-NOW path is inert by design — so these fixes are verified
 by review and compilation only, and the two-locomotive session remains the
 first executable test of the layer.
 
+## Review round 3 (CODEX, 2026-08-13) — verdict and the last two items
+
+CODEX closed all seven round-2 findings against `e705d6d` and ruled: **the
+supervised, hands-on two-locomotive test is allowed; deployment and
+unattended running are not.** Two items from the verdict, both applied:
+
+- **(High) One deceleration profile, literally.** The same traffic condition
+  braked at 150, 200, or a duration-derived rate depending on which path
+  applied the cap — and the 18/12/6 ladder is justified by stopping distance
+  measured at 200 ms/PWM. Every CTO-caused *reduction* now brakes at
+  `STATION_DOWN_STEP_MS` (200) in all three paths: both writers and the
+  continuous enforcement pass. Restores are not braking and keep their rates.
+- **(Minor) Partner evicted from the registry** now clears an existing
+  conflict as well as confirmation — a conflict latched against nobody is
+  not a clean state, and the vanished partner is 0031's jurisdiction.
+
+**Mandatory acceptance gate, adopted from the verdict:** the mid-cruise
+leader-stop trial must **measure the resulting stop gap in markers**, not
+merely confirm that PWM starts falling. That measurement is what converts
+the provisional 18/12/6 ladder into a validated one (spec §3; decision 0033).
+
+Correction to earlier wording, per CODEX: builds are "no NEW warnings" —
+the pre-existing volatile/enum warnings remain — not "warning-free."
+
 ## Deployment gate
 
 Per the spec and standing practice: **operator + CODEX review of this report
