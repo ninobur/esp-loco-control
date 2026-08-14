@@ -43,8 +43,8 @@ distances.
    locomotive runs only while every expected peer is currently fresh (≤ 3 s)
    and reporting a quorum-holding navigation state. A locomotive that loses
    position may also lose its radio — the rule cannot depend on the lost
-   locomotive saying so. Untestable with one locomotive; owed a decision
-   record when two-train testing begins.
+   locomotive saying so. **Decision 0031.** Untestable with one locomotive;
+   first exercised in M7's induced-failure test.
 5. **Bicameral authority holds** (spec §0.2, decision 0002): missions are
    dispatcher authority (CE is a mission command); **spacing decisions are
    onboard, always**. E-stop crosses everything.

@@ -73,3 +73,5 @@ rather than a silent drift discovered later.
 | [0021](0021-ir-speed-is-local-and-telemetry-is-summary.md) | IR speed is computed locally and telemetry reports summaries | Accepted |
 | [0022](0022-plastic-ten-spoke-wheel-is-the-ir-target.md) | The LGB plastic 10-spoke wheel is the IR speed target | Accepted |
 | [0030](0030-train-extent-is-a-distance-and-the-producer-applies-it.md) | Train extent is +2 / -4 markers, in per-loco config, applied by the producer | Accepted |
+| [0031](0031-no-quorum-on-any-locomotive-stops-every-locomotive.md) | NO_QUORUM on any locomotive stops every locomotive, enforced by absence | Accepted |
+| [0032](0032-roles-are-derived-coordination-state-latched-and-echoed.md) | Leader/follower is derived coordination state — latched, echoed, never negotiated | Accepted |
