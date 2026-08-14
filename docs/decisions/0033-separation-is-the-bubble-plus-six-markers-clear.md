@@ -53,6 +53,24 @@ invariant is bubble-plus-clearance rather than extent alone. The stopping
 trials required by the spec should confirm the rear extent against the
 physical consists.
 
+### Amendment, same day — post-review rulings
+
+Two corrections from the CODEX residual review, ruled by the operator:
+
+1. **"Absorbs that comfortably" overstated.** A clearance buffer reduces
+   collision *risk*; it cannot make an untruthful bound truthful — if the
+   published extent under-covers the physical tail, the invariant is already
+   violated regardless of outcome. Extent truthfulness is therefore a
+   **field-validation requirement before M5 passes**: check the +2/−4 MM
+   envelope against the actual consists around the route, in marker space.
+2. **The control frame is marker space until IR is in service.** The Hall
+   sensor measures markers, not distance; MM is operational reality, and
+   feet/millimetres are commentary. The derived 12 MM separation and 18 MM
+   trigger are the operative working values in that frame for the current
+   consists. What this record forbids is only their promotion to invariant
+   across consist changes. The millimetre figures in this record's caveat
+   are illustrative bounds-of-error, not control quantities.
+
 ## Alternatives considered
 
 **Fixed Hall-to-Hall separation as the invariant** (the spec's first

@@ -71,18 +71,29 @@ CODEX finding 1):**
 gap( follower.front_bound → leader.rear_bound )  ≥  6 MM   at rest
 ```
 
-Collision logic consumes **published occupancy bounds only** — never Hall
-positions. Every Hall-to-Hall figure below is a **derived value for the
+Collision logic consumes **published occupancy bounds only** — never a bare
+sensor point. Every Hall-to-Hall figure below is a **derived value for the
 current +2/−4 consists**, kept because it is what an operator sees on the
 console; change a consist and the derived numbers change while the invariant
 does not.
+
+**Control frame** (operator ruling, 2026-08-13, on the review residuals):
+**marker space is operational reality until IR is in service.** The Hall
+sensor cannot measure distance; it measures markers. Bounds, buffer, targets
+and triggers are all marker quantities — a bound is the Hall marker index
+composed with the configured extent in markers. Feet and millimetres appear
+in this document only as commentary, never as control inputs. Consequently
+the 12 MM separation and 18 MM trigger in §§6–9 are the **operative working
+values** for the current consists — legitimate commands in the control frame
+— not merely diagnostics; what 0033 forbids is treating them as the
+*invariant* across consist changes.
 
 | quantity | value | status |
 |---|---|---|
 | Train extent, ahead / behind of Hall | +2 / −4 MM | configuration (0030/0033) |
 | **Clear gap, follower front bound → leader rear bound** | **≥ 6 MM** | **the invariant (0033)** |
 | Separation target, Hall-to-Hall | 12 MM | derived: 6 + 4 + 2, current consists |
-| Deceleration distance, cruise → stopped | ~6 MM | measured this session (appendix cited below) |
+| Deceleration distance, cruise → stopped | ~6 MM | **timing-derived estimate** (appendix); trial named |
 | Begin-deceleration gap, Hall-to-Hall | ≥ 18 MM | **provisional field-test value** |
 | Restart clearance | 12 MM | derived; matches `TRAFFIC_RESTART_HALL_GAP_MM` |
 
@@ -293,8 +304,13 @@ never a spacing decision:
   3. **Worst-case stopping trials** to validate the provisional 18 MM trigger
      — full consist, Grillers grade, low battery (finding 2; §3, decision
      0033).
-  4. Rear-extent check against physical consists at minimum spacing
-     (decision 0033's caveat).
+  4. **Extent validation, required before M5 passes** (review residual 2,
+     operator ruling: field test): check the +2/−4 MM envelope against the
+     actual consists around the route — a marker-space validation, not a
+     conversion into feet or millimetres. A buffer reduces collision risk
+     but cannot make an untruthful bound truthful; M5's "true occupancy
+     inside the published bound 100% of the time" is the test that settles
+     it.
   5. Dwell randomization; platform-zone definition in markers per station;
      per-station then per-loco tuning pass (§3).
 
