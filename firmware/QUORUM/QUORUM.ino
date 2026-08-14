@@ -1936,7 +1936,7 @@ static void requestPwm(int target,uint16_t stepMs){
   ctoDesiredPwm=t;
   if(autoRunning){
     int c=ctoLimitPwm(t);
-    if(c<t) stepMs=STATION_DOWN_STEP_MS;   // CTO is braking: the one profile
+    if(c<t) stepMs=STATION_DOWN_STEP_MS;   // CTO reduced requested authority: the one profile
     t=c;
   }
   commandedPwm=t;
@@ -3656,7 +3656,13 @@ static void ctoServiceFleetStop(){
   bool ok = (i>=0) && ctoPeerFresh(ctoPeers[i]) && ctoPeerNavOk(ctoPeers[i]);
   if(!ok && !ctoFleetHold){
     ctoFleetHold=true;
-    if(autoRunning) requestPwm(0,NORMAL_STEP_MS);   // AUTO chamber only (§0.2)
+    // Round 4 (CODEX): NO explicit zero-request here. Requesting 0 directly
+    // made requested==capped, so the one-profile branch never fired and the
+    // stop braked at 150 ms/PWM — and continuous enforcement could not
+    // correct it, because commandedPwm was already 0. The enforcement pass
+    // runs later in THIS SAME ctoService() pass, sees cap(desired)=0 <
+    // commandedPwm, brakes at the measured 200 ms/PWM, and preserves the
+    // uncapped desired intent for the resume.
     char b[128];
     snprintf(b,sizeof(b),"{\"event\":\"CTO_FLEET_STOP\",\"expected\":%lu,\"why\":\"%s\"}",
              (unsigned long)ctoExpectedId,(i<0)?"NEVER_HEARD":!ctoPeerFresh(ctoPeers[i])?"STALE":"NO_POSITION");
@@ -3706,7 +3712,9 @@ static void ctoServiceEchoCheck(){
   bool conflict    = echoValid && (p.echoRole==(uint8_t)ctoRole && p.echoPartner==LOCO_ID);
   if(conflict && !ctoEchoConflict){
     ctoEchoConflict=true;
-    if(autoRunning) requestPwm(0,NORMAL_STEP_MS);
+    // Round 4: no explicit zero-request — same reasoning as the fleet stop.
+    // ctoLimitPwm() returns 0 on this flag; enforcement applies it at the
+    // one braking profile later in this same service pass.
     pub(T_ST_CTO,"{\"event\":\"CTO_ROLE_CONFLICT\",\"action\":\"HOLD\"}",false);
     publishAlert("CTO","ROLE_CONFLICT");
   }else if(!conflict && ctoEchoConflict){

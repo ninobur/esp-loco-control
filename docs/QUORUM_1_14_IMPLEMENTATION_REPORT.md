@@ -164,6 +164,28 @@ the provisional 18/12/6 ladder into a validated one (spec §3; decision 0033).
 Correction to earlier wording, per CODEX: builds are "no NEW warnings" —
 the pre-existing volatile/enum warnings remain — not "warning-free."
 
+## Review round 4 (CODEX, 2026-08-13) — the last two 150 ms/PWM paths
+
+Round 3 did not fully close the one-profile finding: the fleet-stop and
+role-conflict assertions each called `requestPwm(0, NORMAL_STEP_MS)`
+directly. Requested and capped were both zero, so the one-profile branch
+(`cap < requested`) never fired — and continuous enforcement could not
+correct it afterwards, because `commandedPwm` was already zero.
+
+Fixed the way the review recommended, architecturally rather than by
+parameter: **both explicit zero-requests are removed.** The assertions set
+their flags and publish; the continuous enforcement pass — which runs later
+in the same `ctoService()` pass — sees `cap(desired) = 0 < commandedPwm`,
+brakes at the measured 200 ms/PWM, and preserves the uncapped desired
+intent for the resume. Every CTO stop now reaches the motor through exactly
+one mechanism at exactly one rate.
+
+Also adopted: the semantic correction — the braking-rate condition is "CTO
+reduced requested authority," which can include capping an acceleration
+target; that is conservative and now stated accurately.
+
+Both profiles compile (996,139 bytes); suite green; radio caveat stands.
+
 ## Deployment gate
 
 Per the spec and standing practice: **operator + CODEX review of this report
