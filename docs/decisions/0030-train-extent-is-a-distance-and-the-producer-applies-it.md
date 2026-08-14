@@ -1,6 +1,8 @@
 # 0030 — Train extent, and the producer applies it
 
-Status: Accepted (2026-08-13), **amended the same day — see Decision**
+Status: Accepted (2026-08-13), amended the same day — see Decision.
+**Superseded in part by 0033** (the unit discussion is closed there; the
+producer-applies-extent and per-consist-configuration rules stand).
 
 ## Decision
 

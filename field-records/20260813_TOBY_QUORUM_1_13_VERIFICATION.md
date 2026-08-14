@@ -145,6 +145,40 @@ and zero weak events.
   fence cannot express.
 - Toby's value as a pre-1.13 control is spent, as recorded at flash time.
 
+## Appendix (added 2026-08-13, per CODEX review finding 5) — deceleration measurement
+
+The bubble spec cites deceleration figures against this record; the analysis
+was performed this session on this run's capture and is preserved here so the
+claim is reproducible rather than an operator observation.
+
+**Source:** `runs/9950012_20260813_124929.log` from the Pi runlog (retrieved
+copy: `~/ngr-telemetry/pi/NGR/telemetry/runs/`; not committed — logs/ policy).
+**Method:** for every station stop, the span from the `ZERO_RAMP` station event
+(commanded_pwm→0 issued, `actual_pwm` recorded) to `DWELL_BEGIN` (motor at 0,
+dwell timer armed), with the stop offset in markers from the station centre.
+
+38 stops, every one clean:
+
+| ramp began at | n | span to stopped | offsets at rest |
+|---|---|---|---|
+| actual_pwm 60 (Patio, Arches, Bamboo) | 31 | 11.9–12.0 s | +1…+3 MM |
+| actual_pwm 72 (Grillers, climbing) | 7 | 14.3–14.4 s | +1…+3 MM |
+
+Derivations used by the spec:
+
+- **Ramp rate 200 ms/PWM step**: 60×0.2 s = 12.0 s and 72×0.2 s = 14.4 s —
+  both observed exactly.
+- **Stop scatter ±1 MM**: offsets at rest span 1–3 markers past centre.
+- **PWM 40 → stopped in under 1 MM**: derived, not directly observed — the
+  velocity model (`VEL_MODEL_*`) puts PWM 40 at ~57 mm/s with zero at 25.4, so
+  motion ceases ~3 s into the 8 s ramp tail, ~100–150 mm. The model is known
+  to err badly on grades (decision 0024), so this figure is the weakest in the
+  chain and is part of what the provisional 18 MM trigger must absorb.
+- **Cruise → stopped ≈ 6 MM** is consistent with the 12 s span at typical
+  zone speeds, but no independent distance measurement was taken. Field
+  validation of the stopping distance under worst case (full consist,
+  Grillers grade, low battery) is a named obligation of the bubble spec.
+
 ## References
 
 - `docs/decisions/0025-the-phantom-was-a-maintenance-artefact-not-a-firmware-defect.md`

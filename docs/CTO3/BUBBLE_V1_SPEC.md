@@ -45,6 +45,13 @@ distances.
    position may also lose its radio — the rule cannot depend on the lost
    locomotive saying so. **Decision 0031.** Untestable with one locomotive;
    first exercised in M7's induced-failure test.
+   **Membership is undefined until v1.14 defines it** (CODEX finding 3,
+   accepted): discovery cannot expect a peer it has never heard, and
+   remembering every historical peer forbids valid solo running. The scope
+   must define CTO **enrollment** (how a locomotive joins the expected set),
+   when the fleet-stop obligation **arms**, and how membership is **cleared**
+   — the LBO ghost-block lesson, one layer up. Until then this rule is a
+   ruling, not a mechanism.
 5. **Bicameral authority holds** (spec §0.2, decision 0002): missions are
    dispatcher authority (CE is a mission command); **spacing decisions are
    onboard, always**. E-stop crosses everything.
@@ -57,23 +64,46 @@ distances.
 All distances in **markers (MM)** — operator ruling on decision 0030: markers
 are what the railway measures. Nominal spacing 300 mm, route range 280–355.
 
-| quantity | value | source |
+**The safety invariant is bound-to-bound (decision 0033, operator ruling on
+CODEX finding 1):**
+
+```
+gap( follower.front_bound → leader.rear_bound )  ≥  6 MM   at rest
+```
+
+Collision logic consumes **published occupancy bounds only** — never Hall
+positions. Every Hall-to-Hall figure below is a **derived value for the
+current +2/−4 consists**, kept because it is what an operator sees on the
+console; change a consist and the derived numbers change while the invariant
+does not.
+
+| quantity | value | status |
 |---|---|---|
-| Train extent, ahead of Hall | +2 MM | decision 0030 |
-| Train extent, behind Hall | −4 MM | decision 0030 |
-| Hall-to-Hall contact point | **6 MM** | operator: "can be 6 mm apart and not touch" |
-| **Separation target (stop behind a stopped leader's Hall)** | **12 MM** | operator ruling |
-| Usable margin inside the target | 6 MM | 12 − 6 |
-| Deceleration distance, cruise → stopped | **~6 MM** | measured, below |
-| **Begin-deceleration gap (moving follower, stopped leader)** | **≥ 18 MM** | 12 + 6 |
-| Restart clearance | 12 MM | matches `TRAFFIC_RESTART_HALL_GAP_MM` |
+| Train extent, ahead / behind of Hall | +2 / −4 MM | configuration (0030/0033) |
+| **Clear gap, follower front bound → leader rear bound** | **≥ 6 MM** | **the invariant (0033)** |
+| Separation target, Hall-to-Hall | 12 MM | derived: 6 + 4 + 2, current consists |
+| Deceleration distance, cruise → stopped | ~6 MM | measured this session (appendix cited below) |
+| Begin-deceleration gap, Hall-to-Hall | ≥ 18 MM | **provisional field-test value** |
+| Restart clearance | 12 MM | derived; matches `TRAFFIC_RESTART_HALL_GAP_MM` |
+
+**The 18 MM trigger is provisional** (operator ruling on CODEX finding 2:
+keep it, field test it). It is 12 + 6 with **no allowance** for the 2 Hz
+packet interval, marker-event evaluation delay, navigation-bound uncertainty,
+stop scatter, grade, battery state or load. Worst-case stopping trials —
+full consist, the Grillers grade, low battery — are a named precondition to
+treating it as a proven safety minimum rather than a starting point.
 
 Two independent convergences worth noting: the 18 MM begin-decel gap equals
-CTO2 r12's approach-ladder start (18 Hall-to-Hall), and the operator's 12 MM
-stop target equals r12's restart clearance — chosen this session from the
-measured numbers, not copied.
+CTO2 r12's approach-ladder start (18 Hall-to-Hall), and the 12 MM derived
+stop target equals r12's restart clearance — arrived at from this session's
+measurements, not copied.
 
 ### Measured deceleration (Toby, 2026-08-13, 38 station stops)
+
+Provenance (CODEX finding 5): these figures come from a session analysis of
+the run capture, preserved with method and source path in the **appendix of
+`field-records/20260813_TOBY_QUORUM_1_13_VERIFICATION.md`** — the record's
+main body documents Hall performance, not stopping.
 
 - Ramp rate **200 ms per PWM step** — 12.0 s from PWM 60, 14.4 s from PWM 72,
   both exactly 0.2 s/step.
@@ -110,8 +140,12 @@ Port from CTO2 r12 per the audit — structs frozen (`CTO2_VERSION 3`,
 - **Role echo**: after latching, each locomotive broadcasts its derived
   relationship ("I follow 9950011") as its own state — same category as
   r12's `trafficStopForId`, which already crossed this line healthily.
-  Candidate slot: the vestigial `TrainPacket.roleId`; confirm in v1.14 scoping
-  rather than assume.
+  **The wire contract is undefined** (CODEX finding 4): the frozen 2 Hz
+  `CtoPeerPacket` has no role field, and the candidate `TrainPacket.roleId`
+  sits in a *command* packet the audit marked discard-unless-repurposed.
+  Before role disagreement can be a safety input, v1.14 scoping must define
+  carrier, cadence, freshness window, and mixed-version behaviour. Until
+  then the echo is design intent, not a mechanism.
 
 ## 5. Roles
 
@@ -137,6 +171,25 @@ Rules carried from the lineage and this session's analysis:
    ~12 MM hysteresis band resolved by **lower loco ID leads**) decides only
    *who waits* during formation — an action whose worst failure is both
    trains waiting: visible, recoverable, never a collision.
+
+   **Worked examples** (CODEX finding 6 — the phrase reads ambiguously
+   without them). "My rear to your front" is the arc measured *rearward from
+   my rear bound, against my direction of travel*, to the peer's front bound
+   — the gap behind me. Small gap behind me = the peer is close on my tail =
+   **I lead.**
+
+   *CW (mm increasing).* Otto Hall 100 (front 102, rear 96); Toby Hall 88
+   (front 90, rear 84). Otto's behind-gap: 96 rearward to 90 = **6 MM**.
+   Toby's behind-gap: 84 rearward to 102 = **153 MM**. Otto's is smaller →
+   Otto leads. Otto is physically ahead. ✓
+
+   *CCW (mm decreasing).* Otto Hall 100 (front 98, rear 104); Toby Hall 112
+   (front 110, rear 116). Otto's behind-gap: 104 rearward (mm increasing,
+   against CCW travel) to 110 = **6 MM**. Toby's: 116 rearward to 98 =
+   **153 MM**. Otto leads; Otto is physically ahead (CCW). ✓
+
+   Both computations use only fields already broadcast (Hall mm, bounds,
+   direction), so both locomotives evaluate identical arithmetic.
 4. **Roles persist once latched** (`CTO3_DESIGN_NOTES.md`: assigned once,
    stay assigned) and dissolve on: peer staleness > 3 s (fleet stop follows
    anyway), direction change, CE severance, or operator reset.
@@ -232,9 +285,18 @@ never a spacing decision:
   §§5–9 is untestable solo. M7's crossing test remains the goal: ten laps,
   two trains, zero collisions, zero interventions, one induced peer failure
   handled without contact.
-- Open items: role-echo field placement (`TrainPacket.roleId` candidate);
-  dwell randomization; platform-zone definition in markers per station;
-  per-station then per-loco tuning pass (§3).
+- Open items, all owed to v1.14 scoping or field trials:
+  1. **Role-echo wire contract** — carrier, cadence, freshness, mixed-version
+     behaviour (finding 4; §4).
+  2. **Fleet membership lifecycle** — enrollment, arming, clearing
+     (finding 3; §2.4, decision 0031).
+  3. **Worst-case stopping trials** to validate the provisional 18 MM trigger
+     — full consist, Grillers grade, low battery (finding 2; §3, decision
+     0033).
+  4. Rear-extent check against physical consists at minimum spacing
+     (decision 0033's caveat).
+  5. Dwell randomization; platform-zone definition in markers per station;
+     per-station then per-loco tuning pass (§3).
 
 ## References
 
