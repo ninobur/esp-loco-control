@@ -377,7 +377,13 @@
 // NOTE: 1.14 had been pencilled for transport-resilience work when 1.13 took
 // the advisory; that work moves to 1.15. Same collision as last time —
 // recorded here so the librarian can object once, not twice.
-#define SKETCH_NAME "QUORUM_1_14"
+// 1.14A (2026-08-14): operator changes after the first paired sessions. A
+// letter, not a minor: no new capability — three behaviour corrections and a
+// deletion. (a) the leader's departure no longer depends on the follower at
+// all, which removes a deterministic deadlock; (b) follower hold gap 12 -> 9;
+// (c) CCW station landings one marker earlier. The uncommitted-at-the-time
+// CTO mode layer rides along from the preceding WIP commit.
+#define SKETCH_NAME "QUORUM_1_14A"
 
 // Broker lives here, not in LocoConfig.h — same as the previous lineage.
 #define MQTT_BROKER "192.168.68.142"
@@ -490,12 +496,14 @@ static const uint16_t CTO_TX_INTERVAL_MS      = 500;    // r12 cadence
 static const uint16_t CTO_ECHO_INTERVAL_MS    = 1000;
 static const uint32_t CTO_PEER_STALE_MS       = 3000;   // r12 value
 static const uint8_t  CTO_CLEAR_GAP_MARKERS   = 6;      // 0033: the invariant
-static const uint8_t  CTO_STOP_GAP_MARKERS    = 12;     // bound gap: begin decel-to-stop
+// Operator 2026-08-14: the follower was stopping too far back — 12 -> 9, i.e.
+// three markers closer. Still comfortably above CTO_CLEAR_GAP_MARKERS (6), so
+// decision 0033's invariant (bubble + 6 clear, bound-to-bound) is preserved
+// with 3 markers of margin.
+static const uint8_t  CTO_STOP_GAP_MARKERS    = 9;      // bound gap: begin decel-to-stop
 static const uint8_t  CTO_SLOW_GAP_MARKERS    = 18;     // bound gap: pre-slow to zone speed
 static const uint8_t  CTO_PAIR_RANGE_MARKERS  = 12;     // bound gap: Q1/Q2 latch range
 static const uint8_t  CTO_TIE_BAND_MARKERS    = 12;     // long-range order hysteresis
-static const uint8_t  CTO_ARRIVE_TOL_MARKERS  = 4;      // follower "at hold point" window
-static const uint32_t CTO_RELEASE_DWELL_MS    = 10000;  // leader, after follower arrives
 // Operator, 2026-08-13, after the first two-train session: 20 s -> 5 s. The
 // 20 s dwell plus the station geometry was holding the pair 30-49 markers
 // apart, so the 18/12/6 traffic ladder never engaged and the bubble proper
@@ -531,7 +539,6 @@ static uint32_t ctoTrafficForId=0;
 static bool     ctoFleetHold=false;
 static bool     ctoEchoConflict=false;
 static bool     ctoEchoConfirmed=false;   // finding 5: fresh reciprocal echo
-static uint32_t ctoFollowerArrivedMs=0;   // leader side: when follower confirmed at hold
 static uint32_t ctoTxSeq=0, ctoLastTxMs=0, ctoLastEchoMs=0, ctoLastStateMs=0;
 static uint32_t ctoRxAccepted=0, ctoTxAttempts=0, ctoTxErrors=0, ctoRxDropped=0;
 static QueueHandle_t ctoRxQueue=nullptr;  // recv callback -> loop thread, like cmdQueue
@@ -648,6 +655,24 @@ static const StationDefinition STATIONS[] = {
   {"Bamboo",  157,            60,   45,     0}    // was 1
 };
 static const uint8_t STATION_COUNT = sizeof(STATIONS)/sizeof(STATIONS[0]);
+
+// Operator 2026-08-14: CCW landings were consistently one marker past the
+// platform. stopOffset is direction-agnostic in the table, so the correction
+// is applied per direction here rather than by splitting every row. CW is
+// unchanged. A negative result is legitimate — it starts the zero ramp one
+// marker BEFORE centre, which is the only way to gain a marker at the two
+// stations already sitting at stopOffset 0.
+static inline int8_t effStopOffset(uint8_t idx){
+  int8_t s = STATIONS[idx].stopOffset;
+  if(navDir==MAP_CCW) s -= 1;
+  return s;
+}
+// Where ST_APPROACH hands over to ST_FINAL: normally the centre marker, or
+// earlier still when the effective stop offset is negative.
+static inline int8_t finalEntryOffset(uint8_t idx){
+  const int8_t s = effStopOffset(idx);
+  return (s < 0) ? s : 0;
+}
 
 // CTO3 Station Stop v1 (docs/CTO3/station-stop-v1): a profile may restrict
 // arming to one named station with MISSION_ONLY_STATION. This is the
@@ -882,8 +907,7 @@ static void stationReset(const char* note);   // §2.5 step 2a; defined in LAYER
 // LAYER 5 (CTO3) hooks, defined after MQTT. All are inert until a peer has
 // been seen; with none they cost one branch each and change no behaviour.
 static int      ctoLimitPwm(int want);     // speed ceiling from traffic protection
-static bool     ctoHoldDeparture();        // leader holds at platform for follower
-static uint32_t ctoDwellMs();              // paired follower dwells 20 s, else DWELL_MS
+static uint32_t ctoDwellMs();              // confirmed follower dwell, else DWELL_MS
 static void     ctoService();              // 10 Hz: registry, roles, gates; loop thread
 static void     ctoRadioInit();            // esp_now up, once, after WiFi connects
 static void     ctoHandleClear(const char* msg); // cmd/cto — operator clear/off
@@ -2146,10 +2170,10 @@ static void serviceStations(){
       if(o>=APPROACH_START && o<ZONE_START){
         requestPwmOver(approachTargetForOffset(o,STATIONS[stIndex].zonePwm),APPROACH_RAMP_MS);
         stationPublish("APPROACH",o,"DERIVED_CRUISE_TO_ZONE");
-      }else if(o>=ZONE_START && o<0){
+      }else if(o>=ZONE_START && o<finalEntryOffset(stIndex)){
         requestPwmOver(STATIONS[stIndex].zonePwm,APPROACH_RAMP_MS);
         stationPublish("ZONE_HOLD",o,"HOLD_60");
-      }else if(o>=0){
+      }else if(o>=finalEntryOffset(stIndex)){
         stationSetPhase(ST_FINAL);
         stMPlus1AtMs=0;
         // Hold approach speed THROUGH the centre. The stop is made after the
@@ -2166,7 +2190,7 @@ static void serviceStations(){
       // Location-triggered, one target per marker. Not a timed interpolation
       // to a single distant target — that is what left the loco at PWM 25 a
       // marker early and out of tractive effort.
-      const int8_t stopAt = STATIONS[stIndex].stopOffset;
+      const int8_t stopAt = effStopOffset(stIndex);
       if(o>=0 && o<stopAt){
         // M   : still at zone speed, passing the station
         // M+1 : ease to finalPwm -- the speed the stop is made from
@@ -2196,15 +2220,22 @@ static void serviceStations(){
       break;
 
     case ST_DWELL:
-      // LAYER 5: a paired LEADER completes its dwell and then HOLDS at the
-      // platform until the follower is stopped at its hold point and the
-      // 10 s release dwell has run (spec sec.8 step 3). ctoHoldDeparture()
-      // is false in every solo/unpaired state.
-      if(millis()-stDwellStartedMs>=ctoDwellMs() && ctoHoldDeparture()){
-        stationPublish("HOLD_FOR_FOLLOWER",o,"CTO_LEADER_AWAITING_RELEASE");
-        stDwellStartedMs=millis()-ctoDwellMs(); // re-arm; publish dedup guards spam
-        break;
-      }
+      // Operator ruling 2026-08-14: the leader's departure does not depend on
+      // the follower's position AT ALL. The old choreography held the leader
+      // at the platform until the follower had arrived within a window and a
+      // 10 s release dwell had run -- and on 2026-08-14 that deadlocked the
+      // railway: the follower stopped at gap 11 (exactly where the traffic
+      // limiter told it to) while the leader's arrival test demanded <= 10, so
+      // the release timer reset every pass and both sat indefinitely.
+      //
+      // The deeper fault was that the logic ran backwards. A leader with clear
+      // track ahead cannot improve separation by standing still; departing is
+      // what opens the gap and releases the follower. Spacing is the
+      // FOLLOWER's constraint, carried by ctoLimitPwm(), and a stopped
+      // follower must never inhibit the leader.
+      //
+      // Fleet stop and role conflict still stop this locomotive -- through the
+      // limiter's continuous enforcement, not through the station machine.
       if(millis()-stDwellStartedMs>=ctoDwellMs()){
         stationSetPhase(ST_DEPART);
         stDepartBeganMs=millis(); stDepartWarned=false;
@@ -2230,7 +2261,7 @@ static void serviceStations(){
         stDepartWarned=true;
         stationPublish("DEPARTURE_SLOW",o,"NOT_CLEARED_ZONE_IN_15S_CHECK_LOCO");
       }
-      if(o>=STATIONS[stIndex].stopOffset+3){
+      if(o>=effStopOffset(stIndex)+3){
         // Already at cruise; this only releases the station machine so the
         // next one can arm.
         stationPublish("DEPARTURE_COMPLETE",o,"CLEARED_ZONE");
@@ -3367,7 +3398,7 @@ static void calibrate(){
 //
 // Constitutional position (§0.2): this layer NEVER writes the motor. It
 // limits what the AUTO station machine may request (ctoLimitPwm), extends a
-// dwell (ctoHoldDeparture/ctoDwellMs), and that is all. In MANUAL it only
+// dwell (ctoDwellMs), and that is all. In MANUAL it only
 // broadcasts self-truth. E-stop and manual authority are untouched.
 //
 // The wire carries truth, never authority (decision 0032): the peer packet
@@ -3520,12 +3551,12 @@ static void ctoDissolve(const char* why){
     pub(T_ST_CTO,b,false);
   }
   ctoRole=CTO_ROLE_NONE; ctoPartnerId=0; ctoPairEpochMs=0; ctoPairDir=MAP_UNSET;
-  ctoFollowerArrivedMs=0; ctoEchoConflict=false; ctoEchoConfirmed=false;
+  ctoEchoConflict=false; ctoEchoConfirmed=false;
 }
 static void ctoLatch(CtoRole r,uint32_t partner){
   ctoRole=r; ctoPartnerId=partner; ctoPairEpochMs=millis();
   ctoPairDir=navDir;
-  ctoFollowerArrivedMs=0; ctoEchoConflict=false;
+  ctoEchoConflict=false;
   char b[112];
   snprintf(b,sizeof(b),"{\"event\":\"CTO_PAIRED\",\"role\":\"%s\",\"partner\":%lu}",
            r==CTO_ROLE_LEADER?"LEADER":"FOLLOWER",(unsigned long)partner);
@@ -3584,61 +3615,20 @@ static void ctoEvaluateRoles(){
   // Long range: no latch. Provisional who-waits only (spec sec.6): my
   // behind-arc vs his (= my ahead-arc); smaller behind-arc leads; inside the
   // tie band the lower loco ID leads. The ONLY behaviour this drives is the
-  // leader-designate holding at its next station via ctoHoldDeparture().
 }
-static bool ctoProvisionalLeader(){
-  if(ctoRole==CTO_ROLE_LEADER) return true;
-  if(ctoRole==CTO_ROLE_FOLLOWER) return false;
-  // Formation is bubble-specific: an UNPAIRED locomotive never waits at a
-  // station for another train to close up. It just runs.
-  if(ctoMode!=CTO_MODE_BUBBLE) return false;
-  if(!ctoEnabled||navDir==MAP_UNSET||!navPositionUsable()) return false;
-  for(uint8_t i=0;i<CTO_MAX_PEERS;i++){
-    CtoPeer& p=ctoPeers[i];
-    if(!ctoPeerFresh(p)||!ctoPeerSameDir(p)||!ctoPeerNavOk(p)) continue;
-    uint16_t myBehind=ctoGapBehind(p);      // arc from his front to my rear
-    uint16_t hisBehind=ctoGapAhead(p);      // arc from my front to his rear
-    int32_t diff=(int32_t)myBehind-(int32_t)hisBehind;
-    if(diff<-(int32_t)CTO_TIE_BAND_MARKERS) return true;    // clearly smaller behind-arc
-    if(diff>(int32_t)CTO_TIE_BAND_MARKERS)  return false;
-    return LOCO_ID < p.id;                                   // tie band: lower ID leads
-  }
-  return false;
-}
-
-// ---- the three hooks the station machine consults ---------------------------
 static uint32_t ctoDwellMs(){
-  // Paired follower at a platform dwells 20 s (operator, supersedes 15) —
-  // but only on a CONFIRMED pairing (finding 5); unconfirmed runs solo rules.
+  // Paired follower at a platform dwells CTO_FOLLOWER_DWELL_MS (operator set
+  // this to 5 s on 2026-08-14), but only on a CONFIRMED reciprocal pairing;
+  // an unconfirmed or solo locomotive uses the ordinary station dwell.
   return (ctoRole==CTO_ROLE_FOLLOWER && ctoEchoConfirmed)?CTO_FOLLOWER_DWELL_MS:DWELL_MS;
 }
-static bool ctoHoldDeparture(){
-  if(!ctoEnabled) return false;
-  if(ctoFleetHold) return true;              // never depart into a fleet stop
-  if(ctoEchoConflict) return true;           // 0032: disagreement -> both hold
-  // Formation: an unpaired provisional leader waits at its station for the
-  // follower to close (spec sec.6 step 2). Worst mis-tie: both wait. Safe.
-  if(ctoRole==CTO_ROLE_NONE) return ctoProvisionalLeader();
-  if(ctoRole!=CTO_ROLE_LEADER) return false;
-  // Finding 5 / 0034 as revised: the RELEASE choreography — departing a
-  // platform with a follower parked behind — runs only on a CONFIRMED
-  // reciprocal pairing. Unconfirmed (older peer, stale echo) means keep
-  // holding: safe, visible, and it degrades a mixed-version bubble to
-  // operator-supervised running instead of unconfirmed automation.
-  if(!ctoEchoConfirmed) return true;
-  int8_t pi=ctoPartnerIdx();
-  if(pi<0||!ctoPeerFresh(ctoPeers[pi])) return true;   // no fresh partner: hold (0031 will also fire)
-  CtoPeer& p=ctoPeers[pi];
-  // follower "arrived": stopped, at the hold gap behind me (positive evidence)
-  bool arrived = ctoPeerStopping(p) && p.motionState==0 &&
-                 ctoGapBehind(p) <= (uint16_t)(CTO_CLEAR_GAP_MARKERS+CTO_ARRIVE_TOL_MARKERS);
-  if(!arrived){ ctoFollowerArrivedMs=0; return true; }
-  if(ctoFollowerArrivedMs==0){
-    ctoFollowerArrivedMs=millis();
-    pub(T_ST_CTO,"{\"event\":\"CTO_FOLLOWER_ARRIVED\"}",false);
-  }
-  return (millis()-ctoFollowerArrivedMs) < CTO_RELEASE_DWELL_MS;   // 10 s release dwell
-}
+
+// ctoProvisionalLeader() and ctoHoldDeparture() were DELETED 2026-08-14 on the
+// operator's ruling that the leader's departure must not depend on the
+// follower's position. They implemented station-formation waiting, the
+// follower-arrival window and the 10 s release dwell. See the ST_DWELL
+// comment for why the logic was backwards, and what deadlocked because of it.
+
 static int ctoLimitPwm(int want){
   // Universal traffic protection (spec sec.7): one deceleration profile; the
   // flag that differs is simply WHICH machine resumes — station or cruise —
@@ -3720,7 +3710,7 @@ static void ctoServiceEchoCheck(){
   //   UNCONFIRMED — everything else: stale, absent, role NONE, wrong or no
   //                 partner, an older peer that cannot echo at all.
   // Universal traffic protection never consults this; only the release and
-  // dwell choreography does (ctoHoldDeparture, ctoDwellMs).
+  // dwell length does (ctoDwellMs).
   if(ctoRole==CTO_ROLE_NONE){ ctoEchoConflict=false; ctoEchoConfirmed=false; return; }
   int8_t i=ctoPartnerIdx();
   if(i<0){
