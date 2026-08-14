@@ -21,4 +21,5 @@ struct PwmSpeedEntry {
 // ============================================================================
 //#include "LocoConfig_2095111.h"      // Hans
 //#include "LL_LocoConfig_9950011.h"   // Otto
-#include "LL_LocoConfig_9950012.h"     // Toby  <-- ACTIVE
+//#include "LL_LocoConfig_9950012.h"   // Toby
+#include "LL_LocoConfig_9950011.h"     // Otto  <-- ACTIVE
