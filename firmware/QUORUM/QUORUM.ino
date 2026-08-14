@@ -1910,8 +1910,22 @@ static int cruiseForPosition(){
 // within one loop. AUTO chamber only: MANUAL authority is untouched (§0.2),
 // and a cap can only lower a request, so E-stop and NEUTRAL behave exactly
 // as before.
+// LAYER 5 (CODEX 1.14 reviews, rounds 1 AND 2): the limiter architecture.
+// Round 1 put ctoLimitPwm() inside these two writers. Round 2 found that is
+// necessary but NOT sufficient — a cap applied only at request time cannot
+// react to a peer EVENT during steady cruise, when commandedPwm==want and no
+// request ever fires. So: ctoDesiredPwm keeps the last UNCAPPED AUTO intent,
+// these writers apply the cap at request time, and ctoService() re-applies
+// cap(desired) EVERY pass on the loop thread — a cap that appears mid-cruise
+// takes effect within one loop, and when it lifts the desired speed is
+// restored (the spec's traffic resume). Callers that ask "did my request
+// take?" must compare against ctoDesiredPwm, never commandedPwm, or a
+// standing cap makes them re-request forever and recompute the ramp from a
+// shrinking delta (round 2 finding 3).
+static int ctoDesiredPwm=0;
 static void requestPwm(int target,uint16_t stepMs){
   int t=constrain(target,0,255);
+  ctoDesiredPwm=t;
   if(autoRunning) t=ctoLimitPwm(t);
   commandedPwm=t;
   pwmStepMs=stepMs;
@@ -1921,6 +1935,7 @@ static void requestPwm(int target,uint16_t stepMs){
 // the step rate from the distance still to travel.
 static void requestPwmOver(int target,uint16_t durationMs){
   int t=constrain(target,0,255);
+  ctoDesiredPwm=t;
   if(autoRunning) t=ctoLimitPwm(t);
   int delta=abs(t-actualPwm);
   commandedPwm=t;
@@ -2069,7 +2084,12 @@ static void serviceStations(){
     // No station armed: keep cruise following the section map through the
     // normal path. requestPwmOver() remains the sole writer of commandedPwm.
     int want = cruiseForPosition();
-    if(commandedPwm != want) requestPwmOver(want, APPROACH_RAMP_MS);
+    // Compare against the DESIRED (uncapped) target: under a standing CTO
+    // cap, comparing against commandedPwm re-requested every pass and
+    // stretched the ramp by recomputing pwmStepMs from a shrinking delta
+    // (round 2 finding 3). Enforcement of the cap itself lives in
+    // ctoService(), not here.
+    if(ctoDesiredPwm != want) requestPwmOver(want, APPROACH_RAMP_MS);
     return;
   }
 
@@ -3424,11 +3444,20 @@ static void ctoAcceptPeer(const CtoPeerPacket& p){
     uint32_t worst=0; for(uint8_t k=0;k<CTO_MAX_PEERS;k++){ uint32_t age=millis()-ctoPeers[k].rxMs; if(age>=worst){worst=age;i=(int8_t)k;} }
   }
   CtoPeer& q=ctoPeers[i];
+  // Round 2 finding 7a (and 5-adjacent): a reused slot must not inherit the
+  // previous occupant's ramp history or role echo. Reset on identity change.
+  if(q.seen && q.id!=p.senderId) q=CtoPeer{};
+  const bool sameOcc = q.seen;              // before this packet, same loco
+  const uint8_t prevRamp = q.rampPwm;
   q.seen=true; q.id=p.senderId; q.seq=p.sequence; q.rxMs=millis();
   q.hallMm=p.hallMm; q.frontB=p.frontBoundaryMm; q.rearB=p.rearBoundaryMm;
   q.mapDir=p.mapDir; q.autoMode=p.autoMode; q.running=p.running;
   q.motionState=p.motionState;
-  q.rampFalling=(q.seen && p.rampPwm+2 < q.rampPwm);   // 2-count hysteresis
+  // Round 2 finding 7: a fall of >=2 counts arms it; it then PERSISTS while
+  // the ramp is non-increasing, so one noisy sample cannot un-detect a real
+  // deceleration. sameOcc guards against comparing across occupants.
+  q.rampFalling = sameOcc && ((p.rampPwm+2 <= prevRamp) ||
+                              (q.rampFalling && p.rampPwm <= prevRamp));
   q.rampPwm=p.rampPwm; q.truthSource=p.truthSource;
   q.stationPhase=p.stationPhase; q.trafficPhase=p.trafficPhase; q.stopForId=p.trafficStopForId;
   ctoRxAccepted++;
@@ -3469,18 +3498,20 @@ static void ctoLatch(CtoRole r,uint32_t partner){
 // Evaluated every service pass — cheap, and formation while stationary needs
 // packet-driven evaluation, not only marker-driven (spec sec.5 note).
 static void ctoEvaluateRoles(){
+  // Round 2 finding 4: the direction-change dissolution must run BEFORE the
+  // usable-navigation gate. A direction change during NAV_NO_QUORUM left the
+  // old pairing latched with inverted physical order. Any change from the
+  // latch-time direction — including to UNSET — dissolves, in every nav state.
+  if(ctoRole!=CTO_ROLE_NONE && navDir!=ctoPairDir){
+    ctoDissolve("DIRECTION_CHANGED_SINCE_LATCH");
+  }
   if(!ctoEnabled || navDir==MAP_UNSET || !navPositionUsable()){ return; }
   int8_t pi=ctoPartnerIdx();
   if(ctoRole!=CTO_ROLE_NONE){
     // dissolution paths; staleness does NOT silently dissolve — fleet stop
-    // owns that (0031). ANY direction change does: comparing only against
-    // the partner missed the case where BOTH locomotives reverse — the
-    // directions agree again while the physical front/rear order has
-    // inverted (CODEX 1.14 review, finding 4). The direction at latch is
-    // the reference, so one reversing or both reversing dissolves alike.
-    if(navDir!=ctoPairDir)
-      ctoDissolve("DIRECTION_CHANGED_SINCE_LATCH");
-    else if(pi>=0 && ctoPeerFresh(ctoPeers[pi]) && !ctoPeerSameDir(ctoPeers[pi]))
+    // owns that (0031). The local direction-change check ran above, before
+    // the nav gate. Here: the partner declaring a different direction.
+    if(pi>=0 && ctoPeerFresh(ctoPeers[pi]) && !ctoPeerSameDir(ctoPeers[pi]))
       ctoDissolve("PARTNER_DIRECTION_CHANGED");
     return;                                    // latched roles persist (0032)
   }
@@ -3560,7 +3591,7 @@ static int ctoLimitPwm(int want){
   // flag that differs is simply WHICH machine resumes — station or cruise —
   // and both already exist above this layer. This function only caps.
   if(!ctoEnabled) return want;
-  if(ctoFleetHold) return 0;
+  if(ctoFleetHold || ctoEchoConflict) return 0;   // round 2 finding 2: BOTH
   if(navDir==MAP_UNSET||!navPositionUsable()) return want;   // solo rules apply
   int cap=want;
   CtoTrafficPhase newPhase=CTRAF_CLEAR; uint32_t forId=0;
@@ -3635,11 +3666,18 @@ static void ctoServiceEchoCheck(){
   int8_t i=ctoPartnerIdx();
   if(i<0){ ctoEchoConfirmed=false; return; }
   CtoPeer& p=ctoPeers[i];
-  bool echoFresh = p.echoRxMs!=0 && (uint32_t)(millis()-p.echoRxMs)<=2*CTO_PEER_STALE_MS;
-  if(!echoFresh){ ctoEchoConfirmed=false; return; }          // no verdict, and not confirmed
+  // Round 2 finding 5: an echo only counts if it is fresh AND postdates THIS
+  // latch — a still-fresh echo from an earlier pairing with the same
+  // locomotive must not confirm (or conflict with) the new one. And a stale
+  // echo yields clean UNCONFIRMED: confirmed false, and an existing conflict
+  // clears through the normal transition below — the partner going silent is
+  // the fleet stop's jurisdiction (0031), not a latched conflict's.
+  bool echoValid = p.echoRxMs!=0 &&
+                   (uint32_t)(millis()-p.echoRxMs)<=2*CTO_PEER_STALE_MS &&
+                   (int32_t)(p.echoRxMs-ctoPairEpochMs)>=0;
   uint8_t expectRole=(ctoRole==CTO_ROLE_LEADER)?(uint8_t)CTO_ROLE_FOLLOWER:(uint8_t)CTO_ROLE_LEADER;
-  ctoEchoConfirmed = (p.echoRole==expectRole && p.echoPartner==LOCO_ID);
-  bool conflict = (p.echoRole==(uint8_t)ctoRole && p.echoPartner==LOCO_ID);
+  ctoEchoConfirmed = echoValid && (p.echoRole==expectRole && p.echoPartner==LOCO_ID);
+  bool conflict    = echoValid && (p.echoRole==(uint8_t)ctoRole && p.echoPartner==LOCO_ID);
   if(conflict && !ctoEchoConflict){
     ctoEchoConflict=true;
     if(autoRunning) requestPwm(0,NORMAL_STEP_MS);
@@ -3658,8 +3696,17 @@ static void ctoHandleClear(const char* msg){
   // match is not a convenience, it is a hazard.
   char pay[16]; size_t n=0;
   while(*msg==' '||*msg=='\t') msg++;
-  while(msg[n] && msg[n]!='\r' && msg[n]!='\n' && msg[n]!=' ' && n<sizeof(pay)-1){ pay[n]=msg[n]; n++; }
+  while(msg[n] && msg[n]!='\r' && msg[n]!='\n' && msg[n]!=' ' && msg[n]!='\t' && n<sizeof(pay)-1){ pay[n]=msg[n]; n++; }
   pay[n]=0;
+  // Round 2 finding 6: exact means EXACT. After the token, only whitespace
+  // may remain — "clear anything" must be refused as firmly as
+  // "clear-anything", because "clear" disarms fleet protection.
+  const char* rest=msg+n;
+  while(*rest==' '||*rest=='\t'||*rest=='\r'||*rest=='\n') rest++;
+  if(*rest!=0){
+    pub(T_ST_CTO,"{\"event\":\"CTO_CMD_REFUSED\",\"why\":\"TRAILING_CONTENT\"}",false);
+    return;
+  }
   if(!strcmp(pay,"clear")){
     for(uint8_t i=0;i<CTO_MAX_PEERS;i++) ctoPeers[i]=CtoPeer{};
     ctoDissolve("OPERATOR_CLEAR");
@@ -3694,6 +3741,20 @@ static void ctoService(){
   ctoEvaluateRoles();
   ctoServiceEchoCheck();
   ctoServiceFleetStop();
+  // Round 2 finding 1 — continuous enforcement. Request-time capping cannot
+  // see a peer event that arrives during steady cruise (no request fires
+  // when commandedPwm already equals the cruise target). Re-derive the cap
+  // from the persistent uncapped intent every pass: a new stop condition
+  // bites within one loop, and a lifted one restores the desired speed —
+  // the traffic-resume behaviour of spec §7. AUTO chamber only; E-stop and
+  // NEUTRAL are enforced downstream in servicePwmRamp exactly as before.
+  if(autoRunning && !estopped){
+    int cap=ctoLimitPwm(ctoDesiredPwm);
+    if(cap!=commandedPwm){
+      commandedPwm=cap;
+      pwmStepMs=NORMAL_STEP_MS;
+    }
+  }
   // 5 s state heartbeat so the console can render the layer without waiting
   // for a transition.
   if(now-ctoLastStateMs>=5000){

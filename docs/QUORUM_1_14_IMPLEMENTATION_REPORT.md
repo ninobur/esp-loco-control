@@ -97,6 +97,49 @@ passes unmodified — the solo-inertness proof holds with the limiter inside
 the request functions, because with no peer ever heard `ctoLimitPwm()` is
 the identity.
 
+## Review round 2 (CODEX, 2026-08-13) — seven findings; the limiter becomes continuous
+
+Round 1's fix was necessary and not sufficient, and the round-2 review said
+so plainly: a cap applied only at request time cannot react to a peer EVENT
+during steady cruise, because no request fires when `commandedPwm` already
+equals the cruise target. The claim that the choke point covered "fleet stop
+or role conflict" also disagreed with the code — the limiter never consulted
+`ctoEchoConflict`. Dispositions:
+
+1. **(Critical) Limiter not reactive mid-cruise** — `ctoDesiredPwm` now holds
+   the last *uncapped* AUTO intent; the two writers cap at request time, and
+   `ctoService()` re-derives `cap(desired)` **every pass**: a new stop
+   condition bites within one loop, a lifted cap restores the desired speed
+   (the spec's traffic resume). AUTO chamber only; E-stop/NEUTRAL enforced
+   downstream as before.
+2. **(Critical) Role conflict bulldozable** — `ctoLimitPwm()` returns 0 on
+   `ctoFleetHold || ctoEchoConflict`; with (1), both are now continuously
+   enforced rather than one-shot requests.
+3. **Ramp-duration corruption** — `ST_IDLE` compares against
+   `ctoDesiredPwm`, not `commandedPwm`, so a standing cap no longer causes a
+   re-request every pass recomputing `pwmStepMs` from a shrinking delta.
+4. **Direction dissolution gated on usable nav** — the
+   `navDir != ctoPairDir` check moved above the navigation-usable gate; a
+   reversal during NAV_NO_QUORUM (or to UNSET) now dissolves in every state.
+5. **Old echo confirms new pairing** — echoes must **postdate the latch
+   epoch**; a stale/absent echo yields clean UNCONFIRMED and clears an
+   existing conflict through the normal transition (the silent partner is
+   0031's jurisdiction, not a latched conflict's). 0034's freshness row
+   updated.
+6. **Prefix matching, second attempt** — the token is now also required to be
+   followed by nothing but whitespace; `clear anything` is refused with
+   `TRAILING_CONTENT`.
+7. **rampFalling defects** — slot identity change resets the whole entry
+   (no cross-occupant comparison; also purges the previous occupant's echo),
+   the threshold is a true ≥2-count fall, and detection persists while the
+   ramp is non-increasing.
+
+Reverified: both profiles compile clean under `--warnings all`
+(996,079 bytes); full replay suite green. The suite still cannot exercise any
+of this — its ESP-NOW path is inert by design — so these fixes are verified
+by review and compilation only, and the two-locomotive session remains the
+first executable test of the layer.
+
 ## Deployment gate
 
 Per the spec and standing practice: **operator + CODEX review of this report

@@ -14,7 +14,7 @@ unflashed.
 | magic / version | `0xC5` / 1 (`Cto3RoleEcho`) |
 | fields | senderId, role, partnerId, pairEpochMs |
 | cadence | 1 Hz |
-| freshness | echo older than 6 s ⇒ UNCONFIRMED |
+| freshness | echo older than 6 s, or predating the current latch epoch ⇒ UNCONFIRMED |
 | mixed-version | r12-era receivers drop it on magic mismatch |
 
 **Revised per CODEX review, 2026-08-13 (finding 5 — the original "absence of
