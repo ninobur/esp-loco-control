@@ -1,7 +1,10 @@
 # Quarantine the doubtful, and never stop learning
 
-**Status: PROPOSAL. No firmware change. Owed: harness proof, then a decision
-record superseding parts of 0023 and 0024.**
+**Status: IMPLEMENTED as QUORUM_1_16 (2026-08-14), harness-proven, NOT
+flashed. The owed harness proof and decision record exist:**
+- decision 0035 (Proposed) — the record superseding 0023 and 0024 in part
+- `docs/QUORUM_1_16_IMPLEMENTATION_REPORT.md` — implementation and verification
+- `docs/QUORUM_1_16_STATEFUL_DIFF_ENUMERATION.txt` — every changed outcome
 
 Origin: operator, 2026-08-14 — *"we are deliberately making the locos ignore
 what they know"* — with CODEX concurring and supplying the failure trace.

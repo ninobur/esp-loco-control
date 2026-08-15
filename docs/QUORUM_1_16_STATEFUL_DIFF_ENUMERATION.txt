@@ -1,0 +1,170 @@
+== otto_0813_s01 ==
+  events: old 1328  new 1328 (a quarantined-and-discarded event still emits a record)
+  decision counts old: {'DECLARED': 1, 'PHANTOM_REJECTED': 8, 'QUORUM_ADOPTED': 3, 'QUORUM_CLOSED': 3, 'QUORUM_OPEN': 3, 'QUORUM_TIED': 10}
+  decision counts new: {'DECLARED': 1, 'PHANTOM_REJECTED': 5, 'QUARANTINED': 3, 'QUARANTINE_DISCARDED': 3, 'QUORUM_ADOPTED': 2, 'QUORUM_CLOSED': 2, 'QUORUM_OPEN': 2, 'QUORUM_TIED': 6}
+  final mm       : old 5  new 5
+  final agree    : old 1296  new 1306   <-- CHANGED
+  final disagree : old 14  new 8   <-- CHANGED
+  final nav      : old None  new None
+  decisions LOST vs old (14):
+    - ('PHANTOM_REJECTED', 88)
+    - ('QUORUM_OPEN', 71)
+    - ('QUORUM_TIED', 71)
+    - ('QUORUM_TIED', 72)
+    - ('QUORUM_TIED', 73)
+    - ('QUORUM_ADOPTED', 73)
+    - ('QUORUM_CLOSED', 74)
+    - ('PHANTOM_REJECTED', 100)
+    - ('PHANTOM_REJECTED', 100)
+    - ('QUORUM_OPEN', 117)
+    - ('QUORUM_TIED', 117)
+    - ('QUORUM_TIED', 118)
+    - ('QUORUM_ADOPTED', 121)
+    - ('QUORUM_CLOSED', 122)
+  decisions GAINED vs old (11):
+    + ('QUARANTINED', 88)
+    + ('QUARANTINE_DISCARDED', 88)
+    + ('QUARANTINED', 64)
+    + ('QUARANTINE_DISCARDED', 64)
+    + ('QUARANTINED', 100)
+    + ('QUARANTINE_DISCARDED', 100)
+    + ('PHANTOM_REJECTED', 102)
+    + ('QUORUM_OPEN', 115)
+    + ('QUORUM_TIED', 115)
+    + ('QUORUM_ADOPTED', 117)
+    + ('QUORUM_CLOSED', 118)
+
+== otto_0813_s02 ==
+  events: old 354  new 354 (a quarantined-and-discarded event still emits a record)
+  decision counts old: {'DECLARED': 1, 'PHANTOM_REJECTED': 1, 'QUORUM_ADOPTED': 1, 'QUORUM_CLOSED': 1, 'QUORUM_OPEN': 1, 'QUORUM_TIED': 4}
+  decision counts new: {'DECLARED': 1, 'QUARANTINED': 1, 'QUARANTINE_DISCARDED': 1, 'QUORUM_ADOPTED': 1, 'QUORUM_CLOSED': 1, 'QUORUM_OPEN': 1, 'QUORUM_TIED': 4}
+  final mm       : old 64  new 64
+  final agree    : old 344  new 344
+  final disagree : old 5  new 5
+  final nav      : old None  new None
+  decisions LOST vs old (1):
+    - ('PHANTOM_REJECTED', 146)
+  decisions GAINED vs old (2):
+    + ('QUARANTINED', 146)
+    + ('QUARANTINE_DISCARDED', 146)
+
+== otto_0813_s03 ==
+  events: old 352  new 352 (a quarantined-and-discarded event still emits a record)
+  decision counts old: {'DECLARED': 1, 'PHANTOM_REJECTED': 1}
+  decision counts new: {'DECLARED': 1, 'QUARANTINED': 1, 'QUARANTINE_DISCARDED': 1}
+  final mm       : old 64  new 64
+  final agree    : old 351  new 351
+  final disagree : old 0  new 0
+  final nav      : old None  new None
+  decisions LOST vs old (1):
+    - ('PHANTOM_REJECTED', 64)
+  decisions GAINED vs old (2):
+    + ('QUARANTINED', 63)
+    + ('QUARANTINE_DISCARDED', 63)
+
+== toby_0813_s02 ==
+  events: old 360  new 360 (a quarantined-and-discarded event still emits a record)
+  decision counts old: {'DECLARED': 4, 'PHANTOM_REJECTED': 1, 'QUORUM_ADOPTED': 2, 'QUORUM_CLOSED': 2, 'QUORUM_OPEN': 2, 'QUORUM_TIED': 4}
+  decision counts new: {'DECLARED': 4, 'PHANTOM_REJECTED': 1, 'QUORUM_ADOPTED': 2, 'QUORUM_CLOSED': 2, 'QUORUM_OPEN': 2, 'QUORUM_TIED': 4}
+  final mm       : old 49  new 49
+  final agree    : old 331  new 331
+  final disagree : old 24  new 24
+  final nav      : old None  new None
+
+== otto_0814_s01 ==
+  events: old 73  new 73 (a quarantined-and-discarded event still emits a record)
+  decision counts old: {'DECLARED': 1}
+  decision counts new: {'DECLARED': 1}
+  final mm       : old 123  new 123
+  final agree    : old 73  new 73
+  final disagree : old 0  new 0
+  final nav      : old None  new None
+
+== otto_0814_s02 ==
+  events: old 115  new 115 (a quarantined-and-discarded event still emits a record)
+  decision counts old: {'DECLARED': 1}
+  decision counts new: {'DECLARED': 1}
+  final mm       : old 6  new 6
+  final agree    : old 115  new 115
+  final disagree : old 0  new 0
+  final nav      : old None  new None
+
+== otto_0814_s03 ==
+  events: old 1393  new 1393 (a quarantined-and-discarded event still emits a record)
+  decision counts old: {'DECLARED': 4, 'NO_QUORUM': 1, 'PHANTOM_REJECTED': 4, 'QUORUM_ADOPTED': 2, 'QUORUM_CLOSED': 2, 'QUORUM_OPEN': 3, 'QUORUM_TIED': 15}
+  decision counts new: {'DECLARED': 4, 'NO_QUORUM': 1, 'QUARANTINED': 5, 'QUARANTINE_DISCARDED': 5, 'QUORUM_ADOPTED': 1, 'QUORUM_CLOSED': 1, 'QUORUM_OPEN': 2, 'QUORUM_TIED': 12}
+  final mm       : old 144  new 144
+  final agree    : old 1356  new 1363   <-- CHANGED
+  final disagree : old 17  new 12   <-- CHANGED
+  final nav      : old None  new None
+  decisions LOST vs old (4):
+    - ('PHANTOM_REJECTED', 2)
+    - ('PHANTOM_REJECTED', 89)
+    - ('PHANTOM_REJECTED', 79)
+    - ('PHANTOM_REJECTED', 99)
+  decisions GAINED vs old (10):
+    + ('QUARANTINED', 3)
+    + ('QUARANTINE_DISCARDED', 3)
+    + ('QUARANTINED', 79)
+    + ('QUARANTINE_DISCARDED', 79)
+    + ('QUARANTINED', 90)
+    + ('QUARANTINE_DISCARDED', 90)
+    + ('QUARANTINED', 79)
+    + ('QUARANTINE_DISCARDED', 79)
+    + ('QUARANTINED', 100)
+    + ('QUARANTINE_DISCARDED', 100)
+
+== toby_0814_s01 ==
+  events: old 67  new 67 (a quarantined-and-discarded event still emits a record)
+  decision counts old: {'DECLARED': 1, 'QUORUM_OPEN': 1, 'QUORUM_TIED': 1}
+  decision counts new: {'DECLARED': 1, 'QUARANTINED': 1, 'QUARANTINE_DISCARDED': 1}
+  final mm       : old 116  new 115   <-- CHANGED
+  final agree    : old 62  new 66   <-- CHANGED
+  final disagree : old 5  new 0   <-- CHANGED
+  final nav      : old None  new None
+  decisions LOST vs old (2):
+    - ('QUORUM_OPEN', 116)
+    - ('QUORUM_TIED', 116)
+  decisions GAINED vs old (2):
+    + ('QUARANTINED', 105)
+    + ('QUARANTINE_DISCARDED', 105)
+
+== toby_0814_s02 ==
+  events: old 114  new 114 (a quarantined-and-discarded event still emits a record)
+  decision counts old: {'DECLARED': 1}
+  decision counts new: {'DECLARED': 1}
+  final mm       : old 1  new 1
+  final agree    : old 114  new 114
+  final disagree : old 0  new 0
+  final nav      : old None  new None
+
+== toby_0814_s03 ==
+  events: old 1388  new 1388 (a quarantined-and-discarded event still emits a record)
+  decision counts old: {'DECLARED': 2, 'NO_QUORUM': 1, 'QUORUM_ADOPTED': 1, 'QUORUM_CLOSED': 1, 'QUORUM_OPEN': 2, 'QUORUM_TIED': 12}
+  decision counts new: {'DECLARED': 2, 'QUARANTINED': 4, 'QUARANTINE_DISCARDED': 4, 'QUORUM_ADOPTED': 2, 'QUORUM_CLOSED': 2, 'QUORUM_OPEN': 2, 'QUORUM_TIED': 7}
+  final mm       : old 108  new 108
+  final agree    : old 1308  new 1368   <-- CHANGED
+  final disagree : old 9  new 9
+  final nav      : old None  new None
+  decisions LOST vs old (6):
+    - ('QUORUM_OPEN', 21)
+    - ('QUORUM_TIED', 21)
+    - ('QUORUM_TIED', 17)
+    - ('QUORUM_TIED', 16)
+    - ('QUORUM_TIED', 15)
+    - ('NO_QUORUM', 12)
+  decisions GAINED vs old (13):
+    + ('QUARANTINED', 26)
+    + ('QUARANTINE_DISCARDED', 26)
+    + ('QUARANTINED', 25)
+    + ('QUARANTINE_DISCARDED', 25)
+    + ('QUARANTINED', 24)
+    + ('QUARANTINE_DISCARDED', 24)
+    + ('QUARANTINED', 23)
+    + ('QUARANTINE_DISCARDED', 23)
+    + ('QUORUM_OPEN', 14)
+    + ('QUORUM_TIED', 12)
+    + ('QUORUM_TIED', 11)
+    + ('QUORUM_ADOPTED', 6)
+    + ('QUORUM_CLOSED', 5)
+
