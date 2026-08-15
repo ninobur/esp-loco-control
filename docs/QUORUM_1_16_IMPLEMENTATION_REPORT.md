@@ -4,7 +4,9 @@
 seven-finding review of 2026-08-14 (all seven accepted; response:
 `docs/QUORUM_1_16R_REVIEW_RESPONSE.md`), harness-proven on every capture and
 an adversarial set, both locomotive profiles compiling clean (999,019 bytes,
-76%). NOT flashed, NOT field-tested.**
+76%). CODEX re-review closed 2026-08-15: approved for SUPERVISED field
+testing in the CTO Bubble (attended only); flashing to Otto and Toby began
+the same day. Field verdict pending.**
 Controlling record: decision 0035 (Proposed). Operator authorization:
 2026-08-14, "Do the work."
 

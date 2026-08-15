@@ -1,10 +1,16 @@
 # 0035 — Quarantine the doubtful, and never stop learning
 
-Status: **Proposed** (2026-08-14). Implemented as `QUORUM_1_16`, revised to
+Status: **Accepted** (2026-08-15). Implemented as `QUORUM_1_16`, revised to
 `QUORUM_1_16R` the same day after CODEX's seven-finding review (all seven
 accepted — see the Review round section and
 `docs/QUORUM_1_16R_REVIEW_RESPONSE.md`), proven in the harness against every
-capture and an adversarial set, **NOT flashed**.
+capture and an adversarial set. CODEX's re-review closed 2026-08-15,
+withdrawing the suffix-rescue counterexample as a deployment blocker ("a
+theoretical residual to observe in telemetry, not a reason to require
+further protective machinery") and approving **supervised field testing**
+with Otto and Toby in the CTO Bubble — attended testing, not yet unattended
+operation. Operator concurred the same day and both locomotives are being
+flashed to 1.16R.
 Supersedes 0023 in part and 0024 in part. The phantom-source maintenance
 record's containment prohibition is addressed, not violated — see
 Consequences. (That record is numbered 0025 on branch
@@ -211,10 +217,15 @@ the position is formally discredited and the fence protects nothing.
   against pre-1.16 binaries; 1.16 goldens pinned for the quarantine era.
   Every future drift from the pinned numbers is a behaviour change owing
   review.
-- **Not flashed.** Gate: operator + CODEX review of this record and
-  `docs/QUORUM_1_16_IMPLEMENTATION_REPORT.md`, then supervised track time.
-  1.15 remains reserved for the CTO mode expansion; the stale transport
-  reservation moves to 1.17.
+- **The review gate is passed; the field gate is open.** CODEX approved
+  1.16R for supervised testing on 2026-08-15 with conditions the test must
+  honour: confirm each locomotive's boot identity and profile before
+  movement (the console's new sketch chip and the `[BOOT]` serial line are
+  the checks), retain continuous logging, watch for `QUORUM_SUFFIX_RESCUE`,
+  quarantine verdicts, `PHANTOM_REJECTED`, and `NO_QUORUM`, and keep both
+  E-stops immediately available. Unattended operation remains ungated
+  pending the field verdict. 1.15 remains reserved for the CTO mode
+  expansion; the stale transport reservation moves to 1.17.
 
 ## References
 

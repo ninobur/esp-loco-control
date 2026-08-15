@@ -77,4 +77,4 @@ rather than a silent drift discovered later.
 | [0032](0032-roles-are-derived-coordination-state-latched-and-echoed.md) | Leader/follower is derived coordination state — latched, echoed, never negotiated | Accepted |
 | [0033](0033-separation-is-the-bubble-plus-six-markers-clear.md) | Separation is the occupancy bubble plus six markers clear; Hall gaps are derived diagnostics | Accepted |
 | [0034](0034-v1-14-cto-wire-and-membership-contracts.md) | v1.14 CTO wire and membership contracts — role-echo packet, first-seen-this-boot membership | Proposed |
-| [0035](0035-quarantine-the-doubtful-and-never-stop-learning.md) | Quarantine the doubtful, and never stop learning — floor, suffix rescue, self-resolution | Proposed |
+| [0035](0035-quarantine-the-doubtful-and-never-stop-learning.md) | Quarantine the doubtful, and never stop learning — floor, suffix rescue, self-resolution | Accepted |
