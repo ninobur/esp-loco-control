@@ -86,7 +86,10 @@ over the route's shortest spacing (`min(spacingMm)` = 280 mm) that is **317 ms**
 
 > **FLOOR: an event arriving less than 350 ms after a confirmed marker cannot
 > be the next magnet on the route.** Not improbably — arithmetically. The
-> locomotive would have to exceed twice its demonstrated top speed.
+> locomotive would have to exceed 800 mm/s over the shortest spacing:
+> **1.81x** its demonstrated top speed. (The 2x factor was applied deriving
+> 317 ms; rounding UP to 350 leaves an enforced margin of 1.81x — corrected
+> from "twice" in the CODEX review round, finding 7.)
 
 This supersedes the interval *ratio* as the primary test. Flux, duration and
 polarity become **corroborating** evidence: they identify which phantom family
