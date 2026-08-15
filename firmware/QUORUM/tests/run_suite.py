@@ -270,6 +270,131 @@ def check_synthetic(harness, name, spec):
     return fails, sorted(set(ev))
 
 
+# ============================================================================
+# QUARANTINE-ERA GOLDENS for the 2026-08-10 capture, measured 2026-08-14 on
+# the 1.16 build and pinned. The story they tell, in one paragraph: the mm
+# 66-82 defective-detector stretch produces 8 quarantines (6 discarded, 2
+# COMMITTED — the reversibility requirement exercised on real data) and two
+# +2 adoptions; incidents A and B never reach a terminal at all; incident C —
+# polarity corruption, invisible to quarantine BY DESIGN — still fires with
+# its terminal board byte-identical to the legacy pin, advisory 18 intact,
+# and is then healed by SELF_RESOLVED, old_mm 13 -> new_mm 8: the same -5 the
+# advisory diagnosed at the terminal. Final state NORMAL where the locomotive
+# used to end the session stranded.
+# ============================================================================
+QGOLD = dict(
+    quarantined=8, discarded=6, committed=2, phantom_rejected=1,
+    adoptions=[(91, 2), (89, 2), (7, 3)],
+    noquorum_mms=[23],
+    c_terminal=dict(mm=23, reason='HARD_BOUND', scores=[5, 3, 5, 5, 6, 6],
+                    leader=3, runner_up=4, margin=0, eval=12),
+    c_advisory=18,
+    self_resolved=[dict(old_mm=13, new_mm=8)],
+    final=dict(mm=8, state='NORMAL', agree=1806, disagree=33),
+)
+
+
+def check_quarantine_goldens(decisions, su):
+    fails = []
+    from collections import Counter
+    counts = Counter(d['event'] for d in decisions)
+    for k, ev_name in (('quarantined', 'QUARANTINED'),
+                       ('discarded', 'QUARANTINE_DISCARDED'),
+                       ('committed', 'QUARANTINE_COMMITTED'),
+                       ('phantom_rejected', 'PHANTOM_REJECTED')):
+        if counts.get(ev_name, 0) != QGOLD[k]:
+            fails.append(f'full_run 1.16: {ev_name} x{counts.get(ev_name,0)}, '
+                         f'pinned {QGOLD[k]}')
+    adopts = [(d.get('new_mm', d.get('mm')), d.get('offset'))
+              for d in decisions if d['event'] == 'QUORUM_ADOPTED']
+    if adopts != QGOLD['adoptions']:
+        fails.append(f'full_run 1.16: adoptions {adopts}, pinned {QGOLD["adoptions"]}')
+    nq = [d for d in decisions if d['event'] == 'NO_QUORUM']
+    if [d.get('mm') for d in nq] != QGOLD['noquorum_mms']:
+        fails.append(f'full_run 1.16: NO_QUORUM at {[d.get("mm") for d in nq]}, '
+                     f'pinned {QGOLD["noquorum_mms"]} — incidents A and B must '
+                     'stay prevented and incident C must stay REAL')
+    if nq:
+        for k, want in QGOLD['c_terminal'].items():
+            if nq[0].get(k) != want:
+                fails.append(f'full_run 1.16: incident C terminal {k}='
+                             f'{nq[0].get(k)}, pinned {want} — the terminal '
+                             'board must stay byte-identical to the legacy pin')
+    snaps = qrun.snapshots_json(su)
+    if not snaps or snaps[-1].get('adv') != QGOLD['c_advisory']:
+        fails.append(f'full_run 1.16: advisory '
+                     f'{snaps[-1].get("adv") if snaps else None}, pinned '
+                     f'{QGOLD["c_advisory"]} (decision 0023 machinery intact)')
+    sr = [d for d in decisions if d['event'] == 'SELF_RESOLVED']
+    got_sr = [dict(old_mm=d.get('old_mm'), new_mm=d.get('new_mm')) for d in sr]
+    if got_sr != QGOLD['self_resolved']:
+        fails.append(f'full_run 1.16: SELF_RESOLVED {got_sr}, pinned '
+                     f'{QGOLD["self_resolved"]} — one recovery, -5, matching '
+                     'the advisory diagnosis')
+    final = su['final']
+    for k, want in QGOLD['final'].items():
+        if final is None or final.get(k) != want:
+            fails.append(f'full_run 1.16: final {k}='
+                         f'{final.get(k) if final else None}, pinned {want}')
+    tag = 'OK' if not fails else 'FAIL'
+    print(f'    {tag}: A and B prevented; C real, advisory 18, healed by '
+          f'SELF_RESOLVED -5; final NORMAL at mm 8')
+    return fails
+
+
+def counterfactual_quarantine(harness, su_with):
+    """1.16 counterfactual: dropping the two Bamboo phantoms must not change
+    where the locomotive ends up. With them, incident C fires and
+    SELF_RESOLVED heals it; without them there is nothing to heal — and both
+    roads lead to the same final position. Input-invariance to phantoms is a
+    stronger property than the legacy assertion (that the phantoms were the
+    sole cause), and it contains it."""
+    expected = json.loads((HERE / 'fixtures/full_run.expected').read_text())
+    lines = [e['line'] for e in expected if e.get('event') == 'MARKER']
+    src = (HERE / 'fixtures/full_run.replay').read_text().splitlines()
+    out, i = [], 0
+    for ln in src:
+        if ln.startswith('event'):
+            drop = lines[i] in PHANTOM_LINES
+            i += 1
+            if drop:
+                continue
+        out.append(ln)
+    su = qrun.summarise(qrun.run_lines(harness, out))
+    fails = []
+    nq = [d.get('mm') for d in su['decisions'] if d['event'] == 'NO_QUORUM']
+    if nq:
+        fails.append(f'counterfactual 1.16: NO_QUORUM at {nq} without the '
+                     'phantoms — they must remain the sole cause of C, and A/B '
+                     'must stay prevented by quarantine')
+    sr = [d for d in su['decisions'] if d['event'] == 'SELF_RESOLVED']
+    if sr:
+        fails.append('counterfactual 1.16: SELF_RESOLVED fired with nothing '
+                     'to heal')
+    adopts = [(d.get('new_mm', d.get('mm')), d.get('offset'))
+              for d in su['decisions'] if d['event'] == 'QUORUM_ADOPTED']
+    if adopts != [(91, 2), (89, 2)]:
+        fails.append(f'counterfactual 1.16: adoptions {adopts}, pinned '
+                     '[(91, 2), (89, 2)] — the defective-stretch corrections '
+                     'stand on their own, phantoms or no phantoms')
+    f_with = su_with['final']
+    f_wo = su['final']
+    if not f_wo or not f_with or f_wo.get('mm') != f_with.get('mm') \
+       or f_wo.get('state') != f_with.get('state'):
+        fails.append(f'counterfactual 1.16: final (mm,state) with phantoms '
+                     f'({f_with.get("mm")},{f_with.get("state")}) vs without '
+                     f'({f_wo.get("mm") if f_wo else None},'
+                     f'{f_wo.get("state") if f_wo else None}) — the two roads '
+                     'must converge')
+    print(f'    dropped {len(PHANTOM_LINES)} phantom events: '
+          f'NO_QUORUM {nq or "none"}, adoptions {adopts}, '
+          f'final mm {f_wo.get("mm") if f_wo else "?"} '
+          f'{"==" if not fails else "!="} with-phantoms mm '
+          f'{f_with.get("mm") if f_with else "?"} — input-invariance '
+          f'{"holds" if not fails else "FAILS"}')
+    return fails
+
+
 # The two events at these capture lines are the phantoms accepted during the
 # Bamboo departure, localised by change-point fit (0 mismatches over 39 events).
 PHANTOM_LINES = {24662, 24669}
@@ -359,33 +484,49 @@ def main():
         for line in r.stdout.strip().splitlines():
             print(f'    {line}')
 
+    era = 'quarantine' if 'q_floor_ms' in consts else 'legacy'
+    print(f'\n== era: {era} firmware '
+          + (f"(floor {consts.get('q_floor_ms')} ms, suffix {consts.get('suffix_rescue_n')}, "
+             f"confirm {consts.get('nq_confirm_n')}) ==" if era == 'quarantine' else '=='))
+
     print('\n== 1. fidelity + regression: full 2026-08-10 session ==')
-    r = subprocess.run([sys.executable, str(HERE / 'verify_replay.py'),
-                        '--harness', args.harness,
-                        '--fixture', str(HERE / 'fixtures/full_run')],
-                       capture_output=True, text=True, cwd=HERE)
-    print(r.stdout.rstrip())
-    if r.returncode != 0:
-        failures.append('full_run replay does not match the capture')
+    if era == 'legacy':
+        r = subprocess.run([sys.executable, str(HERE / 'verify_replay.py'),
+                            '--harness', args.harness,
+                            '--fixture', str(HERE / 'fixtures/full_run')],
+                           capture_output=True, text=True, cwd=HERE)
+        print(r.stdout.rstrip())
+        if r.returncode != 0:
+            failures.append('full_run replay does not match the capture')
+    else:
+        # A quarantine build CANNOT match the captured history — changing the
+        # outcome of the 2026-08-10 session is the point. Its behaviour is
+        # pinned as goldens instead, measured 2026-08-14 and asserted exactly:
+        # every drift from these numbers is a behaviour change owing a review.
+        print('    quarantine era: capture fidelity is DELIBERATELY broken; '
+              'asserting the pinned 1.16 goldens instead')
 
     su = qrun.summarise(qrun.run_file(args.harness,
                                       HERE / 'fixtures/full_run.replay'))
     decisions = su['decisions']
 
     print('\n== 2. incident goldens ==')
-    for tag in ('A', 'B', 'C'):
-        f = check_incident(tag, decisions, su['snapshots'])
-        inc = INCIDENTS[tag]
-        print(f'    incident {tag} (capture line {inc["line"]}, mm {inc["mm"]}): '
-              + ('OK' if not f else 'FAIL')
-              + f'  advisory={inc["advisory"]}'
-              + (f' (true position {inc["true_mm"]})' if inc['true_mm'] else ''))
-        failures += f
-    n_adopt = sum(1 for d in decisions if d['event'] == 'QUORUM_ADOPTED')
-    if n_adopt != 1:
-        failures.append(f'expected exactly 1 adoption in the run, got {n_adopt}')
-    print(f'    adoptions in the run: {n_adopt} (the one at capture line 24800, '
-          'which was wrong)')
+    if era == 'legacy':
+        for tag in ('A', 'B', 'C'):
+            f = check_incident(tag, decisions, su['snapshots'])
+            inc = INCIDENTS[tag]
+            print(f'    incident {tag} (capture line {inc["line"]}, mm {inc["mm"]}): '
+                  + ('OK' if not f else 'FAIL')
+                  + f'  advisory={inc["advisory"]}'
+                  + (f' (true position {inc["true_mm"]})' if inc['true_mm'] else ''))
+            failures += f
+        n_adopt = sum(1 for d in decisions if d['event'] == 'QUORUM_ADOPTED')
+        if n_adopt != 1:
+            failures.append(f'expected exactly 1 adoption in the run, got {n_adopt}')
+        print(f'    adoptions in the run: {n_adopt} (the one at capture line '
+              '24800, which was wrong)')
+    else:
+        failures += check_quarantine_goldens(decisions, su)
 
     print('\n== 3. evidence properties (map, not firmware) ==')
     failures += check_evidence_properties()
@@ -393,13 +534,24 @@ def main():
     print('\n== 4. synthetic cases ==')
     manifest = json.loads(
         (HERE / 'fixtures/synthetic_manifest.json').read_text())
+    QVOCAB = {'QUARANTINED', 'QUARANTINE_DISCARDED', 'QUARANTINE_COMMITTED',
+              'SELF_RESOLVED', 'QUORUM_SUFFIX_RESCUE'}
     for name, spec in sorted(manifest.items()):
+        if era == 'legacy':
+            exp = spec.get('expect', {})
+            wants = set(exp.get('must_contain', [])) | set(exp.get('must_not_contain', []))
+            if wants & QVOCAB:
+                print(f'    SKIP {name}: asserts 1.16 behaviour, harness is legacy')
+                continue
         f, ev = check_synthetic(args.harness, name, spec)
         print(f'    {"OK  " if not f else "FAIL"} {name}: {ev}')
         failures += f
 
     print('\n== 5. counterfactual: are the two Bamboo phantoms causal? ==')
-    failures += counterfactual(args.harness)
+    if era == 'legacy':
+        failures += counterfactual(args.harness)
+    else:
+        failures += counterfactual_quarantine(args.harness, su)
 
     print('\n== result ==')
     if failures:

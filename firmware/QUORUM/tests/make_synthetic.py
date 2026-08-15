@@ -183,14 +183,17 @@ for _ in range(8):
     _t = (_t + 1) % DNA_N
     cmds.append(ev(pol(_t)))
 add('syn_duplicate_event',
-    'One magnet read twice, the second arriving 60 ms later so the pair sums '
-    'to about one interval. The conservation test must reject it as '
-    'PHANTOM_REJECTED and leave the odometer alone; no incident may open.',
-    cmds + ['dump'],
-    {'must_contain': ['PHANTOM_REJECTED'],
-     'must_not_contain': ['QUORUM_OPEN', 'QUORUM_ADOPTED', 'NO_QUORUM'],
-     'final_mm': 34,
-     'final_state': 'NORMAL'})
+    'One magnet read twice: the duplicate arrives at DUP_DT=60 ms, far below '
+    'the 350 ms physical floor. 1.16: QUARANTINED at once, then DISCARDED when '
+    'the next genuine marker fits the phantom hypothesis. The odometer never '
+    'advances for it and no disagreement is recorded — compare the 1.13-1.14 '
+    'behaviour, where the conservation gate caught it only if the PWM model '
+    'happened to be right (PHANTOM_REJECTED), and admitted it when wrong.',
+    displaced(40, 0)[0][:9] + [ev(pol(46), dt=DUP_DT, peak=38, dur=40),
+                               ev(pol(47)), ev(pol(48)), ev(pol(49)), 'dump'],
+    {'must_contain': ['QUARANTINED', 'QUARANTINE_DISCARDED'],
+     'must_not_contain': ['PHANTOM_REJECTED', 'NO_QUORUM'],
+     'final_disagree': 0})
 
 # --- boundaries ------------------------------------------------------------
 cmds, _t = displaced(10, 8, tail=5)            # open an incident, then reverse
@@ -316,15 +319,20 @@ add('syn_second_adoption_failed',
 # is rejected and the failure does not reproduce.
 
 _TGT = 7                      # map polarity at mm 7 is S, mirroring Toby's mm 84
-def _pair(lead, pair):
+def _pair(lead, pair, n=6):
+    """n lead events from mm 1, then the pair (whose genuine member occupies
+    mm n+1), then five honest tail events from n+2. n=6 keeps the historical
+    fixtures byte-stable; the conjunction fixtures need n=9 because the
+    credential medians arm at eight accepted samples — exactly as on the
+    railway, where history always exists by the time a phantom appears."""
     cmds = ['dir CW', 'declare 0', 'auto 1']
     t = 0
-    for _ in range(6):
+    for _ in range(n):
         t = (t + 1) % DNA_N
         cmds.append(ev(pol(t), dt=lead, peak=180, dur=175))
     for p_, dt_, pk_, du_ in pair:
         cmds.append(ev(p_, dt=dt_, peak=pk_, dur=du_))
-    t = _TGT
+    t = (n + 1) % DNA_N
     for _ in range(5):
         t = (t + 1) % DNA_N
         cmds.append(ev(pol(t), dt=lead, peak=180, dur=175))
@@ -334,15 +342,17 @@ _S = pol(_TGT)                # 'S'
 _N = 'N' if _S == 'S' else 'S'
 
 add('syn_pair_strong_then_weak',
-    'Toby Event A, the Grillers ordering: a genuine strong read followed 303 ms '
-    'later by a weak one (peak 41, 42 ms), after a LONG decelerating interval. '
-    'The weak event is accepted because the long predecessor puts the pair '
-    'outside the reject band, so BOTH advance the odometer — a COUNT error of '
-    '+1. This is the case the measured-predecessor rule would fix.',
+    'Toby Event A, the Grillers ordering — THE defect 1.16 exists to fix. A '
+    'genuine strong read, then a weak companion 303 ms later: below the 350 ms '
+    'physical floor, so it is QUARANTINED instead of admitted, and the next '
+    'genuine marker convicts it (fits the phantom frame). Count stays correct, '
+    'zero disagreements. Under 1.13-1.14 this was final_mm 13 with 2 '
+    'disagreements: the +1 count error that seeded every incident.',
     _pair(2500, [(_S, 2532, 170, 302), (_N, 303, 41, 42)]) + ['dump'],
-    {'must_not_contain': ['PHANTOM_REJECTED'],
-     'final_mm': 13,            # 12 would be correct; +1 is the defect
-     'final_disagree': 2})
+    {'must_contain': ['QUARANTINED', 'QUARANTINE_DISCARDED'],
+     'must_not_contain': ['PHANTOM_REJECTED', 'NO_QUORUM'],
+     'final_mm': 12,            # the CORRECT count — was 13
+     'final_disagree': 0})      # was 2
 
 # ---------------------------------------------------------------------------
 # QUARANTINE PROPOSAL fixtures (docs/QUORUM_QUARANTINE_AND_SELF_RESOLUTION_PROPOSAL.md)
@@ -359,52 +369,203 @@ add('syn_pair_strong_then_weak',
 # a build nobody has modified for the purpose.
 # ---------------------------------------------------------------------------
 
+_W_OPP = 'N' if pol(9) == 'S' else 'S'   # opposite of the last accepted lead
 add('syn_quarantine_weak_companion',
-    'The return-flux fingerprint from the field, all three of the operator\'s '
-    'criteria at once: peak 43 against a 190 median (23%), 662 ms against a '
-    '2400 ms predecessor (28%), and opposite pole to the last accepted read. '
-    'TODAY it is admitted and the odometer runs +1. Under quarantine it should '
-    'be discarded and the following credible marker committed in its place, '
-    'leaving final_mm one LOWER than this baseline.',
-    _pair(2400, [(_N, 662, 43, 55), (_S, 1900, 196, 360)]) + ['dump'],
-    {'final_mm': 13})          # +1 count error; quarantine should give 12
+    'The return-flux fingerprint: 662 ms against a 2400 ms norm is above the '
+    'floor, so this proves the CONJUNCTION — opposite pole, interval 28% of '
+    'trailing median, flux 18% of median. Quarantined, then discarded when '
+    'the genuine successor fits the phantom frame; its interval folds into '
+    'the successor. Was final_mm one high (the +1 defect) before 1.16.',
+    _pair(2400, [(_W_OPP, 662, 43, 55), (pol(10), 1900, 196, 360)], n=9) + ['dump'],
+    {'must_contain': ['QUARANTINED', 'QUARANTINE_DISCARDED'],
+     'must_not_contain': ['PHANTOM_REJECTED', 'NO_QUORUM'],
+     'final_mm': 15,
+     'final_disagree': 0})
 
+_C_OPP = 'N' if pol(9) == 'S' else 'S'
 add('syn_quarantine_crawl_long_duration',
-    'The 2026-08-14 17:21 crawl artefact, and the case a flux test CANNOT '
-    'catch: peak 239 is perfectly STRONG, but the event lasts 5212 ms against '
-    'a ~360 ms norm while arriving only 463 ms after its predecessor. One '
-    'magnet dwelt upon long enough to be read twice. Duration is the credential '
-    'that condemns it. TODAY the conservation gate admits it -- the PWM model '
-    'expected ~2.1 s while the locomotive crawled far slower, so the ratio '
-    'landed outside the reject band.',
-    _pair(3000, [(_S, 463, 239, 5212), (_N, 3008, 143, 361)]) + ['dump'],
-    {'final_mm': 13})          # quarantine should give 12
+    'The 2026-08-14 17:21 crawl artefact — STRONG (peak 239) so flux cannot '
+    'catch it; 5212 ms long against a ~175 ms norm while arriving 463 ms '
+    'after its predecessor. Duration is the credential that condemns it. '
+    'Conjunction quarantines it; the successor convicts it.',
+    _pair(3000, [(_C_OPP, 463, 239, 5212), (pol(10), 3008, 143, 361)], n=9) + ['dump'],
+    {'must_contain': ['QUARANTINED', 'QUARANTINE_DISCARDED'],
+     'must_not_contain': ['PHANTOM_REJECTED', 'NO_QUORUM'],
+     'final_mm': 15,
+     'final_disagree': 0})
 
 add('syn_quarantine_must_not_reject_genuine',
-    'THE FALSE-POSITIVE GUARD, and the reason the rule is a CONJUNCTION. A '
-    'genuine marker that is merely dim -- peak 60 against a 190 median, below '
-    'the flux threshold on its own -- but arrives at a normal interval with '
-    'normal duration. Measured captures contain accepted markers at 0.19 of '
-    'median, DIMMER than events we reject, so flux alone would destroy real '
-    'evidence. This must be accepted both today and after quarantine lands.',
+    'THE FALSE-POSITIVE GUARD. A genuinely dim marker (peak 60 vs median 190, '
+    'well under the flux threshold) arriving at a NORMAL interval with NORMAL '
+    'duration. Dimness alone is never a crime: accepted, not quarantined, '
+    'exactly as before 1.16.',
     _pair(2400, [(_S, 2350, 60, 340), (_N, 2400, 190, 355)]) + ['dump'],
-    {'must_not_contain': ['PHANTOM_REJECTED'],
+    {'must_not_contain': ['QUARANTINED', 'PHANTOM_REJECTED'],
      'final_mm': 13})
 
 add('syn_pair_weak_then_strong',
-    'Toby Event B, believed mm 84: a WEAK map-inconsistent read arrives first at '
-    'an ordinary 1166 ms interval and is accepted; the strong map-consistent '
-    'read arrives 115 ms later and is rejected. The count is correct — one '
-    'event per magnet — but the retained reading has the WRONG POLARITY, so the '
-    'evidence ring is poisoned rather than the odometer. The '
-    'measured-predecessor rule does NOT fix this: 1166 > 0.30*1338 accepts the '
-    'weak one, then 115 <= 0.30*1166 rejects the strong one. Assert the '
-    'disagreement, not just the count — the count is identical to a healthy lap.',
+    'Toby Event B: the weak map-INCONSISTENT read arrives FIRST at an ordinary '
+    '1166 ms interval — no credential test can flag it (on time, and dimness '
+    'alone is not a crime). The strong genuine read 115 ms later goes below '
+    'the floor, is quarantined, and is discarded because the successor fits '
+    'the phantom frame. IDENTITY ERRORS REMAIN OUT OF SCOPE (decision 0024 '
+    'predicted this for every order-preserving rule): count correct, one '
+    'wrong-polarity reading retained in the ring. This fixture asserts the '
+    'limitation so nobody mistakes 1.16 for a fix it is not.',
     _pair(1200, [(_N, 1166, 40, 40), (_S, 115, 216, 189)]) + ['dump'],
-    {'must_contain': ['PHANTOM_REJECTED'],
+    {'must_contain': ['QUARANTINED', 'QUARANTINE_DISCARDED'],
+     'must_not_contain': ['PHANTOM_REJECTED', 'NO_QUORUM'],
      'final_mm': 12,            # count correct
-     'final_disagree': 1})      # but one wrong-polarity reading retained
+     'final_disagree': 1})      # the wrong-polarity bit: still there
 
+
+# ---------------------------------------------------------------------------
+# 1.16 ADVERSARIAL SET (decision 0024's own bar, finally met): cases built to
+# BREAK quarantine, the dt-fold, arbitration, and self-resolution.
+# ---------------------------------------------------------------------------
+
+def _steady(start, n, dt=2400, peak=180, dur=175, pwm=90):
+    """n map-true events from start+1, training the credential medians."""
+    cmds = ['dir CW', f'declare {start}', 'auto 1']
+    t = start
+    for _ in range(n):
+        t = (t + 1) % DNA_N
+        cmds.append(ev(pol(t), dt=dt, pwm=pwm, peak=peak, dur=dur))
+    return cmds, t
+
+_A = 40   # steady stretch used by most adversarials
+
+# (a) hard genuine acceleration: intervals halve and halve again. Every event
+# is on time in absolute terms (>=560 ms >> 350) and normal in flux/duration,
+# so neither the floor nor the conjunction may fire. The third leg of the
+# conjunction (dim OR long) is what protects genuine acceleration.
+_c, _t = _steady(_A, 9)
+for _dt in (2400, 1700, 1200, 900, 700, 560):
+    _t = (_t + 1) % DNA_N
+    _c.append(ev(pol(_t), dt=_dt))
+add('syn_adv_accel_max',
+    'Maximum genuine acceleration: 2400 -> 560 ms across six markers, all '
+    'map-true, normal flux and duration. QUARANTINE MUST STAY SILENT — the '
+    'conjunction\'s dim-OR-long leg is what protects genuine acceleration. '
+    'The legacy conservation gate (PWM model, decision 0024\'s documented '
+    'defect, untouched by 1.16) still rejects the fastest step; that loss is '
+    'asserted here as the pre-existing cost it is, not hidden.',
+    _c + ['dump'],
+    {'must_not_contain': ['QUARANTINED', 'NO_QUORUM'],
+     'must_contain': ['PHANTOM_REJECTED'],   # the 0024 defect, pinned honestly
+     'final_mm': (_A + 14) % DNA_N,          # one genuine marker lost to it
+     'final_disagree': 0})
+
+# (b) missed marker, then acceleration. The odometer falls one behind, the
+# following honest markers disagree, and the fence adopts +1. Acceleration
+# after the miss must not be mistaken for phantom traffic.
+_c, _t = _steady(_A, 8)
+_t = (_t + 2) % DNA_N                       # one marker passes unseen
+_c.append(ev(pol(_t), dt=4800))
+for _dt in (1400, 1100, 900, 800, 800, 800, 800, 800):
+    _t = (_t + 1) % DNA_N
+    _c.append(ev(pol(_t), dt=_dt))
+add('syn_adv_missed_then_accel',
+    'A missed marker (4800 ms gap) followed by acceleration. The +1 offset '
+    'must be adopted by evaluation, with no quarantine and no terminal: '
+    'lengthened intervals are never phantom evidence.',
+    _c + ['dump'],
+    {'must_contain': ['QUORUM_ADOPTED'],
+     'must_not_contain': ['QUARANTINED', 'NO_QUORUM'],
+     'adopted_offset': 1})
+
+# (c) the dt-fold: phantom discarded, then the genuine remainder of that same
+# interval. The successor's conservation test must see the FULL physical
+# interval (200+2200), not the half measured from the phantom.
+_c, _t = _steady(_A, 9)
+_c.append(ev('N' if pol((_t+1)%DNA_N)=='S' else 'S', dt=200, peak=40, dur=45))
+_t=(_t+1)%DNA_N; _c.append(ev(pol(_t), dt=2200))
+_t=(_t+1)%DNA_N; _c.append(ev(pol(_t), dt=2400))
+add('syn_adv_phantom_then_remainder',
+    'A floor-failing phantom then the genuine remainder of the same physical '
+    'interval. Asserts the dt-fold: the successor is judged on 200+2200 ms, '
+    'passes conservation, and the count stays exact with zero disagreements.',
+    _c + ['dump'],
+    {'must_contain': ['QUARANTINED', 'QUARANTINE_DISCARDED'],
+     'must_not_contain': ['PHANTOM_REJECTED', 'NO_QUORUM'],
+     'final_mm': (_A + 11) % DNA_N,
+     'final_disagree': 0})
+
+# (d) two phantoms in a row. The first pending is displaced by the second
+# (itself floor-failing); the genuine successor convicts the second. Both
+# discarded, count exact.
+_c, _t = _steady(_A, 9)
+_p1 = 'N' if pol((_t+1)%DNA_N)=='S' else 'S'
+_c.append(ev(_p1, dt=250, peak=40, dur=45))
+_c.append(ev('N' if _p1=='S' else 'S', dt=180, peak=38, dur=40))
+_t=(_t+1)%DNA_N; _c.append(ev(pol(_t), dt=2000))
+_t=(_t+1)%DNA_N; _c.append(ev(pol(_t), dt=2400))
+add('syn_adv_double_phantom',
+    'Two consecutive floor-failing phantoms, then honest travel. Both must be '
+    'discarded — a train of garbage must never commit anything — and the '
+    'genuine successors must land on the exact count.',
+    _c + ['dump'],
+    {'must_contain': ['QUARANTINE_DISCARDED'],
+     'must_not_contain': ['NO_QUORUM'],
+     'final_mm': (_A + 11) % DNA_N,
+     'final_disagree': 0})
+
+# (e) THE REINSTATEMENT PROOF (CODEX: discard must not mean erase). A genuine
+# marker whose credentials look damning — conjunction fires — but whose
+# successor testifies for it: commit, full count, no disagreement. Needs a
+# spot where pol(T+1) != pol(T) (opposite-pole credential) and
+# pol(T+2) != pol(T+1) (successor must NOT fit the phantom frame).
+_T = None
+for _cand in range(DNA_N):
+    b = (_cand + 9) % DNA_N                 # where the lead ENDS
+    if pol((b+1)%DNA_N) != pol(b) and pol((b+2)%DNA_N) != pol((b+1)%DNA_N):
+        _T=_cand; break
+assert _T is not None
+_c, _t = _steady(_T, 9, dt=3000)
+_t=(_t+1)%DNA_N; _c.append(ev(pol(_t), dt=900, peak=40, dur=60))   # genuine but damning
+_t=(_t+1)%DNA_N; _c.append(ev(pol(_t), dt=3000))                   # the witness
+_t=(_t+1)%DNA_N; _c.append(ev(pol(_t), dt=3000))
+add('syn_adv_false_reject_commit',
+    'A GENUINE marker that trips the conjunction (dim, 0.3x interval, '
+    'opposite pole) — and whose successor fits the genuine frame only. '
+    'Arbitration must COMMIT it back: the reversible-discard requirement, '
+    'proven. Full count, zero disagreements.',
+    _c + ['dump'],
+    {'must_contain': ['QUARANTINED', 'QUARANTINE_COMMITTED'],
+     'must_not_contain': ['QUARANTINE_DISCARDED', 'NO_QUORUM'],
+     'final_disagree': 0})
+
+# (f) reversal while an event is held: the arbitration frame is void, the
+# pending event must be discarded, and nothing may commit.
+_c, _t = _steady(_A, 9)
+_c.append(ev('N' if pol((_t+1)%DNA_N)=='S' else 'S', dt=200, peak=40, dur=45))
+_c.append('motor 0')                                    # reverse mid-quarantine
+add('syn_adv_reversal_mid_quarantine',
+    'Direction change while an event is quarantined. The pending event is '
+    'discarded (the "next marker" changed identity) and must never commit.',
+    _c + ['dump'],
+    {'must_contain': ['QUARANTINE_DISCARDED'],
+     'must_not_contain': ['QUARANTINE_COMMITTED', 'NO_QUORUM']})
+
+# (g) SELF-RESOLUTION, END TO END. Forced terminal, then clean travel: twelve
+# fresh events age the corrupted ring out, the route-wide unique match fires,
+# three confirmations, SELF_RESOLVED back to NORMAL. W=12 windows are unique
+# route-wide (the suite proves that map fact separately), so any honest
+# continuation resolves.
+_c, _t = _steady(_A, 6)
+_c.append('noquorum')                                   # FORCED_BY_FIXTURE
+for _ in range(16):
+    _t=(_t+1)%DNA_N
+    _c.append(ev(pol(_t)))
+add('syn_adv_self_resolution',
+    'The 2026-08-14 Toby scenario in miniature: a terminal, then honest '
+    'markers. Twelve age out the ring, the wide match is unique, three '
+    'confirmations, SELF_RESOLVED, state NORMAL — no operator declaration. '
+    'AUTO stays dropped; knowledge recovery is not motion recovery.',
+    _c + ['dump'],
+    {'must_contain': ['NO_QUORUM', 'SELF_RESOLVED'],
+     'final_state': 'NORMAL',
+     'final_mm': _t})
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__)

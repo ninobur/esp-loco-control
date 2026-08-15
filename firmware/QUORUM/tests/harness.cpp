@@ -197,11 +197,16 @@ int main(){
       #endif
       printf("{\"dna_n\":%u,\"dna_w\":%u,\"reacq\":%u,\"quorum_max\":%u,"
              "\"quorum_margin\":%u,\"quorum_trigger\":%u,\"advisory_none\":%u,"
-             "\"gate_low_pwm_floor\":%u,\"offsets\":[",
+             "\"gate_low_pwm_floor\":%u,"
+             // 1.16 era marker: the suite branches its expectations on the
+             // presence of these — a legacy build simply does not report them.
+             "\"q_floor_ms\":%u,\"suffix_rescue_n\":%u,\"nq_confirm_n\":%u,"
+             "\"offsets\":[",
              (unsigned)DNA_N,(unsigned)DNA_W,(unsigned)REACQ_WINDOW_MARKERS,
              (unsigned)QUORUM_MAX,(unsigned)QUORUM_MARGIN,
              (unsigned)QUORUM_TRIGGER,advisoryNone,
-             (unsigned)GATE_LOW_PWM_FLOOR);
+             (unsigned)GATE_LOW_PWM_FLOOR,
+             (unsigned)Q_FLOOR_MS,(unsigned)SUFFIX_RESCUE_N,(unsigned)NQ_CONFIRM_N);
       for(uint8_t i=0;i<QUORUM_CANDIDATES;i++)
         printf("%s%d", i?",":"", (int)QUORUM_OFFSETS[i]);
       printf("],\"dna\":[");

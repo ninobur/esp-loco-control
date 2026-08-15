@@ -23,7 +23,11 @@ class HarnessError(RuntimeError):
 
 DECISIONS = {'QUORUM_OPEN', 'QUORUM_TIED', 'QUORUM_ADOPTED', 'QUORUM_CLOSED',
              'QUORUM_REOPENED', 'NO_QUORUM', 'PHANTOM_REJECTED',
-             'ADOPTION_FAILED', 'DECLARED'}
+             'ADOPTION_FAILED', 'DECLARED',
+             # 1.16 vocabulary — without these, must_contain assertions on
+             # quarantine behaviour pass vacuously against silence
+             'QUARANTINED', 'QUARANTINE_DISCARDED', 'QUARANTINE_COMMITTED',
+             'SELF_RESOLVED', 'QUORUM_SUFFIX_RESCUE'}
 
 
 def run_lines(harness, lines, timeout=300, label=''):

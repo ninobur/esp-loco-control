@@ -401,7 +401,22 @@
 // unreviewed mode code plus a new echo wire version does not belong in a
 // narrow behavioural test. It is preserved on agent/cto-mode-1-15 and will
 // land as 1.15 with its own review and decision record.
-#define SKETCH_NAME "QUORUM_1_14B"
+// 1.16 (2026-08-14): QUARANTINE + NO_QUORUM SELF-RESOLUTION, the operator's
+// "we are deliberately making the locos ignore what they know" session
+// (docs/QUORUM_QUARANTINE_AND_SELF_RESOLUTION_PROPOSAL.md; decision 0035).
+// A doubtful event is HELD, judged by its successor against the map, and
+// discarded or committed — never silently promoted into the record. The
+// decisive test is the 350 ms physical floor (two independent sensors);
+// corroborating credentials are trailing-median flux, duration and polarity,
+// no PWM model anywhere. NO_QUORUM keeps scoring: twelve fresh post-failure
+// events plus a route-wide unique window match plus three confirmations
+// relabel the navigator and return it to NORMAL — knowledge recovery, never
+// motion recovery; AUTO stays dropped.
+// NOTE 1.15 is reserved for the CTO mode expansion (operator, branch
+// agent/cto-mode-1-15); the 1.14 header's note reserving 1.15 for transport
+// resilience is stale — that work moves to 1.17. Third collision; librarian
+// beware.
+#define SKETCH_NAME "QUORUM_1_16"
 
 // Broker lives here, not in LocoConfig.h — same as the previous lineage.
 #define MQTT_BROKER "192.168.68.142"
@@ -1014,6 +1029,64 @@ static uint8_t   evRingLen=0, evRingHead=0;      // head = oldest
 // ACCEPTED event — the name is the specification; rejection leaves it alone.
 static uint16_t previousAcceptedDt=0;
 static bool     previousAcceptedDtValid=false;
+
+// ---------------------------------------------------------------------------
+// §3Q QUARANTINE (docs/QUORUM_QUARANTINE_AND_SELF_RESOLUTION_PROPOSAL.md).
+// Operator rule 2026-08-14: a doubtful event is HELD, not committed — "the
+// record should come from the next magnet reading with good credentials."
+//
+// The decisive test is PHYSICAL IMPOSSIBILITY, not a model and not a ratio:
+// two independent sensors (38,671 clean marker intervals; 17,584 IR readings)
+// agree the fleet's top speed is ~441 mm/s at p99.9. At twice that speed the
+// route's shortest spacing (280 mm) still takes 317 ms, so an event arriving
+// sooner than Q_FLOOR_MS after the previous DETECTED event cannot be the next
+// magnet. Corroborating credentials — flux, duration, polarity, all measured
+// against trailing medians of ACCEPTED events, no PWM anywhere — catch the
+// slower phantom families (crawl doubles at 420-660 ms) and are gated to
+// steady running where their distributions were calibrated.
+//
+// Arbitration: the NEXT event's polarity is tested against the map under both
+// hypotheses (pending genuine vs pending phantom). Discard is the PRIMARY
+// verdict on a tie or a double-miss (operator: phantom is "the most likely
+// answer" and a wrong discard is an offset of -1, inside the fence, which
+// QUORUM adopts and closes routinely — the shadow path costs one adoption).
+// A discarded event's interval is folded into its successor's dt so the
+// committed timing chain still measures physical travel.
+static const uint16_t Q_FLOOR_MS        = 350;   // physics; see derivation above
+static const float    Q_INT_RATIO      = 0.40f;  // vs trailing median accepted dt
+static const float    Q_FLUX_RATIO     = 0.55f;  // vs trailing median accepted peak
+static const float    Q_DUR_RATIO      = 3.5f;   // vs trailing median accepted duration
+static const uint16_t Q_STEADY_DT_MIN  = 600;    // conjunction calibrated in this band
+static const uint16_t Q_STEADY_DT_MAX  = 4000;
+static const uint8_t  Q_STEADY_PWM_MIN = 40;
+#define Q_HIST_N 11
+static uint16_t qDtHist[Q_HIST_N], qPkHist[Q_HIST_N], qDuHist[Q_HIST_N];
+static uint8_t  qHistLen=0, qHistIdx=0;
+static bool        qPendingValid=false;
+static MarkerEvent qPending;
+static uint16_t    qPendingDt=0;
+static uint32_t    qQuarantined=0, qDiscarded=0, qCommitted=0;  // loopstat-grade counters
+static void qNoteAccepted(const MarkerEvent& e, uint16_t dt);
+static uint16_t qMedian(const uint16_t* h, uint8_t n);
+
+// §2.5Q NO_QUORUM SELF-RESOLUTION — "never stop learning" (same proposal).
+// The terminal state keeps its motor policy (stop once, in AUTO) and its
+// snapshot; what changes is that the ring keeps being SCORED. Once DNA_W
+// fresh events have arrived since the terminal entry — i.e. the ring holds
+// only post-failure evidence — every further event runs a ROUTE-WIDE exact
+// unique window match (not the fenced ±REACQ advisory: the 2026-08-14
+// incident sat 32 markers outside the fence, and 141 post-failure markers
+// matched exactly one route position at every window length tested). A
+// unique match must then stay consistent — each new event's match advancing
+// by exactly one — for NQ_CONFIRM_N further events before the navigator
+// relabels itself, returns to NORMAL and publishes SELF_RESOLVED. AUTO stays
+// dropped; recovery of knowledge is not recovery of motion (CODEX).
+static const uint8_t NQ_CONFIRM_N = 3;
+static uint16_t nqFreshEvents=0;
+static uint8_t  nqCandidate=255;   // route-wide match, 255 = none
+static uint8_t  nqConfirm=0;
+static uint8_t  dnaMatchWide(int8_t dir);
+static void     nqLearn(const MarkerEvent& e);
 static unsigned long lastMarkerMs=0;             // EVERY received event advances this
 static uint16_t lastSegmentDt=0;
 // Published on every marker by drainMarkers() (§5): why the gate was inactive
@@ -1330,6 +1403,9 @@ static void enterNoQuorum(const char* reason){
   navState=NAV_NO_QUORUM;
   navLostCount++;
   lostSinceMs=millis(); lostMarkers=0;
+  // §2.5Q: the self-resolution clock starts now. The ring still holds the
+  // twelve readings that caused this; they must age out before it is trusted.
+  nqFreshEvents=0; nqCandidate=255; nqConfirm=0;
   // 1. snapshot the terminal evidence before deceleration can overwrite it
   buildNoQuorumSnapshot(reason);
   // 2. controlled stop — AUTO CHAMBER ONLY, issued once on entry, never
@@ -1380,6 +1456,46 @@ static void adoptLeader(){
   navState=NAV_NORMAL;    // the incident stays open through validation (§2.6)
 }
 
+// §2.4Q THE INSERTION HYPOTHESIS (CODEX, 2026-08-14, weakness #4).
+//
+// QUORUM scores CONSTANT offsets. A phantom is an INSERTION: before it the
+// correct offset is 0, after it the correct offset is -1, and a scoring
+// window that straddles the insertion fits no single candidate — the
+// 2026-08-14 17:21 board [8,8,8,4,7,3] is exactly that shape. QUORUM had no
+// hypothesis meaning "discard event five; everything else fits", so a
+// temporary ambiguity became terminal at the hard bound.
+//
+// The minimum sound remedy: at the hard bound, before going terminal, ask
+// whether the NEWEST entries — a suffix the contamination has aged out of —
+// fit exactly one candidate perfectly. Suffix length 7 of ring 12: a wrong
+// offset matches a random suffix of 7 with p≈1/128, and the test runs only
+// at the hard bound, only over the existing fence, and demands uniqueness.
+// If two candidates both fit, or none does, the terminal entry proceeds
+// exactly as before — and §2.5Q self-resolution takes over from there with
+// wholly fresh evidence.
+static const uint8_t SUFFIX_RESCUE_N = 7;
+static uint8_t suffixLenAt(uint8_t c){
+  uint8_t run=0;
+  for(uint8_t k=0;k<evRingLen;k++){
+    const RingEntry* r=ringAt(evRingLen-1-k);   // newest first
+    if(r->polarity == dnaAt(routeMod((int32_t)r->navMm + navDir*QUORUM_OFFSETS[c])))
+      run++;
+    else break;
+  }
+  return run;
+}
+static int8_t suffixRescueCandidate(){
+  int8_t hit=-1;
+  for(uint8_t c=0;c<QUORUM_CANDIDATES;c++){
+    if(candidateExcluded[c]) continue;
+    if(suffixLenAt(c)>=SUFFIX_RESCUE_N){
+      if(hit>=0) return -1;                     // two fit: ambiguous, no rescue
+      hit=(int8_t)c;
+    }
+  }
+  return hit;
+}
+
 // One decision function, adoption tested FIRST (§2.4): if reading twelve is
 // what finally produces the two-point margin, the locomotive has identified
 // its position and must adopt. The hard bound means "twelve readings without
@@ -1389,7 +1505,19 @@ static void decideEvaluation(){
   if(leaderIdx>=0 && runnerUpIdx>=0 && quorumMargin>=QUORUM_MARGIN){
     adoptLeader();
   }else if(evalCount>=QUORUM_MAX){
-    enterNoQuorum("HARD_BOUND");
+    // §2.4Q: the insertion hypothesis gets one look before the terminal.
+    int8_t rescue=suffixRescueCandidate();
+    if(rescue>=0){
+      char extra[96];
+      snprintf(extra,sizeof(extra),
+        ",\"suffix\":%u,\"rescue_offset\":%d",
+        (unsigned)suffixLenAt((uint8_t)rescue),(int)QUORUM_OFFSETS[rescue]);
+      publishQuorumDecision("QUORUM_SUFFIX_RESCUE",extra);
+      leaderIdx=rescue;                 // adoptLeader() reads the leader slot
+      adoptLeader();
+    }else{
+      enterNoQuorum("HARD_BOUND");
+    }
   }else{
     // UNRESOLVED: a leader exists but margin < 2 — publish with every viable
     // candidate (§4) and keep collecting. Run 3 held -1 and +1 level at 4/4
@@ -1507,6 +1635,7 @@ static void processNormalComparison(const MarkerEvent& e){
 // LOST drop to PWM 60 drove the train into the regime that collapses the
 // baseline).
 static void acceptEvent(const MarkerEvent& e){
+  qNoteAccepted(e, lastSegmentDt);   // §3Q: accepted events train the medians
   navMm=nextMm(navMm,navDir);
   if(markersSinceConfirmed<65535) markersSinceConfirmed++;   // AGREE re-zeroes it
   pushRing(e.polarity,navMm);
@@ -1520,11 +1649,15 @@ static void acceptEvent(const MarkerEvent& e){
       decideEvaluation();
       break;
     case NAV_NO_QUORUM:
-      // §2.5: deceleration events are real and are not pretended away. The
-      // odometer advances and the ring appends — the snapshot already
-      // preserved what mattered — but no scoring, no adoption, no
-      // last-confirmed update, no state exit, no repeated stop or alert.
+      // §2.5 as amended by §2.5Q: deceleration events are real and are not
+      // pretended away. The odometer advances, the ring appends — and the
+      // evidence now keeps being SCORED (nqLearn), because 2026-08-14 proved
+      // a locomotive can sit for an hour on top of 141 markers that resolve
+      // its position uniquely while the old code refused to look at them.
+      // Still no motor action, no repeated stop or alert; a self-resolution
+      // relabels knowledge only.
       if(lostMarkers<65535) lostMarkers++;
+      nqLearn(e);
       break;
     default: break;
   }
@@ -1538,6 +1671,10 @@ static void navDeclare(uint8_t mm){
   navMm=mm; navState=NAV_NORMAL;
   fullRecoveryReset();
   lostMarkers=0;
+  // §3Q/§2.5Q: a declaration is a clean slate for the credential medians, any
+  // held event and the self-resolution pass alike.
+  qPendingValid=false; qHistLen=0; qHistIdx=0;
+  nqFreshEvents=0; nqCandidate=255; nqConfirm=0;
   // A declaration has no event, so millis() is correct here — the §5 rule to
   // stamp from e.detectedAtMs applies to marker-driven confirmations only.
   lastConfirmedMm=mm; lastConfirmedMs=millis();
@@ -1630,6 +1767,129 @@ static uint8_t quorumAdvisoryMarker(){
   return dnaMatch(navDir);
 }
 
+// ---------------------------------------------------------------------------
+// §2.5Q ROUTE-WIDE unique window match. dnaMatch() is deliberately fenced to
+// ±REACQ_WINDOW_MARKERS — correct while the position is merely doubted, and
+// useless once it is formally discredited: the 2026-08-14 incident's true
+// offset was 32 markers, and constraining a search to a fence around a belief
+// we have declared untrustworthy protects nothing. This scans every end
+// position on the route in the session direction and returns the ending
+// marker ONLY when exactly one window matches. Cost ~DNA_N*DNA_W ≈ 2k byte
+// compares per call, loop-thread, negligible.
+static uint8_t dnaMatchWide(int8_t dir){
+  if(evRingLen<DNA_W || dir==MAP_UNSET) return 255;
+  for(uint8_t i=0;i<DNA_W;i++) dnaBuf[i]=ringAt(i)->polarity;
+  uint8_t found=255, count=0;
+  for(int16_t end=0; end<DNA_N; end++){
+    uint8_t start = routeMod((int32_t)end - (int32_t)dir*(DNA_W-1));
+    bool ok=true; uint8_t mm=start;
+    for(uint8_t i=0;i<DNA_W;i++){
+      if(dnaAt(mm)!=dnaBuf[i]){ ok=false; break; }
+      mm=nextMm(mm,dir);
+    }
+    if(ok){ found=(uint8_t)end; if(++count>1) return 255; }
+  }
+  return (count==1)?found:255;
+}
+
+// §2.5Q learning pass — runs on every accepted event while NAV_NO_QUORUM.
+static void nqLearn(const MarkerEvent& e){
+  (void)e;
+  if(nqFreshEvents<65535) nqFreshEvents++;
+  // The ring must hold only post-failure evidence before it is trusted: the
+  // twelve readings that CAUSED the collapse must have aged out.
+  if(nqFreshEvents < DNA_W) return;
+  uint8_t m = dnaMatchWide(navDir);
+  if(m==255){ nqCandidate=255; nqConfirm=0; return; }
+  // Consistency: each new event advances the window by one, so the unique
+  // match must advance by exactly one with it.
+  if(nqCandidate!=255 && m==nextMm(nqCandidate,navDir)) nqConfirm++;
+  else                                                  nqConfirm=1;
+  nqCandidate=m;
+  if(nqConfirm < NQ_CONFIRM_N) return;
+
+  // Decisive and confirmed: relabel. Knowledge only — AUTO stays dropped.
+  uint8_t oldMm=navMm;
+  int16_t delta=(int16_t)m-(int16_t)navMm;
+  navMm=m;
+  for(uint8_t i=0;i<evRingLen;i++){
+    RingEntry* r=ringAt(i);
+    r->navMm=routeMod((int32_t)r->navMm + delta);
+  }
+  navState=NAV_NORMAL;
+  fullRecoveryReset();
+  lostMarkers=0;
+  updateLastConfirmed(navMm, e.detectedAtMs);
+  uint16_t fresh=nqFreshEvents;                 // capture BEFORE the reset
+  nqFreshEvents=0; nqCandidate=255; nqConfirm=0;
+  // §2.5 CLEAR arm, exactly as navDeclare(): the retained terminal snapshot
+  // must not linger as a ghost once the navigator has found itself.
+  portENTER_CRITICAL(&noQuorumMux);
+  desiredRetainedNoQuorum=DRS_CLEAR;
+  noQuorumGeneration++;
+  noQuorumNeedsReconcile=true;
+  portEXIT_CRITICAL(&noQuorumMux);
+  // ONE publish. The decision event carries the state ("NORMAL") like every
+  // other QUORUM decision; a second navPublishState with the same event name
+  // double-published the recovery and read as two resolutions in the log.
+  char extra[96];
+  snprintf(extra,sizeof(extra),",\"old_mm\":%u,\"new_mm\":%u,\"fresh\":%u,\"confirms\":%u",
+           oldMm,navMm,(unsigned)fresh,(unsigned)NQ_CONFIRM_N);
+  publishQuorumDecision("SELF_RESOLVED",extra);
+}
+
+// ---------------------------------------------------------------------------
+// §3Q helpers.
+static uint16_t qMedian(const uint16_t* h, uint8_t n){
+  uint16_t c[Q_HIST_N];
+  for(uint8_t i=0;i<n;i++) c[i]=h[i];
+  for(uint8_t i=1;i<n;i++){ uint16_t k=c[i]; int8_t j=i-1;
+    while(j>=0 && c[j]>k){ c[j+1]=c[j]; j--; } c[j+1]=k; }
+  return c[n/2];
+}
+
+static void qNoteAccepted(const MarkerEvent& e, uint16_t dt){
+  if(dt==0) return;                       // session bootstraps train nothing
+  qDtHist[qHistIdx]=dt;
+  qPkHist[qHistIdx]=(uint16_t)e.peak;
+  qDuHist[qHistIdx]=(uint16_t)e.durationMs;
+  qHistIdx=(qHistIdx+1)%Q_HIST_N;
+  if(qHistLen<Q_HIST_N) qHistLen++;
+}
+
+// Should this event be HELD rather than committed?
+static bool qSuspect(const MarkerEvent& e, uint16_t dt){
+  if(dt==0) return false;                 // no interval, no verdict
+  // Decisive: the physical floor. Unconditional — no regime, no model, no
+  // reference that could itself be corrupt. 350 ms over 280 mm is twice the
+  // fleet's demonstrated maximum speed.
+  if(dt < Q_FLOOR_MS) return true;
+  // Corroborating conjunction, only inside the band it was calibrated in.
+  if(qHistLen < 8) return false;
+  uint16_t mdt=qMedian(qDtHist,qHistLen);
+  if(mdt < Q_STEADY_DT_MIN || mdt > Q_STEADY_DT_MAX) return false;
+  if(e.pwmActualAtDetect < Q_STEADY_PWM_MIN) return false;
+  if(!((float)dt < Q_INT_RATIO*(float)mdt)) return false;
+  const RingEntry* last = evRingLen ? ringAt(evRingLen-1) : nullptr;
+  bool opp = last && (last->polarity != e.polarity);
+  if(!opp) return false;
+  uint16_t mpk=qMedian(qPkHist,qHistLen), mdu=qMedian(qDuHist,qHistLen);
+  bool dim  = (float)e.peak       < Q_FLUX_RATIO*(float)mpk;
+  bool lng  = (float)e.durationMs > Q_DUR_RATIO *(float)mdu;
+  return dim || lng;
+}
+
+static void qPublish(const char* verdict, const MarkerEvent& e, uint16_t dt,
+                     const char* why){
+  char extra[160];
+  snprintf(extra,sizeof(extra),
+    ",\"pol\":\"%c\",\"peak\":%d,\"dur\":%u,\"dt\":%u,\"why\":\"%s\","
+    "\"held\":%lu,\"discarded\":%lu,\"committed\":%lu",
+    polChar(e.polarity),e.peak,(unsigned)e.durationMs,(unsigned)dt,why,
+    (unsigned long)qQuarantined,(unsigned long)qDiscarded,(unsigned long)qCommitted);
+  publishQuorumDecision(verdict,extra);
+}
+
 // ===========================================================================
 // §3 TIMING GATE + navOnMarker — an event must earn its advance.
 // Runs on the LOOP thread (via drainMarkers). No new tasks.
@@ -1647,6 +1907,8 @@ static uint8_t quorumAdvisoryMarker(){
 // phantom and the pair never sums to one interval). previousAcceptedDt
 // advances only per the gate rules. Do not make dt accepted-to-accepted.
 // ===========================================================================
+static void navLadder(const MarkerEvent& e, uint16_t dt);
+
 static void navOnMarker(const MarkerEvent& e){
   navMarkers++;
   // Timed from DETECTION, not from when loop() got round to draining the
@@ -1656,12 +1918,74 @@ static void navOnMarker(const MarkerEvent& e){
   lastMarkerMs  = e.detectedAtMs;
 
   // §5: when timing values are unavailable they publish as 0 / -1.0, never
-  // omitted. Overwritten below on an ACTIVE evaluation.
+  // omitted. Overwritten in the ladder on an ACTIVE evaluation.
   lastDtExpected      = 0;
   lastDtConserveRatio = -1.0f;
 
-  // Gate evaluation, in this exact fixed order (§3, §5):
-  //   NO_POSITION -> NO_DIR -> LOW_PWM -> RAMP -> NO_PREV -> ACTIVE
+  if(navState==NAV_UNSET){
+    lastTimingGate="NO_POSITION";
+    return;
+  }
+  if(navDir==MAP_UNSET){
+    lastTimingGate="NO_DIR";
+    invalidatePreviousAcceptedDt();
+    return;
+  }
+
+  // ---- §3Q ARBITRATION: a pending event is judged by its successor --------
+  if(qPendingValid){
+    // Which marker does THIS event's polarity fit?
+    //   H-phantom : pending was spurious -> e is the marker after navMm.
+    //   H-genuine : pending was real (at navMm+1) -> e is at navMm+2.
+    uint8_t mmP = nextMm(navMm,navDir);
+    uint8_t mmG = routeMod((int32_t)navMm + 2*(int32_t)navDir);
+    bool matchP = (dnaAt(mmP)==e.polarity);
+    bool matchG = (dnaAt(mmG)==e.polarity);
+    qPendingValid=false;
+    if(matchG && !matchP){
+      // The successor vouches for the pending event: commit it first, with
+      // its own interval, through the full ladder — then fall through and
+      // judge e normally (its dt already measures pending -> e).
+      qCommitted++;
+      qPublish("QUARANTINE_COMMITTED",qPending,qPendingDt,"SUCCESSOR_FITS_GENUINE");
+      lastSegmentDt=qPendingDt;
+      navLadder(qPending,qPendingDt);
+      lastSegmentDt=dt;
+    }else{
+      // Primary verdict (operator 2026-08-14): phantom. Covers successor-
+      // fits-phantom, both-fit (ambiguous) and neither-fits (e may itself be
+      // suspect; it is credential-checked below). The discarded interval is
+      // folded into e's dt so the committed timing chain still measures
+      // physical travel — without this the conservation gate would judge a
+      // half interval. A wrong verdict here costs an offset of -1, inside
+      // the fence; QUORUM adopts and closes it routinely. That asymmetry is
+      // the design.
+      qDiscarded++;
+      qPublish("QUARANTINE_DISCARDED",qPending,qPendingDt,
+               matchP&&matchG ? "AMBIGUOUS_DEFAULT_PHANTOM"
+             : matchP         ? "SUCCESSOR_FITS_PHANTOM"
+                              : "NEITHER_FITS");
+      uint32_t merged=(uint32_t)dt+(uint32_t)qPendingDt;
+      dt = (merged>65535UL)?65535U:(uint16_t)merged;
+      lastSegmentDt=dt;
+    }
+  }
+
+  // ---- §3Q CREDENTIALS: hold a doubtful event for its successor -----------
+  if(qSuspect(e,dt)){
+    qPending=e; qPendingDt=dt; qPendingValid=true;
+    qQuarantined++;
+    lastTimingGate="QUARANTINED";
+    qPublish("QUARANTINED",e,dt,(dt<Q_FLOOR_MS)?"BELOW_PHYSICAL_FLOOR":"CONJUNCTION");
+    return;
+  }
+
+  navLadder(e,dt);
+}
+
+// The original §3 gate ladder, unchanged except for taking dt as a parameter:
+//   LOW_PWM -> RAMP -> NO_PREV -> ACTIVE
+static void navLadder(const MarkerEvent& e, uint16_t dt){
   if(navState==NAV_UNSET){
     // Direction may be known; position is not. No advance, no ring, no
     // last-confirmed, no conservation — navMm holds nothing meaningful to
@@ -1903,6 +2227,14 @@ static void applyDirection(){
     if(derived!=navDir){
       int8_t prevDir = navDir;
       navDir=derived;
+      // §3Q: a direction change while an event is held makes the arbitration
+      // geometry meaningless (the "next marker" changed identity). Discard
+      // the pending event rather than judging it in a frame that no longer
+      // exists — CODEX's ordering-fault exception, made explicit.
+      if(qPendingValid){
+        qPendingValid=false; qDiscarded++;
+        qPublish("QUARANTINE_DISCARDED",qPending,qPendingDt,"DIRECTION_CHANGED");
+      }
       // F3 (CODEX review of 1.4) — REVERSING MID-INTERVAL. navMm is the marker
       // last REACHED, and the locomotive is always somewhere between it and
       // the next one along. Reverse, and the next marker it physically meets
