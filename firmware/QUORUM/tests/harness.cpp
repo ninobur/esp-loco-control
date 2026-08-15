@@ -219,6 +219,24 @@ int main(){
     } else if(cmd=="mark"){
       std::string label; in >> label;
       printf("{\"mark\":\"%s\"}\n", esc(label.c_str()).c_str());
+    } else if(cmd=="wifi_channel"){
+      // 1.16Ra: drive the station channel the drift watch reads. Outside
+      // 1..14 the firmware must treat it as unknown, which is what the
+      // negative and out-of-band cases in the fixture assert.
+      int c; in >> c; hostWifiChannel=c;
+    } else if(cmd=="cto"){
+      // One ctoService() pass. The navigator fixtures never call this, so
+      // every existing replay is untouched; only a fixture that asks for CTO
+      // gets CTO. Brings the radio up on first use, exactly as networkTask
+      // does on the locomotive.
+      ctoRadioInit();
+      ctoService();
+    } else if(cmd=="cto_off"){
+      ctoEnabled=false;
+    } else if(cmd=="advance"){
+      // Move the clock without producing a marker: the channel watch is rate
+      // limited to 1 Hz and must be given real time to pass.
+      unsigned long ms; in >> ms; g_hostMillis += ms;
     } else if(cmd=="dump"){
       emitState();
     } else if(cmd=="snapshot"){

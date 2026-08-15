@@ -9,6 +9,9 @@
 #define WL_DISCONNECTED 6
 #define WIFI_STA        1
 
+// Fixture-driven, default 0 = unassociated.
+static int hostWifiChannel = 0;
+
 struct HostWiFiClass {
   int  status(){ return WL_DISCONNECTED; }
   void begin(const char*,const char*){}
@@ -18,6 +21,13 @@ struct HostWiFiClass {
   void setSleep(bool){}
   void disconnect(bool=false){}
   int  RSSI(){ return -50; }
+  // 1.16Ra: an unassociated station has no channel, so 0 is the honest
+  // default and the drift watch treats it as "don't know yet" — no replay
+  // fabricates a CTO_CHANNEL_CHANGED event. A fixture may drive it with the
+  // harness 'wifi_channel' command to exercise the watch deliberately, which
+  // is the ONLY way the new code gets tested: byte-identity across the
+  // capture corpus proves no regression and says nothing about new code.
+  int  channel(){ return hostWifiChannel; }
 };
 extern HostWiFiClass WiFi;
 

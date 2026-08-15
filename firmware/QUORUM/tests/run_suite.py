@@ -613,6 +613,18 @@ def main():
         print(f'    {"OK  " if not f else "FAIL"} {name}: {ev}')
         failures += f
 
+    # 1.16Ra: the channel watch is unreachable from the capture corpus (no
+    # replay calls ctoService()), so it needs its own driven tests or it ships
+    # reviewed-but-unexercised — which is exactly what the self-review round
+    # objected to. Quarantine era only: the commands do not exist on legacy.
+    if era != 'legacy':
+        print('\n== 4b. radio instrumentation: the channel watch ==')
+        r = subprocess.run([sys.executable, str(HERE / 'test_channel_watch.py'),
+                            args.harness], capture_output=True, text=True)
+        print(r.stdout.rstrip())
+        if r.returncode != 0:
+            failures.append('channel watch tests failed (see above)')
+
     print('\n== 5. counterfactual: are the two Bamboo phantoms causal? ==')
     if era == 'legacy':
         failures += counterfactual(args.harness)

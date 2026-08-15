@@ -431,11 +431,31 @@
 // NGR_DNA1 (max self-agreement run at lags 1-5 is 6), so SUFFIX_RESCUE_N=7
 // is the minimum unambiguous length — the 1/128 probability argument is
 // retired. NOT flashed; gate is operator + CODEX re-review of 0035.
+// 1.16Ra (2026-08-15): INSTRUMENTATION ONLY, from a field incident during the
+// 1.16R Bubble test. Toby fleet-stopped on "peer STALE" while Otto was
+// perfectly healthy on MQTT — publishing every second, nav NORMAL, and his
+// CTO tx counter climbing at 2 Hz with zero errors. That counter was read as
+// proof the transmitter was working. It was not: it counts esp_now_send()
+// RETURNING ESP_OK, which means "queued to the driver", and no send callback
+// was ever registered. A request counter was being treated as a measurement —
+// the precise error decision 0024 exists to prevent, committed against the
+// radio instead of the motor. A reset restored the link, which rules out
+// range and masonry and points at radio state; the leading hypothesis is a
+// station channel divergence (ESP-NOW peers are added with channel 0 =
+// "current", and the station follows the AP, so a roam or re-association
+// leaves MQTT untouched while making the locomotive invisible to its peers).
+// Unprovable after the fact, because nothing reported the channel.
+// This revision therefore adds: the send callback (txd/txf = what the MAC
+// layer actually did, honestly limited — broadcast is unacknowledged, so
+// "transmitted" never means "received"), the station channel in CTO status,
+// and a CTO_CHANNEL_CHANGED alarm the moment a locomotive drifts. No
+// navigation, motor, or wire-contract change: proven byte-identical to 1.16R
+// across all 43 replays (12 capture segments + 31 fixtures, both streams).
 // NOTE 1.15 is reserved for the CTO mode expansion (operator, branch
 // agent/cto-mode-1-15); the 1.14 header's note reserving 1.15 for transport
 // resilience is stale — that work moves to 1.17. Third collision; librarian
 // beware.
-#define SKETCH_NAME "QUORUM_1_16R"
+#define SKETCH_NAME "QUORUM_1_16Ra"
 
 // Broker lives here, not in LocoConfig.h — same as the previous lineage.
 #define MQTT_BROKER "192.168.68.142"
@@ -578,6 +598,55 @@ static bool     ctoEchoConflict=false;
 static bool     ctoEchoConfirmed=false;   // finding 5: fresh reciprocal echo
 static uint32_t ctoTxSeq=0, ctoLastTxMs=0, ctoLastEchoMs=0, ctoLastStateMs=0;
 static uint32_t ctoRxAccepted=0, ctoTxAttempts=0, ctoTxErrors=0, ctoRxDropped=0;
+// 1.16Ra INSTRUMENTATION (field incident 2026-08-15). ctoTxAttempts counts
+// INTENTIONS: esp_now_send() returning ESP_OK means "queued to the driver",
+// not "transmitted", and ctoTxErrors only catches that immediate return. On
+// 2026-08-15 Otto showed tx climbing at 2 Hz with txe 0 while Toby heard
+// almost nothing, and that pair of counters was read — wrongly — as proof
+// the transmitter was healthy. It was the radio equivalent of trusting PWM
+// as proof of motion (decision 0024), in a project whose whole discipline is
+// the opposite. These two are fed by the send callback and report what the
+// MAC layer actually did with each frame.
+//
+// HONEST LIMIT, stated so nobody over-reads them — including me, since the
+// whole reason this exists is that I over-read tx/txe once already:
+//   * ESP-NOW BROADCAST is unacknowledged, so the MAC reports SUCCESS on
+//     transmission. ctoTxFailed is therefore structurally pinned near zero
+//     FOREVER, and "txd climbing, txf 0" is NOT evidence of a healthy link.
+//     It looks exactly like the "tx climbing, txe 0" that produced the
+//     2026-08-15 misdiagnosis, one layer down. Do not repeat that reading.
+//   * The only diagnostic weight here is whether txd TRACKS tx. A txd that
+//     stalls while tx climbs means the driver stopped dequeuing frames. That
+//     is the failure this pair can see, and the only one.
+//   * A frame sent on the WRONG channel reports SUCCESS. ch/chg is what
+//     catches that, not these counters.
+//   * Reception is only ever evidenced by the PEER's rx counter, which is why
+//     both locomotives publish theirs.
+//   * txd/txf are incremented in WiFi-task context while tx is incremented on
+//     the loop thread, and the status snprintf samples them unsynchronised. A
+//     skew of one or two either way is NORMAL and is not evidence of loss.
+static volatile uint32_t ctoTxDone=0, ctoTxFailed=0;
+// The ESP-NOW channel is the STATION channel (peers are added with
+// channel 0 = "current"), and the station follows the AP. A locomotive that
+// roams or re-associates onto another channel keeps perfect MQTT — that path
+// goes through the AP and does not care — while becoming completely
+// invisible to its peers, whose ESP-NOW lives on the old channel. That
+// asymmetry is exactly the 2026-08-15 signature: healthy on the broker,
+// silent on the air. Latched at radio-up, checked every service pass.
+static uint8_t  ctoChannel=0;
+static uint32_t ctoChannelChanges=0;
+static uint8_t  ctoChannelCand=0, ctoChannelConfirm=0;
+static uint32_t ctoStatusTruncated=0;   // publishes refused as malformed
+static uint32_t ctoLastChanCheckMs=0;
+// 2.4 GHz only. WiFi.channel() returns int, and a negative error return or a
+// value read mid-reassociation would otherwise truncate into a plausible-
+// looking uint8_t, fire the alarm, AND latch — costing two false alarms (one
+// out, one back) and a permanently wrong reference. Anything outside 1..14 is
+// "unknown", which is the same answer as "not associated".
+static inline uint8_t ctoWifiChannel(){
+  int c=WiFi.channel();
+  return (c>=1 && c<=14) ? (uint8_t)c : 0;
+}
 static QueueHandle_t ctoRxQueue=nullptr;  // recv callback -> loop thread, like cmdQueue
 static const uint8_t CTO_BCAST[6]={0xFF,0xFF,0xFF,0xFF,0xFF,0xFF};
 
@@ -3941,6 +4010,15 @@ static void ctoOnRecv(const esp_now_recv_info_t*,const uint8_t* data,int len){
   memcpy(item.b,buf,len); item.l=len;
   if(ctoRxQueue && xQueueSend(ctoRxQueue,&item,0)!=pdTRUE) ctoRxDropped++;
 }
+// WiFi-task context, like ctoOnRecv: touch nothing but two counters. No
+// publish, no Serial, no navigation. Broadcast is unacknowledged, so SUCCESS
+// here means the frame was transmitted, NOT that anyone heard it.
+// ESP32 core 3.3.11 signature: the first argument is wifi_tx_info_t*, not the
+// bare peer MAC of older cores (the recv callback moved the same way). Pinned
+// here because a core downgrade turns this into a silent conversion error.
+static void ctoOnSend(const wifi_tx_info_t*, esp_now_send_status_t status){
+  if(status==ESP_NOW_SEND_SUCCESS) ctoTxDone++; else ctoTxFailed++;
+}
 static void ctoRadioInit(){
   if(ctoRadioUp) return;
   if(esp_now_init()!=ESP_OK){ Serial.println("[CTO] esp_now init FAILED"); return; }
@@ -3948,8 +4026,10 @@ static void ctoRadioInit(){
   pi.channel=0; pi.encrypt=false;
   if(!esp_now_is_peer_exist(CTO_BCAST)) esp_now_add_peer(&pi);
   esp_now_register_recv_cb(ctoOnRecv);
+  esp_now_register_send_cb(ctoOnSend);       // 1.16Ra: measure, don't assume
+  ctoChannel=ctoWifiChannel();
   ctoRadioUp=true;
-  Serial.println("[CTO] radio up (ESP-NOW, broadcast)");
+  Serial.printf("[CTO] radio up (ESP-NOW, broadcast) ch=%u\n",(unsigned)ctoChannel);
 }
 static void ctoTxStatus(){
   CtoPeerPacket p={};
@@ -4285,6 +4365,58 @@ static void ctoService(){
     }
   }
   uint32_t now=millis();
+  // 1.16Ra: the channel watch. A silent divergence from the peer's channel is
+  // undiagnosable after the fact — this makes the locomotive say so at the
+  // moment it happens, rather than leaving an unexplained fleet stop behind.
+  //
+  // Reviewed hard and rebuilt (self-review round, 2026-08-15). Four rules,
+  // each earned:
+  //   RATE   — 1 Hz, not loop rate. Every other emitter in this function is
+  //            gated; an ungated one that can publish on a transition is a
+  //            queue-pressure risk against marker evidence, which is sacred.
+  //   RANGE  — ctoWifiChannel() rejects anything outside 1..14.
+  //   CONFIRM— three consecutive identical readings before believing a change.
+  //            A settling value at association, or one transient sample mid-
+  //            reassociation, would otherwise raise a boot-time false alarm,
+  //            and an alarm that cries wolf on every power-up is one the
+  //            operator correctly learns to ignore.
+  //   SCOPE  — no publishWarning(). The warning slot is a SINGLE global slot
+  //            with a 20 s auto-clear, and stomping it would silently erase a
+  //            live operator message — including SELF_RESOLVED's "BEGIN to
+  //            resume" prompt, which is the 1.16R finding-1 interlock telling
+  //            the operator a locomotive is waiting for them. A diagnostic
+  //            must never overwrite a safety prompt. The state/cto event is
+  //            the record; the console renders it.
+  if(now-ctoLastChanCheckMs>=1000){
+    ctoLastChanCheckMs=now;
+    uint8_t ch=ctoWifiChannel();
+    if(ch==0){
+      ctoChannelCand=0; ctoChannelConfirm=0;   // unknown: hold the reference
+    }else if(ctoChannel==0){
+      ctoChannel=ch;                            // first association: latch
+    }else if(ch!=ctoChannel){
+      if(ch==ctoChannelCand) ctoChannelConfirm++;
+      else { ctoChannelCand=ch; ctoChannelConfirm=1; }
+      if(ctoChannelConfirm>=3){
+        uint8_t from=ctoChannel;
+        ctoChannel=ch; ctoChannelChanges++;
+        ctoChannelCand=0; ctoChannelConfirm=0;
+        // Only meaningful where peers exist. Running solo with CTO off, a
+        // channel move is nobody's business — and the old text asserted
+        // "peers cannot hear this locomotive" with no peers to speak of.
+        if(ctoEnabled){
+          char b[160];
+          snprintf(b,sizeof(b),
+            "{\"event\":\"CTO_CHANNEL_CHANGED\",\"from\":%u,\"to\":%u,\"changes\":%lu,"
+            "\"note\":\"PEERS_ON_OTHER_CHANNEL_CANNOT_HEAR_ME\"}",
+            (unsigned)from,(unsigned)ch,(unsigned long)ctoChannelChanges);
+          pub(T_ST_CTO,b,false);
+        }
+      }
+    }else{
+      ctoChannelCand=0; ctoChannelConfirm=0;    // back to steady state
+    }
+  }
   if(now-ctoLastTxMs>=CTO_TX_INTERVAL_MS){ ctoLastTxMs=now; ctoTxStatus(); }
   if(now-ctoLastEchoMs>=CTO_ECHO_INTERVAL_MS){ ctoLastEchoMs=now; ctoTxEcho(); }
   ctoEvaluateRoles();
@@ -4310,13 +4442,29 @@ static void ctoService(){
   if(now-ctoLastStateMs>=5000){
     ctoLastStateMs=now;
     int8_t pi=ctoPartnerIdx();
-    char b[288];   // CODEX 1.14A review: 224 was ~14 short of the worst case
-                   // with full-width counters; truncation would publish
-                   // invalid JSON rather than merely a short line.
-    snprintf(b,sizeof(b),
+    // SIZE THIS BY ARITHMETIC, NOT BY OBSERVATION. Third time this buffer has
+    // been the site of the same bug: CODEX's 1.14A review found 224 was ~14
+    // short, and 1.16Ra's first draft appended four keys to the 288 without
+    // redoing the sum — measured worst case 301 into 287 usable, truncating
+    // mid-key with no closing brace. The failure on the railway is not an
+    // error but SILENCE: the console's json.loads sits in a bare try/except,
+    // so a truncated payload is dropped and the CTO panel freezes on stale
+    // values while the locomotive believes it is reporting. That is the worst
+    // possible failure for a diagnostic added to explain an unexplained stop,
+    // and it would not appear until counters crossed ~1e9.
+    // MEASURED worst case (every field maximal, gap_ahead at INT_MIN, by
+    // running this exact format string — not by summing it in my head, which
+    // is how it went wrong): 300 bytes. 384 leaves 84 spare, room for one
+    // more field without another incident. The guard below is the backstop.
+    char b[384];
+    int n=snprintf(b,sizeof(b),
       "{\"event\":\"CTO_STATUS\",\"on\":%d,\"role\":\"%s\",\"partner\":%lu,"
       "\"expected\":%lu,\"fleet_hold\":%d,\"traffic\":%u,\"gap_ahead\":%d,"
-      "\"front_b\":%u,\"rear_b\":%u,\"rx\":%lu,\"tx\":%lu,\"txe\":%lu,\"rxd\":%lu}",
+      "\"front_b\":%u,\"rear_b\":%u,\"rx\":%lu,\"tx\":%lu,\"txe\":%lu,\"rxd\":%lu,"
+      // 1.16Ra: tx is INTENTIONS, txd/txf are what the MAC layer did, ch is
+      // the channel those frames went out on. Comparing my ch against the
+      // peer's ch is the whole diagnosis for a silent-partner incident.
+      "\"txd\":%lu,\"txf\":%lu,\"ch\":%u,\"chg\":%lu}",
       ctoEnabled?1:0,
       ctoRole==CTO_ROLE_LEADER?"LEADER":ctoRole==CTO_ROLE_FOLLOWER?"FOLLOWER":"NONE",
       (unsigned long)ctoPartnerId,(unsigned long)ctoExpectedId,
@@ -4324,8 +4472,15 @@ static void ctoService(){
       (pi>=0&&ctoPeerFresh(ctoPeers[pi])&&navDir!=MAP_UNSET)?(int)ctoGapAhead(ctoPeers[pi]):-1,
       (navDir!=MAP_UNSET)?ctoMyFrontB():navMm,(navDir!=MAP_UNSET)?ctoMyRearB():navMm,
       (unsigned long)ctoRxAccepted,(unsigned long)ctoTxAttempts,
-      (unsigned long)ctoTxErrors,(unsigned long)ctoRxDropped);
-    pub(T_ST_CTO,b,false);
+      (unsigned long)ctoTxErrors,(unsigned long)ctoRxDropped,
+      (unsigned long)ctoTxDone,(unsigned long)ctoTxFailed,
+      (unsigned)ctoChannel,(unsigned long)ctoChannelChanges);
+    // Structural guard, so arithmetic can never be the only defence again: a
+    // truncated payload is malformed JSON and must not be published at all.
+    // Losing one heartbeat is recoverable; poisoning the diagnostic stream
+    // with a payload consumers silently drop is not.
+    if(n<0 || (size_t)n>=sizeof(b)) ctoStatusTruncated++;
+    else pub(T_ST_CTO,b,false);
   }
 }
 
