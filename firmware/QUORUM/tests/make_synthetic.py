@@ -344,6 +344,53 @@ add('syn_pair_strong_then_weak',
      'final_mm': 13,            # 12 would be correct; +1 is the defect
      'final_disagree': 2})
 
+# ---------------------------------------------------------------------------
+# QUARANTINE PROPOSAL fixtures (docs/QUORUM_QUARANTINE_AND_SELF_RESOLUTION_PROPOSAL.md)
+#
+# These encode the operator's 2026-08-14 rule -- "if a magnet is low flux,
+# occurs improbably soon, is the opposite pole of the magnet preceding, it
+# should be discarded; the record should come from the next magnet with good
+# credentials" -- and CODEX's addition of abnormal DURATION as a fourth
+# credential.
+#
+# They assert TODAY'S behaviour, which is the defect. When quarantine is
+# implemented these expectations change, and the diff between them IS the
+# proof of what the change did. Written now so the baseline is captured from
+# a build nobody has modified for the purpose.
+# ---------------------------------------------------------------------------
+
+add('syn_quarantine_weak_companion',
+    'The return-flux fingerprint from the field, all three of the operator\'s '
+    'criteria at once: peak 43 against a 190 median (23%), 662 ms against a '
+    '2400 ms predecessor (28%), and opposite pole to the last accepted read. '
+    'TODAY it is admitted and the odometer runs +1. Under quarantine it should '
+    'be discarded and the following credible marker committed in its place, '
+    'leaving final_mm one LOWER than this baseline.',
+    _pair(2400, [(_N, 662, 43, 55), (_S, 1900, 196, 360)]) + ['dump'],
+    {'final_mm': 13})          # +1 count error; quarantine should give 12
+
+add('syn_quarantine_crawl_long_duration',
+    'The 2026-08-14 17:21 crawl artefact, and the case a flux test CANNOT '
+    'catch: peak 239 is perfectly STRONG, but the event lasts 5212 ms against '
+    'a ~360 ms norm while arriving only 463 ms after its predecessor. One '
+    'magnet dwelt upon long enough to be read twice. Duration is the credential '
+    'that condemns it. TODAY the conservation gate admits it -- the PWM model '
+    'expected ~2.1 s while the locomotive crawled far slower, so the ratio '
+    'landed outside the reject band.',
+    _pair(3000, [(_S, 463, 239, 5212), (_N, 3008, 143, 361)]) + ['dump'],
+    {'final_mm': 13})          # quarantine should give 12
+
+add('syn_quarantine_must_not_reject_genuine',
+    'THE FALSE-POSITIVE GUARD, and the reason the rule is a CONJUNCTION. A '
+    'genuine marker that is merely dim -- peak 60 against a 190 median, below '
+    'the flux threshold on its own -- but arrives at a normal interval with '
+    'normal duration. Measured captures contain accepted markers at 0.19 of '
+    'median, DIMMER than events we reject, so flux alone would destroy real '
+    'evidence. This must be accepted both today and after quarantine lands.',
+    _pair(2400, [(_S, 2350, 60, 340), (_N, 2400, 190, 355)]) + ['dump'],
+    {'must_not_contain': ['PHANTOM_REJECTED'],
+     'final_mm': 13})
+
 add('syn_pair_weak_then_strong',
     'Toby Event B, believed mm 84: a WEAK map-inconsistent read arrives first at '
     'an ordinary 1166 ms interval and is accepted; the strong map-consistent '
