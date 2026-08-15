@@ -63,12 +63,78 @@ decisive phantom verdict the pending event is discarded from the navigation
 record — retained in telemetry for forensics, per the operator's dig policy —
 and the credible event is committed in its place.
 
-### Credentials (all self-calibrating — no velocity model anywhere)
+### The decisive trait is PHYSICAL IMPOSSIBILITY (CODEX, 2026-08-14)
+
+A ratio against a rolling median is still *relative*: it can be fooled by a bad
+reference interval. CODEX's correction — adopted — is that the load-bearing
+test should be **physical impossibility of travel**, which is absolute and
+needs no model at all.
+
+**Derived from two independent sensors:**
+
+| source | samples | p99 | **p99.9** | max |
+|---|---|---|---|---|
+| clean marker intervals (all neighbours > 600 ms) | 38,671 | 348 | **441** | 527 |
+| **IR wheel sensor, independent** | 17,584 | 322 | **402** | 877 |
+
+The two agree within 10% at p99.9 — 441 vs 402 mm/s — with no PWM model
+involved in either. Taking 441 mm/s and a **2× safety factor** gives 882 mm/s;
+over the route's shortest spacing (`min(spacingMm)` = 280 mm) that is **317 ms**.
+
+> **FLOOR: an event arriving less than 350 ms after a confirmed marker cannot
+> be the next magnet on the route.** Not improbably — arithmetically. The
+> locomotive would have to exceed twice its demonstrated top speed.
+
+This supersedes the interval *ratio* as the primary test. Flux, duration and
+polarity become **corroborating** evidence: they identify which phantom family
+an event belongs to and allow a marginal case to be judged, but they no longer
+carry the decision.
+
+Sanity check: 636 events across all captures fall under 400 ms (1.6% of
+40,344), 144 of them also dim — consistent with the site-by-site phantom rates
+already measured.
+
+**What could still fake it** (CODEX's list, all of which the floor answers or
+exposes):
+- *"impossibly soon" computed from PWM* — the original defect; the floor uses
+  measured spacing and measured top speed instead.
+- *the map or spacing is wrong, or the track physically changed* — then
+  `spacingMm[]` is wrong and far more than this is broken; a rejection log
+  clustered at one site is exactly how that would surface.
+- *the previous "good" marker was not good* — which is why the reference is the
+  last **confirmed** marker, and why the shadow hypothesis below is required.
+- *direction change, timestamp or event-ordering fault* — must gate quarantine
+  off across a reversal.
+- *weak magnet or off-centre pass* — explains low flux, but a dim magnet still
+  arrives **on time**; it cannot breach the floor.
+- *opposite polarity is normal for that adjacent pair* — correct, and why
+  polarity alone is worthless. It is suspicious only as a weak companion inside
+  an interval that cannot contain another marker.
+
+### Discard must not mean erase — the shadow hypothesis (CODEX)
+
+Rejecting is the *primary* decision, not a final one. The navigator retains:
+
+- **primary** — the event was phantom; position unchanged.
+- **shadow** — the event was genuine; position + 1.
+
+Every subsequent credible marker scores **both**. If the rejection was correct
+the primary path wins immediately, since the phantom's polarity would have to
+keep matching the map by chance. If it was wrong, the shadow path wins, the
+event is reinstated and position advances — which is simply the existing
+dropped-marker correction arriving through a different door.
+
+The raw event stays in telemetry for forensics regardless, per the operator's
+dig policy. This is what makes a strong opinion safe: the locomotive commits to
+the likelier reading without pretending the other possibility ceased to exist.
+
+### Corroborating credentials (all self-calibrating — no velocity model anywhere)
 
 | signal | measured against | rationale |
 |---|---|---|
 | **low flux** | running median of recent accepted peaks | return-flux companions ran 23–33% of median |
-| **improbably short interval** | last **accepted** interval | not PWM. This is 0024's replacement direction, finally earning its place |
+| **interval below the physical floor** | 350 ms absolute (derived above) | decisive; not PWM, not a ratio |
+| **improbably short interval** | trailing median of ~10 **accepted** intervals | corroborating. NOT the single previous interval — one long interval out of a station would make the next normal one look impossibly soon |
 | **abnormal duration** | running median of accepted durations | catches the crawl artefacts a flux test misses (239 and 235 above) |
 | **opposite pole to predecessor** | last accepted polarity | the return-flux fingerprint, 52 of 56 events (decision 0025) |
 | **map consistency of the next event** | `NGR_DNA1` | the arbiter, not a heuristic |
