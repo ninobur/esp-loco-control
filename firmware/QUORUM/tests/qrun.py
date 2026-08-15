@@ -86,8 +86,17 @@ def run_file(harness, path, timeout=300):
 def summarise(rows):
     """Decisions, navigator states, and retained snapshots."""
     decisions, states, snapshots = [], [], []
+    warnings = []
     for r in rows:
         if 'pub' in r:
+            # state/warning payloads are PLAIN TEXT by design (the operator
+            # reads them raw); everything else the firmware publishes is
+            # JSON, and anything unparseable on a non-warning topic is still
+            # a hard error. First plain-text producer: the SELF_RESOLVED
+            # resume interlock (CODEX 1.16 review, finding 1).
+            if not r['payload'].lstrip().startswith('{'):
+                warnings.append(r['payload'])
+                continue
             try:
                 d = json.loads(r['payload'])
             except ValueError as exc:
@@ -106,6 +115,7 @@ def summarise(rows):
         'final': states[-1] if states else None,
         'states': states,
         'snapshots': snapshots,
+        'warnings': warnings,
     }
 
 

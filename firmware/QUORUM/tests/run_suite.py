@@ -130,6 +130,31 @@ def check_evidence_properties():
         print(f'    DNA windows W={w:>2}: {len(seen)} distinct of {DNA_N}, '
               f'{dup} collisions')
 
+    # Suffix-rescue ambiguity (CODEX 1.16 review, finding 3's probability
+    # question, answered exactly): two candidates both fit a clean 7-suffix
+    # only if the DNA agrees with itself at their lag over 7 consecutive
+    # positions. Candidate offsets span -1..4, so pair lags are 1..5. The
+    # longest such run on NGR_DNA1 is 6 — ambiguity is IMPOSSIBLE, and
+    # SUFFIX_RESCUE_N=7 is provably the minimum length with that guarantee.
+    # (Lag 6 — reachable only against a truth OUTSIDE the fence — has runs
+    # of 8 and 7; a 513-run sweep found no input that lands the window on
+    # either, and post-adoption validation is the net if one ever does.) A magnet
+    # change that creates a 7-run at lags 1-5 fails here, loudly.
+    for lag in range(1, 6):
+        best = run = 0
+        for i in range(2 * DNA_N):
+            if DNA[i % DNA_N] == DNA[(i + lag) % DNA_N]:
+                run += 1
+                best = max(best, run)
+            else:
+                run = 0
+        if best >= 7:
+            fails.append(f'DNA agrees with itself for {best} >= 7 consecutive '
+                         f'positions at lag {lag} — suffix rescue can now be '
+                         'AMBIGUOUS; the exactly-one-fit guarantee is void')
+        print(f'    DNA self-agreement at lag {lag}: longest run {best} '
+              f'(< 7 keeps rescue unambiguous)')
+
     for tag, inc in INCIDENTS.items():
         bits = ring_bits(inc['ring'])
         allhits = exact_matches(bits)
@@ -208,17 +233,33 @@ def check_synthetic(harness, name, spec):
     # A missing final dump means the assertion has nothing to check. Skipping
     # it silently would let a truncated run report success, so it fails here.
     needs_final = [k for k in ('final_state', 'final_mm', 'final_dir',
-                               'final_agree', 'final_disagree') if k in exp]
+                               'final_agree', 'final_disagree',
+                               'final_auto') if k in exp]
     if needs_final and final is None:
         fails.append(f'{name}: no final state dump, so {needs_final} could not '
                      'be checked — treated as failure, not skipped')
     elif final is not None:
         for key, field in (('final_state', 'state'), ('final_mm', 'mm'),
                            ('final_dir', 'dir'), ('final_agree', 'agree'),
-                           ('final_disagree', 'disagree')):
-            if key in exp and final[field] != exp[key]:
+                           ('final_disagree', 'disagree'),
+                           # 1.16 review finding 1: the resume interlock.
+                           # final.get() because pre-1.16 dumps lack the key;
+                           # legacy mode skips these fixtures anyway.
+                           ('final_auto', 'auto')):
+            if key in exp and final.get(field) != exp[key]:
                 fails.append(f'{name}: final {field} {final[field]}, '
                              f'expected {exp[key]}')
+
+    # 1.16 review finding 4: the verdict REASONS are contract, not
+    # commentary — SUCCESSOR_SUSPECT (unfit witness) is a different claim
+    # from SUCCESSOR_FITS_PHANTOM, and a regression that flips one into the
+    # other must fail even when counts and positions agree.
+    if 'discard_reasons' in exp:
+        whys = [d.get('why') for d in su['decisions']
+                if d['event'] == 'QUARANTINE_DISCARDED']
+        if whys != exp['discard_reasons']:
+            fails.append(f'{name}: discard reasons {whys}, expected '
+                         f'{exp["discard_reasons"]}')
 
     if 'snapshot_desired' in exp:
         snaps = su['snapshots']
@@ -271,26 +312,39 @@ def check_synthetic(harness, name, spec):
 
 
 # ============================================================================
-# QUARANTINE-ERA GOLDENS for the 2026-08-10 capture, measured 2026-08-14 on
-# the 1.16 build and pinned. The story they tell, in one paragraph: the mm
-# 66-82 defective-detector stretch produces 8 quarantines (6 discarded, 2
-# COMMITTED — the reversibility requirement exercised on real data) and two
-# +2 adoptions; incidents A and B never reach a terminal at all; incident C —
-# polarity corruption, invisible to quarantine BY DESIGN — still fires with
-# its terminal board byte-identical to the legacy pin, advisory 18 intact,
-# and is then healed by SELF_RESOLVED, old_mm 13 -> new_mm 8: the same -5 the
-# advisory diagnosed at the terminal. Final state NORMAL where the locomotive
-# used to end the session stranded.
+# QUARANTINE-ERA GOLDENS for the 2026-08-10 capture, re-measured 2026-08-14
+# after the CODEX review fixes (1.16R) and pinned. The story: the mm 66-82
+# defective-detector stretch produces 8 quarantines (6 discarded, 2
+# COMMITTED — reversibility exercised on real data); incidents A and B never
+# reach a terminal; incident C — polarity corruption, invisible to
+# quarantine BY DESIGN — still fires with its terminal board byte-identical
+# to the legacy pin, advisory 18 intact, healed by SELF_RESOLVED 13 -> 8:
+# the same -5 the advisory diagnosed. Final NORMAL at mm 8, exactly as
+# before the review fixes.
+#
+# ONE OUTCOME MOVED under 1.16R, pinned rather than hidden: with finding 2
+# fixed, the mm 85 commit LANDS (pre-fix it was committed and then killed by
+# the legacy conservation gate — CODEX's finding 2, live in this capture).
+# Its genuine successor is then eaten by that same legacy gate (246+1222 ms
+# sums into the reject band: decision 0024's documented defect, biting the
+# other event of the pair). Count-identical either way, but the ring
+# polarity differs, the second +2 adoption no longer converges, and the
+# stretch ends in an HONEST terminal at mm 87 — cleared four events later
+# by the operator's declare, already present in the record. The stretch is
+# 0025 maintenance territory, physically fixed on the railway since.
 # ============================================================================
 QGOLD = dict(
     quarantined=8, discarded=6, committed=2, phantom_rejected=1,
-    adoptions=[(91, 2), (89, 2), (7, 3)],
-    noquorum_mms=[23],
+    adoptions=[(91, 2), (7, 3)],
+    noquorum_mms=[87, 23],
+    stretch_terminal=dict(mm=87, reason='HARD_BOUND',
+                          scores=[4, 5, 3, 6, 6, 3], leader=2, runner_up=3,
+                          margin=0, eval=12),
     c_terminal=dict(mm=23, reason='HARD_BOUND', scores=[5, 3, 5, 5, 6, 6],
                     leader=3, runner_up=4, margin=0, eval=12),
     c_advisory=18,
     self_resolved=[dict(old_mm=13, new_mm=8)],
-    final=dict(mm=8, state='NORMAL', agree=1806, disagree=33),
+    final=dict(mm=8, state='NORMAL', agree=1803, disagree=32),
 )
 
 
@@ -314,11 +368,18 @@ def check_quarantine_goldens(decisions, su):
         fails.append(f'full_run 1.16: NO_QUORUM at {[d.get("mm") for d in nq]}, '
                      f'pinned {QGOLD["noquorum_mms"]} — incidents A and B must '
                      'stay prevented and incident C must stay REAL')
-    if nq:
-        for k, want in QGOLD['c_terminal'].items():
+    # Two terminals since 1.16R: the honest stretch terminal at 87 (pinned
+    # fully — a drift in ITS board is a behaviour change too) and incident
+    # C's, which must stay byte-identical to the legacy pin.
+    if len(nq) == 2:
+        for k, want in QGOLD['stretch_terminal'].items():
             if nq[0].get(k) != want:
-                fails.append(f'full_run 1.16: incident C terminal {k}='
-                             f'{nq[0].get(k)}, pinned {want} — the terminal '
+                fails.append(f'full_run 1.16R: stretch terminal {k}='
+                             f'{nq[0].get(k)}, pinned {want}')
+        for k, want in QGOLD['c_terminal'].items():
+            if nq[1].get(k) != want:
+                fails.append(f'full_run 1.16R: incident C terminal {k}='
+                             f'{nq[1].get(k)}, pinned {want} — the terminal '
                              'board must stay byte-identical to the legacy pin')
     snaps = qrun.snapshots_json(su)
     if not snaps or snaps[-1].get('adv') != QGOLD['c_advisory']:
@@ -363,20 +424,25 @@ def counterfactual_quarantine(harness, su_with):
     su = qrun.summarise(qrun.run_lines(harness, out))
     fails = []
     nq = [d.get('mm') for d in su['decisions'] if d['event'] == 'NO_QUORUM']
-    if nq:
+    # The stretch terminal at 87 is phantom-INDEPENDENT (it comes from the
+    # mm 85 commit landing under finding 2's fix, in both branches); incident
+    # C's terminal at 23 must appear ONLY with the phantoms.
+    if nq != [87]:
         fails.append(f'counterfactual 1.16: NO_QUORUM at {nq} without the '
-                     'phantoms — they must remain the sole cause of C, and A/B '
-                     'must stay prevented by quarantine')
+                     'phantoms, expected [87] — the phantoms must remain the '
+                     'sole cause of C, and the stretch terminal must not '
+                     'depend on them')
     sr = [d for d in su['decisions'] if d['event'] == 'SELF_RESOLVED']
     if sr:
         fails.append('counterfactual 1.16: SELF_RESOLVED fired with nothing '
                      'to heal')
     adopts = [(d.get('new_mm', d.get('mm')), d.get('offset'))
               for d in su['decisions'] if d['event'] == 'QUORUM_ADOPTED']
-    if adopts != [(91, 2), (89, 2)]:
+    if adopts != [(91, 2)]:
         fails.append(f'counterfactual 1.16: adoptions {adopts}, pinned '
-                     '[(91, 2), (89, 2)] — the defective-stretch corrections '
-                     'stand on their own, phantoms or no phantoms')
+                     '[(91, 2)] — the first defective-stretch correction '
+                     'stands on its own, phantoms or no phantoms (the second '
+                     'pass ends in the honest stretch terminal since 1.16R)')
     f_with = su_with['final']
     f_wo = su['final']
     if not f_wo or not f_with or f_wo.get('mm') != f_with.get('mm') \

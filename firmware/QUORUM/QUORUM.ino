@@ -412,11 +412,30 @@
 // events plus a route-wide unique window match plus three confirmations
 // relabel the navigator and return it to NORMAL — knowledge recovery, never
 // motion recovery; AUTO stays dropped.
+// 1.16R (2026-08-14, same day): THE CODEX REVIEW ROUND. Seven findings, all
+// accepted; 1.16 was never flashed. R fixes: (1) SELF_RESOLVED drops
+// autoRunning — the resume interlock, enforced not promised (the harness
+// never calls serviceStations(), which is why no fixture could see it);
+// (2) a successor-vouched commit passes the legacy conservation gate
+// untested — the map authenticated it, the model gets no veto (live in the
+// 2026-08-10 capture at mm 85); (4) the witness is credential-checked
+// before it may testify (SUCCESSOR_SUSPECT), which also folds up slow
+// consecutive phantom families; (5) the conjunction's PWM>=40 condition
+// removed — PWM is a request, not a measurement (live in toby_0813_s02:
+// pwm 24 and 19 events with 20-second durations were exempt from scrutiny);
+// (6) resolved in the RECORD, not the code: three consistent matches TOTAL
+// stands, 0035's "3 further" wording was wrong (capture datum: stricter
+// counting pushes the only real-data recovery past the end of the record);
+// (3, 7) are suite fixtures and document corrections. Suffix-rescue map
+// fact, proven in the suite: no two candidates can share a 7-suffix on
+// NGR_DNA1 (max self-agreement run at lags 1-5 is 6), so SUFFIX_RESCUE_N=7
+// is the minimum unambiguous length — the 1/128 probability argument is
+// retired. NOT flashed; gate is operator + CODEX re-review of 0035.
 // NOTE 1.15 is reserved for the CTO mode expansion (operator, branch
 // agent/cto-mode-1-15); the 1.14 header's note reserving 1.15 for transport
 // resilience is stale — that work moves to 1.17. Third collision; librarian
 // beware.
-#define SKETCH_NAME "QUORUM_1_16"
+#define SKETCH_NAME "QUORUM_1_16R"
 
 // Broker lives here, not in LocoConfig.h — same as the previous lineage.
 #define MQTT_BROKER "192.168.68.142"
@@ -1058,7 +1077,6 @@ static const float    Q_FLUX_RATIO     = 0.55f;  // vs trailing median accepted 
 static const float    Q_DUR_RATIO      = 3.5f;   // vs trailing median accepted duration
 static const uint16_t Q_STEADY_DT_MIN  = 600;    // conjunction calibrated in this band
 static const uint16_t Q_STEADY_DT_MAX  = 4000;
-static const uint8_t  Q_STEADY_PWM_MIN = 40;
 #define Q_HIST_N 11
 static uint16_t qDtHist[Q_HIST_N], qPkHist[Q_HIST_N], qDuHist[Q_HIST_N];
 static uint8_t  qHistLen=0, qHistIdx=0;
@@ -1078,15 +1096,19 @@ static uint16_t qMedian(const uint16_t* h, uint8_t n);
 // incident sat 32 markers outside the fence, and 141 post-failure markers
 // matched exactly one route position at every window length tested). A
 // unique match must then stay consistent — each new event's match advancing
-// by exactly one — for NQ_CONFIRM_N further events before the navigator
-// relabels itself, returns to NORMAL and publishes SELF_RESOLVED. AUTO stays
-// dropped; recovery of knowledge is not recovery of motion (CODEX).
+// by exactly one — until NQ_CONFIRM_N consistent matches have been seen IN
+// ALL (the first match plus two further advances; 0035's wording was
+// corrected to this, the code's actual rule, in the CODEX review round)
+// before the navigator relabels itself, returns to NORMAL and publishes
+// SELF_RESOLVED. AUTO is DROPPED BY the resolution (the 1.16R resume
+// interlock); recovery of knowledge is not recovery of motion (CODEX).
 static const uint8_t NQ_CONFIRM_N = 3;
 static uint16_t nqFreshEvents=0;
 static uint8_t  nqCandidate=255;   // route-wide match, 255 = none
 static uint8_t  nqConfirm=0;
 static uint8_t  dnaMatchWide(int8_t dir);
 static void     nqLearn(const MarkerEvent& e);
+static void     nqDropAutoInterlock();   // finding 1: defined after MQTT (topics)
 static unsigned long lastMarkerMs=0;             // EVERY received event advances this
 static uint16_t lastSegmentDt=0;
 // Published on every marker by drainMarkers() (§5): why the gate was inactive
@@ -1803,6 +1825,15 @@ static void nqLearn(const MarkerEvent& e){
   if(m==255){ nqCandidate=255; nqConfirm=0; return; }
   // Consistency: each new event advances the window by one, so the unique
   // match must advance by exactly one with it.
+  // CODEX finding 6 flagged a words-vs-code mismatch: 0035 said "3 further
+  // confirmations" while this counts three consistent matches TOTAL (the
+  // candidate plus two further advances). The CODE stands and the RECORD's
+  // wording was corrected, on capture evidence: each match here is a
+  // route-wide-unique 12-window (suite-proven map fact) re-verified under
+  // coherent advance, and on the 2026-08-10 capture the stricter reading
+  // would have pushed the only real-data recovery (fresh=17, the session's
+  // final event) one marker past the end of the record — same protection,
+  // measurable cost.
   if(nqCandidate!=255 && m==nextMm(nqCandidate,navDir)) nqConfirm++;
   else                                                  nqConfirm=1;
   nqCandidate=m;
@@ -1817,6 +1848,15 @@ static void nqLearn(const MarkerEvent& e){
     r->navMm=routeMod((int32_t)r->navMm + delta);
   }
   navState=NAV_NORMAL;
+  // CODEX 1.16 review, finding 1 — THE RESUME INTERLOCK. enterNoQuorum()
+  // never drops autoRunning (it stops via a zero request only), so restoring
+  // NAV_NORMAL here would let serviceStations()'s idle branch re-request
+  // cruise on the next loop pass and RESTART A LOST-AND-FOUND LOCOMOTIVE
+  // without an operator. "Knowledge recovery is not motion recovery" must be
+  // enforced, not promised: AUTO is dropped here, explicitly, and resuming
+  // requires a deliberate GO. (The harness could not catch this — it never
+  // calls serviceStations(); the reviewer read the loop instead.)
+  nqDropAutoInterlock();
   fullRecoveryReset();
   lostMarkers=0;
   updateLastConfirmed(navMm, e.detectedAtMs);
@@ -1861,14 +1901,20 @@ static void qNoteAccepted(const MarkerEvent& e, uint16_t dt){
 static bool qSuspect(const MarkerEvent& e, uint16_t dt){
   if(dt==0) return false;                 // no interval, no verdict
   // Decisive: the physical floor. Unconditional — no regime, no model, no
-  // reference that could itself be corrupt. 350 ms over 280 mm is twice the
-  // fleet's demonstrated maximum speed.
+  // reference that could itself be corrupt. 350 ms over 280 mm demands
+  // 800 mm/s — 1.81x the fleet's demonstrated maximum. (The 2x safety
+  // factor was applied deriving 317 ms; rounding UP to 350 lands the
+  // enforced margin at 1.81x. CODEX finding 7: say the real number.)
   if(dt < Q_FLOOR_MS) return true;
   // Corroborating conjunction, only inside the band it was calibrated in.
   if(qHistLen < 8) return false;
   uint16_t mdt=qMedian(qDtHist,qHistLen);
   if(mdt < Q_STEADY_DT_MIN || mdt > Q_STEADY_DT_MAX) return false;
-  if(e.pwmActualAtDetect < Q_STEADY_PWM_MIN) return false;
+  // CODEX finding 5: no PWM condition here. PWM is a request, not a
+  // measurement (decision 0024's whole point), and gating scrutiny on
+  // pwm>=40 let a reported 39 exempt an event from examination. The trailing
+  // median interval band IS the operating-regime test, measured rather than
+  // asked for.
   if(!((float)dt < Q_INT_RATIO*(float)mdt)) return false;
   const RingEntry* last = evRingLen ? ringAt(evRingLen-1) : nullptr;
   bool opp = last && (last->polarity != e.polarity);
@@ -1907,7 +1953,7 @@ static void qPublish(const char* verdict, const MarkerEvent& e, uint16_t dt,
 // phantom and the pair never sums to one interval). previousAcceptedDt
 // advances only per the gate rules. Do not make dt accepted-to-accepted.
 // ===========================================================================
-static void navLadder(const MarkerEvent& e, uint16_t dt);
+static void navLadder(const MarkerEvent& e, uint16_t dt, bool vouched);
 
 static void navOnMarker(const MarkerEvent& e){
   navMarkers++;
@@ -1934,6 +1980,17 @@ static void navOnMarker(const MarkerEvent& e){
 
   // ---- §3Q ARBITRATION: a pending event is judged by its successor --------
   if(qPendingValid){
+    // CODEX 1.16 review, finding 4: the witness is credential-checked BEFORE
+    // it may testify. Judged on the RAW pending->e interval: under H-genuine
+    // that IS e's own interval, so failing on it disqualifies genuine
+    // testimony outright; under H-phantom e's true interval is the folded
+    // one, and e is re-judged on exactly that below, like any other arrival.
+    // An unfit witness leaves only the primary verdict for the pending
+    // (operator 2026-08-14: the record comes from the next reading with GOOD
+    // credentials) — and this is how a slow consecutive phantom family folds
+    // up: each unfit successor discards its elder and is held in turn, until
+    // a genuine event finally testifies.
+    bool witnessFit = !qSuspect(e,dt);
     // Which marker does THIS event's polarity fit?
     //   H-phantom : pending was spurious -> e is the marker after navMm.
     //   H-genuine : pending was real (at navMm+1) -> e is at navMm+2.
@@ -1942,29 +1999,39 @@ static void navOnMarker(const MarkerEvent& e){
     bool matchP = (dnaAt(mmP)==e.polarity);
     bool matchG = (dnaAt(mmG)==e.polarity);
     qPendingValid=false;
-    if(matchG && !matchP){
+    if(witnessFit && matchG && !matchP){
       // The successor vouches for the pending event: commit it first, with
-      // its own interval, through the full ladder — then fall through and
-      // judge e normally (its dt already measures pending -> e).
+      // its own interval — then fall through and judge e normally (its dt
+      // already measures pending -> e). vouched=true: the map itself has
+      // authenticated this event through its successor's polarity, and the
+      // PWM velocity model does not get to overrule the map (CODEX finding
+      // 2: at some spacings the legacy conservation gate would re-reject
+      // the very event the arbitration just proved genuine — commit first,
+      // then killed on the model 0024 already convicted; whether it fired
+      // depended on WHICH spacingMm[] entry the event landed on).
       qCommitted++;
       qPublish("QUARANTINE_COMMITTED",qPending,qPendingDt,"SUCCESSOR_FITS_GENUINE");
       lastSegmentDt=qPendingDt;
-      navLadder(qPending,qPendingDt);
+      navLadder(qPending,qPendingDt,true);
       lastSegmentDt=dt;
     }else{
-      // Primary verdict (operator 2026-08-14): phantom. Covers successor-
-      // fits-phantom, both-fit (ambiguous) and neither-fits (e may itself be
-      // suspect; it is credential-checked below). The discarded interval is
-      // folded into e's dt so the committed timing chain still measures
-      // physical travel — without this the conservation gate would judge a
-      // half interval. A wrong verdict here costs an offset of -1, inside
-      // the fence; QUORUM adopts and closes it routinely. That asymmetry is
-      // the design.
+      // Primary verdict (operator 2026-08-14): phantom. Covers an unfit
+      // witness, successor-fits-phantom, both-fit (ambiguous) and
+      // neither-fits (e may itself be suspect; it is credential-checked
+      // below on the folded interval). The discarded interval folds into
+      // e's dt so the committed timing chain still measures physical travel
+      // — without this the conservation gate would judge a half interval.
+      // A wrong verdict here means a genuine advance went unrecorded: the
+      // odometer runs BEHIND and the true position is one marker AHEAD, so
+      // the cost is offset +1 in the direction of travel (CODEX finding 7
+      // corrected the sign) — inside the fence, adopted routinely. That
+      // asymmetry is the design.
       qDiscarded++;
       qPublish("QUARANTINE_DISCARDED",qPending,qPendingDt,
-               matchP&&matchG ? "AMBIGUOUS_DEFAULT_PHANTOM"
-             : matchP         ? "SUCCESSOR_FITS_PHANTOM"
-                              : "NEITHER_FITS");
+               !witnessFit      ? "SUCCESSOR_SUSPECT"
+             : matchP&&matchG   ? "AMBIGUOUS_DEFAULT_PHANTOM"
+             : matchP           ? "SUCCESSOR_FITS_PHANTOM"
+                                : "NEITHER_FITS");
       uint32_t merged=(uint32_t)dt+(uint32_t)qPendingDt;
       dt = (merged>65535UL)?65535U:(uint16_t)merged;
       lastSegmentDt=dt;
@@ -1980,12 +2047,12 @@ static void navOnMarker(const MarkerEvent& e){
     return;
   }
 
-  navLadder(e,dt);
+  navLadder(e,dt,false);
 }
 
 // The original §3 gate ladder, unchanged except for taking dt as a parameter:
 //   LOW_PWM -> RAMP -> NO_PREV -> ACTIVE
-static void navLadder(const MarkerEvent& e, uint16_t dt){
+static void navLadder(const MarkerEvent& e, uint16_t dt, bool vouched){
   if(navState==NAV_UNSET){
     // Direction may be known; position is not. No advance, no ring, no
     // last-confirmed, no conservation — navMm holds nothing meaningful to
@@ -2051,7 +2118,10 @@ static void navLadder(const MarkerEvent& e, uint16_t dt){
   lastDtConserveRatio = (expectedDtMs>0.0f) ? (combinedDtMs/expectedDtMs) : -1.0f;
   // fabsf, not abs: the Arduino abs() macro truncates floats (§3).
   float errorMs = fabsf(combinedDtMs-expectedDtMs);
-  if(errorMs <= DT_CONSERVE_TOL*expectedDtMs){
+  if(!vouched && errorMs <= DT_CONSERVE_TOL*expectedDtMs){
+    // vouched events pass here untested (finding 2): the telemetry above is
+    // still computed and published, but the model gets no veto over an event
+    // the map has already authenticated. The unvouched path is unchanged.
     // Two events inside one interval's worth of travel: one magnet, two
     // events. Do NOT advance navMm, push the ring, touch missStreak — and do
     // NOT replace previousAcceptedDt: a rejected event must never become the
@@ -2852,6 +2922,22 @@ static unsigned long warningSetMs=0;
 static void publishWarning(const char* text){
   pub(T_ST_WARNING,text);
   warningSetMs = text[0] ? millis() : 0;
+}
+
+// CODEX 1.16 review, finding 1 — THE RESUME INTERLOCK, enforced not promised.
+// enterNoQuorum() never drops autoRunning (it stops via a zero request), so
+// restoring NAV_NORMAL in nqLearn() would let serviceStations()'s idle branch
+// re-request cruise on the next pass and RESTART a lost-and-found locomotive
+// without an operator. Knowledge recovery is not motion recovery: AUTO drops
+// here, explicitly, and resuming requires a deliberate GO. (The harness never
+// calls serviceStations(), which is why no fixture could catch this — the
+// reviewer read the loop instead.)
+static void nqDropAutoInterlock(){
+  if(!autoRunning) return;
+  autoRunning=false;                       // the interlock itself
+  requestPwm(0,NORMAL_STEP_MS);            // already zero in NO_QUORUM; belt and braces
+  stationReset("SELF_RESOLVED");           // clear any armed station phase
+  publishWarning("SELF_RESOLVED: position recovered - BEGIN to resume");
 }
 // Clear it after a while so a stale warning does not sit on the dashboard.
 static void serviceWarningExpiry(){

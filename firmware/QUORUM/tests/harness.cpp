@@ -82,14 +82,17 @@ static void emitState(){
   printf("{\"state\":\"%s\",\"mm\":%u,\"dir\":\"%s\",\"miss_streak\":%u,"
          "\"eval\":%u,\"ring_len\":%u,\"lc_mm\":%u,\"since\":%u,"
          "\"pending_validation\":%s,\"adopted_offset\":%d,\"agree\":%u,\"disagree\":%u,"
-         "\"gate\":\"%s\"}\n",
+         // CODEX 1.16 review finding 1: the harness never calls
+         // serviceStations(), so the resume interlock is only testable if the
+         // flag itself is visible. Every dump now reports it.
+         "\"gate\":\"%s\",\"auto\":%u}\n",
          navStateName(), navMm, dirName(navDir), (unsigned)missStreak,
          (unsigned)evalCount, (unsigned)evRingLen, lastConfirmedMm,
          (unsigned)markersSinceConfirmed,
          adoptionPendingValidation?"true":"false",
          adoptedOffset==NO_ADOPTED_OFFSET?999:(int)adoptedOffset,
          (unsigned)navAgree,(unsigned)navDisagree,
-         lastTimingGate);
+         lastTimingGate, autoRunning?1u:0u);
 }
 
 static void emitSnapshot(){

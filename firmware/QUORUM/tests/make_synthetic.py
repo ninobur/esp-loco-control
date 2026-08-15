@@ -422,6 +422,8 @@ add('syn_pair_weak_then_strong',
 # ---------------------------------------------------------------------------
 # 1.16 ADVERSARIAL SET (decision 0024's own bar, finally met): cases built to
 # BREAK quarantine, the dt-fold, arbitration, and self-resolution.
+# Start positions cite sweep counts; the sweep scripts are committed under
+# tests/sweeps/ so every count is re-runnable (CODEX review round).
 # ---------------------------------------------------------------------------
 
 def _steady(start, n, dt=2400, peak=180, dur=175, pwm=90):
@@ -503,10 +505,15 @@ _t=(_t+1)%DNA_N; _c.append(ev(pol(_t), dt=2400))
 add('syn_adv_double_phantom',
     'Two consecutive floor-failing phantoms, then honest travel. Both must be '
     'discarded — a train of garbage must never commit anything — and the '
-    'genuine successors must land on the exact count.',
+    'genuine successors must land on the exact count. CODEX 1.16 review '
+    'finding 4: the second phantom is now credential-checked BEFORE it may '
+    'testify, so the first discard reads SUCCESSOR_SUSPECT (an unfit witness '
+    'triggers the primary verdict), and the genuine successor then convicts '
+    'the second by polarity.',
     _c + ['dump'],
     {'must_contain': ['QUARANTINE_DISCARDED'],
      'must_not_contain': ['NO_QUORUM'],
+     'discard_reasons': ['SUCCESSOR_SUSPECT', 'SUCCESSOR_FITS_PHANTOM'],
      'final_mm': (_A + 11) % DNA_N,
      'final_disagree': 0})
 
@@ -559,12 +566,217 @@ for _ in range(16):
     _c.append(ev(pol(_t)))
 add('syn_adv_self_resolution',
     'The 2026-08-14 Toby scenario in miniature: a terminal, then honest '
-    'markers. Twelve age out the ring, the wide match is unique, three '
-    'confirmations, SELF_RESOLVED, state NORMAL — no operator declaration. '
-    'AUTO stays dropped; knowledge recovery is not motion recovery.',
+    'markers. Twelve age out the ring, the wide match is unique and holds '
+    'across three consistent matches in all (the candidate plus two further '
+    'advances — wording per CODEX finding 6), SELF_RESOLVED, state NORMAL — '
+    'no operator declaration. '
+    'syn_adv_self_resolution_interlock asserts the motor side.',
     _c + ['dump'],
     {'must_contain': ['NO_QUORUM', 'SELF_RESOLVED'],
      'final_state': 'NORMAL',
+     'final_mm': _t})
+
+
+# ---------------------------------------------------------------------------
+# CODEX 1.16 REVIEW ROUND (2026-08-14). Findings 1-4: coverage that did not
+# exist, for mechanisms the review found integration defects around. Every
+# start position below was found by sweeping this harness — the sweep
+# scripts are committed under tests/sweeps/ with their headline counts, so
+# none of this is hand-picked or unreproducible.
+# ---------------------------------------------------------------------------
+
+def _straddle(start, k1, k2, ccw=False):
+    """The suffix-rescue shape (decision 0035 §2): a missed marker opens an
+    evaluation toward +1, then a same-pole insertion mid-window returns the
+    true offset to 0. Pre-insertion entries vote +1, post-insertion entries
+    vote 0, the margin never reaches 2, and the board arrives at the hard
+    bound straddled — the 17:21 [8,8,8,4,7,3] shape, synthesised."""
+    step = -1 if ccw else 1
+    # No motor command: the harness default is FWD, and sessionDir alone sets
+    # the travel sense — 'motor 0' (REV) would flip navDir straight back to
+    # CW. The first draft of this fixture made exactly that mistake, and the
+    # strict final_dir/final_mm assertions are what caught it.
+    cmds = ['dir ' + ('CCW' if ccw else 'CW'), f'declare {start}', 'auto 1']
+    t = start
+    for _ in range(k1):
+        t = (t + step) % DNA_N; cmds.append(ev(pol(t)))
+    t = (t + 2*step) % DNA_N
+    cmds.append(ev(pol(t), dt=4800))              # one marker missed
+    for _ in range(k2):
+        t = (t + step) % DNA_N; cmds.append(ev(pol(t)))
+    cmds.append(ev(pol(t), dt=1200))              # same-pole insertion
+    for _ in range(18):
+        t = (t + step) % DNA_N; cmds.append(ev(pol(t)))
+    return cmds, t
+
+# (h) THE POSITIVE RESCUE (finding 3: this decision path had zero tests while
+# holding position authority). Sweep: 39/855 CW straddles fire the rescue;
+# start 36 runs the board to eval 12 with margin never above 1, rescues
+# offset 0 on a suffix of 9, and ends NORMAL at the TRUE position.
+_c, _t = _straddle(36, 5, 2)
+add('syn_adv_rescue_straddle',
+    'The suffix rescue, fired for real: a straddled board reaches the hard '
+    'bound (margin never 2 across twelve evaluations), the newest-7 suffix '
+    'fits exactly one candidate, and the rescue adopts it — ending NORMAL at '
+    'the true position where pre-1.16 firmware went terminal. The final '
+    'scores [7,9,8,6,6,4] are the synthetic twin of the 17:21 board.',
+    _c + ['dump'],
+    {'must_contain': ['QUORUM_SUFFIX_RESCUE', 'QUORUM_ADOPTED', 'QUORUM_CLOSED'],
+     'must_not_contain': ['NO_QUORUM'],
+     'adopted_offset': 0,
+     'final_state': 'NORMAL',
+     'final_mm': _t})
+
+# (i) rescue in CCW, and across the index wrap (finding 3: MM170/MM000).
+# The strict CCW sweep (855 runs, final state/dir/mm all verified) found 53
+# hits, NONE of which cross the wrap — so direction and seam are covered by
+# two fixtures rather than one, and that limit is stated instead of implied
+# away. (An earlier draft claimed a CCW wrap hit; it was an artefact of a
+# 'motor 0' command silently flipping navDir back to CW, caught by the
+# strict assertions below.)
+_c, _t = _straddle(50, 5, 2, ccw=True)
+add('syn_adv_rescue_ccw',
+    'The rescue in CCW: the straddle descending from mm 50, board to the '
+    'hard bound, exactly-one suffix fit, NORMAL at true mm 23 with '
+    'direction CCW asserted — navDir sign handling inside suffixLenAt() '
+    'is load-bearing here.',
+    _c + ['dump'],
+    {'must_contain': ['QUORUM_SUFFIX_RESCUE'],
+     'must_not_contain': ['NO_QUORUM'],
+     'final_state': 'NORMAL',
+     'final_dir': 'CCW',
+     'final_mm': _t})
+
+_c, _t = _straddle(150, 3, 3)
+add('syn_adv_rescue_cw_wrap',
+    'The rescue in CW crossing the wrap upward (start 150, ends true mm 5). '
+    'Same contract as syn_adv_rescue_straddle, exercised over the modular '
+    'seam instead of the middle of the route.',
+    _c + ['dump'],
+    {'must_contain': ['QUORUM_SUFFIX_RESCUE'],
+     'must_not_contain': ['NO_QUORUM'],
+     'final_state': 'NORMAL',
+     'final_mm': _t})
+
+# (j) the rescue REFUSES an excluded candidate (finding 3). A correct +1
+# adoption is broken by an insertion during validation (REOPENED excludes
+# +1), a second miss restores the true offset to +1, and at the hard bound
+# +1 fits with a PERFECT suffix of 12 — and is still refused, because it
+# already failed adoption once this incident. Terminal; self-resolution is
+# the designed recovery from there, on fresh evidence with no exclusions.
+_c = ['dir CW', 'declare 56', 'auto 1']
+_t = 56
+for _ in range(5):
+    _t = (_t + 1) % DNA_N; _c.append(ev(pol(_t)))
+_t = (_t + 2) % DNA_N; _c.append(ev(pol(_t), dt=4800))     # miss -> true +1
+for _ in range(4):
+    _t = (_t + 1) % DNA_N; _c.append(ev(pol(_t)))          # adopts +1 (correct)
+_t = (_t + 1) % DNA_N; _c.append(ev(pol(_t)))              # validating
+_c.append(ev(pol(_t), dt=1200))                            # insertion breaks it
+for _ in range(2):
+    _t = (_t + 1) % DNA_N; _c.append(ev(pol(_t)))
+_t = (_t + 2) % DNA_N; _c.append(ev(pol(_t), dt=4800))     # second miss -> +1 again
+for _ in range(14):
+    _t = (_t + 1) % DNA_N; _c.append(ev(pol(_t)))
+add('syn_adv_rescue_refuses_excluded',
+    'A candidate that failed adoption is NOT rescued, even on a perfect '
+    'suffix. +1 is adopted correctly, an insertion during validation reopens '
+    'the incident (excluding +1), a second miss makes +1 true again — and at '
+    'the hard bound, with +1 fitting all twelve ring entries, the rescue '
+    'refuses it and the terminal proceeds. One failed adoption per candidate '
+    'per incident; recovery belongs to self-resolution, which starts from '
+    'fresh evidence and no exclusions.',
+    _c + ['snapshot', 'dump'],
+    {'must_contain': ['QUORUM_ADOPTED', 'QUORUM_REOPENED', 'NO_QUORUM'],
+     'must_not_contain': ['QUORUM_SUFFIX_RESCUE'],
+     'terminal_reason': 'HARD_BOUND',
+     'final_state': 'NO_QUORUM'})
+
+# (k) THE COMMIT SURVIVES THE LEGACY GATE (finding 2). At pwm 60 with a
+# 2200 ms cadence, a committed pending event's folded interval lands INSIDE
+# the PWM conservation gate's reject band at 4 of 26 polarity-eligible
+# starts (spacing-dependent — which is the arbitrariness that condemns the
+# model). Pre-fix firmware committed the event and then PHANTOM_REJECTED it
+# one line later: mm one short, 2 disagreements. vouched=true bypasses the
+# veto: the map authenticated the event; the model does not get to overrule
+# the map.
+_T2 = 7
+_c = ['dir CW', f'declare {_T2}', 'auto 1']
+_t = _T2
+for _ in range(9):
+    _t = (_t + 1) % DNA_N; _c.append(ev(pol(_t), dt=2200, pwm=60))
+_t = (_t + 1) % DNA_N
+_c.append(ev(pol(_t), dt=800, pwm=60, peak=40, dur=60))    # genuine, damning
+_t = (_t + 1) % DNA_N
+_c.append(ev(pol(_t), dt=2200, pwm=60))                    # the witness
+for _ in range(3):
+    _t = (_t + 1) % DNA_N; _c.append(ev(pol(_t), dt=2200, pwm=60))
+add('syn_adv_commit_survives_gate',
+    'CODEX finding 2, reproduced then fixed: a quarantined genuine event is '
+    'committed by its successor and must NOT then be re-rejected by the '
+    'legacy PWM conservation gate. On the pre-fix build this exact stream '
+    'ends mm 20 with 2 disagreements (committed, then killed on the model '
+    '0024 already convicted); fixed, it ends mm 21 with 0.',
+    _c + ['dump'],
+    {'must_contain': ['QUARANTINED', 'QUARANTINE_COMMITTED'],
+     'must_not_contain': ['PHANTOM_REJECTED', 'NO_QUORUM'],
+     'final_mm': 21,
+     'final_disagree': 0})
+
+# (l) THE SLOW PHANTOM FAMILY (finding 4). Two conjunction-level phantoms —
+# too slow for the floor — in a row. The second is credential-checked before
+# it may testify (raw interval), found unfit, and the elder is discarded on
+# the primary verdict (SUCCESSOR_SUSPECT). The second is then held on the
+# FOLDED interval, and the genuine successor convicts it by polarity. Each
+# unfit witness discards its elder and is held in turn: the family folds up.
+_c = ['dir CW', f'declare {_T2}', 'auto 1']
+_t = _T2
+for _ in range(9):
+    _t = (_t + 1) % DNA_N
+    _c.append(ev(pol(_t), dt=2400, peak=180, dur=175))      # arm the medians
+_p1 = 'N' if pol(_t) == 'S' else 'S'                        # opposite of ring-last
+_c.append(ev(_p1, dt=480, peak=40, dur=50))                 # slow phantom 1: held
+_c.append(ev(_p1, dt=450, peak=38, dur=48))                 # slow phantom 2: unfit
+_t = (_t + 1) % DNA_N
+_c.append(ev(pol(_t), dt=1470, peak=180, dur=175))          # genuine remainder
+for _ in range(4):
+    _t = (_t + 1) % DNA_N
+    _c.append(ev(pol(_t), dt=2400, peak=180, dur=175))
+add('syn_adv_slow_phantom_family',
+    'Two slow phantoms the floor cannot touch, back to back. The witness '
+    'credential check (finding 4) is what breaks the chain: an unfit witness '
+    'may not testify, so the elder is discarded SUCCESSOR_SUSPECT and the '
+    'witness is held in its turn on the folded interval, until a genuine '
+    'event finally testifies. Exact count, zero disagreements.',
+    _c + ['dump'],
+    {'must_contain': ['QUARANTINED', 'QUARANTINE_DISCARDED'],
+     'must_not_contain': ['QUARANTINE_COMMITTED', 'NO_QUORUM'],
+     'discard_reasons': ['SUCCESSOR_SUSPECT', 'SUCCESSOR_FITS_PHANTOM'],
+     'final_mm': 21,
+     'final_disagree': 0})
+
+# (m) THE RESUME INTERLOCK (finding 1). Self-resolution restores knowledge,
+# never motion: autoRunning must drop at SELF_RESOLVED so serviceStations()
+# cannot re-request cruise on a lost-and-found locomotive. The harness never
+# calls serviceStations() — which is exactly why the pre-fix defect was
+# invisible here — so the dump now reports the flag itself and this fixture
+# pins it: auto goes in 1 and must come out 0.
+_c, _t = _steady(40, 6)
+_c.append('dump')                        # pre-terminal: auto reads 1 here
+_c.append('noquorum FORCED_BY_FIXTURE')
+for _ in range(16):
+    _t = (_t + 1) % DNA_N
+    _c.append(ev(pol(_t)))
+add('syn_adv_self_resolution_interlock',
+    'AUTO is dropped BY self-resolution, not merely not-resumed. Sixteen '
+    'honest events after a forced terminal: SELF_RESOLVED fires once the '
+    'unique route-wide match holds for three consistent events, the resume '
+    'interlock (finding 1) drops autoRunning, and the final dump must read '
+    'auto 0, state NORMAL. Resuming requires a deliberate BEGIN.',
+    _c + ['dump'],
+    {'must_contain': ['NO_QUORUM', 'SELF_RESOLVED'],
+     'final_state': 'NORMAL',
+     'final_auto': 0,
      'final_mm': _t})
 
 def main():
