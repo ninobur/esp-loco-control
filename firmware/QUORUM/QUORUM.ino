@@ -451,11 +451,32 @@
 // and a CTO_CHANNEL_CHANGED alarm the moment a locomotive drifts. No
 // navigation, motor, or wire-contract change: proven byte-identical to 1.16R
 // across all 43 replays (12 capture segments + 31 fixtures, both streams).
+// 1.16Rb (2026-08-16): DECISION 0037 — a pairing dissolves when nose-tail
+// order inverts. Operator ruling, from the field: Toby was paused, Otto
+// lapped the entire route, and arrived 12 markers BEHIND the locomotive he
+// was still latched as LEADER of — braking for it while the console called
+// him the leader. 0032 latches roles to stop them flapping and lists four
+// dissolutions, none of which is "the physical order reversed", because the
+// model assumes a linear order. A loop has none: lap another locomotive, or
+// merely stop while it runs, and the ordering genuinely inverts.
+// The cost was bounded — the role drives ONLY the follower dwell, and
+// traffic protection is gap-based and never consults it, which is why Otto
+// braked correctly for a train he thought he led. Bounded is not harmless:
+// a role that can be false cannot be built on.
+// Dissolution is CLEAR (the new near side must beat the far side by the
+// 12-marker pairing range, so a near-diametric pair cannot chatter) and
+// CONFIRMED (3 consecutive passes), then the role is re-derived on the same
+// pass from real geometry. A stale or silent partner still does NOT dissolve
+// — that stays 0031's jurisdiction, and the tests pin it.
+// CTO also gained its first tests ever: the harness can now inject peer
+// status and role-echo packets, so formation, all five dissolutions, the
+// confirmation gate, the anti-chatter margin and the dwell are all pinned.
+// Until now the pairing layer was dead code under replay.
 // NOTE 1.15 is reserved for the CTO mode expansion (operator, branch
 // agent/cto-mode-1-15); the 1.14 header's note reserving 1.15 for transport
 // resilience is stale — that work moves to 1.17. Third collision; librarian
 // beware.
-#define SKETCH_NAME "QUORUM_1_16Ra"
+#define SKETCH_NAME "QUORUM_1_16Rb"
 
 // Broker lives here, not in LocoConfig.h — same as the previous lineage.
 #define MQTT_BROKER "192.168.68.142"
@@ -564,6 +585,18 @@ static const uint8_t  CTO_CLEAR_GAP_MARKERS   = 6;      // 0033: the invariant
 static const uint8_t  CTO_STOP_GAP_MARKERS    = 9;      // bound gap: begin decel-to-stop
 static const uint8_t  CTO_SLOW_GAP_MARKERS    = 18;     // bound gap: pre-slow to zone speed
 static const uint8_t  CTO_PAIR_RANGE_MARKERS  = 12;     // bound gap: Q1/Q2 latch range
+// 0037 (operator ruling 2026-08-16): a pairing whose nose-tail order has
+// INVERTED no longer describes the railway and must dissolve. On a loop the
+// physical order is not permanent — pause one locomotive, let the other lap,
+// and the leader arrives behind the follower. Observed 2026-08-16: Otto held
+// LEADER while sitting 12 markers behind Toby and braking for him.
+// Not a bare comparison. Near-diametric peers sit at ga ~ gb where the
+// nearer side is noise, so inversion must be CLEAR (the new near side shorter
+// by a margin) and CONFIRMED (held across consecutive passes) — the same
+// discipline the 1.16Ra channel watch earned.
+static const uint8_t  CTO_ORDER_MARGIN_MARKERS = 12;   // clear-inversion margin
+static const uint8_t  CTO_ORDER_CONFIRM_N      = 3;    // consecutive passes
+static uint8_t        ctoOrderInvertedFor       = 0;
 static const uint8_t  CTO_TIE_BAND_MARKERS    = 12;     // long-range order hysteresis
 // Operator 2026-08-13, flashed to both locomotives that evening: 20 s -> 5 s.
 // The 20 s dwell plus the station geometry held the pair 30-49 markers apart,
@@ -1014,7 +1047,7 @@ static void stationReset(const char* note);   // §2.5 step 2a; defined in LAYER
 // been seen; with none they cost one branch each and change no behaviour.
 static int      ctoLimitPwm(int want);     // speed ceiling from traffic protection
 static const char* ctoRefusalReason();     // why BEGIN would not move (operator 2026-08-14)
-static uint32_t ctoDwellMs();              // paired follower dwells 20 s, else DWELL_MS
+static uint32_t ctoDwellMs();              // confirmed follower dwell, else DWELL_MS
 static void     ctoService();              // 10 Hz: registry, roles, gates; loop thread
 static void     ctoRadioInit();            // esp_now up, once, after WiFi connects
 static void     ctoHandleClear(const char* msg); // cmd/cto — operator clear/off
@@ -4110,11 +4143,24 @@ static void ctoDissolve(const char* why){
     char b[96]; snprintf(b,sizeof(b),"{\"event\":\"CTO_UNPAIRED\",\"why\":\"%s\",\"partner\":%lu}",why,(unsigned long)ctoPartnerId);
     pub(T_ST_CTO,b,false);
   }
+  // A latched role conflict holds the locomotive at PWM 0 through
+  // ctoLimitPwm. Clearing it below is therefore a RELEASE OF A FULL STOP,
+  // and every release must be visible — the operator has to be able to see
+  // why a stopped locomotive is free to move again. Found in review: 0037
+  // added a new geometric path into this clear, and it was silent.
+  if(ctoEchoConflict){
+    pub(T_ST_CTO,"{\"event\":\"CTO_ROLE_CONFLICT_CLEARED\",\"why\":\"UNPAIRED\"}",false);
+  }
+  // The inversion run belongs to THIS pairing; own the reset here rather
+  // than at each call site, so a future dissolution path cannot inherit a
+  // partial count (review: it was reset at only two of four sites).
+  ctoOrderInvertedFor=0;
   ctoRole=CTO_ROLE_NONE; ctoPartnerId=0; ctoPairEpochMs=0; ctoPairDir=MAP_UNSET;
   ctoEchoConflict=false; ctoEchoConfirmed=false;
 }
 static void ctoLatch(CtoRole r,uint32_t partner){
   ctoRole=r; ctoPartnerId=partner; ctoPairEpochMs=millis();
+  ctoOrderInvertedFor=0;                       // 0037: fresh geometry claim
   ctoPairDir=navDir;
   ctoEchoConflict=false;
   char b[112];
@@ -4140,9 +4186,67 @@ static void ctoEvaluateRoles(){
     // dissolution paths; staleness does NOT silently dissolve — fleet stop
     // owns that (0031). The local direction-change check ran above, before
     // the nav gate. Here: the partner declaring a different direction.
-    if(pi>=0 && ctoPeerFresh(ctoPeers[pi]) && !ctoPeerSameDir(ctoPeers[pi]))
+    if(pi>=0 && ctoPeerFresh(ctoPeers[pi]) && !ctoPeerSameDir(ctoPeers[pi])){
       ctoDissolve("PARTNER_DIRECTION_CHANGED");
-    return;                                    // latched roles persist (0032)
+      ctoOrderInvertedFor=0;
+      return;
+    }
+    // 0037: NOSE-TAIL ORDER INVERSION. The latched role IS a claim about
+    // geometry — FOLLOWER means "my partner is ahead of me", LEADER means
+    // "my partner is behind me". When the arcs say otherwise the claim is
+    // simply false: the short follower dwell (5 s) is applied to the wrong
+    // locomotive, my role goes out in every echo and feeds my PARTNER's
+    // conflict test — which holds at PWM 0 — and the console tells the
+    // operator something untrue. (This comment itself said "20 s" in its
+    // first draft, repeating the very stale number the same commit was
+    // correcting elsewhere. Review caught it.) Dissolving re-derives on the next pass from the
+    // geometry that actually exists; if they are too far apart to pair, no
+    // role is claimed at all, which is the honest answer.
+    // The gates here must be the SAME ones latching uses. Reviewed and
+    // corrected: the first draft tested only freshness, so a partner
+    // publishing truthSource 0 — NAV_NO_QUORUM, still transmitting boundaries
+    // derived from a position it does not believe — could dissolve a pairing
+    // on geometry nobody trusts, and would do it on the very same service
+    // pass that fleet stop declared NO_POSITION. A discredited partner is
+    // 0031's business, not 0037's; hold the role and let the fleet stop speak.
+    if(pi>=0 && ctoPeerFresh(ctoPeers[pi]) && ctoPeerNavOk(ctoPeers[pi])
+             && ctoPeerSameDir(ctoPeers[pi])){
+      const CtoPeer& p=ctoPeers[pi];
+      uint16_t ga=ctoGapAhead(p), gb=ctoGapBehind(p);
+      // "Clearly on the other side": the near side must beat the far side by
+      // the margin, so a pair sitting near-diametric cannot chatter.
+      bool inverted = (ctoRole==CTO_ROLE_FOLLOWER)
+                        ? (gb + CTO_ORDER_MARGIN_MARKERS <= ga)   // partner now BEHIND
+                        : (ga + CTO_ORDER_MARGIN_MARKERS <= gb);  // partner now AHEAD
+      if(inverted){
+        if(++ctoOrderInvertedFor>=CTO_ORDER_CONFIRM_N){
+          char b[144];
+          snprintf(b,sizeof(b),
+            "{\"event\":\"CTO_ORDER_INVERTED\",\"partner\":%lu,\"was\":\"%s\","
+            "\"gap_ahead\":%u,\"gap_behind\":%u}",
+            (unsigned long)ctoPartnerId,
+            ctoRole==CTO_ROLE_LEADER?"LEADER":"FOLLOWER",
+            (unsigned)ga,(unsigned)gb);
+          pub(T_ST_CTO,b,false);
+          ctoOrderInvertedFor=0;
+          ctoDissolve("ORDER_INVERTED");
+          // fall through: re-derive from real geometry on THIS pass
+        }else{
+          return;                              // not yet confirmed; hold
+        }
+      }else{
+        ctoOrderInvertedFor=0;
+        return;                                // latched roles persist (0032)
+      }
+    }else{
+      // No usable partner evidence. The confirmation run is broken here, not
+      // merely paused: two inverted samples with an unobserved gap between
+      // them are not three consecutive observations, and leaving the counter
+      // standing let a single fresh pass after a staleness episode dissolve
+      // a pairing (found in review, reproduced).
+      ctoOrderInvertedFor=0;
+      return;                                  // 0031's job, not 0037's
+    }
   }
   // pick the nearest fresh same-direction quorum-holding peer
   int8_t best=-1; uint16_t bestGap=0xFFFF; bool bestAhead=true;
@@ -4165,8 +4269,15 @@ static void ctoEvaluateRoles(){
   // tie band the lower loco ID leads. The ONLY behaviour this drives is the
 }
 static uint32_t ctoDwellMs(){
-  // Paired follower at a platform dwells 20 s (operator, supersedes 15) —
-  // but only on a CONFIRMED pairing (finding 5); unconfirmed runs solo rules.
+  // A CONFIRMED follower at a platform dwells CTO_FOLLOWER_DWELL_MS (5 s);
+  // an unconfirmed or solo locomotive uses the ordinary station dwell (15 s).
+  // The follower dwells SHORTER, not longer — 1.14A's ruling, "the leader
+  // stops waiting for the follower".
+  // NOTE: this comment said "20 s (operator, supersedes 15)" until 2026-08-16.
+  // 1.14A corrected it; the 1.14A "rebuilt clean" commit reintroduced the
+  // stale wording while keeping the correct 5000 constant, so the file
+  // contradicted itself for two revisions. Found by test_cto_roles.py, which
+  // asserted the comment and failed against the code.
   return (ctoRole==CTO_ROLE_FOLLOWER && ctoEchoConfirmed)?CTO_FOLLOWER_DWELL_MS:DWELL_MS;
 }
 
@@ -4279,8 +4390,12 @@ static void ctoServiceEchoCheck(){
   //   CONFLICT    — fresh echo claiming MY role with partnerId == me.
   //   UNCONFIRMED — everything else: stale, absent, role NONE, wrong or no
   //                 partner, an older peer that cannot echo at all.
-  // Universal traffic protection never consults this; only the release and
-  // dwell length does (ctoDwellMs).
+  // CORRECTED (review, 2026-08-16): the old wording here — "universal traffic
+  // protection never consults this" — was true of ctoEchoConfirmed and FALSE
+  // of ctoEchoConflict, which sits three lines below it. ctoLimitPwm returns
+  // 0 on a latched conflict, so this function does carry stop authority.
+  // CONFIRMED gates the release and the dwell length (ctoDwellMs);
+  // CONFLICT holds the locomotive at zero.
   if(ctoRole==CTO_ROLE_NONE){ ctoEchoConflict=false; ctoEchoConfirmed=false; return; }
   int8_t i=ctoPartnerIdx();
   if(i<0){

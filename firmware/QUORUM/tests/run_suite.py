@@ -514,6 +514,9 @@ def main():
     ap.add_argument('--harness', default='/tmp/quorum_harness',
                     help='where to build the harness (or which prebuilt '
                          'binary to use, with --no-build)')
+    ap.add_argument('--force-build', action='store_true',
+                    help='rebuild over an existing binary (see the guard '
+                         'in main(); frozen baselines live in scratchpad)')
     ap.add_argument('--no-build', action='store_true',
                     help='use --harness as-is instead of rebuilding it. Lets '
                          'the suite run against a deliberately altered '
@@ -528,6 +531,16 @@ def main():
             sys.exit(f'{args.harness} not found')
         print(f'    using prebuilt harness {args.harness} (--no-build)')
     else:
+        # GUARD (review, 2026-08-16): a verifier ran this against the frozen
+        # legacy baseline and build() would have overwritten it with a
+        # current-source binary — destroying the only artefact that can prove
+        # a legacy-era assertion, silently, from a command that looks read-
+        # only. An existing binary is never overwritten without --force-build;
+        # the fix for "I meant to use it" is --no-build.
+        if os.path.exists(args.harness) and not args.force_build:
+            sys.exit(f'{args.harness} already exists — refusing to overwrite a '
+                     'possibly-frozen baseline. Use --no-build to run against '
+                     'it, --force-build to rebuild it, or give a new path.')
         warn = build(args.harness)
         print(f'    harness built, {len(warn)} warnings')
     consts = load_firmware_constants(args.harness)
@@ -617,6 +630,11 @@ def main():
     # replay calls ctoService()), so it needs its own driven tests or it ships
     # reviewed-but-unexercised — which is exactly what the self-review round
     # objected to. Quarantine era only: the commands do not exist on legacy.
+    if era == 'legacy':
+        print('\n== 4b/4c. radio instrumentation and CTO roles ==')
+        print('    SKIP: this binary predates the harness commands these '
+              'sections drive (wifi_channel/peer/cto). Silence here used to '
+              'be indistinguishable from "never wired in".')
     if era != 'legacy':
         print('\n== 4b. radio instrumentation: the channel watch ==')
         r = subprocess.run([sys.executable, str(HERE / 'test_channel_watch.py'),
@@ -624,6 +642,13 @@ def main():
         print(r.stdout.rstrip())
         if r.returncode != 0:
             failures.append('channel watch tests failed (see above)')
+
+        print('\n== 4c. CTO roles and 0037 order inversion ==')
+        r = subprocess.run([sys.executable, str(HERE / 'test_cto_roles.py'),
+                            args.harness], capture_output=True, text=True)
+        print(r.stdout.rstrip())
+        if r.returncode != 0:
+            failures.append('cto role tests failed (see above)')
 
     print('\n== 5. counterfactual: are the two Bamboo phantoms causal? ==')
     if era == 'legacy':

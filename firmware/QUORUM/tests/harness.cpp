@@ -128,6 +128,8 @@ static void harnessInit(){
   navState = NAV_UNSET;
 }
 
+static uint32_t g_peerSeq = 0;
+
 int main(){
   harnessInit();
   std::string line;
@@ -231,12 +233,62 @@ int main(){
       // does on the locomotive.
       ctoRadioInit();
       ctoService();
+    } else if(cmd=="cto_cmd"){
+      // Route through the REAL operator command handler. The old 'cto_off'
+      // set ctoEnabled directly and therefore never executed ctoHandleClear's
+      // dissolve — so "all four pre-existing dissolutions are tested" was
+      // untrue for clear and off (review, 2026-08-16).
+      std::string payload; std::getline(in, payload);
+      size_t b=payload.find_first_not_of(" \t");
+      if(b!=std::string::npos) payload=payload.substr(b); else payload.clear();
+      ctoHandleClear(payload.c_str());
     } else if(cmd=="cto_off"){
       ctoEnabled=false;
     } else if(cmd=="advance"){
       // Move the clock without producing a marker: the channel watch is rate
       // limited to 1 Hz and must be given real time to pass.
       unsigned long ms; in >> ms; g_hostMillis += ms;
+    } else if(cmd=="peer"){
+      // 0037: inject a CTO peer status packet, exactly as the radio would
+      // deliver one. CTO role formation had NO test coverage before this —
+      // the esp_now shim drops every send and no callback ever fires, so the
+      // registry was permanently empty and every pairing path was dead code
+      // in replay. Args: <id> <mm> <CW|CCW> [truth]  (truth: 2=NORMAL default,
+      // 1=EVALUATING, 0=NO_QUORUM). Bounds are derived the same way the
+      // sender derives its own, so fixtures read in positions, not arcs.
+      unsigned long id; int mm; std::string d; int truth=2;
+      in >> id >> mm >> d;
+      if(!(in >> truth)) truth=2;
+      int8_t pdir = (d=="CW") ? MAP_CW : MAP_CCW;
+      CtoPeerPacket p{};
+      p.magic=CTO2_MAGIC; p.version=CTO2_VERSION;
+      p.senderId=(uint32_t)id; p.sequence=++g_peerSeq;
+      p.hallMm=(uint8_t)mm; p.mapDir=pdir;
+      p.frontBoundaryMm=routeMod((int32_t)mm + pdir*CONSIST_EXTENT_FRONT_MARKERS);
+      p.rearBoundaryMm =routeMod((int32_t)mm - pdir*CONSIST_EXTENT_REAR_MARKERS);
+      p.frontOffset=CONSIST_EXTENT_FRONT_MARKERS;
+      p.rearOffset=CONSIST_EXTENT_REAR_MARKERS;
+      p.truthSource=(uint8_t)truth;
+      p.autoMode=1; p.running=1; p.motionState=3;
+      ctoAcceptPeer(p);
+    } else if(cmd=="peer_echo"){
+      // The reciprocal role echo (0032). Without it ctoEchoConfirmed stays
+      // false and the follower dwell never applies — which is itself worth
+      // asserting, so it is a separate command rather than implied by 'peer'.
+      unsigned long id, partner; std::string r;
+      in >> id >> r >> partner;
+      Cto3RoleEcho e{};
+      e.magic=CTO3_ECHO_MAGIC; e.version=CTO3_ECHO_VERSION;
+      e.senderId=(uint32_t)id; e.partnerId=(uint32_t)partner;
+      e.role=(r=="LEADER")?(uint8_t)CTO_ROLE_LEADER:(uint8_t)CTO_ROLE_FOLLOWER;
+      e.pairEpochMs=g_hostMillis;
+      ctoAcceptEcho(e);
+    } else if(cmd=="cto_dump"){
+      printf("{\"cto\":true,\"role\":\"%s\",\"partner\":%lu,\"expected\":%lu,"
+             "\"fleet_hold\":%d,\"dwell_ms\":%lu,\"echo_confirmed\":%d}\n",
+             ctoRole==CTO_ROLE_LEADER?"LEADER":ctoRole==CTO_ROLE_FOLLOWER?"FOLLOWER":"NONE",
+             (unsigned long)ctoPartnerId,(unsigned long)ctoExpectedId,
+             ctoFleetHold?1:0,(unsigned long)ctoDwellMs(),ctoEchoConfirmed?1:0);
     } else if(cmd=="dump"){
       emitState();
     } else if(cmd=="snapshot"){
