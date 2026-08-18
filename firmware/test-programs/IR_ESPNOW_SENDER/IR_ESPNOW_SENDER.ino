@@ -48,6 +48,7 @@
 #include <WiFi.h>
 #include <esp_now.h>
 #include <esp_wifi.h>
+#include <esp_mac.h>
 #include "../../common/IRSpeedWire.h"
 #include "ir_espnow_config.h"
 
@@ -482,8 +483,14 @@ void setup() {
   Serial.printf("=== %s pin=%d spokes=%d circ=%.2fmm mm/pulse=%.3f boot=%08lX ===\n",
                 SKETCH_NAME, SENSOR_PIN, SPOKES_PER_REV,
                 WHEEL_CIRCUMFERENCE_MM, MM_PER_PULSE, (unsigned long)bootId);
-  Serial.printf("[RADIO] local MAC %s  target %02X:%02X:%02X:%02X:%02X:%02X  ch=%u  target_loco=%lu\n",
-                WiFi.macAddress().c_str(),
+  // BENCH FIX (2026-08-18): WiFi.macAddress() read immediately after
+  // WiFi.mode(WIFI_STA) came back all-zero on this core — the netif had not
+  // yet latched the hardware MAC. esp_read_mac() reads the factory-burned
+  // eFuse value directly, with no dependency on WiFi stack timing at all.
+  uint8_t myMac[6];
+  esp_read_mac(myMac, ESP_MAC_WIFI_STA);
+  Serial.printf("[RADIO] local MAC %02X:%02X:%02X:%02X:%02X:%02X  target %02X:%02X:%02X:%02X:%02X:%02X  ch=%u  target_loco=%lu\n",
+                myMac[0], myMac[1], myMac[2], myMac[3], myMac[4], myMac[5],
                 TOBY_STA_MAC[0], TOBY_STA_MAC[1], TOBY_STA_MAC[2],
                 TOBY_STA_MAC[3], TOBY_STA_MAC[4], TOBY_STA_MAC[5],
                 (unsigned)IR_ESPNOW_CHANNEL, (unsigned long)IR_TARGET_LOCO_ID);
