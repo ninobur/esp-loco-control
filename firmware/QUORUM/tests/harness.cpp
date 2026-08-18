@@ -49,6 +49,13 @@ static void publishWarning(const char* text);
 
 // The navigator under test. Included, not linked: QUORUM.ino's file-scope
 // statics are the harness's to drive directly, which is the whole point.
+// IR TEST A (spec §11.2): the harness enables the IR layer regardless of the
+// compiled profile so the receiver paths are testable. A separate build
+// WITHOUT this define is the Otto-inert / byte-identity check.
+#ifndef HARNESS_IR_OFF
+#define IR_TEST_A_ENABLED 1
+#define IR_SENSOR_MAC_BYTES {0x24,0x22,0x33,0x44,0x55,0x66}
+#endif
 #include "../QUORUM.ino"
 
 // --- JSON string escaping for the output protocol --------------------------
@@ -178,8 +185,11 @@ int main(){
       e.detectedAtMs         = g_hostMillis;
       e.pwmActualAtDetect    = (uint8_t)pwmA;
       e.pwmCommandedAtDetect = (uint8_t)pwmC;
-      // Mirror drainMarkers()'s call, which is the navigator's real entry.
+      // Mirror drainMarkers()'s call, which is the navigator's real entry —
+      // including the IR Test A observation pair around it (inert when off).
+      irObserveEventPre(e);
       navOnMarker(e);
+      irObserveEventPost(e);
       // Post-event navigator state. The captured mm/marker record carries the
       // same fields, so verify_replay.py can prove the replay reproduces the
       // firmware's own gate decisions — which is what validates the
@@ -289,6 +299,78 @@ int main(){
              ctoRole==CTO_ROLE_LEADER?"LEADER":ctoRole==CTO_ROLE_FOLLOWER?"FOLLOWER":"NONE",
              (unsigned long)ctoPartnerId,(unsigned long)ctoExpectedId,
              ctoFleetHold?1:0,(unsigned long)ctoDwellMs(),ctoEchoConfirmed?1:0);
+    } else if(cmd=="ir"){
+#if IR_TEST_A_ON
+      // Inject one IrSpeedPacketV1 through irAcceptFrame() — the exact
+      // validation chain the radio callback uses, then serviceIrRx().
+      // Args: <seq> <boot> <pulses> <validity 0-5> <speed_x100|-1=auto> [age_ms_back]
+      // auto encoding: canonical for the given validity. age_ms_back sets the
+      // rx timestamp N ms BEFORE the current harness clock (for staleness).
+      unsigned long seq,boot,pulses; int validity; long spd; long back=0;
+      in >> seq >> boot >> pulses >> validity >> spd;
+      if(!(in >> back)) back=0;
+      IrSpeedPacketV1 p{};
+      p.magic=IR_SPEED_MAGIC; p.version=IR_SPEED_VERSION; p.bytes=sizeof(p);
+      p.sensorId=IR_SENSOR_ID_IR01; p.targetLocoId=LOCO_ID;
+      p.bootId=(uint32_t)boot; p.txSequence=(uint32_t)seq;
+      p.capturedMs=g_hostMillis; p.completedPulses=(uint32_t)pulses;
+      p.lastIntervalMs=100; p.opticalSpan=400; p.reserved=0;
+      p.validity=(uint8_t)validity;
+      if(spd<0){
+        p.speedMmpsX100=(validity==IR_V_VALID)?25000UL
+                       :(validity==IR_V_STOPPED)?0UL:IR_SPEED_INVALID_X100;
+      }else p.speedMmpsX100=(uint32_t)spd;
+      static const uint8_t SRC[6]={0x24,0x22,0x33,0x44,0x55,0x66};
+      irEnsureQueue();
+      irAcceptFrame(SRC,(const uint8_t*)&p,(int)sizeof(p),
+                    (uint32_t)(g_hostMillis-(unsigned long)back));
+      serviceIrRx();
+#endif
+    } else if(cmd=="ir_raw"){
+#if IR_TEST_A_ON
+      // Deliberately malformed frames for the reject counters.
+      // Args: <mutation>  len|magic|ver|bytes|resv|src|sensor|target|enum|enc
+      std::string mut; in >> mut;
+      IrSpeedPacketV1 p{};
+      p.magic=IR_SPEED_MAGIC; p.version=IR_SPEED_VERSION; p.bytes=sizeof(p);
+      p.sensorId=IR_SENSOR_ID_IR01; p.targetLocoId=LOCO_ID;
+      p.bootId=7; p.txSequence=1; p.completedPulses=10;
+      p.validity=IR_V_VALID; p.speedMmpsX100=1000;
+      uint8_t src[6]={0x24,0x22,0x33,0x44,0x55,0x66};
+      int len=(int)sizeof(p);
+      if(mut=="len") len=40;
+      else if(mut=="magic") p.magic=0xC7;
+      else if(mut=="ver") p.version=9;
+      else if(mut=="bytes") p.bytes=71;
+      else if(mut=="resv") p.reserved=1;
+      else if(mut=="src") src[0]=0xAA;
+      else if(mut=="sensor") p.sensorId=0xDEADBEEF;
+      else if(mut=="target") p.targetLocoId=1234;
+      else if(mut=="enum") p.validity=6;
+      else if(mut=="enc") p.speedMmpsX100=IR_SPEED_INVALID_X100; // VALID w/ sentinel
+      irEnsureQueue();
+      irAcceptFrame(src,(const uint8_t*)&p,len,(uint32_t)g_hostMillis);
+      serviceIrRx();
+#endif
+    } else if(cmd=="ir_dump"){
+#if IR_TEST_A_ON
+      IrView v=irCurrentView();
+      char sp[16]; if(v.numeric) snprintf(sp,16,"%.2f",(double)v.mmps); else strcpy(sp,"null");
+      printf("{\"ir\":true,\"state\":\"%s\",\"numeric\":%d,\"mmps\":%s,\"age\":%lu,"
+             "\"acc\":%lu,\"gaps\":%lu,\"dup\":%lu,\"ooo\":%lu,\"regress\":%lu,"
+             "\"reboot\":%lu,\"blen\":%lu,\"bver\":%lu,\"bwire\":%lu,\"bsrc\":%lu,"
+             "\"bsen\":%lu,\"btgt\":%lu,\"benum\":%lu,\"benc\":%lu,"
+             "\"mm_valid\":%d,\"mm_mmps\":%.1f,\"anchor\":%d}\n",
+             v.state,v.numeric?1:0,sp,(unsigned long)v.ageMs,
+             (unsigned long)irAccepted,(unsigned long)irSeqGaps,(unsigned long)irDups,
+             (unsigned long)irOutOfOrder,(unsigned long)irPulseRegressions,
+             (unsigned long)irSensorReboots,
+             (unsigned long)irRejBadLen,(unsigned long)irRejBadMagicVer,
+             (unsigned long)irRejBadWire,(unsigned long)irRejBadSource,
+             (unsigned long)irRejBadSensor,(unsigned long)irRejBadTarget,
+             (unsigned long)irRejBadEnum,(unsigned long)irRejBadEncoding,
+             mmSpeedValid?1:0,(double)mmSpeedMmps,irAnchorValid?1:0);
+#endif
     } else if(cmd=="dump"){
       emitState();
     } else if(cmd=="snapshot"){

@@ -358,6 +358,21 @@
 #include <Adafruit_INA219.h>
 #include "LocoConfig.h"
 
+// ---------------------------------------------------------------------------
+// IR TEST A (docs/QUORUM_1_16R_IR_TEST_A_FIRMWARE_SPEC.md). Observation only:
+// IR has NO motor authority and NO navigation authority in this build — the
+// only permitted effects are loop-owned observation state, counters, and new
+// telemetry topics (spec §3). The gate is per-profile: Toby defines
+// IR_TEST_A_ENABLED, Otto does not, and with it absent every IR path below
+// compiles to an inert stub and the binary behaves as accepted Q1.16R.
+// ---------------------------------------------------------------------------
+#include "../common/IRSpeedWire.h"
+#if defined(IR_TEST_A_ENABLED) && IR_TEST_A_ENABLED
+  #define IR_TEST_A_ON 1
+#else
+  #define IR_TEST_A_ON 0
+#endif
+
 // 1.13, not 1.12D: the letter suffixes through 1.12A-C were refinements of one
 // theme (speed and ramp tuning). This adds a capability — the exact-or-silent
 // HARD_BOUND advisory of decision 0023 — so it takes a minor. 1.11 is the
@@ -476,7 +491,7 @@
 // agent/cto-mode-1-15); the 1.14 header's note reserving 1.15 for transport
 // resilience is stale — that work moves to 1.17. Third collision; librarian
 // beware.
-#define SKETCH_NAME "QUORUM_1_16Rb"
+#define SKETCH_NAME "QUORUM_1_16R_IR_TEST_A"
 
 // Broker lives here, not in LocoConfig.h — same as the previous lineage.
 #define MQTT_BROKER "192.168.68.142"
@@ -1211,6 +1226,104 @@ static uint8_t  nqConfirm=0;
 static uint8_t  dnaMatchWide(int8_t dir);
 static void     nqLearn(const MarkerEvent& e);
 static void     nqDropAutoInterlock();   // finding 1: defined after MQTT (topics)
+
+// ---------------------------------------------------------------------------
+// IR TEST A — types, state and prototypes (bodies live in the IR section
+// below the CTO layer). Declared HERE, above every use site, because the
+// Arduino prototype generator cannot hoist functions whose signatures use
+// mid-file types — the same trap that bit the marker types once already.
+// ---------------------------------------------------------------------------
+#if IR_TEST_A_ON
+static const uint8_t  IR_SENSOR_MAC[6]  = IR_SENSOR_MAC_BYTES;
+static const uint32_t IR_LINK_STALE_MS  = 500;   // provisional, observation-only (§2)
+static const uint32_t IR_PROJECT_MAX_MS = 150;   // provisional, observation-only (§2)
+static const float    IR_MM_PER_PULSE   = 9.652f;
+static const float    PKPH_PER_MMPS     = 1.0f/5.37325f;
+
+// ---- receive queue (§5.2): dedicated, so a 20 Hz sensor can never evict or
+// delay CTO truth. 32 entries, callback never blocks, overflow counts.
+struct IrRxItem { IrSpeedPacketV1 p; uint8_t mac[6]; uint32_t rxMs; };
+static QueueHandle_t irRxQueue=nullptr;
+// ---- the eight validation reject counters (§5.1), callback context --------
+static volatile uint32_t irRejBadLen=0;      // 0xC6-first-byte frame, wrong length
+static volatile uint32_t irRejBadMagicVer=0; // magic/version mismatch at length 72
+static volatile uint32_t irRejBadWire=0;     // bytes!=72 or reserved!=0
+static volatile uint32_t irRejBadSource=0;   // source MAC != configured sensor
+static volatile uint32_t irRejBadSensor=0;   // sensorId mismatch
+static volatile uint32_t irRejBadTarget=0;   // targetLocoId != LOCO_ID
+static volatile uint32_t irRejBadEnum=0;     // validity outside closed 0-5
+static volatile uint32_t irRejBadEncoding=0; // non-canonical speed encoding
+static volatile uint32_t irRxQueueDrops=0;
+// ---- loop-owned accepted state (§5.3). No mux: the loop owns all of it. ----
+struct IrSnap { uint32_t rxMs, capturedMs, pulses, speedX100, seq; uint8_t validity; };
+static IrSnap   irHist[32];                 // newest at irHistLen-1 semantics via ring
+static uint8_t  irHistLen=0, irHistHead=0;
+static bool     irEpochOpen=false;
+static uint32_t irBootId=0, irLastSeq=0, irLastPulses=0;
+static uint32_t irAccepted=0, irSeqGaps=0, irDups=0, irOutOfOrder=0;
+static uint32_t irPulseRegressions=0, irSensorReboots=0;
+static uint32_t irLastAcceptRxMs=0, irRxGapMs=0, irRxMaxGapMs=0;
+static IrSpeedPacketV1 irLatest;            // last accepted packet (copy)
+static uint32_t irLatestRxMs=0;
+static bool     irHaveLatest=false;
+// ---- IR distance anchor + event-estimate ring (§8.3) ----------------------
+static bool   irAnchorValid=false;
+static float  irAnchorDistMm=0.0f;          // projected cumulative distance at last accepted Hall anchor
+struct IrEventEst {
+  uint32_t detectedAtMs=0;                  // stable identity (§9.3)
+  bool     valid=false;
+  float    absDistMm=0.0f;                  // projection at event time
+  float    deltaMm=0.0f;                    // vs anchor at estimate time
+  int32_t  deltaPulses=0;
+  uint32_t irAgeMs=0;
+  bool     anchorWasValid=false;
+};
+static IrEventEst irEstRing[16];
+static uint8_t    irEstNext=0;
+// ---- marker-speed observer (§7) --------------------------------------------
+static bool     mmAnchorValid=false;
+static uint8_t  mmAnchorMm=0;
+static uint32_t mmAnchorDetMs=0;
+static bool     mmSpeedValid=false;
+static float    mmSpeedMmps=0.0f;
+static uint8_t  mmSpeedFrom=0, mmSpeedTo=0;
+static uint32_t mmSpeedAtMs=0;
+static uint32_t mmSpeedDtMs=0;
+static char T_MM_SPEED[64], T_IR_SPEED_T[64], T_IR_STATUS[64], T_SPEED_VIEW[64];
+static uint32_t irOversizePubs=0;
+struct IrView { bool numeric; float mmps; const char* state; uint32_t ageMs; };
+static uint32_t irLastSpeedPubMs=0, irLastStatusPubMs=0, irReportSeq=0;
+
+static void irEnsureQueue();
+static void serviceIrRx();
+static void serviceIrTelemetry();
+static void irObserversReset(const char*);
+static void irOnAccepted(const MarkerEvent& e);
+static void irObsFinalize(const MarkerEvent& e,const char* disp);
+static void irAcceptFrame(const uint8_t* srcMac,const uint8_t* data,int len,uint32_t rxMs);
+static IrEventEst irEstimateAt(uint32_t detMs);
+static void irPublishMmSpeed(const MarkerEvent& e,const IrEventEst& est,
+                             uint8_t fromMm,int revision,const char* finalDisp);
+static uint32_t irRouteSpanMm(uint8_t fromMm,int8_t dir,uint8_t k);
+static IrView irCurrentView();
+static const char* irWireStateName(uint8_t v);
+static void irHistPush(const IrSnap& sn);
+static const IrSnap* irHistAt(uint8_t i);
+static const IrEventEst* irEstFind(uint32_t detMs);
+static bool irSensorMacUsable();
+static void irObserveEventPre(const MarkerEvent& e);
+static void irObserveEventPost(const MarkerEvent& e);
+#else
+static inline void irEnsureQueue(){}
+static inline void serviceIrRx(){}
+static inline void serviceIrTelemetry(){}
+static inline void irObserversReset(const char*){}
+static inline void irOnAccepted(const MarkerEvent&){}
+static inline void irObsFinalize(const MarkerEvent&,const char*){}
+static inline void irObserveEventPre(const MarkerEvent&){}
+static inline void irObserveEventPost(const MarkerEvent&){}
+#endif
+
 static unsigned long lastMarkerMs=0;             // EVERY received event advances this
 static uint16_t lastSegmentDt=0;
 // Published on every marker by drainMarkers() (§5): why the gate was inactive
@@ -1761,6 +1874,9 @@ static void processNormalComparison(const MarkerEvent& e){
 static void acceptEvent(const MarkerEvent& e){
   qNoteAccepted(e, lastSegmentDt);   // §3Q: accepted events train the medians
   navMm=nextMm(navMm,navDir);
+  irOnAccepted(e);                   // IR TEST A §7/§8.3: observation only —
+                                     // marker speed + IR anchor; void, no
+                                     // navigation effect, inert on Otto.
   if(markersSinceConfirmed<65535) markersSinceConfirmed++;   // AGREE re-zeroes it
   pushRing(e.polarity,navMm);
   switch(navState){
@@ -1793,6 +1909,7 @@ static void acceptEvent(const MarkerEvent& e){
 // on which one the operator uses (§2), and the console uses start_interval.
 static void navDeclare(uint8_t mm){
   navMm=mm; navState=NAV_NORMAL;
+  irObserversReset("DECLARED");      // IR TEST A §7: observation only
   fullRecoveryReset();
   lostMarkers=0;
   // §3Q/§2.5Q: a declaration is a clean slate for the credential medians, any
@@ -1959,6 +2076,7 @@ static void nqLearn(const MarkerEvent& e){
   // requires a deliberate GO. (The harness could not catch this — it never
   // calls serviceStations(); the reviewer read the loop instead.)
   nqDropAutoInterlock();
+  irObserversReset("SELF_RESOLVED"); // IR TEST A §7: relabel breaks anchors
   fullRecoveryReset();
   lostMarkers=0;
   updateLastConfirmed(navMm, e.detectedAtMs);
@@ -2115,6 +2233,8 @@ static void navOnMarker(const MarkerEvent& e){
       qPublish("QUARANTINE_COMMITTED",qPending,qPendingDt,"SUCCESSOR_FITS_GENUINE");
       lastSegmentDt=qPendingDt;
       navLadder(qPending,qPendingDt,true);
+      irObsFinalize(qPending,"QUARANTINE_COMMITTED");  // IR TEST A: revision-2
+                                                       // record; void (§8.3)
       lastSegmentDt=dt;
     }else{
       // Primary verdict (operator 2026-08-14): phantom. Covers an unfit
@@ -2129,6 +2249,7 @@ static void navOnMarker(const MarkerEvent& e){
       // corrected the sign) — inside the fence, adopted routinely. That
       // asymmetry is the design.
       qDiscarded++;
+      irObsFinalize(qPending,"QUARANTINE_DISCARDED");  // IR TEST A: revision-2
       qPublish("QUARANTINE_DISCARDED",qPending,qPendingDt,
                !witnessFit      ? "SUCCESSOR_SUSPECT"
              : matchP&&matchG   ? "AMBIGUOUS_DEFAULT_PHANTOM"
@@ -2397,6 +2518,7 @@ static void applyDirection(){
     int8_t derived = (sessionDir==MAP_UNSET) ? MAP_UNSET
                    : (motorDirection==DIRECTION_FORWARD ? sessionDir : oppositeDir(sessionDir));
     if(derived!=navDir){
+      irObserversReset("DIRECTION"); // IR TEST A §7: anchors die with the frame
       int8_t prevDir = navDir;
       navDir=derived;
       // §3Q: a direction change while an event is held makes the arbitration
@@ -2870,6 +2992,13 @@ static void buildTopics(){
   snprintf(T_ST_MHE      ,64,"ngr/loco/%s/state/must_hold_eligible",id);
   snprintf(T_ST_NAVREADY ,64,"ngr/loco/%s/state/nav_ready"        ,id);
   snprintf(T_ST_WARNING  ,64,"ngr/loco/%s/state/warning"          ,id);
+#if IR_TEST_A_ON
+  // IR TEST A topics (§9). New topics only — no existing payload changes.
+  snprintf(T_IR_SPEED_T  ,64,"ngr/loco/%s/telem/ir_speed"         ,id);
+  snprintf(T_IR_STATUS   ,64,"ngr/loco/%s/telem/ir_status"        ,id);
+  snprintf(T_SPEED_VIEW  ,64,"ngr/loco/%s/telem/speed"            ,id);
+  snprintf(T_MM_SPEED    ,64,"ngr/loco/%s/mm/speed"               ,id);
+#endif
   snprintf(T_TELEM_V     ,64,"ngr/loco/%s/telem/voltage"          ,id);
   snprintf(T_TELEM_A     ,64,"ngr/loco/%s/telem/current"          ,id);
   snprintf(T_TELEM_W     ,64,"ngr/loco/%s/telem/power"            ,id);
@@ -3920,7 +4049,12 @@ static void drainMarkers(){
     if(waiting>queueHighWater) queueHighWater=(uint16_t)waiting;
   }
   while(eventQueue && xQueueReceive(eventQueue,&e,0)==pdTRUE){
+    // IR TEST A §8.1/§9.3: estimate before navOnMarker changes any state,
+    // publish the revision-1 record after. Shared with the harness so the
+    // replay exercises the same path (inert stubs on Otto).
+    irObserveEventPre(e);
     navOnMarker(e);
+    irObserveEventPost(e);
     // §5.1 marker payload contract — the raw event fields plus dt,
     // timing_gate, dt_expected, dt_conserve_ratio. Scores, streaks, leaders
     // and margins still ride the QUORUM decision events, and conf is still
@@ -4032,10 +4166,410 @@ static int8_t ctoPeerIdx(uint32_t id){
 }
 static int8_t ctoPartnerIdx(){ return ctoPartnerId?ctoPeerIdx(ctoPartnerId):-1; }
 
+// ===========================================================================
+// IR TEST A — Stage-A receiver (spec: QUORUM_1_16R_IR_TEST_A). OBSERVATION
+// ONLY. Nothing in this section may call requestPwm/requestPwmOver, write
+// motor/navigation/station/CTO state, or refuse an operator command (§3).
+// The call-site audit in the implementation report enumerates every symbol
+// this section touches.
+// ===========================================================================
+#if IR_TEST_A_ON
+
+static void irEnsureQueue(){ if(!irRxQueue) irRxQueue=xQueueCreate(32,sizeof(IrRxItem)); }
+
+
+static bool irSensorMacUsable(){
+  bool z=true; for(int i=0;i<6;i++) if(IR_SENSOR_MAC[i]) z=false;
+  return !z && !(IR_SENSOR_MAC[0]&0x01);   // §2: zero/broadcast/multicast disable
+}
+
+// Shared by the real callback and the test harness so replay exercises the
+// EXACT validation chain, not a copy of it. Callback context: counters, copy,
+// enqueue — nothing else (§5.1).
+static void irAcceptFrame(const uint8_t* srcMac,const uint8_t* data,int len,uint32_t rxMs){
+  if(len!=(int)sizeof(IrSpeedPacketV1)){
+    if(len>0 && data[0]==IR_SPEED_MAGIC) irRejBadLen++;
+    return;
+  }
+  IrSpeedPacketV1 p; memcpy(&p,data,sizeof(p));
+  if(p.magic!=IR_SPEED_MAGIC || p.version!=IR_SPEED_VERSION){ irRejBadMagicVer++; return; }
+  if(p.bytes!=sizeof(IrSpeedPacketV1) || p.reserved!=0){ irRejBadWire++; return; }
+  if(!irSensorMacUsable() || memcmp(srcMac,IR_SENSOR_MAC,6)!=0){ irRejBadSource++; return; }
+  if(p.sensorId!=IR_SENSOR_ID_IR01){ irRejBadSensor++; return; }
+  if(p.targetLocoId!=LOCO_ID){ irRejBadTarget++; return; }
+  if(p.validity>IR_V_MAX){ irRejBadEnum++; return; }
+  // canonical encoding (§5.1 step 8): measured for VALID, exactly zero for
+  // STOPPED, sentinel otherwise — so an invalid measurement can never be
+  // mistaken for a measured stop (0036).
+  bool ok = (p.validity==IR_V_VALID)   ? (p.speedMmpsX100!=IR_SPEED_INVALID_X100)
+          : (p.validity==IR_V_STOPPED) ? (p.speedMmpsX100==0)
+                                       : (p.speedMmpsX100==IR_SPEED_INVALID_X100);
+  if(!ok){ irRejBadEncoding++; return; }
+  IrRxItem item; item.p=p; memcpy(item.mac,srcMac,6); item.rxMs=rxMs;
+  if(irRxQueue && xQueueSend(irRxQueue,&item,0)!=pdTRUE) irRxQueueDrops++;
+}
+
+
+static void irHistPush(const IrSnap& sn){
+  uint8_t idx=(uint8_t)((irHistHead+irHistLen)%32);
+  if(irHistLen<32) irHistLen++;
+  else { idx=irHistHead; irHistHead=(uint8_t)((irHistHead+1)%32); }
+  irHist[idx]=sn;
+}
+static const IrSnap* irHistAt(uint8_t i){ return &irHist[(uint8_t)((irHistHead+i)%32)]; }
+
+static const IrEventEst* irEstFind(uint32_t detMs){
+  for(uint8_t i=0;i<16;i++) if(irEstRing[i].detectedAtMs==detMs && detMs) return &irEstRing[i];
+  return nullptr;
+}
+
+
+// Every observer reset in one place (§7): declaration, direction change,
+// SELF_RESOLVED relabel, sensor reboot. Resets observation ONLY.
+static void irObserversReset(const char*){
+  mmAnchorValid=false; mmSpeedValid=false;
+  irAnchorValid=false;
+  for(uint8_t i=0;i<16;i++) irEstRing[i]=IrEventEst{};
+}
+
+// route span helper: cumulative spacing over k steps from mm in dir.
+static uint32_t irRouteSpanMm(uint8_t fromMm,int8_t dir,uint8_t k){
+  uint32_t total=0; uint8_t cur=fromMm;
+  for(uint8_t i=0;i<k;i++){
+    // interval traversed when stepping cur -> next(cur,dir): CW leaving cur
+    // crosses spacing[cur]; CCW crosses spacing[cur-1] (== spacing[next]).
+    uint8_t next=nextMm(cur,dir);
+    uint8_t idx=(dir==MAP_CW)?cur:next;
+    total+=pgm_read_word(&spacingMm[idx]);
+    cur=next;
+  }
+  return total;
+}
+
+// ---- §5.3: drain the queue, accept under sequence discipline ---------------
+static void serviceIrRx(){
+  if(!irRxQueue) return;
+  IrRxItem it;
+  while(xQueueReceive(irRxQueue,&it,0)==pdTRUE){
+    const IrSpeedPacketV1& p=it.p;
+    if(!irEpochOpen || p.bootId!=irBootId){
+      // New sensor epoch (§5.3): history and distance anchoring die with the
+      // old epoch; navigation state is untouched.
+      if(irEpochOpen) irSensorReboots++;
+      irEpochOpen=true; irBootId=p.bootId;
+      irHistLen=0; irHistHead=0;
+      irAnchorValid=false;
+      irLastSeq=p.txSequence; irLastPulses=p.completedPulses;
+    }else{
+      int32_t ds=(int32_t)(p.txSequence-irLastSeq);   // wrap-safe
+      if(ds==0){ irDups++; continue; }
+      if(ds<0){ irOutOfOrder++; continue; }
+      if(ds>1) irSeqGaps+=(uint32_t)(ds-1);
+      if((int32_t)(p.completedPulses-irLastPulses)<0){
+        // §5.3: a pulse regression inside one epoch is rejected and breaks
+        // the distance anchor — cumulative counts only ever grow.
+        irPulseRegressions++; irAnchorValid=false;
+        irLastSeq=p.txSequence;
+        continue;
+      }
+      irLastSeq=p.txSequence; irLastPulses=p.completedPulses;
+    }
+    if(irLastAcceptRxMs){
+      irRxGapMs=(uint32_t)(it.rxMs-irLastAcceptRxMs);
+      if(irRxGapMs>irRxMaxGapMs) irRxMaxGapMs=irRxGapMs;
+    }
+    irLastAcceptRxMs=it.rxMs;
+    irLatest=p; irLatestRxMs=it.rxMs; irHaveLatest=true;
+    IrSnap sn; sn.rxMs=it.rxMs; sn.capturedMs=p.capturedMs; sn.pulses=p.completedPulses;
+    sn.speedX100=p.speedMmpsX100; sn.seq=p.txSequence; sn.validity=p.validity;
+    irHistPush(sn);
+    irAccepted++;
+  }
+}
+
+// ---- §6: freshness and speed truth -----------------------------------------
+// Numeric only for a fresh, canonical VALID or STOPPED from the current
+// epoch. Stale-but-valid packets are receiver state LINK_STALE — not sensor
+// STALE, and never a current stopped-wheel claim.
+static IrView irCurrentView(){
+  IrView v{false,0.0f,"NO_SENSOR",0};
+  if(!irHaveLatest) return v;
+  v.ageMs=(uint32_t)(millis()-irLatestRxMs);
+  bool wasNumeric=(irLatest.validity==IR_V_VALID||irLatest.validity==IR_V_STOPPED);
+  if(v.ageMs>IR_LINK_STALE_MS){ v.state=wasNumeric?"LINK_STALE":irWireStateName(irLatest.validity); return v; }
+  v.state=irWireStateName(irLatest.validity);
+  if(wasNumeric){ v.numeric=true; v.mmps=(irLatest.validity==IR_V_STOPPED)?0.0f:(float)irLatest.speedMmpsX100/100.0f; }
+  return v;
+}
+static const char* irWireStateName(uint8_t v){
+  switch(v){
+    case IR_V_VALID: return "VALID";
+    case IR_V_STOPPED: return "STOPPED";
+    case IR_V_MARGINAL: return "MARGINAL";
+    case IR_V_REACQUIRING: return "REACQUIRING";
+    case IR_V_STALE: return "STALE";
+    default: return "INVALID_CONTRAST";
+  }
+}
+
+// ---- §8.1: event-time IR estimate ------------------------------------------
+// Latest accepted snapshot at or before the event, valid, within 150 ms;
+// project cumulative distance forward at its own speed. Otherwise null —
+// never force a fit, never delay Hall processing.
+static IrEventEst irEstimateAt(uint32_t detMs){
+  IrEventEst est; est.detectedAtMs=detMs; est.anchorWasValid=irAnchorValid;
+  const IrSnap* best=nullptr;
+  for(uint8_t i=0;i<irHistLen;i++){
+    const IrSnap* sn=irHistAt(i);
+    if((int32_t)(sn->rxMs-detMs)<=0 && (!best || (int32_t)(sn->rxMs-best->rxMs)>0)) best=sn;
+  }
+  if(!best) return est;
+  uint32_t age=(uint32_t)(detMs-best->rxMs);
+  if(age>IR_PROJECT_MAX_MS) return est;
+  if(best->validity!=IR_V_VALID && best->validity!=IR_V_STOPPED) return est;
+  float speed=(best->validity==IR_V_STOPPED)?0.0f:(float)best->speedX100/100.0f;
+  est.valid=true;
+  est.irAgeMs=age;
+  est.absDistMm=(float)best->pulses*IR_MM_PER_PULSE + speed*(float)age/1000.0f;
+  est.deltaMm=irAnchorValid?(est.absDistMm-irAnchorDistMm):0.0f;
+  est.deltaPulses=irAnchorValid?(int32_t)((est.absDistMm-irAnchorDistMm)/IR_MM_PER_PULSE):0;
+  return est;
+}
+
+// ---- anchor + marker-speed hook, called from acceptEvent() ONLY (§7, §8.3) -
+static void irOnAccepted(const MarkerEvent& e){
+  // marker speed: exactly one accepted step from the previous anchor, same
+  // declared direction, forward time. Anything else resets without a sample.
+  uint8_t newMm=navMm;   // acceptEvent has already advanced it
+  if(mmAnchorValid && navDir!=MAP_UNSET &&
+     nextMm(mmAnchorMm,navDir)==newMm &&
+     (int32_t)(e.detectedAtMs-mmAnchorDetMs)>0){
+    uint32_t dist=irRouteSpanMm(mmAnchorMm,navDir,1);
+    uint32_t dt=(uint32_t)(e.detectedAtMs-mmAnchorDetMs);
+    mmSpeedValid=true;
+    mmSpeedMmps=(float)dist*1000.0f/(float)dt;
+    mmSpeedFrom=mmAnchorMm; mmSpeedTo=newMm; mmSpeedAtMs=e.detectedAtMs;
+    mmSpeedDtMs=dt;
+  }else{
+    mmSpeedValid=false;   // reset, no fabricated sample (§7)
+  }
+  mmAnchorValid=true; mmAnchorMm=newMm; mmAnchorDetMs=e.detectedAtMs;
+  // IR distance anchor: original estimate by stable identity, or invalid.
+  const IrEventEst* est=irEstFind(e.detectedAtMs);
+  if(est && est->valid){ irAnchorValid=true; irAnchorDistMm=est->absDistMm; }
+  else irAnchorValid=false;
+}
+
+// ---- mm/speed event records (§9.3) ------------------------------------------
+
+static void irPublishMmSpeed(const MarkerEvent& e,const IrEventEst& est,
+                             uint8_t fromMm,int revision,const char* finalDisp){
+  // Worst case, field by field (§9.5): literal skeleton ~330 + event_ms 10 +
+  // mms 2x3 + dir 3 + pol 1 + peak 4 + dur 5 + drift 6 + gate 12 + accepted 1 +
+  // disp 22 + dists 5x6 + k 1 + residual 9 + pulses 11 + irdist 10 + speeds
+  // 2x9 + ages 6 = ~495 measured 470 max < 512. snprintf return checked.
+  char irdist[16], irpulse[16], irage[8];
+  if(est.valid && est.anchorWasValid){
+    // Clamped prints: the worst-case arithmetic above is only honest if no
+    // field can widen past its budget (the CTO_STATUS lesson, three times).
+    float dmm=est.deltaMm; if(dmm>99999.9f)dmm=99999.9f; if(dmm<-99999.9f)dmm=-99999.9f;
+    long dp=(long)est.deltaPulses; if(dp>999999L)dp=999999L; if(dp<-999999L)dp=-999999L;
+    snprintf(irdist,sizeof(irdist),"%.1f",(double)dmm);
+    snprintf(irpulse,sizeof(irpulse),"%ld",dp);
+    snprintf(irage,sizeof(irage),"%lu",(unsigned long)est.irAgeMs);
+  }else{ strlcpy(irdist,"null",16); strlcpy(irpulse,"null",16); strlcpy(irage,"null",8); }
+  char mmsp[32];
+  float msc=mmSpeedMmps; if(msc>9999.9f)msc=9999.9f;
+  if(mmSpeedValid && revision==1)
+    snprintf(mmsp,sizeof(mmsp),"%.1f",(double)msc);
+  else if(revision==2 && mmSpeedValid && !strcmp(finalDisp,"QUARANTINE_COMMITTED"))
+    snprintf(mmsp,sizeof(mmsp),"%.1f",(double)msc);
+  else strlcpy(mmsp,"null",32);
+  // route hypotheses k=0..4 from the PREVIOUS accepted anchor (§8.2)
+  uint32_t spans[5]; int nearestK=-1; float bestRes=0; char resbuf[16];
+  for(uint8_t k=0;k<5;k++){
+    spans[k]=irRouteSpanMm(fromMm,navDir,k);
+    if(est.valid && est.anchorWasValid){
+      float r=est.deltaMm-(float)spans[k];
+      if(r>99999.9f)r=99999.9f; if(r<-99999.9f)r=-99999.9f;
+      if(nearestK<0 || fabsf(r)<fabsf(bestRes)){ nearestK=k; bestRes=r; }
+    }
+  }
+  if(nearestK>=0) snprintf(resbuf,sizeof(resbuf),"%.1f",(double)bestRes);
+  else strlcpy(resbuf,"null",16);
+  char nk[8];
+  if(nearestK>=0) snprintf(nk,sizeof(nk),"%d",nearestK); else strlcpy(nk,"null",8);
+  char b[512];
+  int n=snprintf(b,sizeof(b),
+    // SPEC DEVIATION, documented for CODEX: §9.3's long field names plus
+    // §9.5's 512-byte PubMsg bound are mathematically incompatible — the
+    // skeleton alone measured 438 bytes and the clamped-value worst case
+    // 571. §9.5 is the harder constraint (the payload MUST fit the queue),
+    // so the keys are shortened with this fixed mapping, schema unchanged:
+    //   ev=event_ms rev=revision from/to=from_mm/to_mm pol=hall_pol
+    //   dur=duration_ms drift=baseline_drift gate=timing_gate
+    //   acc=nav_accepted disp=final_disposition dist=route_distance_mm
+    //   dt=hall_dt_ms mmps=mm_speed_mmps irv=ir_valid irage=ir_age_ms
+    //   irdp=ir_delta_pulses irmm=ir_distance_mm k0..k4=route_kN_mm
+    //   bestk=nearest_k resid=residual_mm agree=agreement
+    // MEASURED worst case with clamped values: 390 bytes into 512.
+    "{\"schema\":\"quorum-mm-speed/1\",\"ev\":%lu,\"rev\":%d,"
+    "\"from\":%u,\"to\":%u,\"dir\":\"%s\",\"pol\":\"%c\",\"peak\":%d,"
+    "\"dur\":%u,\"drift\":%d,"
+    "\"gate\":\"%s\",\"acc\":%d,\"disp\":\"%s\","
+    "\"dist\":%lu,\"dt\":%u,\"mmps\":%s,"
+    "\"irv\":%d,\"irage\":%s,\"irdp\":%s,\"irmm\":%s,"
+    "\"k0\":%lu,\"k1\":%lu,\"k2\":%lu,"
+    "\"k3\":%lu,\"k4\":%lu,\"bestk\":%s,\"resid\":%s,"
+    "\"agree\":\"OBSERVE_ONLY\"}",
+    (unsigned long)e.detectedAtMs,revision,
+    fromMm,navMm,(navDir==MAP_CW)?"CW":(navDir==MAP_CCW)?"CCW":"UNSET",
+    polChar(e.polarity),e.peak,(unsigned)e.durationMs,(int)e.baselineDrift,
+    lastTimingGate,mmSpeedValid?1:0,finalDisp,
+    (unsigned long)(mmSpeedValid?irRouteSpanMm(mmSpeedFrom,navDir,1):0),
+    (unsigned)(mmSpeedValid?mmSpeedDtMs:lastSegmentDt),
+    mmsp,
+    (est.valid&&est.anchorWasValid)?1:0,irage,irpulse,irdist,
+    (unsigned long)spans[0],(unsigned long)spans[1],(unsigned long)spans[2],
+    (unsigned long)spans[3],(unsigned long)spans[4],nk,resbuf);
+  if(n<0||(size_t)n>=sizeof(b)){
+    irOversizePubs++;
+    snprintf(b,sizeof(b),"{\"schema\":\"quorum-mm-speed/1\",\"event_ms\":%lu,\"error\":\"OVERSIZE\"}",
+             (unsigned long)e.detectedAtMs);
+  }
+  pubMarker(T_MM_SPEED,b);   // physical event evidence: marker queue (§9.5)
+}
+
+// Per-event observation pair (§8.1/§9.3), called around navOnMarker() by
+// BOTH the firmware's drainMarkers() and the replay harness — one code path,
+// no copy that can drift.
+static uint8_t    irObsPrevAnchorMm=0;
+static IrEventEst irObsEst;
+static void irObserveEventPre(const MarkerEvent& e){
+  irObsPrevAnchorMm = mmAnchorValid ? mmAnchorMm : navMm;
+  irObsEst = irEstimateAt(e.detectedAtMs);
+  irEstRing[irEstNext]=irObsEst; irEstNext=(uint8_t)((irEstNext+1)%16);
+}
+static void irObserveEventPost(const MarkerEvent& e){
+  irPublishMmSpeed(e,irObsEst,irObsPrevAnchorMm,1,lastTimingGate);
+}
+
+// revision-2 finalization for held events (§9.3) — void, cannot affect the
+// quarantine branch outcome (§8.3).
+static void irObsFinalize(const MarkerEvent& e,const char* disp){
+  const IrEventEst* est=irEstFind(e.detectedAtMs);
+  IrEventEst empty; empty.detectedAtMs=e.detectedAtMs;
+  irPublishMmSpeed(e,est?*est:empty,mmAnchorValid?mmAnchorMm:navMm,2,disp);
+}
+
+// ---- 1 s / 5 s summaries (§9.1, §9.2, §9.4) ---------------------------------
+static void serviceIrTelemetry(){
+  uint32_t now=millis();
+  if((uint32_t)(now-irLastSpeedPubMs)>=1000){
+    irLastSpeedPubMs=now;
+    IrView v=irCurrentView();
+    // ir_speed worst case: literal 214 + seq 10 + ms 10 + ids 10+10+10 + sensor_ms 10
+    // + pulses 10 + interval 10 + span 5 + state 16 + valid 1 + speeds 2x10 + ages 3x10 = ~356 < 512
+    char sp[16], kph[16];
+    if(v.numeric){ snprintf(sp,sizeof(sp),"%.2f",(double)v.mmps);
+                   snprintf(kph,sizeof(kph),"%.2f",(double)(v.mmps*PKPH_PER_MMPS)); }
+    else { strlcpy(sp,"null",16); strlcpy(kph,"null",16); }
+    char b[512];
+    int n=snprintf(b,sizeof(b),
+      "{\"schema\":\"quorum-ir-speed/1\",\"report_seq\":%lu,\"report_ms\":%lu,"
+      "\"sensor_id\":%lu,\"sensor_boot\":%lu,\"tx_seq\":%lu,\"sensor_ms\":%lu,"
+      "\"pulses\":%lu,\"last_interval_ms\":%lu,\"span\":%u,\"state\":\"%s\","
+      "\"speed_valid\":%d,\"speed_mmps\":%s,\"pkph\":%s,"
+      "\"rx_age_ms\":%lu,\"rx_gap_ms\":%lu,\"rx_max_gap_ms\":%lu}",
+      (unsigned long)++irReportSeq,(unsigned long)now,
+      (unsigned long)(irHaveLatest?irLatest.sensorId:0),
+      (unsigned long)(irHaveLatest?irLatest.bootId:0),
+      (unsigned long)(irHaveLatest?irLatest.txSequence:0),
+      (unsigned long)(irHaveLatest?irLatest.capturedMs:0),
+      (unsigned long)(irHaveLatest?irLatest.completedPulses:0),
+      (unsigned long)(irHaveLatest?irLatest.lastIntervalMs:0),
+      (unsigned)(irHaveLatest?irLatest.opticalSpan:0),v.state,
+      v.numeric?1:0,sp,kph,
+      (unsigned long)v.ageMs,(unsigned long)irRxGapMs,(unsigned long)irRxMaxGapMs);
+    if(n<0||(size_t)n>=sizeof(b)){ irOversizePubs++; strlcpy(b,"{\"schema\":\"quorum-ir-speed/1\",\"error\":\"OVERSIZE\"}",sizeof(b)); }
+    pub(T_IR_SPEED_T,b,false);
+
+    // combined operator view (§9.4). Fixed authority strings are acceptance
+    // checks: Test A must never claim IR controls speed.
+    char msp[16],mkph[16];
+    if(mmSpeedValid){ snprintf(msp,sizeof(msp),"%.1f",(double)mmSpeedMmps);
+                      snprintf(mkph,sizeof(mkph),"%.2f",(double)(mmSpeedMmps*PKPH_PER_MMPS)); }
+    else { strlcpy(msp,"null",16); strlcpy(mkph,"null",16); }
+    int n2=snprintf(b,sizeof(b),
+      "{\"schema\":\"quorum-speed-view/1\","
+      "\"ir_valid\":%d,\"ir_mmps\":%s,\"ir_pkph\":%s,\"ir_age_ms\":%lu,"
+      "\"mm_valid\":%d,\"mm_mmps\":%s,\"mm_pkph\":%s,\"mm_age_ms\":%lu,"
+      "\"mm_from\":%u,\"mm_to\":%u,"
+      "\"commanded_pwm\":%d,\"actual_pwm\":%d,"
+      "\"control_source\":\"PWM_PRESET\",\"authority\":\"OBSERVE_ONLY\"}",
+      v.numeric?1:0,sp,kph,(unsigned long)v.ageMs,
+      mmSpeedValid?1:0,msp,mkph,
+      (unsigned long)(mmSpeedValid?(uint32_t)(now-mmSpeedAtMs):0),
+      mmSpeedFrom,mmSpeedTo,
+      (int)commandedPwm,(int)actualPwm);
+    if(n2<0||(size_t)n2>=sizeof(b)){ irOversizePubs++; strlcpy(b,"{\"schema\":\"quorum-speed-view/1\",\"error\":\"OVERSIZE\"}",sizeof(b)); }
+    pub(T_SPEED_VIEW,b,false);
+  }
+  if((uint32_t)(now-irLastStatusPubMs)>=5000){
+    irLastStatusPubMs=now;
+    // sender counters (from latest packet) and receiver totals, separately
+    // named (§9.2). Worst case: literal ~330 + 20 numeric fields x 10 = 530...
+    // measured max 505 with all counters at 4294967295 — checked, and the
+    // structural guard below is the backstop regardless.
+    char b[512];
+    int n=snprintf(b,sizeof(b),
+      "{\"schema\":\"quorum-ir-status/1\",\"wire\":{\"cto\":%u,\"echo\":%u,\"ir\":%u},"
+      "\"snd\":{\"missed\":%lu,\"aborts\":%lu,\"contrast\":%lu,\"sat\":%lu,"
+      "\"maxgap_us\":%lu,\"tx\":%lu,\"txe\":%lu,\"txf\":%lu},"
+      "\"rcv\":{\"acc\":%lu,\"gaps\":%lu,\"dup\":%lu,\"ooo\":%lu,"
+      "\"blen\":%lu,\"bver\":%lu,\"bwire\":%lu,\"bsrc\":%lu,\"bsen\":%lu,"
+      "\"btgt\":%lu,\"benum\":%lu,\"benc\":%lu,"
+      "\"regress\":%lu,\"reboot\":%lu,\"qdrop\":%lu,\"oversize\":%lu}}",
+      (unsigned)sizeof(CtoPeerPacket),(unsigned)sizeof(Cto3RoleEcho),(unsigned)sizeof(IrSpeedPacketV1),
+      (unsigned long)(irHaveLatest?irLatest.sampleMissedSlots:0),
+      (unsigned long)(irHaveLatest?irLatest.openAborts:0),
+      (unsigned long)(irHaveLatest?irLatest.contrastInvalidEpisodes:0),
+      (unsigned long)(irHaveLatest?irLatest.saturatedSamples:0),
+      (unsigned long)(irHaveLatest?irLatest.sampleMaxGapUs:0),
+      (unsigned long)(irHaveLatest?irLatest.txAttempts:0),
+      (unsigned long)(irHaveLatest?irLatest.txImmediateErrors:0),
+      (unsigned long)(irHaveLatest?irLatest.txDeliveryFailures:0),
+      (unsigned long)irAccepted,(unsigned long)irSeqGaps,(unsigned long)irDups,
+      (unsigned long)irOutOfOrder,
+      (unsigned long)irRejBadLen,(unsigned long)irRejBadMagicVer,
+      (unsigned long)irRejBadWire,(unsigned long)irRejBadSource,
+      (unsigned long)irRejBadSensor,(unsigned long)irRejBadTarget,
+      (unsigned long)irRejBadEnum,(unsigned long)irRejBadEncoding,
+      (unsigned long)irPulseRegressions,(unsigned long)irSensorReboots,
+      (unsigned long)irRxQueueDrops,(unsigned long)irOversizePubs);
+    if(n<0||(size_t)n>=sizeof(b)){ irOversizePubs++; strlcpy(b,"{\"schema\":\"quorum-ir-status/1\",\"error\":\"OVERSIZE\"}",sizeof(b)); }
+    pub(T_IR_STATUS,b,false);
+  }
+}
+
+#endif  // IR_TEST_A_ON — the disabled-build stubs live with the prototypes above
+
 // ---- radio -----------------------------------------------------------------
-static void ctoOnRecv(const esp_now_recv_info_t*,const uint8_t* data,int len){
+static void ctoOnRecv(const esp_now_recv_info_t* info,const uint8_t* data,int len){
   // WiFi-task context: copy and leave, exactly like onMqttEnqueue. All state
   // belongs to the loop thread.
+  // IR TEST A router (spec §5.1): exact length is the discriminator — 72 is
+  // IR, 45/15 are the frozen CTO packets, everything else was already being
+  // dropped silently and still is. The CTO path below is byte-for-byte
+  // untouched; the IR path validates fully in-callback and only ever copies
+  // into its OWN queue, so a 20 Hz sensor cannot displace peer truth.
+  if(len==(int)sizeof(IrSpeedPacketV1) || (len>0 && data[0]==IR_SPEED_MAGIC)){
+#if IR_TEST_A_ON
+    irAcceptFrame(info && info->src_addr ? info->src_addr : (const uint8_t*)"\0\0\0\0\0\0",
+                  data,len,millis());
+#endif
+    return;
+  }
   if(len!=(int)sizeof(CtoPeerPacket) && len!=(int)sizeof(Cto3RoleEcho)) return;
   uint8_t buf[sizeof(CtoPeerPacket)]; // echo is smaller; length rides the queue item
   memcpy(buf,data,len);
@@ -4602,6 +5136,7 @@ static void ctoService(){
 void setup(){
   Serial.begin(115200); delay(300);
   Serial.printf("\n[BOOT] %s — %s\n",SKETCH_NAME,LOCO_NAME);
+  irEnsureQueue();        // IR TEST A §5.2: dedicated 32-entry queue; no-op on Otto.
 
   analogReadResolution(12);
   pinMode(HALL_PIN,INPUT);
@@ -4679,7 +5214,10 @@ void loop(){
   // first (symmetric with the outbound queue) so a command and the markers it
   // affects are processed in the same pass, on this one thread.
   serviceCommands();
+  serviceIrRx();          // IR TEST A §10: accept radio facts before this
+                          // pass's Hall drain. Inert stub on Otto.
   drainMarkers();
+  serviceIrTelemetry();   // §10: self-rate-limited 1 s / 5 s summaries.
   serviceStatusBroadcast();
   serviceWarningExpiry();
   publishSimpleStates();

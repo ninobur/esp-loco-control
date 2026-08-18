@@ -1,6 +1,9 @@
 # 0005 — An IR timeout means the sensor stopped seeing; STOPPED requires an independent witness
 
-Status: Accepted  (2026-08-05; recorded 2026-08-06)
+Status: Superseded in part by 0036 (2026-08-15). Retained for radio loss and
+explicitly unusable measurement quality.
+
+Current stationary-wheel wire semantics are defined by decision 0036.
 
 ## Decision
 Edge silence declares UNAVAILABLE, never STOPPED. The STOPPED state exists

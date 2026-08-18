@@ -650,6 +650,22 @@ def main():
         if r.returncode != 0:
             failures.append('cto role tests failed (see above)')
 
+        # IR Test A (spec §11.2): only when the harness build carries the IR
+        # layer — probe by asking for an ir_dump and seeing whether it answers.
+        probe = subprocess.run([args.harness], input='ir_dump\n',
+                               capture_output=True, text=True)
+        if '"ir":true' in probe.stdout:
+            print('\n== 4d. IR Test A: receiver, freshness, observation ==')
+            r = subprocess.run([sys.executable, str(HERE / 'test_ir_test_a.py'),
+                                args.harness], capture_output=True, text=True)
+            print(r.stdout.rstrip())
+            if r.returncode != 0:
+                failures.append('IR Test A tests failed (see above)')
+        else:
+            print('\n== 4d. IR Test A ==')
+            print('    SKIP: this harness build has no IR layer '
+                  '(HARNESS_IR_OFF or pre-IR binary)')
+
     print('\n== 5. counterfactual: are the two Bamboo phantoms causal? ==')
     if era == 'legacy':
         failures += counterfactual(args.harness)

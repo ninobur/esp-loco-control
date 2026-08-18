@@ -54,7 +54,7 @@ rather than a silent drift discovered later.
 | [0002](0002-locomotive-control-is-bicameral.md) | All NGR locomotive controllers are bicameral | Accepted (constitutional) |
 | [0003](0003-one-control-sketch.md) | There is one control sketch; MANUAL is retired to reference | Accepted |
 | [0004](0004-speed-filters-admit-unconditionally.md) | Speed filters admit every measurement; robustness lives in the output | Accepted |
-| [0005](0005-timeout-means-blind-not-stopped.md) | An IR timeout means the sensor stopped seeing; STOPPED requires an independent witness | Accepted |
+| [0005](0005-timeout-means-blind-not-stopped.md) | An IR timeout means the sensor stopped seeing; STOPPED requires an independent witness | Superseded in part by 0036 |
 | [0006](0006-envelope-decay-gates-on-signal-activity.md) | Envelope adaptation gates on signal activity, not wall clock or completed pulses | Accepted |
 | [0007](0007-nvs-persists-only-the-proven-envelope.md) | NVS persists only a pulse-proven envelope snapshot | Accepted |
 | [0008](0008-finescale-steel-wheel-is-the-target.md) | The 7-spoke finescale steel wheel is the production speed target | Superseded by 0022 |
@@ -78,3 +78,4 @@ rather than a silent drift discovered later.
 | [0033](0033-separation-is-the-bubble-plus-six-markers-clear.md) | Separation is the occupancy bubble plus six markers clear; Hall gaps are derived diagnostics | Accepted |
 | [0034](0034-v1-14-cto-wire-and-membership-contracts.md) | v1.14 CTO wire and membership contracts — role-echo packet, first-seen-this-boot membership | Proposed |
 | [0035](0035-quarantine-the-doubtful-and-never-stop-learning.md) | Quarantine the doubtful, and never stop learning — floor, suffix rescue, self-resolution | Accepted |
+| [0036](0036-a-stationary-ir-wheel-reports-zero-without-upward-authority.md) | A stationary IR wheel reports zero, but zero never grants upward motor authority | Accepted |

@@ -13,6 +13,17 @@
 // Identity
 #define LOCO_NAME "9950012"
 #define LOCO_ID 9950012UL
+
+// ---------------------------------------------------------------------------
+// IR Test A (docs/QUORUM_1_16R_IR_TEST_A_FIRMWARE_SPEC.md §2): Toby carries
+// the sensor car; Otto's profile deliberately omits these, compiling every
+// IR path to inert stubs. The MAC is the Test Car ESP32's STA MAC — fill in
+// at bench pairing (spec §11.3 step 1; the sender prints it at boot).
+// ALL-ZERO IS A SAFE PLACEHOLDER: reception stays disabled and is reported;
+// it never falls back to accepting any sender.
+// ---------------------------------------------------------------------------
+#define IR_TEST_A_ENABLED 1
+#define IR_SENSOR_MAC_BYTES {0x00,0x00,0x00,0x00,0x00,0x00}
 #define HALL_POLARITY_INVERTED false
 
 // Blynk
