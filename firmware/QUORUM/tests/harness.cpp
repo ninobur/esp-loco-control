@@ -352,6 +352,14 @@ int main(){
       irAcceptFrame(src,(const uint8_t*)&p,len,(uint32_t)g_hostMillis);
       serviceIrRx();
 #endif
+    } else if(cmd=="ir_telem"){
+#if IR_TEST_A_ON
+      // Force both telemetry cadences due now, then run the service — the
+      // review found the §9.4 authority strings had zero runtime coverage.
+      irLastSpeedPubMs = (uint32_t)g_hostMillis - 2000;
+      irLastStatusPubMs = (uint32_t)g_hostMillis - 6000;
+      serviceIrTelemetry();
+#endif
     } else if(cmd=="ir_dump"){
 #if IR_TEST_A_ON
       IrView v=irCurrentView();

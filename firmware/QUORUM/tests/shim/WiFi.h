@@ -4,6 +4,7 @@
 // on the radio.
 #pragma once
 #include <Arduino.h>
+#include <string>
 
 #define WL_CONNECTED    3
 #define WL_DISCONNECTED 6
@@ -28,6 +29,11 @@ struct HostWiFiClass {
   // is the ONLY way the new code gets tested: byte-identity across the
   // capture corpus proves no regression and says nothing about new code.
   int  channel(){ return hostWifiChannel; }
+  // IR Test A boot line prints the STA MAC for bench pairing; the replay has
+  // no radio, so a fixed honest fake.
+  // std::string has .c_str() just like Arduino String, so the firmware's
+  // WiFi.macAddress().c_str() compiles against either.
+  std::string macAddress(){ return std::string("00:00:00:00:00:00"); }
 };
 extern HostWiFiClass WiFi;
 

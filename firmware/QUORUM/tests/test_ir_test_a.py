@@ -185,6 +185,82 @@ def main():
           len(rev2) == 1 and rev2[0]['disp'] == 'QUARANTINE_DISCARDED',
           f'{[(r["rev"], r["disp"]) for r in recs]}')
 
+    # --- quarantine revisions: held -> COMMITTED (review gap) ----------------
+    # The false-reject-commit pattern: 9 lead at 3000, a dim genuine 900 ms
+    # event (conjunction holds it), witness fits genuine-only -> committed.
+    T = None
+    for cand in range(171):
+        b = (cand + 9) % 171
+        if pol(b + 1) != pol(b) and pol(b + 2) != pol(b + 1):
+            T = cand
+            break
+    seq = ['dir CW', f'declare {T}']
+    t = T
+    for i in range(9):
+        t += 1
+        seq.append('event 3000 %s 90 90 180 175 0' % pol(t))
+    t += 1
+    seq.append('event 900 %s 90 90 40 60 0' % pol(t))       # held
+    t += 1
+    seq.append('event 3000 %s 90 90 150 170 0' % pol(t))    # witness commits
+    irs, pubs = run(harness, seq)
+    recs = mmspeed(pubs)
+    rev2 = [r for r in recs if r['rev'] == 2]
+    check('held-then-COMMITTED event gets a revision-2 record',
+          len(rev2) == 1 and rev2[0]['disp'] == 'QUARANTINE_COMMITTED',
+          f'{[(r["rev"], r["disp"]) for r in recs]}')
+    if rev2:
+        check('committed rev-2 reports the committed transition, not from==to',
+              rev2[0]['from'] != rev2[0]['to'] and
+              rev2[0]['mmps'] is not None,
+              f"from={rev2[0]['from']} to={rev2[0]['to']} mmps={rev2[0]['mmps']}")
+    held1 = [r for r in recs if r['gate'] == 'QUARANTINED' and r['rev'] == 1]
+    check('a held event\'s revision-1 record says acc:0 with null speed',
+          held1 and held1[0]['acc'] == 0 and held1[0]['mmps'] is None,
+          f'{held1[0] if held1 else None}')
+
+    # --- PHANTOM_REJECTED observation (§11.2, review gap) --------------------
+    # Max-acceleration pattern: the legacy gate rejects the fastest step.
+    seq = ['dir CW', 'declare 40']
+    t = 40
+    for i in range(9):
+        t += 1
+        seq.append('event 2400 %s 90 90 180 175 0' % pol(t))
+    for dt in (2400, 1700, 1200, 900, 700, 560):
+        t += 1
+        seq.append(f'event {dt} %s 90 90 180 175 0' % pol(t))
+    irs, pubs = run(harness, seq)
+    recs = mmspeed(pubs)
+    rej = [r for r in recs if r['acc'] == 0 and r['gate'] == 'ACTIVE']
+    check('a PHANTOM_REJECTED event records acc:0 with null speed',
+          rej and rej[0]['mmps'] is None, f'{len(rej)} candidates')
+
+    # --- telemetry coverage (§9.1/§9.2/§9.4, review gap) ---------------------
+    seq = BOOT + ['ir 1 7 100 3 25000', 'advance 1100', 'cto', 'ir_telem']
+    irs, pubs = run(harness, seq)
+    views = [json.loads(r['payload']) for r in pubs
+             if r['pub'].endswith('/telem/speed')]
+    stats = [json.loads(r['payload']) for r in pubs
+             if r['pub'].endswith('/telem/ir_status')]
+    speeds = [json.loads(r['payload']) for r in pubs
+              if r['pub'].endswith('/telem/ir_speed')]
+    check('speed view publishes with the fixed authority strings',
+          views and views[-1]['control_source'] == 'PWM_PRESET' and
+          views[-1]['authority'] == 'OBSERVE_ONLY', f'{views[-1] if views else None}')
+    check('ir_status publishes valid JSON with mac_ok',
+          stats and 'mac_ok' in stats[-1]['rcv'],
+          f'{stats[-1] if stats else None}')
+    check('ir_speed publishes valid JSON', bool(speeds))
+
+    # --- epoch rebase: one poisoned frame must not wedge the epoch ----------
+    seq = BOOT + ['ir 1 7 1000000 3 -1',      # poison: huge count accepted
+                  'ir 2 7 200 3 -1', 'ir 3 7 201 3 -1', 'ir 4 7 202 3 -1',
+                  'ir 5 7 203 3 -1', 'ir_dump']
+    irs, _ = run(harness, seq)
+    check('three consecutive regressions rebase instead of wedging',
+          irs[-1]['acc'] >= 2 and irs[-1]['regress'] == 3,
+          f"acc={irs[-1]['acc']} regress={irs[-1]['regress']}")
+
     # --- observer resets (§7): declaration and direction --------------------
     seq = ['dir CW', 'declare 40', 'ir 1 7 100 3 25000',
            ev.format(p=pol(41)), 'ir 2 7 131 3 25000', ev.format(p=pol(42)),

@@ -1262,6 +1262,8 @@ static bool     irEpochOpen=false;
 static uint32_t irBootId=0, irLastSeq=0, irLastPulses=0;
 static uint32_t irAccepted=0, irSeqGaps=0, irDups=0, irOutOfOrder=0;
 static uint32_t irPulseRegressions=0, irSensorReboots=0;
+static uint32_t irPulseRebases=0;
+static uint8_t  irRegressStreak=0;
 static uint32_t irLastAcceptRxMs=0, irRxGapMs=0, irRxMaxGapMs=0;
 static IrSpeedPacketV1 irLatest;            // last accepted packet (copy)
 static uint32_t irLatestRxMs=0;
@@ -4267,11 +4269,25 @@ static void serviceIrRx(){
       if(ds>1) irSeqGaps+=(uint32_t)(ds-1);
       if((int32_t)(p.completedPulses-irLastPulses)<0){
         // §5.3: a pulse regression inside one epoch is rejected and breaks
-        // the distance anchor — cumulative counts only ever grow.
+        // the distance anchor — cumulative counts only ever grow. BUT the
+        // adversarial pass proved one canonical-but-wrong frame carrying a
+        // huge count would wedge the epoch forever: every honest packet
+        // after it reads as a regression against the poisoned baseline.
+        // Three CONSECUTIVE regressions therefore rebase — the same
+        // confirmation discipline as the channel watch — accepting the
+        // incoming count as the new baseline with the anchor invalidated
+        // and the rebase counted. One bad frame now costs three reports,
+        // not the rest of the epoch.
         irPulseRegressions++; irAnchorValid=false;
         irLastSeq=p.txSequence;
+        if(++irRegressStreak>=3){
+          irRegressStreak=0; irPulseRebases++;
+          irLastPulses=p.completedPulses;
+          irHistLen=0; irHistHead=0;   // history predates the rebase
+        }
         continue;
       }
+      irRegressStreak=0;
       irLastSeq=p.txSequence; irLastPulses=p.completedPulses;
     }
     if(irLastAcceptRxMs){
@@ -4364,10 +4380,12 @@ static void irOnAccepted(const MarkerEvent& e){
 
 static void irPublishMmSpeed(const MarkerEvent& e,const IrEventEst& est,
                              uint8_t fromMm,int revision,const char* finalDisp){
-  // Worst case, field by field (§9.5): literal skeleton ~330 + event_ms 10 +
-  // mms 2x3 + dir 3 + pol 1 + peak 4 + dur 5 + drift 6 + gate 12 + accepted 1 +
-  // disp 22 + dists 5x6 + k 1 + residual 9 + pulses 11 + irdist 10 + speeds
-  // 2x9 + ages 6 = ~495 measured 470 max < 512. snprintf return checked.
+  // Worst case (§9.5), MEASURED against the short-key format below with
+  // every field maximal and floats clamped: 405 bytes into 511 usable —
+  // includes the pkph field the review restored. The truncation guard
+  // remains the structural backstop. (An earlier draft carried two
+  // contradictory budgets here, both from the long-key era; the adversarial
+  // pass flagged them and this is the only number now.)
   char irdist[16], irpulse[16], irage[8];
   if(est.valid && est.anchorWasValid){
     // Clamped prints: the worst-case arithmetic above is only honest if no
@@ -4379,12 +4397,22 @@ static void irPublishMmSpeed(const MarkerEvent& e,const IrEventEst& est,
     snprintf(irage,sizeof(irage),"%lu",(unsigned long)est.irAgeMs);
   }else{ strlcpy(irdist,"null",16); strlcpy(irpulse,"null",16); strlcpy(irage,"null",8); }
   char mmsp[32];
+  // Review fixes (observation verifier): every speed field belongs to THIS
+  // event, not to the latest global sample — a held event's record was
+  // showing acc:1 with the PREVIOUS segment's speed. "This event produced
+  // the sample" is exactly mmSpeedAtMs == e.detectedAtMs.
+  bool thisEventAccepted = mmSpeedValid && (mmSpeedAtMs==e.detectedAtMs);
+  char diststr[16], dtstr[16];
+  if(mmSpeedValid && mmSpeedAtMs==e.detectedAtMs){
+    snprintf(diststr,sizeof(diststr),"%lu",(unsigned long)irRouteSpanMm(mmSpeedFrom,navDir,1));
+    snprintf(dtstr,sizeof(dtstr),"%u",(unsigned)mmSpeedDtMs);
+  }else{ strlcpy(diststr,"null",16); strlcpy(dtstr,"null",16); }
   float msc=mmSpeedMmps; if(msc>9999.9f)msc=9999.9f;
-  if(mmSpeedValid && revision==1)
+  char mmk[16];
+  if(thisEventAccepted){
     snprintf(mmsp,sizeof(mmsp),"%.1f",(double)msc);
-  else if(revision==2 && mmSpeedValid && !strcmp(finalDisp,"QUARANTINE_COMMITTED"))
-    snprintf(mmsp,sizeof(mmsp),"%.1f",(double)msc);
-  else strlcpy(mmsp,"null",32);
+    snprintf(mmk,sizeof(mmk),"%.2f",(double)(msc*PKPH_PER_MMPS));
+  }else{ strlcpy(mmsp,"null",32); strlcpy(mmk,"null",16); }
   // route hypotheses k=0..4 from the PREVIOUS accepted anchor (§8.2)
   uint32_t spans[5]; int nearestK=-1; float bestRes=0; char resbuf[16];
   for(uint8_t k=0;k<5;k++){
@@ -4412,23 +4440,24 @@ static void irPublishMmSpeed(const MarkerEvent& e,const IrEventEst& est,
     //   dt=hall_dt_ms mmps=mm_speed_mmps irv=ir_valid irage=ir_age_ms
     //   irdp=ir_delta_pulses irmm=ir_distance_mm k0..k4=route_kN_mm
     //   bestk=nearest_k resid=residual_mm agree=agreement
-    // MEASURED worst case with clamped values: 390 bytes into 512.
+    // (Budget stated at the top of this function: measured 449.)
     "{\"schema\":\"quorum-mm-speed/1\",\"ev\":%lu,\"rev\":%d,"
     "\"from\":%u,\"to\":%u,\"dir\":\"%s\",\"pol\":\"%c\",\"peak\":%d,"
     "\"dur\":%u,\"drift\":%d,"
     "\"gate\":\"%s\",\"acc\":%d,\"disp\":\"%s\","
-    "\"dist\":%lu,\"dt\":%u,\"mmps\":%s,"
+    "\"dist\":%s,\"dt\":%s,\"mmps\":%s,\"pkph\":%s,"
     "\"irv\":%d,\"irage\":%s,\"irdp\":%s,\"irmm\":%s,"
     "\"k0\":%lu,\"k1\":%lu,\"k2\":%lu,"
     "\"k3\":%lu,\"k4\":%lu,\"bestk\":%s,\"resid\":%s,"
     "\"agree\":\"OBSERVE_ONLY\"}",
     (unsigned long)e.detectedAtMs,revision,
-    fromMm,navMm,(navDir==MAP_CW)?"CW":(navDir==MAP_CCW)?"CCW":"UNSET",
+    thisEventAccepted?mmSpeedFrom:fromMm,
+    thisEventAccepted?mmSpeedTo:navMm,
+    (navDir==MAP_CW)?"CW":(navDir==MAP_CCW)?"CCW":"UNSET",
     polChar(e.polarity),e.peak,(unsigned)e.durationMs,(int)e.baselineDrift,
-    lastTimingGate,mmSpeedValid?1:0,finalDisp,
-    (unsigned long)(mmSpeedValid?irRouteSpanMm(mmSpeedFrom,navDir,1):0),
-    (unsigned)(mmSpeedValid?mmSpeedDtMs:lastSegmentDt),
-    mmsp,
+    lastTimingGate,thisEventAccepted?1:0,finalDisp,
+    diststr,dtstr,
+    mmsp,mmk,
     (est.valid&&est.anchorWasValid)?1:0,irage,irpulse,irdist,
     (unsigned long)spans[0],(unsigned long)spans[1],(unsigned long)spans[2],
     (unsigned long)spans[3],(unsigned long)spans[4],nk,resbuf);
@@ -4468,8 +4497,9 @@ static void serviceIrTelemetry(){
   if((uint32_t)(now-irLastSpeedPubMs)>=1000){
     irLastSpeedPubMs=now;
     IrView v=irCurrentView();
-    // ir_speed worst case: literal 214 + seq 10 + ms 10 + ids 10+10+10 + sensor_ms 10
-    // + pulses 10 + interval 10 + span 5 + state 16 + valid 1 + speeds 2x10 + ages 3x10 = ~356 < 512
+    // ir_speed worst case (§9.5, corrected in review): literal 237 + seq 10
+    // + ms 10 + ids 3x10 + sensor_ms 10 + pulses 10 + interval 10 + span 5
+    // + state 16 + valid 1 + speed 11 + pkph 11 + ages 3x10 = 390 into 511.
     char sp[16], kph[16];
     if(v.numeric){ snprintf(sp,sizeof(sp),"%.2f",(double)v.mmps);
                    snprintf(kph,sizeof(kph),"%.2f",(double)(v.mmps*PKPH_PER_MMPS)); }
@@ -4496,6 +4526,8 @@ static void serviceIrTelemetry(){
 
     // combined operator view (§9.4). Fixed authority strings are acceptance
     // checks: Test A must never claim IR controls speed.
+    // Worst case (§9.5): literal 265 + ir 10+11+3 + mm 11+9+10+3+3 + pwm 2x4
+    // = 335 into 511. Guard below is the backstop.
     char msp[16],mkph[16];
     if(mmSpeedValid){ snprintf(msp,sizeof(msp),"%.1f",(double)mmSpeedMmps);
                       snprintf(mkph,sizeof(mkph),"%.2f",(double)(mmSpeedMmps*PKPH_PER_MMPS)); }
@@ -4517,19 +4549,23 @@ static void serviceIrTelemetry(){
   }
   if((uint32_t)(now-irLastStatusPubMs)>=5000){
     irLastStatusPubMs=now;
-    // sender counters (from latest packet) and receiver totals, separately
-    // named (§9.2). Worst case: literal ~330 + 20 numeric fields x 10 = 530...
-    // measured max 505 with all counters at 4294967295 — checked, and the
-    // structural guard below is the backstop regardless.
+    // Sender counters (latest packet) and receiver totals, separately named
+    // (§9.2). FOURTH buffer-arithmetic failure of the week, this one REFUTED
+    // by the adversarial pass: the previous comment claimed "measured 505,
+    // 20 numeric fields" against a format string carrying 24 conversions —
+    // true worst case 532 into 511 usable. Keys are mine (schema unchanged),
+    // so they are shortened until the arithmetic holds:
+    // literal skeleton measured 247 + 24 u32 x 10 + wire sizes 6 = 493 < 511.
     char b[512];
     int n=snprintf(b,sizeof(b),
       "{\"schema\":\"quorum-ir-status/1\",\"wire\":{\"cto\":%u,\"echo\":%u,\"ir\":%u},"
-      "\"snd\":{\"missed\":%lu,\"aborts\":%lu,\"contrast\":%lu,\"sat\":%lu,"
-      "\"maxgap_us\":%lu,\"tx\":%lu,\"txe\":%lu,\"txf\":%lu},"
+      "\"snd\":{\"miss\":%lu,\"abrt\":%lu,\"cinv\":%lu,\"sat\":%lu,"
+      "\"mgus\":%lu,\"tx\":%lu,\"txe\":%lu,\"txf\":%lu},"
       "\"rcv\":{\"acc\":%lu,\"gaps\":%lu,\"dup\":%lu,\"ooo\":%lu,"
       "\"blen\":%lu,\"bver\":%lu,\"bwire\":%lu,\"bsrc\":%lu,\"bsen\":%lu,"
       "\"btgt\":%lu,\"benum\":%lu,\"benc\":%lu,"
-      "\"regress\":%lu,\"reboot\":%lu,\"qdrop\":%lu,\"oversize\":%lu}}",
+      "\"regr\":%lu,\"boot\":%lu,\"rebase\":%lu,\"qdrop\":%lu,\"ovsz\":%lu,"
+      "\"mac_ok\":%d}}",
       (unsigned)sizeof(CtoPeerPacket),(unsigned)sizeof(Cto3RoleEcho),(unsigned)sizeof(IrSpeedPacketV1),
       (unsigned long)(irHaveLatest?irLatest.sampleMissedSlots:0),
       (unsigned long)(irHaveLatest?irLatest.openAborts:0),
@@ -4546,7 +4582,9 @@ static void serviceIrTelemetry(){
       (unsigned long)irRejBadSensor,(unsigned long)irRejBadTarget,
       (unsigned long)irRejBadEnum,(unsigned long)irRejBadEncoding,
       (unsigned long)irPulseRegressions,(unsigned long)irSensorReboots,
-      (unsigned long)irRxQueueDrops,(unsigned long)irOversizePubs);
+      (unsigned long)irPulseRebases,(unsigned long)irRxQueueDrops,
+      (unsigned long)irOversizePubs,
+      irSensorMacUsable()?1:0);
     if(n<0||(size_t)n>=sizeof(b)){ irOversizePubs++; strlcpy(b,"{\"schema\":\"quorum-ir-status/1\",\"error\":\"OVERSIZE\"}",sizeof(b)); }
     pub(T_IR_STATUS,b,false);
   }
@@ -5137,6 +5175,18 @@ void setup(){
   Serial.begin(115200); delay(300);
   Serial.printf("\n[BOOT] %s — %s\n",SKETCH_NAME,LOCO_NAME);
   irEnsureQueue();        // IR TEST A §5.2: dedicated 32-entry queue; no-op on Otto.
+#if IR_TEST_A_ON
+  // §2: an unusable sensor MAC disables reception AND IS REPORTED — the
+  // review found the only evidence was a counter climbing inside MQTT.
+  // And bench pairing step 1 needs Toby's own STA MAC printed somewhere;
+  // this is the somewhere (WiFi.macAddress() is valid once the mode is set,
+  // which happens below — so the MAC line prints from networkTask's first
+  // connect instead; here we report the configured sensor side).
+  Serial.printf("[IR] Test A ON  sensor MAC %02X:%02X:%02X:%02X:%02X:%02X  %s\n",
+    IR_SENSOR_MAC[0],IR_SENSOR_MAC[1],IR_SENSOR_MAC[2],
+    IR_SENSOR_MAC[3],IR_SENSOR_MAC[4],IR_SENSOR_MAC[5],
+    irSensorMacUsable()?"(usable)":"UNSET/UNUSABLE - IR RECEPTION DISABLED");
+#endif
 
   analogReadResolution(12);
   pinMode(HALL_PIN,INPUT);
@@ -5179,6 +5229,12 @@ void setup(){
   WiFi.persistent(false);
   WiFi.setSleep(false);
   WiFi.begin(WIFI_SSID,WIFI_PASS);
+#if IR_TEST_A_ON
+  // Bench pairing step 1 (sender spec §11.3): Toby's STA MAC, printed where
+  // the operator can read it. Valid as soon as the mode is set.
+  Serial.printf("[IR] my STA MAC %s — put this in ir_espnow_config.h TOBY_STA_MAC\n",
+                WiFi.macAddress().c_str());
+#endif
   mqtt.setServer(MQTT_BROKER,MQTT_PORT);
   mqtt.setSocketTimeout(2);
   // Bound the underlying TCP connect. On the installed ESP32 core (3.3.11)
