@@ -236,6 +236,12 @@ def _fresh_state():
         # the locomotive speaks — a locomotive on pre-CTO firmware never will,
         # and the panel stays hidden rather than inventing a state for it.
         "cto": "",
+        # v1.11.3: latest quorum-speed-view/1 heartbeat from telem/speed,
+        # verbatim, same pattern as cto above — "" until the locomotive has
+        # IR Test A and has spoken. A locomotive without the layer (Otto,
+        # or Toby before this build) never publishes the topic and the tile
+        # stays hidden rather than guessing a state for it.
+        "speed_view": "",
         # v1.10.10 P4: ENLISTED (autoEnrolled, from state/auto ONLY).
         # Tri-state: "--" = never proven this session; "0"/"1" as reported.
         # st["auto"] remains RUNNING (autoRunning, from the alert ONLY).
@@ -678,6 +684,12 @@ def on_mqtt_message(client, userdata, msg):
         elif sub == "telem/power":
             st["power"] = payload
             _touch(lid, "power")
+        elif sub == "telem/speed":
+            # v1.11.3: IR Test A's quorum-speed-view/1, 1 Hz, non-retained.
+            # Verbatim like state/cto — the tile parses at render time, not
+            # here, same as ctoRow() does for the cto payload.
+            st["speed_view"] = payload
+            _touch(lid, "speed_view")
 
         elif sub == "mm/marker":
             _touch(lid, "marker")
@@ -920,6 +932,9 @@ body { margin:0; font-family:Arial,sans-serif;
 .ctorow { font-size:10px; color:#9fd6ff; margin-top:3px; min-height:12px; }
 .ctorow .hold { color:#ff6b6b; font-weight:bold; }
 .ctorow .slow { color:#ffcc66; }
+.irrow { font-size:10px; color:#c9a8ff; margin-top:2px; min-height:12px; }
+.irrow .stale { color:#777; font-style:italic; }
+.irrow .irauth { color:#666; margin-left:4px; }
 .estop-btn { width:100%; padding:20px; border-radius:50px; border:3px solid #b32020;
   background:rgba(40,40,40,0.92); color:#ff5050; font-size:21px; font-weight:bold;
   letter-spacing:3px; cursor:pointer; text-align:center; display:block; }
@@ -1124,6 +1139,23 @@ function ctoRow(l) {
   return '<div class="ctorow">' + role.toLowerCase() + gap + t + '</div>';
 }
 
+// v1.11.3 — IR Test A speed readout, one line, same hidden-until-heard
+// pattern as ctoRow(). authority is always OBSERVE_ONLY in this build — the
+// fixed string is Test A's own acceptance check, and the label makes that
+// visible on the console too, so nobody reads this as a control input.
+function irRow(l) {
+  if (!l.speed_view) return '<div class="irrow"></div>';
+  var v;
+  try { v = JSON.parse(l.speed_view); } catch (e) { return '<div class="irrow"></div>'; }
+  var ir = (v.ir_valid && v.ir_mmps !== null && v.ir_mmps !== undefined)
+    ? (Math.round(v.ir_mmps) + ' mm/s')
+    : '<span class="stale">no signal</span>';
+  var mm = (v.mm_valid && v.mm_mmps !== null && v.mm_mmps !== undefined)
+    ? (' &middot; mm ' + Math.round(v.mm_mmps) + ' mm/s') : '';
+  return '<div class="irrow">IR ' + ir + mm +
+         ' <span class="irauth">' + esc(v.authority || '') + '</span></div>';
+}
+
 function colHtml(l){
   var stale = !l.heard;
   var st = function(x){ return (x===null||x===undefined||x==='--'||stale) ? ' stale' : ''; };
@@ -1152,6 +1184,7 @@ function colHtml(l){
         swChip(l)+
       '</div>'+
       ctoRow(l)+
+      irRow(l)+
     '</div>'+
     '<button class="cbtn btn-go"   onclick="dc(\\'go/'+l.id+'\\')">BEGIN</button>'+
     '<button class="cbtn btn-stop" onclick="dc(\\'stop/'+l.id+'\\')">PAUSE</button>'+

@@ -18,4 +18,4 @@ static constexpr uint32_t IR_TX_INTERVAL_MS   = 50;          // 20 reports/s, pr
 static constexpr uint32_t IR_STOPPED_MS       = 2500;        // no pulse progress -> STOPPED/0
 
 // Toby's WiFi STA MAC. FILL IN AT BENCH PAIRING (spec §11.3 step 1).
-static const uint8_t TOBY_STA_MAC[6] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
+static const uint8_t TOBY_STA_MAC[6] = { 0x38, 0x18, 0x2B, 0x30, 0x8C, 0x2C };  // bench-paired 2026-08-18

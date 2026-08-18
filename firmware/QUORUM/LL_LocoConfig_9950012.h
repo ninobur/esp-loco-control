@@ -23,7 +23,7 @@
 // it never falls back to accepting any sender.
 // ---------------------------------------------------------------------------
 #define IR_TEST_A_ENABLED 1
-#define IR_SENSOR_MAC_BYTES {0x00,0x00,0x00,0x00,0x00,0x00}
+#define IR_SENSOR_MAC_BYTES {0xEC,0xE3,0x34,0x78,0xA2,0x60}   // IR Test Car, bench-paired 2026-08-18
 #define HALL_POLARITY_INVERTED false
 
 // Blynk
