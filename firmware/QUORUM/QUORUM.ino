@@ -1069,6 +1069,12 @@ static const uint8_t  CRUISE_PWM       = 90;    // v1.12 operator tuning (was 10
 // Speeds are PWM, not speed: decision 0014's SPEED_HOLD is still unbuilt, so
 // this is throttle-as-proxy and inherits every limitation 0014 names.
 // ---------------------------------------------------------------------------
+// Feature marker so tests/harness.cpp can offer CE commands only when the
+// sketch under compilation actually has CE. verify_inert.py builds the CURRENT
+// harness against an OLDER QUORUM.ino to prove behavioural inertness, and
+// without this guard every such comparison across the CE boundary fails to
+// build rather than reporting a result.
+#define CE_MISSION_PRESENT 1
 enum CeMission : uint8_t { CE_NONE=0, CE_EXPRESS, CE_LOCAL };
 static CeMission      ceMission          = CE_NONE;
 static const uint8_t  CE_EXPRESS_PWM     = 110;   // operator 2026-08-19
@@ -1078,6 +1084,17 @@ static const uint32_t CE_EXPRESS_DWELL_MS= 5000UL;// when the express does stop
 static uint16_t ceStationSeq = 0;    // stations met since this CE began
 static int8_t   ceSkipLatch  = -1;   // station whose skip decision is already made
 static bool     ceSkipNow    = false;// ...and what that decision was
+// CE is a FLEET routine, and its lifecycle is shared. Both locomotives run the
+// identical rule below and reach the same conclusion from their own geometry,
+// so no CE field is needed on the frozen wire packet.
+//
+// ceSeparated arms the ending. At the instant CE is assigned the two trains are
+// still inside pairing range — they were a bubble one tick ago — so "a peer is
+// close" is true immediately and would end CE before the express ever pulled
+// away. The mission therefore cannot end until the fleet has first been seen
+// APART, which is the express actually running its service. Review found the
+// first version ending CE ~100 ms after it began.
+static bool     ceSeparated  = false;
 static const char* ceMissionName(){
   return ceMission==CE_EXPRESS ? "EXPRESS" : ceMission==CE_LOCAL ? "LOCAL" : "NONE";
 }
@@ -3875,6 +3892,7 @@ static void handleCommand(const char* topic,const char* msg){
     // ungrey and a stray GO cannot restart it.
     autoRunning=false; autoEnrolled=false;
     requestPwm(0,NORMAL_STEP_MS);
+    ceEnd("DISPATCHER_RELEASE");   // a mission must not outlive the session
     stationReset("DISPATCHER_RELEASE");
     publishWarning("RELEASED: dispatcher control ended");
     navPublishState("DISPATCHER_RELEASE",nullptr);
@@ -4897,12 +4915,32 @@ static void ceBegin(){
     pub(T_ST_CTO,b,false);
     return;
   }
-  ceStationSeq=0; ceSkipLatch=-1; ceSkipNow=false;
+  ceStationSeq=0; ceSkipLatch=-1; ceSkipNow=false; ceSeparated=false;
   char b[128];
   snprintf(b,sizeof(b),"{\"event\":\"CE_BEGIN\",\"mission\":\"%s\",\"cruise\":%d}",
            ceMissionName(),ceCruisePwm());
   pub(T_ST_CTO,b,false);
-  ctoDissolve("CE_MISSION_ASSIGNED");   // §9.1: CE severs the pair
+  ctoDissolve("CE_MISSION_ASSIGNED");   // CE severs the pair...
+  // ...and ctoEvaluateRoles() would re-latch it on the very next 10 Hz pass,
+  // because the two trains are still within CTO_PAIR_RANGE_MARKERS. Severance
+  // only holds because an active mission INHIBITS formation (see
+  // ctoEvaluateRoles). Without that inhibit this dissolve is decoration.
+}
+
+// Is a fresh same-direction peer within the slow threshold, in EITHER
+// direction? Deliberately direction-agnostic: the express detects the local it
+// has caught from behind, and the local detects the express closing on it, from
+// the same test and the same numbers. Neither needs to know its own mission to
+// answer it, which is what makes the two locomotives agree.
+static bool ceNearPeer(){
+  for(uint8_t i=0;i<CTO_MAX_PEERS;i++){
+    const CtoPeer& p=ctoPeers[i];
+    if(!ctoPeerFresh(p)||!ctoPeerSameDir(p)) continue;
+    uint16_t ga=ctoGapAhead(p), gb=ctoGapBehind(p);
+    uint16_t g=(ga<gb)?ga:gb;
+    if(g<=CTO_SLOW_GAP_MARKERS) return true;
+  }
+  return false;
 }
 
 static void ceEnd(const char* why){
@@ -4912,6 +4950,7 @@ static void ceEnd(const char* why){
            ceMissionName(),why,(unsigned)ceStationSeq);
   pub(T_ST_CTO,b,false);
   ceMission=CE_NONE; ceStationSeq=0; ceSkipLatch=-1; ceSkipNow=false;
+  ceSeparated=false;
 }
 
 static void ctoDissolve(const char* why){
@@ -5024,6 +5063,18 @@ static void ctoEvaluateRoles(){
       return;                                  // 0031's job, not 0037's
     }
   }
+  // CE INHIBITS FORMATION. Dissolving at ceBegin() is not enough on its own:
+  // this function re-derives roles from geometry every 100 ms, and at that
+  // moment the two trains are still inside CTO_PAIR_RANGE_MARKERS, so the pair
+  // would re-latch immediately and the fleet would hold missions AND a pairing
+  // at once. The mission holds them apart until it ends, which is exactly when
+  // they have closed up again and paired service is what we want back.
+  //
+  // Placed AFTER every dissolution path above: a direction change, a partner
+  // direction change or an order inversion must still be able to break a
+  // pairing that already exists while a mission runs.
+  if(ceMission!=CE_NONE && ctoRole==CTO_ROLE_NONE) return;
+
   // pick the nearest fresh same-direction quorum-holding peer
   int8_t best=-1; uint16_t bestGap=0xFFFF; bool bestAhead=true;
   for(uint8_t i=0;i<CTO_MAX_PEERS;i++){
@@ -5233,11 +5284,16 @@ static void ctoHandleClear(const char* msg){
     return;
   }
   if(!strcmp(pay,"clear")){
+    // CE ends here too. The mission was derived from a pairing and is ended by
+    // peer geometry; wiping the peer registry destroys both, so a surviving
+    // mission would be one nothing could ever end.
+    ceEnd("OPERATOR_CLEAR");
     for(uint8_t i=0;i<CTO_MAX_PEERS;i++) ctoPeers[i]=CtoPeer{};
     ctoDissolve("OPERATOR_CLEAR");
     ctoExpectedId=0; ctoFleetHold=false; ctoTraffic=CTRAF_CLEAR; ctoTrafficForId=0;
     pub(T_ST_CTO,"{\"event\":\"CTO_CLEARED\"}",false);
   }else if(!strcmp(pay,"off")){
+    ceEnd("CTO_OFF");   // no CTO, no missions: CE is a CTO routine
     ctoEnabled=false; ctoDissolve("CTO_OFF");
     ctoExpectedId=0; ctoFleetHold=false; ctoTraffic=CTRAF_CLEAR; ctoTrafficForId=0;
     pub(T_ST_CTO,"{\"event\":\"CTO_OFF\"}",false);
@@ -5251,15 +5307,26 @@ static void ctoHandleClear(const char* msg){
 
 // ---- service (loop thread, self-rate-limited) -------------------------------
 static void ctoService(){
-  // CE ends the instant traffic first slows or holds the express — that IS the
-  // express having caught the local (operator 2026-08-19). Read from ctoTraffic
-  // rather than from geometry, so the mission ends on exactly the condition the
-  // traffic layer acted on, not on a second opinion about the same gap.
+  // ---- CE lifecycle, run identically on BOTH locomotives -------------------
+  // The routine ends when the fleet closes back up: the express has caught the
+  // local, and ordinary paired service should resume with the roles swapped by
+  // geometry (operator 2026-08-19).
   //
-  // Only the EXPRESS ends CE this way. The local being held by something else
-  // is not the express catching anything, and clearing its mission there would
-  // put it back to full cruise while it is boxed in.
-  if(ceMission==CE_EXPRESS && ctoTraffic!=CTRAF_CLEAR) ceEnd("CAUGHT_LOCAL_TRAFFIC_SLOWING");
+  // Symmetry is the point. An earlier version ended CE only for the EXPRESS, on
+  // its own traffic phase — so the LOCAL kept its mission forever, running at
+  // PWM 75 with 15 s dwells past the encounter, past re-pairing, until reboot.
+  // Nothing on the wire carries CE, so a mission the peer cannot see must be
+  // one the peer can independently CONCLUDE. Both trains measure the same gap and end
+  // together.
+  if(ceMission!=CE_NONE){
+    if(!ceSeparated){
+      // Arming: the fleet must actually come apart first, otherwise the pairing
+      // range they start inside ends CE immediately.
+      if(!ceNearPeer()) ceSeparated=true;
+    }else if(ceNearPeer()){
+      ceEnd("FLEET_CLOSED_UP_RESUME_PAIRED_SERVICE");
+    }
+  }
   if(!ctoRadioUp) return;
   // drain radio queue (recv callback only copies)
   if(ctoRxQueue){

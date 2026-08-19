@@ -31,29 +31,39 @@ SKETCH = HERE.parent
 def build_at_ref(ref, workdir):
     """Check QUORUM.ino out at `ref` beside the current config headers and
     build the CURRENT harness against it."""
+    # LAYOUT MATTERS. The sketch includes "../common/IRSpeedWire.h", so the
+    # shared-header directory has to be a SIBLING of the sketch directory, not
+    # a child of it. The first version copied the config headers beside the
+    # .ino and nothing else, so every baseline build after IR Test A introduced
+    # firmware/common/ died on that include — this check has been silently
+    # unavailable since, which is worse than a check that fails loudly.
     workdir = pathlib.Path(workdir)
     if workdir.exists():
         shutil.rmtree(workdir)
-    (workdir / 'tests').mkdir(parents=True)
+    sketch = workdir / 'QUORUM'
+    (sketch / 'tests').mkdir(parents=True)
+    (workdir / 'common').mkdir(parents=True)
+    for shared in (SKETCH.parent / 'common').glob('*.h'):
+        shutil.copy(shared, workdir / 'common' / shared.name)
     src = subprocess.run(
         ['git', 'show', f'{ref}:firmware/QUORUM/QUORUM.ino'],
         capture_output=True, text=True, cwd=SKETCH)
     if src.returncode != 0:
         sys.exit(f'cannot read QUORUM.ino at {ref}: {src.stderr}')
-    (workdir / 'QUORUM.ino').write_text(src.stdout)
+    (sketch / 'QUORUM.ino').write_text(src.stdout)
     for h in ('LocoConfig.h', 'LL_LocoConfig_9950011.h',
               'LL_LocoConfig_9950012.h', 'credentials.h'):
         p = SKETCH / h
         if p.exists():
-            shutil.copy(p, workdir / h)
+            shutil.copy(p, sketch / h)
     # The SAME harness drives both, so any difference is the sketch's.
-    shutil.copytree(HERE / 'shim', workdir / 'tests/shim')
-    shutil.copy(HERE / 'harness.cpp', workdir / 'tests/harness.cpp')
+    shutil.copytree(HERE / 'shim', sketch / 'tests/shim')
+    shutil.copy(HERE / 'harness.cpp', sketch / 'tests/harness.cpp')
     out = workdir / 'harness_bin'
     r = subprocess.run(
         ['clang++', '-std=c++17', '-Wno-format',
-         '-I', str(workdir / 'tests/shim'), '-I', str(workdir),
-         '-o', str(out), str(workdir / 'tests/harness.cpp')],
+         '-I', str(sketch / 'tests/shim'), '-I', str(sketch),
+         '-o', str(out), str(sketch / 'tests/harness.cpp')],
         capture_output=True, text=True)
     if r.returncode != 0:
         print(r.stderr[-3000:])

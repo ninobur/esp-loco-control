@@ -21,12 +21,36 @@ permanently unserved.
 protection already decelerates and holds behind a slower train, and Q1/Q2
 already re-derives roles from geometry.
 
-**CE ends the moment traffic first slows or holds the express** — that is the
-express having caught the local. Missions clear, ordinary service resumes, and
-the pair re-forms by geometry with the roles swapped, because the local is now
-ahead. Only the EXPRESS terminates CE this way; a LOCAL held by something else
-has caught nothing, and clearing its mission there would return it to full
-cruise while it is boxed in.
+**CE ends, on both locomotives, when the fleet closes back up** — a fresh
+same-direction peer within `CTO_SLOW_GAP_MARKERS` (18), measured on the nearest
+arc in either direction. That is the express having caught the local. Missions
+clear, the formation inhibit lifts, and the pair re-forms by geometry with the
+roles swapped, because the local is now ahead.
+
+Two properties of that rule are load-bearing, and review found the first
+implementation lacking both:
+
+- **It is symmetric.** Nothing on the frozen wire packet carries CE, so a
+  mission the peer cannot see must be one the peer can independently
+  *conclude*. Both locomotives measure the same gap with the same numbers and
+  end together. An express-only ending left the LOCAL at PWM 75 with 15 s
+  dwells for ever, since nothing else could clear it.
+- **It must arm first.** At assignment the two trains are still inside pairing
+  range — they were a bubble one tick earlier — so "a peer is close" is true
+  immediately. CE therefore cannot end until the fleet has been seen *apart*
+  at least once. Without that latch CE ended roughly 100 ms after it began.
+
+**An active mission inhibits pairing.** Dissolving at assignment is not
+sufficient on its own: `ctoEvaluateRoles()` re-derives roles from geometry every
+100 ms, and at that moment the trains are still within `CTO_PAIR_RANGE_MARKERS`,
+so the pair re-latches immediately and the fleet holds missions *and* a pairing
+at once. The inhibit is placed after every dissolution path, so a direction
+change, partner direction change or order inversion can still break an existing
+pairing while a mission runs.
+
+CE also ends on `cmd/cto clear`, `cmd/cto off`, and dispatcher release — a
+mission derived from a pairing and ended by peer geometry must not survive the
+destruction of either.
 
 CE is **refused** when the locomotive has no derived role, and says so
 (`CE_REFUSED / NO_ROLE_NOTHING_TO_SEVER`). Without a pairing there is nothing to
@@ -37,8 +61,12 @@ sever and no way to say which train should run fast.
 The console has published `ngr/dispatcher/cmd/ce` since v1.9.5 with nothing
 subscribed — the button existed, the firmware never listened.
 
-`BUBBLE_V1_SPEC.md` §9 describes CE as severance plus a chase. The operator's
-later notes supersede that framing:
+### Where each part of this decision comes from
+
+Kept separate deliberately: an earlier draft of this record said "the design
+came from the operator's notes", which overstated what the notes contain.
+
+**From the notes** — the architectural shape, and only that:
 
 > circuit express becomes much simpler. It just becomes a command to temporarily
 > suspend the station stops for a locomotive that happens to be in the lead.
@@ -48,14 +76,29 @@ later notes supersede that framing:
 > collision-aware traffic control.
 > — `docs/CTO3/resources/NEW_PARADIGM.txt:17`
 
-That is the design followed here. CTO2 died of special two-train scripts, and
-every clever addition to CE would be a re-implementation of the traffic layer
-in a second place.
+That is the authority for CE being a station-service instruction with no chase
+logic of its own. CTO2 died of special two-train scripts, and every clever
+addition to CE would re-implement the traffic layer in a second place.
 
-The one divergence from the notes is deliberate and operator-specified: the
-notes have the express *resume* skipping when track clears, making CE a standing
-mission. The operator specified the original CTO2 behaviour instead — CE is a
-routine that runs and completes, ending when the express catches the local.
+**From the operator, in conversation 2026-08-19** — every concrete parameter.
+None of these appear in the notes or in any prior spec:
+
+- leader → express, follower → local, and CE severs the pairing;
+- skip **every third** station, rotating;
+- cruise 110 express / 75 local, ordinary cruise unchanged at 90;
+- 5 s express dwell;
+- **CE ends** when the express is close enough to the local to require slowing,
+  after which they re-pair in the new arrangement.
+
+**Superseded:** `BUBBLE_V1_SPEC.md` §9 frames CE as severance plus an explicit
+chase, and has the roles swapping through spec'd steps. The notes' framing
+replaces the chase; the operator's specification replaces the ending.
+
+**A direct conflict, resolved by the operator.** `NEW_PARADIGM.txt:17` says the
+express *resumes* skipping once track clears, making CE a standing mission. The
+operator specified the original CTO2 behaviour instead: CE is a routine that
+runs and completes. The operator's instruction governs, and the conflict is
+recorded here rather than smoothed over.
 
 ## Alternatives considered
 

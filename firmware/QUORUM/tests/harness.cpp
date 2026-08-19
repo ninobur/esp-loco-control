@@ -252,6 +252,20 @@ int main(){
       size_t b=payload.find_first_not_of(" \t");
       if(b!=std::string::npos) payload=payload.substr(b); else payload.clear();
       ctoHandleClear(payload.c_str());
+#ifdef CE_MISSION_PRESENT
+    } else if(cmd=="ce"){
+      // Route through the REAL dispatcher entry point, not ceMission directly:
+      // the refusal-when-unrolled path and the severance are part of what is
+      // under test, and setting the state by hand would skip both.
+      ceBegin();
+    } else if(cmd=="ce_dump"){
+      std::printf("{\"ce\":true,\"mission\":\"%s\",\"cruise\":%d,"
+                  "\"dwell\":%lu,\"seq\":%u,\"role\":\"%s\"}\n",
+                  ceMissionName(), ceCruisePwm(),
+                  (unsigned long)ctoDwellMs(), (unsigned)ceStationSeq,
+                  ctoRole==CTO_ROLE_LEADER?"LEADER":
+                  ctoRole==CTO_ROLE_FOLLOWER?"FOLLOWER":"NONE");
+#endif
     } else if(cmd=="cto_off"){
       ctoEnabled=false;
     } else if(cmd=="advance"){

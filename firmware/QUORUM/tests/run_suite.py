@@ -650,6 +650,13 @@ def main():
         if r.returncode != 0:
             failures.append('cto role tests failed (see above)')
 
+        print('\n== 4c-2. CE (Circuit Express) mission lifecycle — decision 0038 ==')
+        r = subprocess.run([sys.executable, str(HERE / 'test_ce_mission.py'),
+                            args.harness], capture_output=True, text=True)
+        print(r.stdout.rstrip())
+        if r.returncode != 0:
+            failures.append('ce mission tests failed (see above)')
+
         # IR Test A (spec §11.2): only when the harness build carries the IR
         # layer — probe by asking for an ir_dump and seeing whether it answers.
         probe = subprocess.run([args.harness], input='ir_dump\n',
