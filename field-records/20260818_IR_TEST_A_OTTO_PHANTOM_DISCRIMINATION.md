@@ -63,10 +63,36 @@ dropout while cruising.
 lockout behaviour, no navigation authority. No firmware changed as a result of
 the 2026-08-18 observation.
 
-**Outstanding, in order:** (1) a revised dropout map with station phases
-excluded and each Hall-to-Hall segment classified; (2) a same-conditions
-sender A/B against the pre-2026-08-18 build; (3) repeated passes through one
-clean and one bad ordinary-running section, both directions.
+### A/B result — the sender revision is cleared
+
+No reflash was needed: **2026-08-18 already contains the experiment.** The
+sender was reflashed at ~23:00 mid-session, so the same night holds both
+builds under the same darkness, direction and route. Measured phase-exact,
+ordinary running only:
+
+| condition | hops | coverage | markers <60% |
+|---|---|---|---|
+| dark, CCW, **pre-08-18** sender | 1256 | **98.3%** | none |
+| dark, CCW, **post-08-18** sender | 853 | **98.4%** | none |
+| daylight, CW, post-08-18 sender | 1269 | **~70%** | 31 |
+
+A 0.1-point difference across the firmware change, with no marker below 60%
+in either half. **The §4 sender changes are not the cause.** The variable lies
+between last night and this morning.
+
+**Two candidates remain and they are confounded:** ambient light (20:35–00:02
+dark vs 10:38 sun) and direction (CCW vs CW). Both changed at once. A CCW lap
+in daylight separates them and needs no bench work.
+
+**Withdrawn before it propagates:** a curvature hypothesis was proposed in
+session — that dropout clustered at Southpoint/Westpoint/Northpoint/Eastpoint
+because those were curves. The operator confirms **all four are straight, and
+so is the clean mm 41–50 stretch.** Curvature is not the variable, and the
+apparent landmark correlation was coincidence.
+
+**Outstanding:** a CCW-in-daylight lap to separate light from direction. The
+station-excluded map (1) and the sender A/B (2) are done; per-location physical
+investigation is the operator's, not something to be pursued from telemetry.
 
 ---
 
