@@ -1,5 +1,75 @@
 # 2026-08-18 (evening) — IR Test A on Otto: the first phantom IR would have vetoed
 
+---
+
+## CORRECTION — 2026-08-19 (read before §1)
+
+**The marker-veto recommendation in §1 is withdrawn.** `bestk=0` is not
+presently sufficient to veto anything.
+
+**Evidence.** Otto, CW, morning of 2026-08-19: 402 `bestk=0` verdicts, of which
+**355 fell on genuine markers** — accepted by a fully-running `gate=ACTIVE`,
+`NAV AGREE` with correct polarity, peaks 120–186. A veto on this signal would
+have rejected 355 real markers in a single session. Last night's
+three-for-three was measured in darkness and is not a rate.
+
+**Conceptual correction, and it is this record's error rather than the
+firmware's.** `bestk=0` was never a formal "phantom verdict" in the Test A
+specification. It is the nearest of five distance hypotheses in an explicitly
+**tolerance-free observer** — which is exactly why every record it appears in
+is stamped `agree:"OBSERVE_ONLY"`. The firmware labelled its own confidence
+correctly throughout. §1 promoted a promising three-event observation into
+more authority than the design had earned, and repeated the phrase "the spec's
+phantom verdict" for something the spec does not call a verdict.
+
+**What Test A has actually exposed — the finding worth keeping.** The IR layer
+emits *two independent products*, and they fail independently:
+
+| product | derivation | failure mode observed |
+|---|---|---|
+| speed | median of recent pulse **intervals** | stays plausible — 240–280 mm/s, `VALID` |
+| distance | **cumulative** pulse count | silently under-counts, to 53% capture |
+
+An apparently healthy IR speed does **not** certify IR distance. The console
+reading an operator would trust was correct while the channel feeding the
+verdict was not. That is not a failure of the project; it is precisely what
+Test A exists to find, and it could only have been found by observing.
+
+**Cause is unresolved.** Live hypotheses: ambient/daylight optical conditions,
+the 2026-08-18 sender revision (§4), mounting or wheel-contact behaviour,
+curve/grade/vibration, or a detector response to a condition that itself
+occurs at particular places. A monotonic correlation with optical `span`
+(84% pulse capture at span<500, 53% above 3000) is documented but is a
+correlation, not a cause.
+
+**A claim made in session and also withdrawn:** that the moving-dropout
+regions are separate from station behaviour. Not established — mm 107 and
+mm 156 in that map are Arches and the Bamboo landing. Station approach, dwell,
+departure and the first post-dwell segment must be excluded before any segment
+is called cruising under-count. Likewise "the spatial pattern largely
+exonerates the firmware" overstates it: the correct statement is that the
+pattern **makes a uniform code regression unlikely**. Changed code can still
+interact with position through station state, speed, and pulse gaps — the
+unconditional edge-silence path in §4(a) activates only *after* a pulse gap,
+so a location-specific dropout can expose a code-path difference without the
+code knowing its map position.
+
+**`cinv` is not the moving-odometry health flag.** The contrast episodes
+cluster at mm 17/64/109/158 — the four station stops — and are expected
+behaviour for a stationary wheel. Benign, and a separate phenomenon from
+dropout while cruising.
+
+**Status: unchanged.** IR remains `OBSERVE_ONLY`. No veto, no new stop or
+lockout behaviour, no navigation authority. No firmware changed as a result of
+the 2026-08-18 observation.
+
+**Outstanding, in order:** (1) a revised dropout map with station phases
+excluded and each Hall-to-Hall segment classified; (2) a same-conditions
+sender A/B against the pre-2026-08-18 build; (3) repeated passes through one
+clean and one bad ordinary-running section, both directions.
+
+---
+
 **Session:** the IR Test Car handed off from Toby to Otto, then ~3 hours of
 running — AUTO, one manual interlude, counter-clockwise. Observation only
 throughout: `authority:"OBSERVE_ONLY"` on every `telem/speed` frame, zero
