@@ -1043,6 +1043,52 @@ static void hallTask(void*){
 // navigation state.
 // ===========================================================================
 static const uint8_t  CRUISE_PWM       = 90;    // v1.12 operator tuning (was 100); approach ramps derive from this automatically
+
+// ---------------------------------------------------------------------------
+// CIRCUIT EXPRESS (CE) — the mission layer. Operator specification 2026-08-19.
+//
+// CE is a MISSION, never a spacing decision (BUBBLE_V1_SPEC §9 — bicameral, so
+// the dispatcher may assign it). The leader becomes the EXPRESS, the follower
+// the LOCAL, and the pairing is severed: they stop being a bubble and become
+// two trains running different services on shared track.
+//
+// NOTHING HERE WATCHES FOR THE EXPRESS CATCHING THE LOCAL, and nothing should.
+// Layer 5 already decelerates and holds behind a slower train, and Q1/Q2
+// already re-derives roles from geometry. The operator's own note is the
+// authority (docs/CTO3/resources/PHYSICAL_ENVELOPE_NOTE.txt:13): "circuit
+// express becomes much simpler. It just becomes a command to temporarily
+// suspend the station stops for a locomotive that happens to be in the lead."
+// Every attempt to make CE clever about the chase is a re-invention of the
+// traffic layer, and CTO2 died of exactly that.
+//
+// CE ENDS the moment traffic first slows or holds the express — that IS the
+// express having caught the local. Missions clear, ordinary service resumes,
+// and the pair re-forms by geometry with the roles swapped, because the local
+// is now ahead. Operator specification 2026-08-19, matching original CTO2.
+//
+// Speeds are PWM, not speed: decision 0014's SPEED_HOLD is still unbuilt, so
+// this is throttle-as-proxy and inherits every limitation 0014 names.
+// ---------------------------------------------------------------------------
+enum CeMission : uint8_t { CE_NONE=0, CE_EXPRESS, CE_LOCAL };
+static CeMission      ceMission          = CE_NONE;
+static const uint8_t  CE_EXPRESS_PWM     = 110;   // operator 2026-08-19
+static const uint8_t  CE_LOCAL_PWM       = 75;    // operator 2026-08-19
+static const uint8_t  CE_SKIP_EVERY      = 3;     // express skips every third station
+static const uint32_t CE_EXPRESS_DWELL_MS= 5000UL;// when the express does stop
+static uint16_t ceStationSeq = 0;    // stations met since this CE began
+static int8_t   ceSkipLatch  = -1;   // station whose skip decision is already made
+static bool     ceSkipNow    = false;// ...and what that decision was
+static const char* ceMissionName(){
+  return ceMission==CE_EXPRESS ? "EXPRESS" : ceMission==CE_LOCAL ? "LOCAL" : "NONE";
+}
+// Open-main cruise for the active mission. Grade sections keep their OWN cruise
+// (see cruiseForPosition): those values were tuned to pull specific hills, and a
+// mission is a service pattern, not a licence to re-tune the railway's physics.
+static inline int ceCruisePwm(){
+  if(ceMission==CE_EXPRESS) return (int)CE_EXPRESS_PWM;
+  if(ceMission==CE_LOCAL)   return (int)CE_LOCAL_PWM;
+  return (int)CRUISE_PWM;
+}
 static const uint8_t  STATION_ZONE_PWM = 60;
 static const uint16_t NORMAL_STEP_MS   = 150;
 
@@ -1066,6 +1112,14 @@ static uint32_t ctoDwellMs();              // confirmed follower dwell, else DWE
 static void     ctoService();              // 10 Hz: registry, roles, gates; loop thread
 static void     ctoRadioInit();            // esp_now up, once, after WiFi connects
 static void     ctoHandleClear(const char* msg); // cmd/cto — operator clear/off
+static void     ctoDissolve(const char* why);    // end a pairing, say why
+// CE (Circuit Express) mission hooks. Declared here because the command
+// handler calls ceBegin() ~1000 lines before it is defined: the Arduino IDE
+// auto-generates prototypes and hides that, but tests/harness.cpp compiles the
+// sketch as plain C++ and does not. Same trap the TYPES block at the top warns
+// about — it cost a green IDE build and a red suite before this line existed.
+static void     ceBegin();                       // dispatcher CE: assign missions, sever
+static void     ceEnd(const char* why);          // missions clear, ordinary service resumes
 // QUORUM decision events (adoption, incident open/close, phantom, fixture)
 // ride pubMarker() per §5.1; defined after the transport, called from Layer 3.
 // `extra` is a pre-formatted JSON fragment beginning with a comma, or "".
@@ -2475,11 +2529,16 @@ static const uint32_t STATION_MAX_PHASE_MS= 120000UL;
 //   step = (CRUISE - ZONE) / (ZONE_START - APPROACH_START)
 //   at 100/60 over offsets -10..-6:  92, 84, 76, 68, 60
 static int approachTargetForOffset(int16_t o,uint8_t zonePwm){
-  if(o <  APPROACH_START) return CRUISE_PWM;
+  // CE: derive from the MISSION's cruise, not the bare constant. The comment
+  // above warns that hard-coded values stop matching the moment CRUISE_PWM
+  // changes; a mission changes it just as surely, and a LOCAL approaching from
+  // 75 must not be handed a ramp built for 90.
+  const int cruise = ceCruisePwm();
+  if(o <  APPROACH_START) return cruise;
   if(o >= ZONE_START)     return zonePwm;
   const int steps = (int)ZONE_START - (int)APPROACH_START;      // 5
   const int idx   = (int)(o - APPROACH_START) + 1;              // 1..5
-  return (int)CRUISE_PWM - ((int)CRUISE_PWM - (int)zonePwm)*idx/steps;
+  return cruise - (cruise - (int)zonePwm)*idx/steps;
 }
 
 // M and M+1 only. The 2026-07-26 run showed PWM 25 is below the tractive
@@ -2588,7 +2647,7 @@ static int cruiseForPosition(){
       return (int)g.cruisePwm;
     }
   }
-  return CRUISE_PWM;
+  return ceCruisePwm();   // CE: mission cruise on the open main; grades above keep theirs
 }
 
 // LAYER 5 (CODEX 1.14 review, finding 1): the CTO limiter lives HERE, inside
@@ -2782,6 +2841,31 @@ static void serviceStations(){
       if(!stationEnabled(i)) continue;   // Station Stop v1: mission filter
       int16_t o=offsetToCentre(navMm,navDir,STATIONS[i].centerMm);
       if(o<=APPROACH_START && o>APPROACH_START-3){
+        // CE EXPRESS: skip every third station MET, so the skipped platform
+        // rotates — with four stations the pattern is Arches, then Grillers,
+        // then Patio, then Bamboo, repeating every three laps rather than
+        // punishing one platform every time.
+        //
+        // The latch makes the decision once per encounter. Arming is naturally
+        // once-per-station because it changes phase out of ST_IDLE, but a SKIP
+        // does not, so without the latch this polling loop would re-decide (and
+        // re-count) every pass. Comparing against the station INDEX is enough:
+        // the next station met is always a different one on a loop.
+        if(ceSkipLatch != (int8_t)i){
+          ceSkipLatch = (int8_t)i;
+          ceSkipNow   = false;
+          if(ceMission==CE_EXPRESS){
+            // Counter advances ONCE PER STATION MET, and only under the express
+            // mission, so the rotation is a property of this CE run. Written out
+            // rather than folded into the condition: an increment hidden behind
+            // && stops happening the moment the left operand goes false, which
+            // is precisely the sort of quiet dependency that survives review.
+            ceSkipNow = ((ceStationSeq % CE_SKIP_EVERY) == (CE_SKIP_EVERY-1));
+            ceStationSeq++;
+            if(ceSkipNow) stationPublish("SKIPPED",o,"CE_EXPRESS_ROTATING_SKIP");
+          }
+        }
+        if(ceSkipNow) continue;   // run through: no arm, no phase change
         stIndex=(int8_t)i; stationSetPhase(ST_APPROACH);
         requestPwmOver(approachTargetForOffset(o,STATIONS[i].zonePwm),APPROACH_RAMP_MS);
         stationPublish("ARMED",o,(navState==NAV_NORMAL)?"RANGE_ARM_NORMAL":"RANGE_ARM_EVALUATING");
@@ -2978,6 +3062,7 @@ static char T_ST_THROTTLE[64],T_ST_DIRECTION[64],T_ST_BRAKE[64],T_ST_ESTOP[64],
 // without a dashboard change.
 static char T_TELEM_V[64],T_TELEM_A[64],T_TELEM_W[64],T_ST_LOWVOLT[64];
 static char T_CMD_AUTO[64],T_CMD_GO[64],T_CMD_STOP[64],T_CMD_DIR[64],T_CMD_SESSDIR[64];
+static char T_CMD_CE[64];
 static char T_CMD_STARTMM[64],T_CMD_ESTOP[64],T_CMD_ESTOP_ALL[64],T_CMD_THROTTLE[64],T_CMD_STARTINT[64],
             T_CMD_RELEASE[64],T_CMD_FORCELOST[64],T_CMD_CTO[64];
 static char T_ST_CTO[64];   // LAYER 5 state topic: role, partner, gaps, holds
@@ -3030,6 +3115,10 @@ static void buildTopics(){
   // on the console page had never worked, on SOLONAV or QUORUM. Every other
   // dispatcher command is auto-chamber only; this one reaches both.
   snprintf(T_CMD_ESTOP_ALL,64,"ngr/dispatcher/cmd/estop");
+  // CE is fleet-wide: one press, both locomotives take the mission their own
+  // role implies. The console has published this since v1.9.5 with nothing
+  // listening (server/ngr_app_v1_11_2.py:2381).
+  snprintf(T_CMD_CE      ,64,"ngr/dispatcher/cmd/ce");
   snprintf(T_CMD_THROTTLE,64,"ngr/loco/%s/cmd/throttle"         ,id);
   snprintf(T_CMD_GO      ,64,"ngr/dispatcher/cmd/go/%s"         ,id);
   snprintf(T_CMD_STOP    ,64,"ngr/dispatcher/cmd/stop/%s"       ,id);
@@ -3790,6 +3879,13 @@ static void handleCommand(const char* topic,const char* msg){
     publishWarning("RELEASED: dispatcher control ended");
     navPublishState("DISPATCHER_RELEASE",nullptr);
   }
+  else if(!strcmp(topic,T_CMD_CE)){
+    // Bicameral: a mission is allowed from the dispatcher in either chamber
+    // (BUBBLE_V1_SPEC §9). It changes service pattern only -- it cannot start
+    // a stopped locomotive, cannot clear an E-stop, and cannot raise any cap
+    // the traffic layer has applied.
+    if(atoi(msg)!=0) ceBegin();
+  }
   else if(!strcmp(topic,T_CMD_ESTOP) || !strcmp(topic,T_CMD_ESTOP_ALL)){
     estopped=(atoi(msg)!=0);
     // P14 (operator ruling R13; console-authority spec Draft 5): E-STOP no
@@ -3878,6 +3974,7 @@ static void subscribeAll(){
   mqtt.subscribe(T_CMD_STOP);     mqtt.subscribe(T_CMD_DIR);
   mqtt.subscribe(T_CMD_SESSDIR);  mqtt.subscribe(T_CMD_STARTMM);
   mqtt.subscribe(T_CMD_ESTOP);    mqtt.subscribe(T_CMD_ESTOP_ALL);
+  mqtt.subscribe(T_CMD_CE);
   mqtt.subscribe(T_CMD_THROTTLE);
   mqtt.subscribe(T_CMD_STARTINT);
   mqtt.subscribe(T_CMD_RELEASE);
@@ -4786,6 +4883,37 @@ static void ctoAcceptEcho(const Cto3RoleEcho& e){
 }
 
 // ---- roles (decision 0032: derived, latched, echoed) -----------------------
+// CE assignment and termination. Both publish, because a mission that changes
+// speed and skips platforms must never be inferred from behaviour.
+static void ceBegin(){
+  // Missions come from the CURRENT derived roles. No role means no pairing to
+  // sever and no way to say which train is the express, so CE is refused and
+  // says why — the alternative is guessing which locomotive runs fast.
+  if(ctoRole==CTO_ROLE_LEADER)        ceMission=CE_EXPRESS;
+  else if(ctoRole==CTO_ROLE_FOLLOWER) ceMission=CE_LOCAL;
+  else{
+    char b[96];
+    snprintf(b,sizeof(b),"{\"event\":\"CE_REFUSED\",\"why\":\"NO_ROLE_NOTHING_TO_SEVER\"}");
+    pub(T_ST_CTO,b,false);
+    return;
+  }
+  ceStationSeq=0; ceSkipLatch=-1; ceSkipNow=false;
+  char b[128];
+  snprintf(b,sizeof(b),"{\"event\":\"CE_BEGIN\",\"mission\":\"%s\",\"cruise\":%d}",
+           ceMissionName(),ceCruisePwm());
+  pub(T_ST_CTO,b,false);
+  ctoDissolve("CE_MISSION_ASSIGNED");   // §9.1: CE severs the pair
+}
+
+static void ceEnd(const char* why){
+  if(ceMission==CE_NONE) return;
+  char b[128];
+  snprintf(b,sizeof(b),"{\"event\":\"CE_END\",\"mission\":\"%s\",\"why\":\"%s\",\"stations\":%u}",
+           ceMissionName(),why,(unsigned)ceStationSeq);
+  pub(T_ST_CTO,b,false);
+  ceMission=CE_NONE; ceStationSeq=0; ceSkipLatch=-1; ceSkipNow=false;
+}
+
 static void ctoDissolve(const char* why){
   if(ctoRole!=CTO_ROLE_NONE){
     char b[96]; snprintf(b,sizeof(b),"{\"event\":\"CTO_UNPAIRED\",\"why\":\"%s\",\"partner\":%lu}",why,(unsigned long)ctoPartnerId);
@@ -4926,6 +5054,11 @@ static uint32_t ctoDwellMs(){
   // stale wording while keeping the correct 5000 constant, so the file
   // contradicted itself for two revisions. Found by test_cto_roles.py, which
   // asserted the comment and failed against the code.
+  // CE takes precedence: a mission severs the pairing, so there is no role left
+  // to consult. The EXPRESS dwells 5 s at the platforms it does serve (operator
+  // 2026-08-19); the LOCAL keeps the ordinary dwell and stops everywhere.
+  if(ceMission==CE_EXPRESS) return CE_EXPRESS_DWELL_MS;
+  if(ceMission==CE_LOCAL)   return DWELL_MS;
   return (ctoRole==CTO_ROLE_FOLLOWER && ctoEchoConfirmed)?CTO_FOLLOWER_DWELL_MS:DWELL_MS;
 }
 
@@ -5118,6 +5251,15 @@ static void ctoHandleClear(const char* msg){
 
 // ---- service (loop thread, self-rate-limited) -------------------------------
 static void ctoService(){
+  // CE ends the instant traffic first slows or holds the express — that IS the
+  // express having caught the local (operator 2026-08-19). Read from ctoTraffic
+  // rather than from geometry, so the mission ends on exactly the condition the
+  // traffic layer acted on, not on a second opinion about the same gap.
+  //
+  // Only the EXPRESS ends CE this way. The local being held by something else
+  // is not the express catching anything, and clearing its mission there would
+  // put it back to full cruise while it is boxed in.
+  if(ceMission==CE_EXPRESS && ctoTraffic!=CTRAF_CLEAR) ceEnd("CAUGHT_LOCAL_TRAFFIC_SLOWING");
   if(!ctoRadioUp) return;
   // drain radio queue (recv callback only copies)
   if(ctoRxQueue){
