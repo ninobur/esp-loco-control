@@ -1270,6 +1270,15 @@ static uint32_t irLatestRxMs=0;
 static bool     irHaveLatest=false;
 // ---- IR distance anchor + event-estimate ring (§8.3) ----------------------
 static bool   irAnchorValid=false;
+// IR odometry coverage accumulators (2026-08-19, observation only). The
+// per-segment ratio in mm/speed is the primary record; this rolling pair is a
+// convenience for the operator and MUST NOT become an input to any decision.
+// Reset on declaration and on direction change — a session's coverage is not
+// comparable across either, and a stale denominator would quietly flatter a
+// later run.
+static float    irCovPulses=0.0f, irCovExpected=0.0f;
+static uint32_t irCovSegments=0;
+static void irCovReset(){ irCovPulses=0.0f; irCovExpected=0.0f; irCovSegments=0; }
 static float  irAnchorDistMm=0.0f;          // projected cumulative distance at last accepted Hall anchor
 struct IrEventEst {
   uint32_t detectedAtMs=0;                  // stable identity (§9.3)
@@ -4231,6 +4240,8 @@ static const IrEventEst* irEstFind(uint32_t detMs){
 static void irObserversReset(const char*){
   mmAnchorValid=false; mmSpeedValid=false;
   irAnchorValid=false;
+  irCovReset();   // coverage is not comparable across a declaration, a
+                  // direction change, a relabel or a sensor reboot
   for(uint8_t i=0;i<16;i++) irEstRing[i]=IrEventEst{};
 }
 
@@ -4396,6 +4407,34 @@ static void irPublishMmSpeed(const MarkerEvent& e,const IrEventEst& est,
     snprintf(irpulse,sizeof(irpulse),"%ld",dp);
     snprintf(irage,sizeof(irage),"%lu",(unsigned long)est.irAgeMs);
   }else{ strlcpy(irdist,"null",16); strlcpy(irpulse,"null",16); strlcpy(irage,"null",8); }
+
+  // ---- IR ODOMETRY COVERAGE (observation only) -----------------------------
+  // 2026-08-19. On the morning of this date the IR layer reported VALID at
+  // 240-280 mm/s while its cumulative pulse count stood still for seconds at a
+  // time: interval-derived SPEED stayed plausible while cumulative-pulse
+  // DISTANCE under-counted to ~53%. Nothing in the system said so. The failure
+  // was only found because an off-board script happened to compare irdp against
+  // route distance; 355 genuine markers had already been mis-hypothesised by
+  // then. This publishes that comparison continuously so the same failure can
+  // never again be invisible.
+  //
+  // Every input already existed — irdp and the route distance are both in this
+  // record. Nothing new is measured; the arithmetic is simply made conspicuous.
+  //
+  // STRICTLY OBSERVATIONAL. It is a ratio, not a verdict: no threshold, no
+  // healthy/unhealthy flag, no consumer, and nothing downstream may branch on
+  // it. A future governor must not read it as permission (decisions 0005/0036,
+  // and the withdrawn bestk=0 veto of 2026-08-18).
+  //
+  // NULL, NEVER ZERO, wherever the ratio would be meaningless — zero is a
+  // measurement and would read as total loss:
+  //   * IR anchor unavailable (covers sensor reboot, pulse regression, and
+  //     declaration, all of which clear irAnchorValid);
+  //   * a station sequence active — approach/ramp/final/dwell/depart are not
+  //     ordinary running and their pulse counts are not comparable;
+  //   * the event was not accepted, so there is no Hall segment to speak of;
+  //   * route distance unknown or non-positive.
+  char irexp[12], ircov[12];   // filled below, once the route span is known
   char mmsp[32];
   // Review fixes (observation verifier): every speed field belongs to THIS
   // event, not to the latest global sample — a held event's record was
@@ -4407,6 +4446,26 @@ static void irPublishMmSpeed(const MarkerEvent& e,const IrEventEst& est,
     snprintf(diststr,sizeof(diststr),"%lu",(unsigned long)irRouteSpanMm(mmSpeedFrom,navDir,1));
     snprintf(dtstr,sizeof(dtstr),"%u",(unsigned)mmSpeedDtMs);
   }else{ strlcpy(diststr,"null",16); strlcpy(dtstr,"null",16); }
+
+  // Coverage ratio — see the note above irexp's declaration. Computed here
+  // because it needs both thisEventAccepted and the route span.
+  {
+    uint32_t routeMm = (mmSpeedValid && mmSpeedAtMs==e.detectedAtMs)
+                       ? (uint32_t)irRouteSpanMm(mmSpeedFrom,navDir,1) : 0UL;
+    if(thisEventAccepted && stPhase==ST_IDLE &&
+       est.valid && est.anchorWasValid && routeMm>0 && est.deltaPulses>=0){
+      float expPulses=(float)routeMm/IR_MM_PER_PULSE;
+      if(expPulses>0.0f){
+        float cov=(float)est.deltaPulses/expPulses;
+        if(cov>99.99f) cov=99.99f;
+        snprintf(irexp,sizeof(irexp),"%.1f",(double)expPulses);
+        snprintf(ircov,sizeof(ircov),"%.2f",(double)cov);
+        irCovPulses+=(float)est.deltaPulses;   // rolling summary: convenience
+        irCovExpected+=expPulses;              // only, never an input to logic
+        if(irCovSegments<0xFFFFFFFFUL) irCovSegments++;
+      }else{ strlcpy(irexp,"null",12); strlcpy(ircov,"null",12); }
+    }else{ strlcpy(irexp,"null",12); strlcpy(ircov,"null",12); }
+  }
   float msc=mmSpeedMmps; if(msc>9999.9f)msc=9999.9f;
   char mmk[16];
   if(thisEventAccepted){
@@ -4440,13 +4499,17 @@ static void irPublishMmSpeed(const MarkerEvent& e,const IrEventEst& est,
     //   dt=hall_dt_ms mmps=mm_speed_mmps irv=ir_valid irage=ir_age_ms
     //   irdp=ir_delta_pulses irmm=ir_distance_mm k0..k4=route_kN_mm
     //   bestk=nearest_k resid=residual_mm agree=agreement
-    // (Budget stated at the top of this function: measured 449.)
+    //   irexp=ir_expected_pulses ircov=ir_coverage_ratio
+    // (Budget stated at the top of this function: was 449; irexp adds at most
+    // 17 bytes and ircov 14 — both clamped at print — for 480 of 511. The
+    // truncation guard below remains the structural backstop.)
     "{\"schema\":\"quorum-mm-speed/1\",\"ev\":%lu,\"rev\":%d,"
     "\"from\":%u,\"to\":%u,\"dir\":\"%s\",\"pol\":\"%c\",\"peak\":%d,"
     "\"dur\":%u,\"drift\":%d,"
     "\"gate\":\"%s\",\"acc\":%d,\"disp\":\"%s\","
     "\"dist\":%s,\"dt\":%s,\"mmps\":%s,\"pkph\":%s,"
     "\"irv\":%d,\"irage\":%s,\"irdp\":%s,\"irmm\":%s,"
+    "\"irexp\":%s,\"ircov\":%s,"
     "\"k0\":%lu,\"k1\":%lu,\"k2\":%lu,"
     "\"k3\":%lu,\"k4\":%lu,\"bestk\":%s,\"resid\":%s,"
     "\"agree\":\"OBSERVE_ONLY\"}",
@@ -4459,6 +4522,7 @@ static void irPublishMmSpeed(const MarkerEvent& e,const IrEventEst& est,
     diststr,dtstr,
     mmsp,mmk,
     (est.valid&&est.anchorWasValid)?1:0,irage,irpulse,irdist,
+    irexp,ircov,
     (unsigned long)spans[0],(unsigned long)spans[1],(unsigned long)spans[2],
     (unsigned long)spans[3],(unsigned long)spans[4],nk,resbuf);
   if(n<0||(size_t)n>=sizeof(b)){
@@ -4532,17 +4596,29 @@ static void serviceIrTelemetry(){
     if(mmSpeedValid){ snprintf(msp,sizeof(msp),"%.1f",(double)mmSpeedMmps);
                       snprintf(mkph,sizeof(mkph),"%.2f",(double)(mmSpeedMmps*PKPH_PER_MMPS)); }
     else { strlcpy(msp,"null",16); strlcpy(mkph,"null",16); }
+    // Rolling odometry coverage — CONVENIENCE ONLY. The per-segment ratio in
+    // mm/speed is the record; this exists so an operator can see the distance
+    // channel degrading without reading every event. null until at least one
+    // ordinary segment has been measured since the last reset: zero would be a
+    // claim of total loss, which is a different statement from "not yet known".
+    char covs[16];
+    if(irCovSegments>0 && irCovExpected>0.0f){
+      float rc=irCovPulses/irCovExpected; if(rc>99.99f) rc=99.99f;
+      snprintf(covs,sizeof(covs),"%.2f",(double)rc);
+    } else strlcpy(covs,"null",16);
     int n2=snprintf(b,sizeof(b),
       "{\"schema\":\"quorum-speed-view/1\","
       "\"ir_valid\":%d,\"ir_mmps\":%s,\"ir_pkph\":%s,\"ir_age_ms\":%lu,"
       "\"mm_valid\":%d,\"mm_mmps\":%s,\"mm_pkph\":%s,\"mm_age_ms\":%lu,"
       "\"mm_from\":%u,\"mm_to\":%u,"
+      "\"ir_cov\":%s,\"ir_cov_n\":%lu,"
       "\"commanded_pwm\":%d,\"actual_pwm\":%d,"
       "\"control_source\":\"PWM_PRESET\",\"authority\":\"OBSERVE_ONLY\"}",
       v.numeric?1:0,sp,kph,(unsigned long)v.ageMs,
       mmSpeedValid?1:0,msp,mkph,
       (unsigned long)(mmSpeedValid?(uint32_t)(now-mmSpeedAtMs):0),
       mmSpeedFrom,mmSpeedTo,
+      covs,(unsigned long)irCovSegments,
       (int)commandedPwm,(int)actualPwm);
     if(n2<0||(size_t)n2>=sizeof(b)){ irOversizePubs++; strlcpy(b,"{\"schema\":\"quorum-speed-view/1\",\"error\":\"OVERSIZE\"}",sizeof(b)); }
     pub(T_SPEED_VIEW,b,false);
