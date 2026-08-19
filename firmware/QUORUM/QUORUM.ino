@@ -4933,6 +4933,19 @@ static void ceBegin(){
 // the same test and the same numbers. Neither needs to know its own mission to
 // answer it, which is what makes the two locomotives agree.
 static bool ceNearPeer(){
+  // Gap arithmetic is measured FROM navMm, so it means nothing when this
+  // locomotive does not know where it is. ctoLimitPwm and ctoEvaluateRoles
+  // both guard the identical arithmetic this way; this function did not, and
+  // during NO_QUORUM would have armed or ended CE on a stale odometer.
+  //
+  // CALLERS MUST NOT READ false AS "SEPARATED". false here means "no peer is
+  // near, as far as can be determined", and when position is unusable that is
+  // an absence of evidence, not evidence of absence. The CE lifecycle below
+  // therefore gates on position ITSELF before consulting this function — an
+  // earlier attempt guarded only in here, and since the arming branch reads
+  // !ceNearPeer(), a NO_QUORUM locomotive would have armed its own ending on a
+  // stale odometer: the precise failure the guard was added to prevent.
+  if(navDir==MAP_UNSET || !navPositionUsable()) return false;
   for(uint8_t i=0;i<CTO_MAX_PEERS;i++){
     const CtoPeer& p=ctoPeers[i];
     if(!ctoPeerFresh(p)||!ctoPeerSameDir(p)) continue;
@@ -5318,7 +5331,11 @@ static void ctoService(){
   // Nothing on the wire carries CE, so a mission the peer cannot see must be
   // one the peer can independently CONCLUDE. Both trains measure the same gap and end
   // together.
-  if(ceMission!=CE_NONE){
+  // Position gates the WHOLE lifecycle, not just the gap test: both branches
+  // below act on gap evidence, and a locomotive that does not know where it is
+  // has none. The mission simply holds — neither arming nor ending — until
+  // navigation is trustworthy again.
+  if(ceMission!=CE_NONE && navDir!=MAP_UNSET && navPositionUsable()){
     if(!ceSeparated){
       // Arming: the fleet must actually come apart first, otherwise the pairing
       // range they start inside ends CE immediately.

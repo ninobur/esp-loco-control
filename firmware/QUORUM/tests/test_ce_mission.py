@@ -127,6 +127,19 @@ def main():
     check('LOCAL ends CE too (not express-only)',
           ce and ce[-1]['mission'] == 'NONE', ce[-1] if ce else '')
 
+    # --- NO_QUORUM freezes the lifecycle, it does not advance it -------------
+    # Both branches act on gap evidence measured from navMm. A locomotive that
+    # does not know where it is has none, so the mission must neither arm nor
+    # end. Found in self-review before flashing: guarding only inside
+    # ceNearPeer() made it WORSE, because the arming branch reads
+    # !ceNearPeer() and would have armed on the stale odometer.
+    ce, ev = run(harness, paired(40, 28) + ['ce', 'noquorum']
+                 + peer_at(120) * 3 + peer_at(34) * 3 + ['ce_dump'])
+    check('NO_QUORUM does not let CE arm-and-end on a stale odometer',
+          ce and ce[-1]['mission'] == 'EXPRESS', ce[-1] if ce else '')
+    check('no CE_END while position is unusable', not evs(ev, 'CE_END'),
+          [e.get('event') for e in ev])
+
     # --- operator exits ------------------------------------------------------
     ce, ev = run(harness, paired(40, 28) + ['ce', 'cto_cmd clear', 'ce_dump'])
     check('cto clear ends CE', ce and ce[-1]['mission'] == 'NONE',
