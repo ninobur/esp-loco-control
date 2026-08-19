@@ -60,6 +60,31 @@ where it is the only independent distance witness on the train.
 That argues the first useful grant of IR authority is **not speed control**.
 It is a veto on marker acceptance when the timing gate cannot rule.
 
+**Context for anyone reading this later: the gate that caught everything else
+is four days old.** Quarantine and NO_QUORUM self-resolution landed
+2026-08-14 (`6ebb3b1`, decision 0035, accepted 08-15). Tonight is therefore
+not a story about old logic finally being helped by a new sensor — it is a
+week-old mechanism proving itself across five recurring phantom sites, and
+this is the first observed case of its boundary. The mm 61→60 event is not a
+defect in 0035. It is the edge 0035 always had: it holds a doubtful event
+rather than believing it, but it cannot form a doubt when the velocity model
+is unavailable, because until now there was no second source. IR is that
+second source.
+
+**Before any veto is built, the false-positive rate must be known.** A veto
+that drops a genuine marker is its own navigation error, and tonight gives no
+estimate of how often `bestk=0` appears on a real event — only that it was
+right the once it mattered. Two further clean agreements were observed after
+midnight (`ev=12070435` mm 133, `ev=12532529` mm 100: both peak 38-47, both
+`irmm` ~50-56 mm against a required ~300, both quarantined and discarded with
+IR concurring). That is three-for-three, which is not a rate.
+
+A caution from the same window against reading amplitude as evidence: at
+23:48:21 a **genuine** marker read `peak=44` with `irmm=295.2, bestk=1`, and
+94 ms later a **phantom** read `peak=154` with `irmm=-0.2, bestk=0`. The weak
+signal was real and the strong one was false. Only travel distance separated
+them.
+
 ---
 
 ## 2. Recurring phantom sites (Otto, CCW)
@@ -138,21 +163,29 @@ the same edge it arrived by.
 
 ### The measurement does not show (b) working
 
+Final figures, both runs complete (session ended 00:02):
+
 | | before (5-window) | after (3-window) |
 |---|---|---|
-| samples | 6969 | 904 |
-| stop→VALID episodes | 55 | 9 |
-| `VALID` share of moving time | 98.0% | 97.8% |
-| recovery mean | 0.73 s | 0.89 s |
+| samples | 6969 | 3366 |
+| stop→VALID episodes | 55 | 35 |
+| `VALID` share of moving time | 98.0% | 98.3% |
+| recovery mean | 0.73 s | 0.77 s |
 | recovery max | 1 s | 1 s |
-| slowest `VALID` | 26.01 mm/s | 27.49 mm/s |
+| slowest `VALID` | 26.01 mm/s | 25.87 mm/s |
 
-**No improvement is visible, and the after-figures are marginally worse.**
-Two reasons to treat this as inconclusive rather than as a refutation:
-the after-sample is 9 episodes against 55, and — more fundamentally — the
-instrument cannot resolve the effect. Telemetry is 1 Hz; the predicted change
-is two pulses, roughly 0.3 s at typical departure speeds. A 1 Hz sampler
-cannot see it.
+**The two builds are indistinguishable.** Every difference is inside a tenth
+of a second or three-tenths of a percent, and they do not point the same way —
+`VALID` share and slowest reading are marginally better, recovery marginally
+worse. An interim reading at 9 episodes showed recovery at 0.89 s and looked
+like a regression; at 35 episodes it settles to 0.77 s. That swing is the
+sample size, not the firmware.
+
+The reason to treat this as inconclusive rather than as a refutation is that
+the instrument cannot resolve the effect. Telemetry is 1 Hz; the predicted
+change is two pulses, roughly 0.3 s at typical departure speeds. A 1 Hz
+sampler cannot see it, and every recovery in both builds lands in the same
+0-or-1-sample bucket.
 
 **This should not be recorded as a win.** The honest statement is that IR was
 already healthy before the change (98% `VALID` while moving, every stop
@@ -248,6 +281,13 @@ rather than guessed.
 
 **Open:**
 
+- **`bestk=0` false-positive rate.** The one number that gates a marker veto,
+  and this session does not supply it. Needs a run counting `bestk=0` against
+  events later confirmed genuine. Three-for-three so far.
+- A veto, if built, is strictly subtractive — it may only reject an event the
+  timing gate has abstained on (`RAMP`, `LOW_PWM`, `NO_PREV`), never accept or
+  create one. That is a much narrower grant than the speed authority of
+  spec §10 / Gate 3, and it needs its own numbered record (next is 0038).
 - Higher-resolution measurement to settle §4(b).
 - `abrt=0` / bench-vs-track contrast discrepancy unexplained (§5).
 - Decision record superseding part of 0021 (two ESP32s joined by ESP-NOW)
