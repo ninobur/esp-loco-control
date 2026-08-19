@@ -15,15 +15,31 @@
 #define LOCO_ID 9950012UL
 
 // ---------------------------------------------------------------------------
-// IR Test A (docs/QUORUM_1_16R_IR_TEST_A_FIRMWARE_SPEC.md §2): Toby carries
-// the sensor car; Otto's profile deliberately omits these, compiling every
-// IR path to inert stubs. The MAC is the Test Car ESP32's STA MAC — fill in
-// at bench pairing (spec §11.3 step 1; the sender prints it at boot).
-// ALL-ZERO IS A SAFE PLACEHOLDER: reception stays disabled and is reported;
-// it never falls back to accepting any sender.
+// IR Test A (docs/QUORUM_1_16R_IR_TEST_A_FIRMWARE_SPEC.md §2). Toby carried the
+// sensor car for Gate 1 and the 2026-08-18 first live run; the car then moved
+// to Otto, whose low-speed phantom markers are what the layer must discriminate.
+//
+// DISABLED here rather than deleted. The sender registers exactly one peer, so
+// only one locomotive can be paired at a time — leaving Toby enabled while Otto
+// holds the pairing would mean a locomotive listening for a sender that never
+// addresses it. With IR_TEST_A_ENABLED absent, every IR path compiles to inert
+// stubs (QUORUM.ino:370). The bench-paired MAC is kept in the comment below so
+// handing the car back is a one-line change, not a re-pairing session:
+//
+//   IR Test Car STA MAC, bench-paired 2026-08-18: EC:E3:34:78:A2:60
+//
+// ALL-ZERO IS A SAFE PLACEHOLDER: reception stays disabled and is reported; it
+// never falls back to accepting any sender.
 // ---------------------------------------------------------------------------
-#define IR_TEST_A_ENABLED 1
-#define IR_SENSOR_MAC_BYTES {0xEC,0xE3,0x34,0x78,0xA2,0x60}   // IR Test Car, bench-paired 2026-08-18
+// Re-enable by uncommenting BOTH lines — keep the #ifndef guards, which let
+// tests/harness.cpp's own definitions win (see the note in Otto's profile; an
+// unconditional #define here silently fails 17 IR tests with state NO_SENSOR).
+// #ifndef IR_TEST_A_ENABLED
+// #define IR_TEST_A_ENABLED 1
+// #endif
+// #ifndef IR_SENSOR_MAC_BYTES
+// #define IR_SENSOR_MAC_BYTES {0xEC,0xE3,0x34,0x78,0xA2,0x60}
+// #endif
 #define HALL_POLARITY_INVERTED false
 
 // Blynk

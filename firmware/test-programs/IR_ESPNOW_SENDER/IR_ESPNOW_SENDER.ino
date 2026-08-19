@@ -76,6 +76,21 @@ static constexpr int      ENV_PCT_LO              = 5;
 static constexpr int      ENV_PCT_HI              = 95;
 
 static constexpr int      SPEED_WINDOW_N          = 5;
+// Intervals required before the first VALID after an edge-silent episode.
+// median5() already medians over whatever count the ring holds, so smoothing
+// deepens 3 -> 5 on its own as samples arrive; this only sets how early the
+// measurement is allowed to be called VALID.
+//
+// THREE IS A FLOOR, NOT A PREFERENCE. Median-of-3 rejects one outlier;
+// median-of-2 returns the larger of two, so a single bad interval would be
+// reported as the speed. The bad interval is not hypothetical — see the
+// edge-silence reset below.
+//
+// Measured 2026-08-18 (Otto, 55 stops, ~74 min of motion): IR held VALID for
+// 98% of moving time and recovered from every stop within one 1 Hz sample,
+// reporting down to 26 mm/s. This shortens an already-short window; it does
+// not rescue a broken one.
+static constexpr int      SPEED_WINDOW_MIN        = 3;
 
 // Acquisition validity — IR_SPEED_LOCAL_1_2's enum, unchanged. STOPPED is
 // NOT here: it is a wire state, derived at packet production (spec §2).
@@ -104,6 +119,12 @@ struct HealthCounters {
   uint32_t completedPulses;
   uint32_t sampleMissedSlots;
   uint32_t openAborts;
+  // Wheel parked with a spoke across the beam. Split out of openAborts so that
+  // counter can go back to meaning "a fault happened". LOCAL ONLY — this is
+  // deliberately not on the wire: IrSpeedPacketV1 is frozen at 72 bytes with
+  // pinned field offsets, and a diagnostic counter does not justify a V2
+  // packet. It reaches the operator on the 5 s Serial health line.
+  uint32_t spokeParks;
   uint32_t contrastInvalidEpisodes;
   uint32_t saturatedSamples;
   uint32_t sampleMaxGapUs;
@@ -248,6 +269,11 @@ static void sensorTask(void*) {
     } else {
       contrastInvalid = false;
       const bool contrastMarginal = span < MARGINAL_SPAN;
+      // Declared here rather than beside its first use further down: the
+      // spoke-park test below needs it, and both readings must come from the
+      // same sample of `now`.
+      const bool edgeSilent = (lastCompletedMs == 0 ||
+                               (uint32_t)(now - lastCompletedMs) > SPEED_STALE_MS);
       const int thresholdHigh = runMin + (span * 2) / 3;
       const int thresholdLow  = runMin + span / 3;
 
@@ -259,8 +285,33 @@ static void sensorTask(void*) {
         }
       }
 
+      // A pulse held open past OPEN_ABORT_MS has two quite different causes, and
+      // charging both to openAborts made that counter mean "something optical
+      // went wrong" when half the time it meant "the train parked."
+      //
+      //   parked on a spoke : the wheel stopped with a spoke across the beam.
+      //                       Ordinary, expected, and self-clearing on the next
+      //                       departure — the straddling spoke's rise happened
+      //                       before the stop and its fall happens after.
+      //   genuine abort     : edges were arriving and then stopped while the
+      //                       wheel was still turning. That is a fault.
+      //
+      // The two are told apart by whether edges had already fallen silent when
+      // the pulse hung: a park is edge-silent by definition, an abort is not.
+      // Both still reset acquisition identically — only the bookkeeping differs.
+      //
+      // The straddling spoke stays uncounted, and that is a deliberate
+      // under-count of about 9.652 mm per park, not an oversight. At the moment
+      // the pulse hangs, that spoke has not finished passing, and this sensor
+      // counts edges without direction: a wheel that creeps back off the spoke
+      // it was parked on retreats over the same edge it arrived by. Counting on
+      // departure would assume a forward completion the sensor cannot see, and
+      // inventing distance is worse than owing it.
       if (inPulse && (uint32_t)(now - riseMs) > OPEN_ABORT_MS) {
-        if (!openAbortCounted) localHealth.openAborts++;
+        if (!openAbortCounted) {
+          if (edgeSilent) localHealth.spokeParks++;
+          else            localHealth.openAborts++;
+        }
         openAbortCounted = true;
         inPulse = false;
         awaitLowAfterAbort = true;
@@ -305,8 +356,8 @@ static void sensorTask(void*) {
         previousRiseMs = riseMs;
 
         const Validity validity = contrastMarginal ? IR_MARGINAL
-                                : (intervalCount >= SPEED_WINDOW_N &&
-                                   strongIntervalCount >= SPEED_WINDOW_N)
+                                : (intervalCount >= SPEED_WINDOW_MIN &&
+                                   strongIntervalCount >= SPEED_WINDOW_MIN)
                                   ? IR_VALID : IR_REACQUIRING;
         publishLocalSnapshot(now, localHealth.completedPulses, intervalMs, speed,
                              raw, runMin, runMax, validity);
@@ -318,15 +369,31 @@ static void sensorTask(void*) {
 #endif
       }
 
-      if (!contrastMarginal &&
-          (lastCompletedMs == 0 ||
-           (uint32_t)(now - lastCompletedMs) > SPEED_STALE_MS)) {
+      // "No interval may span an edge-silence episode" — now enforced whatever
+      // the contrast is. This reset used to sit behind !contrastMarginal, which
+      // withheld it in exactly the case it was written for: a stopped wheel
+      // settles the optical signal onto one plateau, the rolling envelope
+      // narrows toward that plateau, span drops into the marginal band, and the
+      // guard stops running. previousRiseMs then survived the whole dwell, so
+      // the first interval measured after departure was the length of the STOP
+      // — 26 s at a Bamboo station stand — and only failed to poison the output
+      // because median-of-5 outvoted it. That made SPEED_WINDOW_N load-bearing
+      // for correctness by accident rather than for smoothing by design, and it
+      // is why SPEED_WINDOW_MIN could not otherwise be lowered.
+      //
+      // Field evidence 2026-08-18 (Otto, 55 stops): abrt=0 and cinv=0, i.e. no
+      // stop that session took the open-abort or contrast-invalid path. Every
+      // one of them came through here.
+      if (edgeSilent && previousRiseMs != 0) {
+        previousRiseMs = 0;
+        intervalCount = 0;
+        intervalIndex = 0;
+        strongIntervalCount = 0;
+        speed = 0.0f;
+      }
+
+      if (!contrastMarginal && edgeSilent) {
         if (latest.validity != IR_STALE) {
-          intervalCount = 0;
-          intervalIndex = 0;
-          strongIntervalCount = 0;
-          previousRiseMs = 0; // no interval may span an edge-silence episode
-          speed = 0.0f;
           publishLocalSnapshot(now, localHealth.completedPulses, 0, 0.0f,
                                raw, runMin, runMax, IR_STALE);
         }
@@ -545,12 +612,13 @@ void loop() {
     h = health;
     portEXIT_CRITICAL(&snapshotMux);
     const bool stopped = (uint32_t)(now - lastPulseProgressMs) >= IR_STOPPED_MS;
-    Serial.printf("[HB] state=%s pulses=%lu span=%d missed=%lu aborts=%lu "
+    Serial.printf("[HB] state=%s pulses=%lu span=%d missed=%lu aborts=%lu parks=%lu "
                   "sat=%lu maxgap=%luus tx=%lu txe=%lu txf=%lu clips=%lu ch=%u radio=%d\n",
                   stopped ? "STOPPED" : validityName((uint8_t)s.validity),
                   (unsigned long)h.completedPulses, s.span,
                   (unsigned long)h.sampleMissedSlots,
                   (unsigned long)h.openAborts,
+                  (unsigned long)h.spokeParks,
                   (unsigned long)h.saturatedSamples,
                   (unsigned long)h.sampleMaxGapUs,
                   (unsigned long)txAttempts, (unsigned long)txImmediateErrors,

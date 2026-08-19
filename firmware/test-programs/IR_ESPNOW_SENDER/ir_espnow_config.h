@@ -13,9 +13,11 @@
 
 static constexpr uint8_t  IR_ESPNOW_CHANNEL   = 11;          // railway EAP channel (runbook)
 static constexpr uint32_t IR_SENSOR_ID        = 0x49523031UL; // "IR01"
-static constexpr uint32_t IR_TARGET_LOCO_ID   = 9950012UL;   // Toby
+static constexpr uint32_t IR_TARGET_LOCO_ID   = 9950011UL;   // Otto — car handed off from Toby 2026-08-18
 static constexpr uint32_t IR_TX_INTERVAL_MS   = 50;          // 20 reports/s, provisional Stage A
 static constexpr uint32_t IR_STOPPED_MS       = 2500;        // no pulse progress -> STOPPED/0
 
-// Toby's WiFi STA MAC. FILL IN AT BENCH PAIRING (spec §11.3 step 1).
-static const uint8_t TOBY_STA_MAC[6] = { 0x38, 0x18, 0x2B, 0x30, 0x8C, 0x2C };  // bench-paired 2026-08-18
+// Receiving locomotive's WiFi STA MAC. FILL IN AT BENCH PAIRING (spec §11.3 step 1).
+// Named for Toby from the original pairing; car moved to Otto 2026-08-18, value
+// updated, constant not renamed mid-swap.
+static const uint8_t TOBY_STA_MAC[6] = { 0xB0, 0xCB, 0xD8, 0xD0, 0xFF, 0x4C };  // Otto, bench-paired 2026-08-18
