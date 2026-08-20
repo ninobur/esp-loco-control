@@ -104,5 +104,23 @@
 // ONE session at one temperature (92 F). If Otto starts missing markers, this
 // is the first thing to revisit.
 // ---------------------------------------------------------------------------
-#define HALL_ENTRY_MARGIN_COUNTS   65
+//
+// 2026-08-20, SAME EVENING — 65 was too aggressive and is reduced to 45
+// (entry 70). The 90-count gate ran eight minutes with 208 markers and ZERO
+// disagreements, the cleanest stretch Otto produced all day, and then his
+// position fell FOUR markers behind the railway around mm 100-125: quorum
+// adopted offset +4 at 16:11:12 and gave up at mm 123. The gate was rejecting
+// genuine markers in a stretch that runs weaker than the 596-marker sample
+// used to set it (whose minimum was 104).
+//
+// 70 keeps the phantom cluster out (peaks 40-66) and restores 34 counts of
+// headroom under the weakest genuine read measured.
+//
+// AND A CORRECTION TO THE WATCH SIGNAL RECORDED IN 0040: steps of 2 in the
+// marker sequence do NOT reveal missed markers. A rejected event never reaches
+// telemetry, so the next accepted marker still reads mm+1 and the step stays
+// 1 while the position silently lags. 241 of 247 steps were 1 while four
+// markers went missing. The real signature is the quorum adopting POSITIVE
+// offsets, and dt_conserve_ratio drifting toward 2.
+#define HALL_ENTRY_MARGIN_COUNTS   45
 #define HALL_MIN_PEAK_DELTA        35
