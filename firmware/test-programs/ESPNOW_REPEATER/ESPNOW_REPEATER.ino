@@ -89,7 +89,17 @@
 // NODE_NAME is the survey identity, not a location. Set SURVEY_SITE from the
 // operator's placement before each run so the record says where it listened;
 // a coverage survey whose samples cannot be attributed to a position is scrap.
-static const char* NODE_NAME   = "ESPNOW_REP_1";
+// Node identity. This is BOTH the MQTT client id and the topic root, so two
+// relays sharing it would fight over the broker connection and interleave
+// their records into one tree. Override at build time for additional nodes:
+//   arduino-cli compile --build-property
+//     compiler.cpp.extra_flags=-DNGR_RELAY_NODE='"ESPNOW_REP_2"'
+// One source file, one behaviour, per-node identity — rather than a second
+// copy of this sketch that would immediately start drifting from the first.
+#ifndef NGR_RELAY_NODE
+#define NGR_RELAY_NODE "ESPNOW_REP_1"
+#endif
+static const char* NODE_NAME   = NGR_RELAY_NODE;
 // SURVEY_SITE is SETTABLE AT RUNTIME (`site <name>` on the cmd topic) and not a
 // compile-time constant, because it changed four times in the first hour of use
 // while a compile-time value silently labelled every record MAC_BENCH. A survey
@@ -156,6 +166,11 @@ static const uint32_t FORWARD_MAX_AGE_MS  = 100;
 static const uint32_t ECHO_MIN_INTERVAL_MS= 900;   // echoes carry no sequence
 static const uint32_t TX_MIN_SPACING_MS   = 15;    // channel courtesy floor
 static const uint8_t  TX_MAX_PER_SEC      = 24;    // hard cap; fault containment
+// How far BACKWARDS a sequence may jump and still be read as a duplicate or a
+// late copy rather than a sender reboot. A rebooting locomotive restarts near
+// 1, so any real restart is a jump of thousands; a relayed copy is a jump of
+// zero. 64 is comfortably clear of both.
+static const uint32_t SEQ_DUP_WINDOW      = 64;
 
 // ---- rx plumbing -----------------------------------------------------------
 // The ESP-NOW callback runs in the WiFi task. It copies and leaves — exactly
@@ -192,6 +207,7 @@ struct Source {
   uint8_t  autoMode = 0, running = 0;
   // relay bookkeeping
   uint32_t lastFwdSeq = 0; bool haveFwd = false;
+  uint32_t dupSeen = 0;            // same sequence heard twice: another relay's copy
   uint32_t fwdCount = 0, fwdEchoCount = 0;
   uint32_t dropStale = 0, dropDup = 0, dropRate = 0;
   uint32_t lastEchoFwdMs = 0;
@@ -381,7 +397,7 @@ static void publishSummary(Source& s, uint32_t now){
     "\"gapMs\":%lu,\"maxGapMs\":%lu,\"stale\":%u,\"staleEpisodes\":%lu,"
     "\"rssiLast\":%d,\"rssiMin\":%d,\"rssiMax\":%d,\"rssiMean\":%.1f,"
     "\"mm\":%s,\"dir\":%d,\"auto\":%u,\"run\":%u,"
-    "\"fwd\":%lu,\"fwdEcho\":%lu,\"dropStale\":%lu,\"dropDup\":%lu,\"dropRate\":%lu}",
+    "\"fwd\":%lu,\"fwdEcho\":%lu,\"dropStale\":%lu,\"dropDup\":%lu,\"dropRate\":%lu,\"dupSeen\":%lu}",
     SURVEY_SITE, modeName(repMode), (unsigned long)s.id, iso,
     (unsigned long)s.rxCount, (unsigned long)s.echoCount,
     (unsigned long)span, (unsigned long)s.missTotal, (unsigned)s.missRunMax,
@@ -391,7 +407,8 @@ static void publishSummary(Source& s, uint32_t now){
     (int)s.rssiLast, (int)(s.rssiMin==127?0:s.rssiMin), (int)(s.rssiMax==-128?0:s.rssiMax),
     rssiMean, mm, (int)s.mapDir, (unsigned)s.autoMode, (unsigned)s.running,
     (unsigned long)s.fwdCount, (unsigned long)s.fwdEchoCount,
-    (unsigned long)s.dropStale, (unsigned long)s.dropDup, (unsigned long)s.dropRate);
+    (unsigned long)s.dropStale, (unsigned long)s.dropDup, (unsigned long)s.dropRate,
+    (unsigned long)s.dupSeen);
   if(mqtt.connected()) mqtt.publish(topic, payload, false);
   Serial.printf("SUM,%lu,%lu,%.1f,%.1f,%lu,%lu,%u,%d,fwd=%lu\n",
                 (unsigned long)now, (unsigned long)s.id, win, cum,
@@ -434,10 +451,27 @@ static void handleFrame(const RxItem& it){
         s->missRun = (uint16_t)missed;
         if(s->missRun > s->missRunMax) s->missRunMax = s->missRun;
         s->missTotal += missed;
+      } else if((s->lastSeq - seq) <= SEQ_DUP_WINDOW){
+        // NOT a restart: a DUPLICATE. 2026-08-20, the moment a second relay
+        // was flashed — every frame arrived twice, once direct and once from
+        // ESPNOW_REP_1, and the old code read the identical sequence as a
+        // sender reboot. That wiped the statistics and, far worse, cleared
+        // haveFwd/lastFwdSeq — resetting the NOVELTY GATE, after which this
+        // node would re-forward a sequence it had already forwarded. Two
+        // relays would have amplified each other instead of deduplicating.
+        //
+        // A duplicate is counted and then DROPPED from every statistic. It
+        // must not refresh lastRxMs, because a copy arriving via another
+        // relay says nothing about this node's own direct path — and hiding
+        // direct-path gaps behind relayed copies would destroy exactly the
+        // measurement each relay exists to make.
+        s->dupSeen++;
+        return;
       } else {
-        Serial.printf("NOTE,%lu,sender %lu sequence reset %lu -> %lu; re-baselining\n",
+        Serial.printf("NOTE,%lu,sender %lu sequence restart %lu -> %lu (drop %lu); re-baselining\n",
                       (unsigned long)it.rxMs, (unsigned long)id,
-                      (unsigned long)s->lastSeq, (unsigned long)seq);
+                      (unsigned long)s->lastSeq, (unsigned long)seq,
+                      (unsigned long)(s->lastSeq - seq));
         s->firstSeq = seq; s->rxCount = 0; s->missTotal = 0; s->missRun = 0;
         s->haveFwd = false; s->lastFwdSeq = 0;   // novelty gate re-baselines too
       }
