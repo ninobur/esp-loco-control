@@ -5467,8 +5467,9 @@ static void ctoService(){
     // and it would not appear until counters crossed ~1e9.
     // MEASURED worst case (every field maximal, gap_ahead at INT_MIN, by
     // running this exact format string — not by summing it in my head, which
-    // is how it went wrong): 300 bytes. 384 leaves 84 spare, room for one
-    // more field without another incident. The guard below is the backstop.
+    // is how it went wrong): 300 bytes, now 320 with the CE mission field
+    // (",\"mission\":\"EXPRESS\"" is 20 at its widest). 384 leaves 64 spare.
+    // The guard below is the backstop.
     char b[384];
     int n=snprintf(b,sizeof(b),
       "{\"event\":\"CTO_STATUS\",\"on\":%d,\"role\":\"%s\",\"partner\":%lu,"
@@ -5477,7 +5478,11 @@ static void ctoService(){
       // 1.16Ra: tx is INTENTIONS, txd/txf are what the MAC layer did, ch is
       // the channel those frames went out on. Comparing my ch against the
       // peer's ch is the whole diagnosis for a silent-partner incident.
-      "\"txd\":%lu,\"txf\":%lu,\"ch\":%u,\"chg\":%lu}",
+      // CE mission rides the status, not only the CE_BEGIN/CE_END events: a
+      // console that joins mid-mission, or reconnects, has no event to replay
+      // and would otherwise show a locomotive running a mission as "unpaired",
+      // which is true of its pairing and useless about what it is doing.
+      "\"txd\":%lu,\"txf\":%lu,\"ch\":%u,\"chg\":%lu,\"mission\":\"%s\"}",
       ctoEnabled?1:0,
       ctoRole==CTO_ROLE_LEADER?"LEADER":ctoRole==CTO_ROLE_FOLLOWER?"FOLLOWER":"NONE",
       (unsigned long)ctoPartnerId,(unsigned long)ctoExpectedId,
@@ -5487,7 +5492,7 @@ static void ctoService(){
       (unsigned long)ctoRxAccepted,(unsigned long)ctoTxAttempts,
       (unsigned long)ctoTxErrors,(unsigned long)ctoRxDropped,
       (unsigned long)ctoTxDone,(unsigned long)ctoTxFailed,
-      (unsigned)ctoChannel,(unsigned long)ctoChannelChanges);
+      (unsigned)ctoChannel,(unsigned long)ctoChannelChanges,ceMissionName());
     // Structural guard, so arithmetic can never be the only defence again: a
     // truncated payload is malformed JSON and must not be published at all.
     // Losing one heartbeat is recoverable; poisoning the diagnostic stream

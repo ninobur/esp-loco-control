@@ -932,6 +932,7 @@ body { margin:0; font-family:Arial,sans-serif;
 .ctorow { font-size:10px; color:#9fd6ff; margin-top:3px; min-height:12px; }
 .ctorow .hold { color:#ff6b6b; font-weight:bold; }
 .ctorow .slow { color:#ffcc66; }
+.ctorow .ce   { color:#cfe6ff; font-weight:bold; }   /* v1.11.4: CE mission, matches the CE badge */
 .irrow { font-size:10px; color:#c9a8ff; margin-top:2px; min-height:12px; }
 .irrow .stale { color:#777; font-style:italic; }
 .irrow .irauth { color:#666; margin-left:4px; }
@@ -1131,12 +1132,20 @@ function ctoRow(l) {
   var c;
   try { c = JSON.parse(l.cto); } catch (e) { return '<div class="ctorow"></div>'; }
   if (c.fleet_hold) return '<div class="ctorow"><span class="hold">FLEET STOP</span></div>';
-  var role = (c.role && c.role !== 'NONE') ? c.role : 'unpaired';
+  // v1.11.4: a locomotive on a CE mission is deliberately unpaired — CE severs
+  // the bubble — so "unpaired" was technically true and told the operator
+  // nothing about what the train was actually doing. The mission is the more
+  // useful fact while one is running; the pairing state returns when it ends.
+  var role;
+  if (c.mission && c.mission !== 'NONE') role = c.mission;
+  else role = (c.role && c.role !== 'NONE') ? c.role : 'unpaired';
   var gap = (c.gap_ahead !== undefined && c.gap_ahead >= 0) ? (' &middot; gap ' + c.gap_ahead) : '';
   var t = '';
   if (c.traffic === 3) t = ' &middot; <span class="hold">HOLDING</span>';
   else if (c.traffic === 1) t = ' &middot; <span class="slow">SLOWING</span>';
-  return '<div class="ctorow">' + role.toLowerCase() + gap + t + '</div>';
+  var cls = (c.mission && c.mission !== 'NONE') ? ' class="ce"' : '';
+  return '<div class="ctorow"><span' + cls + '>' + role.toLowerCase() + '</span>' +
+         gap + t + '</div>';
 }
 
 // v1.11.3 — IR Test A speed readout, one line, same hidden-until-heard
