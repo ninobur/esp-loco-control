@@ -90,7 +90,12 @@
 // operator's placement before each run so the record says where it listened;
 // a coverage survey whose samples cannot be attributed to a position is scrap.
 static const char* NODE_NAME   = "ESPNOW_REP_1";
-static const char* SURVEY_SITE = "MAC_BENCH";   // e.g. "ALCOVE_MOUTH", "MM_090_HIGH"
+// SURVEY_SITE is SETTABLE AT RUNTIME (`site <name>` on the cmd topic) and not a
+// compile-time constant, because it changed four times in the first hour of use
+// while a compile-time value silently labelled every record MAC_BENCH. A survey
+// sample whose position label is wrong is worse than one with no label: it
+// looks attributable and is not.
+static char SURVEY_SITE[24] = "MAC_BENCH";      // e.g. "ALCOVE_MOUTH", "MM_120"
 static const char* MQTT_BROKER = "192.168.68.142";
 static const int   MQTT_PORT   = 1883;
 
@@ -489,13 +494,29 @@ static void publishMode(){
 }
 
 static void onCmd(char* topic, byte* payload, unsigned int len){
-  char buf[32]; unsigned n = len < sizeof(buf)-1 ? len : sizeof(buf)-1;
+  char buf[40]; unsigned n = len < sizeof(buf)-1 ? len : sizeof(buf)-1;
   memcpy(buf, payload, n); buf[n] = '\0';
+  if(!strncmp(buf,"site ",5) && buf[5]){
+    char old[24]; snprintf(old,sizeof(old),"%s",SURVEY_SITE);
+    snprintf(SURVEY_SITE,sizeof(SURVEY_SITE),"%.23s",buf+5);   // truncate, never overflow
+    Serial.printf("NOTE,%lu,site %s -> %s\n",(unsigned long)millis(),old,SURVEY_SITE);
+    // The move itself is evidence: samples either side of it are from
+    // different places and must never be pooled.
+    if(mqtt.connected()){
+      char p[224];
+      snprintf(p,sizeof(p),"{\"event\":\"SITE_CHANGED\",\"from\":\"%s\",\"to\":\"%s\",\"rxMs\":%lu}",
+               old,SURVEY_SITE,(unsigned long)millis());
+      mqtt.publish(tEvent,p,false);
+    }
+    publishMode();
+    return;
+  }
   RepMode was = repMode;
   if(!strcmp(buf,"listen"))      repMode = MODE_LISTEN;
   else if(!strcmp(buf,"shadow")) repMode = MODE_SHADOW;
   else if(!strcmp(buf,"repeat")) repMode = MODE_REPEAT;
-  else { Serial.printf("NOTE,%lu,unknown cmd \"%s\"\n",(unsigned long)millis(),buf); return; }
+  else { Serial.printf("NOTE,%lu,unknown cmd \"%s\" (listen|shadow|repeat|site <name>)\n",
+                       (unsigned long)millis(),buf); return; }
   Serial.printf("NOTE,%lu,mode %s -> %s\n",
                 (unsigned long)millis(), modeName(was), modeName(repMode));
   publishMode();

@@ -74,11 +74,32 @@ symmetrically.
 
 | | received | lost |
 |---|---|---|
-| Otto → Toby | 83.2% | 16.8% |
-| Toby → Otto | 87.0–87.7% | 12.3–13.0% |
+| ~~Otto → Toby~~ | ~~83.2%~~ | ~~16.8%~~ |
+| ~~Toby → Otto~~ | ~~87.0–87.7%~~ | ~~12.3–13.0%~~ |
+
+> **WITHDRAWN 2026-08-20 — the estimator cannot produce a delivery ratio.**
+> These figures, and every percentage quoted in this investigation before
+> 2026-08-20, come from `rf.py`, which computes
+> `100 * recv_hz / sent_hz` where `sent_hz` and `recv_hz` are rates derived
+> from cumulative counters over **two different, independently-timed windows**
+> — the sender's own sample spacing and the receiver's. Nothing in that
+> arithmetic is bounded by 100%, and on 2026-08-19 it reported **Otto at
+> 100.2%**, which is impossible for a delivery ratio and is the proof that the
+> estimator, not the radio, produced the number. Its per-window figures are
+> worse: each bin holds about ten frames and is divided by a long-run average
+> send rate, so a single late or batched `state/cto` publish moves a bin from
+> 100% to 50% with no packet lost anywhere. The "0%" and "50%" readings that
+> drove the evening's analysis are of that kind.
+>
+> Delivery must be computed from **sequence numbers**, which state exactly how
+> many frames the sender emitted between any two received. That is what
+> `ESPNOW_REPEATER` does (decision 0039), and it is currently the only
+> instrument in the system that measures delivery correctly. Re-derivation of
+> this session's captures has not been done.
 
 Reproduced independently across run 1 (525 s) and run 3 (505 s), ~1000 packets
-each.
+each — reproducibility of a biased estimator, which is not evidence that the
+figure is right.
 
 **A correction, recorded because the error nearly set a threshold.** A first
 analysis in session reported 30–38% loss. That was wrong. It was not the
@@ -90,8 +111,11 @@ locomotives' samples offset by ~2 s. At forty packets the quantisation
 dominates; at a thousand the figure stabilises immediately.
 
 **Average loss does not explain the stops, and must not be used to fix them.**
-At 13–17% mean loss, six consecutive misses under independent loss would be
-vanishingly rare, yet fourteen occurred. They cluster in time (ten transitions
+At the 13–17% mean loss then believed, six consecutive misses under independent
+loss would be vanishingly rare, yet fourteen occurred. (The premise is now
+withdrawn with the table above; the conclusion does not depend on it, because
+the clustering below is measured from event times and positions, not from the
+percentages.) They cluster in time (ten transitions
 inside ~21 s around 22:15) and in space (Otto mm 101→91 while Toby mm 168→157).
 That is correlated positional RF dropout, not Bernoulli noise. Durations ran
 0.002–4.04 s, median ~1.25 s.
@@ -209,3 +233,42 @@ to catch. Noted in `LocoConfig.h`.
 3. Give `SKIPPED` the station name.
 4. Decide whether a mission change should ramp gently (§4).
 5. Otto's mm 49–70 disagreement cluster — physical.
+
+---
+
+## Addendum, 2026-08-20 — what of this record still stands
+
+Written after a third ESP32 (`ESPNOW_REPEATER`, decision 0039) was built,
+flashed and run as an independent receiver, and after the delivery estimator
+was found to be unsound.
+
+**Stands.** The 14 fleet stops and their STALE origin: those events come from
+the firmware's own 3000 ms peer timeout, not from any percentage. The channel
+evidence (`ch=11`, `chg=0`, `txf=0` on both locomotives). The clustering in
+time and space. The measured durations. The ruling that `CTO_PEER_STALE_MS`
+must not be set from an average.
+
+**Withdrawn.** Every delivery percentage, in this record and in the session
+that produced it, including the direction-asymmetry reading (one locomotive
+"at 100.2%" while the other read 50% at identical geometry) — that pairing is
+now better explained by the estimator's sampling than by any property of the
+radio.
+
+**Newly measured, 2026-08-20, sequence-based and therefore sound.** With both
+locomotives running for 5.5 minutes and the third node listening in shadow
+mode from mm 120: median delivery **100%** in both directions across 65
+intervals each, worst interval 70%, **no interval below 70%**, including
+passes through mm 40–46, 65–67, 157–158 and 169 — the stretches that produced
+total collapses the previous evening. The failure did not reproduce.
+
+Also measured: with clear line of sight to both locomotives, the third node
+was the **worst** receiver of the three (88% and 82%, against 96.3% for a
+locomotive hearing its partner through a house corner). Line of sight bought
+it nothing. No geometry-based model proposed so far survives that.
+
+**Still not done, and still the thing that matters:** no comparison has been
+made between the third node's reception and the locomotives' own STALE
+episodes. That comparison — does the node hear the specific locomotive whose
+packets the other is missing, during those specific gaps — is the criterion
+that decides whether relaying is worth anything, and it requires a real
+collapse to occur while the node is listening. None has yet.
