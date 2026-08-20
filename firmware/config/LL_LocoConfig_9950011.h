@@ -70,5 +70,39 @@
 // few counts of baseline noise.
 // ---------------------------------------------------------------------------
 #define HALL_DEADBAND_COUNTS       25
-#define HALL_ENTRY_MARGIN_COUNTS   13
+// ---------------------------------------------------------------------------
+// 2026-08-20, PHANTOM GATE. The operator realigned Otto's Hall sensor this
+// afternoon and his mean peak rose 146.7 -> 176.4 (Toby sits at ~193). That fix
+// exposed the real defect: with genuine markers now reading 104-295, a
+// population of SPURIOUS events at peak 40-91 and duration 40-58 ms became
+// unmistakable. They were always there; before the realignment they overlapped
+// the genuine distribution and could not be separated.
+//
+// Measured, 596 markers after the realignment:
+//     genuine reads   585, peak 104 minimum, duration 116 ms minimum
+//     spurious reads   11, peak  91 maximum, duration  40-58 ms (9 of them)
+// A clean gap from 91 to 104, with nothing in between.
+//
+// These phantoms cost a NO_QUORUM at 14:30:51. Reads of peak 40, 51, 49 and 43
+// at mm 16, 19, 20, 21 were admitted as markers, advancing navMm ahead of the
+// physical locomotive; the polarity sequence desynchronised, the quorum opened
+// and never resolved.
+//
+// The entry threshold is baseline +/- (DEADBAND + ENTRY_MARGIN) = 25 + 13 = 38
+// counts, and EVENT_FLOOR_MS is 40 ms. The phantoms cleared BOTH by a hair.
+// Raising the entry margin to 65 puts entry at 90 counts: above every observed
+// phantom, and 14 counts below the weakest genuine read.
+//
+// NOTE for whoever reads this next: HALL_MIN_PEAK_DELTA below gates NOTHING.
+// It appears only in the boot telemetry string. So does HALL_DOMINANCE_PERCENT
+// in Toby's profile. Changing either has no effect on detection; the entry
+// threshold is the only amplitude gate there is.
+//
+// RISK, stated plainly: a genuine marker whose peak falls below 90 counts is
+// now MISSED, and a missed marker drifts position - the failure that bit Otto
+// in July when he ran on the 50/80/80 fallbacks. The 14-count margin rests on
+// ONE session at one temperature (92 F). If Otto starts missing markers, this
+// is the first thing to revisit.
+// ---------------------------------------------------------------------------
+#define HALL_ENTRY_MARGIN_COUNTS   65
 #define HALL_MIN_PEAK_DELTA        35
