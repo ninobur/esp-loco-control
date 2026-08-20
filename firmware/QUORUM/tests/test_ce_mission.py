@@ -140,6 +140,36 @@ def main():
     check('no CE_END while position is unusable', not evs(ev, 'CE_END'),
           [e.get('event') for e in ev])
 
+    # --- boundary sweep: the 13..18 dead band (review, 2026-08-19) -----------
+    # CE used to end at CTO_SLOW_GAP_MARKERS (18) while pairing forms at
+    # CTO_PAIR_RANGE_MARKERS (12), so a gap of 13..18 cleared the mission with
+    # NO pairing — and that state is stable, because both locomotives return to
+    # cruise 90 the moment missions clear, so the gap stops closing.
+    #
+    # Checking mission == NONE was exactly what let this through. The contract
+    # is: CE clears IF AND ONLY IF paired service is back. Assert the pairing.
+    # NOTE ON THE NUMBERS: the firmware compares BOUND gaps (ctoGapAhead is
+    # ctoMyFrontB -> p.rearB), not hall separation. With extents +2/-4 the bound
+    # gap runs about 6 markers tighter than the separation set here, so the
+    # sweep is widened to 6..26 to actually span bound gaps ~0..20 and cover the
+    # whole 13..18 dead band. A first attempt swept 6..19 and clipped it,
+    # catching the defect at only one point.
+    print('    -- boundary sweep, hall separation 6..26 (bound gap ~0..20) --')
+    for gap in range(6, 27):
+        # I am at 40 leading; peer closes from behind, so peer sits at 40-gap.
+        seq = (paired(40, 28) + ['ce'] + peer_at(120) * 3
+               + peer_at(40 - gap) * 4 + ['ce_dump'])
+        ce, ev = run(harness, seq)
+        d = ce[-1] if ce else {}
+        ended = d.get('mission') == 'NONE'
+        repaired = d.get('role') in ('LEADER', 'FOLLOWER') and d.get('partner')
+        # The invariant, stated as one condition so neither half can pass alone.
+        check(f'gap {gap}: mission clears only together with re-pairing',
+              ended == bool(repaired), d)
+        if gap <= 12:
+            check(f'gap {gap}: inside pairing range -> paired service resumed',
+                  ended and repaired, d)
+
     # --- operator exits ------------------------------------------------------
     ce, ev = run(harness, paired(40, 28) + ['ce', 'cto_cmd clear', 'ce_dump'])
     check('cto clear ends CE', ce and ce[-1]['mission'] == 'NONE',

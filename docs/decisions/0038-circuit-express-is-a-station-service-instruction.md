@@ -21,11 +21,22 @@ permanently unserved.
 protection already decelerates and holds behind a slower train, and Q1/Q2
 already re-derives roles from geometry.
 
-**CE ends, on both locomotives, when the fleet closes back up** — a fresh
-same-direction peer within `CTO_SLOW_GAP_MARKERS` (18), measured on the nearest
-arc in either direction. That is the express having caught the local. Missions
-clear, the formation inhibit lifts, and the pair re-forms by geometry with the
-roles swapped, because the local is now ahead.
+**CE ends, on both locomotives, when paired service actually resumes** — that
+is, when a role is latched again, not when a distance is reached.
+
+Closing within `CTO_SLOW_GAP_MARKERS` (18) **lifts the formation inhibit**; it
+does not end the mission. Q1/Q2 then re-latches by geometry at
+`CTO_PAIR_RANGE_MARKERS` (12), with the roles swapped because the local is now
+ahead, and the latched role is what clears CE.
+
+Ending on the distance instead was a P1 (review, 2026-08-19). The two thresholds
+differ, so a bound gap of 13..18 cleared the mission while no pairing formed —
+leaving `mission:NONE, role:NONE, partner:0`. That state is **stable, not
+transient**: both locomotives return to cruise 90 the moment missions clear, so
+the gap stops closing and the fleet sits in neither CE nor paired service
+indefinitely. Ending on the role closes the band by construction, and matches
+what was actually specified: "they pair in the new arrangement, and CTO paired
+service resumes".
 
 Two properties of that rule are load-bearing, and review found the first
 implementation lacking both:

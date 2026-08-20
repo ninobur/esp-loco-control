@@ -1095,6 +1095,20 @@ static bool     ceSkipNow    = false;// ...and what that decision was
 // APART, which is the express actually running its service. Review found the
 // first version ending CE ~100 ms after it began.
 static bool     ceSeparated  = false;
+// ceClosing: the fleet has come back within slow range after separating, so
+// the formation inhibit lifts and Q1/Q2 may latch again. CE does NOT end here.
+//
+// Ending on the gap number was a P1 (review, 2026-08-19): CE ended at
+// CTO_SLOW_GAP_MARKERS (18) while pairing forms at CTO_PAIR_RANGE_MARKERS (12),
+// so gaps of 13..18 cleared the mission WITHOUT producing a pairing. That state
+// is stable, not transient — both locomotives return to cruise 90 the moment
+// the missions clear, so the gap stops closing and the fleet sits unpaired
+// indefinitely, in neither CE nor paired service.
+//
+// CE therefore ends on the EVENT the operator actually specified — "they pair
+// in the new arrangement, and CTO paired service resumes" — which is a latched
+// role, not a distance.
+static bool     ceClosing    = false;
 static const char* ceMissionName(){
   return ceMission==CE_EXPRESS ? "EXPRESS" : ceMission==CE_LOCAL ? "LOCAL" : "NONE";
 }
@@ -4916,6 +4930,7 @@ static void ceBegin(){
     return;
   }
   ceStationSeq=0; ceSkipLatch=-1; ceSkipNow=false; ceSeparated=false;
+  ceClosing=false;
   char b[128];
   snprintf(b,sizeof(b),"{\"event\":\"CE_BEGIN\",\"mission\":\"%s\",\"cruise\":%d}",
            ceMissionName(),ceCruisePwm());
@@ -4963,7 +4978,7 @@ static void ceEnd(const char* why){
            ceMissionName(),why,(unsigned)ceStationSeq);
   pub(T_ST_CTO,b,false);
   ceMission=CE_NONE; ceStationSeq=0; ceSkipLatch=-1; ceSkipNow=false;
-  ceSeparated=false;
+  ceSeparated=false; ceClosing=false;
 }
 
 static void ctoDissolve(const char* why){
@@ -5086,7 +5101,7 @@ static void ctoEvaluateRoles(){
   // Placed AFTER every dissolution path above: a direction change, a partner
   // direction change or an order inversion must still be able to break a
   // pairing that already exists while a mission runs.
-  if(ceMission!=CE_NONE && ctoRole==CTO_ROLE_NONE) return;
+  if(ceMission!=CE_NONE && !ceClosing && ctoRole==CTO_ROLE_NONE) return;
 
   // pick the nearest fresh same-direction quorum-holding peer
   int8_t best=-1; uint16_t bestGap=0xFFFF; bool bestAhead=true;
@@ -5340,8 +5355,17 @@ static void ctoService(){
       // Arming: the fleet must actually come apart first, otherwise the pairing
       // range they start inside ends CE immediately.
       if(!ceNearPeer()) ceSeparated=true;
-    }else if(ceNearPeer()){
-      ceEnd("FLEET_CLOSED_UP_RESUME_PAIRED_SERVICE");
+    }else{
+      // Closing: lift the inhibit so Q1/Q2 can latch. One-way — a fleet that
+      // has begun closing is not un-closed by a momentary gap reading, and
+      // re-arming the inhibit mid-approach would fight the pairing it exists
+      // to allow.
+      if(!ceClosing && ceNearPeer()) ceClosing=true;
+      // Ended by the pairing itself, evaluated later in this same pass by
+      // ctoEvaluateRoles(). Waiting for the ROLE rather than the gap closes the
+      // 13..18 dead band: the mission cannot clear until paired service is
+      // actually back.
+      if(ctoRole!=CTO_ROLE_NONE) ceEnd("REPAIRED_PAIRED_SERVICE_RESUMED");
     }
   }
   if(!ctoRadioUp) return;

@@ -259,12 +259,16 @@ int main(){
       // under test, and setting the state by hand would skip both.
       ceBegin();
     } else if(cmd=="ce_dump"){
+      // partner and traffic included because "mission == NONE" alone hid a P1:
+      // CE cleared without a pairing ever forming, and the test still passed.
       std::printf("{\"ce\":true,\"mission\":\"%s\",\"cruise\":%d,"
-                  "\"dwell\":%lu,\"seq\":%u,\"role\":\"%s\"}\n",
+                  "\"dwell\":%lu,\"seq\":%u,\"role\":\"%s\","
+                  "\"partner\":%lu,\"traffic\":%u}\n",
                   ceMissionName(), ceCruisePwm(),
                   (unsigned long)ctoDwellMs(), (unsigned)ceStationSeq,
                   ctoRole==CTO_ROLE_LEADER?"LEADER":
-                  ctoRole==CTO_ROLE_FOLLOWER?"FOLLOWER":"NONE");
+                  ctoRole==CTO_ROLE_FOLLOWER?"FOLLOWER":"NONE",
+                  (unsigned long)ctoPartnerId, (unsigned)ctoTraffic);
 #endif
     } else if(cmd=="cto_off"){
       ctoEnabled=false;
