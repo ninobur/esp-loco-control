@@ -248,8 +248,8 @@ evidence (`ch=11`, `chg=0`, `txf=0` on both locomotives). The clustering in
 time and space. The measured durations. The ruling that `CTO_PEER_STALE_MS`
 must not be set from an average.
 
-**Withdrawn.** Every delivery percentage, in this record and in the session
-that produced it, including the direction-asymmetry reading (one locomotive
+**Withdrawn.** Every delivery percentage, in this record and in the earlier
+part of the same session, including the direction-asymmetry reading (one locomotive
 "at 100.2%" while the other read 50% at identical geometry) — that pairing is
 now better explained by the estimator's sampling than by any property of the
 radio.
@@ -259,7 +259,8 @@ locomotives running for 5.5 minutes and the third node listening in shadow
 mode from mm 120: median delivery **100%** in both directions across 65
 intervals each, worst interval 70%, **no interval below 70%**, including
 passes through mm 40–46, 65–67, 157–158 and 169 — the stretches that produced
-total collapses the previous evening. The failure did not reproduce.
+total collapses earlier the SAME night, a few hours before. The failure did
+not reproduce.
 
 Also measured: with clear line of sight to both locomotives, the third node
 was the **worst** receiver of the three (88% and 82%, against 96.3% for a
