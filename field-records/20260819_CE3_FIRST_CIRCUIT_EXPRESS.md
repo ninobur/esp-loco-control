@@ -273,3 +273,40 @@ episodes. That comparison — does the node hear the specific locomotive whose
 packets the other is missing, during those specific gaps — is the criterion
 that decides whether relaying is worth anything, and it requires a real
 collapse to occur while the node is listening. None has yet.
+
+---
+
+## Second addendum, 2026-08-20 midday — most of the fleet stops stopped nothing
+
+Prompted by the operator's recollection that the evening required **one** reset,
+which did not match a record headlined by fourteen fleet stops. Measured from
+the capture, 18:00–02:00:
+
+**37 `CTO_FLEET_STOP` events fired. 10 coincided with a locomotive's PWM
+falling to zero. The other 27 asserted and cleared while the trains ran
+straight through** — most within 0.5–2.0 s, several within 0.1 s.
+
+The 10 are not ten incidents. They fall into roughly five episodes: 22:04
+(Toby), 22:12 (Otto and Toby, four events in eight seconds), 23:14 (Otto, 68 s
+to clear), 00:01 (Toby), 00:05 (Otto, three events). One required reset across
+the evening is consistent with that.
+
+Two limits on this figure, stated rather than buried. The halt test is "PWM
+reached zero within 8 s of the event", and a scheduled station stop is
+indistinguishable from a fleet stop by that test — so **10 is an upper bound**.
+And the 37 measured here does not match the 14 in the section above; the
+earlier figure was probably counting episodes or a narrower window, and the
+discrepancy is unreconciled.
+
+**Why it matters.** The peer-stale threshold was crossed constantly and rarely
+cost anything. Confirmed again the following midday: five STALE fleet stops in
+forty minutes, with the throttle traces showing Otto *accelerating through* one
+of them (PWM 63→120) and both locomotives holding a steady PWM 60 through
+another. The assertion clears before the hold reaches the motor.
+
+That is not a designed margin. It is the recovery happening to arrive before
+the brake does, and a stale lasting a second or two longer would presumably
+bite. But it means the dominant symptom of this fault is **telemetry noise, not
+stopped trains** — and any future work on `CTO_PEER_STALE_MS` should be judged
+against how many *halts* it prevents, never against how many assertions it
+suppresses.
