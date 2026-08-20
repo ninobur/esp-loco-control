@@ -23,6 +23,19 @@
 #   1. HOLDS SLEEP OFF. caffeinate is held for the life of the capture, and the
 #      script says so loudly when running on battery, where a closed lid still
 #      sleeps regardless.
+#   2a. 2026-08-20: DETECTION WAS NOT ENOUGH. The 00:47-01:53 hole of that
+#      session was 3,930 s in which NOTHING arrived — not one ngr/# message, not
+#      one $SYS tick. The watchdog worked perfectly: it wrote a # STALL line
+#      every 15 s and a # RESUME at the end. But the broker and network were
+#      fine throughout — other subscribers were querying that same broker live
+#      during the hole. The capture's own mosquitto_sub had stopped delivering
+#      WITHOUT exiting and WITHOUT reconnecting, which is exactly the condition
+#      fix 2 below describes and yet nothing acted on it: an hour of railway
+#      went unrecorded while the tool faithfully wrote down that it was
+#      recording nothing. A watchdog that only annotates is a smoke alarm with
+#      no one home. It now RESTARTS the subscriber, and a shorter keepalive
+#      gives the client its own chance to notice first.
+#
 #   2. DETECTS ITS OWN SILENCE. The old reconnect logging assumed mosquitto_sub
 #      EXITS when the link drops. It does not: 2.x calls mosquitto_loop_forever,
 #      which reconnects and resubscribes internally. The process never exits, so
@@ -54,12 +67,15 @@ HOST="${2:-192.168.68.142}"
 # deleted inode, producing nothing while looking healthy. That is the exact
 # failure this tool exists to prevent, so it is now refused rather than trusted.
 #
-# Keyed on the SUBSCRIBER, not on this script's name: the name test matched any
-# shell whose command line merely mentioned capture.sh — including the one
-# launching it — so it refused to start at all under a wrapper. mosquitto_sub is
-# the process that actually writes a capture, so it is the one worth guarding.
-OTHER=$(ps ax -o pid=,command= | grep '[m]osquitto_sub' | grep -- "-F" || true)
+# Keyed on the SUBSCRIBER, and matched on the process NAME rather than on any
+# command line. Two earlier versions of this guard searched command lines — first
+# for capture.sh, then for mosquitto_sub — and both matched the very shell that
+# was launching the capture, because that shell's command line quotes the
+# pattern it is searching for. pgrep -x matches the executable's name, which a
+# wrapper shell can never satisfy.
+OTHER=$(pgrep -x mosquitto_sub || true)
 if [ -n "$OTHER" ]; then
+  OTHER=$(ps -o pid=,command= -p "$(echo "$OTHER" | tr '\n' ' ')" 2>/dev/null)
   echo "refusing: a capture subscriber is already running:" >&2
   echo "$OTHER" >&2
   echo "stop it first." >&2
@@ -67,6 +83,12 @@ if [ -n "$OTHER" ]; then
 fi
 OUT="$(cd "$(dirname "$0")/../logs" && pwd)/${NAME}.log"
 STALL_S=45          # $SYS ticks every ~10 s, so 45 s of silence is real silence
+RESTART_S=90        # ... and 90 s means the subscriber is not coming back on
+                    # its own. Kill it; the loop below reconnects from scratch.
+                    # Deliberately longer than STALL_S: a stall is worth
+                    # recording, a restart is worth doing, and they are not the
+                    # same judgement.
+PIDFILE="$(mktemp -t ngrcap)"   # where the subscriber publishes its pid
 
 printf '# capture %s -> %s\n' "$NAME" "$OUT"
 printf '# broker %s ; started %s\n' "$HOST" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$OUT"
@@ -91,21 +113,49 @@ fi
 # Polls the file from outside the subscriber, so it reports even when
 # mosquitto_sub is alive-but-delivering-nothing — the 2026-08-12 failure.
 (
-  last_size=0; stalled=0
+  # Silence is measured from the LAST DATA LINE'S OWN TIMESTAMP, never from
+  # file growth. 2026-08-20: a growth-based watchdog printed "# RESUME" against
+  # an unreachable broker, because the # STALL and # RECONNECT lines it writes
+  # are themselves growth — the tool was reading its own noise as traffic. Data
+  # lines begin with the broker's %U epoch stamp; comment lines begin with '#'
+  # and are skipped, so nothing this script writes can ever look like data.
+  stalled=0; since_restart=0; was_stalled=0
   while : ; do
     sleep 15
-    size=$(wc -c < "$OUT" 2>/dev/null | tr -d ' ')
-    [ -z "$size" ] && continue
-    if [ "$size" = "$last_size" ]; then
-      stalled=$((stalled + 15))
-      if [ "$stalled" -ge "$STALL_S" ]; then
+    last_ts=$(tail -n 2000 "$OUT" 2>/dev/null | grep -v '^#' | tail -n 1 | cut -d' ' -f1 | cut -d. -f1)
+    now=$(date +%s)
+    case "$last_ts" in
+      ''|*[!0-9]*) stalled=$((stalled + 15)) ;;   # no data line in reach: still silent
+      *)           stalled=$((now - last_ts)) ;;
+    esac
+    if [ "$stalled" -ge "$STALL_S" ]; then
+      since_restart=$((since_restart + 15))
+      if [ "$was_stalled" -eq 0 ] || [ $((stalled % 60)) -lt 15 ]; then
         printf '# STALL %s no data for %ss\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$stalled" >> "$OUT"
-        last_size=$(wc -c < "$OUT" 2>/dev/null | tr -d ' ')
+      fi
+      was_stalled=1
+      # Detection is not recovery. Past RESTART_S the subscriber is alive and
+      # useless, so kill it and let the loop build a fresh connection. Rate
+      # limited to one restart per RESTART_S so a genuinely dead broker gets
+      # patient retries rather than a kill storm.
+      if [ "$since_restart" -ge "$RESTART_S" ]; then
+        SUBPID=$(cat "$PIDFILE" 2>/dev/null)
+        if [ -n "$SUBPID" ] && kill -0 "$SUBPID" 2>/dev/null; then
+          printf '# RESTART %s killing subscriber pid %s after %ss silent\n' \
+                 "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$SUBPID" "$stalled" >> "$OUT"
+          kill "$SUBPID" 2>/dev/null
+        else
+          printf '# RESTART %s no live subscriber to kill after %ss silent\n' \
+                 "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$stalled" >> "$OUT"
+        fi
+        since_restart=0
       fi
     else
-      [ "$stalled" -ge "$STALL_S" ] && \
+      # RESUME only when a real data line is newer than STALL_S — never on our
+      # own writes, which is the whole point of timestamping instead of sizing.
+      [ "$was_stalled" -eq 1 ] && \
         printf '# RESUME %s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$OUT"
-      stalled=0; last_size=$size
+      was_stalled=0; since_restart=0
     fi
   done
 ) &
@@ -113,21 +163,29 @@ WATCH=$!
 
 cleanup() {
   printf '# STOPPED %s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$OUT"
+  SUBPID=$(cat "$PIDFILE" 2>/dev/null)
+  [ -n "$SUBPID" ] && kill "$SUBPID" 2>/dev/null
   kill "$WATCH" "$CAFF" 2>/dev/null
+  rm -f "$PIDFILE"
   exit 0
 }
 trap cleanup INT TERM
 
 # --- 3. subscribe to everything --------------------------------------------
 while : ; do
-  mosquitto_sub -h "$HOST" -F '%U %t %p' \
+  # -k 15: keepalive well under the default 60 s, so the client itself notices
+  # a black-holed TCP connection in ~22 s instead of ~90. The 2026-08-20 hole
+  # was a connection that never noticed at all.
+  mosquitto_sub -h "$HOST" -k 15 -F '%U %t %p' \
       -t 'ngr/#' \
       -t '$SYS/broker/clients/connected' \
       -t '$SYS/broker/messages/dropped' \
-      -t '$SYS/broker/uptime' >> "$OUT" 2>/dev/null
-  # Only reached if the subscriber exits outright. It normally does NOT — 2.x
-  # reconnects internally — so this line is the rare case, and the watchdog
-  # above is what catches the common one.
+      -t '$SYS/broker/uptime' >> "$OUT" 2>/dev/null &
+  SUBPID=$!
+  echo "$SUBPID" > "$PIDFILE"      # the watchdog needs this to kill it
+  wait "$SUBPID"
+  # Reached when the subscriber exits on its own OR when the watchdog killed
+  # it for going silent. Either way the fix is the same: connect again.
   printf '# RECONNECT %s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$OUT"
   sleep 2
 done
