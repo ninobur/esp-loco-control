@@ -131,11 +131,17 @@ recorded here rather than smoothed over.
 - Speeds are PWM, not speed. Decision 0014's SPEED_HOLD is unbuilt, so CE
   inherits every limitation 0014 names — notably that the same PWM produces
   different speeds by grade, curve, load and battery voltage.
-- EXPRESS at 110 is the fastest automation has run. `SPEED_CONTROL_DISCUSSION.txt`
-  records clean navigation at 50–69 pKPH and cascade failures at 78–82; PWM 90
-  measured ~240–290 mm/s (~45–54 pKPH) on 2026-08-19, so 110 should sit inside
-  the clean band. **First express laps must be watched for `MM_OVERSPEED` and
-  missed markers**, and this is the reason to watch.
+- EXPRESS at 110 is the fastest automation has run in service. Measured on the
+  first CE run, 2026-08-19: Otto 316–334 mm/s, Toby 357–392 mm/s (Toby lighter,
+  without the IR car). No `MM_OVERSPEED`, no missed markers, one self-resolved
+  quorum on Otto.
+- **The old pKPH ceiling does not apply and must not be cited as a limit.**
+  `SPEED_CONTROL_DISCUSSION.txt` records clean navigation at 50–69 pKPH with
+  cascade failures at 78–82, and an earlier draft of this record repeated those
+  figures as a live caution. They predate the Hall firmware fix; the operator
+  confirms the locomotives have since run at PWM 200 with no degradation of
+  magnet sensing. The numbers are historical evidence about a superseded
+  detector, not an envelope for this firmware.
 - CE cannot start a stopped locomotive, cannot clear an E-stop, and cannot
   raise any cap the traffic layer has applied. It changes service pattern only.
 - **Requires two locomotives.** Untestable solo by construction, and Toby is
