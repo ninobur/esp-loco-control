@@ -84,3 +84,57 @@ widened fence without this corrupts all navigation telemetry.
 3. Adjudicate the 26 suite failures; re-pin fixtures that encode the defect.
 4. CODEX review lifting (or upholding) the 0024 harness-only boundary.
 5. Only then: decision record, firmware implementation, supervised field test.
+
+---
+
+## Addendum — CODEX review of 2026-08-21, findings accepted and acted on
+
+**Finding 1 (P1, fixed):** the rhythm-escape memory survived every timing
+reset — direction changes, stops, LOW_PWM, RAMP, declarations. A cadence
+rejected before a reset could authenticate an unrelated event after it, with
+no conservation test. `invalidatePreviousAcceptedDt()` now clears
+`qLastRejectedDt` (guarded; default build unchanged). Re-run of the full
+matrix after the fix: numbers identical — the leak never fired in these five
+sessions, and the hole is closed. Scenario tests for each invalidation path
+are still owed (CODEX item 2).
+
+**Finding 2 (P1, accepted):** "met in direction" weakened a pre-registered
+criterion after seeing the result, and is retracted. Event-level analysis
+gives the honest split: s05 contained TWO cascades. The first converts fully —
+viable narrows to [−2,4], **QUORUM_ADOPTED (mm 30, −2)**, closed, clean. The
+second keeps −2 viable to the end (`NO_QUORUM mm 37, viable [−2,3,4]`) but
+hits **QUORUM_MAX=12 evaluations with no candidate reaching the
+QUORUM_MARGIN=2 unique lead**. The residual failure is a margin/evaluation-
+budget limitation, not fence expressiveness — a separate question that must
+not be resolved by silently widening anything. **The offsets gate is NOT
+passed.**
+
+**Finding 3 (P2, accepted):** "capped at one by construction" was an
+overclaim; the code comment now states the truth — runs bounded 16 → 1–3 in
+practice, defeatable by a cadence drifting >30% between consecutive events.
+
+**Finding 4 (P2, fixed):** the driver is committed as
+`tests/replay_matrix.py` with the build/extraction recipe in its docstring;
+the final post-fix matrix is committed as
+`tests/results_20260821_shadow_matrix.txt`. The capture the sessions extract
+from is already in `field-records/logs/`.
+
+**s02 regression, root-caused (CODEX item 4):** the T and BASE streams are
+identical until a single **dt=664 ms** event at mm 11 (prev 1860). BASE's PWM
+model rejected it (sum 2524 within ±30% of expected 2226); the ratio rule
+passed it (664 > 0.3×1860 = 558). That one acceptance seeds a +1 slip; the
+quorum then ties for twelve evaluations and dies at mm 26. **The wedge is
+0.30–0.50×prev** — events the ratio rule admits that a well-calibrated model
+rejects. Raising the ratio erodes acceleration headroom (genuine dt halves
+under hard acceleration). Design question for CODEX, not a quiet tune.
+
+**Item 8 (500 ms floor):** evidence cuts both ways and the call is not taken
+unilaterally. For revert: the floor's purpose (cover 350–500 ms) is
+superseded if the measured gate lands; quarantine skips seed label slips. For
+retain: on 2026-08-21 the 500 floor quarantined-and-discarded a probable
+phantom at dt=410 (mm 104) that a 350 floor would have passed to weaker
+tests. Operator/CODEX decision; a revert build is one config line.
+
+**Still open:** scenario tests (item 2), hold-out captures (item 6), the 26
+suite adjudications (item 7).
+

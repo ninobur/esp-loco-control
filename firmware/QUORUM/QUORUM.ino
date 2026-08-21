@@ -1270,10 +1270,13 @@ static const float DT_CONSERVE_TOL = 0.30f;   // provisional, named (§3)
 static const uint16_t Q_PREV_SANE_MS = 8000;
 // Rhythm escape: a phantom splits ONE interval ONCE, so two consecutive
 // events at the SAME new cadence are a train, not noise. Remembering the
-// rejected interval and accepting its rhythm caps every rejection run at one
-// by construction - the freeze family (frozen predecessor, stale median,
-// acceleration lock) cannot form. Third revision from the 2026-08-21 shadow
-// replays: the T3 sanity cap alone still allowed a 17-run after crawl.
+// rejected interval and accepting its rhythm BOUNDS rejection runs sharply in
+// practice (observed 16 -> 1-3 on the 2026-08-21 replays) but does NOT cap
+// them mathematically (CODEX finding 3): a cadence drifting more than 30%
+// between consecutive events - e.g. 1000 -> 1500 -> 2200 ms under hard
+// acceleration - defeats the escape while each interval still fails the
+// conservation test against a long predecessor. Third revision from the
+// shadow replays: the T3 sanity cap alone still allowed a 17-run after crawl.
 static uint16_t qLastRejectedDt = 0;
 #endif
 // PWM -> velocity, mm/s. Explicitly provisional: PWM is a request, not a
@@ -1689,7 +1692,16 @@ static void computeLeaderRunnerUpMargin(){
 static void clearCandidateExclusions(){
   for(uint8_t i=0;i<QUORUM_CANDIDATES;i++) candidateExcluded[i]=false;
 }
+#ifdef Q_TIMING_MEASURED
+// CODEX 2026-08-21 finding 1: the rhythm-escape memory is TIMING HISTORY and
+// must die with the rest of it. Before this, a cadence rejected before a
+// direction change / stop / LOW_PWM / RAMP / declaration survived the reset,
+// and an unrelated event resembling it could be accepted with no conservation
+// test at all.
+static void invalidatePreviousAcceptedDt(){ previousAcceptedDtValid=false; qLastRejectedDt=0; }
+#else
 static void invalidatePreviousAcceptedDt(){ previousAcceptedDtValid=false; }
+#endif
 
 // After a confirming agreement: the incident is over, every offset eligible.
 static void endSuccessfulIncident(){
