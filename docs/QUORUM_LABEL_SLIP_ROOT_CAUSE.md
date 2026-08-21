@@ -81,6 +81,15 @@ measured medians for quarantine while explicitly leaving the conservation
 gate's PWM model untouched. The operator's "there is a glitch in the firmware"
 was already in the repo, diagnosed and shelved.
 
+## Residue the diagnosis does not cover
+
+Two NO_QUORUMs are gate-independent counterexamples (second refuter): one at
+steady cruise from MISSED detections in the weak-sensor era (dt gaps 2.0–2.4×,
+quorum adopting wrong representable offsets), one showing genuine polarity
+corruption. Neither contradicts the primary mechanism; both mark its edge.
+Toby's single NO_QUORUM is pure mechanism 1 — five rejections, no dwell, no
+crawl — and has not yet had the windowed label-fit treatment applied.
+
 ## Recommended fixes, in order
 
 1. **Implement 0024**: expectedDt from the trailing median of accepted
@@ -88,9 +97,13 @@ was already in the repo, diagnosed and shelved.
    fallback only. Prove first by shadow-replaying the capture through the
    harness with the one-line substitution: the 14 frozen-predecessor rejection
    runs must disappear while true phantom rejections survive.
-2. **Widen QUORUM_OFFSETS to a symmetric set** (add −2, −3): converts
-   unrecoverable forward slips into ordinary adoptions. Small, cheap, and it
-   removes the failure the operator actually sees.
+2. **Widen QUORUM_OFFSETS to a symmetric set** (add −2, −3) — but this is
+   gated on the SAME replay, not independently proven (operator correction,
+   2026-08-21). The −2 fits come from inference over the final capture; the
+   test that decides it is the one the refutation pass specified: re-score the
+   11:50:43 stream through the harness with the widened set. If the cascade
+   converts to a −2 adoption, the widening is proven; if it still ends in
+   NO_QUORUM, the label-slip reading of that episode dies with it.
 3. **Tonight's oscilloscope session has a concrete prediction**: Otto's sensor
    should show opposite-pole excursions of ~40–66 counts flanking each main
    lobe (~0.2 s behind at speed), and a leading lobe that lingers at crawl.
