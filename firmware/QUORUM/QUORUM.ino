@@ -3700,10 +3700,10 @@ static void publishBootId(){
   // navigator identity now.
   snprintf(b,sizeof(b),
     "{\"sketch\":\"%s\",\"loco\":\"%s\",\"deadband\":%d,\"entry_margin\":%d,"
-    "\"min_peak\":%d,\"floor_ms\":%lu,\"baseline\":\"median_%d_at_%lums\","
+    "\"min_peak\":%d,\"floor_ms\":%lu,\"q_floor_ms\":%u,\"baseline\":\"median_%d_at_%lums\","
     "\"quorum_trigger\":%d,\"quorum_margin\":%d,\"quorum_max\":%d}",
     SKETCH_NAME,LOCO_NAME,(int)HALL_DEADBAND_COUNTS,(int)HALL_ENTRY_MARGIN_COUNTS,
-    (int)HALL_MIN_PEAK_DELTA,EVENT_FLOOR_MS,MEDIAN_WINDOW,MEDIAN_SAMPLE_MS,
+    (int)HALL_MIN_PEAK_DELTA,EVENT_FLOOR_MS,(unsigned)Q_FLOOR_MS,MEDIAN_WINDOW,MEDIAN_SAMPLE_MS,
     QUORUM_TRIGGER,QUORUM_MARGIN,QUORUM_MAX);
   pub(T_BOOT,b,true);          // retained: kills the stale-identity ghost
 }
