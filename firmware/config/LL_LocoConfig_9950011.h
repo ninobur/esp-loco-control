@@ -124,3 +124,23 @@
 // offsets, and dt_conserve_ratio drifting toward 2.
 #define HALL_ENTRY_MARGIN_COUNTS   45
 #define HALL_MIN_PEAK_DELTA        35
+
+// ---------------------------------------------------------------------------
+// 2026-08-21 TRIAL: quarantine physical floor 350 -> 500 ms, Otto only.
+// Operator direction. Rationale and bound recorded at Q_FLOOR_MS in QUORUM.ino:
+// shortest map interval 280 mm, fleet maximum measured 400 mm/s = 700 ms, so
+// 500 ms implies 560 mm/s and keeps a 1.4x margin. Toby stays at 350 as the
+// control.
+//
+// What this buys: the quarantine's three criteria (weak, too soon, opposite
+// polarity) currently only vote below 0.40 x median interval ~= 400 ms, while
+// the absolute floor already rejects below 350 ms. Raising the floor covers
+// the 350-500 ms band outright.
+//
+// What it risks: dt is measured from the last RECEIVED event, phantoms
+// included, so a genuine magnet arriving within 500 ms of a phantom is
+// quarantined - and quarantine's ambiguous default is PHANTOM (2026-08-20:
+// 3 committed against 60 discarded). A wrongly quarantined marker becomes a
+// missed marker and a position lag. Watch for quorum adopting POSITIVE offsets.
+// ---------------------------------------------------------------------------
+#define Q_FLOOR_MS_OVERRIDE 500

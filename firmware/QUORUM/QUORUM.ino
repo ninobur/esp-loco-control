@@ -1273,7 +1273,17 @@ static bool     previousAcceptedDtValid=false;
 // QUORUM adopts and closes routinely — the shadow path costs one adoption).
 // A discarded event's interval is folded into its successor's dt so the
 // committed timing chain still measures physical travel.
+// 2026-08-21: per-locomotive so a raised floor can be TRIALLED on one machine
+// with the other as an untouched control. The shortest interval on the map is
+// 280 mm (mm 126->127); the fleet's measured maximum is 400 mm/s (Toby,
+// 2026-08-20), which crosses it in 700 ms. 350 ms therefore implies 800 mm/s,
+// a 2.0x margin. Otto trials 500 ms = 560 mm/s, a 1.4x margin.
+// Do NOT raise this toward 700: that is the operating point, not a margin.
+#ifndef Q_FLOOR_MS_OVERRIDE
 static const uint16_t Q_FLOOR_MS        = 350;   // physics; see derivation above
+#else
+static const uint16_t Q_FLOOR_MS        = Q_FLOOR_MS_OVERRIDE;
+#endif
 static const float    Q_INT_RATIO      = 0.40f;  // vs trailing median accepted dt
 static const float    Q_FLUX_RATIO     = 0.55f;  // vs trailing median accepted peak
 static const float    Q_DUR_RATIO      = 3.5f;   // vs trailing median accepted duration
