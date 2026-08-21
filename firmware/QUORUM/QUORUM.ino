@@ -761,6 +761,48 @@ const uint8_t NGR_DNA1[DNA_N] PROGMEM = {
   1,0,1,0,0,0,0,1,1,1,0
 };
 
+// ---------------------------------------------------------------------------
+// AMPLITUDE MAP — expected field strength per marker, as a PERCENTAGE of the
+// railway's median marker. Measured 2026-08-20 from 6,613 Otto reads and
+// 5,363 Toby reads; each entry is the mean of the two locomotives' normalised
+// medians, so it carries neither machine's bias.
+//
+// This is a MAP, not a calibration of one locomotive. The evidence: Otto and
+// Toby have different sensors, different mounts and a sensitivity difference
+// of about a quarter, yet their normalised per-marker profiles correlate at
+// r = 0.938 across all 171 markers. mm 140 reads 0.61x median on BOTH. The
+// shape belongs to the magnets; only the gain belongs to the locomotive.
+//
+// Range 61..153. The weak cluster is mm 137-144 (mm 140 at 61), with mm 27-28
+// and mm 71 also low; the strong markers reach 1.5x at mm 61-64 and mm 100.
+//
+// USE: the quarantine's "dim" test compared a read against the trailing median
+// of ALL accepted peaks, which assumes every magnet is the same strength. They
+// are not, by 2.5:1. A genuine read at mm 140 was within a whisker of being
+// called a phantom, while a phantom-strength read at mm 100 looked ordinary.
+// Scaling the expectation by this table asks the right question: is this read
+// weak FOR THIS MAGNET.
+//
+// DRIFT: temperature, alignment and sensor changes move the GAIN, not the
+// shape — which is exactly why the two profiles agree. The trailing median
+// supplies the gain; this table supplies the shape.
+//
+// REVISION: rebuild from a session's mm/marker stream when magnets are moved,
+// replaced or reseated. It is evidence, and it goes stale like any other.
+// ---------------------------------------------------------------------------
+static const uint8_t strengthPct[DNA_N] PROGMEM = {
+  110,149,128,129,128,115,128, 95,117, 98,104, 98, 88,104, 95,100, 95,105,109,106,
+  104, 98,102, 93,101, 94, 97, 81, 84, 96, 99, 92, 91, 96, 99, 93, 95,101, 98, 98,
+   97, 99, 86, 96, 91, 99,104, 97, 97,100, 95, 92, 96, 93,129, 99, 98, 99,105,109,
+  101,147,104,153,144, 94, 97, 81, 93, 88, 86, 76, 85, 86, 88, 91, 86, 87, 95,114,
+  102,112,105,106,115,106,101,112,116,114,103, 97,111,109,103,105,104,107,104,143,
+  147,137,128, 86, 87, 94, 89, 85, 89, 89, 87,101, 98, 94, 94,101, 91, 93, 96,104,
+   97,113, 97, 99,102, 98,104,101, 93,103, 97, 93, 87, 88, 97,103, 96, 82, 84, 81,
+   61, 75, 75, 91, 82, 97, 90, 97, 84, 87, 95, 90,125, 98, 92, 96, 98, 91,101, 90,
+   89, 90, 85, 94, 89, 97, 95, 91,107, 88,112
+};
+static inline uint8_t strengthAt(uint8_t mm){ return pgm_read_byte(&strengthPct[mm%DNA_N]); }
+
 static const uint16_t spacingMm[DNA_N] PROGMEM = {
   330,340,330,315,325,330,315,300,300,295,
   300,290,300,315,315,325,310,300,300,320,
@@ -2246,7 +2288,20 @@ static bool qSuspect(const MarkerEvent& e, uint16_t dt){
   bool opp = last && (last->polarity != e.polarity);
   if(!opp) return false;
   uint16_t mpk=qMedian(qPkHist,qHistLen), mdu=qMedian(qDuHist,qHistLen);
-  bool dim  = (float)e.peak       < Q_FLUX_RATIO*(float)mpk;
+  // The dim test asks whether this read is weak FOR THE MAGNET IT SHOULD BE,
+  // not weak for the railway. mpk is the trailing median across all markers,
+  // i.e. this locomotive's current GAIN; strengthAt() is the magnet's expected
+  // SHAPE. Multiply them for the expectation at the next marker.
+  //
+  // Guarded on position: with no usable position there is no "next marker",
+  // and an expectation drawn from a wrong mm would be worse than none. Then
+  // the flat median stands and behaviour is exactly as it was.
+  uint16_t expPk = mpk;
+  if(navPositionUsable() && navDir!=MAP_UNSET){
+    uint8_t nextMm = routeMod((int32_t)navMm + navDir);
+    expPk = (uint16_t)(((uint32_t)mpk * strengthAt(nextMm)) / 100u);
+  }
+  bool dim  = (float)e.peak       < Q_FLUX_RATIO*(float)expPk;
   bool lng  = (float)e.durationMs > Q_DUR_RATIO *(float)mdu;
   return dim || lng;
 }
