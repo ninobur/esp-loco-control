@@ -1235,7 +1235,18 @@ static void publishQuorumDecision(const char* ev, const char* extra);
 // Asymmetric by measurement (§2.2): a phantom inserts one spurious event, so
 // the odometer runs at most one AHEAD; dropped events arrive in bursts (run 1
 // logged queue_drops 0->4 and the recovery returned off=+4).
+#ifdef Q_OFFSETS_SYMMETRIC
+// HARNESS-ONLY variant: the asymmetry rationale above ("the odometer runs at
+// most one AHEAD") was falsified 2026-08-21 — dwell double-counts and
+// quarantine skips ran the forward label 2+ ahead, a true offset of -2 the
+// fence cannot express (docs/QUORUM_LABEL_SLIP_ROOT_CAUSE.md). Gated on the
+// shadow replay converting the 11:50:43 cascade into a -2 adoption.
+#undef  QUORUM_CANDIDATES
+#define QUORUM_CANDIDATES 8
+static const int8_t QUORUM_OFFSETS[QUORUM_CANDIDATES] = { -3, -2, -1, 0, +1, +2, +3, +4 };
+#else
 static const int8_t QUORUM_OFFSETS[QUORUM_CANDIDATES] = { -1, 0, +1, +2, +3, +4 };
+#endif
 
 // HARD_BOUND advisory (decision 0023). Parameters of a live, diagnostic-only
 // feature, so they live with the other navigator constants; the matcher itself
@@ -1252,6 +1263,19 @@ static const int8_t QUORUM_OFFSETS[QUORUM_CANDIDATES] = { -1, 0, +1, +2, +3, +4 
 #define GATE_LOW_PWM_FLOOR 40   // below this the velocity model is invalid
 #define GATE_RAMP_DELTA    10   // |actual-commanded| beyond this = mid-ramp
 static const float DT_CONSERVE_TOL = 0.30f;   // provisional, named (§3)
+#ifdef Q_TIMING_MEASURED
+// Longest interval allowed to become the timing predecessor. The slowest
+// genuine ACTIVE-gate cadence observed is ~6 s (pwm 46 crawl with dwell
+// returns); beyond 8 s the interval spans a stop and predicts nothing.
+static const uint16_t Q_PREV_SANE_MS = 8000;
+// Rhythm escape: a phantom splits ONE interval ONCE, so two consecutive
+// events at the SAME new cadence are a train, not noise. Remembering the
+// rejected interval and accepting its rhythm caps every rejection run at one
+// by construction - the freeze family (frozen predecessor, stale median,
+// acceleration lock) cannot form. Third revision from the 2026-08-21 shadow
+// replays: the T3 sanity cap alone still allowed a 17-run after crawl.
+static uint16_t qLastRejectedDt = 0;
+#endif
 // PWM -> velocity, mm/s. Explicitly provisional: PWM is a request, not a
 // result (ROAD_TO_CTO.md) — grade, load, battery and railhead all move what
 // it produces. M2's wheel sensor replaces this; the wide tolerance above
@@ -2482,7 +2506,16 @@ static void navLadder(const MarkerEvent& e, uint16_t dt, bool vouched){
     // event of a session — must never become a predecessor: the next genuine
     // marker would test 0+dt against one expected interval and be rejected.
     lastTimingGate="NO_PREV";
+#ifdef Q_TIMING_MEASURED
+    // A dwell-spanning first interval must never become the predecessor: with
+    // expectedDt = prev, a 40 s seed makes every genuine 1-3 s marker satisfy
+    // dt <= 0.30*prev and the rejection freeze preserves the poison (measured:
+    // runs of 43 consecutive genuine markers rejected). Same doctrine as the
+    // zero-dt rule above, at the other extreme.
+    if(dt>0 && dt<=Q_PREV_SANE_MS){ previousAcceptedDt=dt; previousAcceptedDtValid=true; }
+#else
     if(dt>0){ previousAcceptedDt=dt; previousAcceptedDtValid=true; }
+#endif
     acceptEvent(e);
     return;
   }
@@ -2496,16 +2529,57 @@ static void navLadder(const MarkerEvent& e, uint16_t dt, bool vouched){
   // MM51->MM50 -> spacingMm[50]. Off-by-one here is up to 31% — comparable to
   // the whole tolerance.
   uint8_t conserveIntervalIndex = (navDir==MAP_CW) ? routeMod((int32_t)navMm-1) : navMm;
+#ifdef Q_TIMING_MEASURED
+  // HARNESS-ONLY variant (decision 0024 / QUORUM_TIMING_EXPECTATION_PROPOSAL
+  // §3, CODEX boundary: "implement IN THE HARNESS ONLY. Not approved for
+  // firmware"). The expectation is the interval the locomotive just MEASURED,
+  // not the one a duty model predicts. The whole test then reduces to
+  // "reject an event arriving within 30% of the previous accepted interval",
+  // and the frozen-predecessor trap cannot form: a poisoned short predecessor
+  // SHRINKS the threshold and self-heals on the next acceptance. This block
+  // must never be compiled into a locomotive image without a decision record
+  // lifting the 0024 boundary; no build flag in firmware/ passes it.
+  // REVISED after the 2026-08-21 shadow replay: the proposal's literal form
+  // (expectedDt = previousAcceptedDt) FAILED out-of-sample. A dwell-spanning
+  // interval (40,441 ms observed; 65,535 saturated) becomes the predecessor,
+  // every genuine 1-3 s marker then satisfies dt <= 0.30*prev, and the
+  // rejection freeze preserves the poison: runs of 43/42/28 consecutive
+  // genuine markers rejected on three of five replayed sessions. The trailing
+  // MEDIAN of accepted intervals is immune - one dwell cannot move an
+  // 11-sample median. Cold start (fewer than 8 accepted intervals) falls back
+  // to the PWM model, i.e. exactly the BASE behaviour.
+  // SECOND REVISION, same day: the median form ALSO failed the replay - a
+  // median is robust and therefore STALE, so after every speed change two
+  // new-regime intervals sum to one old-regime median and land in the kill
+  // band (rejection runs to 136; one session took 2,514 rejections). The
+  // expectation must be REACTIVE: the interval just measured. The actual
+  // defect in the proposal's literal form was never the ratio rule - it was
+  // letting a dwell-spanning interval become the predecessor. Fixed at the
+  // update sites below with Q_PREV_SANE_MS, the same doctrine as the existing
+  // zero-dt seeding rule.
+  (void)conserveIntervalIndex;
+  float expectedDtMs = (float)previousAcceptedDt;
+#else
   float velocityMmPerSec = VEL_MODEL_SLOPE*(float)e.pwmActualAtDetect + VEL_MODEL_INTERCEPT;
   // The 1000 is not optional: the model is mm/s, dt is MILLISECONDS. The unit
   // travels with the name (§3), though the payload field stays dt_expected.
   float expectedDtMs = (1000.0f*(float)pgm_read_word(&spacingMm[conserveIntervalIndex]))
                        / velocityMmPerSec;
+#endif
   float combinedDtMs = (float)dt + (float)previousAcceptedDt;
   lastDtExpected      = (uint32_t)expectedDtMs;
   lastDtConserveRatio = (expectedDtMs>0.0f) ? (combinedDtMs/expectedDtMs) : -1.0f;
   // fabsf, not abs: the Arduino abs() macro truncates floats (§3).
   float errorMs = fabsf(combinedDtMs-expectedDtMs);
+#ifdef Q_TIMING_MEASURED
+  if(qLastRejectedDt &&
+     fabsf((float)dt-(float)qLastRejectedDt) <= DT_CONSERVE_TOL*(float)qLastRejectedDt){
+    qLastRejectedDt=0;
+    if(dt<=Q_PREV_SANE_MS){ previousAcceptedDt=dt; previousAcceptedDtValid=true; }
+    acceptEvent(e);
+    return;
+  }
+#endif
   if(!vouched && errorMs <= DT_CONSERVE_TOL*expectedDtMs){
     // vouched events pass here untested (finding 2): the telemetry above is
     // still computed and published, but the model gets no veto over an event
@@ -2522,12 +2596,21 @@ static void navLadder(const MarkerEvent& e, uint16_t dt, bool vouched){
       ",\"dt\":%u,\"prev_dt\":%u,\"sum\":%.0f,\"expected\":%.0f,\"ratio\":%.2f",
       dt,previousAcceptedDt,(double)combinedDtMs,(double)expectedDtMs,(double)lastDtConserveRatio);
     publishQuorumDecision("PHANTOM_REJECTED",extra);
+#ifdef Q_TIMING_MEASURED
+    qLastRejectedDt=dt;
+#endif
     return;
   }
   // Every accepted ACTIVE event replaces the predecessor — the variable means
   // "the interval of the LAST ACCEPTED event", so it advances with each
   // acceptance; only PHANTOM_REJECTED leaves it unchanged (§3).
+#ifdef Q_TIMING_MEASURED
+  qLastRejectedDt=0;
+  if(dt<=Q_PREV_SANE_MS){ previousAcceptedDt=dt; previousAcceptedDtValid=true; }
+  else invalidatePreviousAcceptedDt();
+#else
   previousAcceptedDt=dt; previousAcceptedDtValid=true;
+#endif
   acceptEvent(e);
 }
 
@@ -3278,7 +3361,7 @@ static void navPublishState(const char* ev,const MarkerEvent* e){
   // miss_streak, the full score vector, the leading offset and its margin.
   // The confidence tally is gone and is not reintroduced as telemetry.
   char b[512];
-  char sc[48], ex[48];
+  char sc[8*QUORUM_CANDIDATES], ex[8*QUORUM_CANDIDATES];
   jsonScores(sc,sizeof(sc));
   jsonExcluded(ex,sizeof(ex),false);
   char ld[8], ru[8];
@@ -3326,7 +3409,7 @@ static void navPublishState(const char* ev,const MarkerEvent* e){
 // streak, score vector, exclusions, leader, runner-up, margin (+viable, §4).
 static void publishQuorumDecision(const char* ev,const char* extra){
   char b[512];
-  char sc[48], ex[48], vb[48];
+  char sc[8*QUORUM_CANDIDATES], ex[8*QUORUM_CANDIDATES], vb[48];
   jsonScores(sc,sizeof(sc));
   jsonExcluded(ex,sizeof(ex),false);
   jsonViable(vb,sizeof(vb));
