@@ -1,0 +1,924 @@
+{
+ "generated_by": "tools/navlab/classify_iter3_evidence.py",
+ "episodes_session": "20260820_morning_session.log:boot16",
+ "episodes_loco": "9950011",
+ "contradiction_session": "20260820_morning_session.log:boot1",
+ "contradiction_loco": "9950011",
+ "circuit_mm": 52150,
+ "route_wide_episodes": [
+  {
+   "episode": 1,
+   "last_fix": {
+    "ev": "CONFIRMED",
+    "mm": 157,
+    "t": 1787335985.109
+   },
+   "lost_t": 1787336116.032,
+   "reacquired_t": 1787336132.486,
+   "reacquired_mm": 39,
+   "seconds_from_last_fix_to_lost": 130.9,
+   "seconds_lost": 16.5,
+   "events_last_fix_to_lost": 40,
+   "events_while_lost": 14,
+   "motion_state": "dwell-interrupted",
+   "motion_evidence": "2 event(s) with dt > 15 s; their PWM history ramps to 0 and holds (station stops)",
+   "corridor_growth_mm": 52151,
+   "corridor_growth_by_pwm_bucket_mm": {
+    "90": 34036,
+    "60": 5928,
+    "50": 4110,
+    "70": 2575,
+    "80": 2434
+   },
+   "circuit_mm": 52150,
+   "travel_lower_bound_mm": 12199,
+   "corridor_to_travel_ratio": 4.27,
+   "why_full_circuit": "no confirmation occurred for 131 s; the corridor only resets on confirmation, so it grew monotonically at the envelope fast-bound speed until it exceeded the 52150 mm circuit",
+   "route_wide_physically_justified": {
+    "sound_as_upper_bound": true,
+    "verdict": "formally sound, operationally loose",
+    "detail": "the corridor is an upper bound, so the true position was inside it; but the locomotive is evidenced to have covered at least 12198 mm while the model admitted the whole 52150 mm circuit (4.3x)"
+   },
+   "reacquired_position_independent_support": {
+    "operator_declares_within_120s": [],
+    "anchoring_declares": [],
+    "firmware_label_at_reacquire": 39,
+    "firmware_verdict_at_reacquire": "agree",
+    "agrees_with_firmware_label": true,
+    "basis": "firmware-derived cross-check only",
+    "independently_supported": false
+   },
+   "necessary_or_permitted": "permitted by the model, not necessary: the marker stream was continuous (40 events, max gap 32797 ms) and the locomotive never left the modelled corridor"
+  },
+  {
+   "episode": 2,
+   "last_fix": {
+    "ev": "CONFIRMED",
+    "mm": 105,
+    "t": 1787336252.822
+   },
+   "lost_t": 1787336331.243,
+   "reacquired_t": 1787336350.655,
+   "reacquired_mm": 155,
+   "seconds_from_last_fix_to_lost": 78.4,
+   "seconds_lost": 19.4,
+   "events_last_fix_to_lost": 37,
+   "events_while_lost": 14,
+   "motion_state": "dwell-interrupted",
+   "motion_evidence": "1 event(s) with dt > 15 s; their PWM history ramps to 0 and holds (station stops)",
+   "corridor_growth_mm": 52151,
+   "corridor_growth_by_pwm_bucket_mm": {
+    "90": 45611,
+    "50": 2752,
+    "60": 1791,
+    "70": 720,
+    "40": 701
+   },
+   "circuit_mm": 52150,
+   "travel_lower_bound_mm": 11284,
+   "corridor_to_travel_ratio": 4.62,
+   "why_full_circuit": "no confirmation occurred for 78 s; the corridor only resets on confirmation, so it grew monotonically at the envelope fast-bound speed until it exceeded the 52150 mm circuit",
+   "route_wide_physically_justified": {
+    "sound_as_upper_bound": true,
+    "verdict": "formally sound, operationally loose",
+    "detail": "the corridor is an upper bound, so the true position was inside it; but the locomotive is evidenced to have covered at least 11283 mm while the model admitted the whole 52150 mm circuit (4.6x)"
+   },
+   "reacquired_position_independent_support": {
+    "operator_declares_within_120s": [],
+    "anchoring_declares": [],
+    "firmware_label_at_reacquire": 155,
+    "firmware_verdict_at_reacquire": "agree",
+    "agrees_with_firmware_label": true,
+    "basis": "firmware-derived cross-check only",
+    "independently_supported": false
+   },
+   "necessary_or_permitted": "permitted by the model, not necessary: the marker stream was continuous (37 events, max gap 32423 ms) and the locomotive never left the modelled corridor"
+  },
+  {
+   "episode": 3,
+   "last_fix": {
+    "ev": "CONFIRMED",
+    "mm": 158,
+    "t": 1787336357.858
+   },
+   "lost_t": 1787336485.284,
+   "reacquired_t": 1787336507.826,
+   "reacquired_mm": 44,
+   "seconds_from_last_fix_to_lost": 127.4,
+   "seconds_lost": 22.5,
+   "events_last_fix_to_lost": 38,
+   "events_while_lost": 16,
+   "motion_state": "dwell-interrupted",
+   "motion_evidence": "2 event(s) with dt > 15 s; their PWM history ramps to 0 and holds (station stops)",
+   "corridor_growth_mm": 52151,
+   "corridor_growth_by_pwm_bucket_mm": {
+    "90": 33809,
+    "60": 5871,
+    "50": 3724,
+    "80": 3041,
+    "70": 2611
+   },
+   "circuit_mm": 52150,
+   "travel_lower_bound_mm": 11589,
+   "corridor_to_travel_ratio": 4.5,
+   "why_full_circuit": "no confirmation occurred for 127 s; the corridor only resets on confirmation, so it grew monotonically at the envelope fast-bound speed until it exceeded the 52150 mm circuit",
+   "route_wide_physically_justified": {
+    "sound_as_upper_bound": true,
+    "verdict": "formally sound, operationally loose",
+    "detail": "the corridor is an upper bound, so the true position was inside it; but the locomotive is evidenced to have covered at least 11588 mm while the model admitted the whole 52150 mm circuit (4.5x)"
+   },
+   "reacquired_position_independent_support": {
+    "operator_declares_within_120s": [],
+    "anchoring_declares": [],
+    "firmware_label_at_reacquire": 38,
+    "firmware_verdict_at_reacquire": "RAMP",
+    "agrees_with_firmware_label": false,
+    "basis": "firmware-derived cross-check only",
+    "independently_supported": false
+   },
+   "necessary_or_permitted": "permitted by the model, not necessary: the marker stream was continuous (38 events, max gap 28763 ms) and the locomotive never left the modelled corridor"
+  },
+  {
+   "episode": 4,
+   "last_fix": {
+    "ev": "CONFIRMED",
+    "mm": 105,
+    "t": 1787337995.595
+   },
+   "lost_t": 1787338074.377,
+   "reacquired_t": 1787338093.501,
+   "reacquired_mm": 154,
+   "seconds_from_last_fix_to_lost": 78.8,
+   "seconds_lost": 19.1,
+   "events_last_fix_to_lost": 36,
+   "events_while_lost": 14,
+   "motion_state": "dwell-interrupted",
+   "motion_evidence": "1 event(s) with dt > 15 s; their PWM history ramps to 0 and holds (station stops)",
+   "corridor_growth_mm": 52151,
+   "corridor_growth_by_pwm_bucket_mm": {
+    "90": 45464,
+    "50": 2728,
+    "60": 1891,
+    "40": 785,
+    "70": 700
+   },
+   "circuit_mm": 52150,
+   "travel_lower_bound_mm": 10979,
+   "corridor_to_travel_ratio": 4.75,
+   "why_full_circuit": "no confirmation occurred for 79 s; the corridor only resets on confirmation, so it grew monotonically at the envelope fast-bound speed until it exceeded the 52150 mm circuit",
+   "route_wide_physically_justified": {
+    "sound_as_upper_bound": true,
+    "verdict": "formally sound, operationally loose",
+    "detail": "the corridor is an upper bound, so the true position was inside it; but the locomotive is evidenced to have covered at least 10978 mm while the model admitted the whole 52150 mm circuit (4.8x)"
+   },
+   "reacquired_position_independent_support": {
+    "operator_declares_within_120s": [],
+    "anchoring_declares": [],
+    "firmware_label_at_reacquire": 154,
+    "firmware_verdict_at_reacquire": "agree",
+    "agrees_with_firmware_label": true,
+    "basis": "firmware-derived cross-check only",
+    "independently_supported": false
+   },
+   "necessary_or_permitted": "permitted by the model, not necessary: the marker stream was continuous (36 events, max gap 33017 ms) and the locomotive never left the modelled corridor"
+  },
+  {
+   "episode": 5,
+   "last_fix": {
+    "ev": "CONFIRMED",
+    "mm": 157,
+    "t": 1787338101.147
+   },
+   "lost_t": 1787338231.936,
+   "reacquired_t": 1787338252.053,
+   "reacquired_mm": 39,
+   "seconds_from_last_fix_to_lost": 130.8,
+   "seconds_lost": 20.1,
+   "events_last_fix_to_lost": 42,
+   "events_while_lost": 14,
+   "motion_state": "dwell-interrupted",
+   "motion_evidence": "2 event(s) with dt > 15 s; their PWM history ramps to 0 and holds (station stops)",
+   "corridor_growth_mm": 52151,
+   "corridor_growth_by_pwm_bucket_mm": {
+    "90": 33910,
+    "60": 5890,
+    "50": 3565,
+    "80": 2905,
+    "70": 2537
+   },
+   "circuit_mm": 52150,
+   "travel_lower_bound_mm": 12809,
+   "corridor_to_travel_ratio": 4.07,
+   "why_full_circuit": "no confirmation occurred for 131 s; the corridor only resets on confirmation, so it grew monotonically at the envelope fast-bound speed until it exceeded the 52150 mm circuit",
+   "route_wide_physically_justified": {
+    "sound_as_upper_bound": true,
+    "verdict": "formally sound, operationally loose",
+    "detail": "the corridor is an upper bound, so the true position was inside it; but the locomotive is evidenced to have covered at least 12808 mm while the model admitted the whole 52150 mm circuit (4.1x)"
+   },
+   "reacquired_position_independent_support": {
+    "operator_declares_within_120s": [],
+    "anchoring_declares": [],
+    "firmware_label_at_reacquire": 41,
+    "firmware_verdict_at_reacquire": "LOW_PWM",
+    "agrees_with_firmware_label": false,
+    "basis": "firmware-derived cross-check only",
+    "independently_supported": false
+   },
+   "necessary_or_permitted": "permitted by the model, not necessary: the marker stream was continuous (42 events, max gap 27909 ms) and the locomotive never left the modelled corridor"
+  },
+  {
+   "episode": 6,
+   "last_fix": {
+    "ev": "CONFIRMED",
+    "mm": 44,
+    "t": 1787338754.537
+   },
+   "lost_t": 1787338790.811,
+   "reacquired_t": 1787338803.75,
+   "reacquired_mm": 92,
+   "seconds_from_last_fix_to_lost": 36.3,
+   "seconds_lost": 12.9,
+   "events_last_fix_to_lost": 36,
+   "events_while_lost": 14,
+   "motion_state": "continuous-full-speed",
+   "motion_evidence": "PWM 92-99 throughout, max dt 1399 ms",
+   "corridor_growth_mm": 52151,
+   "corridor_growth_by_pwm_bucket_mm": {
+    "90": 52151
+   },
+   "circuit_mm": 52150,
+   "travel_lower_bound_mm": 10979,
+   "corridor_to_travel_ratio": 4.75,
+   "why_full_circuit": "no confirmation occurred for 36 s; the corridor only resets on confirmation, so it grew monotonically at the envelope fast-bound speed until it exceeded the 52150 mm circuit",
+   "route_wide_physically_justified": {
+    "sound_as_upper_bound": true,
+    "verdict": "formally sound, operationally loose",
+    "detail": "the corridor is an upper bound, so the true position was inside it; but the locomotive is evidenced to have covered at least 10978 mm while the model admitted the whole 52150 mm circuit (4.8x)"
+   },
+   "reacquired_position_independent_support": {
+    "operator_declares_within_120s": [
+     {
+      "declared_mm": 39,
+      "t": 1787338736.782489,
+      "seconds_from_reacquire": -67.0,
+      "marker_events_between": 53,
+      "anchors_the_position": false
+     }
+    ],
+    "anchoring_declares": [],
+    "firmware_label_at_reacquire": 92,
+    "firmware_verdict_at_reacquire": "agree",
+    "agrees_with_firmware_label": true,
+    "basis": "firmware-derived cross-check only",
+    "independently_supported": false
+   },
+   "necessary_or_permitted": "permitted by the model, not necessary: the marker stream was continuous (36 events, max gap 1399 ms) and the locomotive never left the modelled corridor"
+  },
+  {
+   "episode": 7,
+   "last_fix": {
+    "ev": "DECLARED",
+    "mm": 92,
+    "t": 1787338803.75
+   },
+   "lost_t": 1787338839.56,
+   "reacquired_t": 1787338851.63,
+   "reacquired_mm": 143,
+   "seconds_from_last_fix_to_lost": 35.8,
+   "seconds_lost": 12.1,
+   "events_last_fix_to_lost": 38,
+   "events_while_lost": 14,
+   "motion_state": "continuous-full-speed",
+   "motion_evidence": "PWM 99-99 throughout, max dt 1090 ms",
+   "corridor_growth_mm": 52151,
+   "corridor_growth_by_pwm_bucket_mm": {
+    "90": 52151
+   },
+   "circuit_mm": 52150,
+   "travel_lower_bound_mm": 11589,
+   "corridor_to_travel_ratio": 4.5,
+   "why_full_circuit": "no confirmation occurred for 36 s; the corridor only resets on confirmation, so it grew monotonically at the envelope fast-bound speed until it exceeded the 52150 mm circuit",
+   "route_wide_physically_justified": {
+    "sound_as_upper_bound": true,
+    "verdict": "formally sound, operationally loose",
+    "detail": "the corridor is an upper bound, so the true position was inside it; but the locomotive is evidenced to have covered at least 11588 mm while the model admitted the whole 52150 mm circuit (4.5x)"
+   },
+   "reacquired_position_independent_support": {
+    "operator_declares_within_120s": [
+     {
+      "declared_mm": 39,
+      "t": 1787338736.782489,
+      "seconds_from_reacquire": -114.8,
+      "marker_events_between": 104,
+      "anchors_the_position": false
+     }
+    ],
+    "anchoring_declares": [],
+    "firmware_label_at_reacquire": 143,
+    "firmware_verdict_at_reacquire": "agree",
+    "agrees_with_firmware_label": true,
+    "basis": "firmware-derived cross-check only",
+    "independently_supported": false
+   },
+   "necessary_or_permitted": "permitted by the model, not necessary: the marker stream was continuous (38 events, max gap 1090 ms) and the locomotive never left the modelled corridor"
+  },
+  {
+   "episode": 8,
+   "last_fix": {
+    "ev": "DECLARED",
+    "mm": 143,
+    "t": 1787338851.63
+   },
+   "lost_t": 1787338888.061,
+   "reacquired_t": 1787338901.374,
+   "reacquired_mm": 20,
+   "seconds_from_last_fix_to_lost": 36.4,
+   "seconds_lost": 13.3,
+   "events_last_fix_to_lost": 35,
+   "events_while_lost": 14,
+   "motion_state": "continuous-full-speed",
+   "motion_evidence": "PWM 99-99 throughout, max dt 1201 ms",
+   "corridor_growth_mm": 52151,
+   "corridor_growth_by_pwm_bucket_mm": {
+    "90": 52151
+   },
+   "circuit_mm": 52150,
+   "travel_lower_bound_mm": 10674,
+   "corridor_to_travel_ratio": 4.89,
+   "why_full_circuit": "no confirmation occurred for 36 s; the corridor only resets on confirmation, so it grew monotonically at the envelope fast-bound speed until it exceeded the 52150 mm circuit",
+   "route_wide_physically_justified": {
+    "sound_as_upper_bound": true,
+    "verdict": "formally sound, operationally loose",
+    "detail": "the corridor is an upper bound, so the true position was inside it; but the locomotive is evidenced to have covered at least 10673 mm while the model admitted the whole 52150 mm circuit (4.9x)"
+   },
+   "reacquired_position_independent_support": {
+    "operator_declares_within_120s": [],
+    "anchoring_declares": [],
+    "firmware_label_at_reacquire": 20,
+    "firmware_verdict_at_reacquire": "agree",
+    "agrees_with_firmware_label": true,
+    "basis": "firmware-derived cross-check only",
+    "independently_supported": false
+   },
+   "necessary_or_permitted": "permitted by the model, not necessary: the marker stream was continuous (35 events, max gap 1201 ms) and the locomotive never left the modelled corridor"
+  }
+ ],
+ "corridor_speed_audit": [
+  {
+   "bucket": 40,
+   "n": 533,
+   "min_ms": 1729,
+   "p05_ms": 2559,
+   "p50_ms": 3140,
+   "fast_bound_ms": 1469,
+   "corridor_speed_mm_per_ms": 0.208,
+   "median_speed_mm_per_ms": 0.097,
+   "corridor_over_median": 2.14,
+   "fastest_samples": [
+    {
+     "dt_ms": 95,
+     "peak": 154,
+     "duration_ms": 623,
+     "spacing_mm": 300,
+     "fw_mm": 105,
+     "boot": 37
+    },
+    {
+     "dt_ms": 103,
+     "peak": 141,
+     "duration_ms": 558,
+     "spacing_mm": 305,
+     "fw_mm": 109,
+     "boot": 1
+    },
+    {
+     "dt_ms": 367,
+     "peak": 40,
+     "duration_ms": 1308,
+     "spacing_mm": 295,
+     "fw_mm": 24,
+     "boot": 48
+    },
+    {
+     "dt_ms": 487,
+     "peak": 46,
+     "duration_ms": 61,
+     "spacing_mm": 290,
+     "fw_mm": 158,
+     "boot": 1
+    },
+    {
+     "dt_ms": 513,
+     "peak": 42,
+     "duration_ms": 54,
+     "spacing_mm": 290,
+     "fw_mm": 158,
+     "boot": 1
+    },
+    {
+     "dt_ms": 561,
+     "peak": 43,
+     "duration_ms": 53,
+     "spacing_mm": 290,
+     "fw_mm": 158,
+     "boot": 1
+    }
+   ],
+   "fastest20_with_ghost_or_dwell_signature": 14,
+   "note": "fast_bound derives from the single fastest admitted sample; the admission filter rejects slow, dwell, stationary and uncovered samples but nothing at the FAST end"
+  },
+  {
+   "bucket": 50,
+   "n": 325,
+   "min_ms": 1497,
+   "p05_ms": 1897,
+   "p50_ms": 2298,
+   "fast_bound_ms": 1272,
+   "corridor_speed_mm_per_ms": 0.24,
+   "median_speed_mm_per_ms": 0.133,
+   "corridor_over_median": 1.81,
+   "fastest_samples": [
+    {
+     "dt_ms": 347,
+     "peak": 106,
+     "duration_ms": 2065,
+     "spacing_mm": 300,
+     "fw_mm": 37,
+     "boot": 11
+    },
+    {
+     "dt_ms": 413,
+     "peak": 39,
+     "duration_ms": 73,
+     "spacing_mm": 305,
+     "fw_mm": 155,
+     "boot": 37
+    },
+    {
+     "dt_ms": 449,
+     "peak": 47,
+     "duration_ms": 94,
+     "spacing_mm": 325,
+     "fw_mm": 64,
+     "boot": 1
+    },
+    {
+     "dt_ms": 464,
+     "peak": 91,
+     "duration_ms": 2319,
+     "spacing_mm": 300,
+     "fw_mm": 19,
+     "boot": 16
+    },
+    {
+     "dt_ms": 538,
+     "peak": 46,
+     "duration_ms": 107,
+     "spacing_mm": 325,
+     "fw_mm": 64,
+     "boot": 1
+    },
+    {
+     "dt_ms": 541,
+     "peak": 43,
+     "duration_ms": 43,
+     "spacing_mm": 325,
+     "fw_mm": 64,
+     "boot": 47
+    }
+   ],
+   "fastest20_with_ghost_or_dwell_signature": 15,
+   "note": "fast_bound derives from the single fastest admitted sample; the admission filter rejects slow, dwell, stationary and uncovered samples but nothing at the FAST end"
+  },
+  {
+   "bucket": 60,
+   "n": 4796,
+   "min_ms": 1192,
+   "p05_ms": 1616,
+   "p50_ms": 2313,
+   "fast_bound_ms": 1013,
+   "corridor_speed_mm_per_ms": 0.301,
+   "median_speed_mm_per_ms": 0.132,
+   "corridor_over_median": 2.28,
+   "fastest_samples": [
+    {
+     "dt_ms": 276,
+     "peak": 42,
+     "duration_ms": 798,
+     "spacing_mm": 300,
+     "fw_mm": 27,
+     "boot": 48
+    },
+    {
+     "dt_ms": 290,
+     "peak": 38,
+     "duration_ms": 111,
+     "spacing_mm": 305,
+     "fw_mm": 89,
+     "boot": 1
+    },
+    {
+     "dt_ms": 297,
+     "peak": 38,
+     "duration_ms": 85,
+     "spacing_mm": 305,
+     "fw_mm": 79,
+     "boot": 32
+    },
+    {
+     "dt_ms": 303,
+     "peak": 38,
+     "duration_ms": 40,
+     "spacing_mm": 300,
+     "fw_mm": 102,
+     "boot": 47
+    },
+    {
+     "dt_ms": 310,
+     "peak": 54,
+     "duration_ms": 51,
+     "spacing_mm": 300,
+     "fw_mm": 95,
+     "boot": 1
+    },
+    {
+     "dt_ms": 312,
+     "peak": 54,
+     "duration_ms": 86,
+     "spacing_mm": 305,
+     "fw_mm": 89,
+     "boot": 1
+    }
+   ],
+   "fastest20_with_ghost_or_dwell_signature": 20,
+   "note": "fast_bound derives from the single fastest admitted sample; the admission filter rejects slow, dwell, stationary and uncovered samples but nothing at the FAST end"
+  },
+  {
+   "bucket": 90,
+   "n": 13400,
+   "min_ms": 246,
+   "p05_ms": 1030,
+   "p50_ms": 1246,
+   "fast_bound_ms": 209,
+   "corridor_speed_mm_per_ms": 1.459,
+   "median_speed_mm_per_ms": 0.245,
+   "corridor_over_median": 5.96,
+   "fastest_samples": [
+    {
+     "dt_ms": 60,
+     "peak": 192,
+     "duration_ms": 1584,
+     "spacing_mm": 330,
+     "fw_mm": 2,
+     "boot": 27
+    },
+    {
+     "dt_ms": 123,
+     "peak": 233,
+     "duration_ms": 4130,
+     "spacing_mm": 330,
+     "fw_mm": 86,
+     "boot": 11
+    },
+    {
+     "dt_ms": 131,
+     "peak": 190,
+     "duration_ms": 1197,
+     "spacing_mm": 330,
+     "fw_mm": 164,
+     "boot": 2
+    },
+    {
+     "dt_ms": 134,
+     "peak": 402,
+     "duration_ms": 3694,
+     "spacing_mm": 300,
+     "fw_mm": 84,
+     "boot": 11
+    },
+    {
+     "dt_ms": 141,
+     "peak": 79,
+     "duration_ms": 1004,
+     "spacing_mm": 300,
+     "fw_mm": 87,
+     "boot": 11
+    },
+    {
+     "dt_ms": 147,
+     "peak": 102,
+     "duration_ms": 1122,
+     "spacing_mm": 300,
+     "fw_mm": 88,
+     "boot": 11
+    }
+   ],
+   "fastest20_with_ghost_or_dwell_signature": 20,
+   "note": "fast_bound derives from the single fastest admitted sample; the admission filter rejects slow, dwell, stationary and uncovered samples but nothing at the FAST end"
+  },
+  {
+   "bucket": 100,
+   "n": 139,
+   "min_ms": 801,
+   "p05_ms": 831,
+   "p50_ms": 992,
+   "fast_bound_ms": 680,
+   "corridor_speed_mm_per_ms": 0.449,
+   "median_speed_mm_per_ms": 0.307,
+   "corridor_over_median": 1.46,
+   "fastest_samples": [
+    {
+     "dt_ms": 156,
+     "peak": 41,
+     "duration_ms": 42,
+     "spacing_mm": 300,
+     "fw_mm": 70,
+     "boot": 1
+    },
+    {
+     "dt_ms": 294,
+     "peak": 50,
+     "duration_ms": 47,
+     "spacing_mm": 300,
+     "fw_mm": 70,
+     "boot": 1
+    },
+    {
+     "dt_ms": 709,
+     "peak": 187,
+     "duration_ms": 119,
+     "spacing_mm": 300,
+     "fw_mm": 118,
+     "boot": 16
+    },
+    {
+     "dt_ms": 709,
+     "peak": 205,
+     "duration_ms": 122,
+     "spacing_mm": 300,
+     "fw_mm": 119,
+     "boot": 16
+    },
+    {
+     "dt_ms": 710,
+     "peak": 173,
+     "duration_ms": 107,
+     "spacing_mm": 300,
+     "fw_mm": 136,
+     "boot": 16
+    },
+    {
+     "dt_ms": 713,
+     "peak": 216,
+     "duration_ms": 128,
+     "spacing_mm": 300,
+     "fw_mm": 117,
+     "boot": 16
+    }
+   ],
+   "fastest20_with_ghost_or_dwell_signature": 2,
+   "note": "fast_bound derives from the single fastest admitted sample; the admission filter rejects slow, dwell, stationary and uncovered samples but nothing at the FAST end"
+  }
+ ],
+ "boot1_contradiction": {
+  "contradiction_t": 1787247683.603,
+  "hypotheses_at_stop": [
+   82
+  ],
+  "corridor_mm_at_stop": 418,
+  "anchor_at_stop": 82,
+  "triggering_event": {
+   "mm": 82,
+   "polarity": "S",
+   "map_pole": "N",
+   "peak": 44,
+   "duration_ms": 42,
+   "dt_ms": 303,
+   "pwm_actual": 75,
+   "timing_gate": "QUARANTINED",
+   "fw_verdict": "quarantined",
+   "label": "uncertain",
+   "line": 1848
+  },
+  "triggering_event_is_ghost_signature": true,
+  "preceding_event": {
+   "mm": 82,
+   "polarity": "N",
+   "peak": 161,
+   "duration_ms": 255,
+   "dt_ms": 1198,
+   "pwm_actual": 75
+  },
+  "position_lineage_before_stop": [
+   {
+    "ev": "CONFIRMED",
+    "mm": 63,
+    "t": 1787247626.145
+   },
+   {
+    "ev": "CONFIRMED",
+    "mm": 70,
+    "t": 1787247671.487
+   },
+   {
+    "ev": "CONFIRMED",
+    "mm": 73,
+    "t": 1787247674.324
+   },
+   {
+    "ev": "CONFIRMED",
+    "mm": 76,
+    "t": 1787247677.465
+   },
+   {
+    "ev": "CONFIRMED",
+    "mm": 79,
+    "t": 1787247680.335
+   },
+   {
+    "ev": "CONFIRMED",
+    "mm": 82,
+    "t": 1787247683.516
+   }
+  ],
+  "prior_position_independently_supported": false,
+  "prior_position_basis": "chain of 5 confirmations seeded by a route-wide REACQUIRED at mm52; no operator declaration and no independent fix anywhere in the lineage",
+  "cause_class": "hypothesis handling / phantom recognition",
+  "cause_detail": "The navigator has no amplitude or duration criterion. Its only phantom test is positional (hi + 30 < next spacing), so a weak, short, wrong-pole event is recognised as a phantom ONLY when the corridor happens to be narrower than one interval. Here the corridor was 418 mm - wider than the ~305 mm interval - so the positional test did not fire, no pole-matching candidate existed inside the corridor, and the run stopped. Not sensing (the firmware quarantined the same event), not envelope coverage (the timing test was never reached), not dt semantics (dt was 303 ms).",
+  "stopping_necessary": {
+   "verdict": "safe but not necessary",
+   "detail": "Given the information the model uses, stopping was the correct fail-safe: it had no basis to place the event. It was not necessary in the physical sense - the event carries the ghost signature (peak 44 vs genuine >= 104, duration 42 ms vs genuine >= 116) and a signature-aware navigator had grounds to hold it as a suspect. That is recorded as a finding, NOT implemented here."
+  },
+  "ghosts_in_session": 51,
+  "ghosts_actually_processed_before_stop": 2,
+  "events_in_session": 4726,
+  "events_actually_processed_before_stop": 85,
+  "c5_exercise_claim_corrected": "The iteration-3 report credited 51 ghost events to C5. The replay stopped after 85 of 4726 events, so the navigator only ever saw 2 of them. The remaining 49 were never processed and are not evidence of anything."
+ },
+ "c8_expectation_evidence": [
+  {
+   "window": "run of 13 firmware-rejected events at label mm130",
+   "seconds": 35.5,
+   "n_events": 13,
+   "firmware_labels_in_window": [
+    130
+   ],
+   "expectation": "these events were genuine marker crossings and must advance the navigator position",
+   "evidence": {
+    "peak_range": [
+     134,
+     184
+    ],
+    "duration_ms_range": [
+     289,
+     377
+    ],
+    "dt_ms_range": [
+     2615,
+     3156
+    ],
+    "pwm_range": [
+     43,
+     43
+    ],
+    "events_meeting_genuine_signature": "13/13",
+    "polarity_alternations": "5/12",
+    "cadence": "regular: dt spread 541 ms across 13 events at constant PWM 43"
+   },
+   "evidence_classes": {
+    "independent_position_truth": "NONE - no operator declaration, no external fix anywhere in this window",
+    "measurement_evidence": "peak, duration, dt and PWM history are sensor/telemetry measurements (not labels)",
+    "heuristic": "the genuine-vs-ghost signature thresholds (peak >= 104, duration >= 116 ms) are derived from this same corpus",
+    "firmware_derived": "the frozen mm label itself, and fw_verdict \"rejected\", come from the firmware under study"
+   },
+   "physical_interpretation_supported": {
+    "loco_was_moving_past_distinct_markers": true,
+    "basis": "constant PWM with a regular multi-second cadence and 5 polarity alternations within a run the firmware labels as ONE marker; a stationary re-read of one magnet cannot alternate pole"
+   },
+   "which_marker_was_crossed": "NOT ESTABLISHED - the expectation is only that position advances, and no independent evidence fixes the marker"
+  },
+  {
+   "window": "run of 16 firmware-rejected events at label mm52",
+   "seconds": 38.9,
+   "n_events": 16,
+   "firmware_labels_in_window": [
+    52
+   ],
+   "expectation": "these events were genuine marker crossings and must advance the navigator position",
+   "evidence": {
+    "peak_range": [
+     165,
+     202
+    ],
+    "duration_ms_range": [
+     270,
+     335
+    ],
+    "dt_ms_range": [
+     2408,
+     2605
+    ],
+    "pwm_range": [
+     44,
+     44
+    ],
+    "events_meeting_genuine_signature": "16/16",
+    "polarity_alternations": "7/15",
+    "cadence": "regular: dt spread 197 ms across 16 events at constant PWM 44"
+   },
+   "evidence_classes": {
+    "independent_position_truth": "NONE - no operator declaration, no external fix anywhere in this window",
+    "measurement_evidence": "peak, duration, dt and PWM history are sensor/telemetry measurements (not labels)",
+    "heuristic": "the genuine-vs-ghost signature thresholds (peak >= 104, duration >= 116 ms) are derived from this same corpus",
+    "firmware_derived": "the frozen mm label itself, and fw_verdict \"rejected\", come from the firmware under study"
+   },
+   "physical_interpretation_supported": {
+    "loco_was_moving_past_distinct_markers": true,
+    "basis": "constant PWM with a regular multi-second cadence and 7 polarity alternations within a run the firmware labels as ONE marker; a stationary re-read of one magnet cannot alternate pole"
+   },
+   "which_marker_was_crossed": "NOT ESTABLISHED - the expectation is only that position advances, and no independent evidence fixes the marker"
+  },
+  {
+   "window": "run of 14 firmware-rejected events at label mm126",
+   "seconds": 33.4,
+   "n_events": 14,
+   "firmware_labels_in_window": [
+    126
+   ],
+   "expectation": "these events were genuine marker crossings and must advance the navigator position",
+   "evidence": {
+    "peak_range": [
+     167,
+     214
+    ],
+    "duration_ms_range": [
+     283,
+     355
+    ],
+    "dt_ms_range": [
+     2200,
+     2795
+    ],
+    "pwm_range": [
+     44,
+     44
+    ],
+    "events_meeting_genuine_signature": "14/14",
+    "polarity_alternations": "7/13",
+    "cadence": "regular: dt spread 595 ms across 14 events at constant PWM 44"
+   },
+   "evidence_classes": {
+    "independent_position_truth": "NONE - no operator declaration, no external fix anywhere in this window",
+    "measurement_evidence": "peak, duration, dt and PWM history are sensor/telemetry measurements (not labels)",
+    "heuristic": "the genuine-vs-ghost signature thresholds (peak >= 104, duration >= 116 ms) are derived from this same corpus",
+    "firmware_derived": "the frozen mm label itself, and fw_verdict \"rejected\", come from the firmware under study"
+   },
+   "physical_interpretation_supported": {
+    "loco_was_moving_past_distinct_markers": true,
+    "basis": "constant PWM with a regular multi-second cadence and 7 polarity alternations within a run the firmware labels as ONE marker; a stationary re-read of one magnet cannot alternate pole"
+   },
+   "which_marker_was_crossed": "NOT ESTABLISHED - the expectation is only that position advances, and no independent evidence fixes the marker"
+  },
+  {
+   "window": "run of 5 firmware-rejected events at label mm101",
+   "seconds": 7.1,
+   "n_events": 5,
+   "firmware_labels_in_window": [
+    101
+   ],
+   "expectation": "these events were genuine marker crossings and must advance the navigator position",
+   "evidence": {
+    "peak_range": [
+     162,
+     263
+    ],
+    "duration_ms_range": [
+     201,
+     235
+    ],
+    "dt_ms_range": [
+     1397,
+     1626
+    ],
+    "pwm_range": [
+     60,
+     62
+    ],
+    "events_meeting_genuine_signature": "5/5",
+    "polarity_alternations": "2/4",
+    "cadence": "regular: dt spread 229 ms across 5 events at constant PWM 62"
+   },
+   "evidence_classes": {
+    "independent_position_truth": "NONE - no operator declaration, no external fix anywhere in this window",
+    "measurement_evidence": "peak, duration, dt and PWM history are sensor/telemetry measurements (not labels)",
+    "heuristic": "the genuine-vs-ghost signature thresholds (peak >= 104, duration >= 116 ms) are derived from this same corpus",
+    "firmware_derived": "the frozen mm label itself, and fw_verdict \"rejected\", come from the firmware under study"
+   },
+   "physical_interpretation_supported": {
+    "loco_was_moving_past_distinct_markers": true,
+    "basis": "constant PWM with a regular multi-second cadence and 2 polarity alternations within a run the firmware labels as ONE marker; a stationary re-read of one magnet cannot alternate pole"
+   },
+   "which_marker_was_crossed": "NOT ESTABLISHED - the expectation is only that position advances, and no independent evidence fixes the marker"
+  }
+ ]
+}

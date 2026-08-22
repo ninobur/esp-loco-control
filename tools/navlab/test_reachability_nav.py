@@ -129,6 +129,14 @@ def main():
           f'anchor={nav.anchor}')
 
     # ---- dt=0 boundary tests (docs/NAVLAB_DT0_SEMANTICS.md, all 7 clauses)
+    #
+    # DEVELOPMENT TESTS, NOT VALIDATION (operator correction, 2026-08-22).
+    # These pin the implementation to the written rule. They cannot show the
+    # rule is right, because the rule's central assumption - that a dt-chain
+    # reset spans at most one interval - is assumed by the tests too. For the
+    # case where that assumption is false, see
+    # tools/navlab/probe_dt0_unknown_time.py, which refutes the rule's
+    # fail-safe claim.
     d2 = list(dna); d2[11] = 1; d2[12] = 0; d2[13] = 1; d2[10] = 0
     # T1: dt=0 right after declaration, genuine traversal
     nav = mknav(d2); nav.declare(10, 0.0)

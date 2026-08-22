@@ -120,3 +120,14 @@ exclusion hygiene, not held-out success. The permitted ground-truth claim is:
 **zero false confirmations DETECTED; 1 of 453 independently validated; 452
 unvalidated.** The overall FAIL verdict stands.
 
+
+### Second correction, same day: the rescore itself was still too generous
+
+The iteration-3 *correction* round tightened the checker again (C1 consumes the
+dt=0 containment counterexample; C5 counts only ghosts a replay actually
+processed; C7 requires independently validated incident outcomes; C8 requires
+independent event-level justification, not merely reproducible selection).
+Under that checker iteration 2 is **FAIL - 2 PASS, 3 FAIL, 4 NOT_DEMONSTRATED**
+(`results/iter2_acceptance_corrected.json`, regenerated 2026-08-22). The two
+passes, C2 and C3, are internal-consistency properties only. See
+`docs/QUORUM_NAVLAB_ITER3_REPORT.md`.

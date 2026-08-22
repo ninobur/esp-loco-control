@@ -6,26 +6,51 @@
   "direction_consistent_only": 452,
   "unvalidated": 0
  },
+ "ghost_events_actually_processed": 0,
+ "incident_outcomes": {
+  "total": 9,
+  "independently_supported": 0,
+  "per_run": [
+   {
+    "run": "9950012:boot2",
+    "incidents": 0,
+    "supported": 0
+   },
+   {
+    "run": "9950011:boot16",
+    "incidents": 9,
+    "supported": 0
+   }
+  ]
+ },
  "detected_false": [],
  "conditions": {
   "C1": {
    "name": "C1 never outside the physically reachable set",
-   "status": "PASS",
-   "detail": []
+   "status": "FAIL",
+   "basis": "internal-consistency",
+   "detail": [
+    "replay check: claimed positions vs the navigator's own corridor (internal consistency; no independent position truth anywhere)",
+    "COUNTEREXAMPLE (development probe, synthetic events on the real committed map): with 6 interval(s) of travel during a dt-chain reset, 25 of 171 start positions CONFIRM a marker the locomotive does not occupy (error [4, 5, 6, 7, 8] markers). The true position was outside the granted corridor, so the corridor is not a sound over-approximation.",
+    "no violation was detected in the replayed data; the counterexample is synthetic events on the real committed map"
+   ]
   },
   "C2": {
    "name": "C2 never behind the last confirmation without a reversal",
    "status": "PASS",
+   "basis": "internal-consistency",
    "detail": []
   },
   "C3": {
    "name": "C3 no route-wide search before a full circuit is reachable",
    "status": "PASS",
+   "basis": "internal-consistency",
    "detail": []
   },
   "C4": {
    "name": "C4 known genuine acceleration remains genuine",
    "status": "FAIL",
+   "basis": "development-regression",
    "detail": [
     "9950012:boot2: derived run of 5 at mm101: 5/5 firmware-rejected genuine events advanced",
     "9950011:boot16: derived run of 13 at mm130: 13/13 firmware-rejected genuine events advanced",
@@ -36,6 +61,7 @@
   "C5": {
    "name": "C5 known phantoms do not advance confirmed position",
    "status": "NOT_DEMONSTRATED",
+   "basis": "development-regression",
    "detail": [
     "9950012:boot2: zero ghosts in this session - contributes nothing to C5",
     "9950011:boot16: zero ghosts in this session - contributes nothing to C5",
@@ -45,6 +71,7 @@
   "C6": {
    "name": "C6 frozen runs of genuine rejections disappear",
    "status": "FAIL",
+   "basis": "development-regression",
    "detail": [
     "9950012:boot2: derived run of 5 at mm101: frozen run eliminated",
     "9950011:boot16: derived run of 13 at mm130: frozen run eliminated",
@@ -55,22 +82,28 @@
   "C7": {
    "name": "C7 known incidents recover or stop without false relocation",
    "status": "NOT_DEMONSTRATED",
+   "basis": "none",
    "detail": [
     "9950012:boot2: confirmations 332: 1 validated, 331 direction-consistent only (NOT validated); 1 operator declares in window",
+    "9950012:boot2: 0 incident outcomes (re-acquisitions and stops), 0 with independent support within 60 s",
     "9950011:boot16: confirmations 121: 0 validated, 121 direction-consistent only (NOT validated); 2 operator declares in window",
-    "9950011:boot16: zero independently validated confirmations - C7 not demonstrable here"
+    "9950011:boot16: 9 incident outcomes (re-acquisitions and stops), 0 with independent support within 60 s",
+    "NOT_DEMONSTRATED: 0 of 9 incident outcomes have independent support, and 1 of 453 confirmations are independently validated. Direction consistency detects contradictions; it proves no absolute position."
    ]
   },
   "C8": {
    "name": "C8 every expectation carries event-level justification",
-   "status": "PASS",
+   "status": "NOT_DEMONSTRATED",
+   "basis": "none",
    "detail": [
-    "all exemplar windows derived from committed records at runtime (firmware-rejected runs >=5, <8 s gaps); no hand-pinned epochs in this checker"
+    "no committed expectation evidence supplied",
+    "all exemplar windows derived from committed records at runtime (firmware-rejected runs >=5, <8 s gaps); no hand-pinned epochs - this establishes REPRODUCIBLE SELECTION only"
    ]
   },
   "C9": {
    "name": "C9 results hold on data excluded from envelope generation",
    "status": "NOT_DEMONSTRATED",
+   "basis": "none",
    "detail": [
     "9950012:boot2: excluded from training: True",
     "9950011:boot16: excluded from training: True",

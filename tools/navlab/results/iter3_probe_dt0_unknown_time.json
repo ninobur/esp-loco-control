@@ -1,0 +1,107 @@
+{
+ "probe": "dt0_unknown_time",
+ "kind": "development probe, synthetic events on the real committed map",
+ "loco": "9950011",
+ "dt_ms_after_reset": 1500,
+ "pwm": 60,
+ "rows": [
+  {
+   "true_intervals_during_unknown_time": "control",
+   "anchors_tried": 171,
+   "confirmed_correct": 171,
+   "confirmed_WRONG": 0,
+   "stopped_contradiction": 0,
+   "unresolved": 0,
+   "wrong_position_error_markers": []
+  },
+  {
+   "true_intervals_during_unknown_time": 0,
+   "anchors_tried": 171,
+   "confirmed_correct": 168,
+   "confirmed_WRONG": 0,
+   "stopped_contradiction": 0,
+   "unresolved": 3,
+   "wrong_position_error_markers": []
+  },
+  {
+   "true_intervals_during_unknown_time": 1,
+   "anchors_tried": 171,
+   "confirmed_correct": 168,
+   "confirmed_WRONG": 0,
+   "stopped_contradiction": 0,
+   "unresolved": 3,
+   "wrong_position_error_markers": []
+  },
+  {
+   "true_intervals_during_unknown_time": 2,
+   "anchors_tried": 171,
+   "confirmed_correct": 16,
+   "confirmed_WRONG": 7,
+   "stopped_contradiction": 81,
+   "unresolved": 67,
+   "wrong_position_error_markers": [
+    1,
+    2
+   ]
+  },
+  {
+   "true_intervals_during_unknown_time": 3,
+   "anchors_tried": 171,
+   "confirmed_correct": 1,
+   "confirmed_WRONG": 20,
+   "stopped_contradiction": 93,
+   "unresolved": 57,
+   "wrong_position_error_markers": [
+    1,
+    2,
+    3,
+    4
+   ]
+  },
+  {
+   "true_intervals_during_unknown_time": 4,
+   "anchors_tried": 171,
+   "confirmed_correct": 0,
+   "confirmed_WRONG": 19,
+   "stopped_contradiction": 95,
+   "unresolved": 57,
+   "wrong_position_error_markers": [
+    1,
+    2,
+    3,
+    4,
+    5
+   ]
+  },
+  {
+   "true_intervals_during_unknown_time": 6,
+   "anchors_tried": 171,
+   "confirmed_correct": 0,
+   "confirmed_WRONG": 25,
+   "stopped_contradiction": 95,
+   "unresolved": 51,
+   "wrong_position_error_markers": [
+    4,
+    5,
+    6,
+    7,
+    8
+   ]
+  },
+  {
+   "true_intervals_during_unknown_time": 10,
+   "anchors_tried": 171,
+   "confirmed_correct": 0,
+   "confirmed_WRONG": 15,
+   "stopped_contradiction": 96,
+   "unresolved": 60,
+   "wrong_position_error_markers": [
+    7,
+    9,
+    10,
+    11
+   ]
+  }
+ ],
+ "verdict": "REFUTED: the one-interval grant is not fail-safe. When the unknown time covered more than one interval, the true position lay outside the granted corridor and the navigator went on to CONFIRM a position behind the locomotive rather than stopping."
+}

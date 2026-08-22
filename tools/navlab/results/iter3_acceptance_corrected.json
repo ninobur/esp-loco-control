@@ -1,0 +1,129 @@
+{
+ "overall": "FAIL",
+ "ground_truth_claim": "zero false confirmations DETECTED (direction monotonicity + 1 independently validated); 558 confirmations remain unvalidated",
+ "gt_stats": {
+  "validated": 1,
+  "direction_consistent_only": 558,
+  "unvalidated": 0
+ },
+ "ghost_events_actually_processed": 2,
+ "incident_outcomes": {
+  "total": 10,
+  "independently_supported": 0,
+  "per_run": [
+   {
+    "run": "DEV 9950012:boot2",
+    "incidents": 0,
+    "supported": 0
+   },
+   {
+    "run": "DEV 9950011:boot16",
+    "incidents": 8,
+    "supported": 0
+   },
+   {
+    "run": "DEV 9950011:boot1",
+    "incidents": 2,
+    "supported": 0
+   }
+  ]
+ },
+ "detected_false": [],
+ "conditions": {
+  "C1": {
+   "name": "C1 never outside the physically reachable set",
+   "status": "FAIL",
+   "basis": "internal-consistency",
+   "detail": [
+    "replay check: claimed positions vs the navigator's own corridor (internal consistency; no independent position truth anywhere)",
+    "COUNTEREXAMPLE (development probe, synthetic events on the real committed map): with 6 interval(s) of travel during a dt-chain reset, 25 of 171 start positions CONFIRM a marker the locomotive does not occupy (error [4, 5, 6, 7, 8] markers). The true position was outside the granted corridor, so the corridor is not a sound over-approximation.",
+    "no violation was detected in the replayed data; the counterexample is synthetic events on the real committed map"
+   ]
+  },
+  "C2": {
+   "name": "C2 never behind the last confirmation without a reversal",
+   "status": "PASS",
+   "basis": "internal-consistency",
+   "detail": []
+  },
+  "C3": {
+   "name": "C3 no route-wide search before a full circuit is reachable",
+   "status": "PASS",
+   "basis": "internal-consistency",
+   "detail": []
+  },
+  "C4": {
+   "name": "C4 known genuine acceleration remains genuine",
+   "status": "NOT_DEMONSTRATED",
+   "basis": "development-regression",
+   "detail": [
+    "DEV 9950012:boot2: derived run of 5 at mm101: 5/5 firmware-rejected genuine events advanced",
+    "DEV 9950011:boot16: derived run of 13 at mm130: 13/13 firmware-rejected genuine events advanced",
+    "DEV 9950011:boot16: derived run of 16 at mm52: 16/16 firmware-rejected genuine events advanced",
+    "DEV 9950011:boot16: derived run of 14 at mm126: 14/14 firmware-rejected genuine events advanced",
+    "expectation basis is heuristic/firmware-derived (C8 NOT_DEMONSTRATED): the runs did advance, but \"correctly\" is not established by independent evidence"
+   ]
+  },
+  "C5": {
+   "name": "C5 known phantoms do not advance confirmed position",
+   "status": "NOT_DEMONSTRATED",
+   "basis": "development-regression",
+   "detail": [
+    "DEV 9950012:boot2: zero ghosts in this session - contributes nothing to C5",
+    "DEV 9950011:boot16: zero ghosts in this session - contributes nothing to C5",
+    "DEV 9950011:boot1: replay processed 85/4726 events; 49 of 51 session ghosts were never seen and are NOT credited",
+    "DEV 9950011:boot1: 2 ghosts exercised, none advanced",
+    "only 2 ghost events were actually processed (< 20) - too thin to demonstrate phantom immunity"
+   ]
+  },
+  "C6": {
+   "name": "C6 frozen runs of genuine rejections disappear",
+   "status": "NOT_DEMONSTRATED",
+   "basis": "development-regression",
+   "detail": [
+    "DEV 9950012:boot2: derived run of 5 at mm101: frozen run eliminated",
+    "DEV 9950011:boot16: derived run of 13 at mm130: frozen run eliminated",
+    "DEV 9950011:boot16: derived run of 16 at mm52: frozen run eliminated",
+    "DEV 9950011:boot16: derived run of 14 at mm126: frozen run eliminated",
+    "expectation basis is heuristic/firmware-derived (C8 NOT_DEMONSTRATED): the runs did advance, but \"correctly\" is not established by independent evidence"
+   ]
+  },
+  "C7": {
+   "name": "C7 known incidents recover or stop without false relocation",
+   "status": "NOT_DEMONSTRATED",
+   "basis": "none",
+   "detail": [
+    "DEV 9950012:boot2: confirmations 332: 1 validated, 331 direction-consistent only (NOT validated); 1 operator declares in window",
+    "DEV 9950012:boot2: 0 incident outcomes (re-acquisitions and stops), 0 with independent support within 60 s",
+    "DEV 9950011:boot16: confirmations 219: 0 validated, 219 direction-consistent only (NOT validated); 2 operator declares in window",
+    "DEV 9950011:boot16: 8 incident outcomes (re-acquisitions and stops), 0 with independent support within 60 s",
+    "DEV 9950011:boot1: confirmations 8: 0 validated, 8 direction-consistent only (NOT validated); 2 operator declares in window",
+    "DEV 9950011:boot1: 2 incident outcomes (re-acquisitions and stops), 0 with independent support within 60 s",
+    "NOT_DEMONSTRATED: 0 of 10 incident outcomes have independent support, and 1 of 559 confirmations are independently validated. Direction consistency detects contradictions; it proves no absolute position."
+   ]
+  },
+  "C8": {
+   "name": "C8 every expectation carries event-level justification",
+   "status": "NOT_DEMONSTRATED",
+   "basis": "none",
+   "detail": [
+    "4 expectations carry committed event-level evidence (tools/navlab/results/iter3_evidence_classification.json); independent position truth in 0 of them",
+    "run of 13 firmware-rejected events at label mm130: 13/13 meet the genuine signature, 5/12 polarity alternations (measurement); basis heuristic + firmware-derived; marker identity NOT established",
+    "run of 16 firmware-rejected events at label mm52: 16/16 meet the genuine signature, 7/15 polarity alternations (measurement); basis heuristic + firmware-derived; marker identity NOT established",
+    "run of 14 firmware-rejected events at label mm126: 14/14 meet the genuine signature, 7/13 polarity alternations (measurement); basis heuristic + firmware-derived; marker identity NOT established",
+    "run of 5 firmware-rejected events at label mm101: 5/5 meet the genuine signature, 2/4 polarity alternations (measurement); basis heuristic + firmware-derived; marker identity NOT established",
+    "NOT_DEMONSTRATED: no expectation is independently supported. Reproducible selection is not event-level justification.",
+    "all exemplar windows derived from committed records at runtime (firmware-rejected runs >=5, <8 s gaps); no hand-pinned epochs - this establishes REPRODUCIBLE SELECTION only"
+   ]
+  },
+  "C9": {
+   "name": "C9 results hold on data excluded from envelope generation",
+   "status": "NOT_DEMONSTRATED",
+   "basis": "none",
+   "detail": [
+    "NO genuinely untouched evaluation data exists: every committed session was used for envelope training, was a development session, or has been event-level inspected in prior iterations. Dev replays below demonstrate mechanisms only. Unbiased validation requires future data.",
+    "exclusion hygiene alone does not show results HELD on excluded data: requires completed replays with all other conditions passing"
+   ]
+  }
+ }
+}
