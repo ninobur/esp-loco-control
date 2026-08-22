@@ -63,10 +63,22 @@ class Envelopes:
         return spacing / vm if vm else 0     # 0 = no constraint known
 
     def vmax(self, loco, pwm_bucket):
+        # Dead zone: below MOTOR_DEAD_ZONE_PWM the locomotive cannot
+        # self-propel. 0.15 mm/ms is a generous coast/push ceiling; the
+        # corridor loop zeroes it once the zero-stretch persists.
+        if pwm_bucket <= 20:
+            return 0.15
         v = self.e.get(f't3|{loco}|{pwm_bucket}')
         if v and v['n'] >= 5:
             return 305.0 / max(1, v['fast_bound'])       # mm per ms
-        return self.vmax_global.get(loco, 0.5)           # 0.5 mm/ms = 500 mm/s ceiling
+        # Unmeasured driving bucket: inherit the nearest MEASURED bucket
+        # ABOVE (faster = conservative, but never the global maximum for a
+        # crawl duty).
+        for b in range(pwm_bucket + 10, 200, 10):
+            v = self.e.get(f't3|{loco}|{b}')
+            if v and v['n'] >= 5:
+                return 305.0 / max(1, v['fast_bound'])
+        return self.vmax_global.get(loco, 0.5)
 
 Report = namedtuple('Report', 'events confirmations contradictions lost_full_circle')
 
@@ -84,6 +96,8 @@ class Navigator:
         self.consec = 0
         self.state = 'UNSET'
         self.log = []
+        self.polwin = []            # last W observed poles for re-acquisition
+        self.reacq = None           # (candidate mm, consecutive count)
 
     def circuit_mm(self):
         return sum(self.spc)
@@ -102,6 +116,8 @@ class Navigator:
         return d
 
     def declare(self, mm, ts):
+        self.polwin = []
+        self.reacq = None
         self.anchor = (mm % DNA_N, ts)
         self.hi = 0.0
         self.P = {mm % DNA_N}
@@ -116,11 +132,22 @@ class Navigator:
         samples = sorted((now - off/1000.0, v) for off, v in (pwm_hist or []))
         t = last_ts
         cur = samples[0][1] if samples else 0
+        zero_run = getattr(self, '_zero_run', 0.0)
         for st_t, v in samples + [(now, None)]:
             if st_t > t:
-                self.hi += self.env.vmax(self.loco, (cur//10)*10) * (st_t - t) * 1000.0
+                span = st_t - t
+                if cur <= 20:
+                    # coast allowance for the first 5 s of a dead-zone
+                    # stretch, then physically parked
+                    coast = max(0.0, min(span, 5.0 - zero_run))
+                    self.hi += self.env.vmax(self.loco, 0) * coast * 1000.0
+                    zero_run += span
+                else:
+                    self.hi += self.env.vmax(self.loco, (cur//10)*10) * span * 1000.0
+                    zero_run = 0.0
                 t = st_t
             if v is not None: cur = v
+        self._zero_run = zero_run
         self.hi = min(self.hi, self.circuit_mm() + 1)
 
     def candidates(self):
@@ -165,8 +192,30 @@ class Navigator:
         self.advance_corridor(ev.get('pwm_actual_history'), ts, last_ts)
         if self.anchor is None: return
         if self.hi >= self.circuit_mm():
-            self.state = 'LOST_FULL_CIRCLE'
-            self.log.append(dict(t=ts, ev='LOST_FULL_CIRCLE'))
+            if self.state != 'LOST_FULL_CIRCLE':
+                self.state = 'LOST_FULL_CIRCLE'
+                self.log.append(dict(t=ts, ev='LOST_FULL_CIRCLE'))
+            # Route-wide matching is PERMITTED now and only now: a full
+            # circuit is physically reachable. Windowed unique DNA match,
+            # three consistent hits, then re-anchor.
+            self.polwin = (self.polwin + [1 if ev['polarity']=='N' else 0])[-12:]
+            if len(self.polwin) == 12:
+                hits = [k for k in range(DNA_N)
+                        if all(self.dna[(k - i*self.step) % DNA_N] == pv
+                               for i, pv in enumerate(reversed(self.polwin)))]
+                if len(hits) == 1:
+                    want = (self.reacq[0] + self.step) % DNA_N if self.reacq else None
+                    if self.reacq and hits[0] == want:
+                        self.reacq = (hits[0], self.reacq[1] + 1)
+                    else:
+                        self.reacq = (hits[0], 1)
+                    if self.reacq[1] >= self.CONFIRM_N:
+                        self.log.append(dict(t=ts, ev='REACQUIRED', mm=hits[0]))
+                        self.declare(hits[0], ts)
+                        self._zero_run = 0.0
+                        return
+                else:
+                    self.reacq = None
             return
 
         dt = ev.get('dt_ms')
@@ -182,6 +231,19 @@ class Navigator:
                 newP.update(self._match(p, ev, (dt or 0) + (pdts or 0)))
 
         if not newP:
+            # No marker is yet reachable at all: an event arriving before the
+            # corridor's fast side reaches the NEXT magnet cannot be genuine.
+            # That is the phantom signature - hold it (its dt folds into the
+            # successor via the pending mechanism) and do not move. It is NOT
+            # a contradiction: contradiction is reserved for reachable
+            # candidates that the evidence eliminates.
+            nxt_spacing = self.spc[self.interval_ending_at(
+                (next(iter(self.P)) + self.step) % DNA_N)] if self.P else 305
+            if self.hi + 30 < nxt_spacing:
+                self.pending = (set(), (self.pending[1] if self.pending else 0)
+                                + (dt or 0))
+                self.log.append(dict(t=ts, ev='PHANTOM_SUSPECT', hi=round(self.hi)))
+                return
             gm = self._all_pol_matches(ev)
             if self.pending is None and gm is not None:
                 self.pending = (gm, dt)      # HOLD, do not advance, do not discard
@@ -238,11 +300,22 @@ def main():
     nav.declare(rows[0]['mm'], rows[0]['ts'])   # seed at first firmware label
     last = rows[0]['ts']
     stopped = None
+    cur_dir = rows[0].get('session_dir') or 'CW'
+    contras = 0
     for r in rows[1:]:
+        d = r.get('session_dir') or cur_dir
+        if d != cur_dir:
+            # direction change: the corridor model is direction-anchored;
+            # re-seed at the firmware label, as an operator reset would
+            cur_dir = d
+            nav.sdir = d; nav.step = 1 if d == 'CW' else -1
+            nav.declare(r['mm'], r['ts']); last = r['ts']; continue
         nav.on_event(r, last)
         last = r['ts']
-        if nav.state in ('CONTRADICTION',):
-            stopped = r; break
+        if nav.state == 'CONTRADICTION':
+            contras += 1
+            nav.declare(r['mm'], r['ts'])   # log and continue from firmware label
+    stopped = None
 
     conf = sum(1 for l in nav.log if l['ev'] == 'CONFIRMED')
     contra = sum(1 for l in nav.log if l['ev'] == 'CONTRADICTION')
