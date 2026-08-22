@@ -17,8 +17,9 @@ Three things are frozen and are not reopened:
 2. **The corrected verdict: FAIL — 2 PASS, 1 FAIL, 6 NOT_DEMONSTRATED.** It is
    not rescored. C2 and C3 pass as internal safety properties only.
 3. **The future evaluation protocol**, fixed before the data exists so it
-   cannot be shaped to a result: untouched, anchored, ghost-bearing, replayed
-   exactly once. It is restated in full and extended in
+   cannot be shaped to a result: untouched, anchored, ghost-bearing and
+   discontinuity-bearing, with one scored replay whose result stands (see the
+   correction note on reruns). It is restated in full and extended in
    `docs/AUTONOMOUS_ACQUISITION_VALIDATION_PROTOCOL.md`.
 
 One thing is **not** frozen, reversing 0041:
@@ -40,6 +41,36 @@ correction is a design replacement, not another patch: it is specified in
 `docs/AUTONOMOUS_POSITION_ACQUISITION_SPEC.md`, and no untouched capture is
 consumed until an implementation of that specification passes the host-model
 acceptance tests written before it.
+
+## Correction note (2026-08-22, same day)
+
+The specification this record points to was corrected in a bounded pass after
+review. Nothing in the decision above changes: the iteration-3 evidence, the
+FAIL 2/1/6 verdict and the evaluation protocol remain frozen; the navigator
+remains un-frozen as the candidate; defects are still corrected
+off-locomotive before data is spent. Three corrections bear on this record's
+own obligations:
+
+- **Timing.** The specification's evidence record measured elapsed time since
+  the previous *accepted* event and folded a held event's dt into its
+  successor, which double-counts. Elapsed time is now branch-local, computed
+  from raw on-device detection timestamps. A consequence worth recording: an
+  internal firmware re-anchor is not a timing event at all under the corrected
+  rule, so most of what the iteration-3 record counted as dt-chain-reset
+  exposure is not exposure. Strategy A remains the recommendation, on the
+  information argument rather than the operational one.
+- **Stopping is not success.** Acceptance now carries separate safety and
+  usefulness gates. A navigator that always stops passes every safety gate and
+  fails the suite. This closes a hole in the acceptance criteria this record
+  relies on.
+- **Operator decisions are policy only.** Statistical constants — quantiles,
+  margins, thresholds, floors — are engineering parameters requiring
+  calibration evidence before candidate freeze, not choices to put to the
+  operator without evidence.
+
+The validation protocol's "replayed exactly once" rule is corrected to permit
+deterministic reruns, which the recovery plan's definition of done requires;
+what consumes a capture is using it to redesign, not re-running it.
 
 ## Context
 
