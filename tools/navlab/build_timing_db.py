@@ -63,6 +63,8 @@ def main():
 
     admitted = 0
     leaked = [0]
+    rej = {'slow': 0, 'dwell_on_magnet': 0, 'no_pwm_coverage': 0,
+           'stationary_inside': 0}
     for s, evs in by_session.items():
         if s in held: continue
         evs.sort(key=lambda r: r['ts'])
@@ -79,6 +81,16 @@ def main():
             if b['label'] != 'genuine' or a['label'] == 'phantom': continue
             if not b.get('dt_ms') or b['dt_ms'] <= 0: continue
             if b.get('pwm_actual') is None: continue
+            # iteration-2 admission (correction 3): only clean, continuously
+            # driven single-interval traversals train envelopes.
+            if b['dt_ms'] >= 20000 or b['dt_ms'] >= 65535: rej['slow'] += 1; continue
+            if (b.get('duration_ms') or 0) >= 1000 or                (a.get('duration_ms') or 0) >= 1000:
+                rej['dwell_on_magnet'] += 1; continue
+            hist = [(o, v) for o, v in (b.get('pwm_actual_history') or [])
+                    if o <= b['dt_ms'] + 1500]
+            if not hist: rej['no_pwm_coverage'] += 1; continue
+            if min(v for _, v in hist) <= 20:
+                rej['stationary_inside'] += 1; continue
             pb = (b['pwm_actual'] // args.pwm_bucket) * args.pwm_bucket
             rec = (b['dt_ms'], s)
             by_key[('t1', b['loco'], b['session_dir'], b['interval'], pb)].append(rec)
@@ -101,9 +113,17 @@ def main():
             fast_bound=int(dts[0] * (1 - m)),
             slow_soft=int(q(dts,.95) * (1 + m)),
             source_sessions=sorted({x[1] for x in v}))
+    import hashlib
+    h = hashlib.sha256()
+    with open(args.records, 'rb') as fh:
+        for chunk in iter(lambda: fh.read(1 << 20), b''):
+            h.update(chunk)
     out = dict(
-        version=1,
-        generated=datetime.datetime.now().isoformat(timespec='seconds'),
+        version=2,
+        # deterministic metadata (iteration-2 correction 6b): derived from
+        # input content, never from the wall clock, so rebuilds are
+        # byte-identical from identical inputs
+        generated_from_records_sha256=h.hexdigest(),
         records_file=args.records, pwm_bucket=args.pwm_bucket,
         margin=args.margin,
         admission='genuine-labeled single-interval same-boot consecutive pairs',
@@ -112,6 +132,7 @@ def main():
                      'not by history'),
         sessions_used=used, sessions_held_out=held,
         holdout_leaks_blocked=leaked[0],
+        rejected_samples=rej,
         build_command=' '.join(sys.argv),
         source_captures=sorted({r['source'] for r in rows}),
         admitted_samples=admitted, envelopes=env)

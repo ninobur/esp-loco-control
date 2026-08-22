@@ -6,6 +6,14 @@
 # to the full logs modulo source line numbers, sha256 82ecc565... on
 # 2026-08-22); the beta log is committed in full.
 set -eu
+# Reproducibility claim, stated precisely (iteration-2 correction 6b):
+# rebuilding with the SAME invocation is BYTE-IDENTICAL (metadata derives from
+# input content, never the wall clock; demonstrated 2026-08-22 by build, copy,
+# rebuild, cmp). Rebuilding into a DIFFERENT output path is semantically
+# equivalent but not byte-identical: the header honestly records the
+# build_command and records_file paths, which then differ. Re-verify:
+#   sh tools/navlab/rebuild_db.sh && cp tools/navlab/db/timing_db_v1.json /tmp/a \
+#   && sh tools/navlab/rebuild_db.sh && cmp /tmp/a tools/navlab/db/timing_db_v1.json
 cd "$(dirname "$0")/../.."
 OUT=${1:-tools/navlab/db}
 mkdir -p "$OUT"

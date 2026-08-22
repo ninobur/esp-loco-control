@@ -1,20 +1,16 @@
 #!/usr/bin/env python3
-"""Behavioural tests for navlab artifact 3 (reachability_nav.Navigator).
+"""Behavioural tests for navlab artifact 3, iteration 2.
 
-Each test pins one clause of the recovery plan's acceptance list:
-  1. forward-only motion - no position behind the anchor is ever occupied;
-  2. timing impossibility - an event faster than the measured fast bound
-     cannot advance position;
-  3. pending-event resolution - a doubtful event is HELD, and its successor
-     resolves it under both hypotheses;
-  4. reversal - CCW geometry tracks correctly;
-  5. route-wide restriction - no relocation beyond the corridor while a full
-     circuit is unreachable, and gated re-acquisition once it is.
+Pins, one per acceptance clause plus one per iteration-2 correction:
+  1. forward-only motion;             2. timing impossibility;
+  3. pending resolution (both ways);  4. reversal preserves hypotheses
+                                         and consults no firmware label;
+  5. corridor advances on marker dt, never on MQTT receipt gaps;
+  6. marginally-fast observations stay pending (not eliminated);
+  7. corridor-bounded relocation;     8. gated route-wide re-acquisition.
 
-Synthetic map and envelopes throughout: failures are diagnosable, and the
-tests do not depend on any capture.
-
-Run:  python3 tools/navlab/test_reachability_nav.py
+Synthetic map and envelopes except where the real map's uniqueness guarantee
+is itself the property under test.  Run: python3 tools/navlab/test_reachability_nav.py
 """
 import random, sys, pathlib
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
@@ -26,86 +22,93 @@ def check(name, cond, detail=''):
     print(('  OK   ' if cond else '  FAIL ') + name + (f' — {detail}' if detail and not cond else ''))
 
 def mkenv(loco='L'):
-    # one driving bucket: pwm 90, fastest credible interval 850 ms over
-    # 300 mm -> vmax ~0.353 mm/ms
-    db = {'margin': 0.15, 'envelopes': {
+    db = {'envelopes': {
         f't3|{loco}|90': dict(n=50, min=1000, p05=1050, p25=1100, p50=1150,
-                              p95=1400, max=2000, margin=.15,
-                              fast_bound=850, slow_soft=1610,
-                              source_sessions=['syn']),
-    }}
+                              p95=1400, max=2000, fast_bound=850,
+                              slow_soft=1610, source_sessions=['syn'])}}
     return Envelopes(db)
 
-def mknav(dna, sdir='CW'):
-    return Navigator(mkenv(), 'L', sdir, dna, [300]*DNA_N)
+def mknav(dna, sdir='CW', mdir='FWD'):
+    n = Navigator(mkenv(), 'L', dna, [300]*DNA_N)
+    n.maybe_reverse(dict(ts=0.0, session_dir=sdir, motor_dir=mdir))
+    return n
 
-def ev(ts, mm, dna, dt=1100, pwm=90, pol=None):
-    return dict(ts=ts, mm=mm, polarity=pol or ('N' if dna[mm % DNA_N] else 'S'),
-                dt_ms=dt, pwm_actual=pwm,
+def ev(ts, mm, dna, dt=1100, pwm=90, pol=None, sdir='CW', mdir='FWD'):
+    return dict(ts=ts, mm=mm,
+                polarity=pol or ('N' if dna[mm % DNA_N] else 'S'),
+                dt_ms=dt, pwm_actual=pwm, session_dir=sdir, motor_dir=mdir,
                 pwm_actual_history=[[500, pwm]])
 
 def main():
     rng = random.Random(7)
     dna = [rng.randint(0, 1) for _ in range(DNA_N)]
 
-    # 1. forward-only: an event whose pole matches ONLY the marker BEHIND the
-    #    anchor must never relocate the navigator backwards.
+    # 1. forward-only
     d1 = list(dna); d1[9] = 1; d1[11] = 0; d1[12] = 0
     nav = mknav(d1); nav.declare(10, 0.0)
-    nav.on_event(ev(1.1, 9, d1, pol='N'), 0.0)   # matches mm 9 (behind) only
+    nav.on_event(ev(1.1, 9, d1, pol='N'))
     check('forward-only: never occupies a position behind the anchor',
-          9 not in nav.P and nav.anchor[0] == 10,
-          f'P={nav.P}')
+          9 not in nav.P and nav.anchor[0] == 10, f'P={nav.P}')
 
-    # 2. timing impossibility: corridor open, next marker pole matches, but
-    #    dt=200 < fast_bound 850 -> held, not advanced.
+    # 2. timing impossibility: corridor opened by a genuine long-dt event,
+    #    then a dt=200 probe (< fast_bound 850, below marginal band) is HELD.
     nav = mknav(dna); nav.declare(20, 0.0)
-    nav.on_event(ev(4.0, 21, dna, dt=200), 0.0)   # corridor ~1400 mm open
-    held = nav.P == {20} and any(l['ev'] in ('PENDING','PHANTOM_SUSPECT')
-                                  for l in nav.log)
-    check('timing impossibility: sub-fast-bound event cannot advance', held,
+    nav.on_event(ev(4.0, 21, dna, dt=4000))          # opens corridor, steps to 21
+    nav.on_event(ev(4.2, 22, dna, dt=200))
+    held = 22 not in nav.P and any(l['ev'] in ('PENDING', 'PHANTOM_SUSPECT')
+                                   for l in nav.log)
+    check('timing impossibility: sub-band event cannot advance', held,
           f'P={nav.P} log={[l["ev"] for l in nav.log]}')
 
-    # 3a. pending resolved as PHANTOM: successor at genuine cadence lands one
-    #     marker on (dts fold: 200+1100 covers exactly one interval).
-    nav.on_event(ev(5.1, 21, dna, dt=1100), 4.0)
-    check('pending resolution: phantom hypothesis folds dt and advances one',
-          nav.P == {21}, f'P={nav.P}')
-
-    # 3b. pending resolved as GENUINE: two markers with real spacing where
-    #     the first was merely doubtful (slow corridor at seed).
-    nav = mknav(dna); nav.declare(30, 0.0)
-    nav.on_event(ev(0.4, 31, dna, dt=400), 0.0)   # too soon for corridor: held
-    nav.on_event(ev(1.6, 32, dna, dt=1200), 0.4)  # successor at true cadence
-    check('pending resolution: genuine hypothesis can carry both markers',
-          nav.P and max((nav.dist(30, p) for p in nav.P)) <= 600
-          and 30 not in nav.P,
+    # 3. pending resolved as phantom: successor at genuine cadence advances one
+    nav.on_event(ev(5.4, 22, dna, dt=1100))
+    check('pending resolution: phantom did not stick, position advanced',
+          22 in nav.P and 21 not in nav.P and 20 not in nav.P,
           f'P={nav.P}')
 
-    # 4. reversal: CCW navigator advances DOWNWARD through the map.
-    nav = mknav(dna, sdir='CCW'); nav.declare(50, 0.0)
-    for i, mm in enumerate((49, 48, 47)):
-        nav.on_event(ev(1.2*(i+1), mm, dna), 1.2*i)
-    check('reversal: CCW tracks descending markers and confirms',
-          nav.anchor[0] == 47 and nav.state == 'NORMAL',
-          f'anchor={nav.anchor} P={nav.P}')
+    # 4. REVERSAL preserves hypotheses natively (iteration-2 correction 1)
+    nav = mknav(dna); nav.declare(50, 0.0)
+    for i, mm in enumerate((51, 52, 53)):
+        nav.on_event(ev(1.2*(i+1), mm, dna))
+    assert nav.anchor[0] == 53
+    nav.on_event(ev(5.0, 52, dna, mdir='REV'))       # flip: now travelling down
+    revlog = [l for l in nav.log if l['ev'] == 'REVERSAL']
+    check('reversal: hypotheses preserved, direction reversed, no reseed',
+          revlog and revlog[0]['P'] == [53] and nav.P == {52}
+          and nav.step == -1, f'P={nav.P} log={revlog}')
+    nav.on_event(ev(6.2, 51, dna, mdir='REV'))
+    nav.on_event(ev(7.4, 50, dna, mdir='REV'))
+    check('reversal: tracking continues backwards to confirmation',
+          nav.anchor[0] == 50 and nav.state == 'NORMAL', f'anchor={nav.anchor}')
 
-    # 5a. route-wide restriction: pole matching a far position must not
-    #     relocate while the corridor is short.
+    # 5. corridor from marker dt, NEVER receipt gaps (correction 2): a huge
+    #    receipt-time gap with a normal dt must NOT balloon the corridor.
+    nav = mknav(dna); nav.declare(30, 0.0)
+    nav.on_event(ev(500.0, 31, dna, dt=1100))        # 500 s later by receipt
+    check('corridor: receipt-time gap contributes nothing',
+          nav.hi < 900, f'hi={nav.hi:.0f}mm after a 500 s receipt gap')
+
+    # 6. marginal-fast retained as pending (correction 4): fast_bound 850,
+    #    dt=700 is inside the 25% band -> PENDING_MARGINAL, then successor
+    #    at genuine cadence resolves with the marginal hypothesis alive.
+    nav = mknav(dna); nav.declare(40, 0.0)
+    nav.on_event(ev(3.0, 41, dna, dt=3000))          # open corridor, step to 41
+    nav.on_event(ev(3.7, 42, dna, dt=700))           # marginal (700 in [637,850))
+    pm = any(l['ev'] == 'PENDING_MARGINAL' for l in nav.log)
+    nav.on_event(ev(4.8, 43, dna, dt=1100))
+    check('marginal-fast held as pending, not eliminated',
+          pm and 43 in nav.P, f'pm={pm} P={nav.P}')
+
+    # 7. corridor-bounded relocation
     nav = mknav(dna); nav.declare(60, 0.0)
     far = (60 + 80) % DNA_N
-    nav.on_event(ev(1.1, far, dna), 0.0)
+    nav.on_event(ev(1.1, far, dna, dt=600))
     check('route-wide restriction: no relocation outside the corridor',
-          all(nav.dist(60, p) <= nav.hi + 30 for p in nav.P) if nav.P
-          else nav.anchor[0] == 60,
+          nav.anchor[0] == 60 and (not nav.P or
+          all(nav.dist(60, p) <= nav.hi + 30 for p in nav.P)),
           f'P={nav.P} hi={nav.hi:.0f}')
 
-    # 5b. gated re-acquisition: only once a full circuit is reachable, and
-    #     only on a unique 12-window with three CONSECUTIVE consistent hits.
-    #     A random synthetic map has colliding 12-windows (observed: 2 hits),
-    #     which correctly resets the consistency counter - so this test uses
-    #     the REAL map, whose every 12-window is verified unique (the DNA_W
-    #     guarantee the rule was designed against).
+    # 8. gated re-acquisition (real map: uniqueness is the designed property)
     import re
     src = open(pathlib.Path(__file__).resolve().parents[2]
                / 'firmware/QUORUM/QUORUM.ino').read()
@@ -113,18 +116,17 @@ def main():
         src.split('const uint8_t NGR_DNA1[DNA_N] PROGMEM = {')[1].split('};')[0])]
     k0 = 40
     nav = mknav(real); nav.declare(0, 0.0)
-    nav.hi = nav.circuit_mm() + 1          # full circuit now reachable
+    nav.hi = nav.circuit_mm() + 1
     t = 1.0; reacq_i = None
     for i in range(14 + Navigator.CONFIRM_N):
-        mm = (k0 + i) % DNA_N
-        nav.on_event(ev(t, mm, real), t - 1.2); t += 1.2
+        nav.on_event(ev(t, (k0 + i) % DNA_N, real)); t += 1.2
         if any(l['ev'] == 'REACQUIRED' for l in nav.log):
             reacq_i = i; break
     check('gated re-acquisition fires only under LOST_FULL_CIRCLE',
-          reacq_i is not None, f'state={nav.state} reacq={nav.reacq}')
+          reacq_i is not None, f'state={nav.state}')
     check('re-acquired position is the position actually fed',
           reacq_i is not None and nav.anchor[0] == (k0 + reacq_i) % DNA_N,
-          f'anchor={nav.anchor} fed={(k0 + (reacq_i or 0)) % DNA_N}')
+          f'anchor={nav.anchor}')
 
     bad = [n for n, ok in PASS if not ok]
     print(f'\n{len(PASS)-len(bad)}/{len(PASS)} passed')

@@ -1,0 +1,77 @@
+{
+ "overall": "FAIL",
+ "passed": 7,
+ "of": 9,
+ "ground_truth": {
+  "false_confirmations": [],
+  "verdict": "PASS"
+ },
+ "conditions": {
+  "C1": {
+   "name": "C1 never outside the physically reachable set",
+   "pass": true,
+   "detail": []
+  },
+  "C2": {
+   "name": "C2 never behind the last confirmation without a reversal",
+   "pass": true,
+   "detail": []
+  },
+  "C3": {
+   "name": "C3 no route-wide search before a full circuit is reachable",
+   "pass": true,
+   "detail": []
+  },
+  "C4": {
+   "name": "C4 known genuine acceleration remains genuine",
+   "pass": false,
+   "detail": [
+    "9950012:20260820_morning_session.log:boot2: toby five-straight mm101: 5/5 genuine events advanced, 0 held",
+    "9950011:20260820_morning_session.log:boot16: otto 13-run mm130: 13/13 genuine events advanced, 0 held",
+    "9950011:20260820_morning_session.log:boot16: otto 16-run mm52: 16/16 genuine events advanced, 0 held",
+    "9950011:20260820_morning_session.log:boot16: otto 14-run mm126: NOT REACHED (run stopped earlier) - fail, not partial"
+   ]
+  },
+  "C5": {
+   "name": "C5 known phantoms do not advance confirmed position",
+   "pass": true,
+   "detail": [
+    "9950012:20260820_morning_session.log:boot2: 0 ghost phantoms in session, none advanced position",
+    "9950011:20260820_morning_session.log:boot16: 0 ghost phantoms in session, none advanced position"
+   ]
+  },
+  "C6": {
+   "name": "C6 frozen runs of genuine rejections disappear",
+   "pass": false,
+   "detail": [
+    "9950012:20260820_morning_session.log:boot2: toby five-straight mm101: frozen run eliminated",
+    "9950011:20260820_morning_session.log:boot16: otto 13-run mm130: frozen run eliminated",
+    "9950011:20260820_morning_session.log:boot16: otto 16-run mm52: frozen run eliminated",
+    "9950011:20260820_morning_session.log:boot16: otto 14-run mm126: NOT REACHED - fail, not partial"
+   ]
+  },
+  "C7": {
+   "name": "C7 known incidents recover or stop without false relocation",
+   "pass": true,
+   "detail": [
+    "9950012:20260820_morning_session.log:boot2: 1 confirmations anchored against operator declares; 1 declares in session",
+    "9950011:20260820_morning_session.log:boot16: 0 confirmations anchored against operator declares; 2 declares in session"
+   ]
+  },
+  "C8": {
+   "name": "C8 no changed regression expectation without justification",
+   "pass": true,
+   "detail": [
+    "firmware/ tree untouched by iteration 2"
+   ]
+  },
+  "C9": {
+   "name": "C9 results hold on sessions excluded from envelope generation",
+   "pass": true,
+   "detail": [
+    "9950012:20260820_morning_session.log:boot2: held out and absent from every envelope source list",
+    "9950011:20260820_morning_session.log:boot16: held out and absent from every envelope source list"
+   ]
+  }
+ }
+}

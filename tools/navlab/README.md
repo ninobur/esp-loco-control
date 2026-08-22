@@ -11,7 +11,7 @@ MQTT, or the Pi contract.
 | 2. timing-database generator | `build_timing_db.py` | built; first query reproduced the mm 101 incident's cause (measured 1317–1647 ms where the PWM model demanded 2226) |
 | 3. reachability navigator harness | `reachability_nav.py` + `test_reachability_nav.py` (8 behavioural tests) | built; STRICT evaluation stops at the first contradiction |
 | 4. hold-out replay fixtures | committed filtered inputs + `rebuild_db.sh` hold-out list | inputs committed under `field-records/logs/navlab-inputs/`, proven byte-equivalent to the full captures modulo line numbers |
-| 5. event-level comparison report | — | in progress; every Otto contradiction to be classified |
+| 5. event-level comparison report | `docs/QUORUM_NAVLAB_ITER2_REPORT.md` + `results/iter2_acceptance.json` | iteration 2: FAIL 7/9, 0 false confirmations; single named root cause |
 
 Reproducibility: `rebuild_db.sh` is the exact command of record; it consumes
 only committed files and regenerates `db/timing_db_v1.json` (the intermediate
