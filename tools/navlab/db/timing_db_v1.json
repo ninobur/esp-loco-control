@@ -1,7 +1,7 @@
 {
  "version": 1,
- "generated": "2026-08-22T07:08:20",
- "records_file": "/private/tmp/claude-501/-Users-davidbrown-esp-loco-control/006c3f8b-8700-43cb-a77e-a224e517bd40/scratchpad/norm_all.jsonl",
+ "generated": "2026-08-22T08:02:31",
+ "records_file": "tools/navlab/db/records_v1.jsonl",
  "pwm_bucket": 10,
  "margin": 0.15,
  "admission": "genuine-labeled single-interval same-boot consecutive pairs",
@@ -45,6 +45,13 @@
   "20260811_QUORUM_1_13_beta_otto.log:9950011:boot49",
   "20260820_morning_session.log:9950011:boot16",
   "20260820_morning_session.log:9950012:boot2"
+ ],
+ "holdout_leaks_blocked": 0,
+ "build_command": "tools/navlab/build_timing_db.py --records tools/navlab/db/records_v1.jsonl --out tools/navlab/db/timing_db_v1.json --holdout 20260820_morning_session.log:9950011:boot16 --holdout 20260820_morning_session.log:9950012:boot2 --holdout 20260811_QUORUM_1_13_beta_otto.log",
+ "source_captures": [
+  "20260811_QUORUM_1_13_beta_otto.log",
+  "20260813_otto_1_13_noquorum_watch.log",
+  "20260820_morning_session.log"
  ],
  "admitted_samples": 49423,
  "envelopes": {

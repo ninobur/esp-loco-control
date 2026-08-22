@@ -278,6 +278,13 @@ def main():
     ap.add_argument('--loco', required=True)
     ap.add_argument('--session', required=True, help='<source-substr>:boot<N>')
     ap.add_argument('--report')
+    ap.add_argument('--continue-analysis', action='store_true',
+                    help='after a contradiction, re-seed from the FIRMWARE '
+                         'label and keep scanning. Every such position is '
+                         'externally supplied and labeled EXTERNAL_RESEED; '
+                         'the run no longer measures navigator performance '
+                         'past the first contradiction. Default: strict - '
+                         'stop at the first contradiction.')
     args = ap.parse_args()
 
     import re, pathlib
@@ -301,31 +308,52 @@ def main():
     last = rows[0]['ts']
     stopped = None
     cur_dir = rows[0].get('session_dir') or 'CW'
-    contras = 0
+    contras = external = 0
+    stopped = None
     for r in rows[1:]:
         d = r.get('session_dir') or cur_dir
         if d != cur_dir:
-            # direction change: the corridor model is direction-anchored;
-            # re-seed at the firmware label, as an operator reset would
+            # direction change: the corridor model is direction-anchored.
+            # The seed position comes from the FIRMWARE label and is marked
+            # as externally supplied.
             cur_dir = d
             nav.sdir = d; nav.step = 1 if d == 'CW' else -1
+            nav.log.append(dict(t=r['ts'], ev='EXTERNAL_RESEED',
+                                source='firmware_label_on_reversal', mm=r['mm']))
+            external += 1
             nav.declare(r['mm'], r['ts']); last = r['ts']; continue
         nav.on_event(r, last)
         last = r['ts']
         if nav.state == 'CONTRADICTION':
             contras += 1
-            nav.declare(r['mm'], r['ts'])   # log and continue from firmware label
-    stopped = None
+            if not args.continue_analysis:
+                stopped = r
+                break
+            nav.log.append(dict(t=r['ts'], ev='EXTERNAL_RESEED',
+                                source='firmware_label_after_contradiction',
+                                mm=r['mm']))
+            external += 1
+            nav.declare(r['mm'], r['ts'])
 
     conf = sum(1 for l in nav.log if l['ev'] == 'CONFIRMED')
     contra = sum(1 for l in nav.log if l['ev'] == 'CONTRADICTION')
     lost = sum(1 for l in nav.log if l['ev'] == 'LOST_FULL_CIRCLE')
-    print(f'events {len(rows)} | confirmations {conf} | pending-held '
+    mode = 'CONTINUE-ANALYSIS' if args.continue_analysis else 'STRICT'
+    final = ('STOPPED_AT_FIRST_CONTRADICTION' if (stopped is not None)
+             else nav.state)
+    print(f'[{mode}] events {len(rows)} | confirmations {conf} | pending-held '
           f'{sum(1 for l in nav.log if l["ev"]=="PENDING")} | '
-          f'contradictions {contra} | lost_full_circle {lost} | final state {nav.state}')
+          f'contradictions {contra} | lost_full_circle {lost} | '
+          f'externally-seeded positions {external} | final {final}')
+    if args.continue_analysis and external:
+        print(f'NOTE: {external} positions were supplied by firmware labels, '
+              f'not by the navigator. This run does not measure navigator '
+              f'performance past the first contradiction.')
     if args.report:
         json.dump(dict(session=args.session, loco=args.loco,
-                       final=nav.state, log=nav.log), open(args.report, 'w'), indent=1)
+                       mode=mode, final=final,
+                       externally_seeded=external,
+                       log=nav.log), open(args.report, 'w'), indent=1)
         print('report ->', args.report)
 
 if __name__ == '__main__':

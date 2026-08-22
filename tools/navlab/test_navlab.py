@@ -130,6 +130,25 @@ def main():
         check('no cross-session interval pair admitted', not t1_51,
               'interval 50 envelope exists but its only pair spans two captures')
 
+        # 7. HOLD-OUT LEAK PROOF: the same physical events recorded by an
+        #    overlapping capture under a NON-held identity, processed FIRST so
+        #    the surviving record's primary identity is the non-held one. The
+        #    generator must still exclude every sample via dup_sources.
+        c7a = td/'c7_free.log'; mk_capture(c7a, '9950012', 8000.0, seq(70, 20))
+        c7b = td/'c7_held.log'
+        import shutil as _sh; _sh.copy(c7a, c7b)
+        run_norm([str(c7a), str(c7b)], str(td/'n7.jsonl'))
+        r = subprocess.run([sys.executable, str(HERE/'build_timing_db.py'),
+                            '--records', str(td/'n7.jsonl'),
+                            '--out', str(td/'db7.json'),
+                            '--holdout', 'c7_held.log'],
+                           capture_output=True, text=True)
+        assert r.returncode == 0, r.stderr
+        db7 = json.load(open(td/'db7.json'))
+        check('held-out physical events cannot re-enter via overlap',
+              db7['admitted_samples'] == 0 and db7['holdout_leaks_blocked'] > 0,
+              f"admitted={db7['admitted_samples']} blocked={db7['holdout_leaks_blocked']}")
+
     bad = [n for n, ok in PASS if not ok]
     print(f'\n{len(PASS)-len(bad)}/{len(PASS)} passed')
     return 1 if bad else 0

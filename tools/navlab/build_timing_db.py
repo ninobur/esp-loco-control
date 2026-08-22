@@ -52,6 +52,7 @@ def main():
 
     rows = [json.loads(l) for l in open(args.records)]
     def sid(r): return f"{r['source']}:{r['loco']}:boot{r['boot']}"
+    def all_ids(r): return [sid(r)] + list(r.get('dup_sources') or [])
     sessions = sorted({sid(r) for r in rows})
     held = sorted({s for s in sessions if any(h in s for h in args.holdout)})
     used = [s for s in sessions if s not in held]
@@ -61,6 +62,7 @@ def main():
     for r in rows: by_session[sid(r)].append(r)
 
     admitted = 0
+    leaked = [0]
     for s, evs in by_session.items():
         if s in held: continue
         evs.sort(key=lambda r: r['ts'])
@@ -68,6 +70,12 @@ def main():
             step = (b['mm'] - a['mm']) % 171
             cw = (b.get('session_dir') or 'CW') == 'CW'
             if (step != 1 if cw else step != 170): continue
+            # hold-out leak prevention: a physical event recorded by an
+            # overlapping capture under a held-out identity trains nothing,
+            # whichever copy survived dedupe
+            if any(any(h in i for h in args.holdout)
+                   for r2 in (a, b) for i in all_ids(r2)):
+                leaked[0] += 1; continue
             if b['label'] != 'genuine' or a['label'] == 'phantom': continue
             if not b.get('dt_ms') or b['dt_ms'] <= 0: continue
             if b.get('pwm_actual') is None: continue
@@ -103,6 +111,9 @@ def main():
                      'informational - slowness is bounded by elapsed time, '
                      'not by history'),
         sessions_used=used, sessions_held_out=held,
+        holdout_leaks_blocked=leaked[0],
+        build_command=' '.join(sys.argv),
+        source_captures=sorted({r['source'] for r in rows}),
         admitted_samples=admitted, envelopes=env)
     json.dump(out, open(args.out, 'w'), indent=1)
     t1 = sum(1 for k in env if k.startswith('t1'))

@@ -11,6 +11,8 @@ logs/
 # field-records/README.md.
 !field-records/logs/
 !field-records/logs/*.log
+!field-records/logs/navlab-inputs/
+!field-records/logs/navlab-inputs/*.log
 
 # Arduino build artefacts
 build/

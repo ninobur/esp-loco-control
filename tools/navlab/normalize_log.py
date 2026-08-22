@@ -78,7 +78,7 @@ def main():
         if lid not in locos:
             locos[lid] = dict(fw=None, boot_n=0, sdir=None, mdir=None,
                               commanded=0, voltage=None, events=[], nav=[],
-                              pwm_a=[], pwm_c=[], seen=set())
+                              pwm_a=[], pwm_c=[], seen={})
         return locos[lid]
 
     for path in args.capture:
@@ -125,8 +125,14 @@ def main():
                 # (this repo has several such logs). One physical event, one
                 # record: key on the loco's own payload identity + time.
                 k = (round(ts, 2), d.get('mm'), d.get('peak'), d.get('ms'))
-                if k in st['seen']: continue
-                st['seen'].add(k)
+                if k in st['seen']:
+                    # same physical event in another capture: keep ONE record
+                    # but remember every identity it appeared under, so the
+                    # database generator can exclude it if ANY identity is
+                    # held out (hold-out leak prevention).
+                    st['seen'][k]['dup_sources'].append(
+                        f'{src}:{lid}:boot{st["boot_n"]}')
+                    continue
                 mm = d['mm'] % 171
                 # interval that ENDED at mm, direction-dependent, exactly as
                 # navLadder's conserveIntervalIndex does it
@@ -154,7 +160,9 @@ def main():
                     pwm_commanded_history=[
                         [int((ts - t2) * 1000), v] for t2, v in st['pwm_c']
                         if 0 <= ts - t2 <= 45][-40:],
+                    dup_sources=[],
                 ))
+                st['seen'][k] = st['events'][-1]
             elif sub == 'state/nav':
                 try: d = json.loads(payload)
                 except ValueError: continue
