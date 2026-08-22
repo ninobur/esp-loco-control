@@ -60,3 +60,30 @@ otto_s09, three 4-runs on toby_s11, all genuine markers), quantified the
 recoverable margin, and surfaced two quarantine defects recorded separately
 in `docs/QUORUM_QUARANTINE_DEFECTS.md`. Its guarded code stays in the tree as
 the harness apparatus that produced these numbers, disabled in production.
+
+## Final suite-failure audit — compact skeptic pass, 2026-08-22
+
+All 23 ENCODES_OLD_GATE classifications are now audited (10 individual from
+the first pass, 13 by one compact collective pass with live counterfactual
+replays). Final tally: **15 stand, 8 refuted**; with the 3 GENUINE_REGRESSION
+verdicts, **11 of 26 suite failures reflect real T damage**.
+
+The split is not random: adjudicators went 12-for-12 on synthetic and
+ir_test_a fixtures — where the skeptic could regenerate controllable
+counterfactuals (every rescue-family fixture rebuilt with a physically
+faithful 2,400 ms gap makes the T binary byte-identical to BASE, and the
+original 4,800 ms constant is proven informationless under the old gate) —
+but only 3-for-11 on full_run capture pins, where measured-gate trajectory
+divergence was systematically mistaken for old-gate residue.
+
+**All 11 real-damage failures trace to the single open wedge defect**
+(a genuine or unadjudicated marker within 0.30× of a multi-second
+predecessor is eaten: dt 1082/prev 4027 and dt 884/prev 4138 in full_run,
+dt 1400/prev 4800 in the synthetic witness). T breaks none of: the rescue
+path, exclusion logic, acceleration handling, or format contracts. This
+sharpens, and does not soften, the rejection: one unresolved design defect
+with a wide blast radius, already reserved as the CODEX wedge question. No
+fixture re-pin touching full_run's segment-1 trajectory may land until that
+wedge is adjudicated — and under the reachability plan, the wedge's real
+successor is the measured dt envelope, not a fifth threshold.
+
