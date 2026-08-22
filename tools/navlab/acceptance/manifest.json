@@ -1,0 +1,339 @@
+{
+  "generated_from": "docs/AUTONOMOUS_ACQUISITION_ACCEPTANCE_TESTS.md",
+  "spec": "docs/AUTONOMOUS_POSITION_ACQUISITION_SPEC.md",
+  "decision": "docs/decisions/0042-*.md",
+  "map_source": "firmware/QUORUM/QUORUM.ino",
+  "computed_prerequisites": {
+    "W_dir": 10,
+    "W_both": 12
+  },
+  "navigator_required": true,
+  "navigator_present": false,
+  "prohibited_symbols": [
+    "LAUNCH_HOLD",
+    "launch_hold",
+    "LaunchHold"
+  ],
+  "only_motion_order": "STOPPED_FOR_NAVIGATION_SAFETY",
+  "open_operator_policies": [
+    "fleet_stop/yield",
+    "station_final_on_recovering",
+    "command_semantics",
+    "protected_region_mechanism",
+    "occupancy_publication",
+    "discontinuity_strategy"
+  ],
+  "implemented": {
+    "P0.1": {
+      "function": "families.p0_directional",
+      "title": "directional DNA uniqueness at every rotational start",
+      "gate": "prerequisite",
+      "regime": "",
+      "spec_ref": "spec 3.3 / plan P0"
+    },
+    "P0.2": {
+      "function": "families.p0_cross",
+      "title": "cross-plane DNA uniqueness (both directions)",
+      "gate": "prerequisite",
+      "regime": "",
+      "spec_ref": "spec 3.3 / plan P0"
+    },
+    "P0.3": {
+      "function": "families.p0_wdir_bound",
+      "title": "minimum clean window for orientation-known acquisition",
+      "gate": "prerequisite",
+      "regime": "",
+      "spec_ref": "spec 3.11 / gate U2"
+    },
+    "P0.4": {
+      "function": "families.p0_wboth_bound",
+      "title": "minimum clean window for orientation-unknown acquisition",
+      "gate": "prerequisite",
+      "regime": "",
+      "spec_ref": "spec 3.11 / gate U2"
+    },
+    "P0.5": {
+      "function": "families.p0_ambiguity",
+      "title": "ambiguity of shorter windows is measured, not assumed",
+      "gate": "prerequisite",
+      "regime": "",
+      "spec_ref": "plan P0 / T12"
+    },
+    "P0.6": {
+      "function": "families.p0_claim",
+      "title": "inherited uniqueness claim re-derived",
+      "gate": "prerequisite",
+      "regime": "",
+      "spec_ref": "spec 3.3"
+    },
+    "P0.7": {
+      "function": "families.p0_launch",
+      "title": "launch region clears the first station in both directions",
+      "gate": "prerequisite",
+      "regime": "",
+      "spec_ref": "spec 7.3 / rulings"
+    },
+    "T0": {
+      "function": "families.t0_exact",
+      "title": "exact-MM startup remains available",
+      "gate": "usefulness",
+      "regime": "CLEAN",
+      "spec_ref": "spec 4.0 mode 1 / U0"
+    },
+    "T1a": {
+      "function": "families.t1a_launch",
+      "title": "launch-region acquisition MM036-MM045, both orientations",
+      "gate": "usefulness",
+      "regime": "CLEAN",
+      "spec_ref": "spec 4.0 mode 2 / U1"
+    },
+    "T1a.station": {
+      "function": "families.t1a_station",
+      "title": "no launch-region case triggers the station substitution",
+      "gate": "usefulness",
+      "regime": "CLEAN",
+      "spec_ref": "spec 7.3"
+    },
+    "T1b": {
+      "function": "families.t1b_presumption",
+      "title": "launch region is never presumed",
+      "gate": "safety",
+      "regime": "",
+      "spec_ref": "spec 4.0 / rulings"
+    },
+    "T1": {
+      "function": "families.t1_routewide",
+      "title": "orientation-known route-wide startup at every MM",
+      "gate": "usefulness",
+      "regime": "CLEAN",
+      "spec_ref": "spec 4.2 ACQ_ROUTE_WIDE"
+    },
+    "T2": {
+      "function": "families.t2_unknown",
+      "title": "orientation-unknown startup, movement externally authorised",
+      "gate": "usefulness",
+      "regime": "CLEAN",
+      "spec_ref": "spec 4.4 / U3"
+    },
+    "T3": {
+      "function": "families.t3_recovery",
+      "title": "powered-run loss retains the anchor and recovers",
+      "gate": "usefulness",
+      "regime": "CLEAN",
+      "spec_ref": "spec 4.3 / U4"
+    },
+    "T4": {
+      "function": "families.t4_reversal",
+      "title": "reversal during acquisition and recovery",
+      "gate": "usefulness",
+      "regime": "CLEAN",
+      "spec_ref": "spec 4.2 / 4.3"
+    },
+    "T5": {
+      "function": "families.t5_declaration",
+      "title": "operator declaration re-origins timing (Case D)",
+      "gate": "usefulness",
+      "regime": "CLEAN",
+      "spec_ref": "spec 6.1 Case D"
+    },
+    "T6": {
+      "function": "families.t6_discontinuity",
+      "title": "clock/timestamp discontinuity (Case I)",
+      "gate": "safety",
+      "regime": "AMBIGUOUS",
+      "spec_ref": "spec 6 / S1 / S2"
+    },
+    "T6b": {
+      "function": "families.t6b_redeclaration",
+      "title": "internal redeclaration is not a timing event (Case R)",
+      "gate": "usefulness",
+      "regime": "CLEAN",
+      "spec_ref": "spec 3.7 / 6.1 Case R"
+    },
+    "T6c": {
+      "function": "families.t6c_branch_timing",
+      "title": "branch-local elapsed time is never double-counted",
+      "gate": "safety",
+      "regime": "",
+      "spec_ref": "spec 3.6 / S5"
+    },
+    "T7": {
+      "function": "families.t7_missed",
+      "title": "missed markers",
+      "gate": "mixed",
+      "regime": "mixed",
+      "spec_ref": "spec 3.5.1 / S2 / U5"
+    },
+    "T8": {
+      "function": "families.t8_reread",
+      "title": "same-magnet rereads",
+      "gate": "safety",
+      "regime": "AMBIGUOUS",
+      "spec_ref": "spec 3.5.1 / S1"
+    },
+    "T9": {
+      "function": "families.t9_accel",
+      "title": "genuine acceleration stays genuine",
+      "gate": "usefulness",
+      "regime": "CLEAN",
+      "spec_ref": "spec 3.8 / U-gate"
+    },
+    "T10": {
+      "function": "families.t10_ghost",
+      "title": "weak short-duration ghosts",
+      "gate": "usefulness",
+      "regime": "CLEAN",
+      "spec_ref": "spec 3.9 / U5"
+    },
+    "T11": {
+      "function": "families.t11_ghost_family",
+      "title": "repeated ghost families",
+      "gate": "safety",
+      "regime": "AMBIGUOUS",
+      "spec_ref": "spec 3.10"
+    },
+    "T12": {
+      "function": "families.t12_ambiguous",
+      "title": "ambiguous DNA sequences, built from measured collisions",
+      "gate": "safety",
+      "regime": "AMBIGUOUS",
+      "spec_ref": "spec 3.11 / P11"
+    },
+    "T13": {
+      "function": "families.t13_routewide",
+      "title": "route-wide reacquisition",
+      "gate": "mixed",
+      "regime": "mixed",
+      "spec_ref": "spec 3.11 / P11"
+    },
+    "T14": {
+      "function": "families.t14_contexts",
+      "title": "permitted acquisition contexts with a peer",
+      "gate": "safety",
+      "regime": "AMBIGUOUS",
+      "spec_ref": "spec 4.2 C1/C2"
+    },
+    "T14b": {
+      "function": "families.t14b_peer_motion",
+      "title": "peer motion may only enlarge or invalidate a bound",
+      "gate": "safety",
+      "regime": "",
+      "spec_ref": "spec 3.12.2"
+    },
+    "T15": {
+      "function": "families.t15_occupancy",
+      "title": "conservative occupancy representation",
+      "gate": "safety",
+      "regime": "",
+      "spec_ref": "spec 3.12"
+    },
+    "T15.5": {
+      "function": "families.t15_5_compression",
+      "title": "compressed telemetry never grants more authority",
+      "gate": "safety",
+      "regime": "",
+      "spec_ref": "spec 3.12"
+    },
+    "T16": {
+      "function": "families.t16_oscillation",
+      "title": "no CTO2-style crawl/cruise oscillation",
+      "gate": "usefulness",
+      "regime": "CLEAN",
+      "spec_ref": "spec 7.4.1 / U4b / U6"
+    },
+    "T17": {
+      "function": "families.t17_derived_speed",
+      "title": "recovery speed is derived, not fixed at ACQ_SPEED",
+      "gate": "usefulness",
+      "regime": "CLEAN",
+      "spec_ref": "spec 7.4"
+    },
+    "T18": {
+      "function": "families.t18_lookahead",
+      "title": "first-station lookahead",
+      "gate": "usefulness",
+      "regime": "CLEAN",
+      "spec_ref": "spec 7.3"
+    },
+    "T19": {
+      "function": "families.t19_operator_role",
+      "title": "operator role boundaries",
+      "gate": "safety",
+      "regime": "",
+      "spec_ref": "spec 7.5"
+    },
+    "T20": {
+      "function": "families.t20_two_loco",
+      "title": "two-locomotive safety while one position is uncertain",
+      "gate": "safety",
+      "regime": "",
+      "spec_ref": "spec 3.12 / S3"
+    },
+    "T21": {
+      "function": "families.t21_manual",
+      "title": "manual operation without a declared position",
+      "gate": "usefulness",
+      "regime": "CLEAN",
+      "spec_ref": "spec 4.4.3 / U4c"
+    },
+    "T22": {
+      "function": "families.t22_launch",
+      "title": "sequential operator-supervised launch, no LAUNCH_HOLD",
+      "gate": "usefulness",
+      "regime": "CLEAN",
+      "spec_ref": "spec 7.7"
+    },
+    "T23": {
+      "function": "families.t23_stop_posture",
+      "title": "STOP/HOLD code-path restrictions",
+      "gate": "safety",
+      "regime": "",
+      "spec_ref": "spec 7.8"
+    },
+    "N1": {
+      "function": "families.n1_untouched",
+      "title": "results hold on an untouched anchored capture",
+      "gate": "validation",
+      "regime": "",
+      "spec_ref": "validation protocol 2"
+    },
+    "N2": {
+      "function": "families.n2_calibration",
+      "title": "engineering parameters carry calibration evidence",
+      "gate": "validation",
+      "regime": "",
+      "spec_ref": "spec 10"
+    },
+    "N3": {
+      "function": "families.n3_protected_region",
+      "title": "peer protected-region mechanism exists",
+      "gate": "validation",
+      "regime": "",
+      "spec_ref": "spec 9 open decision 4"
+    }
+  },
+  "invariants": {
+    "S1 no false confirmation": "invariants.Monitor.check_confirmation",
+    "S2 COMPLETE set contains the truth": "invariants.Monitor.check_completeness",
+    "S3 authority within conservative occupancy and separation": "invariants.Monitor.check_authority",
+    "S4 stopping always available; no declaration demanded": "invariants.Monitor.note_status",
+    "S5 branch-local elapsed never double-counted": "families.t6c_branch_timing",
+    "no firmware label or receipt time in position reasoning": "selftests.run_selftests::H4 differential probe",
+    "compression never grants more authority": "invariants.Monitor.check_publication",
+    "stop classification": "invariants.stop_classification"
+  },
+  "usefulness_gate_to_family": {
+    "U0": "T0",
+    "U1": "T1a",
+    "U2": "T1a/T2 bound from prereq.W_DIR/W_BOTH",
+    "U3": "T2",
+    "U4": "T3",
+    "U4b": "T16",
+    "U4c": "T21",
+    "U5": "T7/T10",
+    "U6": "T1a/T16/T22",
+    "U7": "reported in every family result data"
+  },
+  "plan_families_without_implementation": [],
+  "implementations_without_plan_family": []
+}
