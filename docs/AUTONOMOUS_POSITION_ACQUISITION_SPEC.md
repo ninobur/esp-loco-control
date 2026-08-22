@@ -619,7 +619,7 @@ the whole design.
   code.
 - **Manual override.** An MM declaration short-cuts acquisition and is
   authoritative. It is never demanded.
-- **Two-locomotive.** In `ACQ_LAUNCH_REGION` our occupancy is bounded to 26
+- **Two-locomotive.** In `ACQ_LAUNCH_REGION` our occupancy is bounded to 10
   markers plus extent from the outset and shrinks with each observation; this
   is the mode that makes C2 reachable. In `ACQ_ROUTE_WIDE` our occupancy is
   route-wide, C2 condition 1 fails, and the only context that permits motion is

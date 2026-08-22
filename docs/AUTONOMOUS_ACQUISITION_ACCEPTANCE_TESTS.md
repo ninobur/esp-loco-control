@@ -111,7 +111,7 @@ orientations (20 cases)**, clean stream.
   21–30 CCW, so each case uses its intended first station. A build that skips a
   station from a normal launch has a defect in the lookahead check, not a
   correct conservatism.
-- Report: latency in observations and mm. A 26-bit seed should resolve
+- Report: latency in observations and mm. A 10-bit seed should resolve
   faster than the 171-bit seed of T1; both numbers are reported so the
   operational benefit of declaring the launch region is measured, not assumed.
 
