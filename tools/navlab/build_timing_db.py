@@ -46,6 +46,8 @@ def main():
     ap.add_argument('--out', required=True)
     ap.add_argument('--holdout', action='append', default=[])
     ap.add_argument('--pwm-bucket', type=int, default=10)
+    ap.add_argument('--margin', type=float, default=0.15,
+                    help='safety margin applied to the credible bounds')
     args = ap.parse_args()
 
     rows = [json.loads(l) for l in open(args.records)]
@@ -79,14 +81,23 @@ def main():
     env = {}
     for k, v in by_key.items():
         dts = sorted(x[0] for x in v)
+        m = args.margin
         env['|'.join(map(str, k))] = dict(
             n=len(dts), min=dts[0], p05=q(dts,.05), p25=q(dts,.25),
             p50=q(dts,.50), p95=q(dts,.95), max=dts[-1],
-            sessions=len({x[1] for x in v}))
+            # SAFETY MARGINS (plan artifact 2). fast_bound is the reachability
+            # bound: no genuine traversal may be believed faster than this.
+            # slow_soft is advisory only - slowness is bounded by elapsed
+            # time, never by history.
+            margin=m,
+            fast_bound=int(dts[0] * (1 - m)),
+            slow_soft=int(q(dts,.95) * (1 + m)),
+            source_sessions=sorted({x[1] for x in v}))
     out = dict(
         version=1,
         generated=datetime.datetime.now().isoformat(timespec='seconds'),
         records_file=args.records, pwm_bucket=args.pwm_bucket,
+        margin=args.margin,
         admission='genuine-labeled single-interval same-boot consecutive pairs',
         safety_note=('MIN side is the reachability bound; MAX side is '
                      'informational - slowness is bounded by elapsed time, '

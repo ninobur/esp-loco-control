@@ -77,7 +77,8 @@ def main():
     def L(lid):
         if lid not in locos:
             locos[lid] = dict(fw=None, boot_n=0, sdir=None, mdir=None,
-                              commanded=0, voltage=None, events=[], nav=[])
+                              commanded=0, voltage=None, events=[], nav=[],
+                              pwm_a=[], pwm_c=[], seen=set())
         return locos[lid]
 
     for path in args.capture:
@@ -92,7 +93,9 @@ def main():
                 except ValueError: continue
                 st['fw'] = d.get('sketch') or st['fw']
             elif sub == 'state/throttle':
-                try: st['commanded'] = int(payload)
+                try:
+                    st['commanded'] = int(payload)
+                    st['pwm_c'].append((ts, st['commanded']))
                 except ValueError: pass
             elif sub == 'state/session_direction':
                 st['sdir'] = payload.strip()
@@ -112,10 +115,18 @@ def main():
                     if st.get('last_up') is not None and up < st['last_up'] - 5000:
                         st['boot_n'] += 1
                     st['last_up'] = up
+                if isinstance(d.get('pwm'), (int, float)):
+                    st['pwm_a'].append((ts, int(d['pwm'])))
             elif sub == 'mm/marker':
                 try: d = json.loads(payload)
                 except ValueError: continue
                 if not isinstance(d, dict) or d.get('mm') is None: continue
+                # Overlapping captures record the SAME physical event twice
+                # (this repo has several such logs). One physical event, one
+                # record: key on the loco's own payload identity + time.
+                k = (round(ts, 2), d.get('mm'), d.get('peak'), d.get('ms'))
+                if k in st['seen']: continue
+                st['seen'].add(k)
                 mm = d['mm'] % 171
                 # interval that ENDED at mm, direction-dependent, exactly as
                 # navLadder's conserveIntervalIndex does it
@@ -133,12 +144,22 @@ def main():
                     map_pole=pole[dna[mm]], drift=d.get('drift'),
                     timing_gate=d.get('timing_gate'),
                     dt_expected=d.get('dt_expected'),
+                    # PWM HISTORY (plan artifact 1): every actual-PWM sample
+                    # (1 Hz alert stream) and commanded change since the
+                    # previous marker of this loco IN THIS CAPTURE, as
+                    # [ms_before_event, value], newest last, capped at 40.
+                    pwm_actual_history=[
+                        [int((ts - t2) * 1000), v] for t2, v in st['pwm_a']
+                        if 0 <= ts - t2 <= 45][-40:],
+                    pwm_commanded_history=[
+                        [int((ts - t2) * 1000), v] for t2, v in st['pwm_c']
+                        if 0 <= ts - t2 <= 45][-40:],
                 ))
             elif sub == 'state/nav':
                 try: d = json.loads(payload)
                 except ValueError: continue
                 if isinstance(d, dict) and d.get('event'):
-                    st['nav'].append((ts, d['event']))
+                    st['nav'].append((ts, d['event'], src))
 
     # pass 2: firmware verdict + later-event classification
     total = 0
@@ -147,10 +168,13 @@ def main():
             evs, nav = st['events'], st['nav']
             ni = 0
             for i, e in enumerate(evs):
-                # firmware verdict: nearest nav decision at/after this event
+                # firmware verdict: nearest same-capture nav decision at/after
+                # this event. Cross-capture matches would attribute another
+                # recording's verdicts to this one.
                 while ni < len(nav) and nav[ni][0] < e['ts'] - 0.05:
                     ni += 1
-                verdicts = [ev for t, ev in nav[ni:ni+4] if t <= e['ts'] + 0.6]
+                verdicts = [ev for t, ev, sc in nav[ni:ni+6]
+                            if t <= e['ts'] + 0.6 and sc == e['source']]
                 e['fw_verdict'] = (
                     'rejected' if 'PHANTOM_REJECTED' in verdicts else
                     'quarantined' if 'QUARANTINED' in verdicts else
@@ -158,13 +182,13 @@ def main():
                     'agree' if 'AGREE' in verdicts else
                     e['timing_gate'] or 'unknown')
                 # later-event classification
-                fwd = evs[i+1:i+1+AGREE_WINDOW]
+                fwd = [f for f in evs[i+1:i+1+AGREE_WINDOW]
+                       if f['source'] == e['source'] and f['boot'] == e['boot']]
                 incident = any(ev in ('QUORUM_OPEN','QUORUM_TIED','NO_QUORUM')
-                               for t, ev in nav[ni:ni+12]
-                               if t <= e['ts'] + 30)
+                               for t, ev, sc in nav[ni:ni+12]
+                               if t <= e['ts'] + 30 and sc == e['source'])
                 clean = (len(fwd) == AGREE_WINDOW and
-                         all(f['polarity'] == f['map_pole'] for f in fwd) and
-                         all(f['boot'] == e['boot'] for f in fwd))
+                         all(f['polarity'] == f['map_pole'] for f in fwd))
                 if e['fw_verdict'] in ('rejected',) and not incident:
                     e['label'], e['label_basis'] = 'phantom', 'fw_rejected_no_contradiction'
                 elif clean and e['polarity'] == e['map_pole'] and not incident:
