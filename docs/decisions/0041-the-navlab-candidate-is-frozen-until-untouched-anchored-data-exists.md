@@ -1,6 +1,12 @@
 # 0041 — The navlab candidate is frozen until untouched, anchored data exists
 
-Status: Accepted  (2026-08-22)
+Status: Superseded by 0042  (2026-08-22)
+
+Superseded the same day it was accepted. 0042 keeps the freeze on the
+iteration-3 evidence, the corrected verdict and the evaluation protocol, and
+lifts the freeze on the navigator as the candidate: it has a demonstrated
+dt=0 false-confirmation defect, and known design defects are corrected
+off-locomotive before a candidate is frozen and untouched data is spent on it.
 
 ## Decision
 
