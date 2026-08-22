@@ -1,0 +1,2174 @@
+{
+ "hold_otto_s02": {
+  "BASE": {
+   "dis": 5,
+   "agree": 344,
+   "rej": 0,
+   "maxrun": 0,
+   "opens": 1,
+   "adopts": [
+    [
+     67,
+     3
+    ]
+   ],
+   "noq": [],
+   "counts": {
+    "DECLARED": 1,
+    "DISAGREE": 5,
+    "AGREE": 344,
+    "QUORUM_OPEN": 1,
+    "QUORUM_TIED": 4,
+    "QUORUM_ADOPTED": 1,
+    "QUORUM_CLOSED": 1,
+    "QUARANTINED": 1,
+    "QUARANTINE_DISCARDED": 1
+   }
+  },
+  "T": {
+   "dis": 5,
+   "agree": 344,
+   "rej": 0,
+   "maxrun": 0,
+   "opens": 1,
+   "adopts": [
+    [
+     67,
+     3
+    ]
+   ],
+   "noq": [],
+   "counts": {
+    "DECLARED": 1,
+    "DISAGREE": 5,
+    "AGREE": 344,
+    "QUORUM_OPEN": 1,
+    "QUORUM_TIED": 4,
+    "QUORUM_ADOPTED": 1,
+    "QUORUM_CLOSED": 1,
+    "QUARANTINED": 1,
+    "QUARANTINE_DISCARDED": 1
+   }
+  },
+  "TO": {
+   "dis": 5,
+   "agree": 344,
+   "rej": 0,
+   "maxrun": 0,
+   "opens": 1,
+   "adopts": [
+    [
+     67,
+     3
+    ]
+   ],
+   "noq": [],
+   "counts": {
+    "DECLARED": 1,
+    "DISAGREE": 5,
+    "AGREE": 344,
+    "QUORUM_OPEN": 1,
+    "QUORUM_TIED": 4,
+    "QUORUM_ADOPTED": 1,
+    "QUORUM_CLOSED": 1,
+    "QUARANTINED": 1,
+    "QUARANTINE_DISCARDED": 1
+   }
+  }
+ },
+ "hold_otto_s03": {
+  "BASE": {
+   "dis": 2,
+   "agree": 351,
+   "rej": 0,
+   "maxrun": 0,
+   "opens": 0,
+   "adopts": [],
+   "noq": [],
+   "counts": {
+    "DECLARED": 1,
+    "AGREE": 351,
+    "QUARANTINED": 1,
+    "QUARANTINE_DISCARDED": 1,
+    "DISAGREE": 2
+   }
+  },
+  "T": {
+   "dis": 2,
+   "agree": 351,
+   "rej": 0,
+   "maxrun": 0,
+   "opens": 0,
+   "adopts": [],
+   "noq": [],
+   "counts": {
+    "DECLARED": 1,
+    "AGREE": 351,
+    "QUARANTINED": 1,
+    "QUARANTINE_DISCARDED": 1,
+    "DISAGREE": 2
+   }
+  },
+  "TO": {
+   "dis": 2,
+   "agree": 351,
+   "rej": 0,
+   "maxrun": 0,
+   "opens": 0,
+   "adopts": [],
+   "noq": [],
+   "counts": {
+    "DECLARED": 1,
+    "AGREE": 351,
+    "QUARANTINED": 1,
+    "QUARANTINE_DISCARDED": 1,
+    "DISAGREE": 2
+   }
+  }
+ },
+ "hold_otto_s04": {
+  "BASE": {
+   "dis": 40,
+   "agree": 3978,
+   "rej": 0,
+   "maxrun": 0,
+   "opens": 6,
+   "adopts": [
+    [
+     68,
+     -1
+    ],
+    [
+     48,
+     -1
+    ],
+    [
+     48,
+     -1
+    ],
+    [
+     48,
+     -1
+    ],
+    [
+     48,
+     -1
+    ]
+   ],
+   "noq": [
+    161
+   ],
+   "counts": {
+    "DECLARED": 4,
+    "AGREE": 3978,
+    "DISAGREE": 40,
+    "QUARANTINED": 6,
+    "QUARANTINE_DISCARDED": 6,
+    "QUORUM_OPEN": 6,
+    "QUORUM_TIED": 20,
+    "NO_QUORUM": 1,
+    "QUORUM_ADOPTED": 5,
+    "QUORUM_CLOSED": 5
+   }
+  },
+  "T": {
+   "dis": 40,
+   "agree": 3978,
+   "rej": 0,
+   "maxrun": 0,
+   "opens": 6,
+   "adopts": [
+    [
+     68,
+     -1
+    ],
+    [
+     48,
+     -1
+    ],
+    [
+     48,
+     -1
+    ],
+    [
+     48,
+     -1
+    ],
+    [
+     48,
+     -1
+    ]
+   ],
+   "noq": [
+    161
+   ],
+   "counts": {
+    "DECLARED": 4,
+    "AGREE": 3978,
+    "DISAGREE": 40,
+    "QUARANTINED": 6,
+    "QUARANTINE_DISCARDED": 6,
+    "QUORUM_OPEN": 6,
+    "QUORUM_TIED": 20,
+    "NO_QUORUM": 1,
+    "QUORUM_ADOPTED": 5,
+    "QUORUM_CLOSED": 5
+   }
+  },
+  "TO": {
+   "dis": 42,
+   "agree": 3980,
+   "rej": 0,
+   "maxrun": 0,
+   "opens": 6,
+   "adopts": [
+    [
+     167,
+     -3
+    ],
+    [
+     68,
+     -1
+    ],
+    [
+     48,
+     -1
+    ],
+    [
+     48,
+     -1
+    ],
+    [
+     48,
+     -1
+    ],
+    [
+     48,
+     -1
+    ]
+   ],
+   "noq": [],
+   "counts": {
+    "DECLARED": 4,
+    "AGREE": 3980,
+    "DISAGREE": 42,
+    "QUARANTINED": 6,
+    "QUARANTINE_DISCARDED": 6,
+    "QUORUM_OPEN": 6,
+    "QUORUM_TIED": 17,
+    "QUORUM_ADOPTED": 6,
+    "QUORUM_CLOSED": 6
+   }
+  }
+ },
+ "hold_otto_s05": {
+  "BASE": {
+   "dis": 47,
+   "agree": 1425,
+   "rej": 1,
+   "maxrun": 1,
+   "opens": 7,
+   "adopts": [
+    [
+     118,
+     -1
+    ],
+    [
+     24,
+     -1
+    ],
+    [
+     156,
+     -1
+    ],
+    [
+     48,
+     -1
+    ],
+    [
+     93,
+     -1
+    ]
+   ],
+   "noq": [
+    9,
+    136
+   ],
+   "counts": {
+    "DECLARED": 2,
+    "AGREE": 1425,
+    "DISAGREE": 47,
+    "QUORUM_OPEN": 7,
+    "QUORUM_TIED": 31,
+    "PHANTOM_REJECTED": 1,
+    "NO_QUORUM": 2,
+    "SELF_RESOLVED": 2,
+    "QUARANTINED": 11,
+    "QUARANTINE_DISCARDED": 11,
+    "QUORUM_ADOPTED": 5,
+    "QUORUM_CLOSED": 5
+   }
+  },
+  "T": {
+   "dis": 67,
+   "agree": 1400,
+   "rej": 0,
+   "maxrun": 0,
+   "opens": 10,
+   "adopts": [
+    [
+     7,
+     2
+    ],
+    [
+     24,
+     1
+    ],
+    [
+     49,
+     2
+    ],
+    [
+     118,
+     -1
+    ],
+    [
+     24,
+     -1
+    ],
+    [
+     156,
+     -1
+    ],
+    [
+     48,
+     -1
+    ],
+    [
+     93,
+     -1
+    ]
+   ],
+   "noq": [
+    66,
+    136
+   ],
+   "counts": {
+    "DECLARED": 2,
+    "AGREE": 1400,
+    "DISAGREE": 67,
+    "QUORUM_OPEN": 10,
+    "QUORUM_TIED": 47,
+    "QUORUM_ADOPTED": 8,
+    "QUORUM_CLOSED": 8,
+    "NO_QUORUM": 2,
+    "SELF_RESOLVED": 2,
+    "QUARANTINED": 11,
+    "QUARANTINE_DISCARDED": 11
+   }
+  },
+  "TO": {
+   "dis": 66,
+   "agree": 1398,
+   "rej": 0,
+   "maxrun": 0,
+   "opens": 10,
+   "adopts": [
+    [
+     10,
+     2
+    ],
+    [
+     24,
+     1
+    ],
+    [
+     49,
+     2
+    ],
+    [
+     118,
+     -1
+    ],
+    [
+     24,
+     -1
+    ],
+    [
+     156,
+     -1
+    ],
+    [
+     48,
+     -1
+    ],
+    [
+     93,
+     -1
+    ]
+   ],
+   "noq": [
+    66,
+    136
+   ],
+   "counts": {
+    "DECLARED": 2,
+    "AGREE": 1398,
+    "DISAGREE": 66,
+    "QUORUM_OPEN": 10,
+    "QUORUM_TIED": 50,
+    "QUORUM_ADOPTED": 8,
+    "QUORUM_CLOSED": 8,
+    "NO_QUORUM": 2,
+    "SELF_RESOLVED": 2,
+    "QUARANTINED": 11,
+    "QUARANTINE_DISCARDED": 11
+   }
+  }
+ },
+ "hold_otto_s06": {
+  "BASE": {
+   "dis": 122,
+   "agree": 1645,
+   "rej": 7,
+   "maxrun": 2,
+   "opens": 17,
+   "adopts": [
+    [
+     158,
+     1
+    ],
+    [
+     158,
+     1
+    ],
+    [
+     152,
+     -1
+    ],
+    [
+     54,
+     -1
+    ],
+    [
+     158,
+     1
+    ],
+    [
+     152,
+     -1
+    ],
+    [
+     158,
+     1
+    ],
+    [
+     158,
+     1
+    ],
+    [
+     158,
+     1
+    ],
+    [
+     1,
+     2
+    ],
+    [
+     1,
+     2
+    ],
+    [
+     158,
+     1
+    ],
+    [
+     158,
+     1
+    ],
+    [
+     97,
+     3
+    ],
+    [
+     90,
+     4
+    ],
+    [
+     79,
+     3
+    ],
+    [
+     65,
+     2
+    ],
+    [
+     46,
+     4
+    ]
+   ],
+   "noq": [
+    38
+   ],
+   "counts": {
+    "DECLARED": 1,
+    "AGREE": 1645,
+    "QUARANTINED": 14,
+    "QUARANTINE_DISCARDED": 9,
+    "DISAGREE": 122,
+    "QUORUM_OPEN": 17,
+    "QUORUM_TIED": 66,
+    "QUORUM_ADOPTED": 18,
+    "QUORUM_CLOSED": 16,
+    "QUARANTINE_COMMITTED": 5,
+    "PHANTOM_REJECTED": 7,
+    "QUORUM_REOPENED": 2,
+    "NO_QUORUM": 1,
+    "SELF_RESOLVED": 1
+   }
+  },
+  "T": {
+   "dis": 91,
+   "agree": 1695,
+   "rej": 0,
+   "maxrun": 0,
+   "opens": 11,
+   "adopts": [
+    [
+     158,
+     1
+    ],
+    [
+     158,
+     1
+    ],
+    [
+     152,
+     -1
+    ],
+    [
+     54,
+     -1
+    ],
+    [
+     158,
+     1
+    ],
+    [
+     158,
+     1
+    ],
+    [
+     158,
+     1
+    ],
+    [
+     97,
+     3
+    ],
+    [
+     90,
+     4
+    ],
+    [
+     79,
+     3
+    ],
+    [
+     65,
+     2
+    ],
+    [
+     46,
+     4
+    ]
+   ],
+   "noq": [
+    38
+   ],
+   "counts": {
+    "DECLARED": 1,
+    "AGREE": 1695,
+    "QUARANTINED": 15,
+    "QUARANTINE_DISCARDED": 10,
+    "DISAGREE": 91,
+    "QUORUM_OPEN": 11,
+    "QUORUM_TIED": 53,
+    "QUORUM_ADOPTED": 12,
+    "QUORUM_CLOSED": 10,
+    "QUARANTINE_COMMITTED": 5,
+    "QUORUM_REOPENED": 2,
+    "NO_QUORUM": 1,
+    "SELF_RESOLVED": 1
+   }
+  },
+  "TO": {
+   "dis": 89,
+   "agree": 1708,
+   "rej": 0,
+   "maxrun": 0,
+   "opens": 9,
+   "adopts": [
+    [
+     158,
+     1
+    ],
+    [
+     158,
+     1
+    ],
+    [
+     152,
+     -1
+    ],
+    [
+     54,
+     -1
+    ],
+    [
+     158,
+     1
+    ],
+    [
+     158,
+     1
+    ],
+    [
+     158,
+     1
+    ],
+    [
+     97,
+     3
+    ],
+    [
+     91,
+     -2
+    ]
+   ],
+   "noq": [
+    50
+   ],
+   "counts": {
+    "DECLARED": 1,
+    "AGREE": 1708,
+    "QUARANTINED": 15,
+    "QUARANTINE_DISCARDED": 10,
+    "DISAGREE": 89,
+    "QUORUM_OPEN": 9,
+    "QUORUM_TIED": 42,
+    "QUORUM_ADOPTED": 9,
+    "QUORUM_CLOSED": 8,
+    "QUARANTINE_COMMITTED": 5,
+    "QUORUM_REOPENED": 1,
+    "NO_QUORUM": 1,
+    "SELF_RESOLVED": 1
+   }
+  }
+ },
+ "hold_otto_s07": {
+  "BASE": {
+   "dis": 0,
+   "agree": 759,
+   "rej": 0,
+   "maxrun": 0,
+   "opens": 0,
+   "adopts": [],
+   "noq": [],
+   "counts": {
+    "DECLARED": 1,
+    "AGREE": 759,
+    "QUARANTINED": 3,
+    "QUARANTINE_DISCARDED": 3
+   }
+  },
+  "T": {
+   "dis": 0,
+   "agree": 759,
+   "rej": 0,
+   "maxrun": 0,
+   "opens": 0,
+   "adopts": [],
+   "noq": [],
+   "counts": {
+    "DECLARED": 1,
+    "AGREE": 759,
+    "QUARANTINED": 3,
+    "QUARANTINE_DISCARDED": 3
+   }
+  },
+  "TO": {
+   "dis": 0,
+   "agree": 759,
+   "rej": 0,
+   "maxrun": 0,
+   "opens": 0,
+   "adopts": [],
+   "noq": [],
+   "counts": {
+    "DECLARED": 1,
+    "AGREE": 759,
+    "QUARANTINED": 3,
+    "QUARANTINE_DISCARDED": 3
+   }
+  }
+ },
+ "hold_otto_s08": {
+  "BASE": {
+   "dis": 40,
+   "agree": 953,
+   "rej": 0,
+   "maxrun": 0,
+   "opens": 5,
+   "adopts": [
+    [
+     44,
+     1
+    ],
+    [
+     21,
+     4
+    ],
+    [
+     14,
+     0
+    ],
+    [
+     48,
+     -1
+    ]
+   ],
+   "noq": [
+    11,
+    37,
+    35
+   ],
+   "counts": {
+    "DECLARED": 5,
+    "AGREE": 953,
+    "QUARANTINED": 6,
+    "QUARANTINE_DISCARDED": 5,
+    "QUARANTINE_COMMITTED": 1,
+    "DISAGREE": 40,
+    "QUORUM_OPEN": 5,
+    "QUORUM_TIED": 37,
+    "QUORUM_ADOPTED": 4,
+    "QUORUM_CLOSED": 2,
+    "QUORUM_REOPENED": 1,
+    "NO_QUORUM": 3,
+    "SELF_RESOLVED": 1
+   }
+  },
+  "T": {
+   "dis": 40,
+   "agree": 953,
+   "rej": 0,
+   "maxrun": 0,
+   "opens": 5,
+   "adopts": [
+    [
+     44,
+     1
+    ],
+    [
+     21,
+     4
+    ],
+    [
+     14,
+     0
+    ],
+    [
+     48,
+     -1
+    ]
+   ],
+   "noq": [
+    11,
+    37,
+    35
+   ],
+   "counts": {
+    "DECLARED": 5,
+    "AGREE": 953,
+    "QUARANTINED": 6,
+    "QUARANTINE_DISCARDED": 5,
+    "QUARANTINE_COMMITTED": 1,
+    "DISAGREE": 40,
+    "QUORUM_OPEN": 5,
+    "QUORUM_TIED": 37,
+    "QUORUM_ADOPTED": 4,
+    "QUORUM_CLOSED": 2,
+    "QUORUM_REOPENED": 1,
+    "NO_QUORUM": 3,
+    "SELF_RESOLVED": 1
+   }
+  },
+  "TO": {
+   "dis": 43,
+   "agree": 979,
+   "rej": 1,
+   "maxrun": 1,
+   "opens": 6,
+   "adopts": [
+    [
+     44,
+     1
+    ],
+    [
+     21,
+     4
+    ],
+    [
+     14,
+     0
+    ],
+    [
+     48,
+     -1
+    ],
+    [
+     46,
+     -2
+    ],
+    [
+     44,
+     -3
+    ],
+    [
+     19,
+     1
+    ]
+   ],
+   "noq": [
+    11
+   ],
+   "counts": {
+    "DECLARED": 5,
+    "AGREE": 979,
+    "QUARANTINED": 6,
+    "QUARANTINE_DISCARDED": 5,
+    "QUARANTINE_COMMITTED": 1,
+    "DISAGREE": 43,
+    "QUORUM_OPEN": 6,
+    "QUORUM_TIED": 25,
+    "QUORUM_ADOPTED": 7,
+    "QUORUM_CLOSED": 5,
+    "QUORUM_REOPENED": 1,
+    "NO_QUORUM": 1,
+    "PHANTOM_REJECTED": 1
+   }
+  }
+ },
+ "hold_otto_s09": {
+  "BASE": {
+   "dis": 21,
+   "agree": 3830,
+   "rej": 26,
+   "maxrun": 18,
+   "opens": 5,
+   "adopts": [
+    [
+     54,
+     -1
+    ],
+    [
+     122,
+     -1
+    ],
+    [
+     61,
+     2
+    ],
+    [
+     48,
+     -1
+    ]
+   ],
+   "noq": [
+    77
+   ],
+   "counts": {
+    "DECLARED": 3,
+    "AGREE": 3830,
+    "QUARANTINED": 21,
+    "QUARANTINE_DISCARDED": 21,
+    "DISAGREE": 21,
+    "QUORUM_OPEN": 5,
+    "QUORUM_TIED": 26,
+    "QUORUM_ADOPTED": 4,
+    "QUORUM_CLOSED": 4,
+    "PHANTOM_REJECTED": 26,
+    "NO_QUORUM": 1
+   }
+  },
+  "T": {
+   "dis": 10,
+   "agree": 3897,
+   "rej": 2,
+   "maxrun": 1,
+   "opens": 2,
+   "adopts": [
+    [
+     54,
+     -1
+    ],
+    [
+     48,
+     -1
+    ]
+   ],
+   "noq": [],
+   "counts": {
+    "DECLARED": 3,
+    "AGREE": 3897,
+    "QUARANTINED": 23,
+    "QUARANTINE_DISCARDED": 23,
+    "DISAGREE": 10,
+    "QUORUM_OPEN": 2,
+    "QUORUM_TIED": 7,
+    "QUORUM_ADOPTED": 2,
+    "QUORUM_CLOSED": 2,
+    "PHANTOM_REJECTED": 2
+   }
+  },
+  "TO": {
+   "dis": 10,
+   "agree": 3897,
+   "rej": 2,
+   "maxrun": 1,
+   "opens": 2,
+   "adopts": [
+    [
+     54,
+     -1
+    ],
+    [
+     48,
+     -1
+    ]
+   ],
+   "noq": [],
+   "counts": {
+    "DECLARED": 3,
+    "AGREE": 3897,
+    "QUARANTINED": 23,
+    "QUARANTINE_DISCARDED": 23,
+    "DISAGREE": 10,
+    "QUORUM_OPEN": 2,
+    "QUORUM_TIED": 7,
+    "QUORUM_ADOPTED": 2,
+    "QUORUM_CLOSED": 2,
+    "PHANTOM_REJECTED": 2
+   }
+  }
+ },
+ "hold_otto_s11": {
+  "BASE": {
+   "dis": 13,
+   "agree": 1098,
+   "rej": 0,
+   "maxrun": 0,
+   "opens": 2,
+   "adopts": [
+    [
+     158,
+     1
+    ],
+    [
+     54,
+     -1
+    ]
+   ],
+   "noq": [],
+   "counts": {
+    "DECLARED": 1,
+    "AGREE": 1098,
+    "DISAGREE": 13,
+    "QUORUM_OPEN": 2,
+    "QUORUM_TIED": 7,
+    "QUORUM_ADOPTED": 2,
+    "QUORUM_CLOSED": 2,
+    "QUARANTINED": 2,
+    "QUARANTINE_DISCARDED": 2
+   }
+  },
+  "T": {
+   "dis": 13,
+   "agree": 1098,
+   "rej": 0,
+   "maxrun": 0,
+   "opens": 2,
+   "adopts": [
+    [
+     158,
+     1
+    ],
+    [
+     54,
+     -1
+    ]
+   ],
+   "noq": [],
+   "counts": {
+    "DECLARED": 1,
+    "AGREE": 1098,
+    "DISAGREE": 13,
+    "QUORUM_OPEN": 2,
+    "QUORUM_TIED": 7,
+    "QUORUM_ADOPTED": 2,
+    "QUORUM_CLOSED": 2,
+    "QUARANTINED": 2,
+    "QUARANTINE_DISCARDED": 2
+   }
+  },
+  "TO": {
+   "dis": 13,
+   "agree": 1098,
+   "rej": 0,
+   "maxrun": 0,
+   "opens": 2,
+   "adopts": [
+    [
+     158,
+     1
+    ],
+    [
+     54,
+     -1
+    ]
+   ],
+   "noq": [],
+   "counts": {
+    "DECLARED": 1,
+    "AGREE": 1098,
+    "DISAGREE": 13,
+    "QUORUM_OPEN": 2,
+    "QUORUM_TIED": 7,
+    "QUORUM_ADOPTED": 2,
+    "QUORUM_CLOSED": 2,
+    "QUARANTINED": 2,
+    "QUARANTINE_DISCARDED": 2
+   }
+  }
+ },
+ "hold_otto_s12": {
+  "BASE": {
+   "dis": 28,
+   "agree": 5354,
+   "rej": 2,
+   "maxrun": 1,
+   "opens": 5,
+   "adopts": [
+    [
+     57,
+     1
+    ],
+    [
+     48,
+     -1
+    ],
+    [
+     48,
+     -1
+    ],
+    [
+     37,
+     -1
+    ],
+    [
+     54,
+     -1
+    ]
+   ],
+   "noq": [],
+   "counts": {
+    "DECLARED": 3,
+    "AGREE": 5354,
+    "QUARANTINED": 43,
+    "QUARANTINE_DISCARDED": 43,
+    "PHANTOM_REJECTED": 2,
+    "DISAGREE": 28,
+    "QUORUM_OPEN": 5,
+    "QUORUM_TIED": 18,
+    "QUORUM_ADOPTED": 5,
+    "QUORUM_CLOSED": 5
+   }
+  },
+  "T": {
+   "dis": 30,
+   "agree": 5356,
+   "rej": 0,
+   "maxrun": 0,
+   "opens": 5,
+   "adopts": [
+    [
+     48,
+     -1
+    ],
+    [
+     48,
+     -1
+    ],
+    [
+     37,
+     -1
+    ],
+    [
+     54,
+     -1
+    ],
+    [
+     73,
+     -1
+    ]
+   ],
+   "noq": [],
+   "counts": {
+    "DECLARED": 3,
+    "AGREE": 5356,
+    "QUARANTINED": 43,
+    "QUARANTINE_DISCARDED": 43,
+    "DISAGREE": 30,
+    "QUORUM_OPEN": 5,
+    "QUORUM_TIED": 16,
+    "QUORUM_ADOPTED": 5,
+    "QUORUM_CLOSED": 5
+   }
+  },
+  "TO": {
+   "dis": 30,
+   "agree": 5356,
+   "rej": 0,
+   "maxrun": 0,
+   "opens": 5,
+   "adopts": [
+    [
+     48,
+     -1
+    ],
+    [
+     48,
+     -1
+    ],
+    [
+     37,
+     -1
+    ],
+    [
+     54,
+     -1
+    ],
+    [
+     73,
+     -1
+    ]
+   ],
+   "noq": [],
+   "counts": {
+    "DECLARED": 3,
+    "AGREE": 5356,
+    "QUARANTINED": 43,
+    "QUARANTINE_DISCARDED": 43,
+    "DISAGREE": 30,
+    "QUORUM_OPEN": 5,
+    "QUORUM_TIED": 16,
+    "QUORUM_ADOPTED": 5,
+    "QUORUM_CLOSED": 5
+   }
+  }
+ },
+ "hold_toby_s01": {
+  "BASE": {
+   "dis": 4,
+   "agree": 353,
+   "rej": 1,
+   "maxrun": 1,
+   "opens": 0,
+   "adopts": [],
+   "noq": [],
+   "counts": {
+    "DECLARED": 4,
+    "AGREE": 353,
+    "DISAGREE": 4,
+    "QUARANTINED": 2,
+    "QUARANTINE_DISCARDED": 2,
+    "PHANTOM_REJECTED": 1
+   }
+  },
+  "T": {
+   "dis": 2,
+   "agree": 356,
+   "rej": 0,
+   "maxrun": 0,
+   "opens": 0,
+   "adopts": [],
+   "noq": [],
+   "counts": {
+    "DECLARED": 4,
+    "AGREE": 356,
+    "DISAGREE": 2,
+    "QUARANTINED": 2,
+    "QUARANTINE_DISCARDED": 2
+   }
+  },
+  "TO": {
+   "dis": 2,
+   "agree": 356,
+   "rej": 0,
+   "maxrun": 0,
+   "opens": 0,
+   "adopts": [],
+   "noq": [],
+   "counts": {
+    "DECLARED": 4,
+    "AGREE": 356,
+    "DISAGREE": 2,
+    "QUARANTINED": 2,
+    "QUARANTINE_DISCARDED": 2
+   }
+  }
+ },
+ "hold_toby_s02": {
+  "BASE": {
+   "dis": 14,
+   "agree": 345,
+   "rej": 1,
+   "maxrun": 1,
+   "opens": 1,
+   "adopts": [
+    [
+     54,
+     1
+    ]
+   ],
+   "noq": [],
+   "counts": {
+    "DECLARED": 1,
+    "AGREE": 345,
+    "DISAGREE": 14,
+    "QUARANTINED": 3,
+    "QUARANTINE_DISCARDED": 3,
+    "PHANTOM_REJECTED": 1,
+    "QUORUM_OPEN": 1,
+    "QUORUM_TIED": 2,
+    "QUORUM_ADOPTED": 1,
+    "QUORUM_CLOSED": 1
+   }
+  },
+  "T": {
+   "dis": 10,
+   "agree": 352,
+   "rej": 0,
+   "maxrun": 0,
+   "opens": 0,
+   "adopts": [],
+   "noq": [],
+   "counts": {
+    "DECLARED": 1,
+    "AGREE": 352,
+    "DISAGREE": 10,
+    "QUARANTINED": 3,
+    "QUARANTINE_DISCARDED": 3
+   }
+  },
+  "TO": {
+   "dis": 10,
+   "agree": 352,
+   "rej": 0,
+   "maxrun": 0,
+   "opens": 0,
+   "adopts": [],
+   "noq": [],
+   "counts": {
+    "DECLARED": 1,
+    "AGREE": 352,
+    "DISAGREE": 10,
+    "QUARANTINED": 3,
+    "QUARANTINE_DISCARDED": 3
+   }
+  }
+ },
+ "hold_toby_s03": {
+  "BASE": {
+   "dis": 9,
+   "agree": 3997,
+   "rej": 0,
+   "maxrun": 0,
+   "opens": 2,
+   "adopts": [
+    [
+     18,
+     -1
+    ],
+    [
+     6,
+     4
+    ]
+   ],
+   "noq": [],
+   "counts": {
+    "DECLARED": 2,
+    "AGREE": 3997,
+    "DISAGREE": 9,
+    "QUORUM_OPEN": 2,
+    "QUORUM_TIED": 7,
+    "QUORUM_ADOPTED": 2,
+    "QUORUM_CLOSED": 2,
+    "QUARANTINED": 4,
+    "QUARANTINE_DISCARDED": 4
+   }
+  },
+  "T": {
+   "dis": 9,
+   "agree": 3997,
+   "rej": 0,
+   "maxrun": 0,
+   "opens": 2,
+   "adopts": [
+    [
+     18,
+     -1
+    ],
+    [
+     6,
+     4
+    ]
+   ],
+   "noq": [],
+   "counts": {
+    "DECLARED": 2,
+    "AGREE": 3997,
+    "DISAGREE": 9,
+    "QUORUM_OPEN": 2,
+    "QUORUM_TIED": 7,
+    "QUORUM_ADOPTED": 2,
+    "QUORUM_CLOSED": 2,
+    "QUARANTINED": 4,
+    "QUARANTINE_DISCARDED": 4
+   }
+  },
+  "TO": {
+   "dis": 9,
+   "agree": 3997,
+   "rej": 0,
+   "maxrun": 0,
+   "opens": 2,
+   "adopts": [
+    [
+     18,
+     -1
+    ],
+    [
+     6,
+     4
+    ]
+   ],
+   "noq": [],
+   "counts": {
+    "DECLARED": 2,
+    "AGREE": 3997,
+    "DISAGREE": 9,
+    "QUORUM_OPEN": 2,
+    "QUORUM_TIED": 7,
+    "QUORUM_ADOPTED": 2,
+    "QUORUM_CLOSED": 2,
+    "QUARANTINED": 4,
+    "QUARANTINE_DISCARDED": 4
+   }
+  }
+ },
+ "hold_toby_s04": {
+  "BASE": {
+   "dis": 32,
+   "agree": 1521,
+   "rej": 0,
+   "maxrun": 0,
+   "opens": 3,
+   "adopts": [
+    [
+     58,
+     -1
+    ]
+   ],
+   "noq": [
+    83,
+    35
+   ],
+   "counts": {
+    "DECLARED": 2,
+    "AGREE": 1521,
+    "DISAGREE": 32,
+    "QUORUM_OPEN": 3,
+    "QUORUM_TIED": 23,
+    "NO_QUORUM": 2,
+    "SELF_RESOLVED": 2,
+    "QUORUM_ADOPTED": 1,
+    "QUORUM_CLOSED": 1
+   }
+  },
+  "T": {
+   "dis": 32,
+   "agree": 1521,
+   "rej": 0,
+   "maxrun": 0,
+   "opens": 3,
+   "adopts": [
+    [
+     58,
+     -1
+    ]
+   ],
+   "noq": [
+    83,
+    35
+   ],
+   "counts": {
+    "DECLARED": 2,
+    "AGREE": 1521,
+    "DISAGREE": 32,
+    "QUORUM_OPEN": 3,
+    "QUORUM_TIED": 23,
+    "NO_QUORUM": 2,
+    "SELF_RESOLVED": 2,
+    "QUORUM_ADOPTED": 1,
+    "QUORUM_CLOSED": 1
+   }
+  },
+  "TO": {
+   "dis": 43,
+   "agree": 1531,
+   "rej": 1,
+   "maxrun": 1,
+   "opens": 4,
+   "adopts": [
+    [
+     44,
+     -3
+    ],
+    [
+     46,
+     -2
+    ]
+   ],
+   "noq": [
+    83
+   ],
+   "counts": {
+    "DECLARED": 2,
+    "AGREE": 1531,
+    "DISAGREE": 43,
+    "QUORUM_OPEN": 4,
+    "QUORUM_TIED": 18,
+    "NO_QUORUM": 1,
+    "SELF_RESOLVED": 1,
+    "QUORUM_ADOPTED": 2,
+    "QUORUM_CLOSED": 2,
+    "PHANTOM_REJECTED": 1
+   }
+  }
+ },
+ "hold_toby_s05": {
+  "BASE": {
+   "dis": 107,
+   "agree": 1666,
+   "rej": 0,
+   "maxrun": 0,
+   "opens": 12,
+   "adopts": [
+    [
+     93,
+     -1
+    ],
+    [
+     158,
+     1
+    ],
+    [
+     158,
+     1
+    ],
+    [
+     158,
+     1
+    ],
+    [
+     158,
+     1
+    ],
+    [
+     158,
+     1
+    ],
+    [
+     158,
+     1
+    ],
+    [
+     158,
+     1
+    ],
+    [
+     158,
+     1
+    ],
+    [
+     158,
+     1
+    ],
+    [
+     158,
+     3
+    ],
+    [
+     158,
+     1
+    ]
+   ],
+   "noq": [
+    149
+   ],
+   "counts": {
+    "DECLARED": 1,
+    "AGREE": 1666,
+    "DISAGREE": 107,
+    "QUORUM_OPEN": 12,
+    "QUORUM_TIED": 38,
+    "QUORUM_ADOPTED": 12,
+    "QUORUM_CLOSED": 11,
+    "QUORUM_REOPENED": 1,
+    "NO_QUORUM": 1,
+    "SELF_RESOLVED": 1
+   }
+  },
+  "T": {
+   "dis": 107,
+   "agree": 1666,
+   "rej": 0,
+   "maxrun": 0,
+   "opens": 12,
+   "adopts": [
+    [
+     93,
+     -1
+    ],
+    [
+     158,
+     1
+    ],
+    [
+     158,
+     1
+    ],
+    [
+     158,
+     1
+    ],
+    [
+     158,
+     1
+    ],
+    [
+     158,
+     1
+    ],
+    [
+     158,
+     1
+    ],
+    [
+     158,
+     1
+    ],
+    [
+     158,
+     1
+    ],
+    [
+     158,
+     1
+    ],
+    [
+     158,
+     3
+    ],
+    [
+     158,
+     1
+    ]
+   ],
+   "noq": [
+    149
+   ],
+   "counts": {
+    "DECLARED": 1,
+    "AGREE": 1666,
+    "DISAGREE": 107,
+    "QUORUM_OPEN": 12,
+    "QUORUM_TIED": 38,
+    "QUORUM_ADOPTED": 12,
+    "QUORUM_CLOSED": 11,
+    "QUORUM_REOPENED": 1,
+    "NO_QUORUM": 1,
+    "SELF_RESOLVED": 1
+   }
+  },
+  "TO": {
+   "dis": 112,
+   "agree": 1670,
+   "rej": 0,
+   "maxrun": 0,
+   "opens": 14,
+   "adopts": [
+    [
+     93,
+     -1
+    ],
+    [
+     158,
+     1
+    ],
+    [
+     158,
+     1
+    ],
+    [
+     158,
+     1
+    ],
+    [
+     158,
+     1
+    ],
+    [
+     158,
+     1
+    ],
+    [
+     158,
+     1
+    ],
+    [
+     158,
+     1
+    ],
+    [
+     158,
+     1
+    ],
+    [
+     158,
+     1
+    ],
+    [
+     167,
+     -2
+    ],
+    [
+     157,
+     1
+    ],
+    [
+     158,
+     1
+    ]
+   ],
+   "noq": [
+    143
+   ],
+   "counts": {
+    "DECLARED": 1,
+    "AGREE": 1670,
+    "DISAGREE": 112,
+    "QUORUM_OPEN": 14,
+    "QUORUM_TIED": 36,
+    "QUORUM_ADOPTED": 13,
+    "QUORUM_CLOSED": 13,
+    "NO_QUORUM": 1,
+    "SELF_RESOLVED": 1
+   }
+  }
+ },
+ "hold_toby_s06": {
+  "BASE": {
+   "dis": 4,
+   "agree": 751,
+   "rej": 0,
+   "maxrun": 0,
+   "opens": 1,
+   "adopts": [],
+   "noq": [
+    128
+   ],
+   "counts": {
+    "DECLARED": 2,
+    "AGREE": 751,
+    "DISAGREE": 4,
+    "QUARANTINED": 8,
+    "QUARANTINE_COMMITTED": 4,
+    "QUORUM_OPEN": 1,
+    "QUORUM_TIED": 9,
+    "QUARANTINE_DISCARDED": 4,
+    "NO_QUORUM": 1
+   }
+  },
+  "T": {
+   "dis": 7,
+   "agree": 754,
+   "rej": 1,
+   "maxrun": 1,
+   "opens": 1,
+   "adopts": [
+    [
+     128,
+     0
+    ]
+   ],
+   "noq": [],
+   "counts": {
+    "DECLARED": 2,
+    "AGREE": 754,
+    "DISAGREE": 7,
+    "QUARANTINED": 8,
+    "QUARANTINE_COMMITTED": 5,
+    "QUORUM_OPEN": 1,
+    "QUORUM_TIED": 9,
+    "PHANTOM_REJECTED": 1,
+    "QUARANTINE_DISCARDED": 3,
+    "QUORUM_ADOPTED": 1,
+    "QUORUM_CLOSED": 1
+   }
+  },
+  "TO": {
+   "dis": 7,
+   "agree": 754,
+   "rej": 1,
+   "maxrun": 1,
+   "opens": 1,
+   "adopts": [
+    [
+     128,
+     0
+    ]
+   ],
+   "noq": [],
+   "counts": {
+    "DECLARED": 2,
+    "AGREE": 754,
+    "DISAGREE": 7,
+    "QUARANTINED": 8,
+    "QUARANTINE_COMMITTED": 5,
+    "QUORUM_OPEN": 1,
+    "QUORUM_TIED": 9,
+    "PHANTOM_REJECTED": 1,
+    "QUARANTINE_DISCARDED": 3,
+    "QUORUM_ADOPTED": 1,
+    "QUORUM_CLOSED": 1
+   }
+  }
+ },
+ "hold_toby_s08": {
+  "BASE": {
+   "dis": 23,
+   "agree": 1014,
+   "rej": 0,
+   "maxrun": 0,
+   "opens": 3,
+   "adopts": [
+    [
+     68,
+     -1
+    ],
+    [
+     158,
+     1
+    ]
+   ],
+   "noq": [],
+   "counts": {
+    "DECLARED": 5,
+    "AGREE": 1014,
+    "DISAGREE": 23,
+    "QUORUM_OPEN": 3,
+    "QUORUM_TIED": 9,
+    "QUORUM_ADOPTED": 2,
+    "QUORUM_CLOSED": 2,
+    "QUARANTINED": 1,
+    "QUARANTINE_DISCARDED": 1
+   }
+  },
+  "T": {
+   "dis": 23,
+   "agree": 1014,
+   "rej": 0,
+   "maxrun": 0,
+   "opens": 3,
+   "adopts": [
+    [
+     68,
+     -1
+    ],
+    [
+     158,
+     1
+    ]
+   ],
+   "noq": [],
+   "counts": {
+    "DECLARED": 5,
+    "AGREE": 1014,
+    "DISAGREE": 23,
+    "QUORUM_OPEN": 3,
+    "QUORUM_TIED": 9,
+    "QUORUM_ADOPTED": 2,
+    "QUORUM_CLOSED": 2,
+    "QUARANTINED": 1,
+    "QUARANTINE_DISCARDED": 1
+   }
+  },
+  "TO": {
+   "dis": 23,
+   "agree": 1014,
+   "rej": 0,
+   "maxrun": 0,
+   "opens": 3,
+   "adopts": [
+    [
+     68,
+     -1
+    ],
+    [
+     158,
+     1
+    ]
+   ],
+   "noq": [],
+   "counts": {
+    "DECLARED": 5,
+    "AGREE": 1014,
+    "DISAGREE": 23,
+    "QUORUM_OPEN": 3,
+    "QUORUM_TIED": 9,
+    "QUORUM_ADOPTED": 2,
+    "QUORUM_CLOSED": 2,
+    "QUARANTINED": 1,
+    "QUARANTINE_DISCARDED": 1
+   }
+  }
+ },
+ "hold_toby_s09": {
+  "BASE": {
+   "dis": 1,
+   "agree": 2288,
+   "rej": 0,
+   "maxrun": 0,
+   "opens": 0,
+   "adopts": [],
+   "noq": [],
+   "counts": {
+    "DECLARED": 1,
+    "AGREE": 2288,
+    "DISAGREE": 1,
+    "QUARANTINED": 1,
+    "QUARANTINE_DISCARDED": 1
+   }
+  },
+  "T": {
+   "dis": 1,
+   "agree": 2288,
+   "rej": 0,
+   "maxrun": 0,
+   "opens": 0,
+   "adopts": [],
+   "noq": [],
+   "counts": {
+    "DECLARED": 1,
+    "AGREE": 2288,
+    "DISAGREE": 1,
+    "QUARANTINED": 1,
+    "QUARANTINE_DISCARDED": 1
+   }
+  },
+  "TO": {
+   "dis": 1,
+   "agree": 2288,
+   "rej": 0,
+   "maxrun": 0,
+   "opens": 0,
+   "adopts": [],
+   "noq": [],
+   "counts": {
+    "DECLARED": 1,
+    "AGREE": 2288,
+    "DISAGREE": 1,
+    "QUARANTINED": 1,
+    "QUARANTINE_DISCARDED": 1
+   }
+  }
+ },
+ "hold_toby_s11": {
+  "BASE": {
+   "dis": 27,
+   "agree": 2200,
+   "rej": 17,
+   "maxrun": 4,
+   "opens": 6,
+   "adopts": [
+    [
+     67,
+     1
+    ],
+    [
+     23,
+     2
+    ],
+    [
+     67,
+     4
+    ],
+    [
+     23,
+     2
+    ],
+    [
+     67,
+     4
+    ],
+    [
+     67,
+     4
+    ]
+   ],
+   "noq": [],
+   "counts": {
+    "DECLARED": 1,
+    "AGREE": 2200,
+    "PHANTOM_REJECTED": 17,
+    "DISAGREE": 27,
+    "QUORUM_OPEN": 6,
+    "QUORUM_TIED": 16,
+    "QUORUM_ADOPTED": 6,
+    "QUORUM_CLOSED": 6
+   }
+  },
+  "T": {
+   "dis": 7,
+   "agree": 2247,
+   "rej": 2,
+   "maxrun": 1,
+   "opens": 2,
+   "adopts": [
+    [
+     152,
+     1
+    ],
+    [
+     19,
+     1
+    ]
+   ],
+   "noq": [],
+   "counts": {
+    "DECLARED": 1,
+    "AGREE": 2247,
+    "PHANTOM_REJECTED": 2,
+    "DISAGREE": 7,
+    "QUORUM_OPEN": 2,
+    "QUORUM_TIED": 4,
+    "QUORUM_ADOPTED": 2,
+    "QUORUM_CLOSED": 2
+   }
+  },
+  "TO": {
+   "dis": 7,
+   "agree": 2247,
+   "rej": 2,
+   "maxrun": 1,
+   "opens": 2,
+   "adopts": [
+    [
+     152,
+     1
+    ],
+    [
+     19,
+     1
+    ]
+   ],
+   "noq": [],
+   "counts": {
+    "DECLARED": 1,
+    "AGREE": 2247,
+    "PHANTOM_REJECTED": 2,
+    "DISAGREE": 7,
+    "QUORUM_OPEN": 2,
+    "QUORUM_TIED": 4,
+    "QUORUM_ADOPTED": 2,
+    "QUORUM_CLOSED": 2
+   }
+  }
+ },
+ "hold_toby_s12": {
+  "BASE": {
+   "dis": 0,
+   "agree": 339,
+   "rej": 0,
+   "maxrun": 0,
+   "opens": 0,
+   "adopts": [],
+   "noq": [],
+   "counts": {
+    "DECLARED": 2,
+    "AGREE": 339
+   }
+  },
+  "T": {
+   "dis": 0,
+   "agree": 339,
+   "rej": 0,
+   "maxrun": 0,
+   "opens": 0,
+   "adopts": [],
+   "noq": [],
+   "counts": {
+    "DECLARED": 2,
+    "AGREE": 339
+   }
+  },
+  "TO": {
+   "dis": 0,
+   "agree": 339,
+   "rej": 0,
+   "maxrun": 0,
+   "opens": 0,
+   "adopts": [],
+   "noq": [],
+   "counts": {
+    "DECLARED": 2,
+    "AGREE": 339
+   }
+  }
+ },
+ "hold_toby_s13": {
+  "BASE": {
+   "dis": 62,
+   "agree": 2432,
+   "rej": 23,
+   "maxrun": 5,
+   "opens": 11,
+   "adopts": [
+    [
+     103,
+     1
+    ],
+    [
+     159,
+     1
+    ],
+    [
+     114,
+     3
+    ],
+    [
+     103,
+     1
+    ],
+    [
+     103,
+     1
+    ],
+    [
+     24,
+     -1
+    ],
+    [
+     115,
+     4
+    ],
+    [
+     115,
+     4
+    ],
+    [
+     103,
+     1
+    ],
+    [
+     115,
+     4
+    ],
+    [
+     54,
+     1
+    ]
+   ],
+   "noq": [
+    123
+   ],
+   "counts": {
+    "DECLARED": 2,
+    "AGREE": 2432,
+    "DISAGREE": 62,
+    "QUARANTINED": 2,
+    "QUARANTINE_DISCARDED": 2,
+    "PHANTOM_REJECTED": 23,
+    "QUORUM_OPEN": 11,
+    "QUORUM_TIED": 64,
+    "QUORUM_ADOPTED": 11,
+    "QUORUM_CLOSED": 10,
+    "QUORUM_REOPENED": 1,
+    "NO_QUORUM": 1
+   }
+  },
+  "T": {
+   "dis": 7,
+   "agree": 2581,
+   "rej": 0,
+   "maxrun": 0,
+   "opens": 1,
+   "adopts": [
+    [
+     24,
+     -1
+    ]
+   ],
+   "noq": [],
+   "counts": {
+    "DECLARED": 2,
+    "AGREE": 2581,
+    "DISAGREE": 7,
+    "QUARANTINED": 2,
+    "QUARANTINE_DISCARDED": 2,
+    "QUORUM_OPEN": 1,
+    "QUORUM_TIED": 2,
+    "QUORUM_ADOPTED": 1,
+    "QUORUM_CLOSED": 1
+   }
+  },
+  "TO": {
+   "dis": 7,
+   "agree": 2581,
+   "rej": 0,
+   "maxrun": 0,
+   "opens": 1,
+   "adopts": [
+    [
+     24,
+     -1
+    ]
+   ],
+   "noq": [],
+   "counts": {
+    "DECLARED": 2,
+    "AGREE": 2581,
+    "DISAGREE": 7,
+    "QUARANTINED": 2,
+    "QUARANTINE_DISCARDED": 2,
+    "QUORUM_OPEN": 1,
+    "QUORUM_TIED": 2,
+    "QUORUM_ADOPTED": 1,
+    "QUORUM_CLOSED": 1
+   }
+  }
+ }
+}
