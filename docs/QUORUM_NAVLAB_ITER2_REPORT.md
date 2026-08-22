@@ -104,3 +104,19 @@ first.
 Per the standing rule: T remains rejected, O remains archived, Otto remains
 on rollback firmware `6d35bb7`. No firmware change is proposed by this
 report.
+
+---
+
+## Correction, 2026-08-22 (iteration-3 review): the "7 of 9" and "zero false
+confirmations" claims are withdrawn
+
+The corrected checker (three-state verdicts; no vacuous passes; validated vs
+direction-consistent vs unvalidated confirmations; C9 split into hygiene vs
+held-out success) rescores iteration 2 as **FAIL - 4 PASS, 2 FAIL,
+3 NOT_DEMONSTRATED** (`results/iter2_acceptance_corrected.json`):
+C5 was a vacuous zero (no phantom population exercised); C7 rested on
+unvalidated confirmations (Otto had ZERO independently anchored); C9 proved
+exclusion hygiene, not held-out success. The permitted ground-truth claim is:
+**zero false confirmations DETECTED; 1 of 453 independently validated; 452
+unvalidated.** The overall FAIL verdict stands.
+

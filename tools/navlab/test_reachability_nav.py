@@ -128,6 +128,65 @@ def main():
           reacq_i is not None and nav.anchor[0] == (k0 + reacq_i) % DNA_N,
           f'anchor={nav.anchor}')
 
+    # ---- dt=0 boundary tests (docs/NAVLAB_DT0_SEMANTICS.md, all 7 clauses)
+    d2 = list(dna); d2[11] = 1; d2[12] = 0; d2[13] = 1; d2[10] = 0
+    # T1: dt=0 right after declaration, genuine traversal
+    nav = mknav(d2); nav.declare(10, 0.0)
+    nav.on_event(ev(1.0, 11, d2, dt=0))
+    t1ok = 11 in nav.P and any(l['ev'] == 'DT_RESET' for l in nav.log)
+    nav.on_event(ev(2.2, 12, d2, dt=1200))
+    check('dt0: genuine traversal across a reset survives',
+          t1ok and 12 in nav.P and nav.state != 'CONTRADICTION', f'P={nav.P}')
+
+    # T2: dt=0 same-magnet reread keeps the stay hypothesis
+    nav = mknav(d2); nav.declare(10, 0.0)
+    nav.on_event(ev(1.0, 10, d2, dt=0, pol='S'))     # dna[10]=0 -> S = reread
+    stay = 10 in nav.P
+    nav.on_event(ev(2.2, 11, d2, dt=1200))
+    check('dt0: same-magnet reread does not force forward travel',
+          stay and nav.P == {11}, f'P={nav.P}')
+
+    # T3: phantom after a reset is held, never advances
+    nav = mknav(d2); nav.declare(10, 0.0)
+    nav.on_event(ev(1.0, 11, d2, dt=0))
+    p_before = set(nav.P)
+    nav.on_event(ev(1.15, 11, d2, dt=150, pol='N'))  # ghost-fast, pole N
+    held = nav.P == p_before
+    nav.on_event(ev(2.3, 12, d2, dt=1150))
+    check('dt0: phantom following a reset is held and position recovers',
+          held and 12 in nav.P and nav.state != 'CONTRADICTION',
+          f'held={held} P={nav.P}')
+
+    # T4: reversal adjacent to a reset - no borrowed labels, direction flips
+    nav = mknav(dna); nav.declare(30, 0.0)
+    for i, mm in enumerate((31, 32, 33)):
+        nav.on_event(ev(1.2*(i+1), mm, dna))
+    nav.on_event(ev(5.0, 32, dna, dt=0, mdir='REV'))
+    check('dt0: reversal near a reset keeps native handling',
+          nav.step == -1 and 32 in nav.P
+          and not any(l['ev'] == 'EXTERNAL_RESEED' for l in nav.log),
+          f'step={nav.step} P={nav.P}')
+
+    # T5+T6: repeated resets expand the corridor linearly, one interval each
+    nav = mknav(dna); nav.declare(60, 0.0)
+    h0 = nav.hi
+    nav.on_event(ev(1.0, 61, dna, dt=0))
+    g1 = nav.hi - h0
+    for k in range(4):
+        nav.on_event(ev(2.0 + k, 61, dna, dt=0))
+    check('dt0: single reset grants exactly one interval',
+          295 <= g1 <= 335, f'grant={g1:.0f}mm')
+    check('dt0: repeated resets stay linear and bounded',
+          nav.hi - h0 <= 5 * 335 + 1, f'total={nav.hi-h0:.0f}mm after 5 resets')
+
+    # T7: unknown time can never confirm
+    nav = mknav(d2); nav.declare(10, 0.0)
+    for k in range(4):
+        nav.on_event(ev(1.0 + k, 11, d2, dt=0))
+    check('dt0: reset events never count toward confirmation',
+          not any(l['ev'] == 'CONFIRMED' for l in nav.log), 
+          f'log={[l["ev"] for l in nav.log]}')
+
     bad = [n for n, ok in PASS if not ok]
     print(f'\n{len(PASS)-len(bad)}/{len(PASS)} passed')
     return 1 if bad else 0

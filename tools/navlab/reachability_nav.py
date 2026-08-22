@@ -251,6 +251,37 @@ class Navigator:
             return
 
         dt = ev.get('dt_ms')
+        if not dt or dt <= 0:
+            # dt-chain reset: traversal time UNKNOWN (docs/NAVLAB_DT0_SEMANTICS.md).
+            # Grant exactly ONE interval of corridor, skip the timing veto,
+            # keep both the same-magnet-reread and the advance hypotheses.
+            want = 1 if ev['polarity'] == 'N' else 0
+            grant = self.spc[self.interval_ending_at(
+                (max(self.P, key=lambda p: self.dist(self.anchor[0], p))
+                 + self.step) % DNA_N)] if self.P else 305
+            self.hi = min(self.hi + grant, self.circuit_mm() + 1)
+            stay = {p for p in self.P if self.dna[p] == want}
+            reach = set(self.candidates())
+            adv = set()
+            for p in self.P:
+                mm = p
+                for _ in range(DNA_N):
+                    nxt = (mm + self.step) % DNA_N
+                    if nxt not in reach: break
+                    if self.dna[nxt] == want: adv.add(nxt)
+                    mm = nxt
+            hyp = stay | adv
+            if hyp:
+                self.pending = None
+                self.P = hyp
+                self.consec = 0        # a reset event never counts toward confirmation
+                self.log.append(dict(t=ts, ev='DT_RESET', P=sorted(self.P)[:8],
+                                     hi=round(self.hi), anchor=self.anchor[0]))
+            else:
+                self.pending = (set(), 0)
+                self.log.append(dict(t=ts, ev='PHANTOM_SUSPECT', hi=round(self.hi)))
+            return
+
         newP, newM = set(), set()
         for p in self.P:
             o, m = self._match(p, ev, dt)
