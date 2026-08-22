@@ -339,8 +339,14 @@ def main():
     contra = sum(1 for l in nav.log if l['ev'] == 'CONTRADICTION')
     lost = sum(1 for l in nav.log if l['ev'] == 'LOST_FULL_CIRCLE')
     mode = 'CONTINUE-ANALYSIS' if args.continue_analysis else 'STRICT'
-    final = ('STOPPED_AT_FIRST_CONTRADICTION' if (stopped is not None)
-             else nav.state)
+    if stopped is not None:
+        final = 'STOPPED_AT_FIRST_CONTRADICTION'
+    elif args.continue_analysis and external:
+        # A run that borrowed positions from firmware labels must never store
+        # a final state quotable as navigator performance.
+        final = f'ANALYSIS_ONLY_{external}_EXTERNAL_SEEDS'
+    else:
+        final = nav.state
     print(f'[{mode}] events {len(rows)} | confirmations {conf} | pending-held '
           f'{sum(1 for l in nav.log if l["ev"]=="PENDING")} | '
           f'contradictions {contra} | lost_full_circle {lost} | '

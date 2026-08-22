@@ -1,0 +1,432 @@
+[
+ {
+  "classifications": [
+   {
+    "when": "2026-08-21 19:06:51.293Z (epoch 1787339211.293), Otto boot16",
+    "trigger": "Record mm=110 (fw label), dt=769 ms, peak=194, dur=117 ms, polarity=S, map_pole@110=N, pwm_actual=109, gate=ACTIVE, fw_verdict=ACTIVE, label=uncertain, dup_sources=[]. Loco in motor_dir=REV descending run 140->100 at ~800 ms cadence.",
+    "category": "NAVIGATOR_MODEL_GAP",
+    "evidence": "Navigator steps +1 (sdir from session_dir=CW, constant all boot16) while loco physically travels CCW: firmware capture shows dir=CCW on every nav line 19:06:26-19:07:07. From P={111} the only in-corridor candidate is 112; DNA[112]=N vs obs S -> no polarity match, gm=None, instant CONTRADICTION. records_v1.jsonl motor_dir=REV for the whole segment (flip at ts 1787339175.132); reachability_nav.py consumes only session_dir, never motor_dir. Caveat: firmware itself was mid label-slip cascade here (QUORUM_OPEN 19:06:40.5, QUORUM_TIED viable [-1,1,3,4], NO_QUORUM HARD_BOUND 19:06:47.4, SELF_RESOLVED 19:06:59.2 at mm=105), so the reseed label 111 was a dead-reckoned NO_QUORUM-era label.",
+    "firmware_at_that_moment": "QUORUM_1_16R_IR_TEST_A; nav in NO_QUORUM (HARD_BOUND declared 19:06:47.403 at mm=115, not yet SELF_RESOLVED); labels dead-reckoned",
+    "navigator_state": "P={111} (EXTERNAL_RESEED/DECLARED mm=111 at 19:06:50.506 after contradiction #10), corridor hi=353, pending=None",
+    "right_response": "Stopping was safe but self-inflicted: the corridor walked CW through a CCW run, guaranteeing contradiction within one event of the reseed. This is not evidence eliminating reachable positions; it measures the harness's missing reversal handling. Honestly though, with firmware in NO_QUORUM and seeds dead-reckoned, no navigator could be validated against this stretch - refusing to relocate route-wide was still the correct failure containment."
+   },
+   {
+    "when": "2026-08-21 19:06:54.732Z (epoch 1787339214.732), Otto boot16",
+    "trigger": "Record mm=106, dt=926 ms, peak=147, dur=108 ms, polarity=N, map_pole@106=S, pwm_actual=109, gate=ACTIVE, fw_verdict=ACTIVE, label=uncertain, dup=[]. Same CCW descending run.",
+    "category": "NAVIGATOR_MODEL_GAP",
+    "evidence": "After reseed to 110 the navigator stepped +1 to 111,112,113 (CONFIRMED mm=113 at 19:06:53.808) on pole coincidences while the loco descended 109->107. Only candidate from anchor 113 within hi+30=444 is 114; DNA[114]=S vs obs N -> CONTRADICTION. Firmware dir=CCW throughout; harness direction fixed CW. The three 'confirmations' walking the wrong way are themselves evidence of the matching-logic gap: 50% pole coincidence sustains wrong-direction tracking for short runs.",
+    "firmware_at_that_moment": "QUORUM_1_16R_IR_TEST_A; still inside the NO_QUORUM window (SELF_RESOLVED comes 19:06:59.166)",
+    "navigator_state": "P={113} (CONFIRMED mm=113 at 19:06:53.808, anchor reset there), corridor hi=414, pending=None",
+    "right_response": "Same verdict as #11: stopping was the designed honest response to an unrepresentable state, but the contradiction is an artifact of stepping +1 through a reverse run seeded from dead-reckoned labels. Not a genuine track-evidence contradiction."
+   },
+   {
+    "when": "2026-08-21 19:06:58.136Z (epoch 1787339218.136), Otto boot16",
+    "trigger": "Record mm=102, dt=870 ms, peak=156, dur=131 ms, polarity=S, map_pole@102=S, pwm_actual=100, gate=RAMP, fw_verdict=RAMP, label=genuine, dup=[]. Loco decelerating in CCW run; firmware had just SELF_RESOLVED to mm=105 and was back to clean AGREEs.",
+    "category": "NAVIGATOR_MODEL_GAP",
+    "evidence": "Reseed to 106 at #12, then +1 steps to 107,108, CONFIRMED mm=109 (19:06:57.193) while loco actually passed 104->102. Only candidate from anchor 109 within hi+30=453 is 110; DNA[110]=N vs obs S -> CONTRADICTION. The trigger event itself is a genuine, firmware-agreed marker (post-SELF_RESOLVED AGREE stream, obs S == map S at the now-correct label 102). Pure direction inversion in the harness.",
+    "firmware_at_that_moment": "QUORUM_1_16R_IR_TEST_A; nav NORMAL again (SELF_RESOLVED at mm=105 at 19:06:59.166 per nav stream; labels genuine, AGREE run 104-100)",
+    "navigator_state": "P={109} (CONFIRMED mm=109 at 19:06:57.193), corridor hi=423, pending=None",
+    "right_response": "No. The evidence was a clean genuine marker in a coherent descending stream the firmware tracked with straight AGREEs. A direction-aware navigator continues here; stopping is purely the model gap firing."
+   },
+   {
+    "when": "2026-08-21 19:12:59.067Z (epoch 1787339579.067), Otto boot16",
+    "trigger": "Record mm=95, dt=1728 ms, peak=184, dur=188 ms, polarity=N, map_pole@95=S, pwm_actual=59, gate=RAMP, fw_verdict=disagree, label=uncertain, dup=[]. Third event after a real reversal: firmware emitted DIRECTION dir=CCW at 19:12:48.158 (mm=98); records flip motor_dir FWD->REV at ts 1787339574.988.",
+    "category": "NAVIGATOR_MODEL_GAP",
+    "evidence": "The harness reseeds on session_dir change only (reachability_nav.py main loop); boot16 session_dir is CW for all 1455 records while motor_dir flips 15 times, so this genuine reversal is invisible to it. From P={84} (anchor 84, confirmed 19:12:57.400 via a pole coincidence) the only in-corridor candidate is 85; DNA[85]=S vs obs N -> CONTRADICTION. Note the obs poles at 95/96 are self-consistent across the FWD and REV crossings (95=N both, 96=S both) while map disagrees - a firmware label slip in this region - but the navigator never consults those labels; its failure is the unconsumed DIRECTION/motor_dir reversal.",
+    "firmware_at_that_moment": "QUORUM_1_16R_IR_TEST_A; nav NORMAL, dir=CCW since the 19:12:48 DIRECTION event; tracked the reverse run cleanly to mm=71+",
+    "navigator_state": "P={84} (CONFIRMED mm=84 at 19:12:57.400), corridor hi=377, pending=None (a PENDING mm_set=[80,81,82,83,87] at 19:12:54.988 - the reversal moment - was consumed by the 19:12:57.400 step)",
+    "right_response": "Stopping at an unmodeled reversal is the correct conservative behavior for THIS harness - it cannot represent backward motion - but the reversal was real, operator-commanded, and announced by the firmware. The model must treat motor_dir/DIRECTION reversals exactly like the session_dir reseed path it already has. As a navigation verdict on the evidence: no, the loco was fine."
+   },
+   {
+    "when": "2026-08-21 19:16:23.738Z (epoch 1787339783.738), Otto boot16",
+    "trigger": "Record mm=48, dt=2560 ms, peak=191, dur=315 ms, polarity=N, map_pole@48=N, pwm_actual=46, gate=NO_PREV, fw_verdict=agree, label=genuine, dup=[]. Second event after a 42 s stop (pwm history: ramp-down to 0 by -36 s, parked ~30 s, REV re-ramp) and a firmware DIRECTION dir=CCW at 19:16:11.523.",
+    "category": "NAVIGATOR_MODEL_GAP",
+    "evidence": "Navigator had legitimately confirmed mm=48 (19:15:36.969, matching firmware's AGREE at 48) and stepped P={49}; during the stop the corridor correctly grew only forward (hi=2647 by trigger, fed by the decel/coast + REV ramp all integrated as CW travel). The restart event (mm=49, dt=0) was held PENDING {49,51}. Trigger obs N from P={49}: 50=S, 51=N but timing-eliminated (2 intervals at bucket-40 CW fast_bound 1913 ms each, sum ~3.8 s > dt 2560) -> no survivor -> CONTRADICTION. Every eliminator ran in the wrong direction; a CCW walk from 49 matches the pure firmware AGREE stream 48,47,46... trivially. Not ENVELOPE_GAP: t2|9950011|CW|40 exists with n=211; the applicability error (CW envelopes for a CCW run) is the same direction gap.",
+    "firmware_at_that_moment": "QUORUM_1_16R_IR_TEST_A; nav NORMAL, dir=CCW, unbroken AGREE run 49 down to 38",
+    "navigator_state": "P={49} (anchor 48 confirmed 19:15:36.969, STEP to 49 at 19:15:39.506), corridor hi=2647 after the 42 s stop, pending=({49,51}, folded dt 0) from the 19:16:21.224 NO_PREV restart event",
+    "right_response": "No in substance: the loco restarted in reverse and every subsequent read was firmware-AGREE genuine. Stopping (rather than route-wide search) was the right containment of a state the model cannot represent - the corridor and pending mechanics all behaved as designed, but pointed the wrong way."
+   },
+   {
+    "when": "2026-08-21 19:16:26.299Z (epoch 1787339786.299), Otto boot16",
+    "trigger": "Record mm=47, dt=2537 ms, peak=193, dur=300 ms, polarity=S, map_pole@47=S, pwm_actual=46, gate=ACTIVE, fw_verdict=agree, label=genuine, dup=[]. Clean reverse-crawl marker, firmware AGREE.",
+    "category": "NAVIGATOR_MODEL_GAP",
+    "evidence": "Reseeded to the (correct) firmware label 48 at #15, but stepping +1: only candidate within hi+30=562 is 49; DNA[49]=N vs obs S -> immediate CONTRADICTION. Walking -1 from the same seed gives 47=S: exact match. The seed was right, the evidence was right, the direction was wrong - the cleanest possible isolation of the defect.",
+    "firmware_at_that_moment": "QUORUM_1_16R_IR_TEST_A; nav NORMAL, dir=CCW, AGREE at mm=47",
+    "navigator_state": "P={48} (EXTERNAL_RESEED/DECLARED mm=48 at 19:16:23.738), corridor hi=532, pending=None",
+    "right_response": "No. Correct seed, genuine agreed marker, coherent cadence; only the +1 step direction manufactured the contradiction. A one-line direction fix converts this to a CONFIRMED step."
+   },
+   {
+    "when": "2026-08-21 19:16:28.729Z (epoch 1787339788.729), Otto boot16",
+    "trigger": "Record mm=46, dt=2474 ms, peak=187, dur=316 ms, polarity=S, map_pole@46=S, pwm_actual=46, gate=ACTIVE, fw_verdict=agree, label=genuine, dup=[].",
+    "category": "NAVIGATOR_MODEL_GAP",
+    "evidence": "Identical mechanics to #16 one marker later: reseed to 47, only +1 candidate is 48, DNA[48]=N vs obs S -> CONTRADICTION. Walking -1 gives 46=S, exact match. Third consecutive contradiction from the same unmodeled 19:16:11 reversal.",
+    "firmware_at_that_moment": "QUORUM_1_16R_IR_TEST_A; nav NORMAL, dir=CCW, AGREE at mm=46",
+    "navigator_state": "P={47} (EXTERNAL_RESEED/DECLARED mm=47 at 19:16:26.299), corridor hi=505, pending=None",
+    "right_response": "No - same as #16. These reseed-contradict-reseed loops (#15-#17) are one reversal event being re-litigated per marker; in STRICT mode this is a single stop at 19:16:23."
+   },
+   {
+    "when": "2026-08-21 19:16:51.056Z (epoch 1787339811.056), Otto boot16",
+    "trigger": "Record mm=38 (FROZEN firmware label), dt=2399 ms, peak=182, dur=293 ms, polarity=S, map_pole@38=S, pwm_actual=46, gate=ACTIVE, fw_verdict=rejected, label=phantom, dup=[]. First of four PHANTOM_REJECTED events (exp=3741 vs dt 2399/2324/2160/2166): the documented duty-model conservation-gate rejection run - real markers 37,36,35,34 whose obs poles S,S,N,N exactly match map 37=S,36=S,35=N,34=N.",
+    "category": "NAVIGATOR_MODEL_GAP",
+    "evidence": "The navigator had walked UP 47->55 (CONFIRMED mm=55 at 19:16:48.671) on pole coincidences while the loco descended 46->38. Only candidate from 55 within hi+30=525 is 56; DNA[56]=N vs obs S -> CONTRADICTION. The trigger is corrupted-LABEL evidence (firmware froze mm at 38 and called genuine markers phantom, exp 3741 ms from 3.90x46-99.2 duty model vs real ~2.4 s), but the navigator never uses fw labels or verdicts in matching - its P was 17 markers away in the wrong direction before this event arrived. The label freeze is the QUORUM_LABEL_SLIP_ROOT_CAUSE mechanism-1 defect, recorded there; it is not what fired this contradiction.",
+    "firmware_at_that_moment": "QUORUM_1_16R_IR_TEST_A; nav mid rejection-run: PHANTOM_REJECTED at frozen mm=38, label about to slip +3 (resumes at mm=37 at 19:17:00.640 when true position is ~33, then DISAGREEs at 36/33/31)",
+    "navigator_state": "P={55} (CONFIRMED mm=55 at 19:16:48.671 after walking +1 from reseed 46), corridor hi=495, pending=None",
+    "right_response": "Stopping was overdue but for the wrong reason: the navigator had been silently wrong for 8 markers (confirming 48..55 while the loco ran 46..39) and only a pole mismatch finally exposed it. That silent wrong-direction confirmation streak is the more damning finding than the stop itself."
+   },
+   {
+    "when": "2026-08-21 19:16:55.515Z (epoch 1787339815.515), Otto boot16",
+    "trigger": "Record mm=38 (frozen label, 3rd rejected event), dt=2160 ms, peak=169, dur=267 ms, polarity=N, map_pole@38=S, fw_verdict=rejected, label=phantom, dup=[]. Physically the genuine marker 35 (map@35=N).",
+    "category": "NAVIGATOR_MODEL_GAP",
+    "evidence": "Reseeded at #18 from the FROZEN firmware label 38 (true position already past 37), then +1-stepped to P={39} by matching the genuine marker-36 S read against DNA[39]=S. Trigger obs N: in-corridor candidates 39=S,40=S,41=S (42=N sits at ~1200 mm, just past hi+30=956, and would also fail 3x bucket-40 fast-bound timing) -> gm=None -> CONTRADICTION. Two compounding causes, both harness-side: wrong step direction, and continue-analysis reseeding from a label the firmware had frozen mid rejection-run. A -1 walk from the same seed 38 reaches 35=N within the corridor and matches this exact event.",
+    "firmware_at_that_moment": "QUORUM_1_16R_IR_TEST_A; nav mid PHANTOM_REJECTED run, mm frozen at 38, expectedDt frozen at 3741 ms",
+    "navigator_state": "P={39} (reseed DECLARED mm=38 at 19:16:51.056, STEP to 39 at 19:16:53.349), corridor hi=926, pending=None",
+    "right_response": "No. The event was a genuine marker (35, correct pole) and even the stale frozen seed was survivable: direction-aware matching from 38 lands on 35 cleanly. The stop is the direction gap again, now compounded by trusting a frozen external seed - which is exactly why the continue-analysis report itself says these post-contradiction runs no longer measure navigator performance."
+   },
+   {
+    "when": "2026-08-21 19:16:57.678Z (epoch 1787339817.678), Otto boot16",
+    "trigger": "Record mm=38 (frozen label, 4th rejected event), dt=2166 ms, peak=185, dur=257 ms, polarity=N, map_pole@38=S, fw_verdict=rejected, label=phantom, dup=[]. Physically the genuine marker 34 (map@34=N).",
+    "category": "NAVIGATOR_MODEL_GAP",
+    "evidence": "Reseeded again to the same frozen label 38 at #19; only +1 candidate within hi+30=479 is 39; DNA[39]=S vs obs N -> CONTRADICTION in one event. Fourth contradiction manufactured by the same two harness defects (fixed CW stepping; reseeds from a label frozen by the firmware's duty-model rejection run). Not DUPLICATE_EVENT despite four identical mm=38 labels: the four events are distinct physical markers 2.2-2.4 s apart at constant crawl, dup_sources empty - only the label is repeated.",
+    "firmware_at_that_moment": "QUORUM_1_16R_IR_TEST_A; last event of the PHANTOM_REJECTED run; firmware resumes labeling at mm=37 three markers slipped, 2.9 s later",
+    "navigator_state": "P={38} (EXTERNAL_RESEED/DECLARED mm=38 at 19:16:55.515), corridor hi=449, pending=None",
+    "right_response": "No, same as #19. Genuine marker, honest pole, tractable position; the contradiction chain 18-20 is one wrong-direction walk plus one frozen firmware label being re-consumed as three separate seeds."
+   }
+  ],
+  "summary": "Otto boot16 contradictions 11-20 (nav_otto_b16_continue.json, 19:06:51Z-19:16:58Z on 2026-08-21, fw QUORUM_1_16R_IR_TEST_A throughout): all ten classify as NAVIGATOR_MODEL_GAP with one shared root defect - reachability_nav.py fixes travel direction from session_dir (constant 'CW' for all 1455 boot16 records) and reseeds only on session_dir change, while the locomotive's real direction is carried in motor_dir (15 flips in boot16) and announced by firmware DIRECTION events (dir=CCW in every window). Every one of the ten triggers falls inside a motor_dir=REV segment; the navigator steps +1 through descending runs, so each reseed dies within 1-4 events when a pole or fast-bound check fails against the wrong-side DNA - verified candidate-by-candidate against NGR_DNA1 for all ten. Sub-patterns: #11-13 fired during a firmware NO_QUORUM/label-slip cascade (QUORUM_TIED viable [-1,1,3,4] -> NO_QUORUM HARD_BOUND 19:06:47 -> SELF_RESOLVED 19:06:59), so those reseeds were dead-reckoned labels; #14 and #15 fired 2-4 s after genuine operator reversals the harness cannot see; #16-17 re-litigated the same reversal with correct seeds and firmware-AGREE genuine markers (cleanest isolation: -1 walk matches exactly); #18-20 fired during a textbook mechanism-1 conservation-gate rejection run (four genuine markers 37/36/35/34 PHANTOM_REJECTED at frozen mm=38, exp 3741 ms duty-model vs real ~2.2-2.4 s) - the trigger events are honest reads of real markers, and the frozen label corrupted only the external reseeds, not the matching. No CORRUPTED_EVIDENCE, DUPLICATE_EVENT, or ENVELOPE_GAP cases in this batch (t2|9950011|CW|40 existed with n=211; the timing eliminations were direction-misapplied, not missing). Honest bottom line on stopping: contradiction-and-stop was the right failure containment every time (never a route-wide search), but none of the ten was a genuine evidence-eliminates-reachable-positions event - a direction-aware corridor (consume motor_dir/DIRECTION like the existing session_dir reseed path) converts #15-20 into trivial tracking of firmware-AGREE streams, and #18's silent 8-marker wrong-direction confirmation streak (47->55 while the loco ran 46->39) is the strongest argument that direction handling must land before the comparison report's per-event scoring is meaningful. Key files: /Users/davidbrown/esp-loco-control/tools/navlab/results/nav_otto_b16_continue.json, /Users/davidbrown/esp-loco-control/tools/navlab/reachability_nav.py (direction anchored at main-loop session_dir check), /Users/davidbrown/esp-loco-control/tools/navlab/db/records_v1.jsonl, /Users/davidbrown/esp-loco-control/field-records/logs/navlab-inputs/20260820_morning_session.log."
+ },
+ {
+  "classifications": [
+   {
+    "when": "#21 of 31 \u2014 2026-08-20 19:17:15Z, epoch 1787339835.835, +3902 s into Otto boot16 (capture line 91577)",
+    "trigger": "mm label 33, dt 4240 ms, peak 175, duration 425 ms, polarity N vs map S at label; pwm_actual 46 (crawl). motor_dir=REV (reverse stretch 1787339781-1787339998), normal-strength read, dup_sources empty.",
+    "category": "NAVIGATOR_MODEL_GAP",
+    "evidence": "Harness direction is keyed to session_dir, which stays CW for the whole boot while motor_dir flips REV (records field motor_dir=REV; firmware DIRECTION dir=CCW event at 1787339771.5). Navigator therefore steps +1 while the train physically moves -1 (labels 38,37,36,35,34,33 decreasing). After external reseed at 38 it 'tracked' 39->42->44 on coincidental DNA pole matches and falsely CONFIRMED 44; corridor candidates 45/46/47 are all S vs observed N -> contradiction. Reversal information was present in every record and in the capture but is never consumed by reachability_nav.py (main() reseeds only on session_dir change).",
+    "firmware_at_that_moment": "QUORUM_1_16R_IR_TEST_A, state NORMAL: DISAGREE at mm 33 (obs N vs exp S, agree=811/dis=115), 18 s after a 4x PHANTOM_REJECTED frozen-predecessor run at mm 38 (prev_dt frozen at 2402, ratios 1.22-1.28) \u2014 firmware's own label likely ~4 slipped in this reverse crawl (episodic obs-vs-map disagreements ~40%).",
+    "navigator_state": "P=[44] (falsely confirmed 4 s earlier), anchor (44, 1787339831.606), corridor hi=878, pending=None; candidates {45:S,46:S,47:S}.",
+    "right_response": "No. The position was physically trackable (honest reads, announced reversal); the contradiction is manufactured by the unmodeled reversal. Stopping was safe vs relocating, but it measures a harness defect, not an unresolvable position."
+   },
+   {
+    "when": "#22 of 31 \u2014 2026-08-20 19:17:29Z, epoch 1787339849.697, +3916 s into boot16 (line 91601)",
+    "trigger": "mm label 29, dt 2743 ms, peak 170, duration 335 ms, polarity N vs map N (honest agree read); pwm 46, motor_dir=REV.",
+    "category": "NAVIGATOR_MODEL_GAP",
+    "evidence": "Same unmodeled reversal. After reseed at firmware label 33, the +1 walk matched poles by coincidence (34->36->37, false CONFIRM 37) while the train ran 32->31->30->29 in reverse. Sole corridor candidate 38 (S) vs observed N -> contradiction. The trigger itself is a genuine marker the firmware scored AGREE.",
+    "firmware_at_that_moment": "AGREE at mm 29 (obs N == exp N), agree=813/dis=117, NORMAL, mid reverse-crawl stretch with intermittent DISAGREEs (label-slip residue), no quorum open.",
+    "navigator_state": "P=[37], anchor (37, 1787339846.982), hi=564, pending=None; candidates {38:S}.",
+    "right_response": "No. Same single defect as #21; a reversal-aware corridor tracks this stretch trivially. Contradiction is an artifact of walking CW through CCW travel."
+   },
+   {
+    "when": "#23 of 31 \u2014 2026-08-20 19:20:53Z, epoch 1787340053.569, +4120 s into boot16 (line 92151)",
+    "trigger": "mm label 167, dt 1466 ms, peak 168, duration 193 ms, polarity N vs map N (honest, fw agree); pwm 74, RAMP-down, motor_dir=FWD.",
+    "category": "ENVELOPE_GAP",
+    "evidence": "Two genuine deceleration events were rejected as impossibly fast: mm164 dt=1067 vs t1|9950011|CW|163|90 fast_bound 1176 (n=52, training min 1384) and mm165 dt=1064 vs t1|CW|164|90 fast_bound 1104 (n=36, min 1299) \u2014 the held-out boot decelerated ~23% faster than every training sample at those pwm-interval points, so the tier-1 envelope did not cover this operating point. The pending mechanism then aliased one behind: the held genuine event was folded as phantom (2131 ms >= 1176) landing P=[164] when truth was 165, and CONFIRM_N=3 confirmed 165 when truth was 166. The next honest N read faced sole candidate 166 (S) -> contradiction. Secondary model gap: pending-fold + confirm collapse converted one bad bound into a false confirmed position.",
+    "firmware_at_that_moment": "Clean: 25-consecutive AGREE run mm 145->170 (after SELF_RESOLVED 158->144 at 1787340032.6); AGREE at mm 167 obs N == exp N, agree=903/dis=134. Firmware label verified right by the unbroken pole-matching run.",
+    "navigator_state": "P=[165] (false confirm 1.5 s earlier, one behind truth), anchor (165, 1787340052.07), hi=534, pending=None; candidates {166:S}.",
+    "right_response": "No. The navigator had already confirmed a wrong position \u2014 the failure predates the stop. Position was cleanly determinable; the stop is the visible symptom of the envelope's fast side excluding genuine deceleration timing on held-out data."
+   },
+   {
+    "when": "#24 of 31 \u2014 2026-08-20 19:22:35Z, epoch 1787340155.742, +4222 s into boot16 (line 92328)",
+    "trigger": "mm label 18, dt 0 ms, peak 191, duration 297 ms, polarity S vs map S (fw agree); pwm 54. Re-read of the magnet the loco parked on, first event after firmware DIRECTION dir=CCW at 1787340145.9 (18.7 s stop at station mm 18). Not a dedup duplicate (dup_sources empty) \u2014 a physical re-crossing on reversal.",
+    "category": "NAVIGATOR_MODEL_GAP",
+    "evidence": "Two stacked causes. (1) Reversal unmodeled: motor_dir REV was in the trigger record itself and DIRECTION was in the capture 10 s earlier, but the harness only re-anchors on session_dir. (2) Poisoned tier-1 envelope: t1|9950011|CW|17|50 has n=45, min 21988 ms, fast_bound 18689 ms \u2014 every training sample is a dwell-inflated station-stop dt, so the genuine 2142 ms approach to mm 18 was declared impossibly fast and HELD PENDING at 1787340137. At the trigger, all pole-matching candidates (18,19,20,22,26,27) fail timing against fb sums 1446-32910 with dt 0/2142; pending already set -> straight to CONTRADICTION with hi grown to 3894.",
+    "firmware_at_that_moment": "AGREE mm 18 dt=0 (dwell re-read scored agree), NORMAL, no quorum; DIRECTION CCW published 9.8 s before.",
+    "navigator_state": "P=[17], anchor (16, 1787340132.763), hi=3894, pending=(genuine set {18,19,20}, folded dt 2142) \u2014 pending held for 18.7 s across the stop.",
+    "right_response": "Partly. Refusing to relocate was correct, and a reversal legitimately ends forward-corridor validity \u2014 but the reversal was announced in the data the harness already reads, and the genuine mm-18 approach should never have been pending (dwell-poisoned t1 entry: envelope generator admitted station-stop dts as 'genuine consecutive pairs'). A reversal-aware model with a clean envelope tracks this without stopping."
+   },
+   {
+    "when": "#25 of 31 \u2014 2026-08-20 19:22:37Z, epoch 1787340157.596, +4224 s into boot16 (line 92333)",
+    "trigger": "mm label 17, dt 1954 ms, peak 191, duration 191 ms, polarity N vs map N (honest, fw agree); pwm 67, reverse departure ramp, motor_dir=REV.",
+    "category": "NAVIGATOR_MODEL_GAP",
+    "evidence": "Anchor 18 (external reseed) was actually CORRECT \u2014 firmware label right, train at 18 reversing to 17. Pure direction defect: harness walks +1, sole candidate 19 (S) vs observed N. One event after reseed, contradiction. Whole REV stretch 1787340155-1787340209 produces #24-#28 from this one defect.",
+    "firmware_at_that_moment": "AGREE mm 17 (obs N == exp N), agree=919/dis=137; firmware tracked the entire reverse run flawlessly (unbroken AGREE streak 18->...->155 with poles matching).",
+    "navigator_state": "P=[18] (freshly reseeded), anchor (18, 1787340155.742), hi=514, pending=None; candidates {19:S}.",
+    "right_response": "No. Position was exactly known (correct anchor, honest read, firmware in full agreement); only the +1 step direction is wrong. This is the cleanest possible demonstration of the motor_dir gap."
+   },
+   {
+    "when": "#26 of 31 \u2014 2026-08-20 19:22:43Z, epoch 1787340163.788, +4230 s into boot16 (line 92350)",
+    "trigger": "mm label 12, dt 961 ms, peak 146, duration 121 ms, polarity N vs map N (honest); pwm 108, accelerating reverse run, motor_dir=REV.",
+    "category": "NAVIGATOR_MODEL_GAP",
+    "evidence": "After reseed at 17 the wrong-way walk again pole-matched by coincidence (18,19, pending 21, STEP 21) and falsely CONFIRMED 21 (truth 13); sole candidate 22 (S) vs observed N -> contradiction. Firmware labels were right throughout (AGREE streak).",
+    "firmware_at_that_moment": "AGREE run in fast reverse (mm 13,12,11 all N obs==exp, agree=924/dis=137), no quorum activity.",
+    "navigator_state": "P=[21] (false confirm 1 s earlier; truth 13), anchor (21, 1787340162.813), hi=437, pending=None; candidates {22:S}.",
+    "right_response": "No \u2014 manufactured by the direction gap; worse, it minted another false CONFIRMED (21) on the way, showing coincidental pole matches can survive CONFIRM_N=3 while walking the wrong way."
+   },
+   {
+    "when": "#27 of 31 \u2014 2026-08-20 19:22:45Z, epoch 1787340165.312, +4232 s into boot16 (line 92355)",
+    "trigger": "mm label 10, dt 778 ms, peak 179, duration 109 ms, polarity S vs map S (honest, fw agree); pwm 109, full-speed reverse, motor_dir=REV.",
+    "category": "NAVIGATOR_MODEL_GAP",
+    "evidence": "Reseeded at 12, one coincidental step to P=[13] (obs N matched dna 13 N), then candidates 13/14 both N vs observed S -> contradiction in two events. Train actually at 11->10.",
+    "firmware_at_that_moment": "AGREE mm 10 (obs S == exp S), agree=926/dis=137, clean full-speed reverse tracking.",
+    "navigator_state": "P=[13], anchor (12, 1787340163.788), hi=684, pending=None; candidates {13:N,14:N}.",
+    "right_response": "No \u2014 same single defect; at ~0.8 s/marker in reverse the wrong-way walk contradicts within 1-2 events of every reseed."
+   },
+   {
+    "when": "#28 of 31 \u2014 2026-08-20 19:22:46Z, epoch 1787340166.094, +4233 s into boot16 (line 92359)",
+    "trigger": "mm label 9, dt 751 ms, peak 180, duration 110 ms, polarity S vs map S (honest); pwm 109, motor_dir=REV.",
+    "category": "NAVIGATOR_MODEL_GAP",
+    "evidence": "Reseeded at 10 one event earlier; sole candidate 11 (N) vs observed S -> immediate contradiction. Fourth contradiction in 11 s, all from stepping +1 against reverse travel while firmware AGREEs continuously.",
+    "firmware_at_that_moment": "AGREE mm 9 (obs S == exp S), agree=927/dis=137.",
+    "navigator_state": "P=[10] (fresh reseed), anchor (10, 1787340165.312), hi=351, pending=None; candidates {11:N}.",
+    "right_response": "No \u2014 manufactured. The #24-#28 burst (5 contradictions, 11 s) is one defect counted five times by the continue-mode reseed loop."
+   },
+   {
+    "when": "#29 of 31 \u2014 2026-08-20 19:27:28Z, epoch 1787340448.488, +4515 s into boot16 (line 93006)",
+    "trigger": "mm label 42 (firmware label 16 ahead of truth; true position 26), dt 626 ms, peak 176, duration 89 ms, polarity S \u2014 honest read (map[26]=S); pwm 127, motor_dir=FWD.",
+    "category": "ENVELOPE_GAP",
+    "evidence": "Navigator's anchor 21 was verified exactly right (10/10 forward DNA-pole fit S,N,N,N,S,S,N,N,N,N over mm 22-31; SELF_RESOLVED later lands on the same chain). Pole-correct true candidate 26 was present in the corridor and eliminated ONLY by timing: dt 626 < fast_bound 641 from t2|9950011|CW|120 (n=932, training min 755; no t1 exists for intervals 22-25@120). The whole cadence 617-661 ms at pwm 127 was faster than every training sample, causing PENDINGs at 446.6 and 447.9 for the same reason before the hypothesis set finally emptied. Failure margin: 15 ms (2.3%).",
+    "firmware_at_that_moment": "Mid label-slip incident: QUORUM_ADOPTED 12->17 (+5, worsening the slip) at 1787340430.4, QUORUM_OPEN mm 24 at 435.9, NO_QUORUM mm 33 at 442.6, self-resolution in progress; labels running 16 ahead until SELF_RESOLVED 46->31 at 452.1. Trigger record fw_verdict ACTIVE (quorum scoring window).",
+    "navigator_state": "P=[23,24], anchor (21, 1787340445.312) \u2014 correct, hi=1511, pending=(genuine {23,24,25}, folded dt 634); candidates {22:S,23:N,24:N,25:N,26:S}.",
+    "right_response": "No, and this is the costliest one: the navigator was RIGHT while the firmware was 16 wrong, and the envelope's untrained fast side destroyed the correct hypothesis \u2014 after which the continue-mode reseed replaced a correct anchor with the slipped firmware label, spawning #30 and #31. In strict mode this is a correct position abandoned over 15 ms of unmeasured speed."
+   },
+   {
+    "when": "#30 of 31 \u2014 2026-08-20 19:27:31Z, epoch 1787340451.245, +4518 s into boot16 (line 93014)",
+    "trigger": "mm label 46 (true position 30), dt 726 ms, peak 182, duration 102 ms, polarity N vs map[46] S \u2014 but obs N == map[30] N: an honest read refuting a poisoned anchor; pwm 127, FWD.",
+    "category": "NAVIGATOR_MODEL_GAP",
+    "evidence": "Continue-analysis artifact, not a corridor/matching defect: after #29 the harness reseeded from firmware label 42 while the firmware was 16 markers ahead mid NO_QUORUM churn (true 26). Two coincidental pole matches (43/S-obs-S-true-27, 44/N-obs-N-true-28) then honest N reads at true 29/30 against candidates 45/46 (both S) -> pending, then contradiction. The matching logic correctly refuted the false anchor within 3 events. This contradiction measures the reseed protocol; the report's own EXTERNAL_RESEED caveat applies.",
+    "firmware_at_that_moment": "Between NO_QUORUM (mm 33, 442.6) and SELF_RESOLVED (46->31, 452.1); labels 16 ahead; fw_verdict ACTIVE.",
+    "navigator_state": "P=[44], anchor (42 external/poisoned, 1787340448.488), hi=1312, pending=(genuine {44}, folded dt 679); candidates {43:S,44:N,45:S,46:S}.",
+    "right_response": "Yes \u2014 given the anchor it was handed, contradicting was exactly right: the anchor was false and honest evidence refuted it fast. The defect is upstream: unvalidated reseed from a mid-slip firmware label."
+   },
+   {
+    "when": "#31 of 31 \u2014 2026-08-20 19:27:32Z, epoch 1787340452.074, +4519 s into boot16 (line 93017)",
+    "trigger": "mm label 31, dt 788 ms, peak 171, duration 105 ms, polarity N vs map N \u2014 honest read at the exact moment firmware SELF_RESOLVED 46->31 (label now equals truth); pwm 127, FWD.",
+    "category": "NAVIGATOR_MODEL_GAP",
+    "evidence": "Same reseed-poisoning as #30: after #30 the harness reseeded at firmware label 46 (true 30, still pre-resolution). One event later the honest N read at true 31 faced sole candidate 47 (S) -> contradiction. The following reseed (mm 31, the self-resolved label) finally planted a true anchor and the run returned to clean tracking (long genuine AGREE stretch follows). SELF_RESOLVED landing at 31 independently confirms the harness's earlier position chain from anchor 21.",
+    "firmware_at_that_moment": "SELF_RESOLVED old_mm 46 -> new_mm 31 published at this exact timestamp; label slip of 16 corrected; fw_verdict ACTIVE, subsequent records label genuine.",
+    "navigator_state": "P=[46] (fresh poisoned reseed), anchor (46, 1787340451.245), hi=394, pending=None; candidates {47:S}.",
+    "right_response": "Yes \u2014 correct refutation of a second poisoned anchor. #29/#30/#31 are one incident: one envelope-gap stop (#29) plus two reseeds from a label the firmware itself corrected one second later."
+   }
+  ],
+  "summary": "Otto boot16 contradictions 21-31 (from tools/navlab/results/nav_otto_b16_continue.json, instrumented replay reproduces the committed log times exactly): 9 NAVIGATOR_MODEL_GAP, 2 ENVELOPE_GAP, 0 CORRUPTED_EVIDENCE, 0 DUPLICATE_EVENT, 0 AMBIGUOUS. Every trigger record is a normal-strength honest read (peaks 146-191, dup_sources empty) \u2014 no fringe ghosts, saturated events, or duplicates in this range. Three root mechanisms: (1) Unmodeled reversal \u2014 7 of 11 (#21,22,24,25,26,27,28): the normalizer's session_dir stays CW for the whole boot while motor_dir flips REV 15 times; reachability_nav.py main() re-anchors only on session_dir change, so the navigator steps +1 through CCW travel and contradicts within 1-3 events of every reseed, minting false CONFIRMEDs (44, 37, 21) from coincidental pole matches on the way. The fix signal (motor_dir) is already in every record. (2) Envelope fast-bound gaps on held-out data \u2014 #23 and #29: boot16 genuinely ran faster than every training sample at two operating points (deceleration bucket 90: genuine 1064-1067 ms vs t1 mins 1299-1384; cruise bucket 120: genuine 617-661 ms vs t2 min 755/fb 641, no t1 for those intervals), so genuine events failed the 'not faster than fast bound' check; #23 additionally shows the pending-phantom fold aliasing the navigator one marker behind into a false confirm, and #24's neighbourhood exposes a poisoned tier-1 entry (t1|CW|17|50: all 45 samples dwell-inflated, fast_bound 18689 ms). (3) Continue-mode reseed poisoning \u2014 #30,#31: after the #29 stop the harness reseeded from firmware labels that were 16 markers ahead mid NO_QUORUM churn (verified by a 10/10 DNA pole fit anchored at mm 21 and by SELF_RESOLVED 46->31 landing on the harness's own chain); those two contradictions are correct refutations of false anchors and measure the reseed protocol, not the corridor model. Honest stopping verdict: right only at #30/#31 (and defensibly #24, though the reversal was announced in-band); wrong at #23/#29 where the envelope killed a correct hypothesis \u2014 at #29 the navigator was tracking truth better than the production firmware at the same moment; manufactured at #21,22,25-28. Actionable for the deliverable: consume motor_dir/DIRECTION for reversal re-anchoring, exclude dwell-inflated dts from envelope admission, treat sub-fast-bound-by-small-margin as pending rather than eliminating, and validate external reseeds before adoption. Working files: instrumented replay and per-contradiction dumps in /private/tmp/claude-501/-Users-davidbrown-esp-loco-control/006c3f8b-8700-43cb-a77e-a224e517bd40/scratchpad/ (instrument.py, contra_debug.json, dump_context.py); inputs were tools/navlab/db/records_v1.jsonl, tools/navlab/db/timing_db_v1.json, field-records/logs/navlab-inputs/20260820_morning_session.log."
+ },
+ {
+  "classifications": [
+   {
+    "when": "2026-08-21T19:05:32.709Z (epoch 1787339132.709), Otto 9950011 boot16 \u2014 contradiction 1 of 31",
+    "trigger": "Genuine S marker, firmware label mm=140 (Eastpoint landmark, fw AGREE), dt=2868ms, peak=161, dur=311ms, polarity S vs map S (match under firmware label), pwm_actual 46, motor_dir FWD. Navigator expected step 107->108/109; dna[108]=N, dna[109]=N, and 2-step fast-bound (2x1913ms t2|CW|40) excludes 109 \u2014 no candidate matched an S event.",
+    "category": "NAVIGATOR_MODEL_GAP",
+    "evidence": "tools/navlab/results/nav_otto_b16_continue.json (CONTRADICTION P=[107] hi=590); records_v1.jsonl loco 9950011 boot16 (source line 89858). The false anchor was built during the preceding unmodeled reversal: records 1787338924-1787339096 show motor_dir=REV, firmware mm falling 25->24->...->0->170->...->131 while session_dir stayed CW; the harness (tools/navlab/reachability_nav.py, direction handled only via session_dir at main loop ~313-324, P forward-only per header lines 14-17) stepped P forward the whole time, falsely CONFIRMING 36/49/58 and finally 107 at 19:05:29.9 while the loco, now FWD again at pwm 46, was really at 139. Trigger event itself is clean (landmark agree).",
+    "firmware_at_that_moment": "QUORUM_1_16R_IR_TEST_A; fw itself in a wrong-pole/DISAGREE-alternating stretch around mm 136-148 but label anchored by Eastpoint agree at 140",
+    "navigator_state": "P=[107] (falsely CONFIRMED 3.5 min into an unmodeled ~200-marker reverse+wrap excursion), corridor hi=590mm, pending=None",
+    "right_response": "Yes \u2014 stopping was correct and overdue: every confirmation since ~19:02 was false. But the contradiction is self-inflicted: the harness ignores motor_dir=REV present in every record of the excursion; a reversal-aware corridor would never have anchored at 107."
+   },
+   {
+    "when": "2026-08-21T19:06:35.146Z (1787339195.146), Otto boot16 \u2014 contradiction 2",
+    "trigger": "Genuine S marker, fw mm=130 (AGREE), dt=862ms, peak=178, dur=138ms, pol S vs map S, pwm 109, motor_dir REV (loco running fast in reverse, fw labels falling 149->130). Sole reachable candidate 169 has dna=N; 170 (S) is outside corridor hi+30=437mm (2 spacings ~600mm).",
+    "category": "NAVIGATOR_MODEL_GAP",
+    "evidence": "nav_otto_b16_continue.json CONTRADICTION P=[168] hi=407; records line 89998. Records 1787339175-1787339218 all motor_dir=REV, session_dir=CW; navigator had tracked the reverse run as forward motion (false CONFIRMED 155, 164, 168 at 19:06:22-34) because reachability_nav.py never reads motor_dir. Reseed target mm=130 immediately re-contradicts (entry 3).",
+    "firmware_at_that_moment": "QUORUM_1_16R_IR_TEST_A; fw label itself coherent (decreasing smoothly), scattered DISAGREEs from reverse-traversal pole reads",
+    "navigator_state": "P=[168] (false CONFIRM 0.9s earlier), hi=407mm, pending=None",
+    "right_response": "Stopping honest-yes: P was genuinely wrong and no forward position was true. The correct behavior \u2014 following the reversal \u2014 is unrepresentable in the current corridor; external reseeds onto a backward-moving label can never stick."
+   },
+   {
+    "when": "2026-08-21T19:06:35.977Z (1787339195.977), Otto boot16 \u2014 contradiction 3",
+    "trigger": "fw mm=129, dt=855ms, peak=165, dur=131ms, pol S vs map N (fw DISAGREE \u2014 reverse-read pole vs CW map), pwm 109, REV. From reseeded P=[130], candidates 131 (N) and 132 (N) reject an S event.",
+    "category": "NAVIGATOR_MODEL_GAP",
+    "evidence": "nav_otto_b16_continue.json CONTRADICTION P=[130] hi=373, 0.83s after EXTERNAL_RESEED mm=130; records line 90002. Loco still REV; forward-only corridor contradicts on nearly every event; reseed mm=129 follows.",
+    "firmware_at_that_moment": "QUORUM_1_16R_IR_TEST_A, label decreasing (129)",
+    "navigator_state": "P=[130] (externally reseeded from firmware label 0.8s before), hi=373mm, pending=None",
+    "right_response": "Stopping honest-yes given the model; but the cascade (contradictions 3-13 within 23s) is one defect repeating: reseed-forward onto a reversing label guarantees the next event contradicts. No evidence problem \u2014 markers genuine."
+   },
+   {
+    "when": "2026-08-21T19:06:36.831Z (1787339196.831), Otto boot16 \u2014 contradiction 4",
+    "trigger": "fw mm=128, dt=874ms, peak=182, dur=106ms, pol N vs map S (DISAGREE), pwm 109, REV. From P=[129], candidate 130 is dna S; N event rejected.",
+    "category": "NAVIGATOR_MODEL_GAP",
+    "evidence": "nav_otto_b16_continue.json CONTRADICTION P=[129] hi=383; records line 90005. Same reverse run, same forward-only corridor.",
+    "firmware_at_that_moment": "QUORUM_1_16R_IR_TEST_A, label 128",
+    "navigator_state": "P=[129] (reseed 0.85s earlier), hi=383mm, pending=None",
+    "right_response": "Same as 3: honest stop, wrong model. Note events between contradictions spuriously 'fit' forward (nav then STEPped 129->130->131 and false-CONFIRMED 131 while the loco went 127->126->125) \u2014 DNA aliasing under reversal produces false confirms, worse than the stops."
+   },
+   {
+    "when": "2026-08-21T19:06:40.545Z (1787339200.545), Otto boot16 \u2014 contradiction 5",
+    "trigger": "fw mm=124, dt=912ms, peak=171, dur=142ms, pol S vs map N (fw quarantine ACTIVE), pwm 109, REV. From false-CONFIRMED P=[131], candidate 132 is dna N; S rejected.",
+    "category": "NAVIGATOR_MODEL_GAP",
+    "evidence": "nav_otto_b16_continue.json CONTRADICTION P=[131] hi=426 after false CONFIRMED 131 at 19:06:39.6 (loco really at 125); records line 90019.",
+    "firmware_at_that_moment": "QUORUM_1_16R_IR_TEST_A, label 124, quarantine holding events (fw_verdict ACTIVE)",
+    "navigator_state": "P=[131] (3-step false confirm off reseed mm=128), hi=426mm, pending=None",
+    "right_response": "Stopping honest-yes; the intervening false CONFIRMED 131 shows the reversal-blind matcher also fabricates confirmations, so the contradiction is the safer of its two behaviors."
+   },
+   {
+    "when": "2026-08-21T19:06:41.414Z (1787339201.414), Otto boot16 \u2014 contradiction 6",
+    "trigger": "fw mm=123, dt=923ms, peak=185, dur=116ms, pol N vs map S, pwm 109, REV. From P=[124], candidate 125 is dna S; N rejected.",
+    "category": "NAVIGATOR_MODEL_GAP",
+    "evidence": "nav_otto_b16_continue.json CONTRADICTION P=[124] hi=390; records line 90023. Same mechanism.",
+    "firmware_at_that_moment": "QUORUM_1_16R_IR_TEST_A, label 123",
+    "navigator_state": "P=[124] (reseed 0.87s earlier), hi=390mm, pending=None",
+    "right_response": "Honest stop, model defect. Same as 3."
+   },
+   {
+    "when": "2026-08-21T19:06:44.364Z (1787339204.364), Otto boot16 \u2014 contradiction 7",
+    "trigger": "fw mm=119, dt=709ms, peak=205, dur=122ms, pol S vs map N, pwm 109, REV. From false-CONFIRMED P=[126], candidate 127 is dna N; S rejected.",
+    "category": "NAVIGATOR_MODEL_GAP",
+    "evidence": "nav_otto_b16_continue.json CONTRADICTION P=[126] hi=318 after false CONFIRMED 126 (loco really at 120); records line 90034.",
+    "firmware_at_that_moment": "QUORUM_1_16R_IR_TEST_A, label 119",
+    "navigator_state": "P=[126] (false confirm off reseed mm=123), hi=318mm, pending=None",
+    "right_response": "Honest stop, model defect; false confirm en route again."
+   },
+   {
+    "when": "2026-08-21T19:06:45.106Z (1787339205.106), Otto boot16 \u2014 contradiction 8",
+    "trigger": "fw mm=118, dt=709ms, peak=187, dur=119ms, pol S vs map N, pwm 109, REV. From P=[119], candidate 120 is dna N; S rejected.",
+    "category": "NAVIGATOR_MODEL_GAP",
+    "evidence": "nav_otto_b16_continue.json CONTRADICTION P=[119] hi=333; records line 90036.",
+    "firmware_at_that_moment": "QUORUM_1_16R_IR_TEST_A, label 118",
+    "navigator_state": "P=[119] (reseed 0.74s earlier), hi=333mm, pending=None",
+    "right_response": "Honest stop, model defect."
+   },
+   {
+    "when": "2026-08-21T19:06:45.816Z (1787339205.816), Otto boot16 \u2014 contradiction 9",
+    "trigger": "fw mm=117, dt=713ms, peak=216, dur=128ms, pol S vs map S (agree under fw label), pwm 109, REV. From P=[118], candidate 119 is dna N; S rejected.",
+    "category": "NAVIGATOR_MODEL_GAP",
+    "evidence": "nav_otto_b16_continue.json CONTRADICTION P=[118] hi=318; records line 90040.",
+    "firmware_at_that_moment": "QUORUM_1_16R_IR_TEST_A, label 117",
+    "navigator_state": "P=[118] (reseed 0.71s earlier), hi=318mm, pending=None",
+    "right_response": "Honest stop, model defect."
+   },
+   {
+    "when": "2026-08-21T19:06:50.506Z (1787339210.506), Otto boot16 \u2014 contradiction 10",
+    "trigger": "fw mm=111, dt=801ms, peak=165, dur=98ms, pol N vs map N (agree under fw label), pwm 109, REV. From P=[122], candidate 123 is dna S; N rejected; no N-pole candidate in the 1021mm corridor from anchor 120.",
+    "category": "NAVIGATOR_MODEL_GAP",
+    "evidence": "nav_otto_b16_continue.json CONTRADICTION P=[122] hi=1021 after false CONFIRMED 120 at 19:06:48.2 (loco really at 114) plus two more forward STEPs; records line 90054. Cluster continues to contradiction 13 (reseed mm=102) until the loco stops and resumes FWD at 19:07:23.",
+    "firmware_at_that_moment": "QUORUM_1_16R_IR_TEST_A, label 111",
+    "navigator_state": "P=[122] (false confirm chain off reseed mm=117, then STEP 121, 122), hi=1021mm, pending=None",
+    "right_response": "Honest stop, model defect. Whole cluster 2-10 (and 11-13) is one defect: reachability_nav.py reads session_dir only; motor_dir=REV is present in every trigger record and never consulted."
+   },
+   {
+    "when": "2026-08-21T19:01:30.098Z (1787338890.098), Otto boot16 \u2014 LOST_FULL_CIRCLE 1 of 2",
+    "trigger": "Not one event: corridor fast-side hi crossed circuit_mm=52150 during a clean FWD cruise (trigger-coincident record fw mm=9, dt=976ms, peak=170, dur=130ms, pol S vs map S, pwm 99, all-genuine AGREE stream). Fired ~36.5s after last true confirm (mm=145 at 19:00:53.6).",
+    "category": "ENVELOPE_GAP",
+    "evidence": "Two DB defects, both in tools/navlab/db/timing_db_v1.json. (1) Cull of the true track: at 1787338824.183 the genuine step 112->113 (dt 1047ms, N/N agree, pwm 99) failed t1|9950011|CW|112|90 fast_bound=1057 (bucket 90 covers pwm 90-99 but its min=1244 came from slower-pwm sessions); repeat culls at 115|90 (fast_bound 957 vs genuine 953) etc. kept P dispersed for 80s despite a flawless evidence stream. (2) The declaration itself: corridor vmax comes from t3|9950011|90 fast_bound=209ms (corrupted min=246ms \u2014 305mm in 246ms is ~5x Otto's real speed; a bad admitted sample), giving 1.459mm/ms; 52150/1.459=35.7s, matching the observed 36.5s to LFC. At the moment LFC fired, P=[8,9,10,16,18,19,20,27] CONTAINED the true position (fw mm=8): the navigator was not actually lost. Windowed-DNA reacquisition then landed correctly (REACQUIRED mm=22 at 19:01:43.8, matching fw label).",
+    "firmware_at_that_moment": "QUORUM_1_16R_IR_TEST_A; firmware tracking cleanly (unbroken AGREE, labels 57->170->wrap->22)",
+    "navigator_state": "P=[8,9,10,16,18,19,20,27] (true mm 8 in set), hi>=52150mm (circuit), pending resolved 1s earlier; anchor CONFIRMED 145, 36.5s stale",
+    "right_response": "No \u2014 declaring route-wide lost was premature: the loco was inside P and the evidence was clean. The declaration is an artifact of a ~5x inflated vmax from one corrupted t3 minimum plus tier-1 fast bounds too tight at the top edge of the 10-wide pwm bucket. Mitigating: the recovery path then reacquired correctly, so the outcome was safe."
+   },
+   {
+    "when": "2026-08-21T19:25:42.732Z (1787340342.732), Otto boot16 \u2014 LOST_FULL_CIRCLE 2 of 2",
+    "trigger": "Corridor hi reached circuit_mm=52150 during a REV crawl (coincident record fw mm=5, dt=3000ms, peak=190, dur=367ms, pol N vs map N, pwm 41, motor_dir=REV, fw_verdict rejected \u2014 dwell/stall double-reads at mm 12 and mm 5 in the window, held by fw quarantine).",
+    "category": "NAVIGATOR_MODEL_GAP",
+    "evidence": "nav_otto_b16_continue.json: after the reseed to mm=9 at 19:22:46.1 (contradiction 28's EXTERNAL_RESEED) there is no CONFIRMED for 176.6s \u2014 89 log entries of churning STEPs/PENDINGs ([10,15,16,18,19,20]/[11,12,13,14,17,21] repeating) because the loco was reversing 15->5->0->170 (records 1787340280-1787340369 all motor_dir=REV, session_dir=CW) and a forward-only P cannot contain it. Corridor integrated forward the whole time (47 events at pwm bucket 100, vmax 305/680=0.449mm/ms, plus bucket 40-90 stretches) until hi crossed 52150. Same root defect as contradictions 2-10; the repeated mm=12/mm=5 duplicate reads in the window were correctly held as pending and are not the cause.",
+    "firmware_at_that_moment": "QUORUM_1_16R_IR_TEST_A; fw label decreasing smoothly through the wrap; quarantine rejecting stall double-counts",
+    "navigator_state": "P=[0,51,90,129] (DNA aliases, none true) just before; pending=None at fire; anchor EXTERNAL_RESEED mm=9, 176.6s stale, zero confirms since",
+    "right_response": "Yes, conditionally \u2014 given a corridor that cannot represent reverse travel, escalating to route-wide lost after 3 minutes without a confirm is the honest outcome and safer than the false CONFIRMs it produced earlier in the same episode. The correct fix is upstream: model motor_dir reversal; the loco's position was never actually uncertain to the firmware."
+   },
+   {
+    "when": "2026-08-21T17:06:49.170Z (1787332009.170), Toby 9950012 boot2 \u2014 the single contradiction",
+    "trigger": "Genuine S marker, fw mm=129, dt=1165ms, peak=184, dur=171ms, pol S vs map N under the firmware label (fw RAMP), pwm 71 decelerating, FWD. Under the navigator's own track this was mm=134, dna[134]=S \u2014 a perfect match it never tested: P was stale at [131] because the two preceding genuine events (fw 127/N and fw 128/S, dt 994/1074ms) arrived 0.37s and 0.011s apart (MQTT/log batching) and were held as PHANTOM_SUSPECT (hi=165, 169 < 300mm spacing).",
+    "category": "NAVIGATOR_MODEL_GAP",
+    "evidence": "nav_toby_b2_continue.json (PHANTOM_SUSPECT hi=165 and hi=169 at 17:06:48.10/48.12, then CONTRADICTION P=[131] hi=542); records_v1.jsonl loco 9950012 boot2 lines ~68905-68915. advance_corridor (reachability_nav.py:129-151) integrates wall-clock gaps between record timestamps, so an 11ms broker-batched gap reads as 4mm of travel even though the event's own dt_ms=1074 says otherwise. DNA check: stepping the held events gives 132=N(obs N), 133=S(obs S), 134=S(obs S) \u2014 flawless. The navigator's +5 offset from the fw label was CORRECT: it came from properly stepping the five genuine markers the fw conservation gate PHANTOM_REJECTED at mm 101 (17:05:43-49, dt 1397/1451/1508/1524/1626 vs duty-model expected 2104-2226, ratio 1.19-1.26 \u2014 the documented mechanism-1 five-straight rejection, QUORUM_LABEL_SLIP_ROOT_CAUSE.md). All subsequent poles match dna under nav labels and mismatch under fw labels (fw DISAGREEs at 102/104/105/106, QUORUM_OPEN, TIED x10, QUORUM_ADOPTED offset +3 \u2014 insufficient, true offset +5 outside the {-1..+4} set \u2014 then NO_QUORUM HARD_BOUND at 17:06:43.4).",
+    "firmware_at_that_moment": "QUORUM_1_16R_IR_TEST_A in active label dispute: label slipped -5 by five conservation-gate rejections, quorum adopted +3, reopened, tied, NO_QUORUM (HARD_BOUND); label not trustworthy in this window (fw only recovers via operator DECLARED mm=137 at 17:09:32)",
+    "navigator_state": "P=[131] (correct position, CONFIRMED 131 at 17:06:47.7 after an unbroken correct run 102->131 through the fw's slip), corridor hi=542mm, pending=(empty-set phantom hypothesis, folded dt 994+1074ms) from two wall-clock-gated holds",
+    "right_response": "No \u2014 this stop was wrong. The navigator held two genuine markers on a bogus wall-clock reachability argument, contradicted a track that was demonstrably correct, and the CONTINUE-mode reseed then relocated it 5 markers backward onto the slipped firmware label \u2014 exactly the false relocation the recovery plan forbids ('never relocates behind the last confirmed position without a reversal'). Corridor advancement must use the event's measured dt_ms (or MQTT-publish timestamps), never broker-receipt gaps. Strict-mode stopping-and-reporting would still beat the reseed, but the contradiction itself was avoidable."
+   }
+  ],
+  "summary": "All 13 classified items trace to two navigator-side defect families plus one envelope-database defect; none is caused by bad sensing in the held-out windows, and every trigger event was a genuine marker. (1) Reversal blindness (11 of 13): reachability_nav.py models direction only from session_dir (main loop ~lines 313-324) and P is forward-only; motor_dir=REV appears in every record of Otto's three reverse excursions (19:02-19:05 crawl, 19:06 fast run, 19:22-19:26 crawl) and is never read. This produced Otto contradictions 2-10 directly (each reseed onto a decreasing firmware label re-contradicted within ~1-3 events, with interleaved FALSE confirms from DNA aliasing), built the false anchor behind contradiction 1, and drove LOST_FULL_CIRCLE 2 (176.6s, zero confirms, corridor integrated forward to the full 52,150mm circuit). (2) Wall-clock corridor advancement (Toby's single contradiction): advance_corridor integrates broker-receipt gaps, so two MQTT-batched genuine events (0.37s/11ms apart, real dt 994/1074ms) were held PHANTOM_SUSPECT; the navigator then contradicted a track that was provably CORRECT \u2014 it was running +5 to a firmware label slipped by the documented mechanism-1 five-straight conservation-gate rejection (Toby mm 101), and the reseed relocated it backward onto the slipped label, the exact false-relocation class the plan forbids. This is also the one instance where the navigator demonstrably beat the firmware before being forced to defer to it. (3) Envelope defects (LOST_FULL_CIRCLE 1): during a clean pwm-99 cruise, tier-1 fast bounds from the 90-99 bucket's slower samples culled the true track (t1|CW|112|90 fast_bound 1057 vs genuine 1047ms), and vmax from t3|9950011|90 (fast_bound 209ms, from a corrupted 246ms admitted minimum \u2014 ~5x Otto's physical speed; t3|9950012|60 min=493ms shows the same corruption class for Toby) inflated corridor growth so 'full circle reachable' fired 35.7s after the last confirm while P still contained the true position. Honest scoring: stopping was correct (if self-inflicted) for all 10 Otto contradictions, premature for LFC1, defensible for LFC2, and wrong for Toby's. Actionable fixes in priority order: read motor_dir into corridor propagation; advance the corridor from measured dt_ms rather than record-timestamp deltas; re-generate the timing DB with duplicate/min-outlier screening (the 246ms t3 minimum) and bucket-edge-aware fast bounds. One data defect found in passing: records_v1.jsonl contains a truncated JSON line (Otto b16, ts 1787340162.813, source line 92347) that breaks naive jq parsing."
+ },
+ {
+  "incidents": [
+   {
+    "id": "a",
+    "firmware": "Toby boot2. 10:05:41 AGREE mm101, then FIVE straight PHANTOM_REJECTED 10:05:43.1-10:05:49.3 with label frozen at 101 (dt 1397/1451/1508/1524/1626 vs frozen expected 2104-2226 - the frozen-predecessor conservation-gate wedge). DISAGREE run 10:05:51-10:06:00, QUORUM_OPEN 10:06:00.3 at label 106, five ties (leader offset 3), QUORUM_ADOPTED +3 at 10:06:29.2 (new_mm 114, 2 short of the 5 eaten), DISAGREEs resume, QUORUM_REOPENED 10:06:35.2 (label rolled back to 114), nine more ties oscillating between offsets -1 and +4, NO_QUORUM 10:06:43.4 at label 123 reason HARD_BOUND. Auto stopped the train at the wrong station. DISPATCHER_RELEASE 10:09:21 (label 132); operator DECLARED mm137 at 10:09:32.",
+    "nav_strict": "Accepted all five rejected genuine markers in real time as mm 102-106 (STEP [102] 10:05:43.2 ... CONFIRMED 106 10:05:49.3, exact per-event lockstep with the five rejections). Tracked the whole cascade essentially single-hypothesis (brief 2-3 member sets during the adopt window, resolved by DNA inside the corridor): CONFIRMED 112, 115, 121, 124, and 127 on the very marker read the firmware scored as NO_QUORUM at label 123 (firmware 4-5 behind through the reopened-tie stretch). CONFIRMED 131 at 10:06:47.7. Then the station-stop transient: two events 11 ms apart at 10:06:48.1 held as PHANTOM_SUSPECT (hi 165/169 mm - no marker physically reachable), and a third event at 10:06:49.2 produced CONTRADICTION (P [131], hi 542) - 5.8 s after the firmware NO_QUORUM, with the train already stopping. No relocation at any point.",
+    "nav_continue": "Identical to strict through 10:06:49 (first contradiction). Reseeded from firmware label 129, immediately re-converged on its own: PENDING [131] -> STEP [131,132] -> [133] by 10:06:54 as the train rolled to a stop. Across the 10:10:18 departure the pending/multi-hypothesis mechanism absorbed the seed error and locked CONFIRMED 144 at 10:10:28 - consistent with departing from the operator's declared 137. Ran to session end (11:50:50) with zero further contradictions: 438 confirmations, final NORMAL, externally_seeded=1 for the whole session.",
+    "verdict": "recovered-without-false-relocation through the defined incident window (all five eaten markers accepted, position 4 ahead of the firmware label at the NO_QUORUM read, never relocated); strict then stopped-honestly at 10:06:49 on the post-incident station-stop dwell burst, 6 s after the firmware NO_QUORUM."
+   },
+   {
+    "id": "b",
+    "firmware": "Otto boot16. Quarantine ate two doubtful events: QUARANTINED 11:21:21.1 (label 22, peak 228, dt 238) -> QUARANTINE_DISCARDED 11:21:25.2, and QUARANTINED 11:21:31.1 (label 25, peak 215, dt 1037) -> QUARANTINE_DISCARDED 11:21:32.4. DISAGREE run, QUORUM_OPEN 11:21:32.5 at label 26, ten straight QUORUM_TIED (leader offset 2 vs runner-up 3, margin never reached 2), NO_QUORUM 11:21:44.0 at label 35 reason HARD_BOUND. Train halted; DISPATCHER_RELEASE 11:30:20 still NO_QUORUM; no recovery until the operator DECLARED mm46 at 11:44:19 - a 22.6-minute outage.",
+    "nav_strict": "Held both quarantine-discarded events as PENDING (11:21:17, 11:21:21) instead of deleting them, widened to at most 8 hypotheses (11:21:25), then DNA+timing inside the corridor narrowed back: CONFIRMED 35 at 11:21:36.5 (7 s before the firmware's NO_QUORUM read reached label 35), 38 at 11:21:40.3, 41 at 11:21:44.0 (25 ms after the NO_QUORUM), 44 at 11:21:47.8; final event before the halt left P=[46] at 11:21:52. The operator's ground-truth declare 22 minutes later was mm 46 - exact match. No contradiction, no relocation.",
+    "nav_continue": "Identical to strict throughout this window (first contradiction in either mode is 12:05:32).",
+    "verdict": "recovered-without-false-relocation (reached in strict; end position P=[46] exactly matches the operator's 11:44:19 declare of mm46)."
+   },
+   {
+    "id": "c",
+    "firmware": "Otto boot16. 11:50:20.8 DISAGREE at label 18: the 5,641 ms dwell event (obs N vs expected S, peak 152, dt 26928 - the leading-lobe crawl signature). Cascade with the label running 2 ahead: QUARANTINE_COMMITTED a 333 ms event at 11:50:25 (defect-Q2 class), DISAGREE run 11:50:25-11:50:31, QUORUM_OPEN 11:50:31.9 at label 28, nine QUORUM_TIED with the leader drifting between -1 and +4 (true offset -2 is outside QUORUM_OFFSETS and unrepresentable), NO_QUORUM 11:50:43.3 at label 37 reason HARD_BOUND. Parked until the operator DECLARED mm39 at 11:58:56 - an 8.2-minute outage.",
+    "nav_strict": "Matched the 5,641 ms dwell event inside the corridor without drama (STEP [21,23,24,25] at 11:50:20.9), held the peak-81 doubtful event PENDING at 11:50:23.7, and resolved: CONFIRMED 24 at 11:50:29.8, then 27, 30, 33, 36 - tracking at firmware_label minus 2 throughout (nav 27 on the read the firmware tie-labeled 29), which is exactly the -2 slip the root-cause windowed fit proved for this cascade. Final CONFIRMED 39 at 11:50:52. The operator's re-declare at 11:58:56 was mm 39 - exact match. No contradiction, no relocation.",
+    "nav_continue": "Identical to strict throughout this window.",
+    "verdict": "recovered-without-false-relocation (reached in strict; resolved the -2 slip the firmware's offset set cannot represent, and its final position mm39 is exactly what the operator declared 8 minutes later)."
+   },
+   {
+    "id": "d",
+    "firmware": "Otto boot16. Physical reversal at 12:01:53 (DIRECTION event: dir CCW, motor_dir REV - session_dir stays CW in every payload and in the normalized records). Running reverse: eat-adopt cycle 1: PHANTOM_REJECTED x2 12:02:44.7/12:02:46.6 (label 10, dt 1861/1950 vs frozen expected 3009), DISAGREEs, QUORUM_OPEN 12:02:56.3, QUORUM_ADOPTED +2 at 12:03:01.4 (new_mm 2), QUORUM_CLOSED 12:03:04. Eat-adopt cycle 2 begins immediately: PHANTOM_REJECTED x2 12:03:10.6/12:03:12.7 (label 170, dt 2053/2080 vs frozen expected 3310), further DISAGREEs. Reverse slips map to +2 inside QUORUM_OFFSETS, so the quorum churns adopt cycles instead of hard-failing - the asymmetry in the root-cause doc.",
+    "nav_strict": "Up to the reversal it was exact (route-wide REACQUIRED mm22 at 12:01:43 vs firmware AGREE mm23 at 12:01:45). The reversal is invisible in its input - the harness reseeds only on a session_dir change and the records still said CW - so it kept stepping forward through reverse-running reads: multi-hypothesis wander (P up to 8 members), spurious CONFIRMED 36 at 12:02:17, 49 at 12:02:40, 58 at 12:02:58 while the loco was physically near labels 20/11/5 heading the other way; stayed ambiguous through 12:03-12:05 and stopped at its first CONTRADICTION 12:05:32.7 (P [107], hi 590) - the strict run's terminal event.",
+    "nav_continue": "Identical to strict through 12:05:32.7, then EXTERNAL_RESEED from firmware label 140 and onward (see incidents e/f).",
+    "verdict": "stopped-honestly (reached in strict, contradiction 12:05:32, about 3.5 min after the incident) - but with a material caveat: the CONFIRMED 36/49/58 during 12:02-12:05 are false positions as replayed, caused by the unsignalled motor reversal (records carry only session_dir; DIRECTION/motor_dir never reach the harness). A records-feed gap rather than a reachability-logic failure, but as committed this window does NOT meet 'recovers or stops without a false relocation'."
+   },
+   {
+    "id": "e",
+    "firmware": "Otto boot16, two NO_QUORUMs. #1: still reverse-running, DISAGREE cascade 12:06:30-12:06:40 (labels 135 down to 124), QUORUM_OPEN 12:06:40.5, ten ties with the leader flapping among -1/1/3, NO_QUORUM 12:06:47.4 at label 115 reason HARD_BOUND, then route-wide SELF_RESOLVED to mm105 at 12:06:59.2. #2: after the forward re-run and the 12:08 wedge (incident f), DISAGREEs 12:09:12-12:09:18 (labels 161-167), QUORUM_OPEN 12:09:18.6, ties across the wrap (labels 167 to 5), NO_QUORUM 12:09:27.1 at label 5 reason HARD_BOUND, SELF_RESOLVED to mm30 at 12:09:39.3 - a +25 label jump.",
+    "nav_strict": "Not reached - the strict run stopped at its first contradiction at 12:05:32.7, before both NO_QUORUMs.",
+    "nav_continue": "Around #1: externally-seeded churn - 12 CONTRADICTION->EXTERNAL_RESEED cycles between 12:06:35.1 and 12:06:58.1, each reseed taken from a reverse-decrementing firmware label and re-contradicting within 1-3 events (direction-blind input, and per the tool's own disclaimer this stretch measures nothing about navigator performance). Last reseed mm102 at 12:06:58; once the loco ran forward again the navigator re-locked entirely on its own, CONFIRMED 115 at 12:07:41 with no further reseed. Around #2: continuously locked with zero contradictions - CONFIRMED 2 at 12:09:13, 5, 8, 11, 14 at 12:09:25 while the firmware tied at labels 0-5 (about 12 behind); when the firmware SELF_RESOLVED to mm30 at 12:09:39 the navigator was already standing at P=[30] - the route-wide self-resolution landed exactly on the navigator's continuously-carried position.",
+    "verdict": "not-reached-in-strict (strict stopped 12:05:32). In continue-analysis: the 12:06:47 episode is unmeasurable reseed churn under the direction-blind reverse input; the 12:09:27 episode is a clean recovery-without-false-relocation, independently corroborated by the firmware's own self-resolution landing on the navigator's position."
+   },
+   {
+    "id": "f",
+    "firmware": "Otto boot16. FIFTEEN straight PHANTOM_REJECTED 12:08:01.2-12:08:35.8 with the label frozen at 130 (dt 2615-3156 vs frozen expected 4234 - the same frozen-predecessor wedge as incident a, the 'fifteen-straight' exemplar in the root-cause doc). Then AGREE 131/132, DISAGREEs, QUORUM_OPEN 12:08:47.3, six ties, QUORUM_ADOPTED +2 at 12:08:53.9 (new_mm 143) - leaving the label still about 11 markers behind, the residual error that feeds NO_QUORUM #2 at 12:09:27 (incident e).",
+    "nav_strict": "Not reached - strict stopped at 12:05:32.7.",
+    "nav_continue": "Accepted all fifteen rejected genuine markers in real time: CONFIRMED 131 at 12:08:01.3 (the moment the firmware froze at 130), then 134, 137, 140, 143 at 12:08:35.8 - one confirm cycle per three rejected reads, in exact lockstep with the rejection run. Zero contradictions anywhere from 12:07:41 (CONFIRMED 115) through 12:09:47 (CONFIRMED 35). At the firmware's +2 adoption (new_mm 143 at 12:08:53.9) the navigator was already at ~[154-161] and CONFIRMED 161 at 12:09:01.5 vs firmware ~150 - directly quantifying the firmware's residual -11 label error after the under-sized adopt.",
+    "verdict": "not-reached-in-strict (after the 12:05:32 stop); in continue-analysis recovered-without-false-relocation - the frozen run of genuine PHANTOM_REJECTED events disappears, exactly the plan's acceptance condition."
+   }
+  ],
+  "invariants": {
+   "behind_anchor": "No - zero occurrences. Instrumented strict replays of both held-out sessions from the committed inputs (records_v1.jsonl + timing_db_v1.json + QUORUM.ino DNA/spacing), reproducing the committed reports' event streams exactly (Toby boot2: 591 STEP/168 CONFIRMED/3 PHANTOM_SUSPECT/1 PENDING/1 CONTRADICTION; Otto boot16: 626 STEP/145 CONFIRMED/27 PENDING/1 LOST_FULL_CIRCLE/1 REACQUIRED/1 CONTRADICTION), checked every occupied position in every STEP and CONFIRMED event - 789 (Toby) + 1213 (Otto) = 2002 position occupancies - against the live anchor: no position was ever behind the anchor (shorter backward than forward track distance). Caveat for the comparison report: 'behind' is defined against session_dir; Otto's physical reversal at 12:01:53 (motor_dir REV while session_dir stayed CW in the records) is invisible to the harness, so from 12:02 to the honest 12:05:32 stop the model's 'forward' was physically backward - internally invariant-clean but physically wrong, and the direct cause of the strict run's single contradiction.",
+   "outside_corridor": "No - zero occurrences. Same instrumented replays: every occupied position's forward track distance from the anchor was within the corridor (dist <= hi + 30 mm, the navigator's own tolerance) at all 2002 STEP/CONFIRMED occupancies. Tightest margins observed: Toby 6.5 mm inside the bound (10:06:29, P member 121, anchor 115, hi 1776 mm - the post-adopt catch-up burst) and Otto 17.8 mm (11:12:15, first step after the seed). The committed strict reports print hi next to P only at CONTRADICTION/PHANTOM_SUSPECT events (Otto P[107] vs hi 590, Toby P[131] vs hi 542 - both inside the corridor at the stop), so the per-STEP verification required the instrumented replay; it is reproducible from committed files alone."
+  }
+ },
+ {
+  "conditions": [
+   {
+    "condition": "Never selects a position outside the physically reachable set",
+    "status": "NOT DEMONSTRATED",
+    "evidence": "Mechanism partially exists: forward-only corridor with committed passing unit tests (tools/navlab/test_reachability_nav.py tests 1 and 5a). But the committed STRICT hold-out run contains counterexamples: tools/navlab/results/nav_otto_b16_strict.json has CONFIRMED mm=36 (t=1787338937.565), mm=49 (t=1787338960.886), mm=58 (t=1787338978.766), mm=107 (t=1787339129.866) while every one of the 66 records in the 1787338924-1787339096 window carries motor_dir=REV (verified in tools/navlab/db/records_v1.jsonl) \u2014 forward CW positions were physically excluded by direction data present in the model's own input records. reachability_nav.py never reads motor_dir (grep confirms zero references; direction comes only from session_dir, which is constant CW for all 1455 Otto b16 records against 14 measured motor_dir flips). The set the model enforces is 'reachable assuming direction never changes', which the hold-out data refutes.",
+    "missing": "motor_dir/DIRECTION consumption in corridor propagation; an automated replay-level assertion that no CONFIRMED/DECLARED position violates reachability given the full recorded PWM+direction history (the unit tests are synthetic and direction-static). These are false selections in STRICT mode \u2014 the mode whose numbers are supposed to count."
+   },
+   {
+    "condition": "Never relocates behind the last confirmed position without a reversal",
+    "status": "PARTIAL",
+    "evidence": "Committed passing unit test (test_reachability_nav.py test 1: pole matching only the marker behind the anchor never relocates backward). My scan of both committed strict logs (nav_otto_b16_strict.json, nav_toby_b2_strict.json: 148 and 169 anchor moves) finds zero backward or route-jump CONFIRMED moves; the only non-incremental relocation is the LFC-gated REACQUIRED mm=22, which is condition 3's problem, not this one.",
+    "missing": "No committed automated check over replay outputs (my scan is ad hoc, not in the repo). And the committed continue-analysis output performs exactly the forbidden move: nav_toby_b2_continue.json EXTERNAL_RESEED mm=129 at t=1787332009.17 relocates ~5 markers behind the navigator's demonstrably correct position (true mm=134 per the DNA argument) onto the slipped firmware label. It is labeled EXTERNAL_RESEED and excluded from strict scoring \u2014 legitimate as a diagnostic \u2014 but the forbidden relocation sits in a committed result file, and nothing machine-checkable prevents its numbers being quoted as model behavior."
+   },
+   {
+    "condition": "No route-wide search until a complete circuit is physically reachable",
+    "status": "NOT DEMONSTRATED",
+    "evidence": "Direct committed counterexample on hold-out data, in STRICT mode: nav_otto_b16_strict.json LOST_FULL_CIRCLE at t=1787338890.098 (36.5 s after the last true confirm) followed by a route-wide windowed-DNA search and REACQUIRED mm=22 at t=1787338903.801. The gate's vmax input is committed and corrupted: tools/navlab/db/timing_db_v1.json t3|9950011|90 has min=246 ms / fast_bound=209 ms over 305 mm (1.46 mm/ms) versus the pwm-100 bucket's fast_bound=680 (0.449 mm/ms) \u2014 the pwm-90 bucket claims Otto is 3x faster at lower duty, physically impossible, admitted at n=13405 with no plausibility screen. A complete circuit was not physically reachable in 36.5 s; the route-wide search ran anyway and P provably still contained the true position (mm=8 in P=[8,9,10,16,18,19,20,27]) at the moment of declaration. The unit test (test 5b) verifies only that the gate fires when hi >= circuit_mm \u2014 it cannot detect a corrupted hi growth rate.",
+    "missing": "Physical-plausibility screening of admitted DB minima (build_timing_db.py admission is 'genuine-labeled consecutive pairs' only; test_navlab.py checks quantile ordering, not physics); cross-bucket monotonicity checks; regeneration of timing_db_v1.json after screening; a re-run showing no premature LFC. The correct reacquisition afterwards mitigates outcome, not the condition \u2014 the condition is about when route-wide search is permitted, and it was permitted early."
+   },
+   {
+    "condition": "Known genuine acceleration events remain genuine",
+    "status": "PARTIAL",
+    "evidence": "Demonstrated for the canonical incident: Toby mm 101 five-straight conservation-gate PHANTOM_REJECTED acceleration run (17:05:43-49). Committed nav_toby_b2_strict.json shows the navigator stepping through that exact window unbroken \u2014 STEP/CONFIRMED 100(t=1787331940.539) -> 103 -> 106 -> ... -> 115(t=1787331970.599) \u2014 treating all five as genuine and running +5 correct to the slipped firmware label; the timing DB independently reproduces the cause (tools/navlab/README.md artifact-2 row: measured 1317-1647 ms where the PWM model demanded 2226; mechanism documented in docs/QUORUM_LABEL_SLIP_ROOT_CAUSE.md).",
+    "missing": "No committed enumeration of 'known genuine acceleration events' and no automated assertion over them \u2014 the demonstration is manual log inspection of one incident. The second known rejection run (Otto 19:16:38-57) reached the navigator when it was already wrong-direction-lost (contradiction on the first rejected event from a false P={55} anchor per the bundle), so it demonstrates nothing either way."
+   },
+   {
+    "condition": "Known phantoms do not advance confirmed position",
+    "status": "PARTIAL",
+    "evidence": "The hold/pending mechanism is unit-tested and committed (test_reachability_nav.py test 2: sub-fast-bound event held, not advanced; tests 3a/3b: pending resolves under both hypotheses). The LFC2-window stall double-reads (repeated mm=12/mm=5) are asserted held-as-pending only in the uncommitted bundle prose, and in a CONTINUE-mode stretch.",
+    "missing": "No committed list of known phantoms in the hold-out sessions with per-event outcomes, so the condition has no automated or even file-citable check against real data. Worse, the phantom-suspicion path demonstrably misfires in the opposite direction: all 3 PHANTOM_SUSPECT entries in committed nav_toby_b2_strict.json (t=1787332003.413 hi=13; t=1787332008.104 hi=165; t=1787332008.115 hi=169) held GENUINE markers, because advance_corridor (reachability_nav.py:129-151) integrates broker-receipt wall-clock gaps instead of the events' measured dt_ms (994/1074 ms events arriving 0.37 s/11 ms apart) \u2014 and those false holds directly caused the wrong Toby stop. A phantom detector shown firing only on genuine events is not evidence for this condition."
+   },
+   {
+    "condition": "Frozen runs of genuine PHANTOM_REJECTED events disappear",
+    "status": "PARTIAL",
+    "evidence": "One of two known frozen runs demonstrated: during Toby's five-straight rejection at mm 101 the firmware label froze/slipped, but the committed navigator track (nav_toby_b2_strict.json) advances continuously 102->115 through the window \u2014 no frozen run exists in the navigator's world.",
+    "missing": "The second known frozen run (Otto, firmware label frozen at mm=38, four PHANTOM_REJECTED at 19:16:51-57, exp=3741 ms) is NOT demonstrated to disappear: per the bundle's own part-2 analysis the navigator CONTRADICTED on the first frozen-run event from an anchor 17 markers wrong, having silently confirmed 48..55 while the loco ran 46..39 \u2014 the replay never reached that run in a valid state. No automated check scans results for frozen-run signatures. 1-of-2 with the other confounded by the direction defect is not 'disappear'."
+   },
+   {
+    "condition": "Known Otto and Toby incidents recover or stop without a false relocation",
+    "status": "PARTIAL",
+    "evidence": "Toby known incident (mm 101 label slip): committed strict run stops (nav_toby_b2_strict.json final=STOPPED_AT_FIRST_CONTRADICTION, zero relocations, 168 confirmations before the stop) \u2014 and en route the navigator demonstrably out-tracked the firmware through the slip. That satisfies 'stop without a false relocation' on its face, though the stop fired while the navigator's own position was provably correct \u2014 a stop the bundle itself scores as wrong.",
+    "missing": "Otto fails the condition in substance: before its strict-mode stop the model produced false CONFIRMED anchors 36/49/58/107 during a motor_dir=REV excursion (committed in nav_otto_b16_strict.json) \u2014 confirmed relocations to positions the locomotive never occupied \u2014 plus the premature LFC route-wide reacquisition (right position, wrong mechanism). Calling these 'not relocations' because they arrived via CONFIRMED rather than reseed is exactly the classification-that-excuses pattern to reject: a false CONFIRMED is a false relocation with extra confidence. Also missing: a committed enumeration of which incidents count as 'known', without which this condition cannot be scored mechanically."
+   },
+   {
+    "condition": "Every changed regression expectation has an event-level justification",
+    "status": "NOT DEMONSTRATED",
+    "evidence": "Nothing committed to audit. Artifact 5 (the single comparison report) does not exist in the repo: tools/navlab/README.md row 5 says 'in progress', and grepping docs/ for the bundle's classification categories (NAVIGATOR_MODEL_GAP, ENVELOPE_GAP) returns nothing. There is no regression-expectation ledger for the navigator at all.",
+    "missing": "The entire 31+2-item classification exists only in this conversation. Its citations are not reproducible from committed files as written: it cites 'records line 89858/89998/90002...' but the committed regenerated records_v1.jsonl has only 58,777 lines \u2014 the numbers refer to the UNCOMMITTED full capture (field-records/logs/20260820_morning_session.log is untracked; the committed navlab-inputs version is filtered with different line numbering). Two bundle claims also fail verification against current committed artifacts: the alleged truncated JSON line in records_v1.jsonl does not reproduce (0 of 58,777 lines fail to parse after rebuild), and 'motor_dir flips 15 times' measures as 14. The bundle must be re-anchored to committed files and committed before this condition can even be evaluated."
+   },
+   {
+    "condition": "Results hold on sessions excluded from design and envelope generation",
+    "status": "PARTIAL",
+    "evidence": "The exclusion side is the best-demonstrated element of the deliverable: timing_db_v1.json commits sessions_held_out (both eval sessions plus the whole 20260811 beta log), holdout_leaks_blocked=0 with structural dup_sources leak-proofing covered by a dedicated committed test (test_navlab.py test 7 \u2014 overlap re-entry blocked, admitted=0; 12/12 pass), rebuild_db.sh is the exact command of record consuming only committed inputs, and both test suites pass on a fresh run (12/12, 8/8).",
+    "missing": "The condition says results HOLD on held-out sessions, and they do not: the hold-out replays are precisely where conditions 1, 3, and 7 break (premature LOST_FULL_CIRCLE at 36.5 s, four false strict-mode confirmations under reversal, a wrong stop against a provably correct track). Clean hold-out hygiene delivering failing results demonstrates the hygiene, not the condition. Also note Otto strict's headline '145 confirmations' includes the false ones \u2014 no committed check compares confirmations to any ground truth, so confirmation counts are an unvalidated metric everywhere they appear."
+   }
+  ],
+  "overall": "Scoreboard: 0 DEMONSTRATED, 6 PARTIAL, 3 NOT DEMONSTRATED (conditions 1, 3, 8). By the plan's own sentence \u2014 'If any condition fails, the result is a failed experiment, not a partially completed production feature' \u2014 this is currently a failed experiment, and a well-instrumented one: artifacts 1-4 are real, reproducible (rebuild_db.sh from committed inputs; 12/12 + 8/8 tests pass on re-run), and the STRICT/CONTINUE separation is honestly designed. But the evidence bundle is artifact-5 work product that exists nowhere in the repo, and it needs re-anchoring before commit: its record-line citations point at an uncommitted capture, its truncated-JSON claim does not reproduce on the current rebuild, and one flip-count is off by one. Specific framing hazards confirmed in committed files: both continue-analysis JSONs carry final:'NORMAL' \u2014 a 31-contradiction, 31-firmware-reseed run whose stored final state reads NORMAL \u2014 and their confirmation counts (242 Otto, 438 Toby) are quotable as performance despite measuring nothing past the first contradiction; even the STRICT Otto count (145) contains at least four provably false confirmations, and no automated check anywhere validates confirmations against ground truth. The classification prose repeatedly grades self-inflicted contradictions as 'honest stops' \u2014 accurate about the stop, exculpatory about the preceding minutes of confident false tracking, which part 2's item 18 correctly names as the more damning finding. Conditions 4, 5, 6, and 7 rest entirely on manual log reading; only condition 9's exclusion half and fragments of 1/2/3/5 have automated checks, and those are synthetic unit tests, not replay-level assertions. The three defect families are consistently identified across both classifier passes and verified against committed data (motor_dir blindness \u2014 14 flips in Otto b16 records, zero reads in reachability_nav.py; wall-clock corridor advancement \u2014 3 genuine-marker PHANTOM_SUSPECTs in Toby strict; unscreened DB minima \u2014 t3|9950011|90 min=246 ms committed, 3x faster than the pwm-100 bucket). That points to plan outcome 2 (revise off-locomotive against the named failed conditions), and the revision bar should include: consume motor_dir, advance corridors from measured dt_ms, regenerate the DB with physical screening, then re-run the hold-outs with committed replay-level assertions for each of the nine conditions \u2014 because today, seven of nine conditions have no automated check at all."
+ }
+]

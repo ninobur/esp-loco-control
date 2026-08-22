@@ -2,7 +2,7 @@
  "session": "20260820_morning_session.log:boot2",
  "loco": "9950012",
  "mode": "CONTINUE-ANALYSIS",
- "final": "NORMAL",
+ "final": "ANALYSIS_ONLY_1_EXTERNAL_SEEDS",
  "externally_seeded": 1,
  "log": [
   {
