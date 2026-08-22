@@ -1,7 +1,8 @@
 # Host-model acceptance tests — written before implementation
 
 Companion to `docs/AUTONOMOUS_POSITION_ACQUISITION_SPEC.md`. Status: Proposed.
-Corrected 2026-08-22 in the same pass as the specification.
+Corrected 2026-08-22; correction pass 3 follows the operator rulings at
+6fba58c.
 These tests are written and committed **before** the navigator they test. They
 run entirely off-locomotive.
 
@@ -60,24 +61,68 @@ assertion inherited from prior documents.
 
 ## U — usefulness gates (must be met)
 
-- **U1.** Orientation-known startup on a clean stream acquires the **correct**
-  position from every MM in both directions (T1).
+- **U0.** Exact-MM startup remains available and enters `POSITIONED`
+  immediately (T0).
+- **U1.** Launch-region acquisition on a clean stream acquires the **correct**
+  position from every MM in MM030–MM055 in both orientations (T1a); route-wide
+  orientation-known startup does so from every MM in both directions (T1).
 - **U2.** Acquisition completes within `W_dir` clean observations, or `W_both`
   in `UNLOCATED`, using P0's computed values (T1, T2).
 - **U3.** Orientation-unknown acquisition succeeds on clean streams whenever
   movement is externally authorised (T2).
-- **U4.** Normal recovery on clean evidence **reacquires rather than stopping**
-  (T3).
+- **U4.** Powered-run recovery **retains the last trustworthy anchor** and on
+  clean evidence **reacquires rather than stopping** (T3).
+- **U4b.** A single doubtful detection causes **no speed-state transition** and
+  no AUTO cancellation (T16).
+- **U4c.** Manual operation without position permits movement, activates
+  neither AUTO nor station behaviour, and reports a self-acquired position
+  without starting AUTO (T21).
 - **U5.** An isolated ghost, and a single missed marker, cause neither
   permanent loss nor an unscheduled stop (T7, T10).
-- **U6.** Clean generated operation, orientation-declared acquisition and
-  recoverable isolated faults produce **zero** unscheduled navigation stops and
-  no repeated crawl/cruise cycling (T16).
+- **U6.** Normal launch, launch-region acquisition, clean generated operation
+  and recoverable isolated faults produce **zero** unscheduled navigation stops
+  and no repeated crawl/cruise cycling (T1a, T16, T22).
 - **U7.** Every family reports acquisition latency in observations and in
   millimetres travelled, unscheduled-stop rate, and the §7.4.1 speed-change
   counters. Reported, not gated, except where a family names a bound.
 
-## T1 — orientation-known startup at every possible MM — **CLEAN**
+## T0 — exact-MM startup remains available — **CLEAN**
+
+Mode 1 (§4.0): an exact MM or interval declaration at every marker, both
+directions, locomotive stationary.
+
+- Pass: `POSITIONED` immediately, `|H| = 1`, AUTO available, station arming
+  subject only to §7.3.
+- Pass: no acquisition sequence is required or attempted first. Self-acquisition
+  being optional means mode 1 costs nothing.
+
+## T1a — launch-region acquisition — **CLEAN**
+
+Mode 2 (§4.0): `ACQ_LAUNCH_REGION`, `H` seeded to MM030–MM055 in the declared
+direction, true start swept over **every marker MM030–MM055 in both
+orientations (52 cases)**, clean stream.
+
+- **Pass: every case reaches `POSITIONED` at the true marker.** Stopping is a
+  failure — this family exists to show launch-region acquisition is *useful*,
+  not merely safe (U1).
+- Pass: zero unscheduled navigation stops across the family (U6).
+- Pass: on acquisition, `STATION_LOOKAHEAD_MARKERS` is applied per T18 — cases
+  acquiring near MM055 CW must skip Grillers.
+- Report: latency in observations and mm. A 26-bit seed should resolve
+  faster than the 171-bit seed of T1; both numbers are reported so the
+  operational benefit of declaring the launch region is measured, not assumed.
+
+## T1b — launch region is never presumed — **safety**
+
+- Pass: a locomotive booting with no startup selection is in mode 3
+  (`UNLOCATED`), **not** mode 2. A build that defaults to the launch-region
+  seed fails.
+- Pass: mode 2 selected while the locomotive is truly outside MM030–MM055
+  produces either a contradiction (§5) or no confirmation — **never** a
+  confident wrong position. This is the operator-error case the explicit
+  selection exists to bound, and S1 covers it.
+
+## T1 — orientation-known route-wide startup at every possible MM — **CLEAN**
 
 `ACQUIRING_ORIENTED`, declared direction correct, true start swept over all 171
 markers × both directions (342 cases), clean stream, movement externally
@@ -90,8 +135,9 @@ authorised.
 
 ## T2 — orientation-unknown startup — **CLEAN**
 
-`UNLOCATED` from all 342 starts, clean stream, movement externally authorised
-(the test supplies the authorisation the §4.4.2 policy would otherwise gate).
+`UNLOCATED` from all 342 starts, clean stream, movement supplied by the
+operator's manual throttle (§4.4.3) — the navigator authorises none from an
+unknown position, and after the 2026-08-22 ruling it never will (§4.4.2).
 
 - Pass: every case resolves to the true (marker, direction) within `W_both`.
 - Pass: orientation resolves no later than position in every case; a position
@@ -103,6 +149,11 @@ From `POSITIONED`, force `RECOVERING` (pending overflow), then a clean stream.
 Swept over all 171 markers × both directions × loss at 1, 3 and 8 markers.
 
 - **Pass: every case reacquires. Stopping is a failure (U4).**
+- **Pass: the last trustworthy anchor, direction and reversal history,
+  per-branch `last_genuine`, PWM/motion history and pending evidence all
+  survive the transition intact**, asserted field by field against the
+  pre-loss snapshot. A recovery that re-seeds route-wide on a mid-run loss
+  fails outright.
 - Pass: S2 at every detection.
 - Pass: no case reaches route-wide extent on a clean stream — that would
   reproduce the iteration-3 corridor defect.
@@ -254,27 +305,55 @@ inside the window (**CLEAN**, U5), and 3+ faults inside the window
 ## T14 — permitted acquisition contexts with a peer — **AMBIGUOUS**
 
 `ACQUIRING_ORIENTED` with a peer present, swept over relative placements from
-adjacent to half a circuit, in four configurations:
+adjacent to half a circuit, in six configurations:
 
-1. peer enlisted and moving;
-2. **peer enlisted and `PEER_COMMANDED_STOPPED`**, occupancy unbounded;
-3. peer `PEER_IMMOBILISED ∧ PEER_BOUNDED(region)` by configured declaration;
-4. acquiring locomotive constrained to an independently declared starting
-   region disjoint from the peer's conservative occupancy.
+1. peer enlisted and moving; our seed `ACQ_ROUTE_WIDE`.
+2. peer enlisted and `PEER_COMMANDED_STOPPED`, occupancy unbounded; our seed
+   `ACQ_ROUTE_WIDE`.
+3. **peer `PEER_IMMOBILISED ∧ PEER_BOUNDED(region)`; our seed
+   `ACQ_ROUTE_WIDE`.**
+4. peer `PEER_BOUNDED(region)`; our seed `ACQ_LAUNCH_REGION`, region
+   **overlapping** the peer's region or within the 0033 margin of it.
+5. peer `PEER_BOUNDED(region)`; our seed `ACQ_LAUNCH_REGION`, regions disjoint
+   with the 0033 margin intact for every candidate pair.
+6. as 5, but the peer is mobile and its bound expands by §3.12.2 during the
+   authorised movement until separation can no longer be proven.
 
-- **Pass: configurations 1 and 2 do not move.** Configuration 2 is the specific
-  defect this family exists to catch, and the reason is **not** that a stopped
-  peer is dangerous: it is that neither occupancy is bounded. Our own candidate
-  set is route-wide, so we may already be beside the peer, and no motion state
-  of the peer changes that. Configurations 1 and 2 must be refused for the same
-  published reason — unbounded occupancy — not for different ones.
-- **Pass: `PEER_COMMANDED_STOPPED` never appears in a granted-authority path.**
-  Asserted directly: a build that lets the peer's commanded-zero flag unlock
-  motion fails, even if every other check would also have passed.
-- Pass: configurations 3 and 4 may move, and only while the isolating condition
-  holds; loss of the condition mid-acquisition stops the locomotive.
-- Pass (S4): every refusal publishes `STOPPED_FOR_NAVIGATION_SAFETY` with a
-  reason and **no demand for a manual MM declaration**.
+- **Pass: configurations 1, 2, 3 and 4 do not move.**
+- **Configuration 3 is the correction this family now exists to enforce.** A
+  bounded, immobilised peer is **not sufficient**: our own candidate set is
+  route-wide, so we may already be standing inside the peer's protected region.
+  Bounding the peer says nothing about where we are. A build that authorises
+  movement here fails, and it must fail for the stated reason — C2 condition 1
+  unsatisfied — not incidentally.
+- Pass: configurations 1, 2 and 3 are refused with **the same** published
+  reason class (occupancy not bounded on at least one side), not three
+  different ones.
+- **Pass: configuration 5 may move**, and only while all four C2 conditions
+  hold continuously.
+- **Pass: configuration 6 moves and then has authority withdrawn** as the
+  peer's stale bound expands — smoothly, by the §7.4 calculation, not by an
+  alarm or a latched hold.
+- Pass (S4): every refusal publishes its reason and **no demand for a manual MM
+  declaration**, and sets no latch that must later be cleared.
+
+## T14b — peer motion information may only enlarge or invalidate — **safety**
+
+Generated peer report streams: fresh/stale, stopped/moving, agreeing and
+disagreeing with the bound, including a peer reporting a precise position it
+has no authority to claim.
+
+- **Pass: no peer report ever creates a bound.** A peer reporting "stopped at
+  MM100" with no `PEER_BOUNDED(region)` narrows our authority calculation by
+  exactly nothing.
+- **Pass: no peer report independently grants authority.** Asserted directly: a
+  build in which any combination of peer motion fields unlocks motion that the
+  bounded-occupancy test refuses fails.
+- **Pass: reports enlarge or invalidate.** Increasing report age monotonically
+  expands the peer's conservative occupancy per §3.12.2 and monotonically
+  reduces our authority, to zero when separation can no longer be proven.
+- **Pass: `PEER_IMMOBILISED` holds the expansion at zero** while latched, and
+  expansion resumes the moment the latch is cleared.
 
 ## T15 — occupancy representation — **safety**
 
@@ -303,9 +382,13 @@ ghosts and harmless Case-R redeclarations, over long runs (≥ 500 detections)
 at each PWM bucket, with and without a `POSITIONED` peer.
 
 - **Pass: zero unscheduled navigation stops (U6).**
-- **Pass: zero speed reductions from a single doubtful detection.** A reduction
-  requires the binding constraint to hold for `SPEED_HYST_EVENTS_DOWN`
-  consecutive detections (§7.4.1).
+- **Pass: a single doubtful detection produces no speed-state transition at
+  all** — no reduction, no crawl, no hold, no AUTO cancellation (U4b). A
+  reduction requires the binding constraint to hold for
+  `SPEED_HYST_EVENTS_DOWN` consecutive detections (§7.4.1).
+- **Pass: entering `RECOVERING` on its own changes no speed.** `nav_state` and
+  `movement_state` transition independently, asserted as a pair on every
+  detection.
 - Pass: no reduce/restore cycle repeats more than once per run; a cycling
   pattern is the CTO2 failure this family exists to prevent.
 - Pass: `nav_speed_reductions`, `nav_speed_restorations` and
@@ -336,6 +419,12 @@ stations as the intended stop.
 - Pass: where it is closer, that stop is **not attempted**; the following
   permitted station is targeted and the substitution published with its reason.
 - Pass: no case arms an approach from inside its braking distance.
+- **Pass, launch-region cases specifically:** acquiring CW from the upper end
+  of MM030–MM055 finds Grillers (MM063) fewer than 12 markers ahead and **must
+  skip it**, targeting Arches (MM107); acquiring CW from MM030 finds Grillers
+  33 markers ahead and uses it. CCW cases use Patio (MM015) as the reference.
+  These are the same first-station-clear references the §7.7 launch procedure
+  uses.
 
 ## T19 — operator role boundaries — **safety**
 
@@ -363,6 +452,63 @@ adjacent to half a circuit, and over the T15 candidate-set shapes.
 - Pass (S4): where motion cannot be authorised, both stop and neither publishes
   a demand for a manual MM declaration.
 
+## T21 — manual operation without a declared position — **CLEAN**
+
+Mode 3 (§4.0, §4.4.3): `UNLOCATED`, operator drives manually, clean stream,
+swept over all 342 starts.
+
+- **Pass: manual throttle moves the locomotive.** The navigator neither
+  commands motion nor blocks it. A build that refuses manual throttle because
+  position is unknown fails.
+- **Pass: no AUTO and no station behaviour is activated**, and neither is
+  *inhibited* — asserted structurally: no flag suppresses the station machine,
+  no latch is set, and nothing needs releasing. The capability is absent
+  because its positional input is absent (U4c).
+- **Pass: the navigator keeps observing and self-acquires** at `W_both` on a
+  clean stream, then enters `POSITIONED` and **publishes the position without
+  starting AUTO**. AUTO begins only if the operator had requested it.
+- Pass: STOP and E-STOP remain fully effective throughout; clearing an E-stop
+  does not force leaving AUTO.
+- Pass: `separation_claimable=false` is published with its reason for the whole
+  time position is unknown, and no separation claim is made.
+- **Pass: no `HOLD` state exists in any published telemetry** for this
+  condition. `MANUAL_NO_POSITION` is descriptive and latches nothing.
+
+## T22 — sequential two-locomotive launch — **CLEAN**
+
+The §7.7 procedure simulated end to end: both consists placed within
+MM030–MM055, both in mode 2, leading locomotive started manually, trailing
+started after the leader clears Grillers (CW) or Patio (CCW). Swept over
+placement pairs within the region and both orientations.
+
+- **Pass: no `LAUNCH_HOLD` state, no launch-order command and no automated
+  sequencing appears anywhere.** Asserted structurally, not behaviourally: a
+  build that adds one fails even if its behaviour is otherwise correct.
+- **Pass: the trailing locomotive is stationary for exactly one reason — no
+  movement command was issued to it.** No latch, no order, no navigator-imposed
+  restraint.
+- **Pass: zero unscheduled navigation stops across the whole procedure** (U6).
+- Pass: once both are moving with bounded occupancies, C2 is evaluated
+  continuously and authority reduces if the bounds converge.
+- Pass: both locomotives acquire and enter `POSITIONED` within `W_dir`
+  observations, and each applies §7.3 to its own first station.
+
+## T23 — STOP/HOLD posture — **safety**
+
+A structural audit family, run against the built navigator rather than a
+generated stream.
+
+- **Pass: `STOPPED_FOR_NAVIGATION_SAFETY` is the only navigation-commanded
+  motion order.** Enumerate every code path that can command a speed change or
+  set a latch; any additional hold-like state fails the suite.
+- **Pass: no stop is commanded while any of the four §7.8 alternatives remains
+  available** — bounded authority, pending evidence, conservative speed, or
+  manual operation. Each generated stop is checked against the four.
+- Pass: no `HOLD` state exists to represent an unavailable capability —
+  absent AUTO, absent station approach, absent position, absent peer bound.
+- Pass: every unscheduled stop latches the §7.6 snapshot, demands no MM
+  declaration, and requires a deliberate operator restart.
+
 ## Stop classification
 
 Every unscheduled stop in every family is classified by the harness into
@@ -372,7 +518,9 @@ exactly one of three, and the counts are reported per family:
    in AMBIGUOUS families.
 2. **Unnecessary stop caused by a model defect** — the evidence admitted a
    unique resolution the navigator failed to reach. **Any occurrence in a CLEAN
-   family fails the suite.**
+   family fails the suite.** Normal launch (T22), launch-region acquisition
+   (T1a) and recoverable isolated faults (T7, T10) must produce **zero** stops
+   of any classification.
 3. **No stop; ordinary recovery.** The expected outcome of every CLEAN family.
 
 ## Regression, explicitly not acceptance

@@ -1,7 +1,10 @@
 # Implementation map — QUORUM component disposition
 
 Companion to `docs/AUTONOMOUS_POSITION_ACQUISITION_SPEC.md`. Status: Proposed.
-Corrected 2026-08-22 in the specification correction pass: the timing source
+Corrected 2026-08-22, passes 2 and 3. Pass 3 (operator rulings 6fba58c) adds
+the launch-region seed, the protected-region declaration, the peer-motion
+expansion rule, and the explicit absence of any `LAUNCH_HOLD`. Pass 2: the
+timing source
 and evidence-ring fields (§3.6 branch-local elapsed time), the occupancy
 publication, and the separation of navigation state from speed state.
 Authorises no firmware change. Line references are to
@@ -55,7 +58,7 @@ function itself goes away).
 | `nqLearn()` / `nqCandidate` / `nqConfirm` / `NQ_CONFIRM_N` self-resolution | **REPLACE** | the "never stop learning" behaviour is retained; the three-consecutive-advance confirmation is replaced by §3.9, which additionally requires completeness and unsuspended authority |
 | `quorumAdvisoryMarker()` HARD_BOUND advisory (decision 0023) | **REMOVE** | acquisition becomes first-class, so an advisory-that-never-acts has no remaining role |
 | `dnaPush()` / `dnaBuf` streaming remnant | **REMOVE** | already dead by instruction |
-| `nqDropAutoInterlock()` | **RETAIN**, narrowed | applied only when the locomotive **actually stopped**, entered fleet hold, hit a contradiction or explicitly cancelled AUTO. It is **not** applied to a recovery that never stopped: re-entering `POSITIONED` while still moving automatically restores the previously authorised speed with no operator GO (spec §7.2, §7.4, §7.5) |
+| `nqDropAutoInterlock()` | **RETAIN**, narrowed | applied only when the locomotive **actually stopped**, entered fleet hold, hit a contradiction or explicitly cancelled AUTO. A single doubtful detection triggers none of these, and AUTO begins after acquisition only if the operator had requested it. It is **not** applied to a recovery that never stopped: re-entering `POSITIONED` while still moving automatically restores the previously authorised speed with no operator GO (spec §7.2, §7.4, §7.5) |
 | NO_QUORUM snapshot / retained-state machinery (`desiredRetainedNoQuorum`, generations) | **RETAIN** | forensic record, re-pointed at the new entry reasons |
 
 ## Firmware — motion, stations, fleet
@@ -64,13 +67,16 @@ function itself goes away).
 |---|---|---|
 | PWM ramps, `STATION_UP_STEP_MS` / `STATION_DOWN_STEP_MS`, brake enforcement | **RETAIN** | unchanged |
 | station table, `effStopOffset()`, phase machine | **RETAIN** | unchanged |
-| station **arming** gate | **REPLACE** | armed only in `POSITIONED`; `ST_FINAL` completes on entry to `RECOVERING`, earlier phases abandon (§4.3). On entering `POSITIONED` from acquisition or recovery, an intended station closer than `STATION_LOOKAHEAD_MARKERS` is skipped in favour of the next permitted one (§7.3) |
+| station **arming** gate | **REPLACE** | available only in `POSITIONED`, and **unavailable rather than inhibited** elsewhere — an approach needs an exact distance-to-centre, which does not exist while `|H| > 1`, so nothing suppresses the station machine and nothing is released later; `ST_FINAL` completes on entry to `RECOVERING`, earlier phases abandon (§4.3). On entering `POSITIONED` from acquisition or recovery, an intended station closer than `STATION_LOOKAHEAD_MARKERS` is skipped in favour of the next permitted one (§7.3) |
 | requested-PWM authority while navigating | **REPLACE** | `nav_state` and `movement_state` become distinct (P13). Entering `RECOVERING` commands no speed change; the ceiling is derived from the worst case over all viable candidates and the peer's occupancy (§7.4), not fixed at PWM 60. Hysteresis (`SPEED_HYST_EVENTS_DOWN`/`_UP`, `SPEED_STEP_MIN_PCT`) prevents CTO2-style crawl/cruise cycling, and reductions/restorations/stops are counted and published |
 | CTO2/CTO3 transport, roles, echo, membership (0031/0032/0034/0037/0039) | **RETAIN** | |
 | CTO payload position field | **REPLACE** | single `mm` becomes the conservative occupancy of §3.12: up to `OCC_ARCS_MAX` wrapping arcs if the contract can carry them, otherwise one covering arc, with a tie between minimal covering arcs or an over-long arc published as route-wide. Disjoint islands and 170/0 wraparound are ordinary cases, not edge cases |
 | separation computation (0033: bubble + six markers) | **REPLACE** | evaluated on-device over the **complete bitmap** — every candidate-position pair, or a demonstrably conservative equivalent — never over a minimal-looking arc that excludes a viable hypothesis. `INCOMPLETE` or route-wide occupancy forces fleet stop. Published compression may never grant more authority than the bitmap (test T15.5) |
 | `ctoFleetHold` | **RETAIN** | now also raised by an `UNLOCATED` peer, or by any peer whose occupancy is unbounded |
-| peer motion/stopped flags as an authority input | **REMOVE** | motion state is not a safety property. `PEER_COMMANDED_STOPPED` becomes telemetry only; authority consumes `PEER_BOUNDED(region)` and `PEER_IMMOBILISED` (spec §3.12.1), which are declared by configuration or operator and never inferred from the peer's own navigation claims |
+| peer motion/stopped flags as an authority input | **REPLACE** | motion state is not a safety property and may not create a bound or grant authority. `PEER_COMMANDED_STOPPED` becomes telemetry only. Peer speed, direction, authority and **report age** are retained for one purpose: they **enlarge or invalidate** a bound (spec §3.12.2), expanding the peer's conservative occupancy at its own envelope fast bound between valid reports, so a silent peer degrades our authority smoothly. `PEER_IMMOBILISED` holds that expansion at zero while latched |
+| — | **NEW** | protected-region declaration: a configured or operator-supplied region bound, for the peer (`PEER_BOUNDED`) and for ourselves when outside the launch region. **No mechanism exists in firmware today**, and §4.2 context C2 is unreachable without it — C1 (alone) would be the only usable acquisition context. Listed as open operator decision 4 |
+| — | **NEW** | launch-region seed: `H` = MM030–MM055 in the declared direction, selected explicitly by the operator and **never defaulted** (spec §4.0). This is the bound that makes C2 reachable for the acquiring locomotive |
+| `LAUNCH_HOLD` or any launch-ordering state | **NOT ADDED** | recorded here as a deliberate non-component. Sequential launch is operator-supervised (spec §7.7); the trailing locomotive is stationary because no command was issued. Adding a latch would create an ordering to enforce and a failure mode when it is wrong |
 | MQTT topic/field contract | **RETAIN** | additive fields only (§7), and additions are gated on operator approval |
 
 ## Host model — `tools/navlab`
@@ -109,3 +115,10 @@ function itself goes away).
    `docs/AUTONOMOUS_ACQUISITION_VALIDATION_PROTOCOL.md`.
 4. Firmware implementation is a separate, separately approved work item. This
    map does not authorise it.
+
+**Two prerequisites are operator/configuration work, not navigator work**, and
+both gate how much of §4.2 is reachable: the protected-region declaration
+mechanism, and the two new operator commands (declare orientation without
+position; select launch-region startup). With neither in place, the design
+still runs — mode 1 exact declaration and mode 3 manual operation are
+unaffected — but acquisition alongside a peer is limited to C1, alone.

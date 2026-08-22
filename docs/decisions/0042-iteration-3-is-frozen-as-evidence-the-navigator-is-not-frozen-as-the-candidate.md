@@ -72,6 +72,30 @@ The validation protocol's "replayed exactly once" rule is corrected to permit
 deterministic reruns, which the recovery plan's definition of done requires;
 what consumes a capture is using it to redesign, not re-running it.
 
+## Clarification (2026-08-22, operator rulings 6fba58c)
+
+`docs/AUTONOMOUS_ACQUISITION_OPERATOR_RULINGS_20260822.md` is authoritative for
+the third correction pass. It closes most of what the specification had left to
+the operator — launch region MM030–MM055, no automatic crawl, no `LAUNCH_HOLD`,
+the reluctant STOP/HOLD posture, the 12-marker first-station rule — and none of
+it disturbs this record: the iteration-3 evidence and the FAIL 2/1/6 verdict
+stay frozen, the navigator stays un-frozen as the candidate, defects are still
+corrected off-locomotive, and every existing Toby and Otto session remains
+development data.
+
+Two consequences bear on the freeze this record governs:
+
+- **The candidate to be frozen is larger than a navigator.** Launch-region
+  startup and orientation-only startup each need an operator command that does
+  not exist, and acquisition alongside a peer needs a protected-region
+  declaration mechanism that does not exist. Whatever is frozen for validation
+  must include those, or must be honest that acquisition alongside a peer was
+  never exercised.
+- **The validation capture gains a launch-representative condition.** The
+  design's first operational target is launch-region acquisition, so a capture
+  that never uses it scores those usefulness conditions NOT_DEMONSTRATED rather
+  than borrowing evidence from route-wide acquisition.
+
 ## Context
 
 0041 was written to stop score-chasing, and that part of it was right: three

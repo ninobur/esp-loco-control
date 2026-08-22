@@ -13,7 +13,21 @@ and the fixed `±REACQ_WINDOW_MARKERS` fence are removed rather than widened.
 Governing records: decision 0042, `docs/QUORUM_REACHABILITY_RECOVERY_PLAN.md`,
 `docs/QUORUM_NAVLAB_ITER3_REPORT.md`, `docs/NAVLAB_DT0_SEMANTICS.md`.
 
-### What this correction pass changed
+### Correction pass 3 (2026-08-22, operator rulings 6fba58c)
+
+`docs/AUTONOMOUS_ACQUISITION_OPERATOR_RULINGS_20260822.md` is authoritative for
+this pass. It closed the remaining peer-acquisition hole, configured the launch
+region, and set the STOP/HOLD posture. Changes: acquisition with a peer now
+requires **both** occupancies bounded (§4.2) — a bounded peer alone was never
+sufficient, because an orientation-only locomotive may already be inside the
+peer's protected region; peer motion reports may enlarge or invalidate a bound
+but never create one (§3.12.2); the launch region MM030–MM055 and the three
+startup choices are specified (§4.0); manual operation without a position is a
+supported operating condition, not a held state (§4.4); sequential two-
+locomotive launch is an operator-supervised procedure with no `LAUNCH_HOLD`
+(§7.7); and STOP/HOLD are given an explicit reluctance posture (§7.8).
+
+### What correction pass 2 changed
 
 1. **Timing is branch-local, computed from raw detection times.** The previous
    draft measured `dt` since the previous *accepted* event and then folded a
@@ -357,7 +371,12 @@ derived from the bitmap. This is a gated test (§8, test T15.5), not an
 assertion.
 
 **Separation.** Decision 0033 (bubble plus six markers clear) is evaluated over
-the worst-case pair drawn from the two occupancies. Consequences:
+the worst-case pair drawn from the two occupancies, and it must hold **for the
+whole of the authorised movement**, not only at the instant of the check. Since
+both occupancies propagate forward while either locomotive moves, movement
+authority is limited to the distance over which separation remains provable
+under forward propagation of **both** occupancies, and is recomputed on every
+detection and on every peer report. Consequences:
 
 - Two `POSITIONED` locomotives behave exactly as today.
 - An `INCOMPLETE` occupancy is treated as route-wide regardless of how few bits
@@ -403,10 +422,66 @@ navigation claims:
 
 `PEER_BOUNDED` is the load-bearing one. `PEER_IMMOBILISED` matters because it
 keeps a bound from expiring, not because immobility is itself protective — an
-immobilised peer of unknown position is an obstacle everywhere. Context 2 of
-§4.2 therefore requires **both**: `PEER_IMMOBILISED ∧ PEER_BOUNDED(region)`.
+immobilised peer of unknown position is an obstacle everywhere.
 
-## 4. The four states
+A locomotive with no position **cannot create a protected region for itself**.
+A region comes from operator-known placement, configured physical limits, or
+independent infrastructure — never from a locomotive's own navigation claim.
+
+#### 3.12.2 What peer motion information is for
+
+Peer motion information is not discarded. It is barred from one direction only:
+
+- Peer reports of speed, direction, commanded authority and **report age** may
+  **enlarge** the peer's conservative occupancy, or **invalidate** a bound
+  outright.
+- They may **never create** a bound. A peer reporting "stopped at MM100"
+  narrows nothing; only `PEER_BOUNDED(region)` from an authoritative source
+  does.
+- They may **never independently grant movement authority**. No combination of
+  peer motion reports unlocks motion that the bounded-occupancy test refuses.
+
+**Staleness expands.** Between valid bounds the peer's possible occupancy grows
+from its last authoritative bound at the peer's own envelope fast bound:
+
+```
+occupancy_peer(now) = expand( last_bounded_occupancy,
+                              v_peer_max × (now − t_last_valid_report) )
+```
+
+with `expand` applied in both directions unless the peer's travel direction is
+itself authoritatively bounded. Under `PEER_IMMOBILISED` the expansion is zero
+while the latch holds — that is precisely what the latch buys. When the
+expanded occupancy can no longer be separated from ours, authority is withdrawn
+by the ordinary §7.4 calculation. A peer that has gone silent therefore
+degrades our authority smoothly rather than triggering a discrete alarm.
+
+## 4. Startup and the four states
+
+### 4.0 Startup selection
+
+The **normal launch region is MM030 through MM055 inclusive** (26 markers).
+Self-acquisition at startup is **optional**. The operator selects one of three
+startup modes explicitly; **the launch region is never presumed**. A locomotive
+that boots without a selection is in mode 3, not mode 2.
+
+| mode | operator supplies | navigator starts in |
+|---|---|---|
+| **1 — exact declaration** | MM or interval, after deliberate stationary identification (§7.5) | `POSITIONED` immediately; normal navigation, AUTO available |
+| **2 — launch region + orientation** | "launch region" + travel direction | `ACQUIRING_ORIENTED`, seeded to MM030–MM055 in the declared direction (26 bits) |
+| **3 — position unknown** | nothing, or orientation alone | `UNLOCATED`; deliberate manual operation without position (§4.4) is available under operator authority |
+
+After a power cycle **inside** the launch region, mode 2 is the ordinary
+choice. After a power cycle **outside** it, the operator may use mode 1 or mode
+3; selecting mode 2 from outside the region is an operator error that the
+navigator cannot detect, and is the reason mode 2 must be an explicit
+selection and not a default.
+
+Mode 2 is an **authoritative operator bound on our own occupancy** — the same
+class of evidence as an MM declaration, differing only in precision. It is what
+makes acquisition alongside a bounded peer possible at all (§4.2).
+
+### The four states
 
 Common to all four: the last trustworthy anchor, its time, direction history,
 the evidence ring and the branch list are retained across every transition
@@ -457,8 +532,14 @@ the whole design.
   retained session direction and no trustworthy anchor.
 - **Retained evidence.** Declared direction. An earlier anchor is retained but
   does not seed `H` unless the operator states the locomotive has not moved.
-- **Candidates.** `H` = all 171 markers in the **declared direction only**
-  (P10). 171 bits, never 342.
+- **Candidates.** Two seed modes, per the §4.0 selection, both in the
+  **declared direction only** (P10) — 171 bits at most, never 342:
+  - **`ACQ_LAUNCH_REGION`** (mode 2): `H` = MM030–MM055 in the declared
+    direction, 26 bits. Our own occupancy is bounded from the outset by
+    authoritative operator information.
+  - **`ACQ_ROUTE_WIDE`** (orientation declared, no region): `H` = all 171
+    markers in the declared direction. Our own occupancy is **unbounded**, and
+    §4.2's movement rules restrict this mode severely when a peer is present.
 - **Polarity.** The first detection halves `H`; successive detections filter
   multiplicatively. Uniqueness arrives at `W_dir` clean observations (§3.3).
 - **Spacing / PWM timing.** Each detection's `[d_lo, d_hi]`, from
@@ -474,48 +555,71 @@ the whole design.
   crawl-to-cruise ramp of §7.2 — **no operator GO**. To `UNLOCATED` on
   contradiction or orientation withdrawal. To `POSITIONED` immediately on an
   operator MM declaration.
-- **Movement authority.** Motion is required to acquire. It is permitted only
-  in one of three **permitted acquisition contexts**, and otherwise refused:
+- **Movement authority.** Motion is required to acquire. Two contexts permit
+  it; there is no third.
 
-  1. **Alone.** No peer is enlisted, and none has been seen fresh within
-     `CTO_PEER_STALE_MS`. Absence of a peer must be established by the
-     membership rules of decision 0031, not inferred from silence alone.
-  2. **Bounded, immobilised peer.** `PEER_IMMOBILISED ∧ PEER_BOUNDED(region)`
-     (§3.12.1) — the peer is on a siding or protected section, held there by a
-     mechanism outside its own control, and its occupancy is confined to that
-     region by a configured declaration independent of the peer's own
-     navigation state. Immobility alone does not qualify: the region is what
-     makes the disjointness test computable.
-  3. **Disjoint by independent constraint.** An independently authoritative
-     starting-region constraint — an operator-declared placement region, or a
-     configured protected region the acquiring locomotive is known to be
-     within — makes the candidate set provably disjoint from the peer's
-     conservative occupancy under §3.12, with the separation margin of 0033
-     intact for every candidate pair.
+  **C1 — alone.** No peer is enlisted, and none has been seen fresh within
+  `CTO_PEER_STALE_MS`. Absence must be established by the membership rules of
+  decision 0031, not inferred from silence. With no second occupancy the
+  separation test is vacuous and `ACQ_ROUTE_WIDE` may move.
 
-  **None of these contexts is created by the peer being stopped**, and none is
-  defeated by the peer moving. Each works by bounding both occupancies and
-  showing them separated: context 1 by there being no second occupancy,
-  contexts 2 and 3 by `PEER_BOUNDED(region)` (§3.12.1) together with a
-  constraint on our own candidate set. `PEER_COMMANDED_STOPPED` appears in none
-  of them and grants no authority.
+  **C2 — both occupancies bounded and separated.** All four conditions, jointly
+  and continuously:
 
-  Without one of the three, orientation-only acquisition **does not move**: the
-  locomotive stands, publishes `STOPPED_FOR_NAVIGATION_SAFETY` with the reason,
-  and waits. It does not demand a manual MM declaration.
+  1. **Our own occupancy is independently bounded** — by `ACQ_LAUNCH_REGION`
+     (§4.0 mode 2), by a configured physical limit that confines us, or by a
+     retained anchor (in `RECOVERING`). A route-wide candidate set does **not**
+     satisfy this.
+  2. **The peer's occupancy is bounded** — `PEER_BOUNDED(region)` from
+     operator-known placement, configured physical limits, or independent
+     infrastructure (§3.12.1). Never from the peer's own navigation claim.
+  3. **Every candidate pair satisfies separation** — the decision-0033 margin
+     holds for every pair drawn from the two bounded occupancies, with no
+     exception.
+  4. **Both bounds remain valid for the entire authorised movement** — under
+     forward propagation of both occupancies, including the staleness expansion
+     of §3.12.2. Authority extends only as far as condition 3 provably holds,
+     and is recomputed on every detection and every peer report.
 
-  Where motion is permitted, it is at `ACQ_SPEED` with no AUTO mission.
-- **Station stopping.** Prohibited; the station machine is disarmed. An
-  approach cannot be armed from a position that is not known.
+  **A bounded, immobilised peer is not by itself sufficient**, and this was the
+  hole in the previous draft. An `ACQ_ROUTE_WIDE` locomotive may already be
+  standing inside the peer's protected region: bounding the peer says nothing
+  about where *we* are, and condition 1 is what closes it. Condition 1 is
+  satisfied either by our own authoritative region bound, or by establishing
+  that we are outside the peer's protected region and physically unable to
+  enter it.
+
+  **Neither context is created by the peer being stopped**, and neither is
+  defeated by the peer moving; peer motion enters only through §3.12.2, where
+  it can shrink our authority but never grant it.
+  `PEER_COMMANDED_STOPPED` appears in no condition above.
+
+  Without C1 or C2, orientation-only acquisition **does not move**: the
+  locomotive stands and publishes the reason. It does not demand a manual MM
+  declaration, and this is not a HOLD state — no order is issued and no latch
+  is set; motion simply has not been authorised, and it becomes authorised the
+  moment the conditions are met.
+
+  Where motion is permitted it is at `ACQ_SPEED`, with no AUTO mission.
+- **Station stopping.** **Unavailable, not inhibited.** A station approach is
+  computed from an exact position and an exact distance-to-centre; while
+  `|H| > 1` that input does not exist, so there is nothing to arm. No hold is
+  applied, no flag suppresses the station machine, and nothing has to be
+  released later — the capability returns by itself when `POSITIONED` supplies
+  the input, subject to §7.3.
 - **Telemetry.** `nav_state=ACQUIRING_ORIENTED`, `movement_state`, `dir`,
-  `|H|`, occupancy, `acquisition_context` (which of the three, or none),
+  `seed_mode` (`ACQ_LAUNCH_REGION` / `ACQ_ROUTE_WIDE`),
+  `|H|`, occupancy, `acquisition_context` (`C1`, `C2`, or none, with the
+  failing condition named),
   observations since entry, `W_dir` remaining, `complete`, movement reason
   code.
 - **Manual override.** An MM declaration short-cuts acquisition and is
   authoritative. It is never demanded.
-- **Two-locomotive.** Occupancy is route-wide at entry and shrinks with each
-  observation. Under §3.12 and the three contexts above, acquisition alongside
-  a non-isolated peer is not permitted while moving.
+- **Two-locomotive.** In `ACQ_LAUNCH_REGION` our occupancy is bounded to 26
+  markers plus extent from the outset and shrinks with each observation; this
+  is the mode that makes C2 reachable. In `ACQ_ROUTE_WIDE` our occupancy is
+  route-wide, C2 condition 1 fails, and the only context that permits motion is
+  C1 — alone.
 
 ### 4.3 RECOVERING
 
@@ -523,11 +627,18 @@ Position became uncertain during operation.
 
 - **Entry.** From `POSITIONED` on ambiguity, pending overflow, elapsed-time
   discontinuity, or an over-long eventless gap. **Entry is a navigation-state
-  change only and does not by itself command any speed change** (P13, §7.4).
-- **Retained evidence.** The last trustworthy anchor and its time; direction
-  history; accumulated motion evidence; the pre-loss `H`; the evidence ring;
-  branches with their `last_genuine` timestamps. This retention is the point of
-  the state and is what distinguishes it from `UNLOCATED` (P1).
+  change only.** It commands no speed change, applies no hold, and does not
+  cancel AUTO (P13, §7.4). **A single doubtful detection must never cause a
+  STOP, a hold, a crawl or an AUTO cancellation** — it forks a branch and
+  tracking continues.
+- **Retained evidence.** Navigation loss **without a power cycle** discards
+  nothing. Retained in full: the last trustworthy position anchor and its time;
+  direction and every reversal since; branch-local detection times
+  (`last_genuine` per branch); PWM and motion history; pending evidence; and
+  the complete physically reachable hypothesis set. **Recovery starts from that
+  bounded information, never from route-wide ignorance** — a mid-run loss is
+  not a boot, and that distinction is the whole point of separating
+  `RECOVERING` from `UNLOCATED` (P1).
 - **Candidates.** `H` seeded from the pre-loss hypotheses and propagated
   forward. Not route-wide, and not reseeded route-wide unless elapsed evidence
   makes a full circuit physically possible.
@@ -543,14 +654,18 @@ Position became uncertain during operation.
   previously authorised speed** (§7.4) with no operator GO. To `UNLOCATED` when
   `H` reaches route-wide extent, on contradiction, or at `RECOVER_WINDOW`
   expiry.
-- **Movement authority.** Governed by §7.4, not by a fixed crawl. In summary:
-  continue at the current authorised speed while the `COMPLETE` set stays
-  narrow enough that braking, separation and station authority all hold for
-  every viable candidate; reduce to a **derived** ceiling when they do not;
-  stop when they cannot be satisfied at any speed.
-- **Station stopping.** New approaches are not armed. An approach already in
-  `ST_FINAL` at entry completes, because aborting a final brake is worse than
-  finishing it; any earlier phase is abandoned and the zone speed held.
+- **Movement authority.** Governed by §7.4, not by a fixed crawl. **Continue
+  moving while every viable position remains operationally safe.** Reduce
+  authority only when uncertainty *materially* affects separation, station
+  behaviour or physical reachability — never merely because the navigation
+  state changed. Stop only when no positive speed satisfies the §7.4 condition,
+  and stop reluctantly (§7.8).
+- **Station stopping.** **Unavailable while `|H| > 1`, not inhibited** — the
+  exact distance-to-centre an approach needs does not exist, so there is
+  nothing to arm and nothing to release. An approach already in `ST_FINAL` at
+  entry completes, because aborting a final brake is worse than finishing it;
+  any earlier phase is abandoned and the zone speed held. On confirmation the
+  capability returns by itself, subject to §7.3.
 - **Telemetry.** `nav_state=RECOVERING`, `movement_state` (one of
   `RECOVERING_WITH_AUTHORITY`, `SPEED_LIMITED_FOR_UNCERTAINTY`,
   `STOPPED_FOR_NAVIGATION_SAFETY`), anchor and age, `|H|`, occupancy,
@@ -584,57 +699,82 @@ Neither position nor orientation is trusted.
 - **Exit.** To `POSITIONED` on unique two-plane acquisition (automatic ramp per
   §7.2); to `ACQUIRING_ORIENTED` on an operator orientation declaration; to
   `POSITIONED` on an operator MM declaration.
-- **Station stopping.** Prohibited.
-- **Telemetry.** `nav_state=UNLOCATED`, `|H|` per plane, occupancy, entry
-  reason, observations since entry, whether orientation has resolved, and an
-  explicit `manual_declaration_required=false` — the operator is informed, not
-  summoned.
+- **Movement authority.** **The navigator grants none.** It also withholds
+  none: **manual operation without a declared position is a supported
+  operating condition** (§4.4.3), not a fault and not a held state. The
+  operator has the throttle; the navigator neither commands motion nor blocks
+  it, and it publishes what it does and does not know.
+- **Station stopping.** **Unavailable, not inhibited** — no position exists
+  from which to compute an approach. Nothing suppresses the station machine and
+  nothing has to be released.
+- **Telemetry.** `nav_state=UNLOCATED`, `movement_state`, `|H|` per plane,
+  occupancy, entry reason, observations since entry, whether orientation has
+  resolved, `separation_claimable=false` with its reason, and an explicit
+  `manual_declaration_required=false` — the operator is informed, not summoned.
 - **Manual override.** Both declaration forms accepted and authoritative.
-- **Two-locomotive.** Occupancy is route-wide by definition, so no autonomous
-  motion is authorised for either locomotive while an `UNLOCATED` peer is on
-  the railway.
+- **Two-locomotive.** Occupancy is route-wide by definition, so the navigator
+  authorises no autonomous motion for either locomotive while an `UNLOCATED`
+  peer is on the railway. **Separation cannot be claimed from an unknown
+  position**, so under manual operation the *operator* is responsible for
+  ensuring the path is clear or that the other locomotive is physically
+  isolated. The navigator states this rather than implying a protection it
+  cannot provide.
 
 #### 4.4.1 What "autonomous" honestly means here
 
-Four capabilities are distinct and the previous draft blurred them:
+Four capabilities are distinct and must not be blurred:
 
 | capability | `UNLOCATED` status |
 |---|---|
-| **autonomous position reasoning** | **yes** — the navigator forms, filters and resolves hypotheses with no operator input |
-| **autonomous movement authority** | **policy decision below** — under option A, no |
-| **operator-commanded crawl** | yes — the operator may command motion, which supplies the observations reasoning needs |
+| **autonomous position reasoning** | **yes** — the navigator forms, filters and resolves hypotheses with no operator input, including while the operator drives manually |
+| **autonomous movement authority** | **no** — the navigator authorises no motion from an unknown position |
+| **operator manual throttle** | **yes** — §4.4.3 |
 | **manual MM declaration** | optional shortcut, never required |
 
-Under option A the state is autonomous in reasoning and **not** autonomous in
-movement: it cannot gather the observations it needs without an operator
-commanding motion. That is a real limitation and is stated rather than
-implied.
+`UNLOCATED` is autonomous in reasoning and not in movement. That is a real
+limitation, stated rather than implied — and §4.4.3 is why it is not a blocking
+one.
 
-#### 4.4.2 Operator policy decision — UNLOCATED crawl
+#### 4.4.2 Policy resolved: no automatic crawl
 
-**Option A — never moves autonomously.** The locomotive stops and stays
-stopped. The operator may command a crawl at `ACQ_SPEED`, under fleet hold if a
-peer is present, and that crawl supplies the observations.
+The previous draft put two options to the operator: (A) never move
+autonomously, operator may command motion; (B) crawl automatically when
+provably alone or isolated. **The operator rulings of 2026-08-22 settle this on
+option A**, and it is recorded here as closed rather than left open: motion
+from an unknown position follows a human decision. Option B is rejected because
+`UNLOCATED` is the state in which the locomotive's beliefs are least
+constrained, so it is the worst state in which to also trust its belief about
+being alone.
 
-**Option B — automatic crawl when provably alone or isolated.** The locomotive
-may crawl on its own at `ACQ_SPEED` when, and only when, one of the permitted
-acquisition contexts of §4.2 is established by the same independent means. It
-stops at `W_both` acquisition or at any loss of the context.
+Launch-region acquisition (§4.0 mode 2, §4.2) remains the smaller first
+operational target and supplies most of what B would have offered, at a
+fraction of the risk.
 
-| | A | B |
-|---|---|---|
-| safety | motion always follows a human decision; the human is present and can see the railway | motion depends on the isolation evidence being correct with no human in the loop, in the state where the locomotive knows least |
-| recovery burden | the operator must notice and act; a locomotive can sit unlocated indefinitely | self-clearing when alone |
-| failure mode | a stopped locomotive | a moving locomotive with no position knowledge and a wrong isolation belief |
+#### 4.4.3 Manual operation without a declared position
 
-**Recommendation: A**, and it is a recommendation, not a decision — §9 records
-it as an operator choice. The reasoning: `UNLOCATED` is precisely the state
-where the locomotive's own beliefs are least constrained, so it is the worst
-state in which to also trust its belief about being alone. Option B's benefit
-is convenience; option A's cost is a human decision that a human is already
-well placed to make. **Orientation-declared acquisition (§4.2) remains the
-smaller first operational target**, and it delivers most of B's operational
-benefit under an operator-supplied orientation, which is cheap to give.
+A supported operating condition, deliberately selected (§4.0 mode 3). It is
+**not** a new state, not a hold, and not a degraded mode requiring release:
+
+- **Manual throttle is available.** The operator drives.
+- **The navigator keeps observing** and may self-acquire by §3.11 uniqueness at
+  `W_both`. The observations manual driving produces are exactly what
+  acquisition needs.
+- **Acquisition reports position; it does not start AUTO.** On a successful
+  self-acquisition the navigator enters `POSITIONED` and publishes the
+  position. AUTO begins only if the operator had requested it.
+- **STOP and E-STOP remain fully effective**, unchanged in every respect.
+  Clearing an E-stop does not force leaving AUTO.
+- **Station behaviour is unavailable, not inhibited.** The positional input
+  required to compute an approach does not exist. Nothing is held and nothing
+  is released; the capability appears when the input does.
+- **Collision separation cannot be claimed from an unknown position.** The
+  operator is responsible for ensuring the path is clear or that the other
+  locomotive is physically isolated. The navigator publishes
+  `separation_claimable=false` with the reason.
+
+**No `HOLD` state is created to represent any of this.** The absence of AUTO
+capability is an absence, not an order; representing it as a state would add a
+latch that has to be cleared and a failure mode that has to be handled.
 
 ## 5. Contradiction
 
@@ -730,7 +870,14 @@ The navigator publishes both, separately:
 - `nav_state` ∈ {`POSITIONED`, `ACQUIRING_ORIENTED`, `RECOVERING`,
   `UNLOCATED`}
 - `movement_state` ∈ {`FULL_AUTHORITY`, `RECOVERING_WITH_AUTHORITY`,
-  `SPEED_LIMITED_FOR_UNCERTAINTY`, `STOPPED_FOR_NAVIGATION_SAFETY`}
+  `SPEED_LIMITED_FOR_UNCERTAINTY`, `MANUAL_NO_POSITION`,
+  `STOPPED_FOR_NAVIGATION_SAFETY`}
+
+`MANUAL_NO_POSITION` (§4.4.3) is **descriptive telemetry, not an order**: it
+reports that the operator holds the throttle and the navigator claims no
+separation. It latches nothing and needs no release. Only
+`STOPPED_FOR_NAVIGATION_SAFETY` is an order, and §7.8 governs when it may be
+issued.
 
 Entering `RECOVERING` sets `RECOVERING_WITH_AUTHORITY` by default and commands
 no speed change. A single doubtful detection must not trigger crawl and must
@@ -738,15 +885,19 @@ not cancel AUTO.
 
 ### 7.2 Crawl-to-cruise, ACQUIRING_ORIENTED → POSITIONED
 
-**The unique `W_dir` acquisition is itself the stability gate.** No arbitrary
-settling delay and no operator confirmation is added on top of it. On entry to
-`POSITIONED`, if fleet separation is satisfied for the now-single position, no
-safety-relevant pending branch remains, and movement is otherwise authorised,
-the navigator **automatically ramps** from `ACQ_SPEED` to the previously
-authorised operating speed, using the existing station ramp rates.
+**The verified unique acquisition sequence is itself the stability gate.** No
+arbitrary settling delay and no operator confirmation is added on top of it. On
+entry to `POSITIONED`, if fleet separation is satisfied for the now-single
+position, no safety-relevant pending branch remains, and movement is otherwise
+authorised, the navigator **automatically ramps** from `ACQ_SPEED` to the
+previously authorised operating speed, using the existing station ramp rates.
 
-Station stopping remains disabled until `POSITIONED` and is then subject to
-§7.3.
+**AUTO begins only if the operator had requested it.** Acquisition reports a
+position; it never starts a mission that was not asked for. A locomotive
+acquired under manual operation (§4.4.3) stays under manual throttle.
+
+Station stopping is unavailable rather than disabled before `POSITIONED`
+(§4.2), and on entry becomes available subject to §7.3.
 
 ### 7.3 Station lookahead after acquisition
 
@@ -760,6 +911,15 @@ the travel direction:
 - **No** — do not attempt that stop. Target the following permitted station and
   publish the substitution with its reason. A stop attempted from inside the
   braking distance is worse than a stop skipped.
+
+**Worked case, launch region.** From MM030–MM055 the first station encountered
+is **Grillers (centre MM063) when CW** and **Patio (centre MM015) when CCW**.
+These are also the first-station-clear references for the sequential launch
+procedure of §7.7. A locomotive acquiring at MM055 CW finds Grillers only 8
+markers ahead, so that stop is skipped and Arches (MM107) is targeted; one
+acquiring at MM030 CW finds Grillers 33 markers ahead and uses it normally.
+The rule therefore bites in ordinary launch-region operation and is not a
+theoretical edge case.
 
 ### 7.4 Speed while RECOVERING — derived, not fixed
 
@@ -784,8 +944,12 @@ Consequences that matter:
 - The ceiling falls only when uncertainty *materially* limits reachability,
   station or separation authority — then `SPEED_LIMITED_FOR_UNCERTAINTY`.
 - If no `v > 0` satisfies the condition, `STOPPED_FOR_NAVIGATION_SAFETY`.
-- On confirmation, the previously authorised speed is **automatically
-  restored**. No operator GO.
+- On valid self-confirmation the previously authorised speed is
+  **automatically restored**, provided no actual safety stop occurred. No
+  operator GO (§7.5).
+- The peer term uses the peer's conservative occupancy **including the
+  staleness expansion of §3.12.2**, so a peer that stops reporting shrinks our
+  authority gradually and predictably rather than by an alarm.
 
 ### 7.4.1 Hysteresis — no CTO2-style oscillation
 
@@ -850,6 +1014,71 @@ normal successful operation**. Each one:
 The design objective is that navigation stops are safe, rule-compliant and
 **rare**. §8 gates rarity separately from safety.
 
+### 7.7 Operator-supervised sequential launch
+
+Two locomotives are launched by an **operator-supervised procedure**, not by an
+automated protocol. There is **no `LAUNCH_HOLD` state, no launch-order command
+and no automated enforcement of sequence**, and none is to be added.
+
+The ordinary procedure:
+
+1. Assemble both consists within **MM030–MM055**.
+2. Declare each locomotive's orientation and select launch-region startup
+   (§4.0 mode 2).
+3. The operator manually starts the **leading** locomotive.
+4. The operator waits until it has cleared **Grillers when CW**, or **Patio
+   when CCW** (§7.3).
+5. The operator manually starts the **trailing** locomotive.
+
+**The trailing locomotive is stationary because no movement command has been
+issued to it.** That is a complete and sufficient explanation, and the design
+must not dress it up as a state. Inventing a `LAUNCH_HOLD` would create a latch
+to clear, an ordering to enforce, a failure mode when the latch is wrong, and a
+second mechanism claiming an authority the operator already exercises with the
+throttle.
+
+The operator is present and is responsible for launch order, and for ensuring
+the leading locomotive cannot strike the trailing one before acquisition and
+initial separation are established. What the navigator contributes is the
+§4.2 C2 test: once both are moving with bounded occupancies it computes
+separation and reduces authority if the bounds converge — which is help, not
+supervision.
+
+### 7.8 STOP and HOLD posture
+
+**STOP and HOLD orders are introduced reluctantly.** They are the final
+response to a concrete hazard that cannot be managed by:
+
+- bounded movement authority (§7.4);
+- pending evidence held for its successor (§3.10);
+- conservative speed derived from the worst-case candidate (§7.4);
+- operator-supervised manual operation (§4.4.3).
+
+**They are not the default response to uncertainty**, and they must not
+recreate CTO2's frequent crawl/hold behaviour. Before any stop is commanded the
+navigator must have no remaining option in that list.
+
+**No new `HOLD` state is created because information or a capability is
+unavailable.** Absence of AUTO capability, absence of a station approach,
+absence of a position and absence of a peer bound are all *absences*. An
+absence is published; it is not latched, ordered or released. The only
+navigation-commanded motion order in this design is
+`STOPPED_FOR_NAVIGATION_SAFETY`.
+
+An unscheduled navigation stop:
+
+- must be safe and rule-compliant, obeying all fleet, station and braking
+  rules;
+- **counts as an operational failure requiring diagnosis** — it is a safe
+  outcome, not a successful one;
+- must latch a complete diagnostic snapshot (§7.6);
+- **must not demand an immediate MM declaration**;
+- requires a deliberate operator restart after investigation.
+
+The design goal is that navigation-related unscheduled stops are safe, legal
+and **rare**. §8 gates rarity separately from safety, so a build cannot buy
+safety by stopping more.
+
 ## 8. Success criteria: safety and usefulness are separate gates
 
 A navigator that always stops passes every safety gate. It fails the design.
@@ -865,20 +1094,31 @@ The test plan implements both sets; neither substitutes for the other.
 
 **Usefulness gates (must be met on the specified case families):**
 
-5. Orientation-known startup on a clean stream acquires the **correct**
-   position from **every** MM in **both** directions. "Or stops" does not
-   satisfy this.
-6. Acquisition completes within `W_dir` clean observations (`W_both` for
+5. **Exact-MM startup remains available** and enters `POSITIONED` immediately
+   (§4.0 mode 1).
+6. **Launch-region acquisition on a clean stream acquires the correct position
+   from every MM in MM030–MM055, in both orientations.** "Or stops" does not
+   satisfy this — launch-region acquisition must be *useful*, not merely safe.
+7. Orientation-known route-wide startup on a clean stream acquires the
+   **correct** position from **every** MM in **both** directions.
+8. Acquisition completes within `W_dir` clean observations (`W_both` for
    `UNLOCATED`), where `W` is the **verified** map uniqueness length of §3.3.
-7. Orientation-unknown acquisition succeeds on clean streams whenever movement
+9. Orientation-unknown acquisition succeeds on clean streams whenever movement
    is externally authorised.
-8. Normal recovery on clean evidence **reacquires rather than stopping**.
-9. An ordinary isolated ghost, and a single missed marker, do not cause
-   permanent loss and do not cause an unscheduled stop.
-10. Clean generated operation, orientation-declared acquisition and recoverable
-    isolated faults produce **zero** unscheduled navigation stops and no
-    repeated crawl/cruise cycling.
-11. Acquisition latency (observations and distance), stop rate, and the §7.4.1
+10. **Powered-run recovery retains the last trustworthy anchor** and recovers
+    from bounded information; on clean evidence it **reacquires rather than
+    stopping**.
+11. **A single doubtful detection causes no speed-state transition** and no
+    AUTO cancellation.
+12. **Manual operation without position** permits movement, activates neither
+    AUTO nor station behaviour, and reports a self-acquired position without
+    starting AUTO.
+13. An ordinary isolated ghost, and a single missed marker, do not cause
+    permanent loss and do not cause an unscheduled stop.
+14. **Normal launch, launch-region acquisition and recoverable isolated faults
+    produce zero unscheduled navigation stops** and no repeated crawl/cruise
+    cycling.
+15. Acquisition latency (observations and distance), stop rate, and the §7.4.1
     speed-change counters are reported for every family.
 
 Stopping remains acceptable — and expected — for genuinely ambiguous,
@@ -887,39 +1127,47 @@ applies.
 
 ## 9. Operator policy decisions
 
-These are **operational policy**, not statistics. They require an operator
-ruling before implementation.
+The rulings of 2026-08-22 (`docs/AUTONOMOUS_ACQUISITION_OPERATOR_RULINGS_20260822.md`)
+closed most of the previous list. **Closed, and not to be re-opened by
+implementation convenience:**
 
-1. **Uncertain-motion policy.** Whether a locomotive whose position is
-   uncertain may move at all (§4.2, §4.3, §7.4).
-2. **UNLOCATED crawl policy.** Option A (commanded only) or option B
-   (automatic when provably alone/isolated). **Recommendation: A** (§4.4.2).
-3. **Permitted acquisition contexts with a peer present.** Acceptance of the
-   three contexts in §4.2, and the ruling that a merely stopped peer is not
-   one of them.
-4. **Fleet stop / yield behaviour.** That an `INCOMPLETE` or route-wide
+| question | ruling |
+|---|---|
+| launch region | MM030–MM055 inclusive; self-acquisition optional; startup mode explicitly selected, never presumed (§4.0) |
+| `UNLOCATED` crawl | option A — no automatic crawl; manual operation without position is supported (§4.4.2, §4.4.3) |
+| uncertain-motion policy | movement continues while every viable position is operationally safe; authority is derived, not fixed (§7.4) |
+| sequential launch | operator-supervised procedure; no `LAUNCH_HOLD` (§7.7) |
+| operator role | orientation, launch region, launch order, stationary MM declaration, initial movement, STOP/E-STOP, restart. No routine position confirmation, no routine post-recovery GO (§7.5) |
+| first-station rule | 12 markers; skip to the next permitted station otherwise; Grillers CW / Patio CCW from the launch region (§7.3) |
+| STOP/HOLD posture | reluctant; no new HOLD state for an unavailable capability (§7.8) |
+| peer motion information | may enlarge or invalidate a bound, never create one, never grant authority (§3.12.2) |
+
+**Genuinely open, and required before implementation:**
+
+1. **Fleet stop / yield behaviour.** That an `INCOMPLETE` or route-wide
    occupancy forces a fleet stop, generalising decision 0031 from a state test
-   to a geometric one, and that the uncertain locomotive yields (§3.12).
-5. **Station behaviour.** That `ST_FINAL` completes on entry to `RECOVERING`
-   while earlier phases abandon (§4.3), and the
-   `STATION_LOOKAHEAD_MARKERS = 12` substitution rule (§7.3).
-6. **Orientation-only command semantics.** A new operator command declaring
-   direction without position is required for `ACQUIRING_ORIENTED` to be
-   reachable; none exists today. Its name, its effect on a running mission and
-   whether it may be issued while moving all need a ruling.
-7. **Telemetry and CTO contract changes.** The additive fields of §4 and §7.1,
-   and the occupancy representation of §3.12 — multi-arc if the contract can
-   carry it, single conservative arc otherwise. The recovery plan places the
-   MQTT and Pi controller contract out of scope, so even additive changes need
-   an explicit ruling.
-8. **Restart policy after an actual safety stop** (§7.6).
-9. **Initial movement authorisation** — that the operator authorises the first
-   movement of a session, and that no further routine GO is required (§7.5).
-10. **Strategy A** for Case-I discontinuities, with automatic degeneration to
-    `UNLOCATED` (§6.5).
-
-Routine operator position confirmation and routine post-recovery GO are
-**not** on this list: they are removed from the design (§7.5).
+   to a geometric one, and that the uncertain locomotive yields (§3.12). This
+   changes behaviour for a *positioned* peer and so is not covered by the
+   rulings above.
+2. **Station behaviour on entry to `RECOVERING`.** That an approach already in
+   `ST_FINAL` completes while earlier phases abandon (§4.3).
+3. **Orientation-only and launch-region command semantics.** Two new operator
+   commands are required and neither exists today: declare orientation without
+   position, and select launch-region startup. Their names, their effect on a
+   running mission, and whether either may be issued while moving all need a
+   ruling.
+4. **Protected-region declaration mechanism.** §4.2 C2 depends on bounding a
+   peer, and on bounding ourselves when outside our own launch region. No
+   mechanism exists in firmware for declaring a protected region or a physical
+   limit. Whether this is configuration, an operator command, or infrastructure
+   determines whether C2 is reachable at all — without it, C1 (alone) is the
+   only usable acquisition context with hardware as it stands.
+5. **Telemetry and CTO contract changes.** The additive fields of §4 and §7.1
+   and the occupancy representation of §3.12. The recovery plan places the MQTT
+   and Pi controller contract out of scope, so even additive changes need an
+   explicit ruling.
+6. **Strategy A** for Case-I discontinuities, with automatic degeneration to
+   `UNLOCATED` (§6.5).
 
 ## 10. Engineering parameters requiring calibration and test justification
 
@@ -944,7 +1192,8 @@ evidence supports blocks the freeze.
 | `ROUTE_WIDE_FRACTION` | 0.6 circuit | authority granted vs bitmap authority, T15.5 |
 | `SPEED_HYST_EVENTS_DOWN` / `_UP` | 2 / 5 | no cycling in T16 |
 | `SPEED_STEP_MIN_PCT` | 10% | no cycling in T16 |
-| `STATION_LOOKAHEAD_MARKERS` | 12 | operator-stated placement practice; braking distance must fit |
+| `STATION_LOOKAHEAD_MARKERS` | 12 | operator ruling; braking distance must fit at the authorised speed |
+| `LAUNCH_REGION` | MM030–MM055 inclusive | operator ruling (§4.0); not an engineering choice, listed here only so implementation reads it from one place |
 | `K_CONFIRM` | 3 | collapse-path false-confirmation rate in T12 |
 | `W_dir`, `W_both` | **computed, not chosen** | prerequisite check P0 (§3.3) |
 

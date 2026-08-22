@@ -38,7 +38,9 @@ before anyone looks at it.
 
 **Anchored.** Roughly a dozen operator declarations scattered through the
 session, each made with the locomotive **stationary** under §7.5 of the
-specification, with no marker events between the declaration and the check, so
+specification — the only condition under which an operator declaration is
+authoritative, since a moving locomotive's exact MM cannot be confirmed from a
+delayed console, with no marker events between the declaration and the check, so
 each independently anchors a confirmation. Without these, a session produces
 direction-consistent and position-unvalidated confirmations — what 559 of the
 iteration-3 confirmations were.
@@ -47,6 +49,12 @@ iteration-3 confirmations were.
 produces phantom events, so the phantom population is real rather than
 anecdotal. The iteration-3 record credited 51 ghosts to a replay that processed
 2.
+
+**Launch-representative.** At least one startup from the normal launch region
+(MM030–MM055) under mode 2, so launch-region acquisition — the design's first
+operational target — is measured on real track rather than only on generated
+cases. A session that never uses mode 2 scores the launch-region usefulness
+conditions NOT_DEMONSTRATED.
 
 **Discontinuity-bearing.** At least one genuine elapsed-time discontinuity
 (§3.7 Case I) with an independently known elapsed time, and at least one
@@ -146,6 +154,11 @@ machinery, retained from 75fa0ee.
   rather than acquiring or recovering scores the usefulness conditions as
   failures, not as safe outcomes. Safety and usefulness are scored separately,
   exactly as in acceptance.
+- **Unscheduled navigation stops are counted and reported individually**, each
+  with its §7.6 snapshot and its stop classification. An unscheduled stop is a
+  safe outcome and an operational failure requiring diagnosis; a run containing
+  them may still pass the safety conditions and must not be described as a
+  successful operational result.
 
 ## 6. References
 
