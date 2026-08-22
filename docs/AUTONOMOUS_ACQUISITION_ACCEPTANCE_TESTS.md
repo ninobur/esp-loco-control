@@ -257,14 +257,20 @@ inside the window (**CLEAN**, U5), and 3+ faults inside the window
 adjacent to half a circuit, in four configurations:
 
 1. peer enlisted and moving;
-2. **peer enlisted and stopped**;
-3. peer physically isolated by a configured protected-region declaration;
+2. **peer enlisted and `PEER_COMMANDED_STOPPED`**, occupancy unbounded;
+3. peer `PEER_IMMOBILISED ∧ PEER_BOUNDED(region)` by configured declaration;
 4. acquiring locomotive constrained to an independently declared starting
    region disjoint from the peer's conservative occupancy.
 
-- **Pass: configurations 1 and 2 do not move.** The stopped-peer case is the
-  specific defect this family exists to catch: a stationary peer still occupies
-  track, and the acquiring locomotive may already be beside it.
+- **Pass: configurations 1 and 2 do not move.** Configuration 2 is the specific
+  defect this family exists to catch, and the reason is **not** that a stopped
+  peer is dangerous: it is that neither occupancy is bounded. Our own candidate
+  set is route-wide, so we may already be beside the peer, and no motion state
+  of the peer changes that. Configurations 1 and 2 must be refused for the same
+  published reason — unbounded occupancy — not for different ones.
+- **Pass: `PEER_COMMANDED_STOPPED` never appears in a granted-authority path.**
+  Asserted directly: a build that lets the peer's commanded-zero flag unlock
+  motion fails, even if every other check would also have passed.
 - Pass: configurations 3 and 4 may move, and only while the isolating condition
   holds; loss of the condition mid-acquisition stops the locomotive.
 - Pass (S4): every refusal publishes `STOPPED_FOR_NAVIGATION_SAFETY` with a

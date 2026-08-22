@@ -368,10 +368,43 @@ the worst-case pair drawn from the two occupancies. Consequences:
 - The uncertain locomotive yields; a `POSITIONED` peer retains authority up to
   the separation bound against the uncertain occupancy.
 
-**A stopped peer is not a safe peer.** A stationary locomotive still occupies
-track. If the uncertain locomotive's candidate set includes positions adjacent
-to or beyond the peer, motion may close the gap regardless of the peer being
-stopped. Permitted acquisition contexts are enumerated in §4.2.
+**A peer without a known location is not a safe peer.** Motion state is not a
+safety property in either direction: a stopped peer whose occupancy is bounded
+and disjoint from our candidates is safe to acquire around, and so is a moving
+one; an unbounded peer is unsafe whether it is stopped or not. Stopping is a
+claim about velocity and the hazard is about position.
+
+The symmetric half matters just as much and is easier to miss: in
+`ACQUIRING_ORIENTED` the binding constraint is usually **our own** unbounded
+candidate set. No property of the peer — stopped, immobilised, or precisely
+known — makes it safe to move when we might already be inside the separation
+bound. Safety is a property of the **pair** of occupancies, and both must be
+bounded and provably separated. Permitted acquisition contexts are enumerated
+in §4.2.
+
+#### 3.12.1 Peer condition vocabulary
+
+The word "stopped" is not used as a safety predicate anywhere in this design.
+Three distinct conditions are, and they are never inferred from the peer's own
+navigation claims:
+
+- **`PEER_COMMANDED_STOPPED`** — a commanded zero within freshness. It asserts
+  only that a command was issued: the peer may still be running down the
+  200 ms/step brake ramp, its own stationary belief comes from the stack under
+  review (P4), and the report reaches us with 500 ms cadence and up to
+  `CTO_PEER_STALE_MS` of permitted staleness. **Telemetry and operator display
+  only. It grants no authority.**
+- **`PEER_IMMOBILISED`** — movement prevented by a mechanism outside the peer's
+  own control: an unpowered protected section, or a siding with points set
+  against it. Declared by configuration or by the operator, latched, and
+  cleared only explicitly.
+- **`PEER_BOUNDED(region)`** — the peer's conservative occupancy (§3.12) is
+  provably contained in a declared region.
+
+`PEER_BOUNDED` is the load-bearing one. `PEER_IMMOBILISED` matters because it
+keeps a bound from expiring, not because immobility is itself protective — an
+immobilised peer of unknown position is an obstacle everywhere. Context 2 of
+§4.2 therefore requires **both**: `PEER_IMMOBILISED ∧ PEER_BOUNDED(region)`.
 
 ## 4. The four states
 
@@ -447,9 +480,12 @@ the whole design.
   1. **Alone.** No peer is enlisted, and none has been seen fresh within
      `CTO_PEER_STALE_MS`. Absence of a peer must be established by the
      membership rules of decision 0031, not inferred from silence alone.
-  2. **Physically isolated peer.** The peer is on a siding or protected
-     section, isolated by a configured protected-region declaration that is
-     independent of the peer's own navigation state.
+  2. **Bounded, immobilised peer.** `PEER_IMMOBILISED ∧ PEER_BOUNDED(region)`
+     (§3.12.1) — the peer is on a siding or protected section, held there by a
+     mechanism outside its own control, and its occupancy is confined to that
+     region by a configured declaration independent of the peer's own
+     navigation state. Immobility alone does not qualify: the region is what
+     makes the disjointness test computable.
   3. **Disjoint by independent constraint.** An independently authoritative
      starting-region constraint — an operator-declared placement region, or a
      configured protected region the acquiring locomotive is known to be
@@ -457,10 +493,16 @@ the whole design.
      conservative occupancy under §3.12, with the separation margin of 0033
      intact for every candidate pair.
 
-  **A stopped peer does not create any of these contexts.** Without one of the
-  three, orientation-only acquisition **does not move**: the locomotive stands,
-  publishes `STOPPED_FOR_NAVIGATION_SAFETY` with the reason, and waits. It does
-  not demand a manual MM declaration.
+  **None of these contexts is created by the peer being stopped**, and none is
+  defeated by the peer moving. Each works by bounding both occupancies and
+  showing them separated: context 1 by there being no second occupancy,
+  contexts 2 and 3 by `PEER_BOUNDED(region)` (§3.12.1) together with a
+  constraint on our own candidate set. `PEER_COMMANDED_STOPPED` appears in none
+  of them and grants no authority.
+
+  Without one of the three, orientation-only acquisition **does not move**: the
+  locomotive stands, publishes `STOPPED_FOR_NAVIGATION_SAFETY` with the reason,
+  and waits. It does not demand a manual MM declaration.
 
   Where motion is permitted, it is at `ACQ_SPEED` with no AUTO mission.
 - **Station stopping.** Prohibited; the station machine is disarmed. An

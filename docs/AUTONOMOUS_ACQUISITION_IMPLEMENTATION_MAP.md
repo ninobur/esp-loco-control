@@ -69,7 +69,8 @@ function itself goes away).
 | CTO2/CTO3 transport, roles, echo, membership (0031/0032/0034/0037/0039) | **RETAIN** | |
 | CTO payload position field | **REPLACE** | single `mm` becomes the conservative occupancy of §3.12: up to `OCC_ARCS_MAX` wrapping arcs if the contract can carry them, otherwise one covering arc, with a tie between minimal covering arcs or an over-long arc published as route-wide. Disjoint islands and 170/0 wraparound are ordinary cases, not edge cases |
 | separation computation (0033: bubble + six markers) | **REPLACE** | evaluated on-device over the **complete bitmap** — every candidate-position pair, or a demonstrably conservative equivalent — never over a minimal-looking arc that excludes a viable hypothesis. `INCOMPLETE` or route-wide occupancy forces fleet stop. Published compression may never grant more authority than the bitmap (test T15.5) |
-| `ctoFleetHold` | **RETAIN** | now also raised by an `UNLOCATED` peer |
+| `ctoFleetHold` | **RETAIN** | now also raised by an `UNLOCATED` peer, or by any peer whose occupancy is unbounded |
+| peer motion/stopped flags as an authority input | **REMOVE** | motion state is not a safety property. `PEER_COMMANDED_STOPPED` becomes telemetry only; authority consumes `PEER_BOUNDED(region)` and `PEER_IMMOBILISED` (spec §3.12.1), which are declared by configuration or operator and never inferred from the peer's own navigation claims |
 | MQTT topic/field contract | **RETAIN** | additive fields only (§7), and additions are gated on operator approval |
 
 ## Host model — `tools/navlab`
