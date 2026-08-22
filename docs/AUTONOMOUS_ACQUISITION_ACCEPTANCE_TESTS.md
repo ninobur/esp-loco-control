@@ -64,7 +64,7 @@ assertion inherited from prior documents.
 - **U0.** Exact-MM startup remains available and enters `POSITIONED`
   immediately (T0).
 - **U1.** Launch-region acquisition on a clean stream acquires the **correct**
-  position from every MM in MM030–MM055 in both orientations (T1a); route-wide
+  position from every MM in MM036–MM045 in both orientations (T1a); route-wide
   orientation-known startup does so from every MM in both directions (T1).
 - **U2.** Acquisition completes within `W_dir` clean observations, or `W_both`
   in `UNLOCATED`, using P0's computed values (T1, T2).
@@ -98,16 +98,19 @@ directions, locomotive stationary.
 
 ## T1a — launch-region acquisition — **CLEAN**
 
-Mode 2 (§4.0): `ACQ_LAUNCH_REGION`, `H` seeded to MM030–MM055 in the declared
-direction, true start swept over **every marker MM030–MM055 in both
-orientations (52 cases)**, clean stream.
+Mode 2 (§4.0): `ACQ_LAUNCH_REGION`, `H` seeded to MM036–MM045 in the declared
+direction, true start swept over **every marker MM036–MM045 in both
+orientations (20 cases)**, clean stream.
 
 - **Pass: every case reaches `POSITIONED` at the true marker.** Stopping is a
   failure — this family exists to show launch-region acquisition is *useful*,
   not merely safe (U1).
 - Pass: zero unscheduled navigation stops across the family (U6).
-- Pass: on acquisition, `STATION_LOOKAHEAD_MARKERS` is applied per T18 — cases
-  acquiring near MM055 CW must skip Grillers.
+- **Pass: no case in this family triggers the §7.3 substitution.** The region
+  is drawn so every position clears Grillers by 18–27 markers CW and Patio by
+  21–30 CCW, so each case uses its intended first station. A build that skips a
+  station from a normal launch has a defect in the lookahead check, not a
+  correct conservatism.
 - Report: latency in observations and mm. A 26-bit seed should resolve
   faster than the 171-bit seed of T1; both numbers are reported so the
   operational benefit of declaring the launch region is measured, not assumed.
@@ -117,7 +120,7 @@ orientations (52 cases)**, clean stream.
 - Pass: a locomotive booting with no startup selection is in mode 3
   (`UNLOCATED`), **not** mode 2. A build that defaults to the launch-region
   seed fails.
-- Pass: mode 2 selected while the locomotive is truly outside MM030–MM055
+- Pass: mode 2 selected while the locomotive is truly outside MM036–MM045
   produces either a contradiction (§5) or no confirmation — **never** a
   confident wrong position. This is the operator-error case the explicit
   selection exists to bound, and S1 covers it.
@@ -419,12 +422,16 @@ stations as the intended stop.
 - Pass: where it is closer, that stop is **not attempted**; the following
   permitted station is targeted and the substitution published with its reason.
 - Pass: no case arms an approach from inside its braking distance.
-- **Pass, launch-region cases specifically:** acquiring CW from the upper end
-  of MM030–MM055 finds Grillers (MM063) fewer than 12 markers ahead and **must
-  skip it**, targeting Arches (MM107); acquiring CW from MM030 finds Grillers
-  33 markers ahead and uses it. CCW cases use Patio (MM015) as the reference.
-  These are the same first-station-clear references the §7.7 launch procedure
-  uses.
+- **Pass, launch-region cases specifically: none of them substitutes.** Every
+  position in MM036–MM045 clears Grillers (MM063) by 18–27 markers CW and Patio
+  (MM015) by 21–30 markers CCW, so the intended first station is used in all 20
+  cases. These are the same first-station-clear references the §7.7 launch
+  procedure uses.
+- **The substitution cases come from outside the normal region:** exact-MM
+  declarations (§4.0 mode 1) and self-acquisitions under manual operation (§4.0
+  mode 3) landing fewer than `STATION_LOOKAHEAD_MARKERS` before the intended
+  stop. Those are swept over every marker and must substitute correctly — the
+  general rule is retained in full.
 
 ## T19 — operator role boundaries — **safety**
 
@@ -477,7 +484,7 @@ swept over all 342 starts.
 ## T22 — sequential two-locomotive launch — **CLEAN**
 
 The §7.7 procedure simulated end to end: both consists placed within
-MM030–MM055, both in mode 2, leading locomotive started manually, trailing
+MM036–MM045, both in mode 2, leading locomotive started manually, trailing
 started after the leader clears Grillers (CW) or Patio (CCW). Swept over
 placement pairs within the region and both orientations.
 

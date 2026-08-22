@@ -21,7 +21,7 @@ region, and set the STOP/HOLD posture. Changes: acquisition with a peer now
 requires **both** occupancies bounded (§4.2) — a bounded peer alone was never
 sufficient, because an orientation-only locomotive may already be inside the
 peer's protected region; peer motion reports may enlarge or invalidate a bound
-but never create one (§3.12.2); the launch region MM030–MM055 and the three
+but never create one (§3.12.2); the launch region MM036–MM045 and the three
 startup choices are specified (§4.0); manual operation without a position is a
 supported operating condition, not a held state (§4.4); sequential two-
 locomotive launch is an operator-supervised procedure with no `LAUNCH_HOLD`
@@ -460,7 +460,11 @@ degrades our authority smoothly rather than triggering a discrete alarm.
 
 ### 4.0 Startup selection
 
-The **normal launch region is MM030 through MM055 inclusive** (26 markers).
+The **normal launch region is MM036 through MM045 inclusive** (10 markers). It
+is drawn so that every position in it clears the first station in either
+direction by more than the 12-marker margin of §7.3 — Grillers (MM063) is 18–27
+markers ahead when CW, Patio (MM015) is 21–30 markers ahead when CCW — so a
+normal launch never has to skip its intended first stop.
 Self-acquisition at startup is **optional**. The operator selects one of three
 startup modes explicitly; **the launch region is never presumed**. A locomotive
 that boots without a selection is in mode 3, not mode 2.
@@ -468,7 +472,7 @@ that boots without a selection is in mode 3, not mode 2.
 | mode | operator supplies | navigator starts in |
 |---|---|---|
 | **1 — exact declaration** | MM or interval, after deliberate stationary identification (§7.5) | `POSITIONED` immediately; normal navigation, AUTO available |
-| **2 — launch region + orientation** | "launch region" + travel direction | `ACQUIRING_ORIENTED`, seeded to MM030–MM055 in the declared direction (26 bits) |
+| **2 — launch region + orientation** | "launch region" + travel direction | `ACQUIRING_ORIENTED`, seeded to MM036–MM045 in the declared direction (10 bits) |
 | **3 — position unknown** | nothing, or orientation alone | `UNLOCATED`; deliberate manual operation without position (§4.4) is available under operator authority |
 
 After a power cycle **inside** the launch region, mode 2 is the ordinary
@@ -534,8 +538,8 @@ the whole design.
   does not seed `H` unless the operator states the locomotive has not moved.
 - **Candidates.** Two seed modes, per the §4.0 selection, both in the
   **declared direction only** (P10) — 171 bits at most, never 342:
-  - **`ACQ_LAUNCH_REGION`** (mode 2): `H` = MM030–MM055 in the declared
-    direction, 26 bits. Our own occupancy is bounded from the outset by
+  - **`ACQ_LAUNCH_REGION`** (mode 2): `H` = MM036–MM045 in the declared
+    direction, 10 bits. Our own occupancy is bounded from the outset by
     authoritative operator information.
   - **`ACQ_ROUTE_WIDE`** (orientation declared, no region): `H` = all 171
     markers in the declared direction. Our own occupancy is **unbounded**, and
@@ -912,14 +916,23 @@ the travel direction:
   publish the substitution with its reason. A stop attempted from inside the
   braking distance is worse than a stop skipped.
 
-**Worked case, launch region.** From MM030–MM055 the first station encountered
-is **Grillers (centre MM063) when CW** and **Patio (centre MM015) when CCW**.
-These are also the first-station-clear references for the sequential launch
-procedure of §7.7. A locomotive acquiring at MM055 CW finds Grillers only 8
-markers ahead, so that stop is skipped and Arches (MM107) is targeted; one
-acquiring at MM030 CW finds Grillers 33 markers ahead and uses it normally.
-The rule therefore bites in ordinary launch-region operation and is not a
-theoretical edge case.
+**The normal launch region never triggers the substitution.** From
+MM036–MM045 the first station encountered is **Grillers (centre MM063) when
+CW** and **Patio (centre MM015) when CCW** — the same first-station-clear
+references the sequential launch procedure of §7.7 uses. Every position in the
+region clears both by more than the 12-marker margin:
+
+| direction | first station | distance from the region |
+|---|---|---|
+| CW | Grillers, MM063 | 18–27 markers |
+| CCW | Patio, MM015 | 21–30 markers |
+
+That is why the region is drawn where it is. A locomotive launched normally
+therefore uses its intended first station, and the substitution rule above is
+reserved for the cases that can genuinely produce a short approach: an exact-MM
+declaration (§4.0 mode 1) or a self-acquisition under manual operation (§4.0
+mode 3) that lands fewer than `STATION_LOOKAHEAD_MARKERS` before the intended
+stop.
 
 ### 7.4 Speed while RECOVERING — derived, not fixed
 
@@ -1022,7 +1035,7 @@ and no automated enforcement of sequence**, and none is to be added.
 
 The ordinary procedure:
 
-1. Assemble both consists within **MM030–MM055**.
+1. Assemble both consists within **MM036–MM045**.
 2. Declare each locomotive's orientation and select launch-region startup
    (§4.0 mode 2).
 3. The operator manually starts the **leading** locomotive.
@@ -1097,7 +1110,7 @@ The test plan implements both sets; neither substitutes for the other.
 5. **Exact-MM startup remains available** and enters `POSITIONED` immediately
    (§4.0 mode 1).
 6. **Launch-region acquisition on a clean stream acquires the correct position
-   from every MM in MM030–MM055, in both orientations.** "Or stops" does not
+   from every MM in MM036–MM045, in both orientations.** "Or stops" does not
    satisfy this — launch-region acquisition must be *useful*, not merely safe.
 7. Orientation-known route-wide startup on a clean stream acquires the
    **correct** position from **every** MM in **both** directions.
@@ -1133,7 +1146,7 @@ implementation convenience:**
 
 | question | ruling |
 |---|---|
-| launch region | MM030–MM055 inclusive; self-acquisition optional; startup mode explicitly selected, never presumed (§4.0) |
+| launch region | MM036–MM045 inclusive; self-acquisition optional; startup mode explicitly selected, never presumed (§4.0) |
 | `UNLOCATED` crawl | option A — no automatic crawl; manual operation without position is supported (§4.4.2, §4.4.3) |
 | uncertain-motion policy | movement continues while every viable position is operationally safe; authority is derived, not fixed (§7.4) |
 | sequential launch | operator-supervised procedure; no `LAUNCH_HOLD` (§7.7) |
@@ -1193,7 +1206,7 @@ evidence supports blocks the freeze.
 | `SPEED_HYST_EVENTS_DOWN` / `_UP` | 2 / 5 | no cycling in T16 |
 | `SPEED_STEP_MIN_PCT` | 10% | no cycling in T16 |
 | `STATION_LOOKAHEAD_MARKERS` | 12 | operator ruling; braking distance must fit at the authorised speed |
-| `LAUNCH_REGION` | MM030–MM055 inclusive | operator ruling (§4.0); not an engineering choice, listed here only so implementation reads it from one place |
+| `LAUNCH_REGION` | MM036–MM045 inclusive | operator ruling (§4.0); not an engineering choice, listed here only so implementation reads it from one place |
 | `K_CONFIRM` | 3 | collapse-path false-confirmation rate in T12 |
 | `W_dir`, `W_both` | **computed, not chosen** | prerequisite check P0 (§3.3) |
 

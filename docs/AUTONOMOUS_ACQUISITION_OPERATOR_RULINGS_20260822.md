@@ -7,14 +7,19 @@ does not authorize firmware implementation, flashing, or a train run.
 
 ## Startup and restart
 
-- The normal launch region is **MM030 through MM055 inclusive**.
+- The normal launch region is **MM036 through MM045 inclusive**. It is drawn
+  this size deliberately: every position in it leaves at least 12 markers
+  before the first station in either direction -- Grillers (MM063) is 18--27
+  markers ahead when CW, Patio (MM015) is 21--30 markers ahead when CCW -- so a
+  normal launch never has to skip its intended first stop. (Revised from the
+  earlier MM030--MM055, which did not have that property.)
 - Self-acquisition at startup is optional, not mandatory.
 - Exact-MM/interval declaration remains available and enters positioned
   navigation immediately.
-- After a power cycle inside MM030--MM055, the operator may declare the launch
+- After a power cycle inside MM036--MM045, the operator may declare the launch
   region and orientation and allow the locomotive to acquire its exact
   position from subsequent magnet observations.
-- After a power cycle outside MM030--MM055, the operator may provide an exact
+- After a power cycle outside MM036--MM045, the operator may provide an exact
   MM interval or deliberately operate manually without a declared position.
 - Manual operation without position must remain possible. AUTO station
   behavior is not "held" or actively inhibited in that condition; it is
@@ -30,7 +35,7 @@ does not authorize firmware implementation, flashing, or a train run.
 
 The ordinary procedure is operator-supervised and sequential:
 
-1. Assemble both consists within MM030--MM055.
+1. Assemble both consists within MM036--MM045.
 2. Declare their orientation and launch-region startup.
 3. Manually start the leading locomotive.
 4. Wait until it clears Grillers when CW, or Patio when CCW.
@@ -80,3 +85,8 @@ The operator will normally place the locomotive at least **12 MM markers**
 before its intended first station stop. Once position is acquired, if the
 intended stop is fewer than 12 markers ahead, the locomotive must not attempt
 that stop; the next permitted station is used instead.
+
+The rule is retained in full, but it does not arise from a normal launch: the
+launch region above already guarantees the margin in both directions. It
+applies to startups outside the normal region -- an exact MM/interval
+declaration, or a self-acquisition under manual operation.

@@ -76,7 +76,7 @@ what consumes a capture is using it to redesign, not re-running it.
 
 `docs/AUTONOMOUS_ACQUISITION_OPERATOR_RULINGS_20260822.md` is authoritative for
 the third correction pass. It closes most of what the specification had left to
-the operator — launch region MM030–MM055, no automatic crawl, no `LAUNCH_HOLD`,
+the operator — launch region MM036–MM045, no automatic crawl, no `LAUNCH_HOLD`,
 the reluctant STOP/HOLD posture, the 12-marker first-station rule — and none of
 it disturbs this record: the iteration-3 evidence and the FAIL 2/1/6 verdict
 stay frozen, the navigator stays un-frozen as the candidate, defects are still

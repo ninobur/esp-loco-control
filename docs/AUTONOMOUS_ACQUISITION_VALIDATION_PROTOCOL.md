@@ -51,7 +51,7 @@ anecdotal. The iteration-3 record credited 51 ghosts to a replay that processed
 2.
 
 **Launch-representative.** At least one startup from the normal launch region
-(MM030–MM055) under mode 2, so launch-region acquisition — the design's first
+(MM036–MM045) under mode 2, so launch-region acquisition — the design's first
 operational target — is measured on real track rather than only on generated
 cases. A session that never uses mode 2 scores the launch-region usefulness
 conditions NOT_DEMONSTRATED.
