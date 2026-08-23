@@ -13,17 +13,21 @@ Structure
 `occupancy`  conservative occupancy, peer bounds, separation
 this module  the four states, confirmation, movement authority, telemetry
 
-Two lanes, one evidence stream
-------------------------------
-The navigator propagates the same detections through two branch lists. The
-**track** lane preserves travel direction and carries the navigation claim.
-The **safety** lane additionally admits a native reversal at every detection.
-A native reversal has no signature in the detection record of 3.2, so where
-travel direction is not held by a live operator declaration it cannot be ruled
-out; the published hypothesis set is the union of the two lanes and therefore
-stays complete across one (P1, P5). Confirmation is tested against the track
-lane's evidence chain, so a window straddling a reversal is not a route string
-and confirms nothing.
+One authoritative hypothesis set
+--------------------------------
+There is exactly one branch list, and its union is `H`: the set that is
+published, the set S2 measures completeness against, and the set 4.1 requires
+to be a singleton in `POSITIONED`. Nothing wider is kept alongside it.
+
+Propagation preserves direction exactly as 3.5.1 writes it, and a declared
+orientation therefore excludes the opposite plane until an explicit reversal
+arrives (P10). A native reversal is **commanded motion state**, delivered
+through `direction_changed(direction)`: it says which way the locomotive is
+now going and nothing about where it is, so it rotates the existing
+hypotheses in place -- markers preserved, direction changed -- and costs
+neither completeness nor `|H| = 1`. The evidence window is dropped at the same
+moment, because a polarity string spanning a reversal is not a route string
+and must never read as unique.
 
 Confirmation is by 3.11 **uniqueness only**. The collapse path the
 specification also permits is deliberately not used as a confirmation source
@@ -68,8 +72,7 @@ class Navigator(object):
         self.env = envelope or NominalEnvelope()
         self.policy = A.Policy()
         self.history = PwmHistory()
-        self.track = Lane(allow_reversal=False)
-        self.safety = Lane(allow_reversal=True)
+        self.lane = Lane()
 
         self.nav_state = A.UNLOCATED
         self.movement_state = A.MANUAL_NO_POSITION
@@ -106,6 +109,7 @@ class Navigator(object):
         self._down = 0
         self._up = 0
         self._commanded = 0.0
+        self._travel_dir = None
         self._ceiling_reason = None
         self._context = None
         self._acq_authorised = False
@@ -131,7 +135,7 @@ class Navigator(object):
                 raise ValueError('mode 1 requires a declared MM or interval')
             step = direction if direction in R.DIRS else R.CW
             self._anchor({(mm % R.DNA_N, step)}, 'OPERATOR_DECLARED')
-            self.declared_dir = step
+            self.declared_dir = self._travel_dir = step
             self.dir_invalidated = False
             self._own_bound = {mm % R.DNA_N}
             self._seed_mode = None
@@ -140,7 +144,7 @@ class Navigator(object):
         elif mode == A.MODE_LAUNCH_REGION:
             step = direction if direction in R.DIRS else R.CW
             self._seed({(m, step) for m in R.LAUNCH_REGION})
-            self.declared_dir = step
+            self.declared_dir = self._travel_dir = step
             self.dir_invalidated = False
             self._own_bound = set(R.LAUNCH_REGION)
             self._seed_mode = SEED_LAUNCH_REGION
@@ -149,7 +153,7 @@ class Navigator(object):
             if direction in R.DIRS:
                 # Orientation declared, position unknown: 4.2 ACQ_ROUTE_WIDE.
                 self._seed(R.all_hypotheses(direction))
-                self.declared_dir = direction
+                self.declared_dir = self._travel_dir = direction
                 self.dir_invalidated = False
                 self._seed_mode = SEED_ROUTE_WIDE
                 self.nav_state = A.ACQUIRING_ORIENTED
@@ -165,15 +169,13 @@ class Navigator(object):
         return self
 
     def _seed(self, cands):
-        self.track.seed(set(cands), 0, None, origin=False)
-        self.safety.seed(set(cands), 0, None, origin=False)
+        self.lane.seed(set(cands), 0, None, origin=False)
         self._anchored = False
         self._obs_since_anchor = 0
 
     def _anchor(self, cands, provenance):
         origin = self.t_now > 0
-        self.track.seed(set(cands), self.t_now, self._epoch, origin=origin)
-        self.safety.seed(set(cands), self.t_now, self._epoch, origin=origin)
+        self.lane.seed(set(cands), self.t_now, self._epoch, origin=origin)
         self._anchored = True
         self._anchor_provenance = provenance
         self._anchor_t = self.t_now
@@ -195,9 +197,8 @@ class Navigator(object):
         ghost_like = not (detection.peak >= P.PEAK_FLOOR
                           and detection.duration_ms >= P.DUR_FLOOR)
 
-        skip_t, gap_t = self.track.observe(obs, self.env, self.history,
-                                           ghost_like)
-        skip_s, _ = self.safety.observe(obs, self.env, self.history, ghost_like)
+        skip_t, gap_t = self.lane.observe(obs, self.env, self.history,
+                                          ghost_like)
 
         if gap_t:
             # Case I, 6.2 strategy A: elapsed unknown, an honest
@@ -208,15 +209,12 @@ class Navigator(object):
             self.dir_invalidated = True
             self._window = []
 
-        if not self.track.alive():
-            if self.safety.alive():
-                self._adopt_reversal()
-            else:
-                self._contradiction()
+        if not self.lane.alive():
+            self._contradiction()
         elif not ghost_like:
             clean = (not skip_t and not gap_t
-                     and self.track.pending_depth == 0
-                     and self.track.complete and self.safety.complete)
+                     and self.lane.pending_depth == 0
+                     and self.lane.complete)
             self._window.append((obs.pol_bit, clean))
             if len(self._window) > 4 * R.W_BOTH:
                 del self._window[0]
@@ -227,19 +225,30 @@ class Navigator(object):
         self._update_station()
         self._update_movement()
 
-    def _adopt_reversal(self):
-        """Native reversal handling: hypotheses preserved, travel direction
-        reversed. The track chain died; the reachable set that admits the
-        reversal did not, so that becomes the tracked set. The evidence window
-        is dropped because a string straddling a reversal is not a route
-        string and must never be treated as unique."""
-        self.track.branches = [b.copy() for b in self.safety.branches]
-        self.track.complete = self.safety.complete
-        self.track.collapsed = self.safety.collapsed
-        self.dir_invalidated = True
-        self._own_bound = None
+    def direction_changed(self, direction):
+        """A native reversal. Commanded motion state, not evidence.
+
+        It carries no position: every hypothesis keeps its marker and takes
+        the new travel direction, so `H` neither grows nor shrinks and a
+        locomotive that was `POSITIONED` stays `POSITIONED` at the same
+        marker, now going the other way. It re-anchors nothing.
+
+        The evidence window is dropped, because the observed polarity string
+        is not a route string across a reversal and a would-be unique window
+        spanning one must not confirm (3.11, T4).
+        """
+        if direction not in R.DIRS or direction == self._travel_dir:
+            return False
+        self.lane.reverse(direction)
+        self._travel_dir = direction
+        self.declared_dir = direction
+        self.dir_invalidated = False
         self._window = []
         self.native_reversals += 1
+        self._update_state()
+        self._update_station()
+        self._update_movement()
+        return True
 
     def _contradiction(self):
         """Specification 5. Every branch empty means the model is wrong.
@@ -248,7 +257,7 @@ class Navigator(object):
             t=self.t_now, anchor=self.confirmed,
             provenance=self._anchor_provenance,
             branches=[(b.last_genuine, b.epoch, sorted(b.h))
-                      for b in self.track.branches],
+                      for b in self.lane.branches],
             binding_constraint=self._ceiling_reason,
             peers={k: vars(v) for k, v in self.peers.items()})
         self._stop_ordered = True
@@ -260,12 +269,12 @@ class Navigator(object):
         self.dir_invalidated = True
         self.gap_bearing = False
         self._window = []
-        self.track.seed(R.all_hypotheses(), self.t_now, self._epoch, origin=True)
-        self.safety.seed(R.all_hypotheses(), self.t_now, self._epoch, origin=True)
+        self._travel_dir = None
+        self.lane.seed(R.all_hypotheses(), self.t_now, self._epoch, origin=True)
 
     # ----------------------------------------------------------- confirmation
     def published(self):
-        return self.track.union | self.safety.union
+        return self.lane.union
 
     def _try_confirm(self):
         """Specification 3.11, uniqueness path. All four conditions."""
@@ -275,11 +284,11 @@ class Navigator(object):
             # operator restart. The navigator keeps reasoning and publishing;
             # it does not re-anchor itself out of a falsified model unasked.
             return
-        if not (self.track.complete and self.safety.complete):
+        if not self.lane.complete:
             return                                   # condition 1: COMPLETE
-        if self.track.pending_depth:
+        if self.lane.pending_depth:
             return
-        if self._anchored and len(self.track.union) == 1:
+        if self._anchored and len(self.lane.union) == 1:
             # Already positioned and unambiguous: successor agreement
             # maintains SELF_CONFIRMED (4.1), it is not a new confirmation.
             return
@@ -311,8 +320,10 @@ class Navigator(object):
             self.nav_state = A.UNLOCATED
             self.confirmed = None
             return
-        track = self.track.union
-        if self._anchored and len(track) == 1:
+        track = self.lane.union
+        if self._anchored and len(track) == 1 and self.lane.complete:
+            # 4.1: POSITIONED means one candidate in a set known to contain
+            # the truth. Both halves, or neither.
             self.nav_state = A.POSITIONED
             self.confirmed = next(iter(track))
             return
@@ -357,7 +368,7 @@ class Navigator(object):
     # --------------------------------------------------------------- movement
     def _own_occupancy_bounded(self, published):
         """4.2 C2 condition 1: our own occupancy independently bounded."""
-        if not (self.track.complete and self.safety.complete):
+        if not self.lane.complete:
             return False
         if self.nav_state == A.POSITIONED:
             return True
@@ -634,8 +645,7 @@ class Navigator(object):
             # It shapes the candidate set directly so the published form can
             # be measured against the bitmap; it is not a navigation input.
             cands = {tuple(h) for h in kw.get('hypotheses') or ()}
-            self.track.seed(set(cands), self.t_now, self._epoch, origin=True)
-            self.safety.seed(set(cands), self.t_now, self._epoch, origin=True)
+            self.lane.seed(set(cands), self.t_now, self._epoch, origin=True)
             self._update_movement()
             return True
         return False
@@ -644,7 +654,7 @@ class Navigator(object):
     def status(self):
         published = self.published()
         occ = R.occupancy_markers(published, P.TRAIN_EXTENT_MARKERS)
-        complete = self.track.complete and self.safety.complete
+        complete = self.lane.complete
         if self.policy.occupancy_publication == 'single_arc':
             arcs = covering_arcs(occ, 1)
         else:
@@ -657,7 +667,7 @@ class Navigator(object):
         peers_bounded = all(peer_occupancy(r, self.t_now) is not None
                             for r in self.peers.values()) if self.peers else False
         branches = [(b.last_genuine, b.epoch, frozenset(b.h))
-                    for b in self.track.branches + self.safety.branches]
+                    for b in self.lane.branches]
         return A.NavStatus(
             nav_state=self.nav_state,
             movement_state=self.movement_state,
@@ -669,7 +679,7 @@ class Navigator(object):
             confirmed_mm=self.confirmed[0] if self.confirmed else None,
             confirmed_dir=self.confirmed[1] if self.confirmed else None,
             just_confirmed=self._just_confirmed,
-            pending_depth=self.track.pending_depth,
+            pending_depth=self.lane.pending_depth,
             occupancy_arcs=arcs,
             speed_ceiling=float(self._eff_ceiling) if limited else None,
             commanded_speed=float(self._commanded),

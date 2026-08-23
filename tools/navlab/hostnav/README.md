@@ -61,25 +61,36 @@ never raised by memory pressure on `H`. The branch list is the one capped
 structure; overflow collapses it to its union and costs confirmation authority
 only, never hypotheses.
 
-**Two lanes over one evidence stream.** The navigator propagates the same
-detections through two branch lists:
+**One authoritative hypothesis set.** There is exactly one branch list, and
+its union is `H`: the set that is published, the set S2 measures completeness
+against, and the set §4.1 requires to be a singleton in `POSITIONED`. Nothing
+wider is kept alongside it, because a set that is published as `COMPLETE` and
+a set that is navigated on must be the same set.
 
-- the **track** lane preserves travel direction and carries the navigation
-  claim — it is what `nav_state`, the published position and confirmation are
-  computed from;
-- the **safety** lane additionally admits a native reversal at every
-  detection.
+`POSITIONED ⇒ complete ∧ |H| == 1` is enforced, not merely intended: the
+state rule requires both halves, and `test_positioned_implies_complete_and_singleton`
+sweeps it over every status a clean run reaches.
 
-A native reversal carries no signature in the evidence record of §3.2 — the
-detection has polarity, peak, duration, times and a PWM profile, and no motor
-direction — so wherever travel direction is not held by a live operator
-declaration it cannot be ruled out. The published set is the union of the two
-lanes, which is why the true `(marker, direction)` stays inside a `COMPLETE`
-set across a reversal the record cannot show. When the track chain dies and
-the reversal-admitting set does not, the track set is replaced by it: that is
-"hypotheses preserved, travel direction reversed", and the evidence window is
-dropped at the same moment because a polarity string straddling a reversal is
-not a route string and must never read as unique.
+**Direction is preserved by propagation, and changed only by an explicit
+motion event.** §3.5.1 writes `dir(q) = dir(p)` and the navigator does exactly
+that, so a declared orientation excludes the opposite plane (P10) until
+`direction_changed(direction)` arrives. That event is commanded motion state,
+not evidence: it says which way the locomotive is now going and nothing about
+where it is, so it rotates every hypothesis in place — markers preserved,
+direction changed — and re-anchors nothing. `|H|` and completeness are both
+untouched by it. The evidence window is dropped at the same moment, because a
+polarity string spanning a reversal is not a route string and must never read
+as unique.
+
+The contract carried no such event until 2026-08-22. It was added to the
+harness on evidence independent of this navigator — see
+`tools/navlab/acceptance/counterexample_t4_direction.py`, which shows that 42
+of 171 markers hide a reversal in both polarity and interval length, so S2 and
+§4.1 could not otherwise both hold. An earlier build of this navigator
+compensated with a second, reversal-admitting set published alongside the
+tracked one; that architecture is removed, and it was wrong — it satisfied S2
+by breaking §4.1 on 71% of `POSITIONED` statuses, which the frozen suite
+happened not to sample.
 
 **Timing is branch-local.** Each branch carries its own `last_genuine` and its
 own clock epoch; `elapsed(e, b) = e.t_detect − b.last_genuine`, or `UNKNOWN`
@@ -148,6 +159,10 @@ clause that admits more than one.
    entry condition, and P10 restricts the search to the declared plane.
    `MODE_UNKNOWN` with nothing declared is `UNLOCATED` over all 342 bits —
    the launch region is never presumed.
+6. **A native reversal is `direction_changed`, not an `operator()` command.**
+   Reversal is commanded locomotive motion state. Routing it through the
+   operator surface would have put it beside authoritative position
+   declarations, which is the one thing it must never be mistaken for.
 
 ## Known unvalidated assumptions
 

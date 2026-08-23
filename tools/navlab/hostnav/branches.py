@@ -24,24 +24,24 @@ FIRST = 'first'         # branch has no timing origin yet: at most one interval
 UNKNOWN = 'unknown'     # 6.2 strategy A: d_lo = 0, d_hi = infinity
 
 
-def propagate(cands, pol, mode, d_lo, d_hi, allow_reversal, stopped=False):
+def propagate(cands, pol, mode, d_lo, d_hi, stopped=False):
     """Returns (new candidate set, skip_admitted).
+
+    Direction is **preserved**, exactly as 3.5.1 writes it: `dir(q) = dir(p)`.
+    A detection never changes travel direction and never introduces the
+    opposite plane. A native reversal is commanded motion state and arrives
+    through `Navigator.direction_changed`, which rotates the existing
+    hypotheses rather than widening them.
 
     `skip_admitted` records that some candidate was advanced by more than one
     marker, i.e. a missed marker was admitted. Specification 3.11 refuses a
     uniqueness window containing one, because the observed string is then not
     the route string.
-
-    `allow_reversal` admits the reversed travel direction as well as the
-    current one. A native reversal carries no signature in the detection
-    record, so where direction is not held by an operator declaration it
-    cannot be ruled out and the honest reachable set includes it.
     """
     out = set()
     skip = False
     for p, d in cands:
-        dirs = (d, -d) if allow_reversal else (d,)
-        for dd in dirs:
+        for dd in (d,):
             if mode is UNKNOWN:
                 for q in POL_MARKERS[pol]:
                     out.add((q, dd))
@@ -96,25 +96,31 @@ class Branch:
 
 
 class Lane:
-    """A branch list propagated under one reversal policy.
+    """The branch list. There is exactly one, and it is authoritative.
 
-    The navigator runs two lanes over the same evidence:
-
-    * the **track** lane, direction-preserving, which carries the navigation
-      claim and is what confirmation is tested against;
-    * the **safety** lane, which additionally admits a native reversal at
-      every detection and is therefore a genuine over-approximation of the
-      physically reachable set.
-
-    The published hypothesis set is their union, so it stays complete across a
-    reversal the detection record cannot show (P1, P5).
+    Its union is the hypothesis set `H` the navigator publishes, the set S2
+    measures completeness against, and the set 4.1 requires to be a singleton
+    in `POSITIONED`. There is no second, wider set held alongside it: a set
+    that is published as `COMPLETE` and a set that is navigated on must be the
+    same set, or `|H| = 1` and completeness mean different things.
     """
 
-    def __init__(self, allow_reversal):
-        self.allow_reversal = allow_reversal
+    def __init__(self):
         self.branches = []
         self.complete = True
         self.collapsed = False
+
+    # -- native reversal, 4.1 / implementation map ---------------------------
+    def reverse(self, direction):
+        """Hypotheses preserved, travel direction reversed.
+
+        Commanded motion state says which way the locomotive is now going and
+        nothing about where it is, so every candidate keeps its marker and
+        takes the new direction. The set neither grows nor shrinks, which is
+        why a reversal costs no completeness and no `|H| = 1`.
+        """
+        for b in self.branches:
+            b.h = {(mm, direction) for mm, _ in b.h}
 
     # -- seeding -------------------------------------------------------------
     def seed(self, cands, t=0, epoch=None, origin=False):
@@ -157,8 +163,7 @@ class Lane:
                                            detection.t_detect)
             else:
                 gap_seen = True
-            h2, skip = propagate(b.h, pol, mode, d_lo, d_hi,
-                                 self.allow_reversal, stopped)
+            h2, skip = propagate(b.h, pol, mode, d_lo, d_hi, stopped)
             skip_any = skip_any or skip
             if ghost_like:
                 if h2:

@@ -36,6 +36,18 @@ PKG = sorted(f for f in HERE.glob('*.py')
              if not f.name.startswith('test_'))
 
 
+def drive(nav, start, step, n, t0=3000, pwm=60):
+    """Feed n clean, correctly timed detections. Returns (t, marker, states)."""
+    t, mm, seen = t0, start, []
+    for _ in range(n):
+        dist = R.step_mm(mm, step)
+        t += int(round(dist / P.nominal_speed(pwm)))
+        mm = R.nxt(mm, step)
+        nav.observe(detection(t, 1, mm, pwm=pwm))
+        seen.append((mm, step, nav.status()))
+    return t, mm, seen
+
+
 def detection(t, epoch, mm, pwm=60, elapsed=2300, peak=180, dur=200):
     return A.Detection(t_detect=t, clock_epoch=epoch,
                        polarity='N' if R.DNA[mm] == 1 else 'S',
@@ -95,7 +107,7 @@ class TestBranchLocalTiming(unittest.TestCase):
     def test_phantom_branch_does_not_advance_last_genuine(self):
         env = NominalEnvelope()
         hist = PwmHistory()
-        lane = Lane(allow_reversal=False)
+        lane = Lane()
         lane.seed({(40, R.CW)}, 0, 1, origin=True)
         lane.branches[0].last_genuine = 1200
         # a ghost at 1250: weak and short, so GHOST_LIKE
@@ -145,7 +157,7 @@ class TestPropagation(unittest.TestCase):
             for step in R.DIRS:
                 q = R.nxt(mm, step)
                 out, skip = propagate({(mm, step)}, R.DNA[q], KNOWN, 0.0,
-                                      R.step_mm(mm, step) * 1.3, False)
+                                      R.step_mm(mm, step) * 1.3)
                 self.assertIn((q, step), out)
                 self.assertFalse(skip)
 
@@ -155,36 +167,103 @@ class TestPropagation(unittest.TestCase):
         for _ in range(4):
             far = R.nxt(far, step)
         dist = sum(R.step_mm((mm + i) % R.DNA_N, step) for i in range(4))
-        out, skip = propagate({(mm, step)}, R.DNA[far], KNOWN, 0.0, dist * 1.05,
-                              False)
+        out, skip = propagate({(mm, step)}, R.DNA[far], KNOWN, 0.0, dist * 1.05)
         self.assertIn((far, step), out)
         self.assertTrue(skip, 'an admitted skip must be flagged for 3.11')
 
     def test_standstill_only_when_pwm_leaves_it_possible(self):
-        out, _ = propagate({(40, R.CW)}, R.DNA[40], KNOWN, 0.0, 0.0, False,
-                           stopped=True)
+        out, _ = propagate({(40, R.CW)}, R.DNA[40], KNOWN, 0.0, 0.0, stopped=True)
         self.assertEqual(out, {(40, R.CW)})
-        out, _ = propagate({(40, R.CW)}, R.DNA[40], KNOWN, 0.0, 400.0, False,
+        out, _ = propagate({(40, R.CW)}, R.DNA[40], KNOWN, 0.0, 400.0,
                            stopped=False)
         self.assertNotIn((40, R.CW), out)
 
-    def test_reversal_lane_keeps_a_reversed_truth(self):
-        """T4's property, at the component level."""
-        collisions = 0
+    def test_propagation_never_introduces_the_opposite_plane(self):
+        """3.5.1 writes dir(q) = dir(p). A detection is not a reversal."""
         for mm in range(R.DNA_N):
-            back = R.nxt(mm, R.CCW)
-            if R.DNA[back] != R.DNA[R.nxt(mm, R.CW)]:
-                continue                       # forward chain dies on its own
-            collisions += 1
-            out, _ = propagate({(mm, R.CW)}, R.DNA[back], KNOWN, 0.0,
-                               R.step_mm(mm, R.CCW) * 1.3, True)
-            self.assertIn((back, R.CCW), out)
-            out, _ = propagate({(mm, R.CW)}, R.DNA[back], KNOWN, 0.0,
-                               R.step_mm(mm, R.CCW) * 1.3, False)
-            self.assertNotIn((back, R.CCW), out)
-        self.assertGreater(collisions, 0,
-                           'the polarity-invisible reversal must exist on this '
-                           'map, or the test proves nothing')
+            for step in R.DIRS:
+                for pol in (0, 1):
+                    out, _ = propagate({(mm, step)}, pol, KNOWN, 0.0,
+                                       4 * R.step_mm(mm, step))
+                    self.assertFalse([h for h in out if h[1] != step],
+                                     'propagation admitted the opposite plane')
+
+
+class TestPositionedInvariant(unittest.TestCase):
+    """The four properties QC required after removing the reversal shadow."""
+
+    def test_positioned_implies_complete_and_singleton(self):
+        """4.1. Regression for the shadow-lane defect: POSITIONED was being
+        published with |H| = 2 on 71% of statuses because a second, wider set
+        was published alongside the tracked one."""
+        checked = 0
+        for mm in range(0, R.DNA_N, 5):
+            for step in R.DIRS:
+                nav = Navigator()
+                nav.start(A.MODE_EXACT, A.Policy(), mm=mm, direction=step)
+                _, _, seen = drive(nav, mm, step, 14)
+                for true_mm, true_dir, st in seen:
+                    if st.nav_state != A.POSITIONED:
+                        continue
+                    checked += 1
+                    self.assertTrue(st.complete)
+                    self.assertEqual(len(st.hypotheses), 1,
+                                     'POSITIONED with |H| = %d'
+                                     % len(st.hypotheses))
+                    self.assertEqual(st.hypotheses, {(true_mm, true_dir)})
+                    self.assertEqual((st.confirmed_mm, st.confirmed_dir),
+                                     (true_mm, true_dir))
+        self.assertGreater(checked, 900, 'the sweep must actually reach '
+                                         'POSITIONED, or it proves nothing')
+
+    def test_declared_orientation_excludes_the_opposite_plane(self):
+        """P10, until an explicit reversal event says otherwise."""
+        for step in R.DIRS:
+            nav = Navigator()
+            nav.start(A.MODE_LAUNCH_REGION, A.Policy(), direction=step)
+            self.assertEqual({d for _, d in nav.status().hypotheses}, {step})
+            _, _, seen = drive(nav, 40, step, 10)
+            for _, _, st in seen:
+                self.assertEqual({d for _, d in st.hypotheses}, {step},
+                                 'a detection introduced the opposite plane')
+
+    def test_reversal_preserves_hypotheses_and_changes_direction(self):
+        nav = Navigator()
+        nav.start(A.MODE_EXACT, A.Policy(), mm=43, direction=R.CW)
+        self.assertTrue(nav.direction_changed(R.CCW))
+        st = nav.status()
+        self.assertEqual(st.hypotheses, {(43, R.CCW)})
+        self.assertEqual(st.nav_state, A.POSITIONED)
+        self.assertTrue(st.complete)
+        self.assertEqual((st.confirmed_mm, st.confirmed_dir), (43, R.CCW))
+        # and on a set, markers are preserved one for one
+        nav2 = Navigator()
+        nav2.start(A.MODE_UNKNOWN, A.Policy())
+        wide = {(10, R.CW), (11, R.CCW), (80, R.CW)}
+        nav2.operator('force_hypotheses', hypotheses=wide)
+        nav2.direction_changed(R.CCW)
+        st2 = nav2.status()
+        self.assertEqual({mm for mm, _ in st2.hypotheses},
+                         {mm for mm, _ in wide})
+        self.assertEqual({d for _, d in st2.hypotheses}, {R.CCW})
+
+    def test_a_uniqueness_window_spanning_a_reversal_cannot_confirm(self):
+        """T4's second clause, at the unit level."""
+        nav = Navigator()
+        nav.start(A.MODE_LAUNCH_REGION, A.Policy(), direction=R.CW)
+        t, mm, _ = drive(nav, 40, R.CW, 6)
+        self.assertNotEqual(nav.status().nav_state, A.POSITIONED)
+        nav.direction_changed(R.CCW)
+        # every window from here to W_dir - 1 post-reversal observations spans
+        # the reversal and is not a route string: nothing may confirm.
+        t, mm, seen = drive(nav, mm, R.CCW, R.W_DIR - 1, t0=t)
+        for _, _, st in seen:
+            self.assertIsNone(st.confirmed_mm,
+                              'confirmed from a window spanning a reversal')
+        _, mm, seen = drive(nav, mm, R.CCW, 1, t0=t)
+        st = seen[-1][2]
+        self.assertEqual(st.nav_state, A.POSITIONED)
+        self.assertEqual((st.confirmed_mm, st.confirmed_dir), (mm, R.CCW))
 
 
 class TestPeerAndOccupancy(unittest.TestCase):
