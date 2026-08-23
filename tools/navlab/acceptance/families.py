@@ -684,6 +684,11 @@ def t14_contexts(nav_factory, policy):
             immobilised=immob, decoy_claimed_mm=105)]
         nav = nav_factory()
         nav.start(mode, policy, direction=M.CW)
+        # spec 7.5: every configuration attempts the same initial-movement
+        # authorisation. Configs 1-4 must be blocked by the C1/C2 gate itself,
+        # not merely by the absence of an operator movement command -- so the
+        # command is present in all six and the gate is what's under test.
+        nav.operator('authorise_initial_movement')
         mon = Monitor(s, policy)
         mon.run(nav)
         failures.extend(mon.failures)
