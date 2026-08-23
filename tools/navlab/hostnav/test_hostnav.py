@@ -372,6 +372,28 @@ class TestAcquisitionAuthority(unittest.TestCase):
                         'observations under an established C1 authorised '
                         'motion with no initial movement authorisation')
 
+    def test_manual_throttle_cannot_bypass_a_refused_context(self):
+        """4.2 / 4.4.3: the operator-throttle bypass of the positional-
+        authority gate is the UNLOCATED exception, not an ACQUIRING_ORIENTED
+        one. An unbounded or overlapping peer refuses C1/C2; manual throttle
+        must not substitute for the missing context and start motion the
+        navigator was never told was safe."""
+        unbounded = A.PeerReport(t_report=0, peer_id='p', commanded_stopped=True,
+                                 decoy_claimed_mm=105)
+        overlapping = A.PeerReport(t_report=0, peer_id='p',
+                                   bounded_region=(38, 48), immobilised=True)
+        for label, rep in [('peer unbounded', unbounded),
+                            ('peer bounded but overlapping', overlapping)]:
+            nav = Navigator()
+            nav.start(A.MODE_LAUNCH_REGION, A.Policy(), direction=R.CW)
+            self.assertTrue(nav.operator('manual_throttle', pwm=60))
+            nav.peer_report(rep)
+            _, _, seen = drive(nav, 40, R.CW, 4)
+            self.assertTrue(
+                all(s.commanded_speed == 0.0 for _, _, s in seen),
+                '%s: manual throttle bypassed the refused C1/C2 context'
+                % label)
+
 
 class TestPeerAndOccupancy(unittest.TestCase):
     """3.12.2: enlarge or invalidate, never create, never grant."""

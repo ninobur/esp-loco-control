@@ -429,11 +429,15 @@ class Navigator(object):
             # never starts a stationary locomotive: that is the 7.7 trailing
             # case, where the only reason the locomotive is standing still is
             # that nobody has told it to go. Motion also requires that
-            # movement has actually been initiated -- by an explicit operator
-            # authorisation or by the operator's own throttle. A raw
-            # detection is not that: it may be a reread of a locomotive that
-            # was never told to move, so it proves nothing about authority.
-            initiated = self._initial_movement_authorised or bool(manual)
+            # movement has actually been initiated by an explicit operator
+            # authorisation. Manual throttle does NOT initiate it: 4.2 gates
+            # ACQUIRING_ORIENTED motion on the navigator's own C1/C2 context,
+            # and the operator-throttle bypass of that gate is specifically
+            # the UNLOCATED exception of 4.4.3, not one available here. A raw
+            # detection is not initiation either -- it may be a reread of a
+            # locomotive that was never told to move, so it proves nothing
+            # about authority.
+            initiated = self._initial_movement_authorised
             if permitted and initiated:
                 # 4.2: motion is required to acquire, and where a context
                 # permits it, it is at ACQ_SPEED with no AUTO mission. This is
@@ -445,9 +449,6 @@ class Navigator(object):
                     A.SPEED_LIMITED_FOR_UNCERTAINTY
                     if self._eff_ceiling < P.ACQ_SPEED_PWM
                     else A.RECOVERING_WITH_AUTHORITY)
-            elif manual:
-                self._commanded = manual
-                self.movement_state = A.MANUAL_NO_POSITION
             elif permitted:
                 # Safe to move, and not told to. No order, no latch: motion
                 # begins the moment the operator asks for it.
@@ -456,7 +457,9 @@ class Navigator(object):
             else:
                 # The locomotive stands and publishes the reason. No order is
                 # issued and no latch is set; motion becomes authorised the
-                # moment the conditions are met (4.2).
+                # moment the conditions are met (4.2). A manual command
+                # cannot substitute for the missing context: an unbounded or
+                # overlapping peer refuses C1/C2 regardless of the throttle.
                 self._commanded = 0.0
                 self.movement_state = A.SPEED_LIMITED_FOR_UNCERTAINTY
             return
