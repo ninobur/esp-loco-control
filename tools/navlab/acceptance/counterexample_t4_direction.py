@@ -47,9 +47,13 @@ the device and is simply absent from the host contract. It is commanded motion
 state, not evidence intrinsic to a magnet detection and not an authoritative
 operator position declaration.
 
-Exit status: 0 when the defect is demonstrated. Non-zero if the committed map
-ever stops supporting the witness, in which case this evidence expires and the
-harness correction must be re-justified rather than inherited.
+Exit status: 0 when the demonstration holds. Non-zero only if the committed
+map or the record schema stops supporting it, in which case this evidence has
+expired and the harness correction must be re-justified rather than inherited.
+
+Whether a direction channel now EXISTS is reported, never gated. The
+correction this evidence justified adds one, so gating on its absence would
+make the evidence invalidate itself the moment it was acted on.
 """
 import sys
 
@@ -179,15 +183,9 @@ def main():
                 not carries_direction,
                 'record already carries %s' % carries_direction)
 
-    # 4. The contract offers no other channel.
-    from . import navapi as A
-    surface = [m for m in dir(A.NavigatorContract) if not m.startswith('_')]
-    ok &= check('NavigatorContract exposes no motion or direction method',
-                not [m for m in surface
-                     if 'dir' in m.lower() or 'motion' in m.lower()],
-                'surface is %s' % surface)
-    ok &= check('the reversal is recorded by the generator but never '
-                'delivered',
+    # 4. The reversal exists in the generated truth and must reach the
+    #    navigator by SOME channel. `observe()` cannot carry it, by 3.
+    ok &= check('the generator records the reversal in Stream.reversals',
                 bool(Generator(1).with_reversal(43, M.CW, 3, 3).reversals))
 
     # 5. Exhaustive: no single-element H satisfies S2 in both worlds.
@@ -198,15 +196,33 @@ def main():
                 '(all %d enumerated)' % (2 * M.DNA_N), not survivors)
 
     print()
-    if ok:
-        print('DEFECT DEMONSTRATED. Under the frozen contract, S2 and '
-              'specification 4.1 cannot both hold at a reversal.')
-        print('The correction is to deliver travel direction explicitly, not '
-              'to weaken either requirement.')
-        return 0
-    print('NOT DEMONSTRATED. This evidence has expired; do not inherit the '
-          'harness correction it justified.')
-    return 1
+    if not ok:
+        print('NOT DEMONSTRATED. This evidence has expired; do not inherit '
+              'the harness correction it justified.')
+        return 1
+
+    print('DEFECT DEMONSTRATED. A detection cannot carry travel direction, so '
+          'unless direction reaches')
+    print('the navigator by some other channel, S2 and specification 4.1 '
+          'cannot both hold at a reversal.')
+
+    # Reported, never gated. The correction this evidence justified ADDS the
+    # channel, so gating on its absence would make the evidence invalidate
+    # itself the moment it was acted on.
+    from . import navapi as A
+    channel = [m for m in dir(A.NavigatorContract)
+               if not m.startswith('_')
+               and ('dir' in m.lower() or 'motion' in m.lower())]
+    print()
+    if channel:
+        print('RESOLVED. NavigatorContract carries %s. The correction added '
+              'the missing input;' % ', '.join(channel))
+        print('neither S2 nor specification 4.1 was weakened.')
+    else:
+        print('UNRESOLVED. NavigatorContract still has no such channel, so '
+              'the suite is unsatisfiable')
+        print('at a reversal and no navigator can be conforming.')
+    return 0
 
 
 if __name__ == '__main__':
