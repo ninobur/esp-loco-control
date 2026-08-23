@@ -150,9 +150,34 @@ class NavigatorContract:
 
     def start(self, mode, policy, mm=None, direction=None): raise NotImplementedError
     def observe(self, detection): raise NotImplementedError
+    def direction_changed(self, direction): raise NotImplementedError
     def peer_report(self, report): raise NotImplementedError
     def operator(self, command, **kw): raise NotImplementedError
     def status(self): raise NotImplementedError
+
+    #: `direction_changed(direction)` delivers a NATIVE REVERSAL: the
+    #: locomotive's commanded travel direction has become `direction` (+1 CW,
+    #: -1 CCW). It is motion state, not evidence and not an operator position
+    #: declaration -- it says nothing about where the locomotive is, only
+    #: which way it is now going, and it must never re-anchor a position.
+    #:
+    #: It exists because travel direction is knowable on the device and was
+    #: unreachable from the host contract. `Detection` deliberately carries no
+    #: direction (spec 3.2 lists what a magnet reading carries, and direction
+    #: is not one of them), and the implementation map RETAINS
+    #: `applyDirection()`, `motorDirection`, `sessionDir` and `navDir`
+    #: "including native reversal handling", so the device has it.
+    #:
+    #: Without this channel the suite was unsatisfiable: see
+    #: `counterexample_t4_direction`, which shows on the committed map that a
+    #: reversal at 42 of 171 markers changes neither polarity nor interval,
+    #: so S2 (truth inside a COMPLETE H) and spec 4.1 (|H| = 1 in POSITIONED)
+    #: could not both hold. Delivering direction is the correction; weakening
+    #: either requirement was not an option.
+    #:
+    #: Required of every navigator. `Monitor.run` calls it unconditionally at
+    #: each index in `Stream.reversals`, so a build that does not implement it
+    #: fails loudly instead of passing T4 by accident.
 
 
 MISSING_IMPLEMENTATION = (

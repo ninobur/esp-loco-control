@@ -27,6 +27,9 @@ class _Base:
         self.mm = mm
         self.h = {(mm, self.step)} if mm is not None else set()
 
+    def direction_changed(self, direction):
+        self.step = direction
+
     def peer_report(self, rep):
         self.peer = rep
 

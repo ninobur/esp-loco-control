@@ -188,7 +188,14 @@ class Monitor:
 
     # -- driver --------------------------------------------------------------
     def run(self, nav):
-        for truth in self.stream.events:
+        reversals = set(self.stream.reversals or ())
+        for i, truth in enumerate(self.stream.events):
+            if i in reversals:
+                # A native reversal is commanded motion state, not evidence.
+                # `with_reversal` has always recorded it; until the contract
+                # gained `direction_changed` the driver had nowhere to send
+                # it, which is the defect counterexample_t4_direction shows.
+                nav.direction_changed(truth.true_dir)
             for rep in self.stream.peer_reports:
                 if rep.t_report <= truth.detection.t_detect:
                     self.peer_state = rep

@@ -88,6 +88,13 @@ use 10 observations, orientation-unknown needs 12. The firmware's existing
 - Every detection carries explicit ground truth: the true marker, the true
   direction, whether it was genuine or a ghost, the true elapsed time, and how
   many markers were missed before it.
+- **Travel direction is delivered as an explicit motion event**, not inferred
+  from a detection. `Monitor.run` calls `nav.direction_changed(direction)` at
+  every index in `Stream.reversals`. A native reversal is commanded motion
+  state, not evidence about position: it says which way the locomotive is now
+  going and nothing about where it is. This channel was added on 2026-08-22
+  after `counterexample_t4_direction` showed the suite was otherwise
+  unsatisfiable -- see "Corrections" below.
 - Detections carry **no `dt` field**. Elapsed time is branch-local
   (spec §3.6), so it is a property of an (event, branch) pair and the harness
   refuses to precompute it.
@@ -111,6 +118,35 @@ confirmation. Every stop is classified `NO_STOP` / `SAFE_STOP` /
 A single false confirmation raises `SuiteFailure` and stops the run — it is not
 one family's failure, it is the suite's.
 
+## Corrections
+
+The harness is frozen against the implementation it tests. It has been
+corrected once, and only on evidence independent of any navigator.
+
+**2026-08-22 — travel direction was unreachable from the contract.**
+`with_reversal` recorded a native reversal in `Stream.reversals` and nothing
+delivered it, while `Detection` carries no direction and `NavigatorContract`
+exposed no motion method. `counterexample_t4_direction` shows on the
+committed map that 42 of 171 markers hide a reversal in **both** polarity and
+interval length, builds two worlds over one detection sequence whose records
+are identical on every field spec 3.2 permits, and enumerates all 342
+single-element hypothesis sets to show none satisfies S2 in both. S2 and
+specification 4.1 (`|H| = 1` in `POSITIONED`) therefore could not both hold at
+a reversal. The correction adds the missing input — `direction_changed` on the
+contract, delivered by `Monitor.run` — and weakens neither requirement. No
+family, no generated truth, no invariant semantic and no expected outcome
+changed; the no-navigator result is still
+`PASS=18 FAIL=0 NOT_IMPLEMENTED=31 NOT_DEMONSTRATED=3`.
+
+Run the evidence:
+
+```bash
+python3 -m tools.navlab.acceptance.counterexample_t4_direction
+```
+
+It exits non-zero if the committed map ever stops supporting the witness, so
+the correction cannot be inherited once its justification has expired.
+
 ## Files
 
 | file | role |
@@ -122,6 +158,7 @@ one family's failure, it is the suite's.
 | `invariants.py` | continuous invariant monitors and the conservative reference oracle |
 | `families.py` | the frozen acceptance families |
 | `selftests.py` | defective doubles the suite must reject |
+| `counterexample_t4_direction.py` | navigator-independent evidence for the one harness correction |
 | `run_acceptance.py` | runner |
 | `make_manifest.py` | regenerates `manifest.json` |
 | `manifest.json` | plan family / invariant → implementing function |
