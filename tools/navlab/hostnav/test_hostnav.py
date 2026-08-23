@@ -266,6 +266,113 @@ class TestPositionedInvariant(unittest.TestCase):
         self.assertEqual((st.confirmed_mm, st.confirmed_dir), (mm, R.CCW))
 
 
+class TestAcquisitionAuthority(unittest.TestCase):
+    """4.2 C1/C2 and 7.5. Context is not a command, and intake is not
+    authority."""
+
+    def test_c1_is_never_inferred_from_silence(self):
+        """4.2: absence must come from the decision-0031 membership rules."""
+        nav = Navigator()
+        nav.start(A.MODE_LAUNCH_REGION, A.Policy(), direction=R.CW)
+        drive(nav, 40, R.CW, 4)
+        st = nav.status()
+        self.assertNotEqual(st.acquisition_context, 'C1')
+        self.assertIn('C1 unavailable', st.acquisition_context or '')
+        self.assertEqual(st.commanded_speed, 0.0)
+
+    def test_c1_comes_only_from_the_membership_statement(self):
+        nav = Navigator()
+        nav.start(A.MODE_LAUNCH_REGION, A.Policy(), direction=R.CW)
+        self.assertTrue(nav.operator('declare_alone', alone=True))
+        self.assertEqual(nav.status().acquisition_context, 'C1')
+
+    def test_an_acquisition_context_does_not_start_a_stationary_locomotive(self):
+        """7.5 / 7.7. A context says movement would be safe. It is not the
+        operator's initial movement command, and the trailing locomotive of a
+        sequential launch is standing still for exactly one reason: nobody has
+        told it to go."""
+        nav = Navigator()
+        nav.start(A.MODE_LAUNCH_REGION, A.Policy(), direction=R.CW)
+        nav.operator('declare_alone', alone=True)
+        st = nav.status()
+        self.assertEqual(st.acquisition_context, 'C1')
+        self.assertEqual(st.commanded_speed, 0.0,
+                         'C1 alone started a stationary locomotive')
+        self.assertNotEqual(st.movement_state,
+                            A.STOPPED_FOR_NAVIGATION_SAFETY,
+                            'standing for want of a command is not a stop '
+                            'order (7.8)')
+        self.assertTrue(nav.operator('authorise_initial_movement'))
+        self.assertGreater(nav.status().commanded_speed, 0)
+        self.assertTrue(nav.operator('stop'))
+        self.assertEqual(nav.status().commanded_speed, 0.0)
+
+    def test_initial_movement_alone_does_not_move_without_a_context(self):
+        """The gate runs both ways: authorising movement does not create the
+        acquisition context 4.2 requires."""
+        nav = Navigator()
+        nav.start(A.MODE_LAUNCH_REGION, A.Policy(), direction=R.CW)
+        self.assertTrue(nav.operator('authorise_initial_movement'))
+        st = nav.status()
+        self.assertNotIn(st.acquisition_context, ('C1', 'C2'))
+        self.assertEqual(st.commanded_speed, 0.0)
+
+    def test_c2_requires_both_bounded_and_separated(self):
+        far = A.PeerReport(t_report=0, peer_id='p', bounded_region=(100, 110),
+                           immobilised=True)
+        near = A.PeerReport(t_report=0, peer_id='p', bounded_region=(38, 48),
+                            immobilised=True)
+        unbounded = A.PeerReport(t_report=0, peer_id='p',
+                                 commanded_stopped=True, decoy_claimed_mm=105)
+        cases = [
+            ('bounded both, separated', A.MODE_LAUNCH_REGION, far, 'C2', True),
+            ('peer unbounded', A.MODE_LAUNCH_REGION, unbounded, None, False),
+            ('peer bounded but overlapping', A.MODE_LAUNCH_REGION, near,
+             None, False),
+            ('we are route-wide', A.MODE_UNKNOWN, far, None, False),
+        ]
+        for label, mode, rep, want_ctx, want_move in cases:
+            nav = Navigator()
+            nav.start(mode, A.Policy(), direction=R.CW)
+            nav.operator('authorise_initial_movement')
+            nav.peer_report(rep)
+            drive(nav, 40, R.CW, 4)
+            st = nav.status()
+            self.assertEqual((st.commanded_speed or 0) > 0, want_move, label)
+            if want_ctx:
+                self.assertEqual(st.acquisition_context, want_ctx, label)
+            else:
+                self.assertNotEqual(st.acquisition_context, 'C2', label)
+
+    def test_crediting_an_observation_authorises_no_motion(self):
+        """4.4.3: the navigator keeps observing under manual driving, and the
+        observations manual driving produces are exactly what acquisition
+        needs -- so evidence intake is unconditional. What is gated is
+        AUTHORITY: a credited detection never makes the navigator command
+        motion it has no context for."""
+        nav = Navigator()
+        nav.start(A.MODE_LAUNCH_REGION, A.Policy(), direction=R.CW)
+        _, _, seen = drive(nav, 40, R.CW, 12)
+        self.assertEqual(seen[-1][2].nav_state, A.POSITIONED,
+                         'observation intake must not depend on authority')
+        self.assertTrue(all(s.commanded_speed == 0.0 for _, _, s in seen),
+                        'the navigator authorised motion it had no context for')
+
+    def test_c1_plus_observations_without_initiation_never_moves(self):
+        """A raw detection is not initiation -- it may be a reread of a
+        locomotive nobody has told to move. Establishing C1 makes movement
+        SAFE; it must not, by itself or combined with the observations
+        acquisition produces, make the navigator command it."""
+        nav = Navigator()
+        nav.start(A.MODE_LAUNCH_REGION, A.Policy(), direction=R.CW)
+        self.assertTrue(nav.operator('declare_alone', alone=True))
+        self.assertEqual(nav.status().acquisition_context, 'C1')
+        _, _, seen = drive(nav, 40, R.CW, 12)
+        self.assertTrue(all(s.commanded_speed == 0.0 for _, _, s in seen),
+                        'observations under an established C1 authorised '
+                        'motion with no initial movement authorisation')
+
+
 class TestPeerAndOccupancy(unittest.TestCase):
     """3.12.2: enlarge or invalidate, never create, never grant."""
 

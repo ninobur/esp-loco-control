@@ -115,6 +115,7 @@ class Navigator(object):
         self._acq_authorised = False
         self._stop_ordered = False
         self._membership_confirms_alone = False
+        self._initial_movement_authorised = False
 
         self.speed_reductions = 0
         self.speed_restorations = 0
@@ -423,7 +424,17 @@ class Navigator(object):
         if self.nav_state == A.ACQUIRING_ORIENTED:
             permitted = self._acquisition_context(own_bounded, peers_bounded,
                                                   hazard)
-            if permitted:
+            # 7.5. An acquisition context establishes that movement would be
+            # SAFE. It is not the operator's initial movement command, and it
+            # never starts a stationary locomotive: that is the 7.7 trailing
+            # case, where the only reason the locomotive is standing still is
+            # that nobody has told it to go. Motion also requires that
+            # movement has actually been initiated -- by an explicit operator
+            # authorisation or by the operator's own throttle. A raw
+            # detection is not that: it may be a reread of a locomotive that
+            # was never told to move, so it proves nothing about authority.
+            initiated = self._initial_movement_authorised or bool(manual)
+            if permitted and initiated:
                 # 4.2: motion is required to acquire, and where a context
                 # permits it, it is at ACQ_SPEED with no AUTO mission. This is
                 # the navigator's own authorisation and it survives into
@@ -437,6 +448,11 @@ class Navigator(object):
             elif manual:
                 self._commanded = manual
                 self.movement_state = A.MANUAL_NO_POSITION
+            elif permitted:
+                # Safe to move, and not told to. No order, no latch: motion
+                # begins the moment the operator asks for it.
+                self._commanded = 0.0
+                self.movement_state = A.RECOVERING_WITH_AUTHORITY
             else:
                 # The locomotive stands and publishes the reason. No order is
                 # issued and no latch is set; motion becomes authorised the
@@ -594,8 +610,18 @@ class Navigator(object):
             self.nav_state = A.ACQUIRING_ORIENTED
             self._update_movement()
             return True
+        if command == 'authorise_initial_movement':
+            # 7.5: the operator authorises initial movement. A permission,
+            # not a speed -- acquisition runs at the navigator's own
+            # ACQ_SPEED, so the operator is never asked to pick a number for
+            # a locomotive whose position is not yet known.
+            self._initial_movement_authorised = bool(kw.get('authorised', True))
+            self._update_movement()
+            return True
         if command == 'authorise_speed':
             self.authorised_pwm = float(kw.get('pwm', 0))
+            if self.authorised_pwm > 0:
+                self._initial_movement_authorised = True
             self._update_movement()
             return True
         if command == 'manual_throttle':
@@ -615,6 +641,7 @@ class Navigator(object):
         if command == 'stop':
             self.authorised_pwm = 0.0
             self.manual_throttle_pwm = 0.0
+            self._initial_movement_authorised = False
             self._commanded = 0.0
             self._update_movement()
             return True

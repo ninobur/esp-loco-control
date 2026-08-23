@@ -138,8 +138,63 @@ def p0_launch(nav_factory, policy):
 # ===========================================================================
 # Navigator-dependent families.
 # ===========================================================================
+# ---------------------------------------------------------------------------
+# Movement authority the families model. A generated stream's observations
+# only exist because the locomotive moved, so something authorised that
+# motion. Which something differs by family and the difference is
+# load-bearing, so each `_sweep` caller names its own rather than sharing one.
+# ---------------------------------------------------------------------------
+def _stream_pwm(stream):
+    """The PWM the stream is demonstrably running at, from its own record.
+
+    The harness invents no operating speed. Where a family models an
+    already-authorised speed it authorises the one the generated locomotive is
+    actually using.
+    """
+    for ev in stream.events:
+        pwms = [pwm for _, pwm in (ev.detection.pwm_actual_history or ()) if pwm]
+        if pwms:
+            return max(pwms)
+    return 0
+
+
+def _authority_acquisition(nav, stream):
+    """Spec 4.2 C1, then spec 7.5 initial movement authorisation.
+
+    Manual throttle is deliberately NOT used here. It would supply motion
+    while bypassing the C1/C2 gate this family exists to exercise, and an
+    acquiring locomotive under operator throttle is a different operating
+    condition from one the navigator has authorised to acquire.
+
+    The two calls are separate on purpose: a context establishes that movement
+    would be SAFE, and is not itself a command to move.
+    """
+    if not nav.operator('declare_alone', alone=True):
+        return 'navigator refused the decision-0031 membership statement'
+    if not nav.operator('authorise_initial_movement'):
+        return 'navigator refused the operator initial movement authorisation'
+    return None
+
+
+def _authority_manual(nav, stream):
+    """Spec 4.4.3. The operator holds the throttle and drives; the navigator
+    authorises nothing and claims no separation."""
+    if not nav.operator('manual_throttle', pwm=_stream_pwm(stream)):
+        return 'navigator refused manual operation without a declared position'
+    return None
+
+
+def _authority_existing_operation(nav, stream):
+    """Spec 4.0 mode 1. The locomotive is already running under a previously
+    authorised operating speed when the exact-MM declaration is made; nothing
+    is being acquired and no initial movement is being authorised."""
+    if not nav.operator('authorise_speed', pwm=_stream_pwm(stream)):
+        return 'navigator refused the previously authorised operating speed'
+    return None
+
+
 def _sweep(nav_factory, policy, streams, test_id, title, gate, spec_ref,
-           require_acquisition, bound=None):
+           require_acquisition, bound=None, authority=None):
     """Shared driver. require_acquisition=True => CLEAN: a stop is a failure."""
     if nav_factory is None:
         return _need_nav(test_id, title, gate, spec_ref)
@@ -148,6 +203,19 @@ def _sweep(nav_factory, policy, streams, test_id, title, gate, spec_ref,
         nav = nav_factory()
         nav.start(stream.start_mode, policy, mm=stream.start_mm_declared,
                   direction=stream.start_dir)
+        if not stream.externally_authorised:
+            failures.append('%s: motion-generated observations delivered with '
+                            'no movement authority modelled' % stream.name)
+            continue
+        if authority is None:
+            failures.append('%s: this family models no movement authority, so '
+                            'it credits motion the navigator was never told '
+                            'about' % stream.name)
+            continue
+        refusal = authority(nav, stream)
+        if refusal:
+            failures.append('%s: %s' % (stream.name, refusal))
+            continue
         mon = Monitor(stream, policy)
         mon.run(nav)                       # SuiteFailure propagates
         failures.extend(mon.failures)
@@ -236,7 +304,8 @@ def t0_exact(nav_factory, policy):
 def t1a_launch(nav_factory, policy):
     return _sweep(nav_factory, policy, _launch_streams(), 'T1a',
                   t1a_launch.title, 'usefulness', 'spec 4.0 mode 2',
-                  require_acquisition=True, bound=prereq.W_DIR)
+                  require_acquisition=True, bound=prereq.W_DIR,
+                  authority=_authority_acquisition)
 
 
 @family('T1a.station', 'no launch-region case triggers the station substitution',
@@ -248,6 +317,10 @@ def t1a_station(nav_factory, policy):
     for stream in _launch_streams():
         nav = nav_factory()
         nav.start(A.MODE_LAUNCH_REGION, policy, direction=stream.start_dir)
+        refusal = _authority_acquisition(nav, stream)
+        if refusal:
+            failures.append('%s: %s' % (stream.name, refusal))
+            continue
         Monitor(stream, policy).run(nav)
         st = nav.status()
         if st.station_substituted:
@@ -297,7 +370,8 @@ def t1b_presumption(nav_factory, policy):
 def t1_routewide(nav_factory, policy):
     return _sweep(nav_factory, policy, _all_marker_streams(mode=A.MODE_UNKNOWN),
                   'T1', t1_routewide.title, 'usefulness', 'spec 4.2',
-                  require_acquisition=True, bound=prereq.W_DIR)
+                  require_acquisition=True, bound=prereq.W_DIR,
+                  authority=_authority_acquisition)
 
 
 @family('T2', 'orientation-unknown startup, movement externally authorised',
@@ -308,7 +382,7 @@ def t2_unknown(nav_factory, policy):
         s.externally_authorised = True
     return _sweep(nav_factory, policy, streams, 'T2', t2_unknown.title,
                   'usefulness', 'spec 4.4', require_acquisition=True,
-                  bound=prereq.W_BOTH)
+                  bound=prereq.W_BOTH, authority=_authority_manual)
 
 
 @family('T3', 'powered-run loss retains the anchor and recovers',
@@ -356,7 +430,8 @@ def t4_reversal(nav_factory, policy):
                 s.start_mode, s.start_mm_declared = A.MODE_EXACT, mm
                 streams.append(s)
     return _sweep(nav_factory, policy, streams, 'T4', t4_reversal.title,
-                  'usefulness', 'spec 4.2/4.3', require_acquisition=False)
+                  'usefulness', 'spec 4.2/4.3', require_acquisition=False,
+                  authority=_authority_existing_operation)
 
 
 @family('T5', 'operator declaration re-origins timing (Case D)',
@@ -534,7 +609,8 @@ def t9_accel(nav_factory, policy):
                 s.start_mode, s.start_mm_declared = A.MODE_EXACT, mm
                 streams.append(s)
     return _sweep(nav_factory, policy, streams, 'T9', t9_accel.title,
-                  'usefulness', 'spec 3.8', require_acquisition=False)
+                  'usefulness', 'spec 3.8', require_acquisition=False,
+                  authority=_authority_existing_operation)
 
 
 @family('T10', 'weak short-duration ghosts', gate='usefulness', regime='CLEAN',
