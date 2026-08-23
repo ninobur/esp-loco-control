@@ -13,6 +13,20 @@ MQTT, or the Pi contract.
 | 4. hold-out replay fixtures | committed filtered inputs + `rebuild_db.sh` hold-out list | inputs committed under `field-records/logs/navlab-inputs/`, proven byte-equivalent to the full captures modulo line numbers |
 | 5. event-level comparison report | `docs/QUORUM_NAVLAB_ITER2_REPORT.md` + `results/iter2_acceptance.json` | iteration 2: FAIL 7/9, 0 false confirmations; single named root cause |
 
+## Replacement navigator
+
+The autonomous-acquisition work of `docs/AUTONOMOUS_POSITION_ACQUISITION_SPEC.md`
+adds two packages that do not belong to the five artifacts above:
+
+| package | role |
+|---|---|
+| `acceptance/` | the frozen host acceptance harness, written before the navigator (decision 0042). Contains tests and deliberately defective doubles only |
+| `hostnav/` | the replacement host navigator — see `hostnav/README.md` for the module, the exact acceptance command, the architecture and the unvalidated assumptions |
+
+`reachability_nav.py` (artifact 3) is the iteration-3 navigator and is
+retained as evidence, not as the candidate. It is not the navigator `hostnav`
+replaces it with, and the two are not interchangeable.
+
 Reproducibility: `rebuild_db.sh` is the exact command of record; it consumes
 only committed files and regenerates `db/timing_db_v1.json` (the intermediate
 records file is derived, not committed). Hold-out leak prevention is

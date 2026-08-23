@@ -85,8 +85,9 @@ def peer_occupancy(report, t_now):
     """The peer's conservative occupancy now, or None meaning unbounded.
 
     A peer with no authoritative region yields no bound however precise its
-    own navigation claim: `decoy_claimed_mm` and `reported_*` are never read
-    as position. Between valid bounds the occupancy grows at the peer's own
+    own navigation claim: neither a peer's claimed marker nor its reported
+    speed or direction is read as position, only `bounded_region` from an
+    authoritative source. Between valid bounds the occupancy grows at its own
     envelope fast bound; `PEER_IMMOBILISED` holds that growth at zero while
     the latch holds, which is precisely what the latch buys.
     """
