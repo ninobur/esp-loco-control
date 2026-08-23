@@ -19,6 +19,32 @@ the one mile-marker magnet that can physically occur next. Everything else is
 noise. Any navigation feature that does not demonstrably contribute to target
 identification shall be considered for deletion.
 
+## Governing architectural change
+
+QUORUM and Templates place the navigation decision at different points in Hall
+data processing:
+
+- In the current QUORUM model, upstream detector parameters first decide that a
+  Hall response is a valid magnet hit. QUORUM receives that accepted hit,
+  advances or accounts for it, and then decides what the resulting disagreement
+  means.
+- In the proposed Templates model, a Hall response is not a mile-marker hit
+  until it has been identified as the one target magnet physically possible
+  next. Templates evaluates the available Hall evidence in the context of the
+  internal route map, location, orientation, direction, PWM, motion state, and
+  last confirmed marker. Responses that cannot identify the target are noise
+  and must not change position.
+
+Therefore, target identification must occur before marker acceptance and before
+the marker count or navigation position changes. Templates must receive enough
+Hall evidence to make that decision; an upstream filter must not make the
+substantive target-identification decision and then present only its accepted
+conclusions to Templates.
+
+This statement defines planning direction. The exact Hall sampling, excursion
+grouping, target tests, thresholds, and treatment of incomplete evidence remain
+subject to review and explicit approval.
+
 ## Recovered questions and answers
 
 ### Question 1 — Input boundary
