@@ -194,15 +194,22 @@ def _authority_existing_operation(nav, stream):
 
 
 def _sweep(nav_factory, policy, streams, test_id, title, gate, spec_ref,
-           require_acquisition, bound=None, authority=None):
-    """Shared driver. require_acquisition=True => CLEAN: a stop is a failure."""
+           require_acquisition, bound=None, authority=None,
+           declare_direction=True):
+    """Shared driver. require_acquisition=True => CLEAN: a stop is a failure.
+
+    declare_direction=False withholds the stream's travel direction from
+    Navigator.start(): the stream keeps start_dir as generator ground truth,
+    used to score the final acquired position, but the navigator is never
+    told it as an operator declaration.
+    """
     if nav_factory is None:
         return _need_nav(test_id, title, gate, spec_ref)
     failures, stops, latencies, defect_stops = [], 0, [], 0
     for stream in streams:
         nav = nav_factory()
         nav.start(stream.start_mode, policy, mm=stream.start_mm_declared,
-                  direction=stream.start_dir)
+                  direction=stream.start_dir if declare_direction else None)
         if not stream.externally_authorised:
             failures.append('%s: motion-generated observations delivered with '
                             'no movement authority modelled' % stream.name)
@@ -382,7 +389,8 @@ def t2_unknown(nav_factory, policy):
         s.externally_authorised = True
     return _sweep(nav_factory, policy, streams, 'T2', t2_unknown.title,
                   'usefulness', 'spec 4.4', require_acquisition=True,
-                  bound=prereq.W_BOTH, authority=_authority_manual)
+                  bound=prereq.W_BOTH, authority=_authority_manual,
+                  declare_direction=False)
 
 
 @family('T3', 'powered-run loss retains the anchor and recovers',
