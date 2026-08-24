@@ -1,0 +1,88 @@
+**Magnetic Anomaly Detection (MAD) Techniques – Research Summary**
+
+Magnetic anomaly detection identifies localized disturbances in the ambient magnetic field (typically Earth’s field) caused by ferromagnetic objects. It is used in defense (submarine/aircraft detection), mineral exploration, unexploded-ordnance (UXO) location, pipeline/cable surveying, railway sleeper/bolt or magnet detection, and vehicle or underwater target sensing.
+
+### Core Physical Principle
+A ferromagnetic body in Earth’s magnetic field (≈25–65 µT) becomes magnetized and produces a dipole (or higher-order multipole) perturbation. The anomaly amplitude falls off roughly as \(1/r^3\) for a dipole. Detection therefore relies on sensitive magnetometers, spatial or temporal differencing to reject the large background, and signal processing matched to the expected anomaly signature.
+
+### Primary Sensor Technologies
+| Sensor Type | Typical Sensitivity | Bandwidth | Key Advantages | Key Limitations | Common Platforms |
+|-------------|---------------------|-----------|----------------|-----------------|-------------------|
+| Fluxgate | 10–100 pT/√Hz | DC–kHz | Robust, low power, vector | Moderate sensitivity | Airborne, marine, ground |
+| Optically pumped (He, Cs, K) | <1 pT/√Hz | DC–hundreds Hz | Highest scalar sensitivity | Cost, complexity, heading error | Airborne MAD, marine |
+| SQUID | fT range | DC–kHz | Extreme sensitivity | Cryogenics required | Laboratory / specialized |
+| Hall-effect / GMR / TMR | nT–µT range | DC–MHz | Cheap, small, high bandwidth, no cryogenics | Lower sensitivity, offset drift | Railway, industrial, vehicle, near-field |
+| Induction coils | nT range (AC) | Hz–kHz | Simple for AC anomalies | No DC response | Moving platforms |
+
+For railway Hall-sensor applications (close-range magnets or ferromagnetic fasteners), Hall/GMR devices dominate because the target is nearby, the signal is relatively strong, and cost/size constraints are tight. For long-range MAD (airborne submarine detection), optically pumped or advanced fluxgate sensors are standard.
+
+### Established Detection & Signal-Processing Techniques
+
+1. **Total-field vs. Gradient / Differential Sensing**  
+   - Total-field magnetometers measure the magnitude of the field.  
+   - Gradiometers (spatial difference of two or more sensors) reject the uniform Earth field and distant sources while retaining the localized anomaly.  
+   - Common configurations: vertical gradiometer, horizontal baseline, or multi-sensor arrays.  
+   - Railway literature shows differential Hall pairs or multi-element line-scan arrangements used to suppress traction-motor interference and Earth’s field.
+
+2. **Matched Filtering / Template Correlation**  
+   - The expected anomaly shape for a dipole (or known magnet geometry) at a given platform speed and altitude/air-gap is known analytically or from simulation.  
+   - Correlate the measured time series against a bank of speed- and orientation-normalized templates.  
+   - Maximizes SNR for a known waveform in additive noise; widely used in both classic MAD and magnetic-particle flow cytometry.  
+   - Failure mode: large mismatch in speed, orientation, or magnetization reduces detection probability.
+
+3. **Adaptive Thresholding / CFAR-style Methods**  
+   - Local noise/clutter power is estimated from a sliding window of neighboring samples.  
+   - Threshold is scaled to maintain approximately constant false-alarm rate despite spatially or temporally varying background (e.g., magnetic geology, nearby trains, substations).  
+   - Variants include cell-averaging, ordered-statistic, and clutter-map CFAR adapted to the 1-D time series of a moving platform.
+
+4. **Orthonormal Basis Function Expansion / MAD Filtering**  
+   - Classic airborne MAD uses a set of orthonormal basis functions derived from the dipole field equations under constant-velocity straight-line flight.  
+   - The measured signal is projected onto this basis; detection statistics are formed from the coefficients.  
+   - Robust to unknown target orientation and provides some clutter rejection.
+
+5. **Wavelet, Time-Frequency, and Adaptive Filtering**  
+   - Wavelet denoising or continuous wavelet transform highlights transient anomalies of characteristic scale.  
+   - Adaptive filters (LMS, RLS) or high-pass / band-pass filters remove slowly varying geomagnetic and platform-motion noise.  
+   - Useful when the anomaly duration is short relative to background variations.
+
+6. **Multi-Hypothesis / Sequential Detection & Tracking**  
+   - Candidate detections are gated in space/time using platform kinematics.  
+   - Multiple association hypotheses are maintained and scored; confirmation requires consistent sequential evidence.  
+   - Rejects isolated clutter spikes and duplicate or multipath-like responses.
+
+7. **Machine-Learning / Data-Driven Approaches** (more recent)  
+   - Supervised classifiers or autoencoders trained on labeled anomaly vs. clutter signatures.  
+   - Can incorporate multi-sensor features (magnetic + inertial + speed).  
+   - Risk: performance depends heavily on training data representativeness; less transparent than model-based methods for safety-critical railway use.
+
+### Practical Considerations for Moving-Platform (Locomotive) Use
+- **Platform noise**: Vibration, electrical currents, and ferromagnetic parts of the vehicle itself generate interference. Differential sensing, rigid mounting, and real-time compensation (using auxiliary sensors or model-based cancellation) are essential.  
+- **Speed dependence**: Anomaly duration and amplitude scale with velocity and air-gap; templates or adaptive filters must accommodate the operational speed range.  
+- **Heading / attitude errors**: Scalar sensors suffer heading error; vector sensors or gradiometers mitigate it.  
+- **Clutter sources**: Rail magnetization, nearby rolling stock, switches, bridges, and geological anomalies. Spatial differencing and kinematic gating help.  
+- **Real-time constraints**: Embedded processors favor computationally light methods (matched filter + CFAR + simple gate) over large hypothesis trees or heavy neural nets unless hardware acceleration is available.
+
+### Performance Limits and Failure Modes
+- Detection range is fundamentally limited by the \(1/r^3\) (or steeper) fall-off and by residual noise after processing.  
+- Strong local interferers can saturate sensors or create false gradients.  
+- Template mismatch, non-dipole target shapes, and non-stationary clutter degrade classical matched-filter and orthonormal-basis methods.  
+- Overly aggressive thresholding or gating produces missed detections; overly permissive settings produce false tracks.
+
+### Relevance to Railway Hall-Sensor Target Acquisition
+For close-range detection of discrete magnets or ferromagnetic fasteners with Hall sensors, the most directly transferable techniques are:
+- Differential / multi-element sensing for common-mode rejection,  
+- Matched filtering against the expected passage waveform,  
+- Adaptive (CFAR-like) thresholding,  
+- Kinematic measurement gating and sequential confirmation.
+
+Long-range airborne MAD methods (optically pumped sensors, full orthonormal-basis MAD filters) are generally overkill and mismatched in scale, but the underlying ideas of template matching, gradient sensing, and sequential evidence accumulation remain applicable.
+
+**Sources of established knowledge**: Classic MAD literature (airborne submarine detection), IEEE and MDPI papers on magnetic gradiometry and railway magnetic sensing, standard detection theory (matched filters, CFAR), and commercial magnetometer application notes. No single “best” technique exists; choice depends on target range, sensor type, platform noise, and real-time budget.
+
+**Recommended next empirical steps** (if continuing the TEMPLATES investigation):  
+1. Record Hall time series with controlled magnets at representative speeds and air-gaps.  
+2. Characterize residual noise after simple differential and high-pass filtering.  
+3. Compare fixed-threshold, matched-filter, and CFAR detectors on the same data.  
+4. Quantify the benefit of a kinematic gate + sequential confirmation logic.
+
+This keeps the investigation focused on techniques that genuinely fit a noisy, moving-platform, short-range magnetic sensing problem.
