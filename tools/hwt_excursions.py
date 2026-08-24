@@ -115,14 +115,57 @@ ALGORITHM — deliberately simple; this section is the whole of it
    from anchors or logs that do not state them — it only ever reports
    what the PWM column itself says.
 
-7. BASELINE COMPARISON (--compare-baselines)
+7. SAME-RANGE BASELINE REMEASUREMENT (--compare-baselines) — NOT an
+   independent comparison
    For every excursion found under the primary --baseline-mode, the exact
-   same sample range is ALSO measured against the OTHER mode's baseline
-   array (moving <-> frozen), without changing what counts as "the
-   excursion". This isolates what the baseline choice alone changes on an
-   identical physical event, reported as alt_max_abs_flux and
-   alt_integrated_abs_flux_count_ms columns plus a comparison block in the
-   summary.
+   SAME sample range (frozen's boundaries, or moving's, whichever is
+   primary) is ALSO measured against the OTHER mode's baseline array. This
+   isolates what the baseline choice alone changes on one already-fixed
+   range — it answers "how would the other method have scored this exact
+   stretch of samples", not "what would the other method have DETECTED".
+   The boundaries themselves are never revisited. See §8 for the
+   independent comparison that does revisit them.
+
+8. INDEPENDENT DETECTOR COMPARISON (--independent-compare)
+   Runs BOTH detectors to completion, fully separately: moving gets its
+   own excursion list from collect_excursions() against rolling_baseline();
+   frozen gets its own, independently, from frozen_baseline_collect().
+   Neither list is derived from, constrained by, or remeasured against the
+   other — each is exactly what that detector alone would have reported
+   run in isolation. The two lists are then MATCHED by where their
+   independently-drawn [start_sample, end_sample] ranges overlap
+   (match_events()), classified as one-to-one, one frozen event covering
+   several moving events, several frozen events covering one moving event,
+   many-to-many, or unmatched on either side. Only this comparison can show
+   a frozen event absorbing several independently-detected moving events —
+   the same-range remeasurement in §7 cannot, because it never lets moving
+   propose its own boundaries.
+
+9. SETTLEDNESS EXPERIMENT (--settle-metric, --settle-threshold) —
+   EXPERIMENTAL, off by default, changes nothing unless both are given
+   Investigating whether the frozen mode's merging failure (§5/§6 of the
+   accompanying report) can be caught or prevented starts from one
+   question: was the pre-event quiet window itself actually settled at the
+   moment it got frozen, or was it still sliding down some earlier
+   transient's decay tail? Three deliberately simple, transparent measures
+   of the quiet window at freeze time are always computed and reported,
+   whether or not gating is enabled: pre_range_counts (max-min),
+   pre_stdev_counts (population standard deviation), and
+   pre_slope_counts_per_sample (last sample minus first, divided by window
+   length) — see _pre_window_metrics(). None of the three is asserted to
+   be the right one; the report evaluates all three against the real
+   merging cases found.
+   When --settle-metric and --settle-threshold are BOTH given, an
+   experimental gate activates: a sample that crosses --entry-threshold is
+   only allowed to freeze if its live pre-window's chosen metric is at or
+   below the threshold. If not, that sample opens NOTHING — it is treated
+   as neither quiet (it has clearly departed) nor excursion (freezing
+   would use an unsettled baseline); the collector simply moves on. If the
+   signal never settles before it returns near baseline on its own, the
+   excursion is never reported at all under the gate. This is a real,
+   reportable failure mode of gating, not swept under anything. The gate
+   never terminates or truncates an already-open excursion by duration —
+   it only ever affects whether a NEW excursion is allowed to open.
 ================================================================================
 """
 
@@ -144,6 +187,7 @@ EXCURSION_COLUMNS = [
     "start_sample", "end_sample", "n_samples", "nominal_span_samples",
     "start_time_s", "end_time_s", "duration_ms",
     "baseline_mode", "baseline_method", "baseline_n_quiet", "baseline_at_excursion",
+    "pre_range_counts", "pre_stdev_counts", "pre_slope_counts_per_sample", "baseline_settled",
     "max_pos_flux", "max_neg_flux", "max_abs_flux", "t_max_abs_flux_s",
     "integrated_abs_flux_count_ms", "integrated_signed_flux_count_ms",
     "rise_time_ms", "fall_time_ms",
@@ -296,7 +340,26 @@ def collect_excursions(samples, baseline, entry_threshold, exit_threshold):
 # ------------------------------------------------------------------------
 # Baseline — "frozen" (pre-event, corrected) mode
 # ------------------------------------------------------------------------
-def frozen_baseline_collect(samples, pre_window, method, entry_threshold, exit_threshold):
+def _pre_window_metrics(values):
+    """Three deliberately simple, transparent settledness measures over a
+    quiet window's raw values, taken at the moment of a potential freeze.
+    None is asserted to be "correct" -- see module docstring §9.
+      range  = max - min                          (counts)
+      stdev  = population standard deviation       (counts)
+      slope  = (last - first) / (n - 1)             (counts / sample)
+    Returns (range, stdev, slope); (0.0, 0.0, 0.0) for an empty window."""
+    n = len(values)
+    if n == 0:
+        return 0.0, 0.0, 0.0
+    lo, hi = min(values), max(values)
+    mean = sum(values) / n
+    var = sum((v - mean) ** 2 for v in values) / n
+    slope = (values[-1] - values[0]) / (n - 1) if n > 1 else 0.0
+    return float(hi - lo), var ** 0.5, slope
+
+
+def frozen_baseline_collect(samples, pre_window, method, entry_threshold, exit_threshold,
+                            *, settle_metric=None, settle_threshold=None):
     """Detection AND baseline computation combined into one causal forward
     pass, because in this mode the two cannot be separated: what the
     baseline IS depends on where excursions open, and where they open
@@ -314,6 +377,20 @@ def frozen_baseline_collect(samples, pre_window, method, entry_threshold, exit_t
     samples are never pushed into the quiet window, so they can never
     influence any baseline, including their own.
 
+    Every potential freeze also computes _pre_window_metrics() of the live
+    quiet window — always, regardless of gating — and carries them on the
+    resulting excursion as diagnostics (module docstring §9).
+
+    EXPERIMENTAL: if settle_metric and settle_threshold are both given, a
+    sample that would otherwise open an excursion is refused instead when
+    its window's chosen metric exceeds the threshold. A refused sample is
+    neither pushed to the quiet window (it has clearly departed from
+    baseline; treating it as quiet would misrepresent the window) nor
+    opened as an excursion — the collector simply advances. If the signal
+    never settles before returning near baseline on its own, no excursion
+    is ever reported there under the gate. Off (settle_metric is None),
+    this reproduces the original unconditional freeze exactly.
+
     When an excursion closes, the closing sample (the first one to fall
     below exit_threshold) is re-evaluated in the SAME iteration against a
     freshly recomputed live baseline — it may itself immediately open a
@@ -324,9 +401,8 @@ def frozen_baseline_collect(samples, pre_window, method, entry_threshold, exit_t
     rolling_baseline()+collect_excursions() produce for the moving mode,
     so downstream measurement code (measure_excursion) is identical for
     both baseline modes. Each excursion dict additionally carries
-    "baseline_n": how many quiet samples actually fed the frozen value
-    (<= pre_window; fewer if excursions are close together and quiet
-    history is short)."""
+    "baseline_n" (quiet samples actually feeding the frozen value, <=
+    pre_window) and "pre_range"/"pre_stdev"/"pre_slope"/"settled"."""
     n = len(samples)
     baseline = [0.0] * n
     quiet = deque(maxlen=pre_window)
@@ -354,11 +430,15 @@ def frozen_baseline_collect(samples, pre_window, method, entry_threshold, exit_t
         if method == "median":
             bisect.insort(sorted_quiet, v)
 
+    metric_of = {"range": lambda r, s, sl: r, "stdev": lambda r, s, sl: s,
+                "slope": lambda r, s, sl: abs(sl)}
+
     excursions = []
     in_exc = False
     idxs = None
     frozen = None
     frozen_n = 0
+    frozen_diag = (None, None, None, None)   # pre_range, pre_stdev, pre_slope, settled
 
     i = 0
     while i < n:
@@ -370,7 +450,9 @@ def frozen_baseline_collect(samples, pre_window, method, entry_threshold, exit_t
                 idxs.append(i)
                 i += 1
                 continue
-            excursions.append({"idxs": idxs, "forced_end": False, "baseline_n": frozen_n})
+            excursions.append({"idxs": idxs, "forced_end": False, "baseline_n": frozen_n,
+                               "pre_range": frozen_diag[0], "pre_stdev": frozen_diag[1],
+                               "pre_slope": frozen_diag[2], "settled": frozen_diag[3]})
             in_exc = False
             idxs = None
             # fall through: re-evaluate sample i fresh, against a live baseline
@@ -385,9 +467,19 @@ def frozen_baseline_collect(samples, pre_window, method, entry_threshold, exit_t
             continue
         dev = raw - b
         if abs(dev) >= entry_threshold:
+            pre_range, pre_stdev, pre_slope = _pre_window_metrics(list(quiet))
+            settled = None
+            if settle_metric is not None and settle_threshold is not None:
+                settled = metric_of[settle_metric](pre_range, pre_stdev, pre_slope) <= settle_threshold
+                if not settled:
+                    # Experimental gate: refuse the freeze. Not quiet, not
+                    # excursion -- just skipped, per the docstring above.
+                    i += 1
+                    continue
             in_exc = True
             frozen = b
             frozen_n = len(quiet)
+            frozen_diag = (pre_range, pre_stdev, pre_slope, settled)
             idxs = [i]
             baseline[i] = frozen
         else:
@@ -396,7 +488,9 @@ def frozen_baseline_collect(samples, pre_window, method, entry_threshold, exit_t
         i += 1
 
     if in_exc:
-        excursions.append({"idxs": idxs, "forced_end": True, "baseline_n": frozen_n})
+        excursions.append({"idxs": idxs, "forced_end": True, "baseline_n": frozen_n,
+                           "pre_range": frozen_diag[0], "pre_stdev": frozen_diag[1],
+                           "pre_slope": frozen_diag[2], "settled": frozen_diag[3]})
     return baseline, excursions
 
 
@@ -455,7 +549,8 @@ def nearest_anchor(anchors, t, *, before):
 
 def measure_excursion(eid, sid, samples, baseline, idxs, forced_end,
                        breaks, anchors, gap_margin_s, dwell_windows, *,
-                       baseline_mode, baseline_method, baseline_n_quiet=None):
+                       baseline_mode, baseline_method, baseline_n_quiet=None,
+                       pre_range=None, pre_stdev=None, pre_slope=None, settled=None):
     start_i, end_i = idxs[0], idxs[-1]
     s0, s1 = samples[start_i], samples[end_i]
 
@@ -497,6 +592,10 @@ def measure_excursion(eid, sid, samples, baseline, idxs, forced_end,
         "baseline_mode": baseline_mode, "baseline_method": baseline_method,
         "baseline_n_quiet": baseline_n_quiet if baseline_n_quiet is not None else "",
         "baseline_at_excursion": "%.2f" % baseline[start_i],
+        "pre_range_counts": "%.2f" % pre_range if pre_range is not None else "",
+        "pre_stdev_counts": "%.3f" % pre_stdev if pre_stdev is not None else "",
+        "pre_slope_counts_per_sample": "%.4f" % pre_slope if pre_slope is not None else "",
+        "baseline_settled": "" if settled is None else int(settled),
         "max_pos_flux": "%.2f" % max_pos, "max_neg_flux": "%.2f" % max_neg,
         "max_abs_flux": "%.2f" % abs(peak_dev),
         "t_max_abs_flux_s": "%.6f" % peak_s["t_s"],
@@ -524,7 +623,7 @@ def analyze_captures(path, *, entry_threshold, exit_threshold,
                      baseline_mode="frozen", baseline_window=501,
                      baseline_method="mean", pre_window=200,
                      gap_margin_s=0.05, dwell_pwm_max=5.0, dwell_min_ms=1000.0,
-                     compare_baselines=False):
+                     compare_baselines=False, settle_metric=None, settle_threshold=None):
     """Core orchestrator. Returns {"excursions": [...], "sessions": {sid:
     {"samples", "baseline", "breaks", "anchors", "dwell_windows"}}} — the
     per-session context is exposed so callers (the CLI's detail plotter)
@@ -545,7 +644,8 @@ def analyze_captures(path, *, entry_threshold, exit_threshold,
             coll = collect_excursions(samples, baseline, entry_threshold, exit_threshold)
         elif baseline_mode == "frozen":
             baseline, coll = frozen_baseline_collect(
-                samples, pre_window, baseline_method, entry_threshold, exit_threshold)
+                samples, pre_window, baseline_method, entry_threshold, exit_threshold,
+                settle_metric=settle_metric, settle_threshold=settle_threshold)
         else:
             raise ValueError("unknown baseline_mode %r" % baseline_mode)
 
@@ -567,7 +667,9 @@ def analyze_captures(path, *, entry_threshold, exit_threshold,
                 eid, sid, samples, baseline, c["idxs"], c["forced_end"],
                 breaks, anchors, gap_margin_s, dwell_windows,
                 baseline_mode=baseline_mode, baseline_method=baseline_method,
-                baseline_n_quiet=c.get("baseline_n"))
+                baseline_n_quiet=c.get("baseline_n"), pre_range=c.get("pre_range"),
+                pre_stdev=c.get("pre_stdev"), pre_slope=c.get("pre_slope"),
+                settled=c.get("settled"))
             if compare_baselines:
                 alt_peak, alt_integ = compare_against_baseline(samples, c["idxs"], alt_baseline)
                 row["alt_baseline_mode"] = alt_mode
@@ -585,6 +687,178 @@ def find_excursions(path, **kwargs):
     """Thin wrapper for callers that only need the excursion list (tests,
     simple scripts) — see analyze_captures() for full per-session context."""
     return analyze_captures(path, **kwargs)["excursions"]
+
+
+# ------------------------------------------------------------------------
+# Independent detector comparison — see module docstring §8.
+# ------------------------------------------------------------------------
+def match_events(frozen_events, moving_events):
+    """Match two INDEPENDENTLY detected, independently measured excursion
+    lists by where their own [start_sample, end_sample] ranges overlap.
+    Neither list is held fixed and remeasured against the other's
+    baseline (compare_against_baseline() does that, for a different,
+    narrower question) — this only asks where the two detectors' own,
+    separately-drawn boundaries agree, split, or miss.
+
+    Overlap is grouped into connected components with the standard
+    "merge overlapping intervals" sweep: sort every interval from both
+    lists by start_sample, and extend the current group's end to
+    max(current_end, this interval's end) whenever the next interval's
+    start falls at or before it. Because overlap on a line is transitive
+    within a start-ordered sweep (if A overlaps B and B overlaps C, the
+    sweep's running max-end already covers C by the time it is reached
+    even if A and C do not themselves overlap), one linear pass finds
+    every connected component exactly.
+
+    Returns a list of match-group dicts:
+      kind: "one_to_one" | "frozen_covers_multiple_moving" |
+            "multiple_frozen_cover_one_moving" | "many_to_many" |
+            "unmatched_frozen" | "unmatched_moving"
+      frozen: [event, ...]   moving: [event, ...]
+      deltas: present only when kind == "one_to_one" -- frozen minus
+              moving, for open/close time, duration, peak and both flux
+              measures. Each side's own peak/flux was measured against
+              its OWN baseline throughout; nothing here is remeasured."""
+    tagged = ([("frozen", e) for e in frozen_events] +
+             [("moving", e) for e in moving_events])
+    tagged.sort(key=lambda t: t[1]["start_sample"])
+
+    groups = []
+    cur, cur_end = [], None
+    for src, e in tagged:
+        s, en = e["start_sample"], e["end_sample"]
+        if cur and s <= cur_end:
+            cur.append((src, e))
+            cur_end = max(cur_end, en)
+        else:
+            if cur:
+                groups.append(cur)
+            cur, cur_end = [(src, e)], en
+    if cur:
+        groups.append(cur)
+
+    out = []
+    for g in groups:
+        frozen = [e for src, e in g if src == "frozen"]
+        moving = [e for src, e in g if src == "moving"]
+        if len(frozen) == 1 and len(moving) == 1:
+            kind = "one_to_one"
+        elif len(frozen) == 1 and len(moving) > 1:
+            kind = "frozen_covers_multiple_moving"
+        elif len(frozen) > 1 and len(moving) == 1:
+            kind = "multiple_frozen_cover_one_moving"
+        elif len(frozen) > 1 and len(moving) > 1:
+            kind = "many_to_many"
+        elif frozen and not moving:
+            kind = "unmatched_frozen"
+        else:
+            kind = "unmatched_moving"
+        entry = {"kind": kind, "frozen": frozen, "moving": moving}
+        if kind == "one_to_one":
+            f, m = frozen[0], moving[0]
+            entry["deltas"] = {
+                "open_time_delta_s": float(f["start_time_s"]) - float(m["start_time_s"]),
+                "close_time_delta_s": float(f["end_time_s"]) - float(m["end_time_s"]),
+                "duration_delta_ms": float(f["duration_ms"]) - float(m["duration_ms"]),
+                "peak_delta_counts": float(f["max_abs_flux"]) - float(m["max_abs_flux"]),
+                "signed_flux_delta": (float(f["integrated_signed_flux_count_ms"])
+                                      - float(m["integrated_signed_flux_count_ms"])),
+                "abs_flux_delta": (float(f["integrated_abs_flux_count_ms"])
+                                   - float(m["integrated_abs_flux_count_ms"])),
+            }
+        out.append(entry)
+    return out
+
+
+def analyze_independent(path, *, entry_threshold, exit_threshold,
+                        baseline_window=501, pre_window=200,
+                        baseline_method="mean", gap_margin_s=0.05,
+                        dwell_pwm_max=5.0, dwell_min_ms=1000.0,
+                        settle_metric=None, settle_threshold=None):
+    """Runs BOTH detectors to completion, fully independently, over the
+    same samples, then matches the two resulting event lists (see
+    match_events()). Returns {"frozen": [...], "moving": [...],
+    "matches": [...], "sessions": {sid: {"samples", "frozen_baseline",
+    "moving_baseline", "breaks", "anchors", "dwell_windows"}}}."""
+    rows = load_rows(path)
+    frozen_all, moving_all, matches_all = [], [], []
+    sessions_ctx = {}
+    fid = mid = 0
+    for sid, srows in split_sessions(rows):
+        samples, breaks, anchors = build_series(srows)
+        if not samples:
+            continue
+        raw = [s["raw"] for s in samples]
+        dwell_windows = detect_low_pwm_dwells(samples, dwell_pwm_max, dwell_min_ms)
+
+        moving_baseline = rolling_baseline(raw, baseline_window, baseline_method)
+        moving_coll = collect_excursions(samples, moving_baseline, entry_threshold, exit_threshold)
+        moving_events = []
+        for c in moving_coll:
+            mid += 1
+            moving_events.append(measure_excursion(
+                mid, sid, samples, moving_baseline, c["idxs"], c["forced_end"],
+                breaks, anchors, gap_margin_s, dwell_windows,
+                baseline_mode="moving", baseline_method=baseline_method))
+
+        frozen_baseline, frozen_coll = frozen_baseline_collect(
+            samples, pre_window, baseline_method, entry_threshold, exit_threshold,
+            settle_metric=settle_metric, settle_threshold=settle_threshold)
+        frozen_events = []
+        for c in frozen_coll:
+            fid += 1
+            frozen_events.append(measure_excursion(
+                fid, sid, samples, frozen_baseline, c["idxs"], c["forced_end"],
+                breaks, anchors, gap_margin_s, dwell_windows,
+                baseline_mode="frozen", baseline_method=baseline_method,
+                baseline_n_quiet=c.get("baseline_n"), pre_range=c.get("pre_range"),
+                pre_stdev=c.get("pre_stdev"), pre_slope=c.get("pre_slope"),
+                settled=c.get("settled")))
+
+        matches_all.extend(match_events(frozen_events, moving_events))
+        frozen_all.extend(frozen_events)
+        moving_all.extend(moving_events)
+        sessions_ctx[sid] = {"samples": samples, "frozen_baseline": frozen_baseline,
+                             "moving_baseline": moving_baseline, "breaks": breaks,
+                             "anchors": anchors, "dwell_windows": dwell_windows}
+    return {"frozen": frozen_all, "moving": moving_all, "matches": matches_all,
+           "sessions": sessions_ctx}
+
+
+# ------------------------------------------------------------------------
+# Review-group categorization — item-4 groups. Descriptive selection only;
+# see categorize_for_plots() for the item-6 groups.
+# ------------------------------------------------------------------------
+def categorize_for_review(frozen_events, matches, *, long_ms=1000.0, material_ms=20.0):
+    principal = [e for e in frozen_events if not e["incomplete"] and not e["in_low_pwm_dwell"]]
+    long_duration = sorted([e for e in principal if float(e["duration_ms"]) >= long_ms],
+                           key=lambda e: -float(e["duration_ms"]))
+
+    covers_multiple = []
+    for m in matches:
+        if m["kind"] in ("frozen_covers_multiple_moving", "many_to_many"):
+            covers_multiple.extend(m["frozen"])
+
+    boundary_differs = []
+    for m in matches:
+        if m["kind"] != "one_to_one":
+            continue
+        d = m["deltas"]
+        if (abs(d["open_time_delta_s"]) * 1000.0 >= material_ms or
+                abs(d["close_time_delta_s"]) * 1000.0 >= material_ms or
+                abs(d["duration_delta_ms"]) >= material_ms):
+            boundary_differs.append(m)
+
+    incomplete = [e for e in frozen_events if e["incomplete"]]
+    dwell = [e for e in frozen_events if e["in_low_pwm_dwell"] and not e["incomplete"]]
+
+    return {
+        "long_duration_ge_1s": long_duration,
+        "frozen_covers_multiple_moving": covers_multiple,
+        "boundary_differs_materially": boundary_differs,
+        "incomplete": incomplete,
+        "in_low_pwm_dwell": dwell,
+    }
 
 
 # ------------------------------------------------------------------------
@@ -626,8 +900,13 @@ def write_summary(excursions, args, fh):
       % (len(incomplete), 100.0 * len(incomplete) / len(excursions)))
     p("  in low-PWM dwell window   %d (%.1f%%) -- EXCLUDED from principal stats, reported separately below"
       % (len(dwell), 100.0 * len(dwell) / len(excursions)))
-    p("  principal (clean) set     %d (%.1f%%)"
+    p("  complete, outside low-PWM dwell   %d (%.1f%%)  -- called \"principal\" below. This"
       % (len(principal), 100.0 * len(principal) / len(excursions)))
+    p("  label describes what was EXCLUDED (incomplete, dwell), not a claim that what")
+    p("  remains is free of merged multi-event excursions -- see the long-duration")
+    p("  count immediately below and, if this run used --independent-compare, the")
+    p("  match-summary file for events actually shown to span multiple independently")
+    p("  detected moving excursions.")
 
     def block(label, group):
         p("")
@@ -647,6 +926,26 @@ def write_summary(excursions, args, fh):
     block("PRINCIPAL statistics (complete, outside any low-PWM dwell window)", principal)
     block("incomplete excursions (reported separately, NOT pooled above)", incomplete)
     block("low-PWM-dwell-window excursions (reported separately, NOT pooled above)", dwell)
+
+    long_ms = getattr(args, "long_duration_ms", 1000.0)
+    long_dur = [e for e in principal if float(e["duration_ms"]) >= long_ms]
+    p("")
+    p("  --- long-duration flag within PRINCIPAL: >= %.0f ms (n=%d, %.1f%% of principal) ---"
+      % (long_ms, len(long_dur), 100.0 * len(long_dur) / len(principal) if principal else 0.0))
+    p("  NOT excluded from the PRINCIPAL statistics above -- duration alone is not")
+    p("  proof of a merged multi-event excursion (a genuinely slow single response")
+    p("  is also possible and must not be assumed away). Investigation to date found")
+    p("  every checked long-duration case had gaps_within_count>0 or, under")
+    p("  --independent-compare, spanned multiple independently detected moving")
+    p("  excursions -- but this run did not necessarily re-verify that for every")
+    p("  case listed here. Treat this as a REVIEW LIST, not a verdict.")
+    if long_dur:
+        for e in sorted(long_dur, key=lambda e: -float(e["duration_ms"]))[:10]:
+            p("    id=%-6s dur=%9s ms  gaps_within=%s  sample %s..%s"
+              % (e["excursion_id"], e["duration_ms"], e["gaps_within_count"],
+                 e["start_sample"], e["end_sample"]))
+        if len(long_dur) > 10:
+            p("    ... and %d more (see the excursion CSV for the full list)" % (len(long_dur) - 10))
 
     p("")
     p("  NOTE on the dwell detector: this counts periods where recorded PWM")
@@ -695,9 +994,11 @@ def write_summary(excursions, args, fh):
 
     if args.compare_baselines:
         p("")
-        p("  --- baseline comparison: %s (primary) vs the alternate mode ---" % args.baseline_mode)
-        p("  Same excursion, same sample range, two different baseline")
-        p("  yardsticks -- isolates what the baseline choice alone changes.")
+        p("  --- SAME-RANGE remeasurement: %s (primary) vs the alternate mode ---" % args.baseline_mode)
+        p("  NOT an independent comparison of what each detector would find on its own --")
+        p("  see --independent-compare / the *_matches.csv file for that. This holds the")
+        p("  %s detector's own boundaries FIXED and asks only what the other baseline" % args.baseline_mode)
+        p("  would have measured across that identical, already-decided range.")
         alt_rows = [e for e in principal if e["alt_max_abs_flux"] != ""]
         buckets = (("narrow (<%.1fms)" % args.narrow_max_ms,
                    [e for e in alt_rows if float(e["duration_ms"]) < args.narrow_max_ms]),
@@ -727,6 +1028,76 @@ def write_summary(excursions, args, fh):
     p("  location on different passes. Variation AMONG different broad")
     p("  responses is visible here; repeatability of the SAME marker across")
     p("  repeated passes remains unmeasured by this analysis.")
+
+
+def write_match_summary(result, args, fh):
+    """Summarizes an --independent-compare run: result is the dict returned
+    by analyze_independent() (keys "frozen", "moving", "matches")."""
+    p = lambda s: print(s, file=fh)
+    frozen, moving, matches = result["frozen"], result["moving"], result["matches"]
+    p("HALL_WAVEFORM_TEST independent detector comparison (investigatory)")
+    p("  source                   %s" % args.capture)
+    p("  entry / exit threshold   %g / %g counts" % (args.entry_threshold, args.exit_threshold))
+    p("  frozen: pre-event %s over up to %d quiet samples"
+      % (args.baseline_method, args.pre_window))
+    p("  moving: centered %s over %d samples" % (args.baseline_method, args.baseline_window))
+    p("")
+    p("  Both detectors ran to completion, fully independently. Neither list was")
+    p("  derived from, constrained by, or remeasured against the other; each event")
+    p("  below is exactly what that detector alone reported. Matching is by where")
+    p("  the two detectors' own [start_sample, end_sample] ranges overlap.")
+    p("")
+    p("  frozen events found      %d" % len(frozen))
+    p("  moving events found      %d" % len(moving))
+    p("  match groups             %d" % len(matches))
+
+    by_kind = {}
+    for m in matches:
+        by_kind.setdefault(m["kind"], []).append(m)
+    order = ["one_to_one", "frozen_covers_multiple_moving",
+            "multiple_frozen_cover_one_moving", "many_to_many",
+            "unmatched_frozen", "unmatched_moving"]
+    p("")
+    for kind in order:
+        grp = by_kind.get(kind, [])
+        p("  %-32s %d" % (kind, len(grp)))
+
+    one_to_one = by_kind.get("one_to_one", [])
+    if one_to_one:
+        p("")
+        p("  --- one-to-one matches: frozen minus moving (n=%d) ---" % len(one_to_one))
+        for key, label, scale in (
+            ("open_time_delta_s", "open time (ms)", 1000.0),
+            ("close_time_delta_s", "close time (ms)", 1000.0),
+            ("duration_delta_ms", "duration (ms)", 1.0),
+            ("peak_delta_counts", "peak (counts)", 1.0),
+            ("signed_flux_delta", "signed flux (count*ms)", 1.0),
+            ("abs_flux_delta", "abs flux (count*ms)", 1.0),
+        ):
+            vals = [m["deltas"][key] * scale for m in one_to_one]
+            st = _stats(vals)
+            p("  %-24s median=%12.2f  mean=%12.2f  min=%12.2f  max=%12.2f"
+              % (label, st["median"], st["mean"], st["min"], st["max"]))
+
+    covers = by_kind.get("frozen_covers_multiple_moving", []) + by_kind.get("many_to_many", [])
+    if covers:
+        p("")
+        p("  --- frozen events covering >=2 independently-detected moving events (n=%d) ---"
+          % len(covers))
+        for m in sorted(covers, key=lambda m: -len(m["moving"]))[:15]:
+            f = m["frozen"][0] if len(m["frozen"]) == 1 else None
+            fids = ",".join(str(e["excursion_id"]) for e in m["frozen"])
+            p("    frozen[%s] dur=%s ms  covers %d moving events (ids %s)"
+              % (fids, f["duration_ms"] if f else "?", len(m["moving"]),
+                 ",".join(str(e["excursion_id"]) for e in m["moving"])))
+        if len(covers) > 15:
+            p("    ... and %d more" % (len(covers) - 15))
+
+    p("")
+    p("  CAUTION: this comparison shows where the two detectors' independently drawn")
+    p("  boundaries agree, split, or miss. It does not establish which detector (if")
+    p("  either) is correct for any one event, and it is not a classifier -- no")
+    p("  event here is labelled genuine or spurious.")
 
 
 # ------------------------------------------------------------------------
@@ -868,12 +1239,22 @@ def make_plots(excursions, args):
         print("wrote %s" % args.plot_peak_vs_width)
 
 
-def plot_excursion_detail(ctx, e, out_path, margin_s, entry_threshold,
-                          exit_threshold, capture_label):
-    """The item-7 detail plot: raw samples with the baseline overlaid (top),
-    the baseline-relative deviation with the entry/exit thresholds and the
-    open/close points marked (bottom), and every required number in a
-    monospace header."""
+def plot_excursion_detail(samples, baseline, e, out_path, margin_s,
+                          entry_threshold, exit_threshold, capture_label, *,
+                          alt_baseline=None, alt_events=None, alt_label=None):
+    """The item-7 detail plot. Always shows: raw samples, the primary
+    baseline, the primary detector's deviation with entry/exit thresholds
+    and open/close boundary, and a full numeric header (duration, peak,
+    signed+absolute integrated flux, completeness/gap info, capture name,
+    session, sample range, timestamps).
+
+    When alt_baseline is given (an --independent-compare run), ALSO shows
+    the other detector's baseline overlaid on the raw trace, a second
+    deviation panel against that alt baseline, and the boundaries of every
+    entry in alt_events -- 0 or more independently-detected events from
+    the OTHER detector that overlap this window, each drawn so a frozen
+    event covering several moving events (or vice versa) is visible at a
+    glance, not just described in the header."""
     try:
         import matplotlib
         matplotlib.use("Agg")
@@ -882,7 +1263,7 @@ def plot_excursion_detail(ctx, e, out_path, margin_s, entry_threshold,
         print("matplotlib not available -- skipping detail plot", file=sys.stderr)
         return False
 
-    samples, baseline = ctx["samples"], ctx["baseline"]
+    alt_events = alt_events or []
     t_lo = float(e["start_time_s"]) - margin_s
     t_hi = float(e["end_time_s"]) + margin_s
     idx_win = [i for i, s in enumerate(samples) if t_lo <= s["t_s"] <= t_hi]
@@ -895,50 +1276,100 @@ def plot_excursion_detail(ctx, e, out_path, margin_s, entry_threshold,
     dev = [samples[i]["raw"] - baseline[i] for i in idx_win]
     x_lo = float(e["start_time_s"]) - t0
     x_hi = float(e["end_time_s"]) - t0
+    primary_label = e.get("baseline_mode", "primary")
 
-    fig, (ax1, ax2) = plt.subplots(2, 1, sharex=True, figsize=(10, 7),
-                                   gridspec_kw={"height_ratios": [2, 1]})
+    n_panels = 3 if alt_baseline is not None else 2
+    heights = [2, 1, 1] if n_panels == 3 else [2, 1]
+    fig, axes = plt.subplots(n_panels, 1, sharex=True, figsize=(10, 3.2 * n_panels + 1.5),
+                             gridspec_kw={"height_ratios": heights})
+    ax1, ax2 = axes[0], axes[1]
+    ax3 = axes[2] if n_panels == 3 else None
 
     ax1.plot(ts, raw, lw=0.9, color="#1f77b4", label="raw ADC")
-    ax1.plot(ts, base, lw=1.2, color="#2ca02c", ls="--",
-             label="baseline (%s)" % e["baseline_mode"])
+    ax1.plot(ts, base, lw=1.2, color="#2ca02c", ls="--", label="baseline (%s)" % primary_label)
     ax1.axvspan(x_lo, x_hi, color="#ff7f0e", alpha=0.15)
-    ax1.axvline(x_lo, color="#ff7f0e", lw=1.3, label="open")
-    ax1.axvline(x_hi, color="#8c564b", lw=1.3, label="close")
+    ax1.axvline(x_lo, color="#ff7f0e", lw=1.3, label="%s open" % primary_label)
+    ax1.axvline(x_hi, color="#8c564b", lw=1.3, label="%s close" % primary_label)
+
+    if alt_baseline is not None:
+        alt_base = [alt_baseline[i] for i in idx_win]
+        ax1.plot(ts, alt_base, lw=1.1, color="#9467bd", ls="-.",
+                 label="baseline (%s)" % (alt_label or "alt"))
+        for k, ae in enumerate(alt_events):
+            a_lo = float(ae["start_time_s"]) - t0
+            a_hi = float(ae["end_time_s"]) - t0
+            ax1.axvspan(a_lo, a_hi, color="#17becf", alpha=0.12)
+            ax1.axvline(a_lo, color="#17becf", lw=1.0, ls=":",
+                       label=("%s open" % (alt_label or "alt")) if k == 0 else None)
+            ax1.axvline(a_hi, color="#0b6b76", lw=1.0, ls=":",
+                       label=("%s close" % (alt_label or "alt")) if k == 0 else None)
+
     ax1.set_ylabel("Hall A raw ADC counts")
     ax1.legend(fontsize=7, loc="best")
     ax1.grid(alpha=0.25)
 
     ax2.plot(ts, dev, lw=0.9, color="#1f77b4")
-    for lvl, style in ((entry_threshold, ":"), (-entry_threshold, ":")):
-        ax2.axhline(lvl, color="#999999", lw=0.8, ls=style)
-    for lvl, style in ((exit_threshold, "--"), (-exit_threshold, "--")):
-        ax2.axhline(lvl, color="#cccccc", lw=0.8, ls=style)
+    for lvl in (entry_threshold, -entry_threshold):
+        ax2.axhline(lvl, color="#999999", lw=0.8, ls=":")
+    for lvl in (exit_threshold, -exit_threshold):
+        ax2.axhline(lvl, color="#cccccc", lw=0.8, ls="--")
     ax2.axvspan(x_lo, x_hi, color="#ff7f0e", alpha=0.15)
     ax2.axvline(x_lo, color="#ff7f0e", lw=1.3)
     ax2.axvline(x_hi, color="#8c564b", lw=1.3)
-    ax2.set_ylabel("deviation from baseline (counts)")
-    ax2.set_xlabel("time (s), window start = %.6f s firmware time" % t0)
+    ax2.set_ylabel("dev from\n%s baseline" % primary_label)
     ax2.grid(alpha=0.25)
+
+    if ax3 is not None:
+        alt_dev = [samples[i]["raw"] - alt_baseline[i] for i in idx_win]
+        ax3.plot(ts, alt_dev, lw=0.9, color="#9467bd")
+        for lvl in (entry_threshold, -entry_threshold):
+            ax3.axhline(lvl, color="#999999", lw=0.8, ls=":")
+        for lvl in (exit_threshold, -exit_threshold):
+            ax3.axhline(lvl, color="#cccccc", lw=0.8, ls="--")
+        for ae in alt_events:
+            a_lo = float(ae["start_time_s"]) - t0
+            a_hi = float(ae["end_time_s"]) - t0
+            ax3.axvspan(a_lo, a_hi, color="#17becf", alpha=0.15)
+            ax3.axvline(a_lo, color="#17becf", lw=1.0, ls=":")
+            ax3.axvline(a_hi, color="#0b6b76", lw=1.0, ls=":")
+        ax3.set_ylabel("dev from\n%s baseline" % (alt_label or "alt"))
+        ax3.grid(alpha=0.25)
+
+    axes[-1].set_xlabel("time (s), window start = %.6f s firmware time" % t0)
 
     status = "INCOMPLETE" if int(e["incomplete"]) else "COMPLETE"
     if int(e["in_low_pwm_dwell"]):
         status += " / LOW-PWM DWELL (unconfirmed stall/assist proxy)"
-    info = (
-        "%s   session %s   excursion #%s   [%s]\n"
-        "sample %s..%s   t=%s..%s s   duration=%s ms\n"
-        "peak delta=%s counts (pos=%s neg=%s)   "
-        "integrated flux: abs=%s signed=%s count*ms\n"
-        "baseline=%s counts (%s / %s, n_quiet=%s)   "
-        "gaps within=%s near=%s"
-        % (capture_label, e["session"], e["excursion_id"], status,
-           e["start_sample"], e["end_sample"], e["start_time_s"], e["end_time_s"],
-           e["duration_ms"], e["max_abs_flux"], e["max_pos_flux"], e["max_neg_flux"],
-           e["integrated_abs_flux_count_ms"], e["integrated_signed_flux_count_ms"],
-           e["baseline_at_excursion"], e["baseline_mode"], e["baseline_method"],
-           e["baseline_n_quiet"], e["gaps_within_count"], e["gaps_near_count"]))
+    lines = [
+        "%s   session %s   %s excursion #%s   [%s]"
+        % (capture_label, e["session"], primary_label, e["excursion_id"], status),
+        "sample %s..%s   t=%s..%s s   duration=%s ms"
+        % (e["start_sample"], e["end_sample"], e["start_time_s"], e["end_time_s"], e["duration_ms"]),
+        "peak delta=%s counts (pos=%s neg=%s)   integrated flux: abs=%s signed=%s count*ms"
+        % (e["max_abs_flux"], e["max_pos_flux"], e["max_neg_flux"],
+           e["integrated_abs_flux_count_ms"], e["integrated_signed_flux_count_ms"]),
+        "baseline=%s counts (%s/%s, n_quiet=%s)   gaps within=%s near=%s"
+        % (e["baseline_at_excursion"], e["baseline_mode"], e["baseline_method"],
+           e["baseline_n_quiet"], e["gaps_within_count"], e["gaps_near_count"]),
+    ]
+    if alt_events:
+        lines.append("  %d independently-detected %s event(s) overlap this window "
+                     "(all boundaries plotted; text limited to the first %d):"
+                     % (len(alt_events), alt_label or "alt", min(len(alt_events), 6)))
+        for ae in alt_events[:6]:
+            lines.append(
+                "  %s counterpart #%s: sample %s..%s  dur=%s ms  peak=%s  abs_flux=%s  signed_flux=%s"
+                % (alt_label or "alt", ae["excursion_id"], ae["start_sample"], ae["end_sample"],
+                   ae["duration_ms"], ae["max_abs_flux"],
+                   ae["integrated_abs_flux_count_ms"], ae["integrated_signed_flux_count_ms"]))
+        if len(alt_events) > 6:
+            lines.append("  ... and %d more %s event(s) (see the matches CSV for the full list)"
+                         % (len(alt_events) - 6, alt_label or "alt"))
+    elif alt_baseline is not None:
+        lines.append("  %s: no independently-detected event overlaps this window" % (alt_label or "alt"))
+    info = "\n".join(lines)
     fig.suptitle(info, fontsize=8, family="monospace", ha="left", x=0.02)
-    fig.tight_layout(rect=[0, 0, 1, 0.82])
+    fig.tight_layout(rect=[0, 0, 1, 0.80])
     fig.savefig(out_path, dpi=130)
     plt.close(fig)
     return True
@@ -984,10 +1415,38 @@ def main():
                     help="minimum sustained duration to count as a dwell "
                          "window (default 1000 ms)")
     ap.add_argument("--compare-baselines", action="store_true",
-                    help="also evaluate each excursion's identical sample "
-                         "range against the OTHER baseline mode, for direct "
-                         "before/after comparison (adds alt_* CSV columns "
-                         "and a summary section)")
+                    help="SAME-RANGE remeasurement (not independent -- see "
+                         "--independent-compare): also evaluate each "
+                         "excursion's identical sample range against the "
+                         "OTHER baseline mode (adds alt_* CSV columns and a "
+                         "summary section)")
+    ap.add_argument("--independent-compare", action="store_true",
+                    help="run BOTH detectors to completion, fully "
+                         "independently, and match their own separately-"
+                         "drawn event boundaries (module docstring §8). "
+                         "Writes <base>_frozen_events.csv, "
+                         "<base>_moving_events.csv, <base>_matches.csv and "
+                         "<base>_matching_summary.txt in addition to the "
+                         "normal single-mode output")
+    ap.add_argument("--long-duration-ms", type=float, default=1000.0,
+                    help="principal excursions at/above this duration are "
+                         "flagged (not excluded) in the summary as possible "
+                         "merged/multi-event excursions for review "
+                         "(default 1000)")
+    ap.add_argument("--material-boundary-ms", type=float, default=20.0,
+                    help="[--independent-compare] a one-to-one matched "
+                         "pair's open/close/duration difference at or "
+                         "above this (ms) is flagged as a material "
+                         "boundary disagreement for review (default 20)")
+    ap.add_argument("--settle-metric", choices=("range", "stdev", "slope"),
+                    help="EXPERIMENTAL (off unless given with "
+                         "--settle-threshold): gate a frozen-mode freeze on "
+                         "this measure of the pre-event quiet window. See "
+                         "module docstring §9 -- this can suppress "
+                         "detection entirely, it is not a drop-in fix")
+    ap.add_argument("--settle-threshold", type=float,
+                    help="EXPERIMENTAL: threshold for --settle-metric, in "
+                         "counts (range/stdev) or counts/sample (slope)")
     ap.add_argument("--narrow-max-ms", type=float, default=5.0,
                     help="duration below which an excursion is 'narrow' for "
                          "PWM-binning and plot categorization only (default 5)")
@@ -999,10 +1458,15 @@ def main():
                          "integrated flux within its width group) used only "
                          "to pick which excursions to plot as outliers, for "
                          "--plot-categories-dir (default 5)")
-    ap.add_argument("--plot-max-per-category", type=int, default=8,
-                    help="cap on how many excursions to plot per category "
-                         "under --plot-categories-dir (default 8; truncation "
-                         "is always logged, never silent)")
+    ap.add_argument("--plot-max-per-category", type=int, default=None,
+                    help="OPTIONAL convenience cap on how many excursions to "
+                         "plot per category under --plot-categories-dir / "
+                         "--plot-review-dir. Default is UNCAPPED -- every "
+                         "excursion in every category is plotted, and the "
+                         "exact found/plotted counts are always printed. "
+                         "Pass a number only to deliberately limit output "
+                         "for a quick look; truncation is always logged, "
+                         "never silent")
     ap.add_argument("--plot-width-vs-flux", help="PNG: duration vs. integrated |flux|")
     ap.add_argument("--plot-peak-vs-width", help="PNG: max |flux| vs. duration")
     ap.add_argument("--plot-max-duration-ms", type=float,
@@ -1030,7 +1494,17 @@ def main():
                          "region excursions, one representative narrow and "
                          "one representative broad excursion) into "
                          "subdirectories under this path")
+    ap.add_argument("--plot-review-dir",
+                    help="generate the item-4 review-group plots (long-"
+                         "duration >=1s, frozen-covers-multiple-moving, "
+                         "materially-differing boundaries, incomplete, "
+                         "low-PWM dwell) into subdirectories under this "
+                         "path. Requires --independent-compare")
     args = ap.parse_args()
+
+    if args.plot_review_dir and not args.independent_compare:
+        print("--plot-review-dir requires --independent-compare", file=sys.stderr)
+        return 2
 
     if args.exit_threshold > args.entry_threshold:
         print("--exit-threshold must be <= --entry-threshold", file=sys.stderr)
@@ -1042,7 +1516,8 @@ def main():
         baseline_window=args.baseline_window, baseline_method=args.baseline_method,
         pre_window=args.pre_window, gap_margin_s=args.gap_margin_s,
         dwell_pwm_max=args.dwell_pwm_max, dwell_min_ms=args.dwell_min_ms,
-        compare_baselines=args.compare_baselines)
+        compare_baselines=args.compare_baselines,
+        settle_metric=args.settle_metric, settle_threshold=args.settle_threshold)
     excursions = result["excursions"]
     sessions_ctx = result["sessions"]
 
@@ -1071,6 +1546,11 @@ def main():
     if args.plot_top:
         ranked = sorted(excursions, key=lambda e: float(e[args.plot_top_by]), reverse=True)
         ids.update(e["excursion_id"] for e in ranked[:args.plot_top])
+    def cap_group(group):
+        if args.plot_max_per_category is None:
+            return group, len(group)
+        return group[:args.plot_max_per_category], args.plot_max_per_category
+
     if ids:
         os.makedirs(args.plot_dir, exist_ok=True)
         for eid in sorted(ids):
@@ -1079,8 +1559,9 @@ def main():
             if ctx is None:
                 continue
             out_path = os.path.join(args.plot_dir, "excursion_%04d.png" % eid)
-            if plot_excursion_detail(ctx, e, out_path, args.plot_margin_s,
-                                     args.entry_threshold, args.exit_threshold, label):
+            if plot_excursion_detail(ctx["samples"], ctx["baseline"], e, out_path,
+                                     args.plot_margin_s, args.entry_threshold,
+                                     args.exit_threshold, label):
                 print("wrote %s" % out_path)
 
     if args.plot_categories_dir:
@@ -1092,12 +1573,12 @@ def main():
             if not group:
                 print("category %-24s : none found" % cat_name)
                 continue
-            capped = group[:args.plot_max_per_category]
+            capped, _cap = cap_group(group)
             if len(group) > len(capped):
                 print("category %-24s : %d found, plotting %d (capped by --plot-max-per-category)"
                      % (cat_name, len(group), len(capped)))
             else:
-                print("category %-24s : %d found" % (cat_name, len(group)))
+                print("category %-24s : %d found, plotting %d" % (cat_name, len(group), len(capped)))
             cat_dir = os.path.join(args.plot_categories_dir, cat_name)
             os.makedirs(cat_dir, exist_ok=True)
             for e in capped:
@@ -1105,9 +1586,121 @@ def main():
                 if ctx is None:
                     continue
                 out_path = os.path.join(cat_dir, "excursion_%04d.png" % e["excursion_id"])
-                if plot_excursion_detail(ctx, e, out_path, args.plot_margin_s,
-                                         args.entry_threshold, args.exit_threshold, label):
+                if plot_excursion_detail(ctx["samples"], ctx["baseline"], e, out_path,
+                                         args.plot_margin_s, args.entry_threshold,
+                                         args.exit_threshold, label):
                     print("  wrote %s" % out_path)
+
+    if args.independent_compare:
+        ind = analyze_independent(
+            args.capture, entry_threshold=args.entry_threshold,
+            exit_threshold=args.exit_threshold, baseline_window=args.baseline_window,
+            pre_window=args.pre_window, baseline_method=args.baseline_method,
+            gap_margin_s=args.gap_margin_s, dwell_pwm_max=args.dwell_pwm_max,
+            dwell_min_ms=args.dwell_min_ms, settle_metric=args.settle_metric,
+            settle_threshold=args.settle_threshold)
+
+        frozen_out = base + "_frozen_events.csv"
+        with open(frozen_out, "w", newline="") as fh:
+            w = csv.DictWriter(fh, fieldnames=EXCURSION_COLUMNS)
+            w.writeheader()
+            w.writerows(ind["frozen"])
+        print("wrote %s (%d events)" % (frozen_out, len(ind["frozen"])))
+
+        moving_out = base + "_moving_events.csv"
+        with open(moving_out, "w", newline="") as fh:
+            w = csv.DictWriter(fh, fieldnames=EXCURSION_COLUMNS)
+            w.writeheader()
+            w.writerows(ind["moving"])
+        print("wrote %s (%d events)" % (moving_out, len(ind["moving"])))
+
+        match_cols = ["kind", "frozen_ids", "moving_ids",
+                     "open_time_delta_s", "close_time_delta_s", "duration_delta_ms",
+                     "peak_delta_counts", "signed_flux_delta", "abs_flux_delta"]
+        matches_out = base + "_matches.csv"
+        with open(matches_out, "w", newline="") as fh:
+            w = csv.DictWriter(fh, fieldnames=match_cols)
+            w.writeheader()
+            for m in ind["matches"]:
+                row = {"kind": m["kind"],
+                      "frozen_ids": ";".join(str(e["excursion_id"]) for e in m["frozen"]),
+                      "moving_ids": ";".join(str(e["excursion_id"]) for e in m["moving"])}
+                row.update(m.get("deltas", {}))
+                w.writerow(row)
+        print("wrote %s (%d match groups)" % (matches_out, len(ind["matches"])))
+
+        match_summary_path = base + "_matching_summary.txt"
+        with open(match_summary_path, "w") as fh:
+            write_match_summary(ind, args, fh)
+        write_match_summary(ind, args, sys.stdout)
+        print("wrote %s" % match_summary_path)
+
+        if args.plot_review_dir:
+            review = categorize_for_review(
+                ind["frozen"], ind["matches"],
+                long_ms=args.long_duration_ms, material_ms=args.material_boundary_ms)
+
+            # For each frozen event we plot, find which moving events (if
+            # any) share its match group, so the plot can show both.
+            moving_for_frozen = {}
+            for m in ind["matches"]:
+                for fe in m["frozen"]:
+                    moving_for_frozen[fe["excursion_id"]] = m["moving"]
+
+            def plot_frozen_group(name, group):
+                if not group:
+                    print("review %-28s : none found" % name)
+                    return
+                capped, _cap = cap_group(group)
+                if len(group) > len(capped):
+                    print("review %-28s : %d found, plotting %d (capped by --plot-max-per-category)"
+                         % (name, len(group), len(capped)))
+                else:
+                    print("review %-28s : %d found, plotting %d" % (name, len(group), len(capped)))
+                out_dir = os.path.join(args.plot_review_dir, name)
+                os.makedirs(out_dir, exist_ok=True)
+                for e in capped:
+                    ctx = ind["sessions"].get(e["session"])
+                    if ctx is None:
+                        continue
+                    out_path = os.path.join(out_dir, "excursion_%04d.png" % e["excursion_id"])
+                    if plot_excursion_detail(
+                            ctx["samples"], ctx["frozen_baseline"], e, out_path,
+                            args.plot_margin_s, args.entry_threshold, args.exit_threshold,
+                            label, alt_baseline=ctx["moving_baseline"],
+                            alt_events=moving_for_frozen.get(e["excursion_id"], []),
+                            alt_label="moving"):
+                        print("  wrote %s" % out_path)
+
+            for name in ("long_duration_ge_1s", "frozen_covers_multiple_moving",
+                        "incomplete", "in_low_pwm_dwell"):
+                plot_frozen_group(name, review[name])
+
+            bd = review["boundary_differs_materially"]
+            if not bd:
+                print("review %-28s : none found" % "boundary_differs_materially")
+            else:
+                capped, _cap = cap_group(bd)
+                if len(bd) > len(capped):
+                    print("review %-28s : %d found, plotting %d (capped by --plot-max-per-category)"
+                         % ("boundary_differs_materially", len(bd), len(capped)))
+                else:
+                    print("review %-28s : %d found, plotting %d"
+                         % ("boundary_differs_materially", len(bd), len(capped)))
+                out_dir = os.path.join(args.plot_review_dir, "boundary_differs_materially")
+                os.makedirs(out_dir, exist_ok=True)
+                for m in capped:
+                    fe = m["frozen"][0]
+                    ctx = ind["sessions"].get(fe["session"])
+                    if ctx is None:
+                        continue
+                    out_path = os.path.join(out_dir, "excursion_%04d.png" % fe["excursion_id"])
+                    if plot_excursion_detail(
+                            ctx["samples"], ctx["frozen_baseline"], fe, out_path,
+                            args.plot_margin_s, args.entry_threshold, args.exit_threshold,
+                            label, alt_baseline=ctx["moving_baseline"],
+                            alt_events=m["moving"], alt_label="moving"):
+                        print("  wrote %s" % out_path)
 
     return 0
 

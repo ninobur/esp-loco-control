@@ -10,6 +10,18 @@ and negative excursions are measured with the right sign, a rolling
 baseline does not swallow a real transient in slow drift, missing samples
 are never fabricated, integrated flux uses each sample's own measured
 interval, and a wrapped sample-sequence counter does not break timing.
+
+Also covers: the frozen mode does not absorb a broad excursion while the
+moving mode does (measured, not asserted); match_events() classifies every
+overlap category (one-to-one, one-covers-many in both directions, many-to-
+many, unmatched); --independent-compare reproduces the real multi-event
+merge mechanism found in the field captures and, in contrast, does NOT
+merge two genuinely separate broad responses across a properly settled
+gap; and the experimental settledness gate is evaluated on its own terms
+-- including the discovery that, in this simple form, it suppresses
+ordinary slow broad responses along with contaminated ones, which is
+reported as a limitation rather than smoothed over.
+
 Run via ./run_tests.sh.
 """
 
@@ -179,6 +191,25 @@ def test_missing_samples_never_interpolated():
        "missing samples are never fabricated to fill the span")
     ckEq(e["incomplete"], 1, "an excursion crossing a transport gap is marked incomplete")
     ck(e["gaps_within_count"] >= 1, "the gap is recorded against this excursion")
+
+
+def test_gap_near_but_not_within_an_excursion_is_reported_separately():
+    print("a gap close to but outside an excursion is 'near', not 'within', and not incomplete")
+    lead_and_spike = [(1900, 1000, 0, 0)] * 50 + [(2200, 1000, 0, 0)] + [(1900, 1000, 0, 0)] * 10
+    resume = [(1900, 1000, 0, 0)] * 50
+    b1 = build_batch(lead_and_spike, batch_seq=1, first_sample_seq=0, t0_us=0)
+    # batch_seq 2, samples 61..80, is never written -- transport loss shortly after the spike
+    b3 = build_batch(resume, batch_seq=3, first_sample_seq=81, t0_us=81000)
+    path = write_capture([b1, b3])
+    exc = find(path, gap_margin_s=0.05)
+    os.unlink(path)
+
+    ckEq(len(exc), 1, "one excursion found")
+    e = exc[0]
+    ckEq(e["start_sample"], 50, "the spike, not the gap")
+    ckEq(e["incomplete"], 0, "a gap outside the excursion's own span does not mark it incomplete")
+    ckEq(e["gaps_within_count"], 0, "the gap is not 'within' -- it starts after the excursion closed")
+    ckEq(e["gaps_near_count"], 1, "but it is close enough in time to be reported as 'near'")
 
 
 def test_integrated_flux_uses_actual_intervals():
@@ -370,12 +401,238 @@ def test_compare_baselines_produces_alt_columns():
        "exactly matching the direct moving-vs-frozen comparison above")
 
 
+def mk_event(eid, start, end, *, peak=50.0, signed=None, dur_ms=None):
+    """A minimal hand-built MEASURED-excursion-shaped dict, for testing
+    match_events() directly without going through a full capture file."""
+    dur = dur_ms if dur_ms is not None else float(end - start)
+    signed = peak if signed is None else signed
+    return {
+        "excursion_id": eid, "start_sample": start, "end_sample": end,
+        "start_time_s": "%.6f" % (start / 1000.0), "end_time_s": "%.6f" % (end / 1000.0),
+        "duration_ms": "%.3f" % dur, "max_abs_flux": "%.2f" % peak,
+        "integrated_signed_flux_count_ms": "%.3f" % signed,
+        "integrated_abs_flux_count_ms": "%.3f" % abs(signed),
+    }
+
+
+def test_match_events_classifies_all_overlap_categories():
+    print("match_events classifies one-to-one, covers-multiple, many-to-many, unmatched")
+
+    # one_to_one: a single frozen and single moving event overlap, nothing else near.
+    f1 = [mk_event(1, 100, 150)]
+    m1 = [mk_event(1, 105, 145)]
+    r1 = E.match_events(f1, m1)
+    ckEq(len(r1), 1, "one match group")
+    ckEq(r1[0]["kind"], "one_to_one", "classified one_to_one")
+    ckClose(r1[0]["deltas"]["duration_delta_ms"], 50.0 - 40.0,
+           "duration delta is frozen minus moving", tol=1e-6)
+
+    # frozen_covers_multiple_moving: one wide frozen event spans two disjoint moving events.
+    f2 = [mk_event(2, 100, 400)]
+    m2 = [mk_event(10, 100, 150), mk_event(11, 300, 400)]
+    r2 = E.match_events(f2, m2)
+    ckEq(len(r2), 1, "one match group")
+    ckEq(r2[0]["kind"], "frozen_covers_multiple_moving", "classified frozen_covers_multiple_moving")
+    ckEq(len(r2[0]["moving"]), 2, "both moving events are in the group")
+
+    # multiple_frozen_cover_one_moving: the mirror image.
+    f3 = [mk_event(3, 100, 150), mk_event(4, 300, 400)]
+    m3 = [mk_event(20, 100, 400)]
+    r3 = E.match_events(f3, m3)
+    ckEq(len(r3), 1, "one match group")
+    ckEq(r3[0]["kind"], "multiple_frozen_cover_one_moving",
+        "classified multiple_frozen_cover_one_moving")
+
+    # many_to_many: two frozen and two moving events all chain-overlap.
+    f4 = [mk_event(5, 100, 250), mk_event(6, 200, 400)]
+    m4 = [mk_event(30, 150, 300), mk_event(31, 280, 450)]
+    r4 = E.match_events(f4, m4)
+    ckEq(len(r4), 1, "one match group (chain-transitive overlap)")
+    ckEq(r4[0]["kind"], "many_to_many", "classified many_to_many")
+
+    # unmatched: no overlap at all, either direction.
+    f5 = [mk_event(7, 100, 150)]
+    m5 = [mk_event(40, 500, 550)]
+    r5 = E.match_events(f5, m5)
+    ckEq(len(r5), 2, "two separate, non-overlapping groups")
+    kinds = sorted(g["kind"] for g in r5)
+    ckEq(kinds, ["unmatched_frozen", "unmatched_moving"],
+        "each isolated event is its own unmatched group")
+
+
+def test_pre_window_metrics_are_simple_and_correct():
+    print("_pre_window_metrics computes range/stdev/slope exactly as documented")
+    r, s, sl = E._pre_window_metrics([10.0, 10.0, 10.0])
+    ckClose(r, 0.0, "range of a constant window is zero")
+    ckClose(s, 0.0, "stdev of a constant window is zero")
+    ckClose(sl, 0.0, "slope of a constant window is zero")
+
+    r, s, sl = E._pre_window_metrics([0.0, 10.0])
+    ckClose(r, 10.0, "range = max - min")
+    ckClose(sl, 10.0, "slope = (last - first) / (n - 1), here /1")
+
+    vals = [1.0, 2.0, 3.0, 4.0, 5.0]
+    r, s, sl = E._pre_window_metrics(vals)
+    ckClose(r, 4.0, "range over 1..5")
+    ckClose(sl, 1.0, "slope over a unit ramp is 1.0 counts/sample")
+    mean = sum(vals) / len(vals)
+    want_stdev = (sum((v - mean) ** 2 for v in vals) / len(vals)) ** 0.5
+    ckClose(s, want_stdev, "stdev matches the population-stdev definition")
+
+
+def test_independent_compare_reproduces_the_real_merge_mechanism():
+    """The exact mechanism found in the real captures: a genuine bump opens
+    cleanly, but the following stretch settles to a level offset from true
+    rest (here, +50 counts) rather than returning to it. Frozen's fixed
+    baseline sees that offset as still-elevated for the ENTIRE stretch and
+    never closes, so a second, otherwise-unrelated bump gets glued to the
+    first into one long reported excursion. Moving's adaptive local window
+    settles WITH the offset and correctly reports two separate events --
+    this is exactly what --independent-compare exists to reveal, and
+    exactly what the same-range remeasurement (--compare-baselines) cannot:
+    it only ever evaluates moving over frozen's already-decided range."""
+    print("independent comparison reproduces frozen merging two moving events")
+    lead_in = [(1900, 1000, 0, 0)] * 1000
+    bump1 = [(2000, 1000, 0, 0)] * 100
+    unsettled_gap = [(1950, 1000, 0, 0)] * 600      # never returns to true 1900 rest
+    bump2 = [(2000, 1000, 0, 0)] * 100
+    tail = [(1900, 1000, 0, 0)] * 1000
+    specs = lead_in + bump1 + unsettled_gap + bump2 + tail
+    path = write_capture([build_batch(specs, batch_seq=1, first_sample_seq=0, t0_us=0)])
+    result = E.analyze_independent(path, entry_threshold=30.0, exit_threshold=15.0,
+                                   baseline_window=501, pre_window=200,
+                                   baseline_method="mean")
+    os.unlink(path)
+
+    ckEq(len(result["frozen"]), 1, "frozen reports ONE merged excursion")
+    ckEq(len(result["moving"]), 2, "moving independently reports TWO separate excursions")
+    ckEq(len(result["matches"]), 1, "one match group")
+    ckEq(result["matches"][0]["kind"], "frozen_covers_multiple_moving",
+        "correctly classified: one frozen event covers two independently-found moving events")
+    fe = result["frozen"][0]
+    ckEq(fe["start_sample"], 1000, "the merged excursion opens at the true first bump")
+    ckEq(fe["end_sample"], 1799, "the merged excursion closes only at the true second bump's end")
+
+
+def test_two_close_genuine_broad_responses_with_settled_gap_are_not_merged():
+    """The contrast case: identical shape to the merge test above, except
+    the gap between the two bumps is truly settled (matches the pre-event
+    rest level exactly, not merely constant at some OTHER level). Frozen
+    must then report the two bumps separately, matching moving one-to-one
+    -- proving the merge above is specifically about the gap's LEVEL, not
+    merely about two bumps being close together in time."""
+    print("two close broad responses separated by a genuinely settled gap are not merged")
+    lead_in = [(1900, 1000, 0, 0)] * 1000
+    bump1 = [(2000, 1000, 0, 0)] * 100
+    settled_gap = [(1900, 1000, 0, 0)] * 600        # matches true rest exactly
+    bump2 = [(2000, 1000, 0, 0)] * 100
+    tail = [(1900, 1000, 0, 0)] * 1000
+    specs = lead_in + bump1 + settled_gap + bump2 + tail
+    path = write_capture([build_batch(specs, batch_seq=1, first_sample_seq=0, t0_us=0)])
+    result = E.analyze_independent(path, entry_threshold=30.0, exit_threshold=15.0,
+                                   baseline_window=501, pre_window=200,
+                                   baseline_method="mean")
+    os.unlink(path)
+
+    ckEq(len(result["frozen"]), 2, "frozen independently reports two separate excursions")
+    ckEq(len(result["moving"]), 2, "moving independently reports two separate excursions")
+    kinds = [m["kind"] for m in result["matches"]]
+    ckEq(kinds, ["one_to_one", "one_to_one"], "both bumps match one-to-one, no merge")
+
+
+def test_settledness_gate_can_suppress_a_contaminated_reopen():
+    """EXPERIMENTAL gate, evaluated (not endorsed). A decaying tail after
+    the first bump leaves the quiet window slightly non-flat (stdev ~4
+    counts) right as the second bump would open, biasing its frozen
+    baseline a little high (1902.1 instead of the true 1900). A strict
+    gate threshold refuses that freeze outright; a loose one lets it
+    through with the bias intact -- gating decides only WHETHER to freeze,
+    never what the frozen value itself is."""
+    print("a strict settledness threshold can suppress a contamination-biased reopen")
+    lead_in = [1900] * 200
+    plateau = [2000] * 50
+    decay_tail = [int(round(2000 - 100 * (k / 99.0))) for k in range(100)]
+    short_gap = [1900] * 20
+    bump2 = [2000] * 50
+    tail = [1900] * 200
+    raw = lead_in + plateau + decay_tail + short_gap + bump2 + tail
+    samples = [{"raw": r} for r in raw]
+
+    b0, exc0 = E.frozen_baseline_collect(samples, 50, "mean", 30, 15)
+    ckEq(len(exc0), 2, "without gating, both bumps are found")
+    second_baseline = b0[exc0[1]["idxs"][0]]
+    ck(second_baseline > 1900.5,
+       "without gating, the second bump's baseline carries a small contamination bias")
+
+    _b1, exc_strict = E.frozen_baseline_collect(
+        samples, 50, "mean", 30, 15, settle_metric="stdev", settle_threshold=2.0)
+    ckEq(len(exc_strict), 1,
+        "a strict threshold refuses the contaminated freeze -- the second bump is never reported")
+
+    _b2, exc_loose = E.frozen_baseline_collect(
+        samples, 50, "mean", 30, 15, settle_metric="stdev", settle_threshold=5.0)
+    ckEq(len(exc_loose), 2,
+        "a loose threshold lets the same freeze through, bias and all")
+
+
+def test_settledness_gate_suppresses_an_ordinary_slow_broad_response():
+    """EXPERIMENTAL gate, evaluated -- and found wanting. This is item 9's
+    explicit requirement to test whether gating "preserves ordinary broad
+    responses, including slow responses." It does not. A single, fully
+    isolated, slowly-rising triangular bump (ample settled lead-in, no
+    other event anywhere nearby) is SUPPRESSED ENTIRELY by the gate: the
+    quiet window immediately before the moment |dev| first crosses
+    entry_threshold necessarily contains the tail of the bump's OWN
+    gradual rise (those samples are legitimately "quiet" by the entry-
+    threshold test right up until the crossing), so a slow onset always
+    makes its own immediately-preceding window look unsettled. A gate that
+    looks only at the window right up to the crossing point cannot tell
+    "unsettled because of a prior event's contamination" apart from
+    "unsettled because THIS event is still rising" -- this is a structural
+    limitation, not a threshold-tuning problem, and it is why no threshold
+    is selected or recommended here."""
+    print("a settledness gate also suppresses an isolated slow broad response (limitation, not a fix)")
+    lead_in = [1900] * 500
+    slow_bump = [1900 + int(80 * (1 - abs(2 * k / 300.0 - 1))) for k in range(300)]
+    tail = [1900] * 300
+    raw = lead_in + slow_bump + tail
+    samples = [{"raw": r} for r in raw]
+
+    _b, exc_off = E.frozen_baseline_collect(samples, 200, "mean", 30, 15)
+    ckEq(len(exc_off), 1, "without gating, the slow isolated bump is found normally")
+
+    for metric, threshold in (("stdev", 2.0), ("range", 5.0)):
+        _b, exc_gated = E.frozen_baseline_collect(
+            samples, 200, "mean", 30, 15, settle_metric=metric, settle_threshold=threshold)
+        ckEq(len(exc_gated), 0,
+            "settle_metric=%s: the gate suppresses this ordinary slow response entirely "
+            "(a real cost of gating, not a case where it helps)" % metric)
+
+
+def test_settledness_gate_does_not_affect_an_isolated_narrow_spike():
+    print("a settledness gate does not change collection of a well-isolated narrow spike")
+    lead_in = [1900] * 500
+    spike = [2200]
+    tail = [1900] * 500
+    raw = lead_in + spike + tail
+    samples = [{"raw": r} for r in raw]
+
+    _b, exc_off = E.frozen_baseline_collect(samples, 200, "mean", 30, 15)
+    _b, exc_on = E.frozen_baseline_collect(
+        samples, 200, "mean", 30, 15, settle_metric="stdev", settle_threshold=2.0)
+    ckEq(len(exc_off), 1, "spike found without gating")
+    ckEq(len(exc_on), 1, "spike found identically with gating -- its own approach is instantaneous, "
+        "so the window right before it is exactly as flat with or without the gate")
+    ckEq(exc_off[0]["idxs"], exc_on[0]["idxs"], "same sample range either way")
+
+
 def main():
     print("HALL_WAVEFORM_TEST — excursion analysis tests (investigatory)\n")
     test_tall_narrow_spike_survives()
     test_broad_positive_and_negative_excursions_measured()
     test_baseline_drift_does_not_hide_excursion()
     test_missing_samples_never_interpolated()
+    test_gap_near_but_not_within_an_excursion_is_reported_separately()
     test_integrated_flux_uses_actual_intervals()
     test_sequence_wraparound_does_not_break_timing()
     test_frozen_baseline_does_not_absorb_broad_excursion()
@@ -383,6 +640,13 @@ def main():
     test_frozen_baseline_uses_only_quiet_history_between_close_excursions()
     test_low_pwm_dwell_flagged_and_separately_reportable()
     test_compare_baselines_produces_alt_columns()
+    test_match_events_classifies_all_overlap_categories()
+    test_pre_window_metrics_are_simple_and_correct()
+    test_independent_compare_reproduces_the_real_merge_mechanism()
+    test_two_close_genuine_broad_responses_with_settled_gap_are_not_merged()
+    test_settledness_gate_can_suppress_a_contaminated_reopen()
+    test_settledness_gate_suppresses_an_ordinary_slow_broad_response()
+    test_settledness_gate_does_not_affect_an_isolated_narrow_spike()
     print("\n%d checks, %d failures" % (checks, failures))
     return 1 if failures else 0
 
