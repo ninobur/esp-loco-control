@@ -46,8 +46,18 @@ def blank():
 
 
 def decode(path):
-    """Return (rows, report). Rows are ordered by (session, sample_seq)."""
-    sessions = {}          # session_id -> {batch_seq: (hdr, payload)}
+    """Return (rows, report). Rows are ordered by (session, sample_seq).
+
+    Samples, anchors and status records all draw their batchSeq from one
+    counter on the locomotive (see HallCapture.h fillAuxHeader) -- a lost
+    anchor or status heartbeat is exactly as real a transport loss as a lost
+    sample batch. Continuity is therefore checked against every record type
+    that occupies a batchSeq slot ("seq_owner" below), not against sample
+    batches alone. A slot is a genuine transport gap only when NO record of
+    any type -- sample, anchor or status -- was ever seen for it.
+    """
+    sessions = {}          # session_id -> {batch_seq: (hdr, payload)}  (SAMPLES only)
+    seq_owner = {}         # session_id -> {batch_seq: hdr}  (every record type)
     order = []             # session ids in first-seen order
     anchors, statuses = [], []
     bad = []
@@ -61,16 +71,21 @@ def decode(path):
             continue
         if hdr.session_id not in sessions:
             sessions[hdr.session_id] = {}
+            seq_owner[hdr.session_id] = {}
             order.append(hdr.session_id)
+        owner = seq_owner[hdr.session_id]
         if hdr.rec_type == F.REC_SAMPLES:
             if hdr.batch_seq in sessions[hdr.session_id]:
                 dup += 1                      # duplicated datagram: keep one
                 continue
             sessions[hdr.session_id][hdr.batch_seq] = (hdr, payload)
+            owner[hdr.batch_seq] = hdr
         elif hdr.rec_type == F.REC_ANCHOR:
             anchors.append((hdr, F.parse_anchor(payload)))
+            owner[hdr.batch_seq] = hdr
         elif hdr.rec_type == F.REC_STATUS:
             statuses.append((hdr, F.parse_status(payload)))
+            owner[hdr.batch_seq] = hdr
 
     rows = []
     report = {
@@ -83,6 +98,7 @@ def decode(path):
 
     for si, sid in enumerate(order):
         batches = sessions[sid]
+        owner = seq_owner[sid]
         if si:
             r = blank()
             r.update(row_type="SESSION", session="%08X" % sid,
@@ -95,22 +111,38 @@ def decode(path):
         prev_seq = None
         prev_end = None
 
-        for bseq in sorted(batches):
-            hdr, payload = batches[bseq]
-
+        # Walk every batchSeq this session ever produced a record for --
+        # samples, anchors and status alike -- so a slot filled by an
+        # anchor or status record is never mistaken for a lost sample batch.
+        for bseq in sorted(owner):
             if prev_seq is not None and bseq != prev_seq + 1:
                 lost = bseq - prev_seq - 1
                 report["transport_gaps"] += 1
                 report["transport_lost_batches"] += lost
+                hdr_next = owner[bseq]
+                # firstSampleSeq is filled consistently for every record type
+                # (see fillAuxHeader): it is "how many samples exist up to
+                # this point." If that count did not move across the gap,
+                # the lost record(s) were aux-only (anchor/status) and no
+                # sample was ever missing -- do not claim otherwise.
+                if prev_end is not None and hdr_next.first_sample_seq > prev_end:
+                    sample_note = ("samples %d..%d absent"
+                                    % (prev_end, hdr_next.first_sample_seq - 1))
+                elif prev_end is not None:
+                    sample_note = "no samples lost (aux record only)"
+                else:
+                    sample_note = "samples absent before the first surviving record"
                 r = blank()
                 r.update(row_type="GAP", session="%08X" % sid, batch_seq=bseq,
-                         info="%d batch(es) lost in transport, batchSeq %d..%d; "
-                              "samples %s..%s absent"
-                              % (lost, prev_seq + 1, bseq - 1,
-                                 prev_end if prev_end is not None else "?",
-                                 hdr.first_sample_seq - 1))
+                         info="%d batch(es) lost in transport, batchSeq %d..%d; %s"
+                              % (lost, prev_seq + 1, bseq - 1, sample_note))
                 rows.append(r)
             prev_seq = bseq
+
+            if bseq not in batches:
+                continue      # this slot was an anchor or status record --
+                               # nothing to decode here, already queued above
+            hdr, payload = batches[bseq]
 
             if hdr.missed_before:
                 report["declared_missed_slots"] += hdr.missed_before

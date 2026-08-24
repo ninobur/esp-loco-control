@@ -64,6 +64,17 @@ def anchor(seq, sample_seq, text, *, session=0xAAAA, t_us=0):
                           first_sample_seq=sample_seq)
 
 
+def status(seq, sample_seq, *, session=0xAAAA):
+    """A status heartbeat. Real firmware emits these every 2s regardless of
+    whether the operator ever asks -- see fillAuxHeader(), which stamps
+    firstSampleSeq with the running sample count, exactly as anchors do."""
+    import struct
+    p = struct.pack(F.STATUS_FMT, 0, sample_seq, 0, 0, seq, 0, 1000000,
+                    100000, 0, 0, 0, 1900, 0, 1, 2, 70, 90, 0, 0, 0)
+    return F.build_record(F.REC_STATUS, p, session_id=session, batch_seq=seq,
+                          first_sample_seq=sample_seq)
+
+
 def write_capture(records):
     fd, path = tempfile.mkstemp(suffix=".hwt")
     with os.fdopen(fd, "wb") as fh:
@@ -133,6 +144,107 @@ def test_transport_loss():
     ck(249 in seqs and 375 in seqs, "samples either side survive")
 
 
+def test_status_records_do_not_create_false_gaps():
+    """Reproduces the exact bug: status heartbeats share the batchSeq space
+    with sample batches, but a decoder that only tracks sample batch_seq for
+    continuity sees every status record's slot as a hole. Field evidence: a
+    PWM-40 capture reported 464 gaps == 464 status records, with zero real
+    loco queue drops."""
+    print("status heartbeats do not create false transport gaps")
+    recs = []
+    sseq = 0
+    bseq = 0
+    for i in range(20):
+        bseq += 1
+        recs.append(batch(bseq, sseq, sseq * 1000))
+        sseq += N
+        bseq += 1
+        recs.append(status(bseq, sseq))          # heartbeat every batch, worst case
+    path = write_capture(recs)
+    rows, rep = D.decode(path)
+    os.unlink(path)
+
+    ckEq(rep["transport_gaps"], 0,
+         "status records are not mistaken for lost sample batches")
+    ckEq(rep["transport_lost_batches"], 0, "no batches reported lost")
+    ckEq(rep["samples"], 20 * N, "every sample still decoded")
+    ckEq(len(kinds(rows, "GAP")), 0, "no GAP rows from status traffic alone")
+
+
+def test_anchor_records_do_not_create_false_gaps():
+    """Field evidence: a PWM-90 capture reported 148 gaps == 145 status +
+    3 anchor records, with zero real loco queue drops."""
+    print("anchors do not create false transport gaps")
+    recs = [
+        batch(1, 0, 0),
+        anchor(2, 60, "start"),
+        status(3, N),
+        batch(4, N, N * 1000),
+        anchor(5, N + 60, "mid"),
+        status(6, 2 * N),
+        batch(7, 2 * N, 2 * N * 1000),
+        anchor(8, 2 * N + 100, "end"),
+    ]
+    path = write_capture(recs)
+    rows, rep = D.decode(path)
+    os.unlink(path)
+
+    ckEq(rep["transport_gaps"], 0,
+         "anchors interleaved with samples are not mistaken for lost batches")
+    ckEq(rep["anchors"], 3, "all three anchors still decoded")
+    ckEq(rep["samples"], 3 * N, "every sample still decoded")
+
+
+def test_real_gap_still_detected_among_aux_traffic():
+    """A genuinely lost sample batch must still be reported as a gap even
+    when status/anchor records surround it -- fixing the false positives
+    must not create a false negative."""
+    print("a real transport gap survives alongside status/anchor records")
+    recs = [
+        batch(1, 0, 0),
+        status(2, N),
+        batch(3, N, N * 1000),
+        status(4, 2 * N),
+        # batch 5 (samples 2N..3N-1) never arrives
+        status(6, 3 * N),
+        batch(7, 3 * N, 3 * N * 1000),
+    ]
+    path = write_capture(recs)
+    rows, rep = D.decode(path)
+    os.unlink(path)
+
+    ckEq(rep["transport_gaps"], 1, "the one real loss is still found")
+    ckEq(rep["transport_lost_batches"], 1, "exactly one batch lost")
+    ckEq(rep["samples"], 3 * N, "the lost batch's samples are absent, not invented")
+    gaps = kinds(rows, "GAP")
+    ckEq(len(gaps), 1, "one GAP row")
+    ck(("samples %d..%d absent" % (2 * N, 3 * N - 1)) in gaps[0]["info"],
+       "the GAP row still names the exact missing sample range")
+
+
+def test_lost_aux_record_does_not_report_phantom_sample_loss():
+    """A lost status/anchor record is real data loss (it IS a batch on the
+    wire) and must still count as a transport gap -- but the decoder must
+    not claim samples went missing when none did."""
+    print("a lost aux record is a gap, but claims no phantom sample loss")
+    recs = [
+        batch(1, 0, 0),
+        batch(2, N, N * 1000),
+        # status at batch_seq 3 (sample_seq=2N) is lost -- no samples missing
+        status(4, 2 * N),
+    ]
+    path = write_capture(recs)
+    rows, rep = D.decode(path)
+    os.unlink(path)
+
+    ckEq(rep["transport_gaps"], 1, "the lost status record is still a gap")
+    ckEq(rep["transport_lost_batches"], 1, "one batch (the status) lost")
+    ckEq(rep["samples"], 2 * N, "no sample count is inferred from the loss")
+    gaps = kinds(rows, "GAP")
+    ck("no samples lost" in gaps[0]["info"],
+       "the decoder does not infer a missing-sample count from a missing aux record")
+
+
 def test_declared_missed_slots():
     print("slots the locomotive never acquired")
     recs = [batch(1, 0, 0),
@@ -187,6 +299,8 @@ def test_anchors_are_placed_and_kept_separate():
     after = [r for r in rows[idx:] if r["row_type"] == "SAMPLE"]
     ckEq(int(before[-1]["phys_sample_seq"]), 59, "anchor follows sample 59")
     ckEq(int(after[0]["phys_sample_seq"]), 60, "anchor precedes the sample it names")
+    ckEq(rep["transport_gaps"], 0,
+         "anchors occupying their own batchSeq slots are not lost batches")
 
 
 def test_session_boundary():
@@ -277,6 +391,10 @@ def main():
     test_clean_run()
     test_out_of_order_and_duplicate_arrival()
     test_transport_loss()
+    test_status_records_do_not_create_false_gaps()
+    test_anchor_records_do_not_create_false_gaps()
+    test_real_gap_still_detected_among_aux_traffic()
+    test_lost_aux_record_does_not_report_phantom_sample_loss()
     test_declared_missed_slots()
     test_corrupt_record()
     test_anchors_are_placed_and_kept_separate()

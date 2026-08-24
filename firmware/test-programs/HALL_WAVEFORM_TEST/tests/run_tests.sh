@@ -21,5 +21,9 @@ echo "== decoder / receiver (python3) =="
 python3 test_decoder.py
 
 echo
+echo "== excursion analysis (python3) =="
+python3 test_excursions.py
+
+echo
 echo "== source audit: no control authority in the recorder =="
 python3 test_no_control_authority.py
