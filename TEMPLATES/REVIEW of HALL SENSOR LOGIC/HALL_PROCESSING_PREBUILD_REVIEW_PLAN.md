@@ -5,6 +5,7 @@
 - This document is investigatory.
 - Nothing here is approved for implementation.
 - This review must be completed before `TEMPLATES` is built from `QUORUM`.
+- [`TARGET_ACQUISITION_DECISION_LOGIC.md`](TARGET_ACQUISITION_DECISION_LOGIC.md) is mandatory companion reading and its acquisition-before-navigation boundary must be addressed by this review.
 - Each disposition belongs to the operator.
 - Codex may explain, identify consequences and recommend, but may not assign a disposition.
 - Review completion does not itself approve implementation. A separate explicit approval is required.
@@ -241,6 +242,8 @@ Before `TEMPLATES` is built from `QUORUM`, the operator must have reviewed and r
 - [ ] Startup calibration
 - [ ] Hall-to-navigation handoff
 - [ ] Downstream target acceptance
+- [ ] Target-acquisition decision logic: physical-response gate, physically possible timing, expected-map polarity and no position advance on rejection
+- [ ] Diagnostic awareness remains separate from navigation evidence and hypothesis scoring
 - [ ] Diagnostics required to verify failures
 - [ ] Simpler-method evidence before any CFAR or matched-filter proposal
 - [ ] Exact approval status of the resulting design
