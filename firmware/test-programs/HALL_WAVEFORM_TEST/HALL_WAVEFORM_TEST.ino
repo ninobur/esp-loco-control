@@ -11,6 +11,17 @@
 //   Blynk throttle, Blynk direction, motor ramping, local E-STOP, safe boot
 //   at PWM 0, and Otto/Toby profile support.
 //
+//   CHANGED from that base — CODEX safety review, 2026-08-24: the base wrote
+//   MOTOR_DIR_PIN unconditionally on a direction command, so a reversal could
+//   be commanded while PWM was still applied. F/R direction changes are now
+//   REFUSED (both the Blynk control and the DIR command) unless the motor is
+//   fully at rest (rampCurrent == 0 and rampTarget == 0) — bring PWM to zero
+//   with STOP or E-STOP first, then change direction. NEUTRAL never touched
+//   the pin and is unaffected. Brake (VPIN_BRAKE) was never in the preserve
+//   list above; the base's silent accept-and-ignore is replaced with an
+//   audible refusal and a reset control, so the app cannot show Brake as
+//   engaged when nothing is stopping the locomotive. Use STOP or E-STOP.
+//
 //   DELETED from that base, deliberately and completely:
 //     - PROTECTED / ACC / AOP modes and the mode framework
 //     - block decoding (decodeBlock, BlockId, block labels)
@@ -603,6 +614,12 @@ static void applyCommand(const char* raw) {
   else if (!strcmp(verb, "DIR")) {
     char d = toupper(arg[0]);
     int nd = (d == 'F') ? DIRECTION_FORWARD : (d == 'R') ? DIRECTION_REVERSE : DIRECTION_NEUTRAL;
+    // Same gate as the Blynk direction handler: no reversal under power.
+    if (nd != DIRECTION_NEUTRAL && !(rampCurrent == 0 && rampTarget == 0)) {
+      Serial.printf("%s [HWT] DIRECTION REFUSED -- PWM not at zero (cur=%d tgt=%d); "
+                    "STOP or E-STOP first\n", ts().c_str(), rampCurrent, rampTarget);
+      return;
+    }
     manualDirection = nd;
     if (nd != DIRECTION_NEUTRAL) digitalWrite(MOTOR_DIR_PIN, nd);
     Serial.printf("%s [HWT] DIRECTION -> %s\n", ts().c_str(), dirName(nd));
@@ -618,6 +635,8 @@ static void applyCommand(const char* raw) {
   else if (!strcmp(verb, "HELP") || !strcmp(verb, "H")) {
     Serial.println("[HWT] ANCHOR <t> | FIXED <pwm> | SEQ | NEXT | GO | STOP | MANUAL");
     Serial.println("[HWT] DIR F|R|N | ESTOP 1|0 | SETHOST <ip> | STATUS | HELP");
+    Serial.println("[HWT] DIR F/R refused unless PWM is at zero -- STOP or ESTOP first.");
+    Serial.println("[HWT] Brake is NOT implemented -- use STOP or ESTOP to stop.");
   }
   else if (verb[0]) {
     Serial.printf("%s [HWT] unknown command \"%s\" (HELP for the list)\n", ts().c_str(), verb);
@@ -663,14 +682,36 @@ BLYNK_WRITE(VPIN_THROTTLE) {
 }
 
 BLYNK_WRITE(VPIN_DIRECTION) {
-  manualDirection = param.asInt();
+  int nd = param.asInt();
+  // CODEX safety review, 2026-08-24: the base sketch wrote MOTOR_DIR_PIN
+  // unconditionally, so a direction command under power could reverse the
+  // H-bridge while current was flowing. Reversing (F<->R) is refused unless
+  // the motor is fully at rest -- not merely commanded to zero, but the
+  // ramp actually there (rampCurrent) with nothing pending (rampTarget).
+  // NEUTRAL never touches the pin and is unaffected by this gate.
+  if (nd != DIRECTION_NEUTRAL && !(rampCurrent == 0 && rampTarget == 0)) {
+    Serial.printf("%s [HWT] DIRECTION REFUSED -- PWM not at zero (cur=%d tgt=%d); "
+                  "STOP or E-STOP first\n", ts().c_str(), rampCurrent, rampTarget);
+    if (Blynk.connected()) Blynk.virtualWrite(VPIN_DIRECTION, manualDirection);
+    return;
+  }
+  manualDirection = nd;
   if (manualDirection == DIRECTION_FORWARD)      digitalWrite(MOTOR_DIR_PIN, DIRECTION_FORWARD);
   else if (manualDirection == DIRECTION_REVERSE) digitalWrite(MOTOR_DIR_PIN, DIRECTION_REVERSE);
   Serial.printf("%s [HWT] DIRECTION -> %s\n", ts().c_str(), dirName(manualDirection));
 }
 
 BLYNK_WRITE(VPIN_BRAKE) {
-  // Accepted and ignored, exactly as in the base scaffold.
+  // CODEX safety review, 2026-08-24: Brake was never in this instrument's
+  // preserve list (throttle, direction, ramping, E-STOP, safe boot, profiles
+  // only) and silently accepting it let an operator believe it stopped the
+  // locomotive when nothing happened. Clearly disabled instead of silently
+  // ignored: refuse audibly and reset the control so the app cannot show
+  // Brake as engaged. Use STOP or E-STOP to actually stop.
+  if (param.asInt() != 0) {
+    Serial.printf("%s [HWT] BRAKE NOT IMPLEMENTED -- use STOP or E-STOP\n", ts().c_str());
+  }
+  if (Blynk.connected()) Blynk.virtualWrite(VPIN_BRAKE, 0);
 }
 
 BLYNK_WRITE(VPIN_ESTOP) { engageEStop(param.asInt() == 1); }
@@ -804,6 +845,8 @@ void setup() {
                  HWT_HOST_DEFAULT, HWT_HOST_PORT, HWT_LOCAL_PORT);
   Serial.printf ("Blynk    : %s\n", ok ? "connected" : "not connected (will retry)");
   Serial.println("Driving  : Blynk throttle, or FIXED <pwm> + GO. Nothing moves at boot.");
+  Serial.println("Direction: F/R refused unless PWM is at zero -- STOP/E-STOP first.");
+  Serial.println("Brake    : NOT IMPLEMENTED -- use STOP or E-STOP to stop the locomotive.");
   Serial.println("Anchors  : ANCHOR <text> — the only ground truth in the record.");
   Serial.println("Recorder : tools/hwt_receiver.py");
   Serial.println("============================================================");

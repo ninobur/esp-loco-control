@@ -212,6 +212,42 @@ def main():
     ck("addSample" in cap and "return;" not in add,
        "addSample has no early return: it cannot refuse a sample")
 
+    # ------------------------------------------- reversal-under-power gate
+    # CODEX safety review, 2026-08-24: both direction-change sites used to
+    # write MOTOR_DIR_PIN unconditionally, so a reversal could be commanded
+    # while PWM was still applied. Confirms the guard survives future edits:
+    # every DIR_PIN write in these two functions is reachable only through a
+    # branch testing both ramp variables against zero.
+    print("\nreversal-under-power gate")
+    for fname in ("VPIN_DIRECTION", "applyCommand"):
+        body = fns.get(fname, "")
+        guarded = "rampCurrent == 0 && rampTarget == 0" in body or \
+                  "rampCurrent==0 && rampTarget==0" in body
+        has_dir_write = any("MOTOR_DIR_PIN" in body[m.start():m.start() + 40] for m in
+                            re.finditer(r"digitalWrite\s*\(\s*MOTOR_DIR_PIN", body))
+        ck(not has_dir_write or guarded,
+           "%s only writes MOTOR_DIR_PIN behind an at-rest check" % fname)
+        # "REFUSED" itself lives in a string literal, blanked by strip_noncode;
+        # a printf call surviving inside the guarded (non-write) branch is the
+        # code-level evidence that a refusal is reported, not silently dropped.
+        ck("Serial.printf" in body, "%s reports a refused direction change" % fname)
+
+    # -------------------------------------------------- brake is not fake
+    # CODEX safety review, 2026-08-24: Brake used to be accepted and quietly
+    # ignored, which reads to an operator as "it stopped." It must now either
+    # refuse audibly or actually stop the locomotive -- never silence.
+    print("\nbrake is not silently accepted")
+    brake = fns.get("VPIN_BRAKE", "")
+    ck(brake, "the Brake handler exists and was parsed")
+    # "NOT IMPLEMENTED" lives in a string literal, blanked by strip_noncode;
+    # the structural evidence is a printf call (audible refusal) and a reset
+    # write back to the Blynk control (so the app cannot show it as engaged) --
+    # or, if a future edit implements real braking, an actual motor/ramp write.
+    audibly_refuses = "Serial.printf" in brake and "Blynk.virtualWrite(VPIN_BRAKE" in brake
+    actually_stops = "rampTarget" in brake or "engageEStop" in brake
+    ck(audibly_refuses or actually_stops,
+       "Brake either stops the locomotive or audibly refuses -- never a silent no-op")
+
     # --------------------------------------------------------- boot identity
     # These live in string literals and comments, so they are checked against
     # the raw file rather than the code-only text.

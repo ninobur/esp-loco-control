@@ -100,6 +100,17 @@ Then drive. Two ways:
 **Manual** — the Blynk throttle and direction controls, exactly as in the base
 sketch. E-STOP works in every mode and always wins.
 
+**Direction and Brake — CODEX safety review, 2026-08-24, changed from the
+base:** the base sketch wrote the direction pin unconditionally, so a
+direction command under power could reverse the H-bridge while current was
+flowing. `DIR F` / `DIR R` (and the Blynk direction control) are now
+**refused unless the motor is fully at rest** — PWM must already be at zero
+(`STOP` or E-STOP) before a reversal is accepted; `DIR N` never touches the
+pin and is unaffected. **Brake is not implemented.** It was never in this
+instrument's preserve list; the Blynk Brake control now visibly refuses and
+resets itself rather than silently doing nothing — use `STOP` or E-STOP to
+actually stop the locomotive.
+
 **Fixed PWM** — arm a speed, then start it explicitly. Nothing ever moves on
 its own, and nothing moves at boot.
 
@@ -110,7 +121,7 @@ its own, and nothing moves at boot.
 | `STOP` | ramp to 0 |
 | `SEQ` | arm the first step of the programmed sequence (50, 60, 70, 80, 90, 100, 110, 120) |
 | `NEXT` | arm the next step — again, `GO` is required to run it |
-| `DIR F` / `DIR R` / `DIR N` | set direction |
+| `DIR F` / `DIR R` / `DIR N` | set direction — F/R **refused** unless PWM is at zero (`STOP` first) |
 | `ESTOP 1` / `ESTOP 0` | local E-STOP |
 | `MANUAL` | leave fixed-PWM mode, hand the throttle back to Blynk |
 | `ANCHOR <text>` | insert an operator anchor **now** |
