@@ -1,0 +1,32 @@
+{
+  "capture": "/private/tmp/claude-501/-Users-davidbrown-esp-loco-control/33b3b554-a37c-4f91-9d64-c19a3c37b0ef/scratchpad/hwt_logs/otto_040-041_CCW_run.csv",
+  "direction": "CCW",
+  "operator_confirmed_start": {
+    "mm": 40,
+    "time_s": 0.0,
+    "confirmed": false,
+    "note": "NOT operator-confirmed. This capture carries ZERO operator anchors (verified: the decoded CSV contains no ANCHOR rows at all). mm=40 and t=0.0 (the very first sample) are inferred ONLY from the filename convention 'otto_040-041_CCW_run', by analogy with the grillers capture where the same 'NNN-NNN' filename pattern WAS confirmed by an anchor. That analogy is not itself evidence for this file."
+  },
+  "polarity_convention": {
+    "positive_deviation_is": "N",
+    "confirmed": false,
+    "note": "Same unconfirmed default as the other two manifests -- see grillers.json for the full note."
+  },
+  "known_stalls_stops_assistance": [
+    {
+      "description": "A DIFFERENT, similarly-named capture (otto_040-041_CW_PWM40.hwt -- note CW, not CCW) is documented in TEMPLATES/REVIEW of HALL SENSOR LOGIC/REVIEW_NOTES.md as a run where the operator confirmed Otto could not make the Grillers grade at PWM 40, with a specific stall. That CW file is NOT this CCW capture. This manifest makes no claim about stalls, stops, or assistance in the CCW run analyzed here -- none are established.",
+      "exact_boundaries_established": false
+    },
+    {
+      "description": "A telemetry-only low-PWM dwell-window proxy (see tools/hwt_excursions.py) is reported per-excursion as phys_in_low_pwm_dwell. Not a confirmed stall/assist indicator.",
+      "exact_boundaries_established": false
+    }
+  ],
+  "anchors": [],
+  "uncertainty_notes": [
+    "No operator anchors exist in this capture at all. Every fact about starting position, and therefore about the correctness of the predicted-position trace this tool produces, is unverifiable against this capture alone.",
+    "This manifest exists primarily to exercise the gate-replay tool and produce a decision record for review, NOT to support any claim about accurate marker identification in this run -- see part E of the accompanying report.",
+    "No independent wheel-speed or odometer ground truth exists. The physical-timing gate's speed bound is inherited from QUORUM's own provisional velocity model, not independently validated here.",
+    "Because start position is unconfirmed, an operator declaring a real starting marker (e.g. via a future anchored capture) is a prerequisite for treating any ACCEPT_EXPECTED_MARKER event in this run's decision CSV as evidence of a specific physical location."
+  ]
+}

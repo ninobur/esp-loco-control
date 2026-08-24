@@ -1,0 +1,32 @@
+{
+  "capture": "/private/tmp/claude-501/-Users-davidbrown-esp-loco-control/33b3b554-a37c-4f91-9d64-c19a3c37b0ef/scratchpad/hwt_logs/otto_CCW_PWM90.csv",
+  "direction": "CCW",
+  "operator_confirmed_start": {
+    "mm": 40,
+    "time_s": 1462.406792,
+    "confirmed": false,
+    "note": "The operator's OWN anchor text at t=1462.406792 is literally 'START-###-###-CCW-PWM90' -- the interval placeholder was never filled in. This is an operator-ACKNOWLEDGED gap, not an assumption this tool is inventing. The earlier anchor at t=1448.120746 reads only '040-041' (no START/END keyword) and is interpreted here as the operator noting passage near that interval shortly before the PWM90 test proper began -- a WEAK, INDIRECT basis for mm=40, not a direct confirmation. A different reading of the same anchor is equally defensible."
+  },
+  "polarity_convention": {
+    "positive_deviation_is": "N",
+    "confirmed": false,
+    "note": "Same unconfirmed default as the other two manifests -- see grillers.json for the full note."
+  },
+  "known_stalls_stops_assistance": [
+    {
+      "description": "PWM90 is a steady, comparatively high-throttle run; the prior independent-comparison investigation found essentially none of the severe multi-event baseline merging seen in the grillers/PWM-40 low-speed captures (max 4-6 independently-detected moving events absorbed per frozen excursion here, versus up to 101-259 in the low-PWM captures), consistent with -- but not proof of -- an absence of stalls in this run.",
+      "exact_boundaries_established": false
+    }
+  ],
+  "anchors": [
+    {"time_s": 1448.120746, "text": "040-041"},
+    {"time_s": 1462.406792, "text": "START-###-###-CCW-PWM90"},
+    {"time_s": 1696.847059, "text": "END-CCW-PWM90"}
+  ],
+  "uncertainty_notes": [
+    "The starting marker is NOT confirmed by this capture's own anchors -- the operator's placeholder text says so explicitly. Any predicted position this tool reports for this run should be read as conditional on mm=40 being correct, which is unverified.",
+    "The portion of the capture before t=1462.406792 is not covered by the (already incomplete) START anchor and is excluded from this manifest's confirmed run.",
+    "No independent wheel-speed or odometer ground truth exists. The physical-timing gate's speed bound is inherited from QUORUM's own provisional velocity model, not independently validated here.",
+    "Marker-specific repeatability cannot be inferred from this single pass."
+  ]
+}

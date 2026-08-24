@@ -1,0 +1,36 @@
+{
+  "capture": "/private/tmp/claude-501/-Users-davidbrown-esp-loco-control/33b3b554-a37c-4f91-9d64-c19a3c37b0ef/scratchpad/hwt_logs/otto_066-067_CCW_grillers_start-stop.csv",
+  "direction": "CCW",
+  "operator_confirmed_start": {
+    "mm": 66,
+    "time_s": 1176.689714,
+    "confirmed": true,
+    "note": "Operator anchor text 'START-066-067-CCW' at t=1176.689714 confirms the interval and direction. It does NOT unambiguously state which of 66/67 is the starting marker versus the next-expected one -- mm=66 is this manifest's ASSUMPTION, not a directly stated fact. See uncertainty_notes."
+  },
+  "polarity_convention": {
+    "positive_deviation_is": "N",
+    "confirmed": false,
+    "note": "Default assumption (raw above the frozen baseline = north-crossing, matching QUORUM's raw>=northEnter convention). CLAUDE.md states HALL_POLARITY_INVERTED is dead config that QUORUM never reads, so there is no known per-locomotive inversion in QUORUM's own logic -- but this repository has no independently wired confirmation that this tool's positive/negative deviation sign matches QUORUM's north/south sense for THIS sensor. Unconfirmed."
+  },
+  "known_stalls_stops_assistance": [
+    {
+      "description": "This capture is a deliberate low-PWM/variable-PWM start-stop test at Grillers, a track grade documented elsewhere as stall-prone under load (docs/IR_SENSOR_NOTES.md:41, docs/ROAD_TO_CTO.md). The filename and 'start-stop' naming, plus the anchor bracket, establish that repeated starting/stopping was the INTENDED test -- not that any specific excursion in it is a confirmed stall.",
+      "evidence": "docs/IR_SENSOR_NOTES.md line 41 ('...caused a stall on the Grillers grade'); docs/ROAD_TO_CTO.md ('No stall on the Grillers grade under any load tested')",
+      "exact_boundaries_established": false
+    },
+    {
+      "description": "A telemetry-only low-PWM dwell-window proxy (ctl_pwm_actual <= 5 for >= 1000ms, computed by tools/hwt_excursions.py) exists for this capture and is reported per-excursion as phys_in_low_pwm_dwell in the decision CSV. This is NOT a confirmed stall/assist boundary -- a commanded stop, a scheduled dwell, and a genuine stall are indistinguishable in PWM telemetry alone (see tools/hwt_excursions.py module docstring section 6).",
+      "exact_boundaries_established": false
+    }
+  ],
+  "anchors": [
+    {"time_s": 1176.689714, "text": "START-066-067-CCW"},
+    {"time_s": 1327.934075, "text": "END-GRILLERS-TEST"}
+  ],
+  "uncertainty_notes": [
+    "The anchor interval '066-067' does not by itself establish whether marker 66 or marker 67 is the starting position, nor whether QUORUM's own CW/CCW enum convention (MAP_CW=+1 increments mm, MAP_CCW=-1 decrements it) matches the physical rotational sense the operator means by 'CCW' in the anchor text. mm=66 is used here as a documented, unverified assumption.",
+    "The portion of the capture BEFORE t=1176.689714 (roughly the first 1176 seconds) is not covered by this anchor bracket at all and is excluded from this manifest's confirmed run -- events reported by the replay tool before the declared start time have no operator-confirmed reference and are diagnostic only.",
+    "No independent wheel-speed or odometer ground truth exists in this capture. The physical-timing gate's maximum-credible-speed bound is inherited from QUORUM's own explicitly-provisional PWM-to-velocity model (see tools/quorum_map.py), not independently validated here.",
+    "Marker-specific repeatability cannot be inferred from this single pass; only one capture is available per direction/speed combination for this investigation."
+  ]
+}
