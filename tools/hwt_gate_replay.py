@@ -66,14 +66,13 @@ ARCHITECTURE
 GATE ORDER (evaluate_event(), fixed and logged every time)
 ================================================================================
   1. COMPLETENESS   incomplete/gapped/forced-end            -> REJECT_INCOMPLETE
-  2. MORPHOLOGY     duration, absolute integrated flux,      -> REJECT_SPIKE
-                    and a simple continuity measure (the
-                    fraction of sample-to-sample sign
-                    changes in the baseline-relative
-                    deviation trace — a smooth single-hump
-                    curve has very few; a spike train has
-                    many) must all clear their (evaluation-
-                    only, CLI-configurable) bars
+  2. MORPHOLOGY     duration and absolute integrated flux    -> REJECT_SPIKE
+                    must both clear their (evaluation-only,
+                    CLI-configurable) bars. A third measure,
+                    "continuity" (see CONTINUITY IS
+                    DIAGNOSTIC-ONLY below), is computed and
+                    carried on every event but does NOT
+                    participate in this or any other decision.
   3. PHYSICAL TIMING  elapsed time since the last ACCEPTED    -> REJECT_PHYSICALLY_TOO_SOON
                     marker must be at least the minimum       or REJECT_PROBABLE_RETURN
                     time QUORUM's own (explicitly provisional (if ALSO opposite polarity
@@ -106,6 +105,40 @@ here would be exactly the unjustified rule the task warns against. The
 diagnostics are still computed and carried on every event for a person to
 judge; REVIEW_AMBIGUOUS remains available for a future gate with better
 evidence behind it.
+
+================================================================================
+CONTINUITY IS DIAGNOSTIC-ONLY (corrected; it was briefly an active gate)
+================================================================================
+An earlier version of this tool gated REJECT_SPIKE partly on
+continuity_ratio() — the fraction of sample-to-sample sign changes in the
+baseline-relative deviation trace, computed with a "derivative dead zone"
+(a minimum delta before a step counts as a direction at all) — and shipped
+a default dead zone of 20 counts, described as filtering "ordinary ADC
+jitter". That description overstated the evidence. What was actually shown
+was: (a) with a zero dead zone, ONE selected clean broad response and ONE
+selected merged excursion scored nearly identically (~0.68), so the
+zero-dead-zone metric could not separate that specific pair; (b) a dead
+zone of 20 counts separated that SAME pair (0.000 vs 0.681). Neither
+observation demonstrates the metric is measuring ADC noise, that 20 counts
+is a meaningful physical threshold, or that the metric generalizes beyond
+those two hand-picked examples — no independently-collected noise-only
+data (e.g. a known-stationary, powered, no-magnet-nearby period) was ever
+compared against it. Using this metric to reject or accept events was
+exactly the kind of unjustified rule the rest of this tool's design
+explicitly tries to avoid (see the REJECT_UNSTABLE_BASELINE note above).
+
+continuity_ratio() and its dead-zone parameter are RETAINED as a
+diagnostic-only field (det_continuity_ratio, det_continuity_dead_zone) on
+every event, computed and reported but never read by evaluate_event() or
+any Disposition. The metric itself may turn out to be unsuitable for this
+purpose regardless of parameter choice — that has not been established
+either way. tools/hwt_adc_delta_diagnostics.py independently characterizes
+raw sample-to-sample deltas (at several lags) in regions identified WITHOUT
+reference to continuity_ratio at all — known-stationary (PWM-dwell),
+moving-quiet (between excursions, PWM elevated), and broad-response
+regions (duration+flux only) — as a first step toward evidence that could
+someday support (or rule out) a smoothness-based gate. No such gate is
+implemented here.
 ================================================================================
 """
 
@@ -150,7 +183,8 @@ EVENT_COLUMNS = [
     "phys_in_low_pwm_dwell",
     "phys_pwm_actual_at_open", "phys_pwm_commanded_at_open", "phys_direction",
     # det_*: detector interpretation (derived from phys_*, still not map-aware)
-    "det_open_polarity", "det_continuity_ratio",
+    "det_open_polarity",
+    "det_continuity_ratio", "det_continuity_dead_zone",  # DIAGNOSTIC ONLY -- see module docstring
     # ctx_*: context since the previous ACCEPTED marker (replay state, not
     # a property of this event alone)
     "ctx_time_since_prev_accepted_s", "ctx_min_time_to_next_marker_s",
@@ -241,38 +275,38 @@ class RunManifest:
 # Candidate events: hwt_excursions' frozen detector, converted to the
 # acquisition-event contract.
 # ---------------------------------------------------------------------------
-def continuity_ratio(samples, baseline, idxs, noise_floor=20.0):
-    """Simple, transparent morphology measure: the fraction of sample-to-
-    sample sign changes in the baseline-relative deviation trace. A smooth
-    single-hump curve (rise to one peak, fall back) has close to the
-    minimum possible number of sign changes (one, at the peak); a narrow
-    noise spike or a jagged/spiky/merged-multi-feature trace has many,
-    relative to its own length.
+def continuity_ratio(samples, baseline, idxs, dead_zone=20.0):
+    """DIAGNOSTIC ONLY -- see the module docstring's "CONTINUITY IS
+    DIAGNOSTIC-ONLY" section. Not read by evaluate_event() or any
+    Disposition.
 
-    CALIBRATION NOTE (evidence, not a claim of a validated threshold): a
-    naive noise_floor=0 version of this measure is dominated by ordinary
-    ADC sample-to-sample jitter -- on the grillers capture it scored a
-    visually clean, single-hump 333 ms broad response (excursion 69) at
-    0.678, indistinguishable from a 5.5 s excursion known (from the prior
-    independent-comparison investigation) to be dozens of merged moving-
-    detector events (excursion 195, 0.680). Requiring the delta between
-    consecutive samples to exceed noise_floor counts before it counts as a
-    "direction" at all removes that dominant noise term: at noise_floor=20,
-    excursion 69 drops to 0.000 (smooth) while excursion 195 stays at 0.681
-    (still clearly not one smooth feature). This was checked against only
-    that one pair plus the narrow-spike population (which reads 0.000
-    throughout, correctly, since a 1-2 sample event has no derivative pairs
-    to flip) -- it is a documented empirical calibration, not a validated
-    general threshold, and --continuity-noise-floor remains adjustable."""
+    A candidate smoothness measure: the fraction of sample-to-sample sign
+    changes in the baseline-relative deviation trace, after ignoring any
+    step smaller than `dead_zone` counts (the "experimental derivative dead
+    zone" -- a parameter of this measurement, not a validated ADC noise
+    figure; see tools/hwt_adc_delta_diagnostics.py for an attempt to
+    characterize actual sample-to-sample behavior independently).
+
+    What is actually known about this measure: on exactly two hand-picked
+    excursions (one visually clean 333 ms broad response, one known 5.5 s
+    merged excursion), a dead_zone of 0 scored them nearly identically
+    (~0.68 each) and a dead_zone of 20 separated them (0.000 vs 0.681).
+    That is the entire evidentiary basis for dead_zone=20 -- it was NOT
+    derived from an independently measured noise or delta distribution,
+    was NOT validated across the full event population, and may not
+    generalize. The measure itself may be unsuitable for distinguishing
+    genuine curves from spikes or merged excursions regardless of
+    dead_zone; that question is open, not resolved, and this function must
+    not be used to gate or grade events until it is."""
     devs = [samples[i]["raw"] - baseline[i] for i in idxs]
     if len(devs) < 3:
         return 0.0
     signs = []
     for a, b in zip(devs, devs[1:]):
         d = b - a
-        if d > noise_floor:
+        if d > dead_zone:
             signs.append(1)
-        elif d < -noise_floor:
+        elif d < -dead_zone:
             signs.append(-1)
     if len(signs) < 2:
         return 0.0
@@ -296,12 +330,16 @@ def build_acquisition_events(capture_path, manifest, *, entry_threshold=30.0,
                              exit_threshold=15.0, pre_window=200,
                              baseline_method="mean", gap_margin_s=0.05,
                              dwell_pwm_max=5.0, dwell_min_ms=1000.0,
-                             continuity_noise_floor=20.0):
+                             continuity_dead_zone=20.0):
     """Runs hwt_excursions' frozen detector and converts every resulting
     excursion, in chronological order, into an AcquisitionEvent dict
     (EVENT_COLUMNS' phys_*/det_* fields only — ctx_*/map_*/disp_* are filled
     in by the replay loop, which needs sequential state). Returns
-    (events, sessions_ctx) — sessions_ctx is exposed for plotting."""
+    (events, sessions_ctx) — sessions_ctx is exposed for plotting.
+
+    continuity_dead_zone only affects the DIAGNOSTIC det_continuity_ratio
+    field (see continuity_ratio()'s docstring) -- it cannot change any
+    event's disposition; see test_continuity_settings_cannot_change_disposition."""
     result = E.analyze_captures(
         capture_path, entry_threshold=entry_threshold, exit_threshold=exit_threshold,
         baseline_mode="frozen", pre_window=pre_window, baseline_method=baseline_method,
@@ -322,7 +360,7 @@ def build_acquisition_events(capture_path, manifest, *, entry_threshold=30.0,
             pwm_open = samples[open_i]["pwm_actual"]
             pwm_cmd_open = samples[open_i]["pwm_commanded"]
             dir_open = samples[open_i]["dir"]
-            cont = continuity_ratio(samples, baseline, idxs, continuity_noise_floor)
+            cont = continuity_ratio(samples, baseline, idxs, continuity_dead_zone)
         else:
             pwm_open = e["pwm_actual_at_peak"]
             pwm_cmd_open = e["pwm_commanded_at_peak"]
@@ -350,6 +388,7 @@ def build_acquisition_events(capture_path, manifest, *, entry_threshold=30.0,
             "phys_pwm_actual_at_open": pwm_open, "phys_pwm_commanded_at_open": pwm_cmd_open,
             "phys_direction": dir_open,
             "det_open_polarity": open_polarity, "det_continuity_ratio": "%.4f" % cont,
+            "det_continuity_dead_zone": continuity_dead_zone,
         })
         events.append(ev)
     return events, sessions_ctx
@@ -358,35 +397,50 @@ def build_acquisition_events(capture_path, manifest, *, entry_threshold=30.0,
 # ---------------------------------------------------------------------------
 # Gate pipeline (task part D)
 # ---------------------------------------------------------------------------
-def passes_morphology(ev, *, min_duration_ms, min_abs_flux, max_continuity_ratio):
+def passes_morphology(ev, *, min_duration_ms, min_abs_flux):
+    """Duration and absolute integrated flux only. continuity_ratio is
+    diagnostic-only (see module docstring) and deliberately does NOT
+    appear here."""
     if float(ev["phys_duration_ms"]) < min_duration_ms:
         return False
     if float(ev["phys_integrated_abs_flux"]) < min_abs_flux:
-        return False
-    if float(ev["det_continuity_ratio"]) > max_continuity_ratio:
         return False
     return True
 
 
 def evaluate_event(ev, prev, qmap, manifest, *, min_duration_ms, min_abs_flux,
-                   max_continuity_ratio):
+                   legacy_continuity_max_ratio=None):
     """prev: dict with keys mm, polarity, accepted_time_s, or None if no
     marker has been accepted yet (seeded from the manifest's declared start
     before the first candidate is evaluated — see replay()). Returns a
-    Disposition and, for ACCEPT_EXPECTED_MARKER, the new predicted mm."""
+    Disposition and, for ACCEPT_EXPECTED_MARKER, the new predicted mm.
+
+    legacy_continuity_max_ratio: None (default) means continuity plays no
+    part in this decision at all -- the corrected, current behaviour. A
+    numeric value reproduces the EARLIER, WITHDRAWN gate exactly, for the
+    sole purpose of the continuity-removal comparison report
+    (tools/hwt_gate_replay_continuity_comparison.py) -- it must never be
+    set by default production code, only by that explicit comparison."""
     if int(ev["phys_incomplete"]):
         return Disposition("REJECT_INCOMPLETE",
                            "excursion overlaps a transport gap, sampler stall, or session "
                            "boundary (gaps_within=%s) -- not authoritative" % ev["phys_gaps_within_count"]), None
 
-    if not passes_morphology(ev, min_duration_ms=min_duration_ms, min_abs_flux=min_abs_flux,
-                             max_continuity_ratio=max_continuity_ratio):
+    if not passes_morphology(ev, min_duration_ms=min_duration_ms, min_abs_flux=min_abs_flux):
         return Disposition("REJECT_SPIKE",
-                           "duration=%.1fms abs_flux=%.1f continuity=%.3f did not clear "
-                           "the evaluation morphology bar (>=%.0fms, >=%.0f, <=%.2f)"
+                           "duration=%.1fms abs_flux=%.1f did not clear the evaluation "
+                           "morphology bar (>=%.0fms, >=%.0f)"
                            % (float(ev["phys_duration_ms"]), float(ev["phys_integrated_abs_flux"]),
-                              float(ev["det_continuity_ratio"]), min_duration_ms, min_abs_flux,
-                              max_continuity_ratio)), None
+                              min_duration_ms, min_abs_flux)), None
+
+    if legacy_continuity_max_ratio is not None and \
+            float(ev["det_continuity_ratio"]) > legacy_continuity_max_ratio:
+        return Disposition("REJECT_SPIKE",
+                           "[LEGACY COMPARISON PATH -- not used by the default pipeline; see "
+                           "module docstring's CONTINUITY IS DIAGNOSTIC-ONLY section] "
+                           "continuity=%.3f exceeded the since-withdrawn continuity gate's "
+                           "threshold %.2f" % (float(ev["det_continuity_ratio"]),
+                                                legacy_continuity_max_ratio)), None
 
     if prev is None:
         return Disposition("REVIEW_AMBIGUOUS",
@@ -441,7 +495,10 @@ def polchar(p):
 # ---------------------------------------------------------------------------
 # Replay loop (task part C.5-C.7)
 # ---------------------------------------------------------------------------
-def replay(events, qmap, manifest, *, min_duration_ms, min_abs_flux, max_continuity_ratio):
+def replay(events, qmap, manifest, *, min_duration_ms, min_abs_flux,
+          legacy_continuity_max_ratio=None):
+    """legacy_continuity_max_ratio: see evaluate_event()'s docstring --
+    leave None for the corrected, current pipeline."""
     prev = {"mm": manifest.start_mm, "polarity": qmap.dna_at(manifest.start_mm),
            "accepted_time_s": manifest.start_time_s}
     predicted_mm = manifest.start_mm
@@ -452,7 +509,7 @@ def replay(events, qmap, manifest, *, min_duration_ms, min_abs_flux, max_continu
         ev["disp_predicted_mm_before"] = predicted_mm
         disp, new_mm = evaluate_event(
             ev, prev, qmap, manifest, min_duration_ms=min_duration_ms,
-            min_abs_flux=min_abs_flux, max_continuity_ratio=max_continuity_ratio)
+            min_abs_flux=min_abs_flux, legacy_continuity_max_ratio=legacy_continuity_max_ratio)
         ev["disp_final"] = disp.name
         ev["disp_reason"] = disp.reason
 
@@ -595,14 +652,19 @@ def main():
                          "matching QUORUM's own EVENT_FLOOR_MS)")
     ap.add_argument("--min-abs-flux", type=float, default=300.0,
                     help="[evaluation only] morphology bar: minimum integrated |flux| (default 300)")
-    ap.add_argument("--max-continuity-ratio", type=float, default=0.5,
-                    help="[evaluation only] morphology bar: maximum sign-change ratio "
-                         "(default 0.5; see continuity_ratio()'s docstring for the "
-                         "empirical calibration this default is based on)")
-    ap.add_argument("--continuity-noise-floor", type=float, default=20.0,
-                    help="[evaluation only] counts below this sample-to-sample delta "
-                         "are not counted as a direction change at all -- filters "
-                         "ordinary ADC jitter out of the continuity measure (default 20)")
+    ap.add_argument("--continuity-dead-zone", type=float, default=20.0,
+                    help="DIAGNOSTIC ONLY, does not affect any disposition (see module "
+                         "docstring's CONTINUITY IS DIAGNOSTIC-ONLY section): counts below "
+                         "this sample-to-sample delta are not counted as a direction change "
+                         "at all, when computing the reported det_continuity_ratio field "
+                         "(default 20; not derived from an independently measured delta "
+                         "distribution -- see tools/hwt_adc_delta_diagnostics.py)")
+    ap.add_argument("--legacy-continuity-max-ratio", type=float, default=None,
+                    help="FOR COMPARISON ONLY: reproduces the earlier, withdrawn continuity "
+                         "gate exactly, rejecting as REJECT_SPIKE any event whose "
+                         "det_continuity_ratio exceeds this. Omit (default) for the "
+                         "corrected pipeline, where continuity plays no part in any "
+                         "decision. See tools/hwt_gate_replay_continuity_comparison.py")
     ap.add_argument("--plot-dir", help="write representative detail PNGs into subdirectories by disposition")
     ap.add_argument("--plot-margin-s", type=float, default=0.3)
     ap.add_argument("--plot-max-per-disposition", type=int, default=6,
@@ -624,10 +686,11 @@ def main():
             capture_path = alt
 
     events, sessions_ctx = build_acquisition_events(
-        capture_path, manifest, continuity_noise_floor=args.continuity_noise_floor)
+        capture_path, manifest, continuity_dead_zone=args.continuity_dead_zone)
     events, streak_reports = replay(
         events, qmap, manifest, min_duration_ms=args.min_duration_ms,
-        min_abs_flux=args.min_abs_flux, max_continuity_ratio=args.max_continuity_ratio)
+        min_abs_flux=args.min_abs_flux,
+        legacy_continuity_max_ratio=args.legacy_continuity_max_ratio)
 
     base = os.path.splitext(os.path.basename(capture_path))[0]
     out = args.out or base + "_decisions.csv"

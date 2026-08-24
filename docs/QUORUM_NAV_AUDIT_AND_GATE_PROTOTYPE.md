@@ -9,6 +9,13 @@ the operator's intended decision model against real captures; (E) an
 explicit accounting of what would and would not constitute evidence of
 accurate detection; (F) synthetic test coverage.
 
+**Correction:** the prototype's original commit (`3fa8208`) briefly used a
+"continuity" smoothness measure as an active `REJECT_SPIKE` gate, described
+as filtering "ordinary ADC noise floor" jitter. That claim was unsupported
+— see "Continuity correction: what changed, and what depended on it" under
+§C-D. Continuity has been removed from every disposition and is retained as
+a diagnostic-only field.
+
 Companion review documents (read before this one): `TEMPLATES/REVIEW of
 HALL SENSOR LOGIC/REVIEW_NOTES.md`, `TEMPLATES/REVIEW of HALL SENSOR
 LOGIC/TARGET_ACQUISITION_GUIDANCE.md`, `TEMPLATES/REVIEW of HALL SENSOR
@@ -115,7 +122,9 @@ map expectation, and disposition never mix in one field:
   investigation), completeness/gap flags, PWM (actual+commanded) and
   direction **at opening** (mirroring QUORUM's own §3 "sampled at event
   open" discipline).
-- `det_*` — opening polarity, and a continuity/smoothness measure (see §D).
+- `det_*` — opening polarity, and a continuity/smoothness measure that is
+  **diagnostic-only** and does not participate in any disposition (see the
+  correction note in §D).
 - `ctx_*` — time since the previous *accepted* marker, the minimum
   physically-possible time to the next one, and what that previous marker
   was — replay state, not a property of the event alone.
@@ -148,17 +157,25 @@ what it looks for.
 Gate order (fixed, logged on every event):
 
 1. **Completeness** — `phys_incomplete` → `REJECT_INCOMPLETE`.
-2. **Morphology** — duration, absolute integrated flux, and
-   `continuity_ratio` (the fraction of sample-to-sample sign changes in the
-   baseline-relative deviation trace, with a noise floor) must all clear
-   their bars, or `REJECT_SPIKE`. See the calibration note in
-   `continuity_ratio()`'s docstring: a naive zero-noise-floor version of
-   this measure was dominated by ordinary ADC jitter and could not tell a
-   clean 333 ms single-hump response from a known 5.5 s merged excursion
-   (both scored ~0.68); requiring the sample-to-sample delta to exceed 20
-   counts before counting as a "direction" separated them cleanly (0.000
-   vs 0.681) on that one pair. This is a documented empirical finding, not
-   a validated general threshold.
+2. **Morphology** — duration and absolute integrated flux must both clear
+   their (evaluation-only, CLI-configurable) bars, or `REJECT_SPIKE`.
+   **`continuity_ratio` does not participate in this or any other gate.**
+   An earlier version of this tool gated `REJECT_SPIKE` partly on
+   `continuity_ratio()` (fraction of sample-to-sample sign changes in the
+   baseline-relative deviation trace, past a "derivative dead zone") and
+   described its default dead zone of 20 counts as filtering "ordinary ADC
+   jitter". That description overstated the evidence: it rested on exactly
+   two hand-picked examples (one clean 333 ms response, one known 5.5 s
+   merged excursion) showing that a *zero*-dead-zone version of the metric
+   could not separate that specific pair (~0.68 vs ~0.68), and that a
+   dead-zone of 20 counts did separate that same pair (0.000 vs 0.681).
+   Neither observation demonstrates the metric measures ADC noise, that 20
+   counts is a meaningful physical threshold, or that the metric
+   generalizes past those two examples — no independently-collected
+   noise-only data was ever compared against it, and gating on it was
+   exactly the kind of unjustified rule this document's own §D discussion
+   of `REJECT_UNSTABLE_BASELINE` warns against. See "Continuity correction"
+   below for what changed and what is now known.
 3. **Physical timing** — elapsed time since the last accepted marker must
    be at least `spacing / max_credible_speed`, where the spacing comes from
    the extracted map and the speed bound is QUORUM's own
@@ -207,19 +224,117 @@ captures has a fully operator-confirmed starting marker:
   `START-###-###-CCW-PWM90` — an acknowledged, unfilled placeholder.
   `mm=40` is inferred weakly from an earlier, un-keyworded `040-041` anchor.
 
-### Corrected statistics (all three captures, default gate parameters)
+### Statistics under the corrected (continuity-free) pipeline
+
+All three captures, default gate parameters (`min_duration_ms=40`,
+`min_abs_flux=300`), `continuity_ratio` computed and logged but read by
+nothing:
 
 | capture | candidate events | ACCEPT | REJECT_SPIKE | REJECT_INCOMPLETE | REJECT_TOO_SOON | REJECT_PROBABLE_RETURN | REJECT_WRONG_POLARITY | predicted position |
 |---|---|---|---|---|---|---|---|---|
-| grillers | 201 | 1 | 142 | 37 | 1 | 7 | 13 | mm 66 → 65 |
-| pwm40_run | 1286 | 35 | 1090 | 90 | 5 | 1 | 65 | mm 40 → 5 |
-| pwm90 | 2465 | 22 | 2410 | 16 | 0 | 0 | 17 | mm 40 → 18 |
+| grillers | 201 | 5 | 111 | 37 | 2 | 12 | 34 | mm 66 → 61 |
+| pwm40_run | 1286 | 89 | 876 | 90 | 20 | 8 | 203 | mm 40 → 122 |
+| pwm90 | 2465 | 100 | 2281 | 16 | 1 | 0 | 67 | mm 40 → 111 |
 
 Every gate fired on real data at least once except `REJECT_UNSTABLE_BASELINE`
 (unused by design) and `REVIEW_AMBIGUOUS` (no capture lacked a declared
 start). Repeated-disagreement streaks (≥3 `REJECT_WRONG_EXPECTED_POLARITY`
-in a row) were reported 6 times on pwm40_run, 3 times on pwm90, once on
+in a row) were reported 6 times on pwm40_run, 6 times on pwm90, 3 times on
 grillers.
+
+### Continuity correction: what changed, and what depended on it
+
+An earlier version of this pipeline (commit `3fa8208`) gated `REJECT_SPIKE`
+partly on `continuity_ratio() > 0.5` at `dead_zone=20`. That gate has been
+**removed**. `continuity_ratio()` and its dead-zone parameter are retained
+as diagnostic-only fields (`det_continuity_ratio`, `det_continuity_dead_zone`)
+on every event — computed, logged, plotted if useful, but never read by
+`evaluate_event()` or any `Disposition`. `tools/hwt_gate_replay.py`'s module
+docstring carries the full correction note under "CONTINUITY IS
+DIAGNOSTIC-ONLY"; a `--legacy-continuity-max-ratio` CLI flag reproduces the
+withdrawn gate exactly, for comparison only — the default pipeline never
+sets it.
+
+`tools/hwt_gate_replay_continuity_comparison.py` runs the same candidate
+events through both pipelines and reports every disposition that differs.
+Every changed event moved **out of** `REJECT_SPIKE` (continuity was only
+ever checked as part of that one gate, so removing it can only pull events
+out of that bucket, never push events in) to whatever duration, flux,
+timing, return-response, and polarity alone now decide:
+
+| capture | events changed | → ACCEPT | → WRONG_POLARITY | → PROBABLE_RETURN | → TOO_SOON |
+|---|---|---|---|---|---|
+| grillers | 33 / 201 (16.4%) | 5 | 22 | 5 | 1 |
+| pwm40_run | 251 / 1286 (19.5%) | 72 | 153 | 7 | 19 |
+| pwm90 | 151 / 2465 (6.1%) | 90 | 60 | 1 | 0 |
+
+The plurality of freed events did **not** become accepts — most landed in
+`REJECT_WRONG_EXPECTED_POLARITY`, a gate independently justified by map
+comparison, not by continuity. Continuity was not simply "too strict"; it
+was substituting for gates that already exist and are separately reasoned
+about.
+
+**Independent ADC delta characterization** (`tools/hwt_adc_delta_diagnostics.py`,
+satisfying the requirement that any future noise claim be derived from
+data collected independently of `continuity_ratio` itself): raw
+`sample[i+lag] - sample[i]` deltas at lags 1/5/10/20 samples, in three
+regions selected without reference to continuity at all — `stationary`
+(PWM-dwell telemetry only), `moving_quiet` (elevated PWM, outside any
+detected excursion — an amplitude-threshold criterion), and
+`broad_response` (inside excursions passing duration+flux only). None of
+these three regions is a verified noise-only reference (no capture here has
+a disconnected sensor or a confirmed-motionless, powered, no-magnet period)
+— they are simply mutually independent of `continuity_ratio`'s own logic.
+
+| capture | region | lag=1 stdev | lag=20 stdev | lag=1 p5..p95 | lag=20 p5..p95 |
+|---|---|---|---|---|---|
+| grillers | stationary | 6.74 | 6.90 | ±8 | ±9 |
+| grillers | moving_quiet | 5.49 | 6.13 | ±8 | ±9 |
+| grillers | broad_response | 7.65 | 9.58 | ±8 | ±11 |
+| pwm40_run | stationary | 6.77 | 6.76 | ±8 | ±8/9 |
+| pwm40_run | moving_quiet | 5.31 | 6.26 | ±8 | ±10 |
+| pwm40_run | broad_response | 7.94 | 11.17 | ±8 | ±12 |
+| pwm90 | stationary | 6.94 | 6.97 | ±9 | ±9 |
+| pwm90 | moving_quiet | 7.79 | 8.15 | ±12 | ±13 |
+| pwm90 | broad_response | 10.90 | 41.69 | ±14 | ±59 |
+
+The typical (p5-p95) core spread is broadly similar across regions and
+captures at short lag (roughly ±8-14 counts) — consistent with, but not
+proof of, a common sample-to-sample noise process. What differs sharply is
+the *tails*: `broad_response` extremes are far larger than the other two
+regions (e.g. pwm40_run's `broad_response` deltas reach ±1600-1700 counts
+at lag 20, against ≤~110 for `stationary`/`moving_quiet`), and grow with
+lag much faster there — the expected signature of genuine Hall-transition
+signal riding on top of whatever the sample-to-sample floor is, not a
+property of noise alone. This is descriptive characterization, not a noise
+floor derivation: it says nothing about whether `continuity_ratio`
+specifically (a sign-change ratio, not a delta magnitude) tracks this
+floor, discriminates spikes, or is suitable for gating at all.
+
+**Population-level continuity diagnostic** (`tools/hwt_continuity_population_report.py`,
+all 3952 candidate events across all three captures, grouped by the
+corrected pipeline's `disp_final` — not circular, since that disposition no
+longer depends on continuity): `REJECT_SPIKE` events do show a much lower
+mean `continuity_ratio` (0.003-0.035, median 0.000 in every capture) than
+every other disposition (means 0.40-0.73). **This is not independent
+validation of the metric.** `REJECT_SPIKE` already means "short duration
+and/or low integrated flux" by construction, and a short excursion
+mechanically has fewer samples in which a sign change past the dead zone
+can occur — so a correlation between "short" and "low continuity_ratio" is
+expected whether or not the metric measures anything about noise
+specifically, purely from sample-count and morphology confounds already
+captured by the duration/flux gate it would be redundant with. Confirming
+or ruling out any independent contribution would require holding out
+events and testing, not reading this table.
+
+**Tests**: `test_continuity_settings_cannot_change_disposition`
+(`firmware/test-programs/HALL_WAVEFORM_TEST/tests/test_gate_replay.py`)
+replays one synthetic capture at five different `continuity_dead_zone`
+values (0, 5, 20, 40, 80), confirms the diagnostic `det_continuity_ratio`
+value genuinely varies across them (so the check isn't vacuous), and
+asserts the resulting disposition is identical at every value — then
+separately confirms `--legacy-continuity-max-ratio` still reproduces the
+old `REJECT_SPIKE` behavior exactly, as a comparison path only.
 
 ---
 
@@ -230,8 +345,10 @@ detector's own accepted-event count validates nothing by itself. What each
 category above actually supports:
 
 - **Obvious-spike rejections** (`REJECT_SPIKE`, the large majority in every
-  capture) are supported by morphology alone — duration/flux/continuity —
-  independent of any map comparison.
+  capture) are supported by morphology alone — duration and integrated flux
+  — independent of any map comparison. `continuity_ratio` is diagnostic-only
+  and does not support this or any other disposition (see "Continuity
+  correction" above).
 - **Physically-impossible rejections** (`REJECT_PHYSICALLY_TOO_SOON`,
   `REJECT_PROBABLE_RETURN`) are supported by the map's spacing and
   QUORUM's own (inherited, provisional) speed model — not by polarity
@@ -264,20 +381,22 @@ category above actually supports:
 
 ## F. Test results
 
-New: `firmware/test-programs/HALL_WAVEFORM_TEST/tests/test_gate_replay.py`,
-12 tests / 52 checks, all passing, against a small synthetic 6-marker map
+`firmware/test-programs/HALL_WAVEFORM_TEST/tests/test_gate_replay.py`, now
+13 tests / 60 checks, all passing, against a small synthetic 6-marker map
 (not the real firmware map, so these do not depend on QUORUM.ino's current
-contents). Full suite after this change:
+contents). The 13th test, `test_continuity_settings_cannot_change_disposition`,
+was added by the continuity correction (see above). Full suite after that
+change:
 
 ```
 capture engine (g++)          691 checks, 0 failures
 direction gate (g++)           44 checks, 0 failures
 decoder / receiver (python3)   60 checks, 0 failures
 excursion analysis (python3)  101 checks, 0 failures
-gate-replay prototype (python3) 52 checks, 0 failures
+gate-replay prototype (python3) 60 checks, 0 failures
 control-authority audit (py)   66 checks, 0 failures
 ---------------------------------------------------
-TOTAL                        1014 checks, 0 failures
+TOTAL                        1022 checks, 0 failures
 ```
 
 ---
@@ -295,8 +414,14 @@ TOTAL                        1014 checks, 0 failures
 - Representative plots (not exhaustive coverage) were generated per
   disposition — this task asked for representative examples, unlike the
   prior task's explicit no-cap requirement for specific merge categories.
-- `continuity_ratio`'s noise-floor calibration rests on one example pair,
-  not a systematic sweep.
+- `continuity_ratio` is diagnostic-only and untested as a gate. The
+  independent ADC delta characterization above describes ordinary
+  sample-to-sample behavior in three regions, but none of those regions is
+  a verified noise-only reference, and no work here established whether
+  `continuity_ratio` (or any smoothness measure) can validly separate
+  genuine curves from spikes or merged excursions — that question is open,
+  not resolved, and the metric itself may turn out to be unsuitable
+  regardless of parameter choice.
 
 ## Next investigatory step
 

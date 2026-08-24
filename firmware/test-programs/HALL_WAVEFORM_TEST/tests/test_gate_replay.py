@@ -128,7 +128,7 @@ def plateau(n, delta, level=1900, pwm=PWM):
 
 def run(path, manifest, qmap, **gate_kwargs):
     events, _ctx = G.build_acquisition_events(path, manifest)
-    defaults = dict(min_duration_ms=40.0, min_abs_flux=300.0, max_continuity_ratio=0.5)
+    defaults = dict(min_duration_ms=40.0, min_abs_flux=300.0)
     defaults.update(gate_kwargs)
     events, streaks = G.replay(events, qmap, manifest, **defaults)
     return events, streaks
@@ -372,6 +372,72 @@ def test_position_advances_exactly_once_per_accepted_marker():
                 "a non-accepted event (the interspersed spikes) never advances position")
 
 
+def jagged_plateau(n, high, low, block=5, level=1900, pwm=PWM):
+    """A broad excursion that is NOT flat-topped: alternates between `high`
+    and `low` (both above the entry threshold) every `block` samples, so
+    its continuity_ratio is well above zero at any reasonable dead zone --
+    unlike plateau(), which is always exactly 0.0. Used only to prove that
+    disposition does not depend on this value; the corrected pipeline does
+    not use continuity_ratio for anything else."""
+    out = []
+    hi = True
+    while len(out) < n:
+        out += [(level + (high if hi else low), 1000, pwm, pwm)] * min(block, n - len(out))
+        hi = not hi
+    return out
+
+
+def test_continuity_settings_cannot_change_disposition():
+    print("changing continuity settings (dead zone, or omitting the legacy gate "
+         "entirely) cannot change any disposition -- continuity is diagnostic-only")
+    qmap = make_qmap()
+    specs = flat(LEAD) + jagged_plateau(150, 200, 150, block=5) + flat(LEAD)
+    path = write_capture_from_specs(specs)
+    manifest = make_manifest(capture=path, start_mm=1, start_time_s=0.0)
+
+    events_by_dead_zone = {}
+    for dz in (0.0, 5.0, 20.0, 40.0, 80.0):
+        evs, _ctx = G.build_acquisition_events(path, manifest, continuity_dead_zone=dz)
+        evs, _streaks = G.replay(evs, qmap, manifest, min_duration_ms=40.0, min_abs_flux=300.0)
+        events_by_dead_zone[dz] = evs
+    os.unlink(path)
+
+    ratios = {dz: evs[0]["det_continuity_ratio"] for dz, evs in events_by_dead_zone.items()}
+    ck(len(set(ratios.values())) > 1,
+      "sanity: the dead zone DOES change the diagnostic det_continuity_ratio value "
+      "(ratios seen: %s) -- so the disposition check below is not vacuous" % ratios)
+
+    dispositions = {dz: evs[0]["disp_final"] for dz, evs in events_by_dead_zone.items()}
+    first = next(iter(dispositions.values()))
+    for dz, disp in dispositions.items():
+        ckEq(disp, first,
+            "disposition must be identical across every continuity_dead_zone setting "
+            "(dead_zone=%s gave %s, expected %s)" % (dz, disp, first))
+    ckEq(first, "ACCEPT_EXPECTED_MARKER",
+        "sanity: this jagged-but-otherwise-plausible, well-timed, expected-polarity "
+        "curve IS accepted -- a high continuity_ratio does not cause a rejection "
+        "under the corrected pipeline")
+
+    # And explicitly: the legacy comparison path, when NOT invoked (the default,
+    # matching every call above and every production code path), behaves
+    # identically regardless of how jagged the curve is -- confirmed above. Here,
+    # confirm the inverse holds too: the legacy path, when explicitly invoked with
+    # a strict threshold, DOES reject this same jagged curve -- proving the
+    # diagnostic field is real, non-trivial data, and that its absence from the
+    # default pipeline is a deliberate omission, not an accident of it never
+    # having anything to reject. (path was already unlinked above; rebuild fresh.)
+    path2 = write_capture_from_specs(specs)
+    evs2, _ctx = G.build_acquisition_events(path2, manifest, continuity_dead_zone=0.0)
+    evs2, _streaks = G.replay(evs2, qmap, manifest, min_duration_ms=40.0, min_abs_flux=300.0,
+                              legacy_continuity_max_ratio=0.5)
+    os.unlink(path2)
+    ckEq(evs2[0]["disp_final"], "REJECT_SPIKE",
+        "the WITHDRAWN legacy gate, only when explicitly re-enabled for comparison, "
+        "still rejects this jagged curve -- confirming det_continuity_ratio is "
+        "genuine, non-trivial data and its removal from the default pipeline was a "
+        "deliberate correction, not a no-op")
+
+
 def main():
     print("HALL_WAVEFORM_TEST — gate-replay tests (investigatory)\n")
     test_narrow_spike_expected_polarity_rejected_without_advancing()
@@ -386,6 +452,7 @@ def main():
     test_wrong_polarity_convention_fails_visibly()
     test_repeated_rejected_events_never_advance_position()
     test_position_advances_exactly_once_per_accepted_marker()
+    test_continuity_settings_cannot_change_disposition()
     print("\n%d checks, %d failures" % (checks, failures))
     return 1 if failures else 0
 
