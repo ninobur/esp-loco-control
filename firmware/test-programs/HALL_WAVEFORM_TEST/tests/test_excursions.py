@@ -72,8 +72,22 @@ def write_capture(records):
 
 
 def find(path, **kw):
+    """Defaults to --baseline-mode moving: these are the ORIGINAL tests,
+    written to exercise the centered rolling baseline's own edge behaviour
+    (mean bleed, window-vs-drift tradeoffs). See find_frozen() below for
+    the corrected pre-event mode."""
     defaults = dict(entry_threshold=30.0, exit_threshold=15.0,
+                    baseline_mode="moving",
                     baseline_window=501, baseline_method="mean",
+                    gap_margin_s=0.05)
+    defaults.update(kw)
+    return E.find_excursions(path, **defaults)
+
+
+def find_frozen(path, **kw):
+    defaults = dict(entry_threshold=30.0, exit_threshold=15.0,
+                    baseline_mode="frozen",
+                    pre_window=200, baseline_method="mean",
                     gap_margin_s=0.05)
     defaults.update(kw)
     return E.find_excursions(path, **defaults)
@@ -210,6 +224,152 @@ def test_sequence_wraparound_does_not_break_timing():
     ck(0 <= e["end_sample"] <= 0xFFFFFFFF, "end_sample is a valid 32-bit value")
 
 
+def test_frozen_baseline_does_not_absorb_broad_excursion():
+    """The core claim of --baseline-mode frozen, checked directly against
+    --baseline-mode moving on the identical synthetic signal: an 800-flat /
+    400-elevated(+200) / 800-flat run. The moving 501-sample centered mean
+    both crushes the measured peak (its own local window is dragged toward
+    the plateau) AND smears the reported boundary far past the true step,
+    because the window's own half-width leaks into every sample within
+    250 samples of the edge. The frozen baseline, computed once from 200
+    quiet samples before the step and never updated by the plateau's own
+    samples, recovers the exact boundary and the true amplitude."""
+    print("frozen baseline does not absorb a broad excursion; moving baseline does")
+    lead_in = [(1900, 1000, 0, 0)] * 800
+    plateau = [(2100, 1000, 0, 0)] * 400        # true +200 above baseline
+    tail = [(1900, 1000, 0, 0)] * 800
+    specs = lead_in + plateau + tail
+    path = write_capture([build_batch(specs, batch_seq=1, first_sample_seq=0, t0_us=0)])
+
+    moving = find(path, baseline_window=501)
+    frozen = find_frozen(path, pre_window=200)
+    os.unlink(path)
+
+    hit_moving = [e for e in moving if e["start_sample"] <= 900 <= e["end_sample"]]
+    hit_frozen = [e for e in frozen if e["start_sample"] <= 900 <= e["end_sample"]]
+    ckEq(len(hit_moving), 1, "moving baseline reports one (smeared) excursion here")
+    ckEq(len(hit_frozen), 1, "frozen baseline reports one (exact) excursion here")
+
+    moving_peak = float(hit_moving[0]["max_abs_flux"])
+    frozen_peak = float(hit_frozen[0]["max_abs_flux"])
+    ck(90 < moving_peak < 110,
+       "moving baseline crushes the true 200-count step to about half (measured ~99.8)")
+    ck(frozen_peak > 195,
+       "frozen baseline recovers close to the true injected amplitude of 200")
+    ck(frozen_peak > 1.8 * moving_peak,
+       "frozen measures at least ~1.8x what moving measures for this same event")
+
+    me, fe = hit_moving[0], hit_frozen[0]
+    moving_width = me["end_sample"] - me["start_sample"] + 1
+    ck(moving_width > 1.5 * 400,
+       "moving baseline's reported width is smeared well past the true 400-sample plateau")
+    ckEq(fe["start_sample"], 800, "frozen excursion opens exactly where the plateau starts")
+    ckEq(fe["end_sample"], 1199, "frozen excursion closes exactly where the plateau ends")
+    ckEq(fe["n_samples"], 400, "frozen excursion's width matches the true plateau exactly")
+    ckEq(fe["baseline_mode"], "frozen", "the row records which baseline mode produced it")
+    ckEq(me["baseline_mode"], "moving", "the row records which baseline mode produced it")
+    ckEq(int(fe["baseline_n_quiet"]), 200,
+        "the frozen baseline used a full pre_window of quiet history")
+
+
+def test_frozen_baseline_is_constant_across_the_whole_excursion():
+    print("frozen baseline never changes within one excursion, however long")
+    specs = [(1900, 1000, 0, 0)] * 300 + [(2050, 1000, 0, 0)] * 500
+    path = write_capture([build_batch(specs, batch_seq=1, first_sample_seq=0, t0_us=0)])
+    result = E.analyze_captures(path, entry_threshold=30.0, exit_threshold=15.0,
+                                baseline_mode="frozen", pre_window=200,
+                                baseline_method="mean")
+    os.unlink(path)
+
+    exc = result["excursions"]
+    ckEq(len(exc), 1, "one excursion found")
+    e = exc[0]
+    ctx = result["sessions"][e["session"]]
+    baseline = ctx["baseline"]
+    span = range(e["start_sample"], e["end_sample"] + 1)
+    values = {baseline[i] for i in span}
+    ckEq(len(values), 1, "the baseline array holds exactly one value across the whole excursion")
+    ckClose(next(iter(values)), 1900.0, "that value is the true pre-event baseline", tol=1e-6)
+
+
+def test_frozen_baseline_uses_only_quiet_history_between_close_excursions():
+    """Two plateaus separated by a quiet gap shorter than pre_window. The
+    quiet window is a persistent deque (it is not reset at each excursion
+    boundary), so the second excursion's baseline legitimately mixes OLD
+    quiet history from before the first excursion with the NEW quiet gap
+    samples -- both are genuinely quiet. What must never happen is the
+    first excursion's own ELEVATED samples leaking in. The gap's raw value
+    (1920) is deliberately distinct from both the lead-in (1900) and the
+    plateaus (2000/2050), so contamination from the first excursion would
+    be arithmetically visible: 30 contaminated samples at 2000 instead of
+    1920 would pull the mixed mean to 1915.0, not the 1903.0 computed from
+    genuinely-quiet values alone."""
+    print("frozen baseline between close excursions is never padded with excursion samples")
+    lead_in = [(1900, 1000, 0, 0)] * 300          # fills the 200-sample quiet window
+    first = [(2000, 1000, 0, 0)] * 50             # first excursion, elevated
+    gap = [(1920, 1000, 0, 0)] * 30               # true quiet gap, shorter than pre_window
+    second = [(2050, 1000, 0, 0)] * 50            # second excursion, elevated
+    specs = lead_in + first + gap + second
+    path = write_capture([build_batch(specs, batch_seq=1, first_sample_seq=0, t0_us=0)])
+    exc = find_frozen(path, pre_window=200, entry_threshold=50.0, exit_threshold=30.0)
+    os.unlink(path)
+
+    ckEq(len(exc), 2, "two excursions found, separated by the quiet gap")
+    first_exc, second_exc = exc
+    ckClose(float(first_exc["baseline_at_excursion"]), 1900.0,
+           "the first excursion's baseline is the pure lead-in value", tol=1e-6)
+    ckEq(int(second_exc["baseline_n_quiet"]), 200,
+        "the second excursion's baseline used a full window: old lead-in "
+        "quiet samples plus the new quiet gap -- both legitimately quiet")
+    ckClose(float(second_exc["baseline_at_excursion"]), 1903.0,
+           "the mix (170 old @1900 + 30 new @1920) is exactly 1903.0 -- proving "
+           "the first excursion's elevated samples (which would give 1915.0 "
+           "if they had leaked in) never entered the quiet window", tol=1e-6)
+
+
+def test_low_pwm_dwell_flagged_and_separately_reportable():
+    print("a low-PWM dwell window is flagged on overlapping excursions, not on others")
+    lead_in = [(1900, 1000, 0, 90)] * 100
+    dwell = [(1900, 1000, 0, 90)] * 1200          # 1.2s at PWM 0 -- a dwell
+    spike_in_dwell = [(2200, 1000, 0, 90)]        # one spike WHILE stopped
+    moving = [(1900, 1000, 70, 90)] * 200
+    spike_outside = [(2200, 1000, 70, 90)]        # one spike while moving
+    tail = [(1900, 1000, 70, 90)] * 100
+    specs = lead_in + dwell + spike_in_dwell + moving + spike_outside + tail
+    path = write_capture([build_batch(specs, batch_seq=1, first_sample_seq=0, t0_us=0)])
+    exc = find_frozen(path, dwell_pwm_max=5.0, dwell_min_ms=1000.0)
+    os.unlink(path)
+
+    in_dwell_start = 100 + 1200
+    outside_start = 100 + 1200 + 1 + 200
+    hit_in = [e for e in exc if e["start_sample"] == in_dwell_start]
+    hit_out = [e for e in exc if e["start_sample"] == outside_start]
+    ckEq(len(hit_in), 1, "the spike during the dwell is found")
+    ckEq(len(hit_out), 1, "the spike outside the dwell is found")
+    ckEq(hit_in[0]["in_low_pwm_dwell"], 1, "the in-dwell spike is flagged")
+    ckEq(hit_out[0]["in_low_pwm_dwell"], 0, "the moving-PWM spike is not flagged")
+
+
+def test_compare_baselines_produces_alt_columns():
+    print("--compare-baselines measures the same excursion against both modes")
+    lead_in = [(1900, 1000, 0, 0)] * 800
+    plateau = [(2100, 1000, 0, 0)] * 400
+    tail = [(1900, 1000, 0, 0)] * 800
+    specs = lead_in + plateau + tail
+    path = write_capture([build_batch(specs, batch_seq=1, first_sample_seq=0, t0_us=0)])
+    exc = find_frozen(path, pre_window=200, compare_baselines=True)
+    os.unlink(path)
+
+    hit = [e for e in exc if e["start_sample"] <= 900 <= e["end_sample"]]
+    ckEq(len(hit), 1, "one excursion found")
+    e = hit[0]
+    ckEq(e["alt_baseline_mode"], "moving", "the alt mode is the OTHER mode from the primary")
+    ck(e["alt_max_abs_flux"] != "", "the alt peak column is populated")
+    ck(float(e["alt_max_abs_flux"]) < float(e["max_abs_flux"]),
+       "the alt (moving) measurement of this same broad event is smaller, "
+       "exactly matching the direct moving-vs-frozen comparison above")
+
+
 def main():
     print("HALL_WAVEFORM_TEST — excursion analysis tests (investigatory)\n")
     test_tall_narrow_spike_survives()
@@ -218,6 +378,11 @@ def main():
     test_missing_samples_never_interpolated()
     test_integrated_flux_uses_actual_intervals()
     test_sequence_wraparound_does_not_break_timing()
+    test_frozen_baseline_does_not_absorb_broad_excursion()
+    test_frozen_baseline_is_constant_across_the_whole_excursion()
+    test_frozen_baseline_uses_only_quiet_history_between_close_excursions()
+    test_low_pwm_dwell_flagged_and_separately_reportable()
+    test_compare_baselines_produces_alt_columns()
     print("\n%d checks, %d failures" % (checks, failures))
     return 1 if failures else 0
 
