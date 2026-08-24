@@ -101,15 +101,23 @@ Then drive. Two ways:
 sketch. E-STOP works in every mode and always wins.
 
 **Direction and Brake — CODEX safety review, 2026-08-24, changed from the
-base:** the base sketch wrote the direction pin unconditionally, so a
-direction command under power could reverse the H-bridge while current was
-flowing. `DIR F` / `DIR R` (and the Blynk direction control) are now
-**refused unless the motor is fully at rest** — PWM must already be at zero
-(`STOP` or E-STOP) before a reversal is accepted; `DIR N` never touches the
-pin and is unaffected. **Brake is not implemented.** It was never in this
-instrument's preserve list; the Blynk Brake control now visibly refuses and
-resets itself rather than silently doing nothing — use `STOP` or E-STOP to
-actually stop the locomotive.
+base, corrected 2026-08-24:** the base sketch wrote the direction pin
+unconditionally, so a direction command under power could reverse the
+H-bridge while current was flowing. `DIR F` / `DIR R` / `DIR N` (and the
+Blynk direction control) are now **all refused unless the motor is fully at
+rest** — PWM must already be at zero (`STOP` or E-STOP) before *any*
+direction request, including NEUTRAL, is accepted. This matches established
+operator behavior: Blynk has refused every direction selection while moving,
+F/R/N alike, for about a year; the Flask console's own omission of NEUTRAL
+never changed that. A refusal changes nothing — not the software direction,
+not the pin, not PWM — and does not itself begin stopping the locomotive;
+bring PWM to zero with `STOP` or E-STOP first, then reissue. Selecting
+NEUTRAL while stopped still just sets the software direction and blocks new
+throttle until FORWARD or REVERSE is chosen — it still never touches the pin
+and is still never an automatic stop. **Brake is not implemented.** It was
+never in this instrument's preserve list; the Blynk Brake control now
+visibly refuses and resets itself rather than silently doing nothing — use
+`STOP` or E-STOP to actually stop the locomotive.
 
 **Fixed PWM** — arm a speed, then start it explicitly. Nothing ever moves on
 its own, and nothing moves at boot.
@@ -121,7 +129,7 @@ its own, and nothing moves at boot.
 | `STOP` | ramp to 0 |
 | `SEQ` | arm the first step of the programmed sequence (50, 60, 70, 80, 90, 100, 110, 120) |
 | `NEXT` | arm the next step — again, `GO` is required to run it |
-| `DIR F` / `DIR R` / `DIR N` | set direction — F/R **refused** unless PWM is at zero (`STOP` first) |
+| `DIR F` / `DIR R` / `DIR N` | set direction — **all three refused** unless PWM is at zero (`STOP` first) |
 | `ESTOP 1` / `ESTOP 0` | local E-STOP |
 | `MANUAL` | leave fixed-PWM mode, hand the throttle back to Blynk |
 | `ANCHOR <text>` | insert an operator anchor **now** |

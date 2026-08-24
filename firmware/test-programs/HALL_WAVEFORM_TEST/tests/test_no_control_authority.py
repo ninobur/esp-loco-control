@@ -213,24 +213,57 @@ def main():
        "addSample has no early return: it cannot refuse a sample")
 
     # ------------------------------------------- reversal-under-power gate
-    # CODEX safety review, 2026-08-24: both direction-change sites used to
-    # write MOTOR_DIR_PIN unconditionally, so a reversal could be commanded
-    # while PWM was still applied. Confirms the guard survives future edits:
-    # every DIR_PIN write in these two functions is reachable only through a
-    # branch testing both ramp variables against zero.
+    # CODEX safety review, 2026-08-24, corrected 2026-08-24: both direction-
+    # change sites used to write MOTOR_DIR_PIN unconditionally, so a reversal
+    # could be commanded while PWM was still applied -- and the first fix
+    # only covered FORWARD/REVERSE, when established operator behavior
+    # refuses NEUTRAL too. The decision itself now lives in one pure function
+    # (DirectionGate.h, exhaustively tested by test_direction_gate.cpp); this
+    # audit confirms both .ino call sites actually USE that function rather
+    # than reimplementing their own (divergence-proof by construction), and
+    # that a MOTOR_DIR_PIN write is reachable only through its result.
     print("\nreversal-under-power gate")
     for fname in ("VPIN_DIRECTION", "applyCommand"):
         body = fns.get(fname, "")
-        guarded = "rampCurrent == 0 && rampTarget == 0" in body or \
-                  "rampCurrent==0 && rampTarget==0" in body
+        calls_gate = "decideDirectionRequest(" in body
+        ck(calls_gate, "%s calls the shared decideDirectionRequest() gate" % fname)
         has_dir_write = any("MOTOR_DIR_PIN" in body[m.start():m.start() + 40] for m in
                             re.finditer(r"digitalWrite\s*\(\s*MOTOR_DIR_PIN", body))
-        ck(not has_dir_write or guarded,
-           "%s only writes MOTOR_DIR_PIN behind an at-rest check" % fname)
+        # The only conditions allowed to guard a MOTOR_DIR_PIN write are the
+        # gate's own result fields -- never a hand-written ramp comparison
+        # that could drift from what test_direction_gate.cpp actually proved.
+        guarded_by_gate = "o.writePin" in body or "outcome.writePin" in body
+        ck(not has_dir_write or (calls_gate and guarded_by_gate),
+           "%s writes MOTOR_DIR_PIN only behind the gate's own writePin result" % fname)
+        ck("rampCurrent == 0 && rampTarget == 0" not in body and
+           "rampCurrent==0 && rampTarget==0" not in body,
+           "%s has no hand-written at-rest check that could diverge from the gate" % fname)
         # "REFUSED" itself lives in a string literal, blanked by strip_noncode;
         # a printf call surviving inside the guarded (non-write) branch is the
         # code-level evidence that a refusal is reported, not silently dropped.
         ck("Serial.printf" in body, "%s reports a refused direction change" % fname)
+
+    # DirectionGate.h itself: the gate must be a query, never a command --
+    # it must not import Arduino/motor symbols that would let it act instead
+    # of merely deciding.
+    print("\ndirection gate stays pure")
+    gate_code = strip_noncode(open(os.path.join(HERE, "..", "DirectionGate.h")).read())
+    for token, what in (("digitalWrite", "a direct pin write"),
+                        ("Serial.", "a direct log call"),
+                        ("Blynk.", "a direct Blynk call"),
+                        ("#include <Arduino", "an Arduino framework dependency")):
+        ck(token not in gate_code, "DirectionGate.h contains no %s" % what)
+
+    # ------------------------------------------------ throttle stays gated
+    # Untouched by this round's fix, but exactly what requirement 7 depends
+    # on: NEUTRAL continues to refuse new throttle. Regression-proofed here
+    # since a future edit to the throttle handler could silently drop it.
+    print("\nthrottle refuses while NEUTRAL")
+    throttle = fns.get("VPIN_THROTTLE", "")
+    ck("DIRECTION_NEUTRAL" in throttle,
+       "the throttle handler still checks for NEUTRAL")
+    ck("rampTarget = 0" in throttle or "rampTarget=0" in throttle,
+       "the throttle handler still refuses to raise rampTarget while NEUTRAL")
 
     # -------------------------------------------------- brake is not fake
     # CODEX safety review, 2026-08-24: Brake used to be accepted and quietly

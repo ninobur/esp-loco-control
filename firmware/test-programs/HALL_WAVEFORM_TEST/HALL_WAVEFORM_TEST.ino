@@ -13,14 +13,22 @@
 //
 //   CHANGED from that base — CODEX safety review, 2026-08-24: the base wrote
 //   MOTOR_DIR_PIN unconditionally on a direction command, so a reversal could
-//   be commanded while PWM was still applied. F/R direction changes are now
-//   REFUSED (both the Blynk control and the DIR command) unless the motor is
-//   fully at rest (rampCurrent == 0 and rampTarget == 0) — bring PWM to zero
-//   with STOP or E-STOP first, then change direction. NEUTRAL never touched
-//   the pin and is unaffected. Brake (VPIN_BRAKE) was never in the preserve
-//   list above; the base's silent accept-and-ignore is replaced with an
-//   audible refusal and a reset control, so the app cannot show Brake as
-//   engaged when nothing is stopping the locomotive. Use STOP or E-STOP.
+//   be commanded while PWM was still applied. Every direction request — FORWARD,
+//   REVERSE, and NEUTRAL alike — is now REFUSED (both the Blynk control and
+//   the DIR command) unless the motor is fully at rest (rampCurrent == 0 and
+//   rampTarget == 0): matches established operator behavior (Blynk has
+//   refused every direction change while moving, F/R/N alike, for about a
+//   year; the Flask console's own omission of NEUTRAL never changed that). A
+//   refusal changes nothing — not manualDirection, not the pin, not PWM —
+//   and does not itself begin stopping the locomotive. Bring PWM to zero
+//   with STOP or E-STOP first, then reissue the direction request. Selecting
+//   NEUTRAL while stopped sets manualDirection and blocks new throttle until
+//   FORWARD or REVERSE is chosen, exactly as before; it still never touches
+//   the pin and is still never an automatic stop. Brake (VPIN_BRAKE) was
+//   never in the preserve list above; the base's silent accept-and-ignore is
+//   replaced with an audible refusal and a reset control, so the app cannot
+//   show Brake as engaged when nothing is stopping the locomotive. Use STOP
+//   or E-STOP.
 //
 //   DELETED from that base, deliberately and completely:
 //     - PROTECTED / ACC / AOP modes and the mode framework
@@ -89,6 +97,7 @@ static portMUX_TYPE hwtMux = portMUX_INITIALIZER_UNLOCKED;
 #define HWT_ENTER_CRITICAL() portENTER_CRITICAL(&hwtMux)
 #define HWT_EXIT_CRITICAL()  portEXIT_CRITICAL(&hwtMux)
 #include "HallCapture.h"
+#include "DirectionGate.h"
 
 // ============================================================================
 // BUILD CONFIGURATION — the whole instrument's tunables, in one block
@@ -614,14 +623,17 @@ static void applyCommand(const char* raw) {
   else if (!strcmp(verb, "DIR")) {
     char d = toupper(arg[0]);
     int nd = (d == 'F') ? DIRECTION_FORWARD : (d == 'R') ? DIRECTION_REVERSE : DIRECTION_NEUTRAL;
-    // Same gate as the Blynk direction handler: no reversal under power.
-    if (nd != DIRECTION_NEUTRAL && !(rampCurrent == 0 && rampTarget == 0)) {
+    // Same decideDirectionRequest() the Blynk handler uses -- the two call
+    // sites cannot diverge because they share this one function.
+    DirectionOutcome o = decideDirectionRequest(nd, rampCurrent, rampTarget,
+                                                manualDirection, DIRECTION_NEUTRAL);
+    if (!o.applied) {
       Serial.printf("%s [HWT] DIRECTION REFUSED -- PWM not at zero (cur=%d tgt=%d); "
                     "STOP or E-STOP first\n", ts().c_str(), rampCurrent, rampTarget);
       return;
     }
     manualDirection = nd;
-    if (nd != DIRECTION_NEUTRAL) digitalWrite(MOTOR_DIR_PIN, nd);
+    if (o.writePin) digitalWrite(MOTOR_DIR_PIN, nd);
     Serial.printf("%s [HWT] DIRECTION -> %s\n", ts().c_str(), dirName(nd));
   }
   else if (!strcmp(verb, "ESTOP"))  engageEStop(atoi(arg) != 0);
@@ -635,7 +647,7 @@ static void applyCommand(const char* raw) {
   else if (!strcmp(verb, "HELP") || !strcmp(verb, "H")) {
     Serial.println("[HWT] ANCHOR <t> | FIXED <pwm> | SEQ | NEXT | GO | STOP | MANUAL");
     Serial.println("[HWT] DIR F|R|N | ESTOP 1|0 | SETHOST <ip> | STATUS | HELP");
-    Serial.println("[HWT] DIR F/R refused unless PWM is at zero -- STOP or ESTOP first.");
+    Serial.println("[HWT] DIR F/R/N refused unless PWM is at zero -- STOP or ESTOP first.");
     Serial.println("[HWT] Brake is NOT implemented -- use STOP or ESTOP to stop.");
   }
   else if (verb[0]) {
@@ -685,19 +697,35 @@ BLYNK_WRITE(VPIN_DIRECTION) {
   int nd = param.asInt();
   // CODEX safety review, 2026-08-24: the base sketch wrote MOTOR_DIR_PIN
   // unconditionally, so a direction command under power could reverse the
-  // H-bridge while current was flowing. Reversing (F<->R) is refused unless
-  // the motor is fully at rest -- not merely commanded to zero, but the
-  // ramp actually there (rampCurrent) with nothing pending (rampTarget).
-  // NEUTRAL never touches the pin and is unaffected by this gate.
-  if (nd != DIRECTION_NEUTRAL && !(rampCurrent == 0 && rampTarget == 0)) {
+  // H-bridge while current was flowing.
+  //
+  // CODEX correction, 2026-08-24 (established operator behavior: Blynk has
+  // refused every direction selection while moving, F/R/N alike, for about
+  // a year -- the Flask console's own omission of NEUTRAL never changed
+  // that). The fully-stopped gate now covers ALL THREE choices, not just
+  // F/R: any direction request -- including NEUTRAL -- is refused unless
+  // the motor is fully at rest (rampCurrent == 0 AND rampTarget == 0, not
+  // merely commanded to zero). A refusal changes nothing: not
+  // manualDirection, not MOTOR_DIR_PIN, not PWM, and it does not itself
+  // start stopping the locomotive -- STOP or E-STOP first, then reissue.
+  DirectionOutcome o = decideDirectionRequest(nd, rampCurrent, rampTarget,
+                                              manualDirection, DIRECTION_NEUTRAL);
+  if (!o.applied) {
     Serial.printf("%s [HWT] DIRECTION REFUSED -- PWM not at zero (cur=%d tgt=%d); "
                   "STOP or E-STOP first\n", ts().c_str(), rampCurrent, rampTarget);
-    if (Blynk.connected()) Blynk.virtualWrite(VPIN_DIRECTION, manualDirection);
+    // Echo the ACCEPTED direction back to the app -- a refused request must
+    // never leave the Blynk control showing a direction that was never
+    // applied. o.echoDirection == manualDirection whenever refused; using it
+    // rather than manualDirection directly keeps this call in step with the
+    // pure decision the host tests exercise.
+    if (Blynk.connected()) Blynk.virtualWrite(VPIN_DIRECTION, o.echoDirection);
     return;
   }
   manualDirection = nd;
-  if (manualDirection == DIRECTION_FORWARD)      digitalWrite(MOTOR_DIR_PIN, DIRECTION_FORWARD);
-  else if (manualDirection == DIRECTION_REVERSE) digitalWrite(MOTOR_DIR_PIN, DIRECTION_REVERSE);
+  // NEUTRAL never touches the pin: it deliberately does not command a
+  // physical rest state, only a software gate against new throttle.
+  // Selecting NEUTRAL is never itself an automatic stop.
+  if (o.writePin) digitalWrite(MOTOR_DIR_PIN, manualDirection);
   Serial.printf("%s [HWT] DIRECTION -> %s\n", ts().c_str(), dirName(manualDirection));
 }
 
@@ -845,7 +873,7 @@ void setup() {
                  HWT_HOST_DEFAULT, HWT_HOST_PORT, HWT_LOCAL_PORT);
   Serial.printf ("Blynk    : %s\n", ok ? "connected" : "not connected (will retry)");
   Serial.println("Driving  : Blynk throttle, or FIXED <pwm> + GO. Nothing moves at boot.");
-  Serial.println("Direction: F/R refused unless PWM is at zero -- STOP/E-STOP first.");
+  Serial.println("Direction: F/R/N refused unless PWM is at zero -- STOP/E-STOP first.");
   Serial.println("Brake    : NOT IMPLEMENTED -- use STOP or E-STOP to stop the locomotive.");
   Serial.println("Anchors  : ANCHOR <text> — the only ground truth in the record.");
   Serial.println("Recorder : tools/hwt_receiver.py");
