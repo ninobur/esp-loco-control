@@ -3,6 +3,7 @@
 ## Status and required reading
 
 - **Must read before building `TEMPLATES`, the successor to `QUORUM`.**
+- `MAGNET_ADMISSION_DOCTRINE.md` is a co-required design constraint. TEMPLATES Hall/navigation code must satisfy both documents; this record must not be read in isolation.
 - This document records the operator's intended decision logic for review.
 - It is investigatory. It does not approve an implementation, numerical threshold, firmware flash, or locomotive operation.
 - The Hall-processing review and an explicit operator approval remain mandatory before implementation.
@@ -135,3 +136,7 @@ This note records a required design direction and review boundary:
 - reserve recovery logic for credible ambiguity, not obvious spikes.
 
 It does **not** approve numerical gates, a baseline method, event-boundary rules, a recovery response, a `QUORUM` modification, a `TEMPLATES` implementation, flashing, or field operation.
+
+## Mandatory companion doctrine
+
+`MAGNET_ADMISSION_DOCTRINE.md` records the operator's required error asymmetry: false inclusion corrupts the coordinate system, while conservative omission creates the bounded missing-marker error the recovery layer is intended to repair. Any implementation or review that cites this document must also address that doctrine's mandatory coding-review questions.
