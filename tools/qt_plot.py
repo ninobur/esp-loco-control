@@ -11,9 +11,11 @@ Draws, on one timeline: the averaged Hall input QUORUM itself computed
 (phys_raw), its adaptive baseline, the four amplitude thresholds
 reconstructed from baseline + the compile-time deadband/entry-margin
 (carried once in a STATUS row -- see README_TRACE.md for why these are not
-repeated on every SAMPLE), shaded event-open spans, and every DECISION
-record as a labelled vertical line. Motor PWM underneath, same as
-hwt_plot.py.
+repeated on every SAMPLE), shaded event-open spans, every DECISION record
+as a labelled vertical line, and every operator ANCHOR (ngr/loco/<id>/
+cmd/trace_anchor) as a distinct full-height labelled line, so a claimed
+landmark can be checked by eye against what QUORUM was doing at that
+instant. Motor PWM underneath, same as hwt_plot.py.
 
 Deliberately dumb: no smoothing, no re-detection, no judgement of whether a
 decision was correct. It shows what QUORUM recorded about itself. Judging it
@@ -26,7 +28,7 @@ import sys
 
 
 def load(path):
-    samples, decisions, breaks = [], [], []
+    samples, decisions, anchors, breaks = [], [], [], []
     thresholds = None   # (deadband, entry_margin) from the first STATUS row seen
     prev_seq = None
     with open(path, newline="") as fh:
@@ -47,6 +49,9 @@ def load(path):
                 decisions.append((float(r["t_ms"]) / 1000.0, r["dec_kind"],
                                   r["dec_quorum_event"], r["dec_nav_mm_after"],
                                   r["dec_observed_polarity"], r["dec_expected_polarity"]))
+            elif t == "ANCHOR":
+                anchors.append((float(r["t_ms"]) / 1000.0, r["op_anchor_id"],
+                                r["op_sample_seq"], r["op_text"]))
             elif t == "STATUS" and thresholds is None:
                 import re
                 m1 = re.search(r"deadband=(\d+)", r["info"])
@@ -59,7 +64,7 @@ def load(path):
                 if samples and samples[-1] is not None:
                     samples.append(None)
                 prev_seq = None
-    return samples, decisions, breaks, thresholds
+    return samples, decisions, anchors, breaks, thresholds
 
 
 def main():
@@ -83,7 +88,7 @@ def main():
         print("matplotlib is required:  pip install matplotlib", file=sys.stderr)
         return 1
 
-    samples, decisions, breaks, thresholds = load(args.csv)
+    samples, decisions, anchors, breaks, thresholds = load(args.csv)
     if not samples:
         print("no SAMPLE rows in %s" % args.csv, file=sys.stderr)
         return 1
@@ -158,6 +163,23 @@ def main():
         ax.annotate("%s%s" % (label, (" mm=%s" % mm) if mm else ""), (xx, ax.get_ylim()[0]),
                     fontsize=6, rotation=90, va="bottom", color=colour)
 
+    # Operator anchors: drawn distinctly from DECISION lines (solid, opaque,
+    # full-height, its own colour) since an anchor is ground truth an
+    # operator stated, not something QUORUM itself decided.
+    ANCHOR_COLOUR = "#000000"
+    anchors_in_window = 0
+    for x, aid, sseq, text in anchors:
+        xx = x - t0
+        if not (lo <= xx <= hi):
+            continue
+        anchors_in_window += 1
+        ax.axvline(xx, color=ANCHOR_COLOUR, lw=1.4, alpha=0.9, zorder=5)
+        ax.annotate("ANCHOR #%s (seq %s) \"%s\"" % (aid, sseq, text),
+                    (xx, ax.get_ylim()[1]), color=ANCHOR_COLOUR, fontsize=7,
+                    rotation=90, va="top", ha="right", zorder=5)
+    if anchors_in_window:
+        ax.plot([], [], color=ANCHOR_COLOUR, lw=1.4, label="operator anchor")
+
     ax.set_ylabel("counts (QUORUM's own averaged reading)")
     ax.set_title("QUORUM TRACE — %s   INVESTIGATORY, UNAPPROVED, NO NAVIGATION AUTHORITY\n"
                  "shaded = event open; vertical lines = navigation decisions"
@@ -174,8 +196,8 @@ def main():
     fig.tight_layout()
     if args.save:
         fig.savefig(args.save, dpi=130)
-        print("wrote %s (%d samples, %d decisions plotted)"
-              % (args.save, sum(1 for s in win if s), decisions_in_window))
+        print("wrote %s (%d samples, %d decisions, %d anchors plotted)"
+              % (args.save, sum(1 for s in win if s), decisions_in_window, anchors_in_window))
     else:
         plt.show()
     return 0

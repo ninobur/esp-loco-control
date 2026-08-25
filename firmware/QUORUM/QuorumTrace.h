@@ -50,15 +50,13 @@
 enum QtRecType : uint8_t {
   QT_REC_SAMPLE   = 1,   // physical measurement + detector interpretation, batched
   QT_REC_DECISION = 2,   // one navigation decision, unbatched
-  QT_REC_ANCHOR   = 3,   // operator anchor -- FORMAT DEFINED, NO PRODUCER YET.
-                         // See README_TRACE.md "Anchor mechanism (not
-                         // implemented)": inserting one needs a new MQTT
-                         // topic or a new UDP listener on the locomotive,
-                         // either of which is a new external interface and
-                         // was left for an explicit decision rather than
-                         // implemented silently. The record shape is fixed
-                         // now so wiring a producer in later needs no
-                         // version bump.
+  QT_REC_ANCHOR   = 3,   // operator anchor. Producer: the trace-only
+                         // ngr/loco/<id>/cmd/trace_anchor MQTT command
+                         // (Option A of README_TRACE.md's "Anchor
+                         // mechanism"), which passes through QUORUM's
+                         // existing cmdQueue/handleCommand() path exactly
+                         // like cmd/force_lost. Same record shape as
+                         // originally reserved -- no version bump needed.
   QT_REC_STATUS   = 4    // periodic health, ring/loss counters, threshold context
 };
 
@@ -101,6 +99,7 @@ enum QtTimingGate : uint8_t {
 
 #define QT_POLARITY_NA 0xFF   // "not applicable" sentinel for the polarity fields
 #define QT_OFFSET_NA   (-128) // "no leader/runner-up" sentinel (int8_t)
+#define QT_SAMPLE_SEQ_NA 0xFFFFFFFFu   // "no Hall sample has completed yet this session"
 
 // ---------------------------------------------------------------------------
 // QT_REC_SAMPLE — one per hallTask tick (up to ~1 kHz). 16 bytes.
@@ -175,10 +174,18 @@ typedef struct __attribute__((packed)) {
 } QtDecision;
 
 // ---------------------------------------------------------------------------
-// QT_REC_ANCHOR — FORMAT ONLY, no producer in this build. See QT_REC_ANCHOR
-// above. Shape mirrors HWT1's anchor payload for the same reasons (operator
-// text, the sample it names, motor context at that instant).
+// QT_REC_ANCHOR — one per accepted ngr/loco/<id>/cmd/trace_anchor command.
+// Shape mirrors HWT1's anchor payload for the same reasons (operator text,
+// the sample it names, motor context at that instant).
+//
+// sampleSeq names the MOST RECENTLY COMPLETED Hall trace sample at anchor
+// execution -- QtSampleRing::lastCompletedSeq(), NOT sampleSeq() (which is a
+// forward-looking count, one past the last completed sample; see that
+// accessor's own comment). QT_SAMPLE_SEQ_NA if no sample has completed yet
+// this session (a boot-time anchor, before hallTask's first tick lands).
 // ---------------------------------------------------------------------------
+#define QT_ANCHOR_TEXT_MAX 40
+
 typedef struct __attribute__((packed)) {
   uint32_t anchorId;
   uint32_t sampleSeq;
@@ -187,8 +194,48 @@ typedef struct __attribute__((packed)) {
   uint8_t  pwmActual;
   uint8_t  pwmCommanded;
   uint8_t  textLen;
-  char     text[40];
+  char     text[QT_ANCHOR_TEXT_MAX];
 } QtAnchor;
+
+// ---------------------------------------------------------------------------
+// qtDecideAnchorText — the ONE place the accept/truncate/reject rule for
+// operator anchor text lives. Pure and host-testable (see
+// test_quorum_trace.cpp), same discipline as the ring/batch engine below:
+// QUORUM.ino's handleCommand() calls this and only acts on the answer, so
+// the rule itself runs under g++, not just under a static source audit.
+//
+// Rule (documented here because this is the one place it is enforced):
+//   1. Trim leading/trailing ASCII space/tab/CR/LF.
+//   2. Empty after trimming -> REJECTED. An anchor with no operator text
+//      carries no evidence; matches this sketch's existing cmd/force_lost
+//      precedent of rejecting an empty payload outright.
+//   3. Longer than QT_ANCHOR_TEXT_MAX bytes -> TRUNCATED to exactly that
+//      many bytes (byte-level, not UTF-8-aware -- same as the rest of this
+//      sketch's text handling), accepted, truncated=true.
+//   4. Otherwise -> accepted verbatim, truncated=false.
+// ---------------------------------------------------------------------------
+struct QtAnchorTextDecision {
+  bool    accepted;
+  bool    truncated;
+  uint8_t len;
+  char    text[QT_ANCHOR_TEXT_MAX];
+};
+
+static inline QtAnchorTextDecision qtDecideAnchorText(const char* raw) {
+  QtAnchorTextDecision r; memset(&r, 0, sizeof(r));
+  const char* p = raw;
+  while (*p == ' ' || *p == '\t') p++;
+  size_t len = strlen(p);
+  while (len && (p[len - 1] == ' ' || p[len - 1] == '\t' ||
+                p[len - 1] == '\r' || p[len - 1] == '\n')) len--;
+  if (len == 0) { r.accepted = false; r.truncated = false; return r; }
+  r.truncated = len > QT_ANCHOR_TEXT_MAX;
+  if (r.truncated) len = QT_ANCHOR_TEXT_MAX;
+  r.accepted = true;
+  r.len = (uint8_t)len;
+  memcpy(r.text, p, len);
+  return r;
+}
 
 // ---------------------------------------------------------------------------
 // QT_REC_STATUS — periodic (see QT_STATUS_INTERVAL_MS), one per datagram.
@@ -199,6 +246,7 @@ typedef struct __attribute__((packed)) {
   uint32_t decisionSeq;
   uint32_t cumSampleRingDrops;     // THIS ring's own overflow, distinct from
   uint32_t cumDecisionRingDrops;   // QUORUM's existing queueDrops/floorRejects
+  uint32_t cumAnchorRingDrops;     // QtAnchorRing's own overflow
   uint32_t cumHallQueueDrops;      // mirrors the existing eventQueue queueDrops
   uint32_t cumFloorRejects;        // mirrors the existing floorRejects
   uint32_t freeHeap;
@@ -272,6 +320,10 @@ static inline void qtStampMagic(QtHeader* h) {
 #ifndef QT_DECISION_RING
   #define QT_DECISION_RING 64         // individual records, not batched
 #endif
+#ifndef QT_ANCHOR_RING
+  #define QT_ANCHOR_RING 8            // operator-paced (a handful per run);
+                                      // generous against networkTask's drain
+#endif
 
 typedef struct {
   QtHeader hdr;
@@ -311,6 +363,13 @@ public:
     if (n_ >= QT_SAMPLE_BATCH) flushBatch();
   }
   void noteTimestamp(uint32_t nowMs) { lastTMs_ = nowMs; }
+
+  // The most recently COMPLETED sample's own sequence number -- NOT
+  // sampleSeq() below, which is a forward-looking count (equal to the seq
+  // that will be assigned to the NEXT sample; STATUS carries it that way
+  // for continuity with how QUORUM's own pre-existing counters already
+  // read as "how many so far"). QT_SAMPLE_SEQ_NA before the first sample.
+  uint32_t lastCompletedSeq() const { return sampleSeq_ ? sampleSeq_ - 1 : QT_SAMPLE_SEQ_NA; }
 
   bool popBatch(QtSampleBatch* out) {
     bool got = false;
@@ -406,6 +465,52 @@ private:
   QtDecision ring_[QT_DECISION_RING];
   uint16_t head_=0, tail_=0, count_=0;
   uint32_t locoId_=0, sessionId_=0, decisionSeq_=0, ringDrops_=0;
+};
+
+// ---------------------------------------------------------------------------
+// QtAnchorRing — pushed from the LOOP thread only (handleCommand(), via
+// qtSubmitAnchor(), on an operator's ngr/loco/<id>/cmd/trace_anchor
+// command), popped by networkTask. Cross-core like QtDecisionRing, so every
+// push/pop takes the critical section; acceptable because anchors are
+// operator-paced (at most a handful per run), nowhere near hallTask's 1 kHz
+// rate. Overflow is bounded, drops the oldest, and is counted -- never
+// silent, exactly like the other two rings; visible in QtStatus as
+// cumAnchorRingDrops.
+// ---------------------------------------------------------------------------
+class QtAnchorRing {
+public:
+  void begin(uint32_t locoId, uint32_t sessionId) {
+    memset(this, 0, sizeof(*this));
+    locoId_ = locoId; sessionId_ = sessionId;
+  }
+  void push(const QtAnchor& a) {
+    QT_ENTER_CRITICAL();
+    if (count_ >= QT_ANCHOR_RING) {
+      tail_ = (uint16_t)((tail_ + 1u) % QT_ANCHOR_RING);
+      count_--; ringDrops_++;
+    }
+    ring_[head_] = a;
+    head_ = (uint16_t)((head_ + 1u) % QT_ANCHOR_RING);
+    count_++;
+    QT_EXIT_CRITICAL();
+  }
+  bool pop(QtAnchor* out) {
+    bool got = false;
+    QT_ENTER_CRITICAL();
+    if (count_) {
+      *out = ring_[tail_];
+      tail_ = (uint16_t)((tail_ + 1u) % QT_ANCHOR_RING);
+      count_--; got = true;
+    }
+    QT_EXIT_CRITICAL();
+    return got;
+  }
+  uint32_t cumRingDrops() const { return ringDrops_; }
+
+private:
+  QtAnchor ring_[QT_ANCHOR_RING];
+  uint16_t head_=0, tail_=0, count_=0;
+  uint32_t locoId_=0, sessionId_=0, ringDrops_=0;
 };
 
 #endif // QUORUM_TRACE

@@ -29,8 +29,8 @@ SAMPLE_LEN = struct.calcsize(SAMPLE_FMT)    # 14
 DECISION_FMT = "<I" + "B" * 11 + "b" * 3 + "b" * 6 + "HH" + "f" + "HH" + "B" * 4
 DECISION_LEN = struct.calcsize(DECISION_FMT)  # 40
 
-STATUS_FMT = "<" + "I" * 9 + "HH" + "B" * 4
-STATUS_LEN = struct.calcsize(STATUS_FMT)    # 44
+STATUS_FMT = "<" + "I" * 10 + "HH" + "B" * 4
+STATUS_LEN = struct.calcsize(STATUS_FMT)    # 48 (was 44; +4 for cum_anchor_ring_drops)
 
 ANCHOR_FMT = "<IIIBBBB40s"
 ANCHOR_LEN = struct.calcsize(ANCHOR_FMT)    # 56
@@ -204,7 +204,8 @@ def parse_status(payload: bytes) -> dict:
         raise BadRecord("short status payload")
     f = struct.unpack_from(STATUS_FMT, payload, 0)
     keys = ("uptime_ms", "sample_seq", "decision_seq", "cum_sample_ring_drops",
-            "cum_decision_ring_drops", "cum_hall_queue_drops", "cum_floor_rejects",
+            "cum_decision_ring_drops", "cum_anchor_ring_drops",
+            "cum_hall_queue_drops", "cum_floor_rejects",
             "free_heap", "udp_send_failures", "hall_deadband_counts",
             "hall_entry_margin_counts", "quorum_trigger", "quorum_margin",
             "quorum_max", "quorum_candidates")
@@ -246,6 +247,22 @@ def pack_sample(raw, baseline, *, dt_ms=1, peak_n=0, peak_s=0, pwm_actual=0,
     if late: flags |= SAMPLE_FLAG_LATE
     return struct.pack(SAMPLE_FMT, min(dt_ms, 0xFFFF), raw, baseline,
                        peak_n, peak_s, pwm_actual, pwm_commanded, flags, 0)
+
+
+def pack_anchor(anchor_id, sample_seq, t_ms, *, direction="UNSET", pwm_actual=0,
+                pwm_commanded=0, text=""):
+    """Build one ANCHOR payload. Mirrors qtSubmitAnchor()'s field set in
+    QUORUM.ino. `text` is truncated to QT_ANCHOR_TEXT_MAX (40) bytes here
+    the same way qtDecideAnchorText() does on the firmware side -- this
+    helper does not itself enforce the accept/reject half of that rule
+    (empty-after-trim), since it is building a record for the WIRE, not
+    modelling the operator-input decision."""
+    inv_dir = {v: k for k, v in DIR_NAME.items()}
+    raw = text.encode("utf-8", "replace")[:40]
+    buf = raw + b"\x00" * (40 - len(raw))
+    return struct.pack(ANCHOR_FMT, anchor_id, sample_seq, t_ms,
+                       inv_dir.get(direction, 0) & 0xFF, pwm_actual & 0xFF,
+                       pwm_commanded & 0xFF, len(raw), buf)
 
 
 def write_capture_header(fh, start_unix_us: int):

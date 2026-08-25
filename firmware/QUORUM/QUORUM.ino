@@ -453,6 +453,8 @@ static void qtDecisionQuorum(const char* ev);
 static void qtDirMirrorUpdate(int8_t dir);
 static void qtStatusService();
 static void qtNetworkDrain();
+static uint32_t qtSubmitAnchor(const char* text, uint8_t textLen, uint32_t sampleSeq);
+static void qtPublishAnchorAck(const char* ev, const char* extra);
 #endif
 
 // ===========================================================================
@@ -1000,6 +1002,7 @@ static uint32_t spanMm(uint8_t mm,int8_t dir,uint16_t n){
 
 static QtSampleRing      qtSamples;
 static QtDecisionRing    qtDecisions;
+static QtAnchorRing      qtAnchors;
 static WiFiUDP            qtUdp;
 static uint32_t           qtLocoIdG=0, qtSessionIdG=0;
 static volatile uint32_t  qtUdpSendFailures=0;
@@ -1009,6 +1012,11 @@ static volatile bool       qtStatusPending=false;
 static unsigned long       qtLastStatusMs=0;
 static uint32_t            qtDecisionDatagramSeq=0;    // this stream's own batchSeq space
 static uint32_t            qtStatusDatagramSeq=0;      // this stream's own batchSeq space
+static uint32_t            qtAnchorDatagramSeq=0;      // this stream's own batchSeq space
+// Monotonic per SESSION (reset in qtTraceBegin()), never per-locomotive-
+// lifetime -- matches sampleSeq/decisionSeq/batchSeq, all of which restart
+// at session boundaries so a decoder never joins anchors across a reboot.
+static uint32_t            qtAnchorIdCounter=0;
 
 static inline uint8_t qtEncodeDir(int8_t d){
   if(d==MAP_CW)  return 1;
@@ -1020,6 +1028,8 @@ static void qtTraceBegin(uint32_t locoId,uint32_t sessionId){
   qtLocoIdG=locoId; qtSessionIdG=sessionId;
   qtSamples.begin(locoId,sessionId);
   qtDecisions.begin(locoId,sessionId);
+  qtAnchors.begin(locoId,sessionId);
+  qtAnchorIdCounter=0;
 }
 
 static void qtSendUdp(const uint8_t* data,size_t len){
@@ -1173,6 +1183,30 @@ static void qtDecisionQuorum(const char* ev){
 
 static void qtDirMirrorUpdate(int8_t dir){ qtNavDirMirror=dir; }
 
+// LOOP thread only — called from handleCommand()'s T_CMD_TRACE_ANCHOR branch,
+// itself reached only via cmdQueue/serviceCommands() like every other
+// command. Builds one QT_REC_ANCHOR from already-decided text (the
+// accept/truncate/reject rule lives in qtDecideAnchorText(), host-tested,
+// not here) and pushes it onto qtAnchors for networkTask to send. Reads
+// navDir DIRECTLY (not the trace-only mirror): this runs on the loop
+// thread, the same thread that owns navDir, so no cross-core shadow is
+// needed here the way hallTask's qtSampleTick() needs one. Returns the
+// assigned anchor id so the caller's acknowledgement matches the stored
+// record exactly.
+static uint32_t qtSubmitAnchor(const char* text,uint8_t textLen,uint32_t sampleSeq){
+  QtAnchor a; memset(&a,0,sizeof(a));
+  a.anchorId=++qtAnchorIdCounter;
+  a.sampleSeq=sampleSeq;
+  a.tMs=(uint32_t)millis();
+  a.dir=qtEncodeDir(navDir);
+  a.pwmActual=(uint8_t)actualPwm;
+  a.pwmCommanded=(uint8_t)commandedPwm;
+  a.textLen=textLen;
+  memcpy(a.text,text,textLen);
+  qtAnchors.push(a);
+  return a.anchorId;
+}
+
 // loop thread, rate-limited like publishStat()/serviceInaTelemetry(). Builds
 // the record here (loop-thread state) and hands it off under the mux to
 // networkTask, the only place it is actually sent -- mirrors this file's
@@ -1187,6 +1221,7 @@ static void qtStatusService(){
   st.decisionSeq=qtDecisions.decisionSeq();
   st.cumSampleRingDrops=qtSamples.cumRingDrops();
   st.cumDecisionRingDrops=qtDecisions.cumRingDrops();
+  st.cumAnchorRingDrops=qtAnchors.cumRingDrops();
   st.cumHallQueueDrops=queueDrops;      // existing, non-trace counter — for correlation only
   st.cumFloorRejects=floorRejects;      // existing, non-trace counter — for correlation only
   st.freeHeap=(uint32_t)ESP.getFreeHeap();
@@ -1223,6 +1258,21 @@ static void qtNetworkDrain(){
     memcpy(buf,&h,sizeof(h)); memcpy(buf+sizeof(h),&dr,sizeof(dr));
     qtSendUdp(buf,sizeof(buf));
     nd++;
+  }
+  // Anchors are operator-paced (a handful per run at most): draining the
+  // whole 8-slot ring every ~5 ms pass is nowhere near sample/decision cost.
+  QtAnchor ar;
+  uint8_t na=0;
+  while(na<4 && qtAnchors.pop(&ar)){
+    QtHeader h; memset(&h,0,sizeof(h)); qtStampMagic(&h);
+    h.recType=QT_REC_ANCHOR; h.nItems=1;
+    h.locoId=qtLocoIdG; h.sessionId=qtSessionIdG;
+    h.batchSeq=++qtAnchorDatagramSeq; h.t0Ms=ar.tMs;
+    qtSeal(&h,(const uint8_t*)&ar,sizeof(ar));
+    uint8_t buf[sizeof(QtHeader)+sizeof(QtAnchor)];
+    memcpy(buf,&h,sizeof(h)); memcpy(buf+sizeof(h),&ar,sizeof(ar));
+    qtSendUdp(buf,sizeof(buf));
+    na++;
   }
   if(qtStatusPending){
     QtStatus stCopy;
@@ -2356,6 +2406,12 @@ static char T_TELEM_V[64],T_TELEM_A[64],T_TELEM_W[64],T_ST_LOWVOLT[64];
 static char T_CMD_AUTO[64],T_CMD_GO[64],T_CMD_STOP[64],T_CMD_DIR[64],T_CMD_SESSDIR[64];
 static char T_CMD_STARTMM[64],T_CMD_ESTOP[64],T_CMD_ESTOP_ALL[64],T_CMD_THROTTLE[64],T_CMD_STARTINT[64],
             T_CMD_RELEASE[64],T_CMD_FORCELOST[64];
+// TRACE-ONLY topic (README_TRACE.md "Anchor mechanism", Option A). The
+// buffer itself is gated, not just its use, so a trace-OFF build carries no
+// anchor-topic bytes at all -- not even an unused char[64].
+#ifdef QUORUM_TRACE
+static char T_CMD_TRACE_ANCHOR[64];
+#endif
 
 static void buildTopics(){
   const char* id=LOCO_NAME;
@@ -2390,6 +2446,9 @@ static void buildTopics(){
   snprintf(T_CMD_RELEASE ,64,"ngr/loco/%s/cmd/dispatcher_release",id);
   snprintf(T_CMD_FORCELOST,64,"ngr/loco/%s/cmd/force_lost"       ,id);
   snprintf(T_CMD_ESTOP   ,64,"ngr/loco/%s/cmd/estop"            ,id);
+#ifdef QUORUM_TRACE
+  snprintf(T_CMD_TRACE_ANCHOR,64,"ngr/loco/%s/cmd/trace_anchor"  ,id);
+#endif
   // E-STOP IS THE ONE CROSSING THAT IS ALWAYS OPEN. The dispatcher console's
   // E-STOP publishes to this BROADCAST topic, not a per-locomotive one, and
   // nothing in the lineage had ever subscribed to it — so the big red button
@@ -2522,6 +2581,25 @@ static void publishQuorumDecision(const char* ev,const char* extra){
   Serial.printf("[NAV] %s\n",b);
   QT_DECISION_QUORUM(ev);
 }
+
+#ifdef QUORUM_TRACE
+// Operator-facing acknowledgement for cmd/trace_anchor, on the SAME durable
+// channel (T_NAV via pubMarker()) as every other one-time, non-re-derivable
+// decision event this sketch publishes -- so a lost ack means the same
+// thing a lost AGREE/DISAGREE would (queue congestion, not a design gap).
+// Deliberately NOT publishQuorumDecision(): that function also fires
+// QT_DECISION_QUORUM(), which would inject a spurious QUORUM_EVENT/OTHER
+// trace record for every anchor and drag in navigation-state JSON fields
+// (scores, leader, margin, ...) that have nothing to do with an anchor.
+// The QT_REC_ANCHOR record already IS this action's trace evidence; this
+// function only tells the operator, live, whether it was accepted.
+static void qtPublishAnchorAck(const char* ev,const char* extra){
+  char b[220];
+  snprintf(b,sizeof(b),"{\"event\":\"%s\"%s}",ev,extra);
+  pubMarker(T_NAV,b);
+  Serial.printf("[NAV] %s\n",b);
+}
+#endif
 
 // The console shows state/warning to the operator. Without it a refusal is
 // published, logged, and invisible -- which on 2026-07-27 meant a backwards
@@ -3164,6 +3242,31 @@ static void handleCommand(const char* topic,const char* msg){
     snprintf(extra,sizeof(extra),",\"n\":%ld,\"old_mm\":%u,\"new_mm\":%u",n,oldMm,navMm);
     publishQuorumDecision("FORCED_OFFSET",extra);
   }
+#ifdef QUORUM_TRACE
+  else if(!strcmp(topic,T_CMD_TRACE_ANCHOR)){
+    // TRACE-ONLY, diagnostic (README_TRACE.md "Anchor mechanism", Option A).
+    // Never reads or writes navigation, motor, E-stop, Auto, command-
+    // authority or evidence-ring state -- see the requirement-12/13 static
+    // audit (test_quorum_trace_authority.py). The accept/truncate/reject
+    // rule itself lives in the host-tested qtDecideAnchorText(); this
+    // branch only acts on its answer and reports it.
+    QtAnchorTextDecision td=qtDecideAnchorText(msg);
+    if(!td.accepted){
+      qtPublishAnchorAck("TRACE_ANCHOR_REJECTED",",\"why\":\"EMPTY\"");
+      return;
+    }
+    uint32_t seq=qtSamples.lastCompletedSeq();
+    uint32_t id =qtSubmitAnchor(td.text,td.len,seq);
+    char textBuf[QT_ANCHOR_TEXT_MAX+1];
+    memcpy(textBuf,td.text,td.len); textBuf[td.len]=0;
+    char extra[128];
+    snprintf(extra,sizeof(extra),
+      ",\"anchor_id\":%lu,\"sample_seq\":%lu,\"len\":%u,\"truncated\":%s,\"text\":\"%s\"",
+      (unsigned long)id,(unsigned long)seq,(unsigned)td.len,
+      td.truncated?"true":"false",textBuf);
+    qtPublishAnchorAck("TRACE_ANCHOR_ACCEPTED",extra);
+  }
+#endif
 }
 
 static void subscribeAll(){
@@ -3175,6 +3278,9 @@ static void subscribeAll(){
   mqtt.subscribe(T_CMD_STARTINT);
   mqtt.subscribe(T_CMD_RELEASE);
   mqtt.subscribe(T_CMD_FORCELOST);
+#ifdef QUORUM_TRACE
+  mqtt.subscribe(T_CMD_TRACE_ANCHOR);
+#endif
 }
 
 // The MQTT callback runs on the NETWORK task. It must not touch locomotive

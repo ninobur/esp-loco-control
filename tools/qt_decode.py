@@ -14,7 +14,7 @@ firmware/QUORUM/README_TRACE.md):
   det_*   detector interpretation    event-open state, opening pole, peaks
   dec_*   navigation decision        one record per decision; see dec_kind
   ctl_*   motor context              PWM, direction, E-stop
-  op_*    operator anchor            NOT PRODUCED YET -- see README_TRACE.md
+  op_*    operator anchor            ngr/loco/<id>/cmd/trace_anchor; see README_TRACE.md
 
 Unlike HALL_WAVEFORM_TEST's format, SAMPLE and DECISION are two independent
 streams with their own batchSeq spaces (QuorumTrace.h does not share one
@@ -50,7 +50,7 @@ COLUMNS = [
     "dec_leader_offset", "dec_runner_up_offset", "dec_quorum_margin",
     "dec_scores", "dec_dt", "dec_dt_expected_ms", "dec_dt_conserve_ratio",
     "dec_event_peak", "dec_event_duration_ms", "dec_ring_inserted",
-    "op_anchor_id", "op_text", "info",
+    "op_anchor_id", "op_sample_seq", "op_text", "info",
 ]
 
 
@@ -169,10 +169,12 @@ def decode(path):
                     r = blank()
                     r.update(row_type="STATUS", session="%08X" % sid, t_ms=s["uptime_ms"], batch_seq=bseq,
                              info=("samples=%d decisions=%d sample_ring_drops=%d decision_ring_drops=%d "
-                                   "hall_queue_drops=%d floor_rejects=%d free_heap=%d udp_fail=%d "
+                                   "anchor_ring_drops=%d hall_queue_drops=%d floor_rejects=%d "
+                                   "free_heap=%d udp_fail=%d "
                                    "deadband=%d entry_margin=%d quorum(trigger=%d margin=%d max=%d cand=%d)"
                                    % (s["sample_seq"], s["decision_seq"], s["cum_sample_ring_drops"],
-                                      s["cum_decision_ring_drops"], s["cum_hall_queue_drops"],
+                                      s["cum_decision_ring_drops"], s["cum_anchor_ring_drops"],
+                                      s["cum_hall_queue_drops"],
                                       s["cum_floor_rejects"], s["free_heap"], s["udp_send_failures"],
                                       s["hall_deadband_counts"], s["hall_entry_margin_counts"],
                                       s["quorum_trigger"], s["quorum_margin"], s["quorum_max"],
@@ -183,7 +185,8 @@ def decode(path):
                     a = F.parse_anchor(payload)
                     r = blank()
                     r.update(row_type="ANCHOR", session="%08X" % sid, t_ms=a["t_ms"], batch_seq=bseq,
-                             op_anchor_id=a["anchor_id"], op_text=a["text"],
+                             op_anchor_id=a["anchor_id"], op_sample_seq=a["sample_seq"],
+                             op_text=a["text"],
                              ctl_dir=a["dir"], ctl_pwm_actual=a["pwm_actual"],
                              ctl_pwm_commanded=a["pwm_commanded"], info="operator anchor")
                     session_rows.append(r)
@@ -208,7 +211,7 @@ def print_report(rep):
     print("  samples decoded          %d" % rep["samples"])
     print("  decisions decoded        %d" % rep["decisions"])
     print("  status records           %d" % rep["status"])
-    print("  operator anchors         %d  (mechanism not implemented yet -- expect 0)" % rep["anchors"])
+    print("  operator anchors         %d" % rep["anchors"])
     print("  late samples             %d" % rep["late_samples"])
     print("  transport gaps           %d, covering %d record(s) — per-stream (SAMPLE/DECISION/STATUS/ANCHOR "
           "each have their own batchSeq space; see qt_format.py)"

@@ -13,10 +13,14 @@ Run it on the Pi (or any host on the railway network):
 
     python3 tools/qt_receiver.py --outdir ~/NGR/qt_logs
 
-There is no command channel: QUORUM TRACE has no operator-anchor mechanism
-implemented yet (see firmware/QUORUM/README_TRACE.md, "Anchor mechanism
-(not implemented)") -- this receiver is listen-only by design, not because
-one was left out by accident.
+This receiver is listen-only by design. Operator anchors do not go through
+it: they are entered via MQTT (ngr/loco/<id>/cmd/trace_anchor -- see
+firmware/QUORUM/README_TRACE.md, "Anchor mechanism"), which the locomotive
+turns into an ordinary QT_REC_ANCHOR record on THIS SAME UDP stream --
+handled below exactly like any other record type, no special-casing needed
+here. This tool has no command/publish path of its own, on purpose: the
+capture file stays a pure, append-only recording no analysis bug can
+corrupt.
 """
 
 import argparse
@@ -96,9 +100,10 @@ def main():
                 s = F.parse_status(payload)
                 if not args.quiet:
                     print("  STATUS samples=%d decisions=%d sample_ring_drops=%d "
-                          "decision_ring_drops=%d udp_fail=%d heap=%d"
+                          "decision_ring_drops=%d anchor_ring_drops=%d udp_fail=%d heap=%d"
                           % (s["sample_seq"], s["decision_seq"],
                              s["cum_sample_ring_drops"], s["cum_decision_ring_drops"],
+                             s["cum_anchor_ring_drops"],
                              s["udp_send_failures"], s["free_heap"]))
             elif hdr.rec_type == F.REC_ANCHOR:
                 a = F.parse_anchor(payload)

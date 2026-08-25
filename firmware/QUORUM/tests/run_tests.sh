@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
 # QUORUM TRACE host tests — INVESTIGATORY / UNAPPROVED.
-# Runs only the tests this task added (QuorumTrace.h's ring/batch engine,
-# g++; the QUORUM.ino trace source audit and the qt_decode.py host tools,
-# python3). The pre-existing fixtures/ directory in this same folder belongs
-# to a separate, unrelated effort (no runner for it exists yet) and is left
-# untouched.
+# Runs only the tests this and the prior session added: QuorumTrace.h's
+# ring/batch engine (g++, includes the anchor ring and the anchor text
+# accept/truncate/reject rule); the QUORUM.ino trace source audit; and the
+# qt_decode.py / qt_plot.py host tools (python3). The pre-existing
+# fixtures/ directory in this same folder belongs to a separate, unrelated
+# effort (no runner for it exists yet) and is left untouched.
 set -e
 cd "$(dirname "$0")"
 
@@ -20,3 +21,7 @@ python3 test_quorum_trace_authority.py
 echo
 echo "== trace host tools: decoder / receiver (python3) =="
 python3 test_qt_decoder.py
+
+echo
+echo "== trace host tools: plotter data plumbing (python3) =="
+python3 test_qt_plot.py

@@ -41,6 +41,11 @@ static void testWireFormat() {
        "sessionId4+batchSeq4+firstSampleSeq4+t0Ms4+crc32(4)=32)");
   ckEq((long long)sizeof(QtSample), 14, "sample record is 14 bytes");
   ckEq((long long)sizeof(QtDecision), 40, "decision record is 40 bytes");
+  ckEq((long long)sizeof(QtStatus), 48,
+       "status record is 48 bytes (was 44; +4 for cumAnchorRingDrops)");
+  ckEq((long long)sizeof(QtAnchor), 56, "anchor record is 56 bytes");
+  ck((long long)(sizeof(QtHeader) + sizeof(QtAnchor)) <= 1472,
+     "an anchor datagram fits one unfragmented UDP datagram");
   ck((long long)(sizeof(QtHeader) + QT_SAMPLE_BATCH * sizeof(QtSample)) <= 1472,
      "a full sample batch fits one unfragmented UDP datagram");
   ck((long long)(sizeof(QtHeader) + sizeof(QtDecision)) <= 1472,
@@ -195,6 +200,133 @@ static void testRingWraparound() {
   ckEq(decisionRing.cumRingDrops(), 0, "no drops when never over-filled");
 }
 
+// ---------------------------------------------------------------------------
+// 7. qtDecideAnchorText — the accept/truncate/reject rule (spec requirement
+//    8: "text at, below and above the limit is handled according to the
+//    documented rule"). Pure function, run for real here, not grepped for.
+// ---------------------------------------------------------------------------
+static void testAnchorTextDecisionRule() {
+  printf("anchor text accept/truncate/reject rule\n");
+
+  QtAnchorTextDecision d = qtDecideAnchorText("");
+  ck(!d.accepted, "empty text is rejected");
+
+  d = qtDecideAnchorText("   \t  ");
+  ck(!d.accepted, "whitespace-only text is rejected (empty after trim)");
+
+  d = qtDecideAnchorText("  Grillers platform  ");
+  ck(d.accepted, "text with real content is accepted");
+  ck(!d.truncated, "short text is not marked truncated");
+  ckEq(d.len, 17, "leading and trailing whitespace are both trimmed");
+  ck(memcmp(d.text, "Grillers platform", 17) == 0, "trimmed text survives verbatim");
+
+  char exact[QT_ANCHOR_TEXT_MAX + 1];
+  memset(exact, 'A', QT_ANCHOR_TEXT_MAX); exact[QT_ANCHOR_TEXT_MAX] = 0;
+  d = qtDecideAnchorText(exact);
+  ck(d.accepted, "text at exactly the limit is accepted");
+  ck(!d.truncated, "text at exactly the limit is not truncated");
+  ckEq(d.len, QT_ANCHOR_TEXT_MAX, "text at exactly the limit keeps its full length");
+
+  char under[QT_ANCHOR_TEXT_MAX];
+  memset(under, 'B', QT_ANCHOR_TEXT_MAX - 1); under[QT_ANCHOR_TEXT_MAX - 1] = 0;
+  d = qtDecideAnchorText(under);
+  ck(d.accepted, "text one byte under the limit is accepted");
+  ck(!d.truncated, "text one byte under the limit is not truncated");
+  ckEq(d.len, QT_ANCHOR_TEXT_MAX - 1, "text one byte under the limit keeps its full length");
+
+  char over[QT_ANCHOR_TEXT_MAX + 20];
+  memset(over, 'C', sizeof(over) - 1); over[sizeof(over) - 1] = 0;
+  d = qtDecideAnchorText(over);
+  ck(d.accepted, "oversized text is accepted (truncated, not rejected)");
+  ck(d.truncated, "oversized text is marked truncated");
+  ckEq(d.len, QT_ANCHOR_TEXT_MAX, "oversized text is cut to exactly the limit");
+  ck(memcmp(d.text, over, QT_ANCHOR_TEXT_MAX) == 0,
+     "truncated text keeps exactly its first QT_ANCHOR_TEXT_MAX bytes");
+}
+
+// ---------------------------------------------------------------------------
+// 8. QtAnchorRing — ordering, bounded/drop-oldest/counted overflow, and
+//    every field (anchorId, sampleSeq, tMs, dir, pwm, text) survives
+//    verbatim (spec requirements 6, 7, 9).
+// ---------------------------------------------------------------------------
+static QtAnchorRing anchorRing;
+
+// Mirrors what qtSubmitAnchor() actually does in QUORUM.ino: text/textLen
+// always arrive already capped to QT_ANCHOR_TEXT_MAX by qtDecideAnchorText()
+// (tested above), so this helper caps defensively too -- a test helper
+// should not be able to overrun a fixed wire-format field any more than the
+// real firmware path can.
+static QtAnchor makeAnchor(uint32_t id, uint32_t sampleSeq, const char* text) {
+  QtAnchor a; memset(&a, 0, sizeof(a));
+  a.anchorId = id; a.sampleSeq = sampleSeq; a.tMs = 1000 + id;
+  a.dir = 1; a.pwmActual = 88; a.pwmCommanded = 90;
+  size_t n = strlen(text);
+  if (n > QT_ANCHOR_TEXT_MAX) n = QT_ANCHOR_TEXT_MAX;
+  a.textLen = (uint8_t)n;
+  memcpy(a.text, text, n);
+  return a;
+}
+
+static void testAnchorRingFieldsAndOrdering() {
+  printf("anchor ring: fields survive verbatim, FIFO order\n");
+  anchorRing.begin(9950012, 6);
+  anchorRing.push(makeAnchor(1, 41, "START interval-014-015 next-015"));
+  anchorRing.push(makeAnchor(2, 900, "Arches platform"));
+  QtAnchor a;
+  ck(anchorRing.pop(&a), "first anchor pops");
+  ckEq(a.anchorId, 1, "anchor id survives verbatim");
+  ckEq(a.sampleSeq, 41, "sample seq survives verbatim");
+  ckEq(a.tMs, 1001, "timestamp survives verbatim");
+  ckEq(a.dir, 1, "direction survives verbatim");
+  ckEq(a.pwmActual, 88, "actual PWM survives verbatim");
+  ckEq(a.pwmCommanded, 90, "commanded PWM survives verbatim");
+  ckEq(a.textLen, 31, "text length survives verbatim");
+  ck(memcmp(a.text, "START interval-014-015 next-015", 31) == 0,
+     "anchor text survives verbatim");
+  ck(anchorRing.pop(&a), "second anchor pops");
+  ckEq(a.anchorId, 2, "anchors pop in push (FIFO) order");
+  ck(!anchorRing.pop(&a), "ring is empty after draining exactly what was pushed");
+}
+
+static void testAnchorRingOverflow() {
+  printf("anchor ring overflow is bounded, drops the oldest, and counts it\n");
+  anchorRing.begin(9950012, 7);
+  const uint32_t toPush = QT_ANCHOR_RING + 3;
+  for (uint32_t i = 0; i < toPush; i++) anchorRing.push(makeAnchor(i + 1, i, "x"));
+  ckEq(anchorRing.cumRingDrops(), 3, "three overflow drops counted");
+  uint32_t popped = 0;
+  uint32_t expectId = 4;   // the first 3 (ids 1..3) were the oldest, dropped
+  QtAnchor a;
+  while (anchorRing.pop(&a)) {
+    ckEq(a.anchorId, expectId++, "surviving anchors are the newest ones, oldest-first");
+    popped++;
+  }
+  ckEq(popped, QT_ANCHOR_RING, "exactly the ring's bound survived");
+}
+
+// ---------------------------------------------------------------------------
+// 9. QtSampleRing::lastCompletedSeq() — the accessor QT_REC_ANCHOR's
+//    sampleSeq field is built from (spec: "sampleSeq must name the most
+//    recently completed Hall trace sample at anchor execution").
+// ---------------------------------------------------------------------------
+static void testLastCompletedSeq() {
+  printf("QtSampleRing::lastCompletedSeq()\n");
+  QtSampleRing r;
+  r.begin(9950012, 8);
+  ckEq(r.lastCompletedSeq(), (long long)QT_SAMPLE_SEQ_NA,
+       "no sample completed yet -> QT_SAMPLE_SEQ_NA");
+  r.addSample(1, 0, 0, 0, 0, 0, 0, 0);
+  ckEq(r.lastCompletedSeq(), 0, "one sample completed -> its own seq, 0");
+  r.addSample(1, 0, 0, 0, 0, 0, 0, 0);
+  r.addSample(1, 0, 0, 0, 0, 0, 0, 0);
+  ckEq(r.lastCompletedSeq(), 2, "three samples completed -> last one's seq, 2");
+  ckEq(r.sampleSeq(), 3, "sampleSeq() itself stays a forward-looking count (3), by contrast");
+  // Cross a batch boundary and confirm the accessor keeps tracking correctly.
+  for (uint32_t i = 0; i < QT_SAMPLE_BATCH * 2; i++) r.addSample(1, 0, 0, 0, 0, 0, 0, 0);
+  ckEq(r.lastCompletedSeq(), QT_SAMPLE_BATCH * 2 + 3 - 1,
+       "lastCompletedSeq() is correct across batch-flush boundaries");
+}
+
 int main() {
   printf("QUORUM TRACE — ring/batch engine tests (investigatory)\n\n");
   testWireFormat();
@@ -203,6 +335,10 @@ int main() {
   testSampleRingOverflow();
   testDecisionRingOrderingAndOverflow();
   testRingWraparound();
+  testAnchorTextDecisionRule();
+  testAnchorRingFieldsAndOrdering();
+  testAnchorRingOverflow();
+  testLastCompletedSeq();
   printf("\n%d checks, %d failures\n", checks, failures);
   return failures ? 1 : 0;
 }
