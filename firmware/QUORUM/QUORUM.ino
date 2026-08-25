@@ -411,6 +411,51 @@ enum NavState     : uint8_t { NAV_UNSET=0, NAV_NORMAL, NAV_EVALUATING, NAV_NO_QU
 enum StationPhase : uint8_t { ST_IDLE=0, ST_APPROACH, ST_FINAL, ST_RAMP, ST_DWELL, ST_DEPART };
 
 // ===========================================================================
+// QUORUM TRACE — investigatory, compile-time gated (default OFF). NO
+// NAVIGATION OR MOTOR AUTHORITY: every function below only COPIES already-
+// computed QUORUM state outward, one-way; nothing in the Hall/navigation
+// path ever reads a trace value back. See firmware/QUORUM/README_TRACE.md.
+//
+// Enable with, e.g. (one line; wrapped here only for width):
+//   arduino-cli compile --fqbn esp32:esp32:esp32
+//     --build-property "compiler.cpp.extra_flags=-DQUORUM_TRACE" firmware/QUORUM
+// Default (no flag) is OFF: every QT_* call anywhere in this file then
+// expands to nothing at all (see QuorumTrace.h's macro layer) -- compile-
+// time elimination, not a runtime branch.
+//
+// Prototyped here, matching this file's existing style for cross-layer
+// functions (requestPwm, publishQuorumDecision, ...): LAYER 2's
+// detectorSample()/hallTask() call three of these before LAYER 3's state --
+// which several of the others read -- is declared. All of them are DEFINED
+// together in one block after LAYER 3's state (search "QUORUM TRACE
+// (definitions)"), for the same reason publishQuorumDecision() itself is
+// defined late: every field these read is visible by then.
+// ===========================================================================
+#ifdef QUORUM_TRACE
+static portMUX_TYPE qtMux = portMUX_INITIALIZER_UNLOCKED;
+#define QT_ENTER_CRITICAL() portENTER_CRITICAL(&qtMux)
+#define QT_EXIT_CRITICAL()  portEXIT_CRITICAL(&qtMux)
+#endif
+#include "QuorumTrace.h"
+
+#ifdef QUORUM_TRACE
+#include <esp_system.h>   // esp_random(), for a genuinely random trace session id
+static void qtTraceBegin(uint32_t locoId, uint32_t sessionId);
+static void qtSampleTick(unsigned long nowMs, unsigned long gapMs);
+static void qtDecisionEventOpened(uint8_t polarity, unsigned long atMs);
+static void qtDecisionEventFloorReject(unsigned long durMs);
+static void qtDecisionEventClosed(const MarkerEvent& e);
+static void qtDecisionNavEntry(const MarkerEvent& e, uint8_t navMmBeforeGate);
+static void qtDecisionGateResult(uint8_t navMmBeforeGate, uint8_t gateCode);
+static void qtDecisionAccept(const MarkerEvent& e, uint8_t navMmBefore, uint8_t navStateBefore);
+static void qtDecisionNavState(const char* ev, const MarkerEvent* e);
+static void qtDecisionQuorum(const char* ev);
+static void qtDirMirrorUpdate(int8_t dir);
+static void qtStatusService();
+static void qtNetworkDrain();
+#endif
+
+// ===========================================================================
 // HARDWARE
 // ===========================================================================
 #define HALL_PIN            33
@@ -684,6 +729,7 @@ static void detectorSample(){
       evStartPwmCommanded = (uint8_t)commandedPwm;
       evPeakN=n; evPeakS=s;
       evOpenPole=(raw>=northEnter)?1:0;
+      QT_DECISION_EVENT_OPENED(evOpenPole,now);
     }
     return;
   }
@@ -695,7 +741,7 @@ static void detectorSample(){
     if(now-evReturnMs>=EVENT_EXIT_HOLD_MS){
       unsigned long dur=now-evStartMs;
       evActive=false;
-      if(dur<EVENT_FLOOR_MS){ floorRejects++; return; }
+      if(dur<EVENT_FLOOR_MS){ floorRejects++; QT_DECISION_EVENT_FLOOR_REJECT(dur); return; }
       MarkerEvent e;
       e.polarity      = evOpenPole;
       e.peak          = evOpenPole?evPeakN:evPeakS;
@@ -705,6 +751,7 @@ static void detectorSample(){
       e.pwmActualAtDetect    = evStartPwmActual;     // §3: from event open
       e.pwmCommandedAtDetect = evStartPwmCommanded;
       if(eventQueue && xQueueSend(eventQueue,&e,0)!=pdTRUE) queueDrops++;
+      QT_DECISION_EVENT_CLOSED(e);
     }
   } else {
     evReturnMs=0;
@@ -719,6 +766,7 @@ static void hallTask(void*){
     if(gap>taskMaxGapMs) taskMaxGapMs=gap;
     prev=now; taskLastRunMs=now;
     detectorSample();
+    QT_SAMPLE_TICK(now,gap);
     vTaskDelay(HALL_TASK_TICK_MS);
   }
 }
@@ -927,6 +975,269 @@ static uint32_t spanMm(uint8_t mm,int8_t dir,uint16_t n){
   }
   return t;
 }
+
+// ===========================================================================
+// QUORUM TRACE (definitions) — see the prototype block above LAYER 1 for why
+// these are defined here rather than there: every field read below (navMm,
+// navState, missStreak, evalCount, leaderIdx/runnerUpIdx/quorumMargin/
+// scores, QUORUM_OFFSETS, lastTimingGate, lastSegmentDt, lastDtExpected,
+// lastDtConserveRatio, plus LAYER 1/2's evActive/evOpenPole/evPeakN/evPeakS/
+// baselineCounts/lastRaw/queueDrops/floorRejects) is declared by this point
+// in the file. NO NAVIGATION OR MOTOR AUTHORITY: every function here only
+// COPIES already-computed QUORUM state outward; none is ever called BY
+// QUORUM's own decision logic, only invoked AFTER it has already decided.
+// ===========================================================================
+#ifdef QUORUM_TRACE
+#include <WiFiUdp.h>
+
+#ifndef QT_TRACE_HOST
+  #define QT_TRACE_HOST "192.168.68.142"   // the Pi; override with a build -D for a different receiver
+#endif
+#ifndef QT_TRACE_PORT
+  #define QT_TRACE_PORT 47700
+#endif
+#define QT_STATUS_INTERVAL_MS 2000UL
+
+static QtSampleRing      qtSamples;
+static QtDecisionRing    qtDecisions;
+static WiFiUDP            qtUdp;
+static uint32_t           qtLocoIdG=0, qtSessionIdG=0;
+static volatile uint32_t  qtUdpSendFailures=0;
+static volatile int8_t    qtNavDirMirror=MAP_UNSET;   // trace-only shadow of navDir; see applyDirection()
+static QtStatus            qtPendingStatus;
+static volatile bool       qtStatusPending=false;
+static unsigned long       qtLastStatusMs=0;
+static uint32_t            qtDecisionDatagramSeq=0;    // this stream's own batchSeq space
+static uint32_t            qtStatusDatagramSeq=0;      // this stream's own batchSeq space
+
+static inline uint8_t qtEncodeDir(int8_t d){
+  if(d==MAP_CW)  return 1;
+  if(d==MAP_CCW) return 2;
+  return 0;   // MAP_UNSET
+}
+
+static void qtTraceBegin(uint32_t locoId,uint32_t sessionId){
+  qtLocoIdG=locoId; qtSessionIdG=sessionId;
+  qtSamples.begin(locoId,sessionId);
+  qtDecisions.begin(locoId,sessionId);
+}
+
+static void qtSendUdp(const uint8_t* data,size_t len){
+  qtUdp.beginPacket(QT_TRACE_HOST,QT_TRACE_PORT);
+  size_t wrote=qtUdp.write(data,len);
+  bool ok=qtUdp.endPacket();
+  if(!ok || wrote!=len) qtUdpSendFailures++;
+}
+
+// hallTask thread — called once per detectorSample() tick, from hallTask()
+// right after detectorSample() returns. Every value read is either
+// hallTask-owned (lastRaw/baselineCounts/evActive/evOpenPole/evPeakN/
+// evPeakS — written only on this same thread) or already volatile for
+// exactly this cross-core read (actualPwm/commandedPwm/estopped), or the
+// trace-only direction mirror. No analogRead(), no formatting, no
+// allocation, no blocking call: this copies already-computed values into a
+// preallocated ring slot and returns.
+static void qtSampleTick(unsigned long nowMs,unsigned long gapMs){
+  uint16_t dtMs=(uint16_t)((gapMs>0xFFFFUL)?0xFFFFUL:gapMs);
+  bool late=(gapMs*4UL) > (unsigned long)(HALL_TASK_TICK_MS*5UL);   // >1.25x nominal tick
+  uint8_t flags=0;
+  if(evActive)   flags|=QT_SAMPLE_FLAG_ACTIVE;
+  if(evOpenPole) flags|=QT_SAMPLE_FLAG_POLE;
+  flags|=(uint8_t)(qtEncodeDir(qtNavDirMirror) << QT_SAMPLE_DIR_SHIFT);
+  if(estopped) flags|=QT_SAMPLE_FLAG_ESTOP;
+  if(late)     flags|=QT_SAMPLE_FLAG_LATE;
+  // evPeakN/evPeakS are NOT reset to 0 between events (see detectorSample());
+  // report them as 0 while no event is open rather than a stale prior peak.
+  int16_t peakN = evActive ? (int16_t)evPeakN : 0;
+  int16_t peakS = evActive ? (int16_t)evPeakS : 0;
+  qtSamples.noteTimestamp((uint32_t)nowMs);
+  qtSamples.addSample(dtMs,(int16_t)lastRaw,(int16_t)baselineCounts,
+                      peakN,peakS,(uint8_t)actualPwm,(uint8_t)commandedPwm,flags);
+}
+
+static void qtDecisionEventOpened(uint8_t polarity,unsigned long atMs){
+  QtDecision d; memset(&d,0,sizeof(d));
+  d.tMs=(uint32_t)atMs; d.kind=QTD_EVENT_OPENED;
+  d.observedPolarity=polarity; d.expectedPolarity=QT_POLARITY_NA;
+  d.leaderOffset=QT_OFFSET_NA; d.runnerUpOffset=QT_OFFSET_NA;
+  d.pwmActual=(uint8_t)actualPwm; d.pwmCommanded=(uint8_t)commandedPwm;
+  qtDecisions.push(d);
+}
+static void qtDecisionEventFloorReject(unsigned long durMs){
+  QtDecision d; memset(&d,0,sizeof(d));
+  d.tMs=(uint32_t)millis(); d.kind=QTD_EVENT_FLOOR_REJECT;
+  d.eventDurationMs=(uint16_t)((durMs>65535UL)?65535UL:durMs);
+  d.observedPolarity=QT_POLARITY_NA; d.expectedPolarity=QT_POLARITY_NA;
+  d.leaderOffset=QT_OFFSET_NA; d.runnerUpOffset=QT_OFFSET_NA;
+  qtDecisions.push(d);
+}
+static void qtDecisionEventClosed(const MarkerEvent& e){
+  QtDecision d; memset(&d,0,sizeof(d));
+  d.tMs=(uint32_t)e.detectedAtMs; d.kind=QTD_EVENT_CLOSED;
+  d.observedPolarity=e.polarity; d.expectedPolarity=QT_POLARITY_NA;
+  d.eventPeak=(uint16_t)e.peak; d.eventDurationMs=e.durationMs;
+  d.pwmActual=e.pwmActualAtDetect; d.pwmCommanded=e.pwmCommandedAtDetect;
+  d.leaderOffset=QT_OFFSET_NA; d.runnerUpOffset=QT_OFFSET_NA;
+  qtDecisions.push(d);
+}
+
+static void qtDecisionNavEntry(const MarkerEvent& e,uint8_t navMmBeforeGate){
+  QtDecision d; memset(&d,0,sizeof(d));
+  d.tMs=(uint32_t)e.detectedAtMs; d.kind=QTD_NAV_ON_MARKER_ENTRY;
+  d.navMmBefore=navMmBeforeGate; d.navStateBefore=(uint8_t)navState;
+  d.observedPolarity=e.polarity; d.expectedPolarity=QT_POLARITY_NA;
+  d.eventPeak=(uint16_t)e.peak; d.eventDurationMs=e.durationMs;
+  d.pwmActual=e.pwmActualAtDetect; d.pwmCommanded=e.pwmCommandedAtDetect;
+  d.leaderOffset=QT_OFFSET_NA; d.runnerUpOffset=QT_OFFSET_NA;
+  qtDecisions.push(d);
+}
+
+// Called once per navOnMarker() exit path, with the exact QtTimingGate code
+// that path corresponds to passed explicitly by the caller (no string
+// re-derivation) — after any acceptEvent() that path makes, so navMm/
+// navState are the real outcome, and dt/dtExpectedMs/dtConserveRatio are
+// exactly what QUORUM itself just computed and published.
+static void qtDecisionGateResult(uint8_t navMmBefore,uint8_t gateCode){
+  QtDecision d; memset(&d,0,sizeof(d));
+  d.tMs=(uint32_t)millis(); d.kind=QTD_TIMING_GATE_RESULT; d.timingGate=gateCode;
+  d.navMmBefore=navMmBefore; d.navMmAfter=navMm;
+  d.navStateBefore=(uint8_t)navState; d.navStateAfter=(uint8_t)navState;
+  d.dt=lastSegmentDt; d.dtExpectedMs=(uint16_t)((lastDtExpected>65535UL)?65535UL:lastDtExpected);
+  d.dtConserveRatio=lastDtConserveRatio;
+  d.observedPolarity=QT_POLARITY_NA; d.expectedPolarity=QT_POLARITY_NA;
+  d.leaderOffset=QT_OFFSET_NA; d.runnerUpOffset=QT_OFFSET_NA;
+  qtDecisions.push(d);
+}
+
+static void qtDecisionAccept(const MarkerEvent& e,uint8_t navMmBefore,uint8_t navStateBefore){
+  QtDecision d; memset(&d,0,sizeof(d));
+  d.tMs=(uint32_t)e.detectedAtMs; d.kind=QTD_ACCEPT_EVENT;
+  d.navMmBefore=navMmBefore; d.navMmAfter=navMm;
+  d.navStateBefore=navStateBefore; d.navStateAfter=(uint8_t)navState;
+  d.observedPolarity=e.polarity; d.expectedPolarity=QT_POLARITY_NA;
+  d.ringInserted=1;   // acceptEvent() pushes the ring unconditionally on every path (§A audit)
+  d.eventPeak=(uint16_t)e.peak; d.eventDurationMs=e.durationMs;
+  d.pwmActual=e.pwmActualAtDetect; d.pwmCommanded=e.pwmCommandedAtDetect;
+  d.leaderOffset=QT_OFFSET_NA; d.runnerUpOffset=QT_OFFSET_NA;
+  qtDecisions.push(d);
+}
+
+// Only AGREE/DISAGREE are traced here, per the spec's decision-evidence
+// list. DECLARED/DIRECTION/SESSION_DIRECTION/ESTOP_CLEARED/
+// DISPATCHER_RELEASE are not "navigation decision" evidence in the sense
+// asked for and are left to the sketch's own existing MQTT publication —
+// not an oversight, a scope choice.
+static void qtDecisionNavState(const char* ev,const MarkerEvent* e){
+  uint8_t kind;
+  if(!strcmp(ev,"AGREE"))          kind=QTD_COMPARISON_AGREE;
+  else if(!strcmp(ev,"DISAGREE"))  kind=QTD_COMPARISON_DISAGREE;
+  else return;
+  QtDecision d; memset(&d,0,sizeof(d));
+  d.tMs=(uint32_t)millis(); d.kind=kind;
+  d.navMmBefore=navMm; d.navMmAfter=navMm;
+  d.navStateBefore=(uint8_t)navState; d.navStateAfter=(uint8_t)navState;
+  d.expectedPolarity=dnaAt(navMm);
+  d.observedPolarity = e ? e->polarity : QT_POLARITY_NA;
+  d.missStreak=(uint8_t)missStreak;
+  if(e){ d.eventPeak=(uint16_t)e->peak; d.eventDurationMs=e->durationMs;
+        d.pwmActual=e->pwmActualAtDetect; d.pwmCommanded=e->pwmCommandedAtDetect; }
+  d.leaderOffset=QT_OFFSET_NA; d.runnerUpOffset=QT_OFFSET_NA;
+  qtDecisions.push(d);
+}
+
+// publishQuorumDecision()'s ev string classified once, here, so none of its
+// ~9 call sites need to change.
+static void qtDecisionQuorum(const char* ev){
+  uint8_t qk=QTQ_OTHER;
+  if(!strcmp(ev,"QUORUM_OPEN"))            qk=QTQ_OPEN;
+  else if(!strcmp(ev,"QUORUM_TIED"))       qk=QTQ_TIED;
+  else if(!strcmp(ev,"QUORUM_ADOPTED"))    qk=QTQ_ADOPTED;
+  else if(!strcmp(ev,"QUORUM_REOPENED"))   qk=QTQ_REOPENED;
+  else if(!strcmp(ev,"QUORUM_CLOSED"))     qk=QTQ_CLOSED;
+  else if(!strcmp(ev,"NO_QUORUM"))         qk=QTQ_NO_QUORUM;
+  else if(!strcmp(ev,"PHANTOM_REJECTED"))  qk=QTQ_PHANTOM_REJECTED;
+  else if(!strcmp(ev,"FIXTURE_REJECTED"))  qk=QTQ_FIXTURE_REJECTED;
+  else if(!strcmp(ev,"FORCED_OFFSET"))     qk=QTQ_FORCED_OFFSET;
+  QtDecision d; memset(&d,0,sizeof(d));
+  d.tMs=(uint32_t)millis(); d.kind=QTD_QUORUM_EVENT; d.quorumEvent=qk;
+  d.navMmBefore=navMm; d.navMmAfter=navMm;
+  d.navStateBefore=(uint8_t)navState; d.navStateAfter=(uint8_t)navState;
+  d.missStreak=(uint8_t)missStreak; d.evalCount=(uint8_t)evalCount;
+  d.leaderOffset   = (leaderIdx>=0)   ? QUORUM_OFFSETS[leaderIdx]   : QT_OFFSET_NA;
+  d.runnerUpOffset = (runnerUpIdx>=0) ? QUORUM_OFFSETS[runnerUpIdx] : QT_OFFSET_NA;
+  d.quorumMargin=(int8_t)quorumMargin;
+  for(uint8_t i=0;i<QUORUM_CANDIDATES && i<6;i++) d.scores[i]=scores[i];
+  d.observedPolarity=QT_POLARITY_NA; d.expectedPolarity=QT_POLARITY_NA;
+  qtDecisions.push(d);
+}
+
+static void qtDirMirrorUpdate(int8_t dir){ qtNavDirMirror=dir; }
+
+// loop thread, rate-limited like publishStat()/serviceInaTelemetry(). Builds
+// the record here (loop-thread state) and hands it off under the mux to
+// networkTask, the only place it is actually sent -- mirrors this file's
+// own existing desiredRetainedNoQuorum/noQuorumSnapshot single-slot pattern.
+static void qtStatusService(){
+  unsigned long now=millis();
+  if(now-qtLastStatusMs < QT_STATUS_INTERVAL_MS) return;
+  qtLastStatusMs=now;
+  QtStatus st; memset(&st,0,sizeof(st));
+  st.uptimeMs=(uint32_t)now;
+  st.sampleSeq=qtSamples.sampleSeq();
+  st.decisionSeq=qtDecisions.decisionSeq();
+  st.cumSampleRingDrops=qtSamples.cumRingDrops();
+  st.cumDecisionRingDrops=qtDecisions.cumRingDrops();
+  st.cumHallQueueDrops=queueDrops;      // existing, non-trace counter — for correlation only
+  st.cumFloorRejects=floorRejects;      // existing, non-trace counter — for correlation only
+  st.freeHeap=(uint32_t)ESP.getFreeHeap();
+  st.udpSendFailures=qtUdpSendFailures;
+  st.hallDeadbandCounts=(uint16_t)HALL_DEADBAND_COUNTS;
+  st.hallEntryMarginCounts=(uint16_t)HALL_ENTRY_MARGIN_COUNTS;
+  st.quorumTrigger=(uint8_t)QUORUM_TRIGGER; st.quorumMargin=(uint8_t)QUORUM_MARGIN;
+  st.quorumMax=(uint8_t)QUORUM_MAX; st.quorumCandidates=(uint8_t)QUORUM_CANDIDATES;
+  QT_ENTER_CRITICAL();
+  qtPendingStatus=st; qtStatusPending=true;
+  QT_EXIT_CRITICAL();
+}
+
+// networkTask thread ONLY — the sole place this file opens a UDP socket,
+// mirroring the existing rule that networkTask is the sole place mqtt.*
+// runs. Bounded per pass (2 sample batches, 8 decisions) so a congested
+// trace stream cannot hold this task away from mqtt.loop().
+static void qtNetworkDrain(){
+  QtSampleBatch sb;
+  uint8_t ns=0;
+  while(ns<2 && qtSamples.popBatch(&sb)){
+    qtSendUdp((const uint8_t*)&sb,qtSampleBatchWireLen(&sb));
+    ns++;
+  }
+  QtDecision dr;
+  uint8_t nd=0;
+  while(nd<8 && qtDecisions.pop(&dr)){
+    QtHeader h; memset(&h,0,sizeof(h)); qtStampMagic(&h);
+    h.recType=QT_REC_DECISION; h.nItems=1;
+    h.locoId=qtLocoIdG; h.sessionId=qtSessionIdG;
+    h.batchSeq=++qtDecisionDatagramSeq; h.t0Ms=dr.tMs;
+    qtSeal(&h,(const uint8_t*)&dr,sizeof(dr));
+    uint8_t buf[sizeof(QtHeader)+sizeof(QtDecision)];
+    memcpy(buf,&h,sizeof(h)); memcpy(buf+sizeof(h),&dr,sizeof(dr));
+    qtSendUdp(buf,sizeof(buf));
+    nd++;
+  }
+  if(qtStatusPending){
+    QtStatus stCopy;
+    QT_ENTER_CRITICAL(); stCopy=qtPendingStatus; qtStatusPending=false; QT_EXIT_CRITICAL();
+    QtHeader h; memset(&h,0,sizeof(h)); qtStampMagic(&h);
+    h.recType=QT_REC_STATUS; h.nItems=1;
+    h.locoId=qtLocoIdG; h.sessionId=qtSessionIdG;
+    h.batchSeq=++qtStatusDatagramSeq; h.t0Ms=stCopy.uptimeMs;
+    qtSeal(&h,(const uint8_t*)&stCopy,sizeof(stCopy));
+    uint8_t buf[sizeof(QtHeader)+sizeof(QtStatus)];
+    memcpy(buf,&h,sizeof(h)); memcpy(buf+sizeof(h),&stCopy,sizeof(stCopy));
+    qtSendUdp(buf,sizeof(buf));
+  }
+}
+#endif // QUORUM_TRACE
 
 // ---------------------------------------------------------------------------
 // JSON fragments shared by decision events, state and the snapshot.
@@ -1290,6 +1601,10 @@ static void processNormalComparison(const MarkerEvent& e){
 // LOST drop to PWM 60 drove the train into the regime that collapses the
 // baseline).
 static void acceptEvent(const MarkerEvent& e){
+#ifdef QUORUM_TRACE
+  uint8_t qtMmBeforeAccept = navMm;
+  uint8_t qtStateBeforeAccept = (uint8_t)navState;
+#endif
   navMm=nextMm(navMm,navDir);
   if(markersSinceConfirmed<65535) markersSinceConfirmed++;   // AGREE re-zeroes it
   pushRing(e.polarity,navMm);
@@ -1311,6 +1626,12 @@ static void acceptEvent(const MarkerEvent& e){
       break;
     default: break;
   }
+  // Traced AFTER the switch, not before: NAV_EVALUATING's decideEvaluation()
+  // can itself change navMm again (adoptLeader()/handleFailedAdoption()) and
+  // navState (adoption, a second failed adoption -> NO_QUORUM) within this
+  // same call. navMmAfter/navStateAfter must reflect every consequence of
+  // this one accepted event, not just the unconditional advance at the top.
+  QT_DECISION_ACCEPT(e,qtMmBeforeAccept,qtStateBeforeAccept);
 }
 
 // Declares POSITION only. Direction has exactly one assignment point,
@@ -1396,6 +1717,10 @@ static uint8_t dnaMatch(int8_t dir){
 // ===========================================================================
 static void navOnMarker(const MarkerEvent& e){
   navMarkers++;
+#ifdef QUORUM_TRACE
+  uint8_t qtMmAtEntry = navMm;         // read before any gate runs
+#endif
+  QT_DECISION_NAV_ENTRY(e,qtMmAtEntry);
   // Timed from DETECTION, not from when loop() got round to draining the
   // queue. Diagnostic only -- no PWM authority. (Codex)
   uint16_t dt = lastMarkerMs ? (uint16_t)min(e.detectedAtMs-lastMarkerMs,(unsigned long)65535) : 0;
@@ -1414,6 +1739,7 @@ static void navOnMarker(const MarkerEvent& e){
     // last-confirmed, no conservation — navMm holds nothing meaningful to
     // index spacingMm[] with — and no timing history to invalidate.
     lastTimingGate="NO_POSITION";
+    QT_DECISION_GATE_RESULT(qtMmAtEntry,QTG_NO_POSITION);
     return;
   }
   if(navDir==MAP_UNSET){
@@ -1424,6 +1750,7 @@ static void navOnMarker(const MarkerEvent& e){
     // without a direction. Do not reorder them to make this reachable.
     lastTimingGate="NO_DIR";
     invalidatePreviousAcceptedDt();
+    QT_DECISION_GATE_RESULT(qtMmAtEntry,QTG_NO_DIR);
     return;
   }
   if(e.pwmActualAtDetect < GATE_LOW_PWM_FLOOR){
@@ -1432,6 +1759,7 @@ static void navOnMarker(const MarkerEvent& e){
     lastTimingGate="LOW_PWM";
     invalidatePreviousAcceptedDt();
     acceptEvent(e);
+    QT_DECISION_GATE_RESULT(qtMmAtEntry,QTG_LOW_PWM);
     return;
   }
   if(abs((int)e.pwmActualAtDetect-(int)e.pwmCommandedAtDetect) > GATE_RAMP_DELTA){
@@ -1441,6 +1769,7 @@ static void navOnMarker(const MarkerEvent& e){
     lastTimingGate="RAMP";
     invalidatePreviousAcceptedDt();
     acceptEvent(e);
+    QT_DECISION_GATE_RESULT(qtMmAtEntry,QTG_RAMP);
     return;
   }
   if(!previousAcceptedDtValid){
@@ -1452,6 +1781,7 @@ static void navOnMarker(const MarkerEvent& e){
     lastTimingGate="NO_PREV";
     if(dt>0){ previousAcceptedDt=dt; previousAcceptedDtValid=true; }
     acceptEvent(e);
+    QT_DECISION_GATE_RESULT(qtMmAtEntry,QTG_NO_PREV);
     return;
   }
 
@@ -1487,6 +1817,7 @@ static void navOnMarker(const MarkerEvent& e){
       ",\"dt\":%u,\"prev_dt\":%u,\"sum\":%.0f,\"expected\":%.0f,\"ratio\":%.2f",
       dt,previousAcceptedDt,(double)combinedDtMs,(double)expectedDtMs,(double)lastDtConserveRatio);
     publishQuorumDecision("PHANTOM_REJECTED",extra);
+    QT_DECISION_GATE_RESULT(qtMmAtEntry,QTG_ACTIVE_PHANTOM);
     return;
   }
   // Every accepted ACTIVE event replaces the predecessor — the variable means
@@ -1494,6 +1825,7 @@ static void navOnMarker(const MarkerEvent& e){
   // acceptance; only PHANTOM_REJECTED leaves it unchanged (§3).
   previousAcceptedDt=dt; previousAcceptedDtValid=true;
   acceptEvent(e);
+  QT_DECISION_GATE_RESULT(qtMmAtEntry,QTG_ACTIVE_ACCEPTED);
 }
 
 // ===========================================================================
@@ -1650,6 +1982,7 @@ static void applyDirection(){
     if(derived!=navDir){
       int8_t prevDir = navDir;
       navDir=derived;
+      QT_DIR_MIRROR_UPDATE(navDir);   // trace-only shadow; see the QUORUM TRACE block
       // F3 (CODEX review of 1.4) — REVERSING MID-INTERVAL. navMm is the marker
       // last REACHED, and the locomotive is always somewhere between it and
       // the next one along. Reverse, and the next marker it physically meets
@@ -2161,6 +2494,7 @@ static void navPublishState(const char* ev,const MarkerEvent* e){
   if(e) pubMarker(T_NAV,b);
   else  pub(T_NAV,b);
   Serial.printf("[NAV] %s\n",b);
+  QT_DECISION_NAV_STATE(ev,e);
 }
 
 // §5.1: QUORUM decision events — adoption, incident open/close, phantom
@@ -2186,6 +2520,7 @@ static void publishQuorumDecision(const char* ev,const char* extra){
     (int)quorumMargin, (unsigned)evalCount, vb, extra);
   pubMarker(T_NAV,b);
   Serial.printf("[NAV] %s\n",b);
+  QT_DECISION_QUORUM(ev);
 }
 
 // The console shows state/warning to the operator. Without it a refusal is
@@ -2917,6 +3252,9 @@ static void attemptReconnect(){
 static void networkTask(void*){
   for(;;){
     if(WiFi.status()==WL_CONNECTED){
+      // Independent of MQTT connection state: the trace stream is a separate
+      // UDP path and must keep draining even while MQTT is reconnecting.
+      QT_NETWORK_DRAIN();
       if(!mqtt.connected()){
         attemptReconnect();            // may block; that is now harmless
       }else{
@@ -3081,6 +3419,11 @@ void setup(){
   ina219Setup();
   calibrate();
 
+  // Trace session id: genuinely random per boot (matches HALL_WAVEFORM_TEST's
+  // own reasoning -- see CAPTURE_FORMAT.md -- so a decoder never joins
+  // records across a reboot by accident). Independent of WiFi being up.
+  QT_TRACE_BEGIN(LOCO_ID,(uint32_t)esp_random());
+
   // 256 slots is ~5 min of headroom at cruise (~1.1 s/marker), up from the 32
   // (~35 s) that overflowed and destroyed 67 marker events on 2026-07-29. This
   // does not fix a stall; it converts a data-destroying failure into a merely
@@ -3153,4 +3496,5 @@ void loop(){
   // returns on the first line.
   serviceInaTelemetry();
   publishStat();
+  QT_STATUS_SERVICE();
 }
