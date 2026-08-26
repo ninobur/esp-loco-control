@@ -1,5 +1,12 @@
 # IR CW/CCW full-lap comparison with Toby — pulse-distance correlates with position but disagrees on total distance by 17%
 
+> **Partly superseded by `2026-08-26_IR_FOUR_LAP_DISTANCE_TRUTH.md`.**
+> Surveyed ground truth (`QUORUM.ino` `spacingMm[]`, 52.15 m) later
+> resolved the 17% gap left open here: lap 2 is accurate to 0.9% and
+> lap 1 undercounts by 15.9% through merged spokes. The latch-discard
+> hypothesis floated below was measured and rejected. "mm" is
+> confirmed to mean MILE MARKER (`QUORUM.ino:2703`).
+
 **Date:** 2026-08-26
 **Firmware:** `IR_SCOPE_ESPNOW_TX_1_0` / `IR_SCOPE_ESPNOW_RX_1_0` (not yet in this
 repo). Wheel: 7 spokes, 87.34 mm circumference (12.477 mm/pulse, one pulse per
