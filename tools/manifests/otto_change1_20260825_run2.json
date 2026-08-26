@@ -1,0 +1,26 @@
+{
+  "capture": "/private/tmp/otto_change1_20260825.qtcap",
+  "decoded_csv": "/private/tmp/otto_change1_20260825.csv",
+  "loco": "Otto (9950011), AFTER physical rewiring (twisted power leads, Hall routing moved to the opposite end from the motor controller)",
+  "session": "103B1969",
+  "run_label": "Run 2 -- post-reboot, NO anchors exist; ground truth is operator-supplied via this task's own briefing, not derived from the CSV",
+  "start": {
+    "mm": 40,
+    "t_ms": 2320,
+    "direction": "CW",
+    "confirmed": false,
+    "note": "No ANCHOR row exists anywhere in session 103B1969 (confirmed: zero ANCHOR rows for this session id in otto_change1_20260825.csv). Ground truth per this task's own operator-supplied briefing: 'started physically at 040-041, began in disagreement on the dashboard.' t_ms=2320 is this manifest's own APPROXIMATION -- the session's earliest SAMPLE row -- used because no more precise operator timestamp exists; it is deliberately early enough that no real candidate could have opened before it (ctl_pwm_actual=0 at session start, and Sec 2.4's suspend rule blocks acquisition below SUSPEND_PWM_FLOOR=20 regardless). mm=40 carries the same '040-041' interval-convention ambiguity as every other manifest in this set. direction='CW' is this manifest's best-guess expectation only (matching Run 1's own start direction) -- the replay tool derives the live direction from each SAMPLE row's own ctl_dir field regardless of this hint."
+  },
+  "anchors": [],
+  "known_context": [
+    "Direct inspection of this session's own STATUS records: deadband=25 entry_margin=13, same as every other 2026-08-24/25 capture.",
+    "Operator-supplied ground truth (from this task's own briefing, not from the CSV): wiring for Run 2 already has the fix applied (twisted power leads, Hall routing moved away from motor controller). The INA219 shunt failed and Run 2 was aborted partway through -- this is real, useful ADVERSARIAL evidence (noisy/incomplete data under the new wiring) but explicitly NOT a clean wiring-fix A/B verdict; this manifest's report should not be read as confirming or refuting the wiring fix on its own.",
+    "Operator ground truth also states QUORUM's own dashboard 'began in disagreement' at the start of this run -- i.e. QUORUM's OWN internal pointer was apparently not correctly re-declared after the reboot. This is exactly the kind of scenario this task's replay tool is designed to be robust to: it is seeded independently from this manifest's own start declaration (mm=40, live-derived direction), never from QUORUM's own dec_*/det_* state, so whatever QUORUM's own pointer believed has no bearing on this tool's own primary_position tracking.",
+    "Session 103B1969 spans t_ms 2320-208749 (~208.7s), 204390 SAMPLE rows, 538 DECISION rows, 1 GAP row, 104 STATUS rows, 0 ANCHOR rows -- consistent with a run that was cut short (INA219 shunt failure) rather than run to a natural, declared stop."
+  ],
+  "uncertainty_notes": [
+    "This is the WEAKEST-ground-truth manifest of the five: no anchors at all, an approximated (not operator-confirmed) start time, and no confirmed end/abort position or time. Any 'primary-position drift at anchor' report for this manifest will legitimately be empty (no anchors to check against) -- that is expected, not a tool defect.",
+    "'040-041' interval ambiguity applies to the start.mm assumption exactly as in every other manifest in this set.",
+    "Because the INA219 shunt failure aborted this run, the tail of the session's data may include the failure's own electrical effects on the Hall channel -- this manifest does not attempt to characterise or exclude that; the report should be read with this in mind, especially for any ARTIFACT/EXCESSIVE_OPEN or POSITION_UNRESOLVED concentration near the end of the session."
+  ]
+}

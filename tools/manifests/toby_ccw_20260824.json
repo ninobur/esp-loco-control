@@ -1,0 +1,41 @@
+{
+  "capture": "/private/tmp/toby_ccw_20260824.qtcap",
+  "decoded_csv": "/private/tmp/toby_ccw_20260824.csv",
+  "loco": "Toby (9950012)",
+  "session": "D7651658",
+  "field_evidence_row": "Toby CCW: 1,202 opened excursions, 1 under-40ms reject, 1 timing phantom, 1 disagreement, 0 NO_QUORUM (MAGNET_ADMISSION_DOCTRINE.md field-evidence table)",
+  "start": {
+    "mm": 40,
+    "t_ms": 162224,
+    "direction": "CCW",
+    "confirmed": false,
+    "note": "ANCHOR #2 at t_ms=162224, op_text='START CCW INTERVAL 040-041 VERIFIED', re-confirms ANCHOR #1 (t_ms=139073, 'START CCW INTERVAL 040-041'). Used as the declared start rather than #1 because it is the operator's own re-confirmation. Interval '040-041' does not by itself say whether marker 40 or 41 is the starting position -- mm=40 is this manifest's documented ASSUMPTION, matching the convention already used in tools/manifests/grillers.json for the identical '066-067' ambiguity, not a directly stated fact."
+  },
+  "end": {
+    "mm": 36,
+    "t_ms": 2838170,
+    "confirmed": false,
+    "note": "ANCHOR #5, op_text='STOPPED FINAL INTERVAL 036-037', ctl_dir=CCW at this row. Same '036-037' ambiguity as the start (36 vs 37). Physical sanity check: 40(ish)->36(ish) while ctl_dir=CCW throughout is consistent with CCW=-1 decrementing mm in tools/quorum_map.py's convention -- i.e. the direction of drift the anchors report agrees with the map's own CCW sign, for whatever that is worth as a coarse check."
+  },
+  "anchors": [
+    {"t_ms": 139073, "anchor_id": 1, "text": "START CCW INTERVAL 040-041", "asserted_mm": 40,
+     "note": "Same start declaration as the manifest's own start.t_ms=162224 anchor, 23151ms earlier; not used as the declared start itself (the VERIFIED anchor is used instead) but reported for completeness."},
+    {"t_ms": 162224, "anchor_id": 2, "text": "START CCW INTERVAL 040-041 VERIFIED", "asserted_mm": 40,
+     "note": "This is the manifest's start declaration -- see start.note."},
+    {"t_ms": 751997, "anchor_id": 3, "text": "L1STOP 11/12 155/154 104/103 159/160", "asserted_mm": null,
+     "note": "Meaning not established. Four marker-pair-shaped tokens in one anchor at one instant; could be a log of several distinct readings, a station/dashboard readout, or something else. NOT used for quantitative drift scoring in this manifest -- recorded verbatim for completeness and for a human to interpret if useful."},
+    {"t_ms": 2700952, "anchor_id": 4, "text": "OBS 1130 HITS 1 DISAGREE", "asserted_mm": null,
+     "note": "Reads as an operator observation of QUORUM's OWN dashboard state (an event/hit count and disagreement count), not a physical position confirmation. Diagnostic-only, not used for drift scoring."},
+    {"t_ms": 2838170, "anchor_id": 5, "text": "STOPPED FINAL INTERVAL 036-037", "asserted_mm": 36,
+     "note": "This is the manifest's end declaration -- see end.note."}
+  ],
+  "known_context": [
+    "Direct inspection of this capture's own STATUS records: deadband=25 entry_margin=13 (open threshold 38 counts), matching docs/TEMPLATES_REPLAY_DESIGN_SPEC.md Sec 1.2's claim that this is uniform across all four 2026-08-24/25 captures.",
+    "Single boot session for the whole capture (no SESSION rows) -- 'D7651658' is the only session id present.",
+    "This is the clean-control capture: the doctrine's own acceptance-criteria discussion (Sec 8.1 of the design spec) expects near-zero artifacts and the overwhelming majority of credible passages to be EXPECTED_ADVANCE here."
+  ],
+  "uncertainty_notes": [
+    "No independent wheel-speed or odometer ground truth exists for this capture; the physical-timing gate's velocity model is QUORUM's own explicitly-provisional PWM-to-velocity calibration (see tools/quorum_map.py), not independently validated here.",
+    "Anchors #3 and #4 are diagnostic/QUORUM-dashboard-shaped text, not physical position confirmations, and are excluded from the drift computation for that reason -- see each anchor's own note."
+  ]
+}

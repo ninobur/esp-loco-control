@@ -1,0 +1,32 @@
+{
+  "capture": "/private/tmp/otto_cw_20260824.qtcap",
+  "decoded_csv": "/private/tmp/otto_cw_20260824.csv",
+  "loco": "Otto (9950011), PRE-REWIRING, restarted boot session",
+  "session": "77943FAD",
+  "field_evidence_row": "Otto restarted CW: 1,637 opened excursions, 639 under-40ms rejects, 35 timing phantoms, 18 disagreements, one NO_QUORUM (MAGNET_ADMISSION_DOCTRINE.md field-evidence table) -- the worst-contamination capture named in this task.",
+  "start": {
+    "mm": 40,
+    "t_ms": 270762,
+    "direction": "CW",
+    "confirmed": false,
+    "note": "ANCHOR #2 (of this session), op_text='POSTREBOOT START WAS 040-041', ctl_dir=CW, pwm=90 at this row. Same '040-041' convention ambiguity as the other three manifests -- mm=40 is a documented assumption."
+  },
+  "anchors": [
+    {"t_ms": 190110, "anchor_id": 1, "text": "RESTART BETTER DISAGREE MAP061", "asserted_mm": null,
+     "note": "Reads as an operator reference to a QUORUM-onboard disagreement AT/NEAR map position 061 shortly after the reboot -- this matches MAGNET_ADMISSION_DOCTRINE.md's field-evidence narrative almost verbatim ('One post-reboot CW disagreement at map position 061 was only 43ms wide with a 39-count peak... It advanced navigation before map polarity was considered'). Treated as a diagnostic/comparison-baseline reference to a QUORUM decision, NOT an operator physical-position confirmation -- QUORUM's own belief is not this manifest's ground truth. Chronologically precedes anchor #2 by ~80s despite referencing what reads as a later-in-narrative event; not resolved further here, recorded verbatim.",
+     "quorum_reference_only": true},
+    {"t_ms": 270762, "anchor_id": 2, "text": "POSTREBOOT START WAS 040-041", "asserted_mm": 40,
+     "note": "Manifest start declaration -- see start.note."}
+  ],
+  "known_context": [
+    "Direct inspection of this session's own STATUS records: deadband=25 entry_margin=13. This session's FINAL STATUS record's own onboard counter reads floor_rejects=639 -- an exact match to the doctrine's field-evidence table's '639 under-40ms rejects' for this row, confirmed directly from QUORUM's own firmware counter (not merely from an independent replay estimate).",
+    "otto_cw_20260824.csv contains TWO sessions: a short (~130s, 130500 SAMPLE rows) tail of session A3201FFF (t_ms 2400374-2532139) -- the SAME session id used by otto_ccw_20260824.json -- followed by this session, 77943FAD (t_ms 2321-3559602, ~59 minutes, 3525930 SAMPLE rows). The A3201FFF tail's own two anchors ('START CW PHYSICAL INTERVAL 040-041' at t=2411969, 'CW FIRST LAUNCH FAILED RESTARTING' at t=2487532) explain the reboot: the first CW launch attempt failed and the board restarted into session 77943FAD, which is the 'restarted boot session' the doctrine's field-evidence table row names. This manifest targets 77943FAD ONLY; the A3201FFF tail is explicitly out of scope (it is not one of this task's five assigned manifests).",
+    "MAGNET_ADMISSION_DOCTRINE.md's own narrative for this session: 'In the final CW failure, short admitted responses and broader responses accumulated around map positions 114-135; QUORUM opened, remained tied through its bounded evaluation, and reached NO_QUORUM. The operator independently observed an approximately 19-marker difference between physical and believed position near the end.' This is qualitative context from the doctrine document, not a CSV anchor with an exact t_ms -- recorded here so the report's own findings can be sanity-checked against it, not used as a numeric drift-scoring input.",
+    "This is the PRE-rewiring Otto capture, restarted-boot / worst-contamination case named explicitly in this task's brief."
+  ],
+  "uncertainty_notes": [
+    "No end-of-session position anchor exists for 77943FAD (unlike the CCW capture's anchor #9) -- the doctrine's own qualitative 'NO_QUORUM ... ~19-marker difference' narrative is the only end-of-run context available, and it is not a precise, timestamped ground-truth value this manifest can score drift against numerically.",
+    "No independent wheel-speed or odometer ground truth exists; the physical-timing gate's velocity model remains QUORUM's own provisional calibration.",
+    "Anchor #1's chronological position (before anchor #2's start declaration, despite referencing what reads as a later event) is recorded as-is, not reinterpreted."
+  ]
+}

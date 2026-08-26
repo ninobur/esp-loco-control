@@ -1,0 +1,39 @@
+{
+  "capture": "/private/tmp/otto_change1_20260825.qtcap",
+  "decoded_csv": "/private/tmp/otto_change1_20260825.csv",
+  "loco": "Otto (9950011), AFTER physical rewiring (twisted power leads, Hall routing moved to the opposite end from the motor controller)",
+  "session": "3E6A88F1",
+  "run_label": "Run 1 -- fully anchored, includes a real mid-run reversal",
+  "start": {
+    "mm": 40,
+    "t_ms": 131211,
+    "direction": "CW",
+    "confirmed": false,
+    "note": "ANCHOR #1, op_text='CHANGE1 MANUAL CW START 040-041', ctl_dir=UNSET at this row (pre-motion). Same '040-041' convention ambiguity as the other three PRE-rewiring manifests -- mm=40 is a documented assumption, using the identical convention for direct before/after comparability."
+  },
+  "end": {
+    "mm": 40,
+    "t_ms": 385613,
+    "confirmed": false,
+    "note": "ANCHOR #3, op_text='CHANGE1 RUN1 COMPLETE 040-041', ctl_dir=CCW at this row (post-reversal). Same interval text as the start -- physically consistent with a there-and-back run that returns to roughly its starting point, which is exactly what anchor #2's mid-run reversal implies."
+  },
+  "anchors": [
+    {"t_ms": 131211, "anchor_id": 1, "text": "CHANGE1 MANUAL CW START 040-041", "asserted_mm": 40,
+     "note": "Manifest start declaration -- see start.note."},
+    {"t_ms": 286733, "anchor_id": 2, "text": "CHANGE1 ARCHES TURN REVERSE", "asserted_mm": null,
+     "is_reversal": true,
+     "note": "Marks a REAL, anchored, mid-run direction reversal -- ctl_dir at this exact row is already CCW, vs ctl_dir=CW at anchor #1 (once motion started) and ctl_dir=UNSET at anchor #1's own row (pre-motion). No position value is asserted by the operator text itself; this manifest deliberately does NOT infer one. The replay tool detects this reversal LIVE from ctl_dir on the SAMPLE stream itself (Sec 5.6/6.4(a) of the design spec), independent of this anchor -- this anchor exists for cross-checking that live detection, not for driving it."},
+    {"t_ms": 385613, "anchor_id": 3, "text": "CHANGE1 RUN1 COMPLETE 040-041", "asserted_mm": 40,
+     "note": "Manifest end declaration -- see end.note."}
+  ],
+  "known_context": [
+    "Direct inspection of this session's own STATUS records: deadband=25 entry_margin=13 (open threshold 38 counts), same as all four prior 2026-08-24 captures -- the retune was not undone by the rewiring change.",
+    "This capture's decoded CSV (otto_change1_20260825.csv) contains THREE session ids: 3E6A88F1 (this manifest, 289485 rows, t_ms 118933-410130), 20F329E9 (8466 rows, t_ms 2320-10971, zero DECISION records, zero floor_rejects, ctl_pwm_actual=0 for all 8460 SAMPLE rows -- a stationary, ~8.7s-uptime boot/reconnect blip with no navigation activity at all; it sits between 3E6A88F1 and 103B1969 in first-seen (boot) order per qt_decode.py's session ordering, consistent with being a brief reboot between Run 1 and Run 2, though this is inferred from the evidence just described, not independently confirmed), and 103B1969 (Run 2, no anchors -- see tools/manifests/otto_change1_20260825_run2.json). This manifest covers 3E6A88F1 only.",
+    "This is the FIRST post-rewiring capture: twisted power leads, Hall routing moved to the opposite end from the motor controller. Useful as adversarial evidence and (with Run 2) as partial before/after context, but this task's own brief is explicit that neither run alone is a clean wiring-fix A/B verdict -- this manifest does not claim one."
+  ],
+  "uncertainty_notes": [
+    "'040-041' interval ambiguity applies to both the start and end asserted_mm (40 vs 41) -- documented assumption, not a directly stated fact.",
+    "No independent wheel-speed or odometer ground truth exists; the physical-timing gate's velocity model remains QUORUM's own provisional calibration.",
+    "The reversal at anchor #2 means the arrival gate's normal spacing-based timing floor is suspended for the first credible candidate evaluated after it (Sec 5.6 of the design spec) -- this is expected, evidence-driven behaviour, not a gap in coverage, and the report's disposition counts for this manifest should be read with that one candidate's exemption in mind."
+  ]
+}

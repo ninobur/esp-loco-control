@@ -1,0 +1,45 @@
+{
+  "capture": "/private/tmp/otto_ccw_20260824.qtcap",
+  "decoded_csv": "/private/tmp/otto_ccw_20260824.csv",
+  "loco": "Otto (9950011), PRE-REWIRING",
+  "session": "A3201FFF",
+  "field_evidence_row": "Otto CCW: 1,169 opened excursions, 626 under-40ms rejects, 47 timing phantoms, 15 disagreements, one NO_QUORUM (MAGNET_ADMISSION_DOCTRINE.md field-evidence table)",
+  "start": {
+    "mm": 40,
+    "t_ms": 170575,
+    "direction": "CCW",
+    "confirmed": false,
+    "note": "ANCHOR #1, op_text='START CCW INTERVAL 040-041', ctl_dir=UNSET at this row (pre-motion). Same '040-041' convention ambiguity as toby_ccw_20260824.json's manifest -- mm=40 is a documented assumption, not a directly stated fact. direction='CCW' here is the NOMINAL/declared session direction only; this tool derives the LIVE direction from ctl_dir on every SAMPLE row regardless of this field, which matters for this specific capture -- see uncertainty_notes: this session is not purely CCW throughout."
+  },
+  "anchors": [
+    {"t_ms": 170575, "anchor_id": 1, "text": "START CCW INTERVAL 040-041", "asserted_mm": 40,
+     "note": "Manifest start declaration -- see start.note."},
+    {"t_ms": 530409, "anchor_id": 2, "text": "OPERATOR OBSERVED ROUGH START", "asserted_mm": null,
+     "note": "Qualitative note, no position asserted."},
+    {"t_ms": 616959, "anchor_id": 3, "text": "PAST PATIO QUORUM 10DIS 3MISSED", "asserted_mm": null,
+     "note": "Reads as an operator observation of QUORUM's OWN dashboard state near the Patio station (10 disagreements, 3 missed) -- diagnostic/comparison-baseline context, not a physical position confirmation."},
+    {"t_ms": 668273, "anchor_id": 4, "text": "CORRECTION 3MISSED DASHBOARD ONLY", "asserted_mm": null,
+     "note": "Operator clarifying that the '3 missed' in anchor #3 was a dashboard artifact, not physically real. No position asserted."},
+    {"t_ms": 1346320, "anchor_id": 5, "text": "NO STOPS PAST GRILLERS 10DIS", "asserted_mm": null,
+     "note": "ctl_dir=CW at this row -- confirms the session has already reversed from CCW to CW by this point (see uncertainty_notes). No explicit position asserted."},
+    {"t_ms": 1352346, "anchor_id": 6, "text": "BACKED TO 040-041 PLUS5DIS STOPPED", "asserted_mm": 40,
+     "note": "Physical position confirmation: back near the start interval. ctl_dir=CW, pwm=0 (stopped)."},
+    {"t_ms": 1697942, "anchor_id": 7, "text": "CORRECT REV SHOULD TRACK MANUAL", "asserted_mm": null,
+     "note": "Operator note about reversal tracking; no position asserted on its own (see anchor #8, 6s later, for the paired ACTUAL/BELIEVED reading)."},
+    {"t_ms": 1703949, "anchor_id": 8, "text": "ACTUAL120-121 BELIEVED150-151", "asserted_mm": 120,
+     "note": "Highest-value anchor in this manifest: an explicit, quantified ACTUAL-vs-QUORUM'S-OWN-BELIEVED reading at the same instant. asserted_mm=120 uses the ACTUAL value (120-121 ambiguity, same convention as elsewhere -- 120 chosen as the manifest assumption). QUORUM's own believed position at this same moment was 150-151, i.e. QUORUM itself was already drifted by roughly 30 markers here -- recorded as quorum_believed_mm=150 for direct comparison-baseline use, independent of this manifest's own replay."},
+    {"t_ms": 2365250, "anchor_id": 9, "text": "STOPPED FINAL PHYSICAL 040-041", "asserted_mm": 40,
+     "note": "End-of-session physical position confirmation, explicitly using the word PHYSICAL. Reaching mm~40 again from mm~120 (anchor #8) under continued CW travel is consistent with wrapping all the way around the circular map (120 -> n-1 -> 0 -> 40) without requiring a second reversal, given roughly 660s elapsed between anchor #8 and this one -- this manifest does NOT assert a second reversal happened; ctl_dir at this row is still CW."}
+  ],
+  "quorum_believed_mm_at_anchor_8": 150,
+  "known_context": [
+    "Direct inspection of this capture's own STATUS records: deadband=25 entry_margin=13 (open threshold 38 counts).",
+    "Single boot session for the whole capture -- 'A3201FFF' is the only session id present in otto_ccw_20260824.csv. The SAME session id also appears as a short (~130s) tail in otto_cw_20260824.csv (that tail is explicitly out of scope for both this manifest and tools/manifests/otto_cw_20260824.json, which targets session 77943FAD instead).",
+    "This is the PRE-rewiring Otto capture: the electrical noise source (signal routing near motor/high-current wiring per MAGNET_ADMISSION_DOCTRINE.md Consequence #8) has not yet been addressed. Expect substantially more artifact volume than Toby's clean control."
+  ],
+  "uncertainty_notes": [
+    "This session is NOT purely CCW despite the capture's filename and the doctrine's own field-evidence table label: anchors #5-#9 all show ctl_dir=CW, meaning a direction reversal happens somewhere between anchor #4 (t=668273, still pre-reversal context) and anchor #5 (t=1346320, already CW). This manifest does not assert exactly when -- the replay tool derives direction live from each SAMPLE row's own ctl_dir field, not from this manifest's single 'direction' hint, specifically so it tracks a real mid-session reversal like this one correctly without needing the manifest to pinpoint it.",
+    "No independent wheel-speed or odometer ground truth exists beyond the operator's own anchor-8 ACTUAL/BELIEVED pair; the physical-timing gate's velocity model remains QUORUM's own provisional calibration.",
+    "'040-041' / '036-037'-style interval ambiguity applies to every asserted_mm in this manifest that derives from that convention (anchors 1, 6, 9); anchor 8's 120-121 has the same one-marker ambiguity."
+  ]
+}
