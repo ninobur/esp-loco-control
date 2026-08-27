@@ -1,8 +1,9 @@
 # TEMPLATES Revision 3 — Target acquisition, not threshold rejection
 
-**Status:** Design synthesis with operator decisions incorporated.
-**Authority:** Design-only. This document authorizes no firmware change,
-build, flash, field operation, or IR control authority.
+**Status:** Approved to build. Empirical settings throughout; operating
+values come from live field testing, not from this document.
+**Authority:** Build authorized 2026-08-27. Flashing, field operation, and
+any IR control authority remain separate operator decisions.
 **Date:** 2026-08-27
 **Evidence baseline:** field sessions `9950012_20260827_114203`,
 `9950012_20260827_123552`, `9950012_20260827_134856`; offline captures
@@ -265,7 +266,7 @@ and cuts channel traffic. It is not a precondition for running: data already
 delivered to the Pi is safe regardless, and eviction affects the
 transmitter's own backlog, not the Pi's record.
 
-## 6. Correction authority — 67% confidence, on trial
+## 6. Correction authority — empirical, starting at 67%
 
 **Adopted:** the correction threshold will be determined empirically through
 live field testing, not by a strict sequence-run match. The initial value is
@@ -357,7 +358,8 @@ must not be able to corrupt them.
   delivered 170/170 intervals under overcast, but by ~30x retransmission,
   so true link reliability is unmeasured; the earlier TX lost 35% of
   reports. Bright-sunlight degradation is documented and unaddressed by any
-  run to date. RX 1.1 is a blocking prerequisite (§5). Interim by design.
+  run to date. RX 1.1 should be installed soon but does not block a run
+  (§5). Interim by design.
 - **No claim of improved precision is made.** Everything here addresses
   recall — recovering weak-but-real magnets currently discarded. Nothing has
   been tested against Otto's contaminated captures, where precision, not
