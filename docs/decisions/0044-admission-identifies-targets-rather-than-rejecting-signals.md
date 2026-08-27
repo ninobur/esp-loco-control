@@ -1,6 +1,29 @@
 # 0044 — Magnet admission identifies expected targets rather than rejecting unqualified signals
 
-Status: Accepted (operator decision, 2026-08-27)
+Status: Accepted as provisional starting points (operator decision, 2026-08-27)
+
+## Provisional status and revision triggers
+
+Every value and choice in this record is a **starting point subject to
+revision in the face of data**, not a settled position. Several were operator
+answers to specific questions in a specific context and must not be
+generalized beyond it. This section governs the rest of the record.
+
+Named revision triggers:
+
+- **The 67% correction bar is a guess.** Its falsification criterion is
+  explicit: *if it lets spurious signals through, it is too low.* Raise it on
+  evidence of false admission, without waiting for a redesign.
+- **`durationAt()` proceeds on one locomotive, one day, tested against its
+  own derivation session.** Cross-locomotive or multi-session disagreement
+  invalidates it as a general table.
+- **IR integration is interim** — a test car, an unmeasured link, an
+  overcast-only optical result.
+- **Pre-run calibration scope is unsettled** — whether it rewrites stored
+  tables or only establishes session gain.
+
+Nothing here is defended on the grounds that it was previously decided. Data
+outranks this record.
 
 ## Decision
 
@@ -19,9 +42,10 @@ available.
 Four operator decisions settle the open questions from the design:
 
 1. **Correction authority is a 67% confidence bar**, not a strict
-   sequence-run match. Explicitly a trial value, to be observed and revised.
-   QUORUM's existing recovery machinery is the backstop that makes starting
-   low acceptable.
+   sequence-run match. A guess and a starting point, chosen to be observed
+   rather than derived. Too low if spurious signals are admitted. QUORUM's
+   existing recovery machinery is the backstop that makes starting low
+   acceptable to trial.
 2. **`durationAt()` proceeds to field test** on a limited simulation rather
    than a dedicated measurement pass.
 3. **IR is integrated now**, via ESP-NOW from the IR test car, as the
