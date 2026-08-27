@@ -122,15 +122,44 @@ Amplitude, duration, timing, and PWM-derived speed all depend on the same
 Hall sensor and the same motor-PWM chain — a systematic fault (electrical
 interference, a mounting issue, a wiring fault) can degrade several of them
 together. IR speed sensing on an unpowered wheel shares none of that chain.
-The 86-byte IR/Hall fusion-interval packet format already exists and
-partially works — 121 of 186 reports decoded cleanly from today's CW
-session, the shortfall being RF transport loss at the Pi receiver rather
-than anything the locomotive flagged.
+The 86-byte IR/Hall fusion-interval packet format works. Two measurements
+exist, and they differ by transmitter generation:
 
-Known limitation, accepted as designed: reliability drops in bright
-sunlight (documented in the IR daylight test series). IR is a corroborating
-vote that is sometimes unavailable, never a required input — consistent
-with the omission-tolerant design governing everything else here.
+- **Earlier CW session (original TX):** 121 of 186 reports decoded, the
+  shortfall being RF transport loss at the Pi receiver rather than anything
+  the locomotive flagged.
+- **Upgraded TX, overcast, 2026-08-27 (CODEX evaluation):** all 170
+  interval reports delivered, sequences `1–170` complete with no gaps.
+
+The upgraded result is delivery achieved by **retransmission, not link
+quality**: 5,031 duplicate packets, every interval transmitted at least
+eight times and roughly thirty times on average. Underlying per-packet loss
+is therefore not established by this run — the redundancy hid it. Two
+consequences follow, both design-relevant:
+
+1. **The buffer is nearly full.** TX holds 192 interval summaries. With
+   RX 1.0 unable to acknowledge, nothing is ever retired: 22 free entries
+   remained at the end of the run. RX 1.1 (acknowledgement) must be flashed
+   before another run, or TX begins evicting the oldest unacknowledged
+   records after approximately 22 more intervals.
+2. **Channel airtime is a coexistence concern.** ~30x redundancy per
+   interval shares the ESP-NOW channel with Toby's own broadcast traffic.
+   This has not been measured against the receiver-coexistence gate.
+
+TX memory holds interval *summaries*, not raw waveform samples, and is
+volatile — power cycle or reflash clears it. Today's intervals are safe
+only because all 170 reached the Pi.
+
+Optical performance under overcast was strong: 4,989 cumulative pulses,
+4,962 assigned to recorded intervals, no ADC saturation, no missed samples,
+31 late samples out of ~471,000, and optical span generally 895–1,551
+against a gate of 32 — a very wide margin. This is an **overcast**
+measurement; the bright-sunlight degradation documented in the IR daylight
+test series remains the open case and is unaddressed by this run.
+
+IR remains a corroborating vote that is sometimes unavailable, never a
+required input — consistent with the omission-tolerant design governing
+everything else here.
 
 ## 3. Governing principles (unchanged, restated for this revision)
 
@@ -224,6 +253,12 @@ to the score and never gates alone.
 Transport loss is not treated as contradiction. A missing IR report reduces
 the number of available votes; it never counts against a candidate.
 
+**Blocking prerequisite:** RX 1.1 must be flashed before the next run. Under
+RX 1.0 the transmitter cannot retire acknowledged records and reached 22 of
+192 free entries in a single overcast run (§2.6). Without acknowledgement,
+the next run silently evicts the oldest intervals — which converts a clean
+"vote unavailable" into lost evidence, and does so without flagging it.
+
 ## 6. Correction authority — 67% confidence, on trial
 
 **Adopted:** a confidence-weighted bar of **67%**, not a strict
@@ -289,9 +324,11 @@ is an open implementation choice.
 - **The 67% bar is a trial value with no derivation.** See §6.
 - **The scoring formula does not exist yet.** How six attributes combine
   into one percentage, and how missing attributes are handled, is unsettled.
-- **IR integration is via a test car over ESP-NOW, with known transport
-  loss** (35% of fusion reports lost in today's CW session) and known
-  bright-sunlight failure. Interim by design.
+- **IR integration is via a test car over ESP-NOW.** The upgraded TX
+  delivered 170/170 intervals under overcast, but by ~30x retransmission,
+  so true link reliability is unmeasured; the earlier TX lost 35% of
+  reports. Bright-sunlight degradation is documented and unaddressed by any
+  run to date. RX 1.1 is a blocking prerequisite (§5). Interim by design.
 - **No claim of improved precision is made.** Everything here addresses
   recall — recovering weak-but-real magnets currently discarded. Nothing has
   been tested against Otto's contaminated captures, where precision, not
