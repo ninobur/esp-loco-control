@@ -1,6 +1,6 @@
 # TEMPLATES Revision 3 — Target acquisition, not threshold rejection
 
-**Status:** Independent design synthesis for operator and peer review.
+**Status:** Design synthesis with operator decisions incorporated.
 **Authority:** Design-only. This document authorizes no firmware change,
 build, flash, field operation, or IR control authority.
 **Date:** 2026-08-27
@@ -9,6 +9,10 @@ build, flash, field operation, or IR control authority.
 `toby_ccw_20260824`, `otto_ccw_20260824`, `otto_cw_20260824`,
 `otto_change1_20260825`; `firmware/test-programs/TEMPLATES/TEMPLATES.ino`
 as flashed 2026-08-27.
+**Operator decisions incorporated:** §6 confidence bar set at 67%;
+`durationAt()` validated by limited simulation then field-tested; IR
+integrated now via ESP-NOW from the IR test car; pre-run calibration
+required.
 
 ## 1. Result first
 
@@ -18,24 +22,20 @@ signal strong enough to be a magnet, in general" — one flat amplitude floor
 is next, blind to direction, blind to everything the system already knows.
 
 The system already knows a great deal. Given a starting position and
-direction, it knows the expected polarity of the next marker
-(`dnaAt`), that marker's expected field strength relative to the railway
-median (`strengthAt`, measured, wired, and currently used nowhere upstream
-of quarantine), the physical distance to it (`spacingMm`) and therefore,
-combined with commanded PWM, roughly when it should arrive
-(`dt_expected`, already computed and published today). It does not yet
-measure a shape (duration is currently the only shape proxy, and it is
-weak alone), and it does not yet consult an independent second sensor
-(IR on an unpowered wheel).
+direction, it knows the expected polarity of the next marker (`dnaAt`),
+that marker's expected field strength relative to the railway median
+(`strengthAt`, measured, wired, and currently used nowhere upstream of
+quarantine), the physical distance to it (`spacingMm`) and therefore,
+combined with commanded PWM, roughly when it should arrive (`dt_expected`,
+already computed and published today).
 
 Revision 3's governing change: **stop asking "does this clear a universal
-floor" and start asking "does this match the specific target we are
-already looking for."** A weak-but-expected read (MM141 at 125, against an
-expected ~144) is evidence *for* MM141, not noise to discard. A
-strong-but-unexpected read is a warning, not automatic confirmation. The
-admission decision moves from a one-axis filter to a multi-attribute match
-against a target profile the system already possesses before the magnet
-arrives.
+floor" and start asking "does this match the specific target we are already
+looking for."** A weak-but-expected read (MM141 at 125, against an expected
+~144) is evidence *for* MM141, not noise to discard. A strong-but-unexpected
+read is a warning, not automatic confirmation. The admission decision moves
+from a one-axis filter to a multi-attribute match against a target profile
+the system possesses before the magnet arrives.
 
 This is not a new philosophy replacing the existing one. It is the same
 asymmetry the current design already enforces — false negatives recoverable,
@@ -48,7 +48,7 @@ evidence, so fewer real magnets get treated as if they were noise.
 
 Across three sessions today (CW, CCW, and a live in-progress run), 26
 `AMPLITUDE`-caused rejections were recorded. Every one that was not pure
-noise (peak <60, duration <30ms — one instance) had a duration comfortably
+noise (peak <60, duration <30ms — two instances) had a duration comfortably
 clearing its floor by 45–70ms at every PWM tested (42, 61, 84, 90, 118).
 Duration did zero discriminating work; amplitude alone decided every real
 case. This confirms the code's own finding from the original 7,238-excursion
@@ -75,14 +75,38 @@ missed that *specific* expectation by ~10–13%, while missing the *flat*
 admission floor by 7–11%. The table already knew this marker would read low
 before today's session ran.
 
-### 2.4 Duration, PWM-normalized, is a real but weak second vote
+### 2.4 Limited simulation: `durationAt()` is stronger than expected
 
-Within the marginal peak band (110–149) across the full offline dataset,
-raw duration spans 7–1,688ms — no separation. Normalized by PWM
-(duration×PWM, a rough proxy for physical magnet width), 74% of that same
-population clusters into one band; the remaining 26% is scattered 3–10x
-off. Duration-normalized-by-speed is a real corroborating signal, not a
-decisive one — it belongs in a fused score, not as an independent gate.
+Per operator direction, a deliberately limited simulation was run against
+today's field data only — 2,038 confirmed marker crossings (508 CW, 1,530
+CCW) with PWM > 0, covering all 171 markers.
+
+Method: normalize each crossing's duration to a PWM-90 reference
+(`ms × pwm / 90`), take the per-marker median. This is the direct analogue
+of how `strengthPct[]` was constructed.
+
+Results:
+
+- **Per-marker consistency is high.** Median coefficient of variation across
+  169 markers with ≥8 samples is **0.047**; 90th percentile is 0.170. The
+  measure is stable per marker, which is the prerequisite for using it as an
+  expected value at all.
+- **Railway-wide spread:** p5 = 129ms, p50 = 149ms, p95 = 193ms
+  (PWM-90-normalized).
+- **Every marginal reject today corroborates.** All 14 real
+  amplitude-rejects in the MM140–142 zone fall within ±17% of their marker's
+  expected normalized duration (ratios 0.83–1.03, **14 match / 0 miss** at a
+  ±30% tolerance). These are precisely the events the flat amplitude floor
+  discarded.
+- **Noise does not corroborate.** The two genuine noise events today
+  normalize to 21ms and 13ms against a ~145ms expectation — ratios of 0.14
+  and 0.09, off by an order of magnitude. Duration corroboration separates
+  them cleanly from the weak-but-real population.
+
+This is a limited result on one locomotive over one day and is not a
+substitute for the multi-session, cross-locomotive validation
+`strengthPct[]` received. It is sufficient evidence to proceed to field
+test, per operator decision. It is not sufficient to claim final accuracy.
 
 ### 2.5 Timing prediction already exists and is unused at admission
 
@@ -92,7 +116,7 @@ decisive one — it belongs in a fused score, not as an independent gate.
 new engineering — it is already computed, just not consulted at the point
 where a candidate event is accepted or discarded.
 
-### 2.6 IR corroboration is close, and is a genuinely independent witness
+### 2.6 IR corroboration is a genuinely independent witness
 
 Amplitude, duration, timing, and PWM-derived speed all depend on the same
 Hall sensor and the same motor-PWM chain — a systematic fault (electrical
@@ -100,11 +124,13 @@ interference, a mounting issue, a wiring fault) can degrade several of them
 together. IR speed sensing on an unpowered wheel shares none of that chain.
 The 86-byte IR/Hall fusion-interval packet format already exists and
 partially works — 121 of 186 reports decoded cleanly from today's CW
-session. Known limitation, accepted as designed: reliability drops in
-bright sunlight (documented separately in the IR daylight test series).
-Revision 3 treats IR as a corroborating vote that is sometimes unavailable,
-not a required input — consistent with the omission-tolerant design already
-governing everything else in this system.
+session, the shortfall being RF transport loss at the Pi receiver rather
+than anything the locomotive flagged.
+
+Known limitation, accepted as designed: reliability drops in bright
+sunlight (documented in the IR daylight test series). IR is a corroborating
+vote that is sometimes unavailable, never a required input — consistent
+with the omission-tolerant design governing everything else here.
 
 ## 3. Governing principles (unchanged, restated for this revision)
 
@@ -113,48 +139,46 @@ governing everything else in this system.
 False negatives are recoverable — QUORUM's arbitration, `NO_QUORUM`
 self-resolution, and dead reckoning already exist to absorb a missed
 marker. False positives corrupt the coordinate system and have no
-correction mechanism once admitted. Every change in this revision must
-make it *easier* to confirm a real, expected magnet and *no easier* to
-admit an unexpected one.
+correction mechanism once admitted. Every change in this revision must make
+it *easier* to confirm a real, expected magnet and *no easier* to admit an
+unexpected one.
 
 ### 3.2 Direction certainty is not position certainty
 
-Direction (`session_dir`) is operator-declared and does not drift.
-`navMm` can drift even while direction stays correct — today's own CW
-session demonstrated this exactly: three consecutive correctly-rejected
-weak magnets left the position counter three markers behind physical
-reality, with direction never in doubt for a moment. A target profile
-built from a wrong `navMm` is not "no information," it is *confidently
-wrong* information, and the design must not let a match against a wrong
-hypothesis look identical to a match against a right one.
+Direction (`session_dir`) is operator-declared and does not drift. `navMm`
+can drift even while direction stays correct — today's CW session
+demonstrated this exactly: three consecutive correctly-rejected weak magnets
+left the position counter three markers behind physical reality, with
+direction never in doubt. A target profile built from a wrong `navMm` is not
+"no information," it is *confidently wrong* information, and the design must
+not let a match against a wrong hypothesis look identical to a match against
+a right one.
 
-### 3.3 Identity is conjunctive, and sequence is the deciding conjunct
+### 3.3 Identity is conjunctive
 
-A single marker's polarity, strength, duration, and timing signature is
-not guaranteed unique across 171 markers — a strong composite match at one
-marker can still coincidentally resemble another. Uniqueness comes from
-matching a *run* of consecutive markers against the DNA map's own
-self-similarity bound (the existing `SUFFIX_RESCUE_N=7` finding: no run
-shorter than 7 is provably unambiguous against the map itself). A single
-high-confidence match should raise confidence; only a matching run should
-be allowed to authorize a position correction against the system's current
-belief.
+A single marker's polarity, strength, duration, and timing signature is not
+guaranteed unique across 171 markers — a strong composite match at one
+marker can coincidentally resemble another. Confidence comes from the
+conjunction of independent attributes, and — where a *correction* to held
+position is at stake — from accumulated agreement across successive
+markers rather than a single event. See §6 for the adopted standard.
 
-### 3.4 Dead reckoning and QUORUM's recovery machinery are preserved, not replaced
+### 3.4 Dead reckoning and QUORUM's recovery machinery are preserved
 
 This revision changes what happens at the admission boundary. It does not
-touch `NO_QUORUM` self-resolution, the arbitration scoring already in
-place, or dead reckoning as the fallback when no target match is found.
-Those mechanisms are why the system can recover from a missed magnet at
-all, and nothing here proposes doing without them.
+touch `NO_QUORUM` self-resolution, the arbitration scoring already in place,
+or dead reckoning as the fallback when no target match is found. Those
+mechanisms are why the system can recover from a missed magnet at all, and
+nothing here proposes doing without them. They are also the backstop that
+makes the lower confidence bar in §6 acceptable to trial.
 
 ### 3.5 No match is still the same conservative default as today
 
-A signal that matches no plausible target profile gets exactly the
-treatment an amplitude-floor reject gets today: no navigation afterlife,
-audit record retained, position unchanged. The bias shifts from "did this
-clear a universal bar" to "did this match something we were looking for,"
-not away from rejecting the unmatched case.
+A signal that matches no plausible target profile gets exactly the treatment
+an amplitude-floor reject gets today: no navigation afterlife, audit record
+retained, position unchanged. The bias shifts from "did this clear a
+universal bar" to "did this match something we were looking for," not away
+from rejecting the unmatched case.
 
 ## 4. The attribute set
 
@@ -164,97 +188,120 @@ marker in that direction), the profile to match against consists of:
 1. **Polarity** — `dnaAt(nextMm)`. Already implemented, currently the sole
    input to AGREE/DISAGREE.
 2. **Strength** — `strengthAt(nextMm)` scaled by the locomotive's current
-   trailing-median gain. Already implemented, currently used only in §3Q
-   quarantine, after admission.
-3. **Morphology (minimum viable form: amplitude + duration jointly)** —
-   requires a new per-marker expected-duration table (`durationAt`,
-   analogous construction to `strengthPct[]`: measured, PWM-normalized,
-   cross-locomotive validated) to pair with the existing peak. True shape
-   (rise/fall symmetry, plateau width) remains unavailable without waveform
-   retention, which the current 1.16R base does not have.
+   trailing-median gain, refreshed by the pre-run calibration of §7.
+   Already implemented, currently used only in §3Q quarantine, after
+   admission.
+3. **Morphology (amplitude + duration jointly)** — pairs the existing peak
+   with a new per-marker `durationAt()` table, PWM-normalized to a 90
+   reference, constructed as in §2.4. True waveform shape (rise/fall
+   symmetry, plateau width) remains unavailable without sample retention,
+   which the current 1.16R base does not have. Amplitude and duration
+   jointly are the minimum viable morphology and are what this revision
+   uses.
 4. **Timing** — `spacingMm[nextMm]` and commanded PWM, already computed as
    `dt_expected`. New: feed it into the admission-time score rather than
    only the post-hoc `timing_gate` display.
-5. **Sequence** — the run of the last N accepted (or match-scored) markers
-   compared against the map's own minimum unambiguous run length. Governs
-   how much combined evidence is required before a *correction* to current
-   position is authorized (§3.3); a single-marker match is confirmatory
-   evidence, not correction authority.
-6. **IR corroboration** — independent pulse count and interval, when
-   available and confident. Raises or lowers overall score; never gates
-   alone, never required.
+5. **Sequence** — accumulated agreement across recent markers, contributing
+   to the confidence score rather than acting as a separate gate.
+6. **IR corroboration** — independent pulse count and interval from the IR
+   test car, delivered over ESP-NOW. Raises or lowers the score; never gates
+   alone, never required. See §5.
 
-## 5. What this changes and does not change at the admission boundary
+## 5. IR integration — adopted, via ESP-NOW from the IR test car
 
-**Changes:** the admission gate gains access to `navMm` and `navDir`
-(currently deliberately withheld from it) in order to compute a target
-profile before a candidate event is scored. This is the one architectural
-line this revision proposes crossing, and it is crossed carefully — see
-§6.
+IR is integrated now rather than deferred. Operator rationale: it is the
+necessary catalyst — the only witness independent of the Hall/PWM chain, and
+therefore the only input that can break a tie the other attributes cannot.
 
-**Does not change:** the gate's authority to reject remains absolute when
-no profile is matched. The downstream layers (§3Q quarantine, arbitration,
-`NO_QUORUM`) are untouched. TEMPLATES remains scoped to the admission
-question only.
+Transport for this revision is ESP-NOW from the IR test car, using the
+existing packet family. This is explicitly an interim arrangement: the
+source is a test car, not production instrumentation, and the
+receiver-coexistence work on the car side remains in progress. The design
+consequence is that IR availability is variable by construction — bright
+sun, RF loss, and car absence all remove it — which is why it contributes
+to the score and never gates alone.
 
-## 6. The open design question: correction authority
+Transport loss is not treated as contradiction. A missing IR report reduces
+the number of available votes; it never counts against a candidate.
 
-Giving the admission gate a position hypothesis creates the one real risk
-this document does not resolve on its own: a wrong hypothesis can produce
-a false "match" and entrench itself, which is the same failure category
-the whole design exists to prevent, moved one layer earlier.
+## 6. Correction authority — 67% confidence, on trial
 
-The mitigation proposed for review, not yet a decision:
+**Adopted:** a confidence-weighted bar of **67%**, not a strict
+sequence-run match.
 
-- A match against the *current* target hypothesis, at normal confidence,
-  behaves as today — it confirms and advances position by one, same as an
-  ordinary AGREE.
-- A match that would *correct* the currently-held position (i.e., resolve
-  in favor of a different `navMm` than the one currently believed) requires
-  the sequence-run standard from §3.3 — a matching run at the unambiguous
-  length, not a single strong composite score. This is a stricter bar than
-  ordinary confirmation, by design, because it is the exact case where a
-  wrong hypothesis and a right one are hardest to tell apart from a single
-  event.
-- Below both thresholds: no navigation afterlife, exactly as an amplitude
-  reject behaves today.
+Rationale: QUORUM's existing recovery machinery (§3.4) is the backstop. If
+a 67% bar admits a wrong correction, `NO_QUORUM` self-resolution and
+arbitration remain in place to catch it — the same mechanisms that catch
+today's failures. Starting lower and observing is preferred to starting at
+the provably-unambiguous run length and never learning where the real
+boundary sits.
 
-This is the one place in the design where "how much evidence is enough"
-is a judgment call rather than a measurement, and it is flagged here for
-operator decision rather than assumed.
+Behavior:
 
-## 7. Honest limits
+- **Confirmation** (match against the currently-held target hypothesis):
+  behaves as today — confirms and advances position by one, as an ordinary
+  AGREE.
+- **Correction** (resolving in favor of a different `navMm` than currently
+  believed): requires combined confidence ≥ 67% across the available
+  attributes.
+- **Below the bar:** no navigation afterlife, exactly as an amplitude
+  reject behaves today; audit record retained.
 
-- **Morphology is amplitude+duration only, by explicit scope decision.**
-  True waveform shape is not available without retaining raw samples per
+**This is a trial value, explicitly.** It is set to be observed and revised,
+not because 67% is derived from anything. The specific scoring formula —
+how the six attributes of §4 combine into one percentage, and how absent
+attributes (missing IR, unusable position) are handled without penalizing a
+candidate — is the remaining implementation question and is not settled
+here.
+
+## 7. Pre-run calibration — adopted
+
+**Adopted per operator:** magnet strengths are dynamic day to day
+(temperature, moisture, ballast state, sensor drift), so a calibration run
+before automatic operations is warranted.
+
+This is consistent with what the code already documents: `strengthPct[]`
+supplies the per-marker *shape* while the trailing median supplies the
+locomotive's current *gain*, and the table's own revision note says it "goes
+stale like any other" evidence and should be rebuilt when magnets are moved,
+replaced, or reseated. Today's MM140–142 repair and the pending disk-magnet
+swap are exactly such events.
+
+Scope of a calibration run: one full lap under manual or known-good
+conditions, capturing the `mm/marker` stream, from which the current gain
+and — where drift warrants — refreshed `strengthAt()` / `durationAt()`
+expectations are derived before automatic operation begins. Whether
+calibration rewrites the stored tables or only establishes the session gain
+is an open implementation choice.
+
+## 8. Honest limits
+
+- **Morphology is amplitude + duration only, by explicit scope decision.**
+  True waveform shape is unavailable without retaining raw samples per
   event, which the current 1.16R base does not do. This revision does not
-  propose porting the trace overlay; it proposes using the two scalars
-  already available, jointly rather than separately.
-- **`durationAt()` does not exist yet.** It is proposed by direct analogy
-  to `strengthPct[]`, using the same measurement methodology, but has not
-  been built or validated. §2.4's 74%/26% split is evidence it is worth
-  building, not evidence of its final accuracy.
-- **IR corroboration is not yet operational for this purpose.** The packet
-  format decodes; using it as a confidence input to admission has not been
-  implemented, tested, or validated against a live capture, and will not
-  function in bright sunlight — accepted as designed, per §2.6.
-- **The correction-authority threshold in §6 is unset.** A specific
-  sequence length, confidence score, and scoring formula are needed before
-  this is implementable, and are deliberately left open here rather than
-  guessed.
-- **No claim of improved precision is made.** Everything in this document
-  addresses recall (recovering weak-but-real magnets currently discarded).
-  Nothing here has been tested against Otto's contaminated captures, where
-  precision — not recall — is the open risk.
+  propose porting the trace overlay.
+- **`durationAt()` is validated on one locomotive over one day.** §2.4's
+  result is strong (14/14 marginal corroborations, clean noise separation,
+  CV 0.047) but it is Toby-only, 2026-08-27-only, and built from the same
+  session it was tested against. It has not received the cross-locomotive,
+  multi-session validation `strengthPct[]` had. Field test is the next step
+  by operator decision; final accuracy is unestablished.
+- **The 67% bar is a trial value with no derivation.** See §6.
+- **The scoring formula does not exist yet.** How six attributes combine
+  into one percentage, and how missing attributes are handled, is unsettled.
+- **IR integration is via a test car over ESP-NOW, with known transport
+  loss** (35% of fusion reports lost in today's CW session) and known
+  bright-sunlight failure. Interim by design.
+- **No claim of improved precision is made.** Everything here addresses
+  recall — recovering weak-but-real magnets currently discarded. Nothing has
+  been tested against Otto's contaminated captures, where precision, not
+  recall, is the open risk.
 
-## 8. Unresolved operator decisions
+## 9. Remaining implementation questions
 
-1. Does correction authority (§6) require a strict sequence-run match, or
-   is a lower, confidence-weighted bar acceptable given QUORUM's existing
-   recovery machinery as a backstop?
-2. Is building `durationAt()` from the existing offline captures sufficient
-   evidence to field-test, or does it need a dedicated measurement pass
-   first, the way `strengthPct[]` had one?
-3. Should IR corroboration be integrated now (packet format exists,
-   decoding partially works) or held until the receiver-coexistence gate
-   Codex is building on the car side is complete?
+1. The scoring formula: attribute weights, and the handling of absent
+   attributes so that a missing vote never counts as a negative one.
+2. Whether the pre-run calibration (§7) rewrites stored tables or only
+   establishes session gain.
+3. Whether `durationAt()` ships as a static table (as `strengthPct[]` does)
+   or is rebuilt each session from calibration.
