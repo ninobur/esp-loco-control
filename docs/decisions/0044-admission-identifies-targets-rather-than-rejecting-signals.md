@@ -11,9 +11,11 @@ generalized beyond it. This section governs the rest of the record.
 
 Named revision triggers:
 
-- **The 67% correction bar is a guess.** Its falsification criterion is
-  explicit: *if it lets spurious signals through, it is too low.* Raise it on
-  evidence of false admission, without waiting for a redesign.
+- **The correction threshold will be determined empirically through live
+  field testing.** The initial 67% value is an experimental starting point,
+  not an approved safety boundary. Results from operation on the single-train
+  loop will be used to adjust it. Falsification criterion for the starting
+  value: *if it lets spurious signals through, it is too low.*
 - **`durationAt()` proceeds on one locomotive, one day, tested against its
   own derivation session.** Cross-locomotive or multi-session disagreement
   invalidates it as a general table.
@@ -41,11 +43,12 @@ available.
 
 Four operator decisions settle the open questions from the design:
 
-1. **Correction authority is a 67% confidence bar**, not a strict
-   sequence-run match. A guess and a starting point, chosen to be observed
-   rather than derived. Too low if spurious signals are admitted. QUORUM's
-   existing recovery machinery is the backstop that makes starting low
-   acceptable to trial.
+1. **The correction threshold will be determined empirically through live
+   field testing**, not by a strict sequence-run match. The initial 67%
+   value is an experimental starting point, not an approved safety boundary.
+   Results from operation on the single-train loop will be used to adjust
+   it. QUORUM's existing recovery machinery is the backstop that makes
+   starting low acceptable to trial.
 2. **`durationAt()` proceeds to field test** on a limited simulation rather
    than a dedicated measurement pass.
 3. **IR is integrated now**, via ESP-NOW from the IR test car, as the
@@ -105,8 +108,9 @@ genuine noise (ratios 0.09–0.14 against expectation).
   deliberately withheld to keep signal classification blind to navigation
   belief. This is the one architectural line the revision crosses, and it
   creates a new risk class: a wrong position hypothesis can produce a false
-  match and entrench itself. The 67% correction bar and the preserved
-  recovery machinery are the mitigations, and both are on trial.
+  match and entrench itself. The correction threshold and the preserved
+  recovery machinery are the mitigations, and both are on trial. The
+  threshold is empirical, to be set by single-train loop results.
 - A scoring formula is now required — how six attributes combine into one
   percentage, and how absent attributes (missing IR, unusable position) are
   handled without counting against a candidate. This does not exist yet.

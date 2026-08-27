@@ -9,7 +9,8 @@ build, flash, field operation, or IR control authority.
 `toby_ccw_20260824`, `otto_ccw_20260824`, `otto_cw_20260824`,
 `otto_change1_20260825`; `firmware/test-programs/TEMPLATES/TEMPLATES.ino`
 as flashed 2026-08-27.
-**Operator decisions incorporated:** §6 confidence bar set at 67%;
+**Operator decisions incorporated:** §6 correction threshold determined
+empirically, starting at 67%;
 `durationAt()` validated by limited simulation then field-tested; IR
 integrated now via ESP-NOW from the IR test car; pre-run calibration
 required.
@@ -261,8 +262,10 @@ the next run silently evicts the oldest intervals — which converts a clean
 
 ## 6. Correction authority — 67% confidence, on trial
 
-**Adopted:** a confidence-weighted bar of **67%**, not a strict
-sequence-run match.
+**Adopted:** the correction threshold will be determined empirically through
+live field testing, not by a strict sequence-run match. The initial value is
+**67%** — an experimental starting point, not an approved safety boundary.
+Results from operation on the single-train loop will be used to adjust it.
 
 Rationale: QUORUM's existing recovery machinery (§3.4) is the backstop. If
 a 67% bar admits a wrong correction, `NO_QUORUM` self-resolution and
@@ -282,8 +285,9 @@ Behavior:
 - **Below the bar:** no navigation afterlife, exactly as an amplitude
   reject behaves today; audit record retained.
 
-**This is a trial value, explicitly.** It is set to be observed and revised,
-not because 67% is derived from anything. The specific scoring formula —
+**This is an experimental starting point, not an approved safety
+boundary.** 67% is not derived from anything; it is set to be observed and
+adjusted on single-train loop results. The specific scoring formula —
 how the six attributes of §4 combine into one percentage, and how absent
 attributes (missing IR, unusable position) are handled without penalizing a
 candidate — is the remaining implementation question and is not settled
@@ -321,7 +325,9 @@ is an open implementation choice.
   session it was tested against. It has not received the cross-locomotive,
   multi-session validation `strengthPct[]` had. Field test is the next step
   by operator decision; final accuracy is unestablished.
-- **The 67% bar is a trial value with no derivation.** See §6.
+- **The correction threshold is empirical and unset.** 67% is an
+  experimental starting point, not an approved safety boundary; the operating
+  value comes from single-train loop field results. See §6.
 - **The scoring formula does not exist yet.** How six attributes combine
   into one percentage, and how missing attributes are handled, is unsettled.
 - **IR integration is via a test car over ESP-NOW.** The upgraded TX
