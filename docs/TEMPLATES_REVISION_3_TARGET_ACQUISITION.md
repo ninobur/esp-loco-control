@@ -140,9 +140,13 @@ consequences follow, both design-relevant:
 
 1. **The buffer is nearly full.** TX holds 192 interval summaries. With
    RX 1.0 unable to acknowledge, nothing is ever retired: 22 free entries
-   remained at the end of the run. RX 1.1 (acknowledgement) must be flashed
-   before another run, or TX begins evicting the oldest unacknowledged
-   records after approximately 22 more intervals.
+   remained at the end of the run, after which TX begins evicting oldest
+   records. **This does not endanger data already captured at the Pi.** The
+   Pi holds what it received; RX 1.0's actual limitation is that the
+   transmitter cannot distinguish delivered from undelivered records, so it
+   retransmits indiscriminately and cannot free space. RX 1.1 should be
+   installed soon — to retire acknowledged records and cut retransmission
+   traffic — but it is not a blocking prerequisite for a run.
 2. **Channel airtime is a coexistence concern.** ~30x redundancy per
    interval shares the ESP-NOW channel with Toby's own broadcast traffic.
    This has not been measured against the receiver-coexistence gate.
@@ -254,11 +258,12 @@ to the score and never gates alone.
 Transport loss is not treated as contradiction. A missing IR report reduces
 the number of available votes; it never counts against a candidate.
 
-**Blocking prerequisite:** RX 1.1 must be flashed before the next run. Under
-RX 1.0 the transmitter cannot retire acknowledged records and reached 22 of
-192 free entries in a single overcast run (§2.6). Without acknowledgement,
-the next run silently evicts the oldest intervals — which converts a clean
-"vote unavailable" into lost evidence, and does so without flagging it.
+**RX 1.1 — soon, not blocking.** Under RX 1.0 the transmitter cannot
+distinguish delivered from undelivered records, so it cannot retire anything
+and retransmits indiscriminately (§2.6). Installing RX 1.1 frees buffer space
+and cuts channel traffic. It is not a precondition for running: data already
+delivered to the Pi is safe regardless, and eviction affects the
+transmitter's own backlog, not the Pi's record.
 
 ## 6. Correction authority — 67% confidence, on trial
 
@@ -287,7 +292,17 @@ Behavior:
 
 **This is an experimental starting point, not an approved safety
 boundary.** 67% is not derived from anything; it is set to be observed and
-adjusted on single-train loop results. The specific scoring formula —
+adjusted on single-train loop results.
+
+Adjustment criteria, both directions:
+
+- **Raise it** if false targets are admitted.
+- **Review the scoring, and consider lowering it,** if genuine targets are
+  repeatedly refused despite strong combined evidence.
+
+**Implementation constraint:** the threshold and the evidence weights must be
+changeable without restructuring the algorithm. They are test settings, and
+the build must treat them as such. The specific scoring formula —
 how the six attributes of §4 combine into one percentage, and how absent
 attributes (missing IR, unusable position) are handled without penalizing a
 candidate — is the remaining implementation question and is not settled
@@ -306,12 +321,20 @@ stale like any other" evidence and should be rebuilt when magnets are moved,
 replaced, or reseated. Today's MM140–142 repair and the pending disk-magnet
 swap are exactly such events.
 
-Scope of a calibration run: one full lap under manual or known-good
-conditions, capturing the `mm/marker` stream, from which the current gain
-and — where drift warrants — refreshed `strengthAt()` / `durationAt()`
-expectations are derived before automatic operation begins. Whether
-calibration rewrites the stored tables or only establishes the session gain
-is an open implementation choice.
+Scope for the first R3 build, now settled:
+
+- Start each test session with a known-position calibration lap when
+  practical.
+- Use calibration **primarily to establish the current locomotive/session
+  gain**.
+- Collect evidence for improving `strengthAt()` and `durationAt()`.
+- **Do not automatically overwrite the permanent per-marker tables during
+  operation.** The tables are updated deliberately, after reviewing field
+  records — not silently mid-session.
+
+The separation matters: gain is a session property and may be re-derived
+freely; the per-marker tables are accumulated evidence and a bad session
+must not be able to corrupt them.
 
 ## 8. Honest limits
 
@@ -340,11 +363,86 @@ is an open implementation choice.
   been tested against Otto's contaminated captures, where precision, not
   recall, is the open risk.
 
-## 9. Remaining implementation questions
+## 9. Admission outcomes — three states
 
-1. The scoring formula: attribute weights, and the handling of absent
-   attributes so that a missing vote never counts as a negative one.
-2. Whether the pre-run calibration (§7) rewrites stored tables or only
-   establishes session gain.
-3. Whether `durationAt()` ships as a static table (as `strengthPct[]` does)
+R3 distinguishes three outcomes, replacing today's binary admit/reject:
+
+1. **`TARGET_CONFIRMED`** — the passage positively matches the expected
+   marker. Advance position normally.
+2. **`MAGNET_UNRESOLVED`** — the passage is sufficiently magnet-like, but
+   cannot yet be assigned confidently to a marker. Hold the last confirmed
+   coordinate; use later confirmed passages to resolve position.
+3. **`SIGNAL_REJECTED`** — the passage lacks sufficient positive magnet
+   evidence. Position does not advance, and the signal is **never
+   reconsidered for navigation**. Diagnostics retained; no navigation
+   afterlife.
+
+This is not a purgatory for rejected signals, and does not reopen the
+settled ruling that a condemned spike stays condemned. `SIGNAL_REJECTED` is
+terminal exactly as today's amplitude reject is. `MAGNET_UNRESOLVED` applies
+only to passages that already *passed* the magnet test and failed the
+*identity* test — a real magnet whose marker is temporarily unknown. It lets
+R3 reason about genuine-but-unidentified passages without resurrecting
+anything that was refused.
+
+## 10. Experimental telemetry — every decision must be reconstructible
+
+Each admission decision publishes enough to rebuild it offline without
+inference:
+
+- expected target
+- current believed position and direction
+- peak, and expected strength
+- duration, normalized duration, and expected duration
+- elapsed and expected arrival time
+- polarity result
+- sequence contribution
+- IR result, or explicit `IR_UNAVAILABLE`
+- each individual evidence contribution
+- the available-evidence denominator
+- combined confidence
+- the threshold in force
+- final outcome (§9)
+- position before and after
+- whether a correction occurred
+
+**Missing IR means unavailable, not disagreement.** An absent witness reduces
+the denominator; it never counts against a candidate. The same rule governs
+every other attribute that can be absent (no usable position, no sequence
+history yet).
+
+### 10.1 Provenance must stay visible
+
+Correlated measurements may still be used, but telemetry must not obscure
+that they are correlated:
+
+- peak, polarity, and duration all come from the **Hall sensor**;
+- expected timing currently depends on **PWM and mapped spacing**;
+- IR is the **independent movement witness**.
+
+The first build does not need a theoretically perfect statistical model. It
+needs a clear, inspectable scoring model whose behavior can be evaluated on
+the railway — and telemetry good enough to explain any result after the fact.
+
+## 11. Live test progression
+
+Proceed in situ, in this order:
+
+1. Confirm R3 finds ordinary expected magnets.
+2. Test MM140–142 and MM69–71, where the flat threshold failed.
+3. Observe whether weak *expected* targets are correctly admitted.
+4. Introduce or encounter known noise; verify it stays excluded.
+5. Test missed-target recovery and `MAGNET_UNRESOLVED` behavior.
+6. Run Otto's contaminated conditions to measure false admission — the one
+   risk no Toby result addresses.
+7. Adjust threshold and evidence weights from recorded results.
+
+Simulation and replay support this program by explaining a field result.
+They do not gate it, and must not delay it.
+
+## 12. Remaining implementation questions
+
+1. The scoring formula itself: the attribute weights. (The *structure* is
+   settled — contributions over an available-evidence denominator, §10.)
+2. Whether `durationAt()` ships as a static table (as `strengthPct[]` does)
    or is rebuilt each session from calibration.
