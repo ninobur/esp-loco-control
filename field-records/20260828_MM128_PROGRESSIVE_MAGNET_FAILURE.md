@@ -112,3 +112,69 @@ each. A single further lap each way closes it and takes both tables to 171/171.
 Duration already shows the expected direction split even in this small sample —
 CW 137-145 ms against CCW 165-171 ms, the same sense as the MM129-140 block
 (-12 of 12) that 0048 attributes to grade.
+
+---
+
+## CORRECTION — the diagnosis was half right, and the wrong half matters
+
+**Operator, on recovering it:** MM128 was **upside down, tilted, and lying
+between sleepers two sleepers from its assigned position.**
+
+This record claimed the failure was a displaced magnet with the detector
+reading **neighbouring fringe field**, and explicitly *dismissed* a flip on the
+grounds that flipping preserves magnitude while the observed magnitude fell 42%.
+
+**That was wrong.** The magnet was flipped. The `N` readings were the real
+magnet, inverted — not fringe field from MM127 and MM129. The reasoning failed
+because it treated *flipped* and *displaced* as competing explanations when they
+were concurrent: the tilt and the offset account for the lost magnitude that
+was used to rule the flip out. A single cause was sought where three faults had
+occurred together.
+
+What survives: the magnet was displaced, and it was not doing its job. What does
+not: the mechanism. The polarity reading was true information about the magnet's
+orientation and was read as an artifact.
+
+## The displacement was measurable in the existing data
+
+`dt` — time since the previous accepted marker — at held PWM 90:
+
+| leg | before repair | after repair | map |
+|---|---|---|---|
+| MM127 -> MM128 | **1251 ms** | 1055 ms | 300 mm |
+| MM128 -> MM129 | **836 ms** | 1108 ms | 290 mm |
+| pair total | 2087 ms | 2163 ms | 590 mm |
+
+**A long leg followed by a short leg, with the pair total conserved.** The
+neighbours had not moved, so the sum of the two legs is fixed by them; only the
+split changed. Before the repair MM128 sat at 59.9% of the pair, after it sits
+at 48.8%.
+
+Converting the shift against the mapped 590 mm:
+
+```
+implied displacement along the track:  66 mm
+operator's observation:                two sleepers
+```
+
+About 33 mm per sleeper. **The telemetry predicted the physical finding.**
+
+## Why this is worth building on
+
+**Polarity checking cannot detect displacement.** A magnet knocked 66 mm along
+the track but still the right way up passes every polarity test on the railway,
+every lap, silently — while corrupting the timing NAVI uses and the position it
+reports. MM128 was only caught because it *also* flipped. Nothing in the current
+firmware was watching the thing that actually moved.
+
+The signature is specific and cheap to test: **consecutive legs that deviate in
+opposite directions while their sum stays true to the map.** Ordinary speed
+variation moves both legs the same way; a displaced magnet moves them apart.
+That distinguishes a moved marker from a slow locomotive without a speed model.
+
+Proposed as a check for NAVI — not yet built, not yet a decision. It wants its
+own record and a test against the four days of data now available, including
+whether it would have flagged MM128 on 26 August, before the polarity went.
+
+**MM152 should be examined this way too** (123 -> 85, double-magnet list). If
+its leg pair is skewed with the sum conserved, it has moved rather than doubled.
