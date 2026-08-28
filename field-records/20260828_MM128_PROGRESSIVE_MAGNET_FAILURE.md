@@ -68,3 +68,47 @@ MM128 itself.
 3. Re-read MM128 after any repair and confirm it returns **S at ~185**.
 4. Watch MM152 the same way — it fell 123 -> 85 and is already on the
    double-magnet inspection list. Two markers now show strength anomalies.
+
+---
+
+## RESOLVED — 2026-08-28, same day
+
+**Operator found the magnet had come loose from the track.** The leading
+hypothesis was correct: displaced magnet, detector reading neighbouring fringe
+field. Refitted by the operator and re-sampled at 12:47-12:50.
+
+| | before (broken) | after refit | map / expectation |
+|---|---|---|---|
+| polarity | N, 6 of 6 | **S, 5 of 5** | **S** |
+| peak | 108 | **209** (208-212) | 184 was the last good |
+| % of session gain | — | **111.2%** | — |
+
+Neighbours confirm nothing else was disturbed: MM127 at 97.3% of gain, MM129 at
+92.8%, both normal.
+
+The repair run segmented at **100.0% — 112 of 112 crossings proven, zero
+discarded**, the first perfect run in the record. The break that had split every
+lap at MM128 is gone.
+
+### The baseline is superseded, not restored
+
+MM128 now reads **209 against a pre-failure 184**, about 14% stronger. The
+magnet is seated closer or straighter than it was before it worked loose, so
+the historical value is stale and must not be used as its expectation. Tables
+take the post-repair figure.
+
+Worth noting for MM152, which is on the double-magnet list at 123 -> 85: a
+refit does not necessarily return a magnet to its old number, and the old number
+is not the target. What matters is that the new value is stable across laps.
+
+### Still open
+
+The repair sampling is **3 CW and 2 CCW passes** at MM128. Calibration requires
+**4 per direction**, and the two directions cannot be pooled
+([0048](../docs/decisions/0048-expectation-tables-are-per-direction-because-the-railway-has-grades.md)).
+MM128 therefore remains uncalibrated in both tables, one or two passes short in
+each. A single further lap each way closes it and takes both tables to 171/171.
+
+Duration already shows the expected direction split even in this small sample —
+CW 137-145 ms against CCW 165-171 ms, the same sense as the MM129-140 block
+(-12 of 12) that 0048 attributes to grade.
