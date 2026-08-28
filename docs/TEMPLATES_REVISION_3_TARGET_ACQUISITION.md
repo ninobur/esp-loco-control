@@ -44,6 +44,29 @@ asymmetry the current design already enforces — false negatives recoverable,
 false positives corrupt the map — applied with more of the available
 evidence, so fewer real magnets get treated as if they were noise.
 
+### 1.1 The design hierarchy (adopted; operator + CODEX, 2026-08-27)
+
+1. Dead reckoning predicts where the locomotive is and when the next
+   landmark should arrive.
+2. The map supplies the expected magnet's polarity, relative strength,
+   morphology, and surrounding sequence.
+3. Hall and IR observations are compared with that expected landmark.
+4. QUORUM pattern recognition checks whether the continuing sequence
+   supports the identification.
+5. Agreement confirms and advances position.
+6. A mismatch causes QUORUM to consider missed magnets and alternative
+   positions.
+7. If no likely mapped candidate exists, reject the signal and preserve
+   only its diagnostic record.
+8. Later sequence evidence may correct position, but it never converts a
+   rejected signal into a magnet.
+
+The central requirement: **a landmark is identified as a member of a mapped
+magnet sequence**, using dead reckoning to predict its arrival and QUORUM
+pattern recognition to confirm or recover its position. Individual
+attributes are evidence about an expected identity, not universal admission
+requirements.
+
 ## 2. What today's data actually shows
 
 ### 2.1 The admission gate's real behavior in the field
@@ -442,9 +465,16 @@ Proceed in situ, in this order:
 Simulation and replay support this program by explaining a field result.
 They do not gate it, and must not delay it.
 
-## 12. Remaining implementation questions
+## 12. Remaining implementation questions — resolved for the first build
 
-1. The scoring formula itself: the attribute weights. (The *structure* is
-   settled — contributions over an available-evidence denominator, §10.)
-2. Whether `durationAt()` ships as a static table (as `strengthPct[]` does)
-   or is rebuilt each session from calibration.
+Both questions were resolved in the 0.3 build (2026-08-27, see
+`docs/TEMPLATES_R3_IMPLEMENTATION_REPORT.md`); the resolutions are
+themselves experimental settings, not settled positions:
+
+1. The attribute weights: polarity 32, strength 18, duration 18, timing 16,
+   sequence 8, IR 8, over an available-evidence denominator (§10). Chosen
+   for the first build, flat `#define`s, to be tuned from field results.
+2. `durationAt()` ships as a **static** table, exactly as `strengthPct[]`
+   does. Calibration establishes session gain; it does not rewrite tables
+   (§7). Rebuild deliberately, from reviewed field records, when magnets
+   change.
