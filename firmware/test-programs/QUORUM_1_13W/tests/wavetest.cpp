@@ -17,7 +17,7 @@ HostSerial    Serial;
 HostWiFiClass WiFi;
 HostTwoWire   Wire;
 static void publishWarning(const char* text);
-#include "../QUORUM.ino"
+#include "../QUORUM_1_13W.ino"
 
 static int checks=0, fails=0;
 static void ck(const char* what,bool ok){

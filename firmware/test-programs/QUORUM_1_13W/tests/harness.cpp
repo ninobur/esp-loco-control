@@ -49,7 +49,7 @@ static void publishWarning(const char* text);
 
 // The navigator under test. Included, not linked: QUORUM.ino's file-scope
 // statics are the harness's to drive directly, which is the whole point.
-#include "../QUORUM.ino"
+#include "../QUORUM_1_13W.ino"
 
 // --- JSON string escaping for the output protocol --------------------------
 static std::string esc(const char* s){
