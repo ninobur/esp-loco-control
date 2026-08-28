@@ -69,6 +69,36 @@ int main(){
       printf("PAYLOAD %s\n",pm.payload);
     }
   }
+  // ---- THE STRONGEST MAGNET ON THE RAILWAY --------------------------------
+  // Regression for 2026-08-28: at WAVE_SCALE 2 an int8 sample stored only
+  // +/-254 counts, and 14 of the first 204 real captures came back with flat
+  // tops -- up to 51 samples pinned on one record. The scale had been sized
+  // against this file's 200-count synthetic instead of the railway's measured
+  // 305. A test that only ever fires a weak magnet cannot see that, so this
+  // fires the strongest one actually observed.
+  printf("\n-- strongest observed magnet (305 counts, MM001 on 2026-08-28) --\n");
+  for(int i=0;i<60;i++) tick();
+  const int SPEAK=305;
+  for(int i=0;i<DUR;i++){
+    g_hostAnalog = 1800 + (int)(SPEAK*sin(M_PI*(double)i/DUR));
+    tick();
+  }
+  g_hostAnalog=1800;
+  for(int i=0;i<80;i++) tick();
+  WaveCap w2;
+  bool got2=(xQueueReceive(waveQueue,&w2,0)==pdTRUE);
+  ck("the strong passage was captured", got2);
+  if(got2){
+    ck("NO samples clipped at the railway maximum", w2.clipped==0);
+    int mx=-9999;
+    for(uint16_t i=0;i<w2.n;i++) if(w2.s[i]>mx) mx=w2.s[i];
+    printf("     reported pk=%d  stored max=%d counts  clipped=%u\n",
+           (int)w2.peak, mx*WAVE_SCALE, w2.clipped);
+    ck("stored curve reaches the true peak, not a ceiling",
+       abs(mx*WAVE_SCALE-(int)w2.peak) <= WAVE_SCALE*2);
+    ck("headroom remains above the observed maximum", 127*WAVE_SCALE > 305);
+  }
+
   printf("\n%d checks, %d failures\n",checks,fails);
   return fails?1:0;
 }

@@ -398,12 +398,25 @@ struct StationDefinition {
 #define WAVE_MAX    240    // samples published per passage
 #define WAVE_PRE     12    // samples kept before the excursion opens
 #define WAVE_POST    12    // and after it closes
-#define WAVE_SCALE    2    // counts per stored unit (noise floor is ~5)
+// SCALE 3, not 2. At scale 2 an int8 sample stores +/-254 counts, and on
+// 2026-08-28 the first 204 captures off the railway clipped 14 of them flat --
+// MM001-006, MM061-064 and MM099-101, the strongest magnets on the route, with
+// up to 51 of 217 samples pinned at the limit. The peak the detector REPORTS
+// was always correct (it is computed at full int resolution, and is what the
+// calibration tables use); it was the stored CURVE that saturated, destroying
+// shape at the top of the excursion -- precisely where neighbouring magnets
+// would differ most. The scale had been sized against synthetic test peaks
+// instead of the railway's measured 305.
+// Scale 3 stores +/-381, above the 305 observed, and its 3-count resolution
+// remains below the ~5-count noise floor, so nothing real is given up.
+#define WAVE_SCALE    3    // counts per stored unit (noise floor is ~5)
 struct WaveCap {
   uint32_t tMs;            // == MarkerEvent.detectedAtMs, the join key
   uint16_t n, durMs;
   int16_t  peak;
   uint8_t  pwmActual, pole, truncated;
+  uint16_t clipped;             // samples that hit the int8 limit -- 0 is the
+                                // only acceptable value; see WAVE_SCALE
   int8_t   s[WAVE_MAX];
 };
 
@@ -792,8 +805,13 @@ static void detectorSample(){
         // one end, so the shape survives even when the passage is long.
         uint16_t back=WAVE_PRE + (w.truncated ? (want-take)/2 : 0);
         uint16_t idx =(uint16_t)((evOpenRing + WAVE_RING - back)%WAVE_RING);
+        // Count saturation rather than hiding it. A capture that silently
+        // returns a flat top reads as a real measurement; one that says it
+        // clipped can be excluded, and tells us the scale is wrong.
+        w.clipped=0;
         for(uint16_t i=0;i<take;i++){
           int v=waveRing[idx]/WAVE_SCALE;
+          if(v>127 || v<-127) w.clipped++;
           w.s[i]=(int8_t)constrain(v,-127,127);
           idx=(uint16_t)((idx+1)%WAVE_RING);
         }
@@ -2312,11 +2330,12 @@ static void publishWave(const WaveCap& w,int labelMm){
   else           strlcpy(mmBuf,"null",sizeof(mmBuf));
   snprintf(m,sizeof(m),
     "{\"t\":%lu,\"mm\":%s,\"pol\":\"%c\",\"pk\":%d,\"dur\":%u,"
-    "\"pwm\":%u,\"n\":%u,\"sc\":%u,\"pre\":%u,\"tr\":%u,\"drop\":%lu,"
-    "\"d\":\"%s\"}",
+    "\"pwm\":%u,\"n\":%u,\"sc\":%u,\"pre\":%u,\"tr\":%u,\"clip\":%u,"
+    "\"drop\":%lu,\"d\":\"%s\"}",
     (unsigned long)w.tMs,mmBuf,w.pole?'N':'S',(int)w.peak,(unsigned)w.durMs,
     (unsigned)w.pwmActual,(unsigned)w.n,(unsigned)WAVE_SCALE,
-    (unsigned)WAVE_PRE,(unsigned)w.truncated,(unsigned long)waveDrops,b);
+    (unsigned)WAVE_PRE,(unsigned)w.truncated,(unsigned)w.clipped,
+    (unsigned long)waveDrops,b);
   pub(T_WAVE,m,false);
 }
 

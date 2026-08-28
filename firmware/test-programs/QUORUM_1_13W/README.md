@@ -11,10 +11,12 @@ Published on `ngr/loco/<id>/mm/wave`:
 
 ```json
 {"t":69,"mm":51,"pol":"N","pk":200,"dur":137,"pwm":90,
- "n":162,"sc":2,"pre":12,"tr":0,"drop":0,"d":"<base64 int8>"}
+ "n":162,"sc":3,"pre":12,"tr":0,"clip":0,"drop":0,"d":"<base64 int8>"}
 ```
 
 `d` is `n` samples of `raw - baseline`, divided by `sc`, offset by 128, base64.
+`clip` counts samples that hit the int8 limit -- **it must be 0**; any
+other value means the curve saturated and its shape is not trustworthy.
 `pre` samples precede the excursion opening. `mm` is the marker the navigator
 accepted; `null` if none. `drop` is the cumulative count of captures lost to a
 full queue — lossy by design, and visible rather than assumed.
