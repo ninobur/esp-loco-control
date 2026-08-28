@@ -364,7 +364,7 @@
 // base". The name is published retained on state/bootid, which is what lets a
 // capture be attributed to a build; leaving it at 1_12C would have made a beta
 // log indistinguishable from a pre-advisory one.
-#define SKETCH_NAME "QUORUM_1_13W"
+#define SKETCH_NAME "QUORUM_1_13X"
 
 // Broker lives here, not in LocoConfig.h — same as the previous lineage.
 #define MQTT_BROKER "192.168.68.142"
@@ -410,11 +410,29 @@ struct StationDefinition {
 // Scale 3 stores +/-381, above the 305 observed, and its 3-count resolution
 // remains below the ~5-count noise floor, so nothing real is given up.
 #define WAVE_SCALE    3    // counts per stored unit (noise floor is ~5)
+// EVERYTHING THE SENSOR ENCOUNTERS (1.13X).
+// 1.13W captured only ADMITTED events, because the floor check returns before
+// the capture. So the 57 excursions per 12 laps that crossed the magnetic
+// threshold and failed the 40 ms floor were counted and their shape thrown
+// away -- exactly the events needed to answer "does anything else look like a
+// magnet". Asking that question of amplitude and duration alone is the
+// one-dimensional answer the waveform exists to replace.
+// Two additions, neither of which touches the event machine:
+//   rej=1  the excursion opened an event and failed the floor
+//   rej=2  a SUB-THRESHOLD disturbance that never opened an event at all
+// The watch runs only while no real event is active, is rate limited, and is
+// lossy with a visible drop count -- it may never cost a marker.
+#define WATCH_ENTER_FRAC  60   // % of the entry margin; below the detector's own
+#define WATCH_MIN_MS      12   // ignore single-sample specks
+#define WATCH_MIN_GAP_MS 250   // at most ~4 per second
+
 struct WaveCap {
   uint32_t tMs;            // == MarkerEvent.detectedAtMs, the join key
   uint16_t n, durMs;
   int16_t  peak;
   uint8_t  pwmActual, pole, truncated;
+  uint8_t  rej;                 // 0 admitted, 1 too short for the floor,
+                                // 2 sub-threshold (never opened an event)
   uint16_t clipped;             // samples that hit the int8 limit -- 0 is the
                                 // only acceptable value; see WAVE_SCALE
   int8_t   s[WAVE_MAX];
@@ -730,6 +748,40 @@ static uint16_t evSampleN=0;       // samples since it opened
 static QueueHandle_t waveQueue=nullptr;
 static volatile uint32_t waveDrops=0;
 
+// One capture routine, shared by every disposition. Reads the ring backwards
+// from the sample where the excursion opened.
+static void captureWave(unsigned long durMs,int peak,uint8_t pole,uint8_t rej,
+                        uint16_t openRing,uint16_t sampleN,unsigned long startMs){
+  if(!waveQueue) return;
+  static WaveCap w;                 // hallTask only; off-stack
+  w.tMs=(uint32_t)startMs;
+  w.durMs=(uint16_t)min(durMs,(unsigned long)65535);
+  w.peak=(int16_t)peak; w.pwmActual=(uint8_t)actualPwm; w.pole=pole; w.rej=rej;
+  uint16_t want=sampleN+WAVE_PRE+WAVE_POST;
+  w.truncated=(want>WAVE_MAX)?1:0;
+  uint16_t take=w.truncated?WAVE_MAX:want;
+  if(take>WAVE_RING) take=WAVE_RING;
+  w.n=take;
+  uint16_t back=WAVE_PRE + (w.truncated ? (want-take)/2 : 0);
+  uint16_t idx =(uint16_t)((openRing + WAVE_RING - back)%WAVE_RING);
+  w.clipped=0;
+  for(uint16_t i=0;i<take;i++){
+    int v=waveRing[idx]/WAVE_SCALE;
+    if(v>127 || v<-127) w.clipped++;
+    w.s[i]=(int8_t)constrain(v,-127,127);
+    idx=(uint16_t)((idx+1)%WAVE_RING);
+  }
+  if(xQueueSend(waveQueue,&w,0)!=pdTRUE) waveDrops++;
+}
+
+// The sub-threshold watch. Entirely parallel to the event machine: its own
+// state, its own thresholds, and it stands down the moment a real event opens.
+static bool     wActive=false;
+static uint8_t  wPole=0;
+static int      wPeakN=0, wPeakS=0;
+static uint16_t wOpenRing=0, wSampleN=0;
+static unsigned long wStartMs=0, wLastMs=0;
+
 static void detectorSample(){
   int raw=readAveragedADC();
   unsigned long now=millis();
@@ -748,8 +800,38 @@ static void detectorSample(){
 
   if(evActive) evSampleN++;
 
+  // ---- 1.13X sub-threshold watch -----------------------------------------
+  // Runs ONLY while no real event is open, and touches no variable the event
+  // machine reads. Its job is to show what the sensor meets below the entry
+  // threshold -- the disturbances that never became events and so were never
+  // seen at all.
+  {
+    const int wEnter = ((HALL_DEADBAND_COUNTS + HALL_ENTRY_MARGIN_COUNTS)
+                        * WATCH_ENTER_FRAC) / 100;
+    const int dev = (n > s) ? n : s;
+    if(evActive){
+      wActive=false;                       // a real event owns this excursion
+    }else if(!wActive){
+      if(dev >= wEnter && (now - wLastMs) >= WATCH_MIN_GAP_MS){
+        wActive=true; wStartMs=now; wOpenRing=justWrote; wSampleN=1;
+        wPeakN=n; wPeakS=s; wPole=(n>=s)?1:0;
+      }
+    }else{
+      wSampleN++;
+      wPeakN=max(wPeakN,n); wPeakS=max(wPeakS,s);
+      if(dev < wEnter/2){                  // hysteresis close
+        unsigned long wdur = now - wStartMs;
+        wActive=false; wLastMs=now;
+        if(wdur >= WATCH_MIN_MS)
+          captureWave(wdur, wPole?wPeakN:wPeakS, wPole, 2,
+                      wOpenRing, wSampleN, wStartMs);
+      }
+    }
+  }
+
   if(!evActive){
     if(raw>=northEnter || raw<=southEnter){
+      wActive=false;                       // hand the excursion to the event
       evOpenRing=justWrote; evSampleN=1;
       evActive=true; evStartMs=now; evReturnMs=0;
       evStartBaseline=baselineCounts;
@@ -771,7 +853,14 @@ static void detectorSample(){
     if(now-evReturnMs>=EVENT_EXIT_HOLD_MS){
       unsigned long dur=now-evStartMs;
       evActive=false;
-      if(dur<EVENT_FLOOR_MS){ floorRejects++; return; }
+      if(dur<EVENT_FLOOR_MS){
+        floorRejects++;
+        // 1.13X: keep the SHAPE of what was refused. This is the population
+        // the "does anything else look like a magnet" question is about.
+        captureWave(dur,evOpenPole?evPeakN:evPeakS,evOpenPole,1,
+                    evOpenRing,evSampleN,evStartMs);
+        return;
+      }
       MarkerEvent e;
       e.polarity      = evOpenPole;
       e.peak          = evOpenPole?evPeakN:evPeakS;
@@ -788,35 +877,8 @@ static void detectorSample(){
       // small and lossy ON PURPOSE: a dropped waveform costs a survey sample,
       // never a navigation decision, and waveDrops rides in every record so
       // the loss is visible rather than assumed.
-      if(waveQueue){
-        static WaveCap w;                 // hallTask only; 260 B off-stack
-        w.tMs=(uint32_t)evStartMs;
-        w.durMs=(uint16_t)min(dur,(unsigned long)65535);
-        w.peak=(int16_t)(evOpenPole?evPeakN:evPeakS);
-        w.pwmActual=evStartPwmActual;
-        w.pole=evOpenPole;
-        uint16_t want=(uint16_t)evSampleN+WAVE_PRE+WAVE_POST;
-        w.truncated=(want>WAVE_MAX)?1:0;
-        uint16_t take=w.truncated?WAVE_MAX:want;
-        if(take>WAVE_RING) take=WAVE_RING;
-        w.n=take;
-        // Walk back from the opening sample by PRE, then read forward. A
-        // truncated capture is CENTRED on the excursion rather than cropped at
-        // one end, so the shape survives even when the passage is long.
-        uint16_t back=WAVE_PRE + (w.truncated ? (want-take)/2 : 0);
-        uint16_t idx =(uint16_t)((evOpenRing + WAVE_RING - back)%WAVE_RING);
-        // Count saturation rather than hiding it. A capture that silently
-        // returns a flat top reads as a real measurement; one that says it
-        // clipped can be excluded, and tells us the scale is wrong.
-        w.clipped=0;
-        for(uint16_t i=0;i<take;i++){
-          int v=waveRing[idx]/WAVE_SCALE;
-          if(v>127 || v<-127) w.clipped++;
-          w.s[i]=(int8_t)constrain(v,-127,127);
-          idx=(uint16_t)((idx+1)%WAVE_RING);
-        }
-        if(xQueueSend(waveQueue,&w,0)!=pdTRUE) waveDrops++;
-      }
+      captureWave(dur,evOpenPole?evPeakN:evPeakS,evOpenPole,0,
+                  evOpenRing,evSampleN,evStartMs);
     }
   } else {
     evReturnMs=0;
@@ -2331,10 +2393,12 @@ static void publishWave(const WaveCap& w,int labelMm){
   snprintf(m,sizeof(m),
     "{\"t\":%lu,\"mm\":%s,\"pol\":\"%c\",\"pk\":%d,\"dur\":%u,"
     "\"pwm\":%u,\"n\":%u,\"sc\":%u,\"pre\":%u,\"tr\":%u,\"clip\":%u,"
+    "\"rej\":%u,"
     "\"drop\":%lu,\"d\":\"%s\"}",
     (unsigned long)w.tMs,mmBuf,w.pole?'N':'S',(int)w.peak,(unsigned)w.durMs,
     (unsigned)w.pwmActual,(unsigned)w.n,(unsigned)WAVE_SCALE,
     (unsigned)WAVE_PRE,(unsigned)w.truncated,(unsigned)w.clipped,
+    (unsigned)w.rej,
     (unsigned long)waveDrops,b);
   pub(T_WAVE,m,false);
 }
@@ -3329,7 +3393,7 @@ void setup(){
   // (~35 s) that overflowed and destroyed 67 marker events on 2026-07-29. This
   // does not fix a stall; it converts a data-destroying failure into a merely
   // delayed one -- survivable, because detectedAtMs is stamped at detection.
-  waveQueue=xQueueCreate(4,sizeof(WaveCap));   // 1.13W: ~1 KB, lossy by design
+  waveQueue=xQueueCreate(8,sizeof(WaveCap));   // 1.13X: ~2 KB, lossy by design
   eventQueue=xQueueCreate(256,sizeof(MarkerEvent));
   if(!eventQueue){ Serial.println("[FATAL] queue alloc failed"); while(1) delay(1000); }
   if(xTaskCreatePinnedToCore(hallTask,"hallTask",4096,nullptr,2,nullptr,0)!=pdPASS){

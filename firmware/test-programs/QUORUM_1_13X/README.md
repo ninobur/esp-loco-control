@@ -11,7 +11,15 @@ Published on `ngr/loco/<id>/mm/wave`:
 
 ```json
 {"t":69,"mm":51,"pol":"N","pk":200,"dur":137,"pwm":90,
- "n":162,"sc":3,"pre":12,"tr":0,"clip":0,"drop":0,"d":"<base64 int8>"}
+ "n":162,"sc":3,"pre":12,"tr":0,"clip":0,"rej":0,"drop":0,"d":"<base64 int8>"}
+
+`rej` is the disposition:
+
+| rej | meaning |
+|---|---|
+| 0 | admitted as a marker |
+| 1 | crossed the magnetic threshold, too short for the 40 ms floor |
+| 2 | sub-threshold — never opened an event at all |
 ```
 
 `d` is `n` samples of `raw - baseline`, divided by `sc`, offset by 128, base64.

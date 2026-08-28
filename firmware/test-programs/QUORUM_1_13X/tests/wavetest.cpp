@@ -17,7 +17,7 @@ HostSerial    Serial;
 HostWiFiClass WiFi;
 HostTwoWire   Wire;
 static void publishWarning(const char* text);
-#include "../QUORUM_1_13W.ino"
+#include "../QUORUM_1_13X.ino"
 
 static int checks=0, fails=0;
 static void ck(const char* what,bool ok){
@@ -97,6 +97,50 @@ int main(){
     ck("stored curve reaches the true peak, not a ceiling",
        abs(mx*WAVE_SCALE-(int)w2.peak) <= WAVE_SCALE*2);
     ck("headroom remains above the observed maximum", 127*WAVE_SCALE > 305);
+  }
+
+  // ---- 1.13X: THE EVENTS 1.13W THREW AWAY ---------------------------------
+  // The floor check used to `return` before the capture, so every excursion
+  // that crossed the magnetic threshold and failed the 40 ms floor was counted
+  // and its shape discarded -- 57 of them in 12 laps, and precisely the
+  // population needed to ask whether anything else looks like a magnet.
+  while(xQueueReceive(waveQueue,&w,0)==pdTRUE){}      // drain
+  printf("\n-- a SHORT excursion: crosses the threshold, fails the 40 ms floor --\n");
+  for(int i=0;i<400;i++) tick();                      // clear the watch gap
+  unsigned long before=floorRejects;
+  for(int i=0;i<12;i++){                              // 12 ms, well under the floor
+    g_hostAnalog = 1800 + (int)(200*sin(M_PI*(double)i/12));
+    tick();
+  }
+  g_hostAnalog=1800;
+  for(int i=0;i<80;i++) tick();
+  ck("the short excursion was refused by the floor", floorRejects==before+1);
+  WaveCap w3; bool got3=(xQueueReceive(waveQueue,&w3,0)==pdTRUE);
+  ck("...and its SHAPE was captured anyway", got3);
+  if(got3){
+    ck("flagged rej=1 (too short), not rej=0", w3.rej==1);
+    ck("carries real samples, not an empty record", w3.n>20);
+    printf("     n=%u dur=%ums peak=%d rej=%u\n",w3.n,w3.durMs,(int)w3.peak,w3.rej);
+  }
+
+  // ---- 1.13X: BELOW THE THRESHOLD ENTIRELY --------------------------------
+  while(xQueueReceive(waveQueue,&w,0)==pdTRUE){}
+  printf("\n-- a SUB-THRESHOLD disturbance: never opens an event at all --\n");
+  for(int i=0;i<400;i++) tick();
+  unsigned long fr=floorRejects;
+  const int SUB=30;                    // above the watch (22), below entry (38)
+  for(int i=0;i<40;i++){
+    g_hostAnalog = 1800 + (int)(SUB*sin(M_PI*(double)i/40));
+    tick();
+  }
+  g_hostAnalog=1800;
+  for(int i=0;i<80;i++) tick();
+  ck("no event was opened by it", floorRejects==fr);
+  WaveCap w4; bool got4=(xQueueReceive(waveQueue,&w4,0)==pdTRUE);
+  ck("...but the watch captured it", got4);
+  if(got4){
+    ck("flagged rej=2 (sub-threshold)", w4.rej==2);
+    printf("     n=%u dur=%ums peak=%d rej=%u\n",w4.n,w4.durMs,(int)w4.peak,w4.rej);
   }
 
   printf("\n%d checks, %d failures\n",checks,fails);
