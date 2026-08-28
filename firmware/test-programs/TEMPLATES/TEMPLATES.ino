@@ -491,7 +491,7 @@
 // agent/cto-mode-1-15); the 1.14 header's note reserving 1.15 for transport
 // resilience is stale — that work moves to 1.17. Third collision; librarian
 // beware.
-#define SKETCH_NAME "TEMPLATES_0_3"
+#define SKETCH_NAME "TEMPLATES_0_3B"
 
 // Broker lives here, not in LocoConfig.h — same as the previous lineage.
 #define MQTT_BROKER "192.168.68.142"
@@ -548,6 +548,32 @@ struct R3Score {
   uint8_t  conf;                                 // 0..100
   uint16_t expPeak, expDur, durN90;
   uint32_t expDt, mapSpanMm;
+};
+
+// TEMPLATES 0.3B — the navigator's per-event disposition and R3's proposal.
+// Early for the same reason as R3Score: the prototype generator cannot hoist
+// signatures that use mid-file types.
+enum NavDisposition : uint8_t {
+  NAV_D_ACCEPTED = 0,       // acceptEvent() ran for THIS event
+  NAV_D_QUARANTINED,        // held as qPending, judged by its successor
+  NAV_D_PHANTOM_REJECTED,   // conservation gate refused (inherited, preserved)
+  NAV_D_NO_POSITION,        // received only
+  NAV_D_NO_DIR,             // received only
+  NAV_D_NOT_PRESENTED,      // R3 held the event; the navigator never saw it
+};
+
+struct R3Proposal {
+  bool     present;        // an identity decision exists (false = bypass)
+  bool     toNav;          // hand the event to the navigator
+  uint8_t  corrOff;        // proposed extra advance (0 = ordinary confirm)
+  uint8_t  mmAtProposal;
+  uint8_t  expectMm, decidedMm, bestOff;
+  uint8_t  confExp;
+  uint8_t  excludedN;      // candidates vetoed as physically unreachable
+  R3Score  dec;            // the deciding candidate's scorecard
+  const char* proposed;    // outcome string
+  unsigned long dtAcc;
+  bool     irAvail; float irDistMm;
 };
 
 
@@ -1509,6 +1535,7 @@ static uint8_t  qHistLen=0, qHistIdx=0;
 static bool        qPendingValid=false;
 static MarkerEvent qPending;
 static uint16_t    qPendingDt=0;
+static uint8_t     qPendingCorrOff=0;   // 0.3B: R3 proposal held with the event
 static uint32_t    qQuarantined=0, qDiscarded=0, qCommitted=0;  // loopstat-grade counters
 static void qNoteAccepted(const MarkerEvent& e, uint16_t dt);
 static uint16_t qMedian(const uint16_t* h, uint8_t n);
@@ -2200,9 +2227,13 @@ static void processNormalComparison(const MarkerEvent& e){
 // NAV_EVALUATING; only NAV_NO_QUORUM stops the locomotive (§2.5 — the old
 // LOST drop to PWM 60 drove the train into the regime that collapses the
 // baseline).
-static void acceptEvent(const MarkerEvent& e){
+static void acceptEvent(const MarkerEvent& e, uint8_t corrOff){
   qNoteAccepted(e, lastSegmentDt);   // §3Q: accepted events train the medians
-  navMm=nextMm(navMm,navDir);
+  // 0.3B: navMm is written HERE and nowhere else on the event path. corrOff
+  // is R3's correction proposal (0 for an ordinary advance): it commits in
+  // the same statement as the acceptance, so a refusal anywhere upstream
+  // leaves position untouched — atomic by construction.
+  navMm=routeMod((int32_t)navMm + (int32_t)navDir*(int32_t)(1+corrOff));
   irOnAccepted(e);                   // IR TEST A §7/§8.3: observation only —
                                      // marker speed + IR anchor; void, no
                                      // navigation effect, inert on Otto.
@@ -2515,9 +2546,29 @@ static void qPublish(const char* verdict, const MarkerEvent& e, uint16_t dt,
 // phantom and the pair never sums to one interval). previousAcceptedDt
 // advances only per the gate rules. Do not make dt accepted-to-accepted.
 // ===========================================================================
-static void navLadder(const MarkerEvent& e, uint16_t dt, bool vouched);
+// 0.3B — ONE AUTHORITATIVE POSITION OUTCOME (CODEX requirements, 2026-08-27).
+// navOnMarker()/navLadder() return the event's final disposition so the R3
+// identity layer can distinguish "my proposal committed" from "the inherited
+// machinery refused it". Root cause of the 82-marker drift: R3 mutated navMm
+// before the phantom detector ruled, never learned the ruling, and resynced
+// its shadow to the wreckage. navMm is now written in exactly ONE place —
+// acceptEvent() — and an R3 correction rides the event through the ladder as
+// a PROPOSAL, committing atomically with acceptance or not at all.
+// (NavDisposition is declared with the early types — prototype-generator trap.)
+static const char* navDispName(uint8_t d){
+  switch(d){
+    case NAV_D_ACCEPTED:         return "ACCEPTED";
+    case NAV_D_QUARANTINED:      return "QUARANTINED";
+    case NAV_D_PHANTOM_REJECTED: return "PHANTOM_REJECTED";
+    case NAV_D_NO_POSITION:      return "NO_POSITION";
+    case NAV_D_NO_DIR:           return "NO_DIR";
+    default:                     return "NOT_PRESENTED";
+  }
+}
+static NavDisposition navLadder(const MarkerEvent& e, uint16_t dt, bool vouched,
+                                uint8_t corrOff);
 
-static void navOnMarker(const MarkerEvent& e){
+static NavDisposition navOnMarker(const MarkerEvent& e, uint8_t r3CorrOff){
   navMarkers++;
   // Timed from DETECTION, not from when loop() got round to draining the
   // queue. Diagnostic only -- no PWM authority. (Codex)
@@ -2532,12 +2583,12 @@ static void navOnMarker(const MarkerEvent& e){
 
   if(navState==NAV_UNSET){
     lastTimingGate="NO_POSITION";
-    return;
+    return NAV_D_NO_POSITION;
   }
   if(navDir==MAP_UNSET){
     lastTimingGate="NO_DIR";
     invalidatePreviousAcceptedDt();
-    return;
+    return NAV_D_NO_DIR;
   }
 
   // ---- §3Q ARBITRATION: a pending event is judged by its successor --------
@@ -2556,8 +2607,12 @@ static void navOnMarker(const MarkerEvent& e){
     // Which marker does THIS event's polarity fit?
     //   H-phantom : pending was spurious -> e is the marker after navMm.
     //   H-genuine : pending was real (at navMm+1) -> e is at navMm+2.
+    // 0.3B: a held event carries its R3 correction proposal (qPendingCorrOff),
+    // so H-genuine means the pending was real at navMm+1+corrOff and e is one
+    // past THAT. H-phantom leaves e as the plain next marker — the proposal
+    // died with the phantom.
     uint8_t mmP = nextMm(navMm,navDir);
-    uint8_t mmG = routeMod((int32_t)navMm + 2*(int32_t)navDir);
+    uint8_t mmG = routeMod((int32_t)navMm + (int32_t)(2+qPendingCorrOff)*(int32_t)navDir);
     bool matchP = (dnaAt(mmP)==e.polarity);
     bool matchG = (dnaAt(mmG)==e.polarity);
     qPendingValid=false;
@@ -2574,7 +2629,7 @@ static void navOnMarker(const MarkerEvent& e){
       qCommitted++;
       qPublish("QUARANTINE_COMMITTED",qPending,qPendingDt,"SUCCESSOR_FITS_GENUINE");
       lastSegmentDt=qPendingDt;
-      navLadder(qPending,qPendingDt,true);
+      navLadder(qPending,qPendingDt,true,qPendingCorrOff);
       irObsFinalize(qPending,"QUARANTINE_COMMITTED");  // IR TEST A: revision-2
                                                        // record; void (§8.3)
       lastSegmentDt=dt;
@@ -2606,24 +2661,26 @@ static void navOnMarker(const MarkerEvent& e){
   // ---- §3Q CREDENTIALS: hold a doubtful event for its successor -----------
   if(qSuspect(e,dt)){
     qPending=e; qPendingDt=dt; qPendingValid=true;
+    qPendingCorrOff=r3CorrOff;   // 0.3B: the proposal is held WITH the event
     qQuarantined++;
     lastTimingGate="QUARANTINED";
     qPublish("QUARANTINED",e,dt,(dt<Q_FLOOR_MS)?"BELOW_PHYSICAL_FLOOR":"CONJUNCTION");
-    return;
+    return NAV_D_QUARANTINED;
   }
 
-  navLadder(e,dt,false);
+  return navLadder(e,dt,false,r3CorrOff);
 }
 
 // The original §3 gate ladder, unchanged except for taking dt as a parameter:
 //   LOW_PWM -> RAMP -> NO_PREV -> ACTIVE
-static void navLadder(const MarkerEvent& e, uint16_t dt, bool vouched){
+static NavDisposition navLadder(const MarkerEvent& e, uint16_t dt, bool vouched,
+                                uint8_t corrOff){
   if(navState==NAV_UNSET){
     // Direction may be known; position is not. No advance, no ring, no
     // last-confirmed, no conservation — navMm holds nothing meaningful to
     // index spacingMm[] with — and no timing history to invalidate.
     lastTimingGate="NO_POSITION";
-    return;
+    return NAV_D_NO_POSITION;
   }
   if(navDir==MAP_UNSET){
     // Received, NOT accepted: there is no direction to advance in.
@@ -2633,15 +2690,15 @@ static void navLadder(const MarkerEvent& e, uint16_t dt, bool vouched){
     // without a direction. Do not reorder them to make this reachable.
     lastTimingGate="NO_DIR";
     invalidatePreviousAcceptedDt();
-    return;
+    return NAV_D_NO_DIR;
   }
   if(e.pwmActualAtDetect < GATE_LOW_PWM_FLOOR){
     // Below the velocity model's validity: accept the advance, and the
     // interval must not seed a later conservation test.
     lastTimingGate="LOW_PWM";
     invalidatePreviousAcceptedDt();
-    acceptEvent(e);
-    return;
+    acceptEvent(e,corrOff);
+    return NAV_D_ACCEPTED;
   }
   if(abs((int)e.pwmActualAtDetect-(int)e.pwmCommandedAtDetect) > GATE_RAMP_DELTA){
     // Mid-ramp — both values from the SAME instant, event open (§3). The
@@ -2649,8 +2706,8 @@ static void navLadder(const MarkerEvent& e, uint16_t dt, bool vouched){
     // between detection and drain cannot turn a steady 100/100 into "RAMP".
     lastTimingGate="RAMP";
     invalidatePreviousAcceptedDt();
-    acceptEvent(e);
-    return;
+    acceptEvent(e,corrOff);
+    return NAV_D_ACCEPTED;
   }
   if(!previousAcceptedDtValid){
     // NO_PREV is a BOOTSTRAP, not a suspension — it ESTABLISHES the
@@ -2669,8 +2726,8 @@ static void navLadder(const MarkerEvent& e, uint16_t dt, bool vouched){
 #else
     if(dt>0){ previousAcceptedDt=dt; previousAcceptedDtValid=true; }
 #endif
-    acceptEvent(e);
-    return;
+    acceptEvent(e,corrOff);
+    return NAV_D_ACCEPTED;
   }
 
   // ACTIVE — the conservation test, the whole rule (§3): did the previous
@@ -2729,8 +2786,8 @@ static void navLadder(const MarkerEvent& e, uint16_t dt, bool vouched){
      fabsf((float)dt-(float)qLastRejectedDt) <= DT_CONSERVE_TOL*(float)qLastRejectedDt){
     qLastRejectedDt=0;
     if(dt<=Q_PREV_SANE_MS){ previousAcceptedDt=dt; previousAcceptedDtValid=true; }
-    acceptEvent(e);
-    return;
+    acceptEvent(e,corrOff);
+    return NAV_D_ACCEPTED;
   }
 #endif
   if(!vouched && errorMs <= DT_CONSERVE_TOL*expectedDtMs){
@@ -2752,7 +2809,7 @@ static void navLadder(const MarkerEvent& e, uint16_t dt, bool vouched){
 #ifdef Q_TIMING_MEASURED
     qLastRejectedDt=dt;
 #endif
-    return;
+    return NAV_D_PHANTOM_REJECTED;
   }
   // Every accepted ACTIVE event replaces the predecessor — the variable means
   // "the interval of the LAST ACCEPTED event", so it advances with each
@@ -2764,7 +2821,8 @@ static void navLadder(const MarkerEvent& e, uint16_t dt, bool vouched){
 #else
   previousAcceptedDt=dt; previousAcceptedDtValid=true;
 #endif
-  acceptEvent(e);
+  acceptEvent(e,corrOff);
+  return NAV_D_ACCEPTED;
 }
 
 // ===========================================================================
@@ -4369,6 +4427,18 @@ static void serviceCommands(){
 // no longer stall loop(). (The online/boot/alert publishes go through pub(),
 // i.e. onto pubQueue, and are flushed by networkTask on its next pass.)
 static unsigned long nextMqttTryMs=0;
+// 0.3a: WiFi and MQTT connection CONFIRMATION, logged on every transition —
+// not just the boot-time snapshot above. This is what makes a live drop
+// (the broker's "exceeded timeout, disconnecting") visible on serial at
+// all; previously only a SUCCESSFUL reconnect printed anything.
+static bool wifiWasUp=false;
+static void logWifiTransition(bool up){
+  if(up==wifiWasUp) return;
+  wifiWasUp=up;
+  if(up) Serial.printf("[NET] WiFi UP ip=%s rssi=%d ch=%d\n",
+           WiFi.localIP().toString().c_str(),WiFi.RSSI(),WiFi.channel());
+  else   Serial.println("[NET] WiFi DOWN");
+}
 static void attemptReconnect(){
   unsigned long now=millis();
   if(now<nextMqttTryMs) return;
@@ -4377,6 +4447,16 @@ static void attemptReconnect(){
   mqttAttempts++;
   bool ok=mqtt.connect(LOCO_NAME,T_ONLINE,0,true,"0");
   mqttConnectMs=millis()-t0;
+  if(!ok){
+    // mqtt.state(): PubSubClient's own reason code, -4..-1 = client/transport
+    // side (no TCP reach, socket lost, refused, or plain not-connected-yet),
+    // 1..5 = the BROKER rejected the CONNECT (bad protocol, id, credentials,
+    // server unavailable, not authorized) — a materially different failure
+    // than "never reached the broker at all", and until now indistinguishable
+    // from serial output.
+    Serial.printf("[NET] MQTT connect FAILED state=%d wifi=%d rssi=%d (%lu ms)\n",
+      mqtt.state(),(int)WiFi.status(),WiFi.RSSI(),mqttConnectMs);
+  }
   if(ok){
     pub(T_ONLINE,"1",true);
     publishAllStatesRetained();        // Change 3c: reseed all ten state topics
@@ -4401,6 +4481,7 @@ static void attemptReconnect(){
 // WiFi needs more than hallTask's 4096.
 static void networkTask(void*){
   for(;;){
+    logWifiTransition(WiFi.status()==WL_CONNECTED);
     if(WiFi.status()==WL_CONNECTED){
       // LAYER 5: ESP-NOW must init after the STA has a channel; once, guarded.
       // Runs on the network task — esp_now_init/register are its only calls
@@ -4619,6 +4700,10 @@ static inline uint16_t durationAt(uint8_t mm){ return pgm_read_word(&durationMs9
 // construction: a stopped unpowered wheel accrues no pulses, so IR distance
 // stays truthful across a dwell. That asymmetry is why IR is worth carrying.
 #define R3_DWELL_ABSENT_FACTOR 3.0f
+// Physical envelope VETO for candidates (not a weighted attribute): the same
+// 800 mm/s bound Q_FLOOR_MS derives from (fleet p99.9 max 441 mm/s, ~1.8x
+// margin). A candidate whose implied speed exceeds it is excluded outright.
+#define R3_MAX_MMPS 800.0f
 
 // ---- state ----------------------------------------------------------------
 static uint16_t r3UnresolvedStreak=0;
@@ -4631,6 +4716,7 @@ static bool     r3VelValid=false;
 static uint32_t r3IrPulseSnap=0;
 static bool     r3IrSnapValid=false;
 static uint32_t r3Confirmed=0, r3Unresolved=0, r3CorrectedN=0, r3Bypassed=0;
+static uint32_t r3NavRefused=0;   // 0.3B: proposals the navigator refused
 
 // Linear closeness: 100 at obs==exp, 0 at fractional deviation >= tol.
 static int r3Closeness(float obs, float exp, float tol){
@@ -4708,57 +4794,86 @@ static void r3ScoreCandidate(const MarkerEvent& e, uint8_t candMm, uint8_t off,
 }
 
 // §10: every decision must be reconstructible offline without inference.
-static void r3Publish(const char* outcome, const MarkerEvent& e,
-                      uint8_t expectMm, uint8_t decidedMm, uint8_t bestOff,
-                      const R3Score& dec, uint8_t confExp,
-                      unsigned long dtAcc, bool irAvail, float irDistMm,
-                      uint8_t mmBefore, uint8_t mmAfter, uint8_t corrOff){
+// 0.3B: ONE publish per identity decision, AFTER the navigator has ruled, so
+// the record carries BOTH halves — R3's proposal and the committed outcome.
+// The 512-byte PubMsg bound forces short keys (same doctrine as IR §9.3's
+// key-shortening); fixed mapping, schema stable:
+//   t=detect ms  prop=proposed outcome  nav=navigator disposition
+//   cm=committed 0/1  mm=navMm at proposal  mmf=final navMm
+//   exp/dec=expected/decided marker  off=decided offset
+//   pol/pole=observed/expected polarity  pk/epk=peak obs/expected
+//   du/dn/edu=duration raw/normalized/expected  dt/edt=elapsed/expected ms
+//   map=map span mm  ir=IR distance mm or null
+//   s=[pol,str,dur,tim,seq,ir] scores, -1 unavailable  w=avail denominator
+//   cf/cfe=confidence decided/expected  cmin/xmin=confirm/correct thresholds
+//   un=unresolved streak  ex=candidates vetoed physically unreachable
+//   nc/nu/nx/nr/nb=counters confirmed/unresolved/corrections-committed/
+//   navigator-refusals/bypassed
+// (R3Proposal is declared with the early types — prototype-generator trap.)
+
+static void r3PublishDecision(const R3Proposal& p, const MarkerEvent& e,
+                              uint8_t navDisp){
   static char m[512];   // loop thread only
-  char irBuf[24];
-  if(irAvail) snprintf(irBuf,sizeof(irBuf),"%ld",(long)(irDistMm+0.5f));
-  else        strlcpy(irBuf,"null",sizeof(irBuf));
+  char irBuf[16];
+  if(p.irAvail) snprintf(irBuf,sizeof(irBuf),"%ld",(long)(p.irDistMm+0.5f));
+  else          strlcpy(irBuf,"null",sizeof(irBuf));
+  bool committed = (navDisp==NAV_D_ACCEPTED);
   snprintf(m,sizeof(m),
-    "{\"t_ms\":%lu,\"outcome\":\"%s\",\"mm\":%u,\"adv_to\":%u,\"dir\":\"%s\","
-    "\"expect_mm\":%u,\"decided_mm\":%u,\"best_off\":%u,\"corr_off\":%u,"
-    "\"pol\":\"%c\",\"pol_exp\":\"%c\",\"peak\":%d,\"exp_peak\":%u,"
-    "\"dur_ms\":%u,\"dur_n90\":%u,\"exp_dur\":%u,"
-    "\"dt\":%lu,\"exp_dt\":%lu,\"map_mm\":%lu,\"ir_mm\":%s,"
-    "\"s\":[%d,%d,%d,%d,%d,%d],\"w\":%u,\"conf\":%u,\"conf_exp\":%u,"
-    "\"confirm_min\":%u,\"correct_min\":%u,\"unres\":%u,"
-    "\"n_conf\":%lu,\"n_unres\":%lu,\"n_corr\":%lu,\"n_byp\":%lu}",
-    (unsigned long)e.detectedAtMs, outcome, mmBefore, mmAfter, dirName(navDir),
-    expectMm, decidedMm, (unsigned)bestOff, (unsigned)corrOff,
-    polChar(e.polarity), dnaAt(decidedMm)?'N':'S', e.peak, (unsigned)dec.expPeak,
-    (unsigned)e.durationMs, (unsigned)dec.durN90, (unsigned)dec.expDur,
-    (unsigned long)dtAcc, (unsigned long)dec.expDt, (unsigned long)dec.mapSpanMm, irBuf,
-    dec.sPol,dec.sStr,dec.sDur,dec.sTim,dec.sSeq,dec.sIr,
-    (unsigned)dec.wAvail,(unsigned)dec.conf,(unsigned)confExp,
-    (unsigned)R3_CONFIRM_PCT,(unsigned)R3_CORRECT_PCT,(unsigned)r3UnresolvedStreak,
+    "{\"t\":%lu,\"prop\":\"%s\",\"nav\":\"%s\",\"cm\":%u,"
+    "\"mm\":%u,\"mmf\":%u,\"dir\":\"%s\",\"exp\":%u,\"dec\":%u,\"off\":%u,"
+    "\"pol\":\"%c\",\"pole\":\"%c\",\"pk\":%d,\"epk\":%u,"
+    "\"du\":%u,\"dn\":%u,\"edu\":%u,\"dt\":%lu,\"edt\":%lu,\"map\":%lu,\"ir\":%s,"
+    "\"s\":[%d,%d,%d,%d,%d,%d],\"w\":%u,\"cf\":%u,\"cfe\":%u,"
+    "\"cmin\":%u,\"xmin\":%u,\"un\":%u,\"ex\":%u,"
+    "\"nc\":%lu,\"nu\":%lu,\"nx\":%lu,\"nr\":%lu,\"nb\":%lu}",
+    (unsigned long)e.detectedAtMs, p.proposed, navDispName(navDisp),
+    committed?1u:0u,
+    p.mmAtProposal, navMm, dirName(navDir), p.expectMm, p.decidedMm,
+    (unsigned)p.bestOff,
+    polChar(e.polarity), dnaAt(p.decidedMm)?'N':'S', e.peak,
+    (unsigned)p.dec.expPeak,
+    (unsigned)e.durationMs, (unsigned)p.dec.durN90, (unsigned)p.dec.expDur,
+    (unsigned long)p.dtAcc, (unsigned long)p.dec.expDt,
+    (unsigned long)p.dec.mapSpanMm, irBuf,
+    p.dec.sPol,p.dec.sStr,p.dec.sDur,p.dec.sTim,p.dec.sSeq,p.dec.sIr,
+    (unsigned)p.dec.wAvail,(unsigned)p.dec.conf,(unsigned)p.confExp,
+    (unsigned)R3_CONFIRM_PCT,(unsigned)R3_CORRECT_PCT,
+    (unsigned)r3UnresolvedStreak,(unsigned)p.excludedN,
     (unsigned long)r3Confirmed,(unsigned long)r3Unresolved,
-    (unsigned long)r3CorrectedN,(unsigned long)r3Bypassed);
+    (unsigned long)r3CorrectedN,(unsigned long)r3NavRefused,
+    (unsigned long)r3Bypassed);
   pub(T_R3_ADMIT,m,false);
 }
 
-// The identity test. Returns true when the event should proceed to
-// navOnMarker(); false when it is HELD (MAGNET_UNRESOLVED).
-static bool r3Gate(const MarkerEvent& e){
-  // Stand aside wherever QUORUM's machinery owns the event (see header).
+// The identity test — 0.3B: PROPOSES, never commits. navMm is not touched
+// here (CODEX req 1); a correction rides the event into the ladder and lands
+// only inside acceptEvent(), atomically with acceptance (req 3).
+static void r3Evaluate(const MarkerEvent& e, R3Proposal& p){
+  p.present=false; p.toNav=true; p.corrOff=0;
+  // Stand aside wherever QUORUM's machinery owns the event (see header) —
+  // and also when the shadow anchor disagrees with navMm: the navigator
+  // moved position without an R3-witnessed acceptance (relocation,
+  // quarantine commit), so dtAcc/IR spans measured from the shadow would be
+  // wrong. The next ACCEPTED event resyncs the anchor.
   if(navState!=NAV_NORMAL || navDir==MAP_UNSET || !r3Synced
+     || r3LastAcceptMm!=navMm
      || adoptionPendingValidation || qPendingValid){
     r3Bypassed++;
-    return true;
+    return;
   }
 
-  unsigned long dtAcc = e.detectedAtMs - r3LastAcceptMs;
+  p.present=true;
+  p.mmAtProposal=navMm;
+  p.dtAcc = e.detectedAtMs - r3LastAcceptMs;
 
   // IR availability: snapshot valid, link fresh, counter monotonic.
-  bool irAvail=false; float irDistMm=0.0f;
+  p.irAvail=false; p.irDistMm=0.0f;
 #if IR_TEST_A_ON
   if(r3IrSnapValid && irHaveLatest
      && (millis()-irLatestRxMs)<=R3_IR_FRESH_MS
      && (int32_t)(irLastPulses-r3IrPulseSnap)>=0){
-    irDistMm=(float)(irLastPulses-r3IrPulseSnap)*IR_MM_PER_PULSE;
-    irAvail=true;
+    p.irDistMm=(float)(irLastPulses-r3IrPulseSnap)*IR_MM_PER_PULSE;
+    p.irAvail=true;
   }
 #endif
 
@@ -4774,58 +4889,74 @@ static bool r3Gate(const MarkerEvent& e){
                 || (e.pwmActualAtDetect < GATE_LOW_PWM_FLOOR);
   if(!timAbsent && r3VelValid){
     float maxExp=(float)spanMm(navMm,navDir,nCand)/r3VelMmPerMs;
-    if((float)dtAcc > R3_DWELL_ABSENT_FACTOR*maxExp) timAbsent=true;
+    if((float)p.dtAcc > R3_DWELL_ABSENT_FACTOR*maxExp) timAbsent=true;
   }
 
+  // Score every candidate; VETO the physically unreachable ones outright.
+  // The veto is the Q_FLOOR_MS doctrine applied to identity: a candidate
+  // whose map distance demands more than R3_MAX_MMPS over the measured
+  // elapsed time CANNOT be this passage, whatever its other attributes say.
+  // Physical impossibility is decisive, never merely one weighted opinion
+  // (operator question, 2026-08-27; the run log showed off=3 corrections
+  // implying ~1,090 mm/s adopted at 76-83% confidence).
   R3Score sc[R3_CAND_MAX];
-  uint8_t bestIdx=0;
+  bool excl[R3_CAND_MAX];
+  uint8_t excludedN=0;
+  int bestIdx=-1;
   uint8_t expectMm=nextMm(navMm,navDir);
   for(uint8_t j=0;j<nCand;j++){
     uint8_t candMm=routeMod((int32_t)navMm + (int32_t)navDir*(int32_t)(1+j));
-    r3ScoreCandidate(e,candMm,j,dtAcc,timAbsent,irAvail,irDistMm,sc[j]);
-    if(sc[j].conf>sc[bestIdx].conf) bestIdx=j;   // ties resolve to the NEARER
+    r3ScoreCandidate(e,candMm,j,p.dtAcc,timAbsent,p.irAvail,p.irDistMm,sc[j]);
+    excl[j] = ((float)sc[j].mapSpanMm*1000.0f > R3_MAX_MMPS*(float)p.dtAcc);
+    if(excl[j]){ excludedN++; continue; }
+    if(bestIdx<0 || sc[j].conf>sc[bestIdx].conf) bestIdx=j;  // ties -> NEARER
   }
-  uint8_t confExp=sc[0].conf;
-  uint8_t bestMm=routeMod((int32_t)navMm + (int32_t)navDir*(int32_t)(1+bestIdx));
+  p.excludedN=excludedN;
+  p.expectMm=expectMm;
+  p.confExp=excl[0]?0:sc[0].conf;
 
   // Decision order: correction authority first (it must BEAT the expected
   // candidate and clear its own, higher bar), then ordinary confirmation,
   // then hold. A strong-but-unexpected read is a warning, not automatic
-  // confirmation (spec §1).
-  if(bestIdx>0 && sc[bestIdx].conf>=R3_CORRECT_PCT && sc[bestIdx].conf>confExp){
-    uint8_t mmBefore=navMm;
-    navMm=routeMod((int32_t)navMm + (int32_t)navDir*(int32_t)bestIdx);
-    r3CorrectedN++;
-    r3Publish("R3_CORRECTED",e,expectMm,bestMm,bestIdx,sc[bestIdx],confExp,
-              dtAcc,irAvail,irDistMm,mmBefore,bestMm,bestIdx);
-    r3UnresolvedStreak=0;
-    return true;    // navigator advances TO bestMm and compares as today
+  // confirmation (spec §1). All outcomes are PROPOSALS until the ladder
+  // accepts; counters are committed in drainMarkers on the disposition.
+  if(bestIdx>0 && sc[bestIdx].conf>=R3_CORRECT_PCT
+     && sc[bestIdx].conf>p.confExp){
+    p.proposed="R3_CORRECTED";
+    p.bestOff=(uint8_t)bestIdx;
+    p.corrOff=(uint8_t)bestIdx;
+    p.decidedMm=routeMod((int32_t)navMm + (int32_t)navDir*(int32_t)(1+bestIdx));
+    p.dec=sc[bestIdx];
+    p.toNav=true;
+    return;
   }
-  if(confExp>=R3_CONFIRM_PCT){
-    r3Confirmed++;
-    r3Publish("TARGET_CONFIRMED",e,expectMm,expectMm,bestIdx,sc[0],confExp,
-              dtAcc,irAvail,irDistMm,navMm,expectMm,0);
-    r3UnresolvedStreak=0;
-    return true;
+  if(bestIdx==0 && sc[0].conf>=R3_CONFIRM_PCT){
+    p.proposed="TARGET_CONFIRMED";
+    p.bestOff=0; p.corrOff=0;
+    p.decidedMm=expectMm;
+    p.dec=sc[0];
+    p.toNav=true;
+    return;
   }
   // MAGNET_UNRESOLVED — held. Never reaches the navigator, never advances
   // position, never reconsidered. Counted, so a later confirmed passage can
-  // close the gap through the sequence attribute.
-  if(r3UnresolvedStreak<R3_UNRESOLVED_CAP) r3UnresolvedStreak++;
-  r3Unresolved++;
-  r3Publish("MAGNET_UNRESOLVED",e,expectMm,expectMm,bestIdx,sc[0],confExp,
-            dtAcc,irAvail,irDistMm,navMm,navMm,0);
-  return false;
+  // close the gap through the sequence attribute. Also the outcome when
+  // EVERY candidate is physically unreachable (ex carries the count).
+  p.proposed="MAGNET_UNRESOLVED";
+  p.bestOff=(bestIdx>=0)?(uint8_t)bestIdx:0;
+  p.corrOff=0;
+  p.decidedMm=expectMm;
+  p.dec=sc[0];
+  p.toNav=false;
 }
 
-// Post-navigator bookkeeping, called from drainMarkers() after navOnMarker().
-// Self-healing sync: r3LastAcceptMm tracks navMm through R3's OWN accepted
-// events; any navMm the navigator moved without R3 (quarantine commit walks
-// it two, adoption/self-resolution/declaration relocate it arbitrarily) is
-// re-synced here, and a relocation R3 cannot walk to invalidates the
-// velocity estimate rather than poisoning it.
-static void r3NoteAfterNav(const MarkerEvent& e){
-  if(r3Synced && navMm==r3LastAcceptMm) return;   // event was not accepted
+// Post-navigator bookkeeping — 0.3B: driven by the DISPOSITION, never by
+// inference from navMm. Req 4: only an ACCEPTED event may move the shadow;
+// a refusal (QUARANTINED / PHANTOM_REJECTED / NO_*) leaves the last
+// confirmed anchor untouched, so repeated refusals can no longer accumulate
+// drift — the regression the MM101-104 sequence exposed.
+static void r3NoteAfterNav(const MarkerEvent& e, uint8_t navDisp){
+  if(navDisp!=NAV_D_ACCEPTED) return;
   if(r3Synced){
     uint32_t span=0; uint8_t cur=r3LastAcceptMm; bool walked=false;
     for(uint8_t i=0;i<8;i++){
@@ -4849,7 +4980,7 @@ static void r3NoteAfterNav(const MarkerEvent& e){
   r3LastAcceptMm=navMm;
   r3LastAcceptMs=e.detectedAtMs;
   r3Synced=(navState==NAV_NORMAL||navState==NAV_EVALUATING) && navDir!=MAP_UNSET;
-  r3UnresolvedStreak=0;   // an acceptance closes any open gap
+  r3UnresolvedStreak=0;   // a committed acceptance closes any open gap
 #if IR_TEST_A_ON
   if(irHaveLatest){ r3IrPulseSnap=irLastPulses; r3IrSnapValid=true; }
   else r3IrSnapValid=false;
@@ -4892,22 +5023,45 @@ static void drainMarkers(){
 #endif
   while(eventQueue && xQueueReceive(eventQueue,&e,0)==pdTRUE){
 #ifdef TEMPLATES_ADMISSION
-    // TEMPLATES 0.3: the R3 identity test decides here, before the navigator
-    // sees the event. A held (MAGNET_UNRESOLVED) event is fully recorded on
-    // diag/r3_admit and goes no further — it does not reach the navigator,
-    // IR TEST A observation, or the mm/marker publish, and it is never
-    // reconsidered. A correction (bounded, forward-only, ≥ R3_CORRECT_PCT)
-    // has already moved navMm before the navigator runs.
-    if(!r3Gate(e)) continue;
+    // TEMPLATES 0.3B: the R3 identity test PROPOSES here; the navigator
+    // DISPOSES below, and only its disposition commits anything. A held
+    // (MAGNET_UNRESOLVED) event is fully recorded on diag/r3_admit and goes
+    // no further — it does not reach the navigator, IR TEST A observation,
+    // or the mm/marker publish, and it is never reconsidered. A correction
+    // proposal rides INTO the ladder and lands only inside acceptEvent(),
+    // atomically with acceptance — navMm is untouched on any refusal.
+    R3Proposal r3p;
+    r3Evaluate(e,r3p);
+    if(r3p.present && !r3p.toNav){
+      if(r3UnresolvedStreak<R3_UNRESOLVED_CAP) r3UnresolvedStreak++;
+      r3Unresolved++;
+      r3PublishDecision(r3p,e,NAV_D_NOT_PRESENTED);
+      continue;
+    }
 #endif
     // IR TEST A §8.1/§9.3: estimate before navOnMarker changes any state,
     // publish the revision-1 record after. Shared with the harness so the
     // replay exercises the same path (inert stubs on Otto).
     irObserveEventPre(e);
-    navOnMarker(e);
+#ifdef TEMPLATES_ADMISSION
+    NavDisposition navDisp = navOnMarker(e, r3p.present ? r3p.corrOff : 0);
+#else
+    navOnMarker(e,0);
+#endif
     irObserveEventPost(e);
 #ifdef TEMPLATES_ADMISSION
-    r3NoteAfterNav(e);   // sync, velocity, IR snapshot, streak close
+    if(r3p.present){
+      // Counters record COMMITTED outcomes; a refusal is its own bucket and
+      // the shadow does not move (req 4/5).
+      if(navDisp==NAV_D_ACCEPTED){
+        if(r3p.corrOff) r3CorrectedN++; else r3Confirmed++;
+        r3UnresolvedStreak=0;
+      }else{
+        r3NavRefused++;
+      }
+      r3PublishDecision(r3p,e,navDisp);
+    }
+    r3NoteAfterNav(e,navDisp);   // disposition-driven: ACCEPTED only
 #endif
     // §5.1 marker payload contract — the raw event fields plus dt,
     // timing_gate, dt_expected, dt_conserve_ratio. Scores, streaks, leaders
@@ -6277,6 +6431,23 @@ void setup(){
   WiFi.persistent(false);
   WiFi.setSleep(false);
   WiFi.begin(WIFI_SSID,WIFI_PASS);
+  // 0.3a: bounded confirmation only — never a precondition for anything
+  // downstream. networkTask retries WiFi/MQTT/ESP-NOW forever regardless of
+  // what happens in this loop; this just gives the operator a boot-time
+  // verdict instead of silence (2026-08-27: TEMPLATES had none, and a WiFi
+  // association failure was indistinguishable on serial from a healthy
+  // UNSET boot for 200+ seconds).
+  {
+    unsigned long wt0=millis();
+    while(WiFi.status()!=WL_CONNECTED && millis()-wt0<8000UL) delay(200);
+    if(WiFi.status()==WL_CONNECTED)
+      Serial.printf("[NET] WiFi UP ip=%s rssi=%d ch=%d (%lu ms)\n",
+        WiFi.localIP().toString().c_str(),WiFi.RSSI(),WiFi.channel(),
+        millis()-wt0);
+    else
+      Serial.printf("[NET] WiFi NOT YET UP after %lu ms, status=%d — "
+        "networkTask keeps trying\n",millis()-wt0,(int)WiFi.status());
+  }
 #if IR_TEST_A_ON
   // Bench pairing step 1 (sender spec §11.3): Toby's STA MAC, printed where
   // the operator can read it. Valid as soon as the mode is set.
