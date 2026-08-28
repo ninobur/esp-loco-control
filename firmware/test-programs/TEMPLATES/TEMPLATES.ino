@@ -491,7 +491,7 @@
 // agent/cto-mode-1-15); the 1.14 header's note reserving 1.15 for transport
 // resilience is stale — that work moves to 1.17. Third collision; librarian
 // beware.
-#define SKETCH_NAME "TEMPLATES_0_3B"
+#define SKETCH_NAME "TEMPLATES_0_3C"
 
 // Broker lives here, not in LocoConfig.h — same as the previous lineage.
 #define MQTT_BROKER "192.168.68.142"
@@ -4915,24 +4915,49 @@ static void r3Evaluate(const MarkerEvent& e, R3Proposal& p){
   p.expectMm=expectMm;
   p.confExp=excl[0]?0:sc[0].conf;
 
-  // Decision order: correction authority first (it must BEAT the expected
-  // candidate and clear its own, higher bar), then ordinary confirmation,
-  // then hold. A strong-but-unexpected read is a warning, not automatic
-  // confirmation (spec §1). All outcomes are PROPOSALS until the ladder
-  // accepts; counters are committed in drainMarkers on the disposition.
-  if(bestIdx>0 && sc[bestIdx].conf>=R3_CORRECT_PCT
-     && sc[bestIdx].conf>p.confExp){
+  // Decision order — 0.3C (first field run of 0.3B, decision 0046):
+  //
+  // CORRECTION AUTHORITY REQUIRES A WITNESSED GAP. R3 may propose a
+  // correction ONLY for the candidate whose offset equals the unresolved
+  // streak — a gap R3 itself observed as held, magnet-like passages (the
+  // MM140-142 case this revision was built for). The first 0.3B run
+  // produced 34 corrections in one lap, ~28 of them claiming one to five
+  // SILENT missed magnets on a single event's evidence with zero held
+  // passages behind them (seq=0): with strength/timing/IR absent the
+  // denominator shrinks until polarity+duration alone score 83%, and every
+  // ordinary polarity misread on alternating DNA becomes "there must have
+  // been a silent magnet". The operator's own falsification criterion for
+  // the 67% bar fired. Silent-miss relocation belongs to QUORUM, which
+  // demands three disagreements plus sequence margin (spec §3.3: a
+  // correction comes from accumulated agreement across successive markers,
+  // never a single event; CODEX hierarchy item 6).
+  //
+  // CONFIRMATION reverts to the plain threshold on the EXPECTED candidate.
+  // 0.3B's stricter "expected must also be the best candidate" rule is
+  // REMOVED: the far candidates' inflated scores were blocking ordinary
+  // confirmations, converting polarity misreads into holds instead of
+  // DISAGREEs — which starves QUORUM's missStreak and disables the very
+  // recovery machinery silent misses now rely on. A wrong-polarity but
+  // otherwise-matching passage confirms (>=50), publishes DISAGREE
+  // downstream, and feeds QUORUM exactly as the 0.2 lineage did.
+  //
+  // All outcomes remain PROPOSALS until the ladder accepts; counters are
+  // committed in drainMarkers on the disposition. bestIdx is telemetry.
+  uint8_t gapJ = (uint8_t)r3UnresolvedStreak;   // the ONLY correction offset
+  if(gapJ>0 && gapJ<nCand && !excl[gapJ]
+     && sc[gapJ].conf>=R3_CORRECT_PCT && sc[gapJ].conf>p.confExp){
     p.proposed="R3_CORRECTED";
-    p.bestOff=(uint8_t)bestIdx;
-    p.corrOff=(uint8_t)bestIdx;
-    p.decidedMm=routeMod((int32_t)navMm + (int32_t)navDir*(int32_t)(1+bestIdx));
-    p.dec=sc[bestIdx];
+    p.bestOff=(bestIdx>=0)?(uint8_t)bestIdx:0;
+    p.corrOff=gapJ;
+    p.decidedMm=routeMod((int32_t)navMm + (int32_t)navDir*(int32_t)(1+gapJ));
+    p.dec=sc[gapJ];
     p.toNav=true;
     return;
   }
-  if(bestIdx==0 && sc[0].conf>=R3_CONFIRM_PCT){
+  if(!excl[0] && sc[0].conf>=R3_CONFIRM_PCT){
     p.proposed="TARGET_CONFIRMED";
-    p.bestOff=0; p.corrOff=0;
+    p.bestOff=(bestIdx>=0)?(uint8_t)bestIdx:0;
+    p.corrOff=0;
     p.decidedMm=expectMm;
     p.dec=sc[0];
     p.toNav=true;

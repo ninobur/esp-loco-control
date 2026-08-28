@@ -423,6 +423,42 @@ static void t8_evaluating_bypass(){
 }
 
 // ---------------------------------------------------------------------------
+// T9 — 0.3C: a single-event "silent magnet" claim must NOT correct.
+// The first 0.3B field run advanced itself a lap-plus by treating every
+// pattern disagreement as a silently missed magnet. With no held passages
+// (streak 0) a wrong-polarity-else-clean event must confirm at the EXPECTED
+// marker (advancing exactly one, publishing DISAGREE so QUORUM's missStreak
+// grows) — never jump ahead.
+// ---------------------------------------------------------------------------
+static void t9_no_silent_miss_correction(){
+  printf("T9 silent-miss claim does not correct\n");
+  // alternating region: the off=1 candidate polarity-matches a misread
+  int p=-1;
+  for(int q=0;q<DNA_N;q++){
+    uint8_t m1=routeMod(q+11), m2=routeMod(q+12);
+    if(dnaAt(m1)!=dnaAt(m2)){ p=q; break; }
+  }
+  ck(p>=0, "alternating region exists");
+  bootAt((uint8_t)p);
+  warmup(10);
+  uint8_t Q = navMm;
+  unsigned long corrBefore = r3CorrectedN;
+  unsigned long disagreeBefore = navDisagree;
+  // wrong polarity, everything else matching the expected marker: exactly
+  // the shape that produced the runaway (pol=100 at off=1, seq=0)
+  uint8_t next=nextMm(navMm,navDir);
+  {
+    int peak=(int)(190u*strengthAt(next)/100u);
+    inject(dnaAt(next)?0:1, peak, (uint16_t)durationAt(next), steadyDt(), 90, 90);
+  }
+  ckEq(navMm, routeMod(Q+1), "misread advances exactly ONE marker, not two");
+  ckEq((long)(r3CorrectedN-corrBefore), 0, "no correction on a single-event claim");
+  ck(navDisagree>disagreeBefore, "DISAGREE published — QUORUM stays fed");
+  const Cap* r3 = lastOn("diag/r3_admit");
+  ck(payloadHas(r3,"\"prop\":\"TARGET_CONFIRMED\""), "confirmed at the expected marker");
+}
+
+// ---------------------------------------------------------------------------
 int main(){
   // minimal init mirroring setup()'s relevant slice: queues + topics
   pubQueue=xQueueCreate(256,sizeof(PubMsg));
@@ -440,6 +476,7 @@ int main(){
   t6_quarantine_discard();
   t7_relocation_resync();
   t8_evaluating_bypass();
+  t9_no_silent_miss_correction();
 
   printf("\n%d checks, %d failures\n", checks, failures);
   return failures ? 1 : 0;
