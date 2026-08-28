@@ -1,0 +1,6 @@
+# Fixtures are DERIVED, and run_suite.py regenerates them on every run.
+# They are deterministic given two committed inputs — the capture at
+# field-records/logs/20260810_IR_SPEED_LOCAL_1_2_otto.log, which never changes,
+# and the generators here — so the golden is frozen transitively without
+# carrying 600 KB of regenerable JSON in the tree.
+fixtures/
