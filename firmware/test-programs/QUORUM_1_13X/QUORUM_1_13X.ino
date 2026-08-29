@@ -422,7 +422,15 @@ struct StationDefinition {
 //   rej=2  a SUB-THRESHOLD disturbance that never opened an event at all
 // The watch runs only while no real event is active, is rate limited, and is
 // lossy with a visible drop count -- it may never cost a marker.
-#define WATCH_ENTER_FRAC  60   // % of the entry margin; below the detector's own
+// 40%, not 60%. At 60% the watch triggered at ~22 counts, which is about four
+// times the sensor's own noise (measured 2026-08-28: 4.1 counts RMS on the quiet
+// baseline inside real captures). That sees only strong disturbances. The point
+// of the survey is to find out WHAT IS OUT THERE, so the aperture opens to ~15
+// counts, near three sigma. Two guards make that safe rather than a firehose:
+// a disturbance must last WATCH_MIN_MS to be recorded, which random noise will
+// not sustain, and captures are rate limited to WATCH_MIN_GAP_MS apart. The
+// queue is lossy and its drops are published, so if this floods, it says so.
+#define WATCH_ENTER_FRAC  40   // % of the entry margin; below the detector's own
 #define WATCH_MIN_MS      12   // ignore single-sample specks
 #define WATCH_MIN_GAP_MS 250   // at most ~4 per second
 
