@@ -714,33 +714,20 @@ static void updateBaseline(int raw,unsigned long now){
 // ===========================================================================
 #define EVENT_EXIT_HOLD_MS   20UL
 #define EVENT_FLOOR_MS       40UL
-// THE FALSE-SIGNAL GATE (1.13D). One physical magnet can produce a SECOND
-// accepted event, and it happens in BOTH orders:
-//   - Toby 2026-08-28: the real magnet first, then its dipole rebound 139-347 ms
-//     later at 38-44 counts, opposite pole.
-//   - Otto 2026-08-10: a brief weak precursor FIRST (42-74 counts, 45-80 ms),
-//     then the real magnet 70-108 ms later.
-// A debounce that keeps whichever arrives first is therefore wrong half the
-// time -- on the Otto capture it would preserve the precursor and discard the
-// magnet. Order does not identify the impostor.
-//
-// AMPLITUDE does, but only RELATIVE amplitude. A fixed floor cannot work
-// across locomotives: Otto's genuine magnets read ~50 counts where Toby's read
-// ~190, so any count that rejects a Toby rebound (43) also rejects a real Otto
-// magnet (50). Measured against the running median of recently accepted peaks,
-// the two populations separate cleanly on both datasets:
-//     false events  max ratio 0.26
-//     real magnets  1st percentile 0.63, and Otto's weak ones sit at 1.01
-// A gate at 0.40 kills 14 of 14 known false events across 9060 crossings and
-// costs zero real magnets in the Otto capture.
-//
-// Applied only at or above GATE_LOW_PWM_FLOOR. Below it the locomotive is
-// stopped or crawling and readings degrade honestly -- 7 of the 8 real magnets
-// this rule would otherwise refuse were at PWM 0-72, sitting on the magnet
-// during a stall.
-#define WEAK_RATIO_PCT       40   // % of the running median, below which refuse
-#define WEAK_HISTORY          11  // accepted peaks kept
-#define WEAK_HISTORY_MIN       8  // needed before the gate may fire
+// MARKER DEBOUNCE (1.13D). One physical magnet can produce a SECOND event: as
+// the sensor clears it the dipole field reverses, and on the strongest magnets
+// that rebound is large enough to cross the entry threshold. Measured
+// 2026-08-28: 14 such re-reads, arriving 139-347 ms after the magnet, carrying
+// 38-44 counts against 140+ for a real magnet, and the OPPOSITE pole 13 times
+// out of 13.
+// This is an ordinary contact debounce. EVENT_EXIT_HOLD_MS (20 ms) already
+// debounces the event's own closing edge; it is an order of magnitude too short
+// to cover the rebound, which arrives long after the event has been handed to
+// the navigator.
+// 500 ms is safe at every speed the railway runs in AUTO. Measured shortest
+// real marker interval: 962 ms at PWM 80-99, 802 ms at 100-119. Operations do
+// not exceed PWM 110.
+#define MARKER_DEBOUNCE_MS  500UL
 #define HALL_TASK_TICK_MS     1
 
 static QueueHandle_t eventQueue = nullptr;
@@ -1547,28 +1534,13 @@ static void processNormalComparison(const MarkerEvent& e){
 // NAV_EVALUATING; only NAV_NO_QUORUM stops the locomotive (§2.5 — the old
 // LOST drop to PWM 60 drove the train into the regime that collapses the
 // baseline).
-// The running scale: peaks of recently ACCEPTED markers. Refused events never
-// enter it, so a burst of rebounds cannot drag the reference down and let the
-// next one through.
-static int16_t  weakHist[WEAK_HISTORY];
-static uint8_t  weakCount=0, weakIndex=0;
-
-static int weakMedian(){
-  if(weakCount<WEAK_HISTORY_MIN) return 0;      // 0 = not enough history, abstain
-  int16_t t[WEAK_HISTORY];
-  memcpy(t,weakHist,sizeof(int16_t)*weakCount);
-  for(uint8_t i=1;i<weakCount;i++){             // insertion sort, <=11 elements
-    int16_t k=t[i]; int j=i-1;
-    while(j>=0 && t[j]>k){ t[j+1]=t[j]; j--; }
-    t[j+1]=k;
-  }
-  return (int)t[weakCount/2];
-}
+// Time of the last marker that actually ADVANCED the odometer. Distinct from
+// lastMarkerMs, which moves for every event including refused ones -- a
+// debounce measured from a refused event would let a second rebound through.
+static unsigned long lastAcceptedMs=0;
 
 static void acceptEvent(const MarkerEvent& e){
-  weakHist[weakIndex]=(int16_t)e.peak;
-  weakIndex=(uint8_t)((weakIndex+1)%WEAK_HISTORY);
-  if(weakCount<WEAK_HISTORY) weakCount++;
+  lastAcceptedMs = e.detectedAtMs;
   navMm=nextMm(navMm,navDir);
   if(markersSinceConfirmed<65535) markersSinceConfirmed++;   // AGREE re-zeroes it
   pushRing(e.polarity,navMm);
@@ -1741,23 +1713,20 @@ static void navOnMarker(const MarkerEvent& e){
     invalidatePreviousAcceptedDt();
     return;
   }
-  // THE FALSE-SIGNAL GATE (1.13D) -- ahead of every branch that can accept,
-  // and after NO_POSITION/NO_DIR so an undeclared locomotive is still refused
-  // for the right reason. Steady regime only; abstains until it has history.
-  {
-    const int scale = weakMedian();
-    if(scale>0 && e.pwmActualAtDetect >= GATE_LOW_PWM_FLOOR &&
-       (long)e.peak * 100L < (long)scale * WEAK_RATIO_PCT){
-      lastTimingGate="WEAK";
-      char extra[112];
-      snprintf(extra,sizeof(extra),
-        ",\"peak\":%d,\"scale\":%d,\"pct\":%ld,\"limit\":%d,\"pole\":\"%c\"",
-        (int)e.peak,scale,(long)e.peak*100L/scale,(int)WEAK_RATIO_PCT,polChar(e.polarity));
-      publishQuorumDecision("WEAK_REJECTED",extra);
-      // No advance, no ring, no missStreak, and it must not become the timing
-      // predecessor or the running scale.
-      return;
-    }
+  // DEBOUNCE (1.13D) -- ahead of every branch that can call acceptEvent, and
+  // after NO_POSITION/NO_DIR so an undeclared locomotive is still refused for
+  // the right reason. Timed from the last ACCEPTED marker.
+  if(lastAcceptedMs && (e.detectedAtMs - lastAcceptedMs) < MARKER_DEBOUNCE_MS){
+    lastTimingGate="DEBOUNCE";
+    char extra[96];
+    snprintf(extra,sizeof(extra),
+      ",\"since_accepted\":%lu,\"window\":%lu,\"peak\":%d,\"pole\":\"%c\"",
+      (unsigned long)(e.detectedAtMs-lastAcceptedMs),(unsigned long)MARKER_DEBOUNCE_MS,
+      (int)e.peak,polChar(e.polarity));
+    publishQuorumDecision("DEBOUNCE_REJECTED",extra);
+    // Do NOT advance, do NOT push the ring, do NOT touch missStreak, and do NOT
+    // let this become the timing predecessor.
+    return;
   }
 
   if(e.pwmActualAtDetect < GATE_LOW_PWM_FLOOR){
@@ -1816,7 +1785,7 @@ static void navOnMarker(const MarkerEvent& e){
   // anything later is a real marker and must not be refused on a modelled
   // velocity. expected comes from 3.90*pwm-99.2, and PWM is a request, not a
   // measurement (decision 0024).
-  if(errorMs <= DT_CONSERVE_TOL*expectedDtMs && dt < 500){
+  if(errorMs <= DT_CONSERVE_TOL*expectedDtMs && dt < MARKER_DEBOUNCE_MS){
     // Two events inside one interval's worth of travel: one magnet, two
     // events. Do NOT advance navMm, push the ring, touch missStreak — and do
     // NOT replace previousAcceptedDt: a rejected event must never become the
