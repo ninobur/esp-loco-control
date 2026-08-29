@@ -981,11 +981,22 @@ static void publishQuorumDecision(const char* ev, const char* extra);
 #define QUORUM_TRIGGER    3   // consecutive misses that wake evaluation
 #define QUORUM_MAX       12   // accepted events scored without adoption -> terminal
 #define QUORUM_MARGIN     2   // unique lead required to adopt
-#define QUORUM_CANDIDATES 6
-// Asymmetric by measurement (§2.2): a phantom inserts one spurious event, so
-// the odometer runs at most one AHEAD; dropped events arrive in bursts (run 1
-// logged queue_drops 0->4 and the recovery returned off=+4).
-static const int8_t QUORUM_OFFSETS[QUORUM_CANDIDATES] = { -1, 0, +1, +2, +3, +4 };
+#define QUORUM_CANDIDATES 1
+// NO OFFSET. The candidate list is a single entry, zero, so no evaluation can
+// ever relocate the locomotive. navMm advances by exactly one on an accepted
+// event and by nothing else, ever.
+//
+// The list was { -1, 0, +1, +2, +3, +4 }: a committee scoring six positions and
+// taking the best. That is what let the odometer skip forward over markers it
+// had never detected, and then explain the gap by asserting magnets that had
+// gone quiet. Magnets do not go quiet. A marker that is not detected is either
+// physically faulty or was refused by a gate, and both are findable -- MM128
+// was loose, displaced and inverted, and it was found by looking.
+//
+// With no offset available, a position the evidence no longer supports ends in
+// NO_QUORUM. The locomotive stops and says so, instead of voting on where it
+// might be.
+static const int8_t QUORUM_OFFSETS[QUORUM_CANDIDATES] = { 0 };
 
 // HARD_BOUND advisory (decision 0023). Parameters of a live, diagnostic-only
 // feature, so they live with the other navigator constants; the matcher itself
@@ -1030,9 +1041,9 @@ static bool     adoptionPendingValidation=false; // adoption not yet confirmed
 static uint8_t  adoptionDisagreeStreak=0;        // disagreements while pending
 static uint8_t  adoptionFailureCount=0;          // failed adoptions THIS incident
 static int8_t   adoptedOffset=NO_ADOPTED_OFFSET;
-static bool     candidateExcluded[QUORUM_CANDIDATES]={false,false,false,false,false,false};
+static bool     candidateExcluded[QUORUM_CANDIDATES]={false};
 static uint8_t  evalCount=0;                     // accepted events scored, vs QUORUM_MAX
-static int8_t   scores[QUORUM_CANDIDATES]={0,0,0,0,0,0};
+static int8_t   scores[QUORUM_CANDIDATES]={0};
 static int8_t   leaderIdx=-1, runnerUpIdx=-1;    // indices into QUORUM_OFFSETS
 static int8_t   quorumMargin=0;                  // scores[leader]-scores[runnerUp]
 
