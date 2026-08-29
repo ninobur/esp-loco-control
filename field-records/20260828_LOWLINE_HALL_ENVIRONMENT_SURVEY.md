@@ -91,3 +91,76 @@ source left to argue about.
 
 The test is pre-registered in
 [0051](../docs/decisions/0051-detection-by-template-the-test-registered-before-the-data.md).
+
+---
+
+## Run 3 — the circuit, CCW at PWM 90
+
+```
+duration                 240 s   1.12 laps
+markers crossed          171/171   (the whole loop)
+captures                 345
+  rej=0 admitted magnets 192
+  rej=1 too short          3
+  rej=2 sub-threshold    150
+dropped captures           0
+```
+
+### The result
+
+**Every non-magnet excursion belongs to a magnet.**
+
+```
+non-magnet excursions                153
+within 0.35 s of an accepted magnet  153   (100%)
+median gap to the nearest magnet     0.00 s
+genuinely isolated                   0
+```
+
+The most isolated disturbance on the entire circuit sits **0.02 seconds** from
+an accepted magnet. Not one excursion, over a full lap, occurred anywhere that a
+magnet was not.
+
+Between magnets the sensor is silent. Gaps between consecutive excursions of any
+kind run a median of 1.05 s and a maximum of 2.63 s — which is simply the
+spacing between markers at cruise. **Nothing fills the gaps.** No rail joint, no
+fixing, no point, no fastener, no electrical transient.
+
+### Honesty about the 150
+
+A large share of the sub-threshold captures are the magnets' own approach and
+departure fringes, and that is partly by construction: the watch stands down
+while a real event is open and reopens once it closes, so it will naturally
+catch the tail of the pulse it just handed over. The hand-pass control showed
+the same three-part signature.
+
+**That does not weaken the finding.** The result is not "150 fringes exist"; it
+is **zero isolated events**. A rail joint or a motor transient would appear in
+the gaps, where no magnet is. The gaps are empty.
+
+### What this settles
+
+The pre-registered test in
+[0051](../docs/decisions/0051-detection-by-template-the-test-registered-before-the-data.md)
+asked how many non-magnets fall inside the acceptance radius of 0.2508. The
+answer is **vacuous: there are no non-magnets to test.** The question the whole
+fingerprint effort was built to answer turns out not to arise on this railway.
+
+Which completes the operator's argument, and completes it more strongly than any
+classifier could have. The magnets are clones and cannot be told apart — and it
+does not matter, because:
+
+1. **nothing else on the railway produces a signal at all**, so anything the
+   sensor sees is a magnet;
+2. the map is deterministic, so the **order** identifies which one
+   ([0050](../docs/decisions/0050-the-map-is-deterministic-so-the-metric-is-detection-not-discrimination.md));
+3. the ten-magnet polarity word confirms the position independently.
+
+Detection does not need to discriminate. It needs to not miss, and not
+hallucinate — and there is nothing available to hallucinate from.
+
+### Caveat worth keeping
+
+This is one lap, in one direction, on one day, in dry weather. A survey after
+rain, or after track work, or with a different consist, could differ. The
+instrument to repeat it now exists and costs one lap.
