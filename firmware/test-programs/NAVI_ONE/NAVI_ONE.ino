@@ -269,9 +269,16 @@ static void declarePosition(uint8_t mm,int8_t dir,const char* interval){
   navigator.declare(mm,dir);
   recognizerResetRequest = true;
   char v[16]; snprintf(v,sizeof(v),"%u",mm); pub(T_ST_STARTMM,v,true);
-  // THE ECHO THE CONSOLE WAITS FOR. Its pre-flight tests the locomotive's
-  // echoed state/start_interval, not the command it sent -- a locomotive that
-  // never echoes cannot be put into AUTO, which is the correct interlock.
+  // The echo exists so the console's badge can read CONFIRMED. It is
+  // LABELLING, NOT A GATE, and it must never become one.
+  //
+  // An earlier console DID gate AUTO on this echo, and on 2026-08-13 it stopped
+  // Toby being enlisted at all -- a locomotive that never echoed could not be
+  // put into AUTO however many times its position was declared. The operator's
+  // ruling deleted it: "I don't need to wait for confirmation. Besides, it
+  // prevented me from enlisting Toby in auto mode." The console now asks
+  // whether the OPERATOR supplied orientation and location. Withholding
+  // cmd/auto is sequencing, not authority.
   if (interval && *interval) pub(T_ST_STARTINT,interval,true);
   else { char iv[12];
          snprintf(iv,sizeof(iv),"%03u-%03u", dir>0?mm:(unsigned)nextMarker(mm,-1),
