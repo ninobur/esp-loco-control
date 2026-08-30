@@ -243,7 +243,7 @@ static WiFiClient wifiClient; static PubSubClient mqtt(wifiClient);
 static char T[24][72];
 enum { T_ONLINE=0,T_NAV,T_MARKER,T_ALERT,T_IR,T_STAT,T_BOOT,T_WARN,
        T_ST_AUTO,T_ST_ESTOP,T_ST_THR,T_ST_DIR,T_ST_SESSDIR,T_ST_STARTMM,
-       T_ST_NAVREADY,T_ST_LOWV,T_ST_STARTINT,T_BRAKE,T_V,T_A,T_W,T_SPEED,T_CNT };
+       T_ST_NAVREADY,T_ST_LOWV,T_ST_STARTINT,T_V,T_A,T_W,T_SPEED,T_CNT };
 
 static void topic(int i,const char* suffix){ snprintf(T[i],72,"ngr/loco/%s/%s",LOCO_NAME,suffix); }
 static void buildTopics(){
@@ -256,7 +256,6 @@ static void buildTopics(){
   topic(T_ST_SESSDIR,"state/session_direction");
   topic(T_ST_STARTMM,"state/start_mm");topic(T_ST_NAVREADY,"state/nav_ready");
   topic(T_ST_LOWV,"state/lowvolt");    topic(T_ST_STARTINT,"state/start_interval");
-  topic(T_BRAKE,"state/brake");
   topic(T_V,"telem/voltage");
   topic(T_A,"telem/current");          topic(T_W,"telem/power");
   topic(T_SPEED,"telem/speed");
@@ -400,14 +399,16 @@ static void networkTask(void*){
       char id[48]; snprintf(id,sizeof(id),"NAVI_ONE_%s",LOCO_NAME);
       if (mqtt.connect(id,T[T_ONLINE],0,true,"0")) {
         mqtt.publish(T[T_ONLINE],"1",true);
-        // THERE IS NO BRAKE CHANNEL on this locomotive, and there never has
-        // been in this lineage. One retained zero at connect so the console's
-        // tile reads 0 rather than blank; cmd/brake is deliberately not
-        // subscribed. Adding a real brake is a capability decision, not a fix.
-        mqtt.publish(T[T_BRAKE],"0",true);
+        // NO INERT RETAINED ZERO HERE. Decision 0011 rejects it by name: the
+        // old firmware published state/brake "0" so the console's parsing
+        // would not break -- "compatibility maintained with a deleted
+        // capability, the exact silent drift this decision log exists to
+        // prevent", and "a labelled lie is still a lie". The console defaults
+        // its own tile to 0; this locomotive will not assert a brake state it
+        // does not have.
         const char* cmds[]={"cmd/auto","cmd/estop","cmd/throttle","cmd/direction",
                             "cmd/session_direction","cmd/start_mm","cmd/start_interval",
-                            "cmd/dispatcher_release"};
+                            "cmd/dispatcher_release","cmd/brake"};
         for (auto c: cmds){ snprintf(sub,72,"ngr/loco/%s/%s",LOCO_NAME,c); mqtt.subscribe(sub); }
         snprintf(sub,72,"ngr/dispatcher/cmd/go/%s",LOCO_NAME);   mqtt.subscribe(sub);
         snprintf(sub,72,"ngr/dispatcher/cmd/stop/%s",LOCO_NAME); mqtt.subscribe(sub);
@@ -451,6 +452,24 @@ static void handleCommand(const CmdMsg& c){
     if (sessionDir==0){ warn("START_MM REFUSED: set session_direction first"); return; }
     if (n<0 || n>=ROUTE_N){ warn("START_MM REFUSED: out of range"); return; }
     declarePosition((uint8_t)n,travelDir(),nullptr);
+  } else if (!strcmp(leaf,"brake")) {
+    // DECISION 0011 IS ACCEPTED AND UNIMPLEMENTED. cmd/brake has been
+    // published into the void since the SOLONAV rewrite. This sketch will not
+    // continue that silence and will not fake a state/brake, so it answers the
+    // command out loud instead. Rate-limited: the console's slider streams.
+    //
+    // 0011 requires two answers before a real brake exists, and neither is
+    // mine to give: WHAT BRAKE PHYSICALLY MEANS on a PWM-only locomotive
+    // (r12 stored and republished brakeValue but it never reached the motor,
+    // so this lineage has never braked), and WHICH CHAMBER it belongs to
+    // (re-derived under 0002, not copied from r12's dispatcherAuto refusal).
+    if (n != 0) {
+      static uint32_t lastBrakeWarn = 0;
+      if (millis() - lastBrakeWarn > 10000) {
+        lastBrakeWarn = millis();
+        warn("BRAKE NOT IMPLEMENTED — decision 0011 accepted, never built");
+      }
+    }
   } else if (!strcmp(leaf,"dispatcher_release")) {
     // The dispatcher console's RELEASE. P9 keeps release on that console, and
     // it must actually release: withdraw enrolment, stop, and say so. Same
