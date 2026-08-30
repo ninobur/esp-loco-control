@@ -61,7 +61,7 @@ namespace navi_one {
 
 enum class Outcome : uint8_t {
   Magnet = 0,
-  TooSoon,        // inside the 500 ms guard -- rebound or re-read
+  TooSoon,        // inside the rebound guard (200 ms, measured) -- a re-read
   TooWeak,        // amplitude ratio below floor
   WrongShape,     // Gaussian residual above ceiling
   NoCurve,        // clean waveform expected but unusable
@@ -97,6 +97,7 @@ struct Passage {
   uint16_t      preSamples   = 0;
   bool          truncated    = false;
   bool          clipped      = false;
+  uint16_t      decimation   = 1;       // samples per stored point (see HallCapture)
 };
 
 struct Verdict {

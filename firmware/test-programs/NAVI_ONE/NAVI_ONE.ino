@@ -1,6 +1,6 @@
 /*
  * ============================================================================
- * NAVI_ONE 0.1  —  Ninobur Garden Railway navigation, built from the ground up
+ * NAVI_ONE 0.3  —  Ninobur Garden Railway navigation, built from the ground up
  * ============================================================================
  * Development. NOT FIELD ACCEPTED.
  *
@@ -59,10 +59,11 @@
 #include "MagnetRecognizer.h"
 #include "Navigator.h"
 #include "HallCapture.h"
+#include "Ops.h"
 
 using namespace navi_one;
 
-#define SKETCH_NAME "NAVI_ONE_0_2"
+#define SKETCH_NAME "NAVI_ONE_0_3"
 
 // Types used in function signatures must appear before the Arduino
 // prototype generator's insertion point, which is just after the includes.
@@ -70,12 +71,13 @@ using namespace navi_one;
 // types: the Arduino prototype generator inserts declarations just after the
 // includes, so anything used in a function signature must be defined above it.
 struct Judged {
+  uint32_t epoch;                 // the declaration this passage was captured under
   uint32_t openedAtMs, closedAtMs;
   uint16_t peak; uint8_t polarity;
   uint8_t  outcome; uint8_t isMagnet;
   float    ratio, residual; uint8_t shapeTested; uint32_t gapMs; uint16_t gain;
 };
-struct PubMsg { char topic[72]; char payload[640]; bool retain; };
+struct PubMsg { char topic[72]; char payload[704]; bool retain; };
 struct CmdMsg { char topic[72]; char payload[64]; };
 
 static const char*   MQTT_BROKER = "192.168.68.142";
@@ -85,7 +87,12 @@ static constexpr uint8_t HALL_PIN = 33;      // ADC1_CH5
 static constexpr uint8_t IR_PIN   = 34;      // ADC1_CH6, input-only, no pull
 static constexpr uint8_t I2C_SDA  = 21, I2C_SCL = 22;
 
-static constexpr uint8_t  AUTO_CRUISE_PWM = 90;
+// Per-locomotive and per-railway values come from the profile. The repo's rule
+// is "per-locomotive values belong in the config headers, not in the sketch",
+// and 0.1 broke it in three places at once: cruise PWM, the whole battery
+// policy, and the recognizer's measured thresholds. LocoConfig.h now refuses
+// to build a profile that has not had the recognizer survey done on it.
+static constexpr uint8_t  AUTO_CRUISE_PWM = NAVI_AUTO_CRUISE_PWM;
 // Manual throttle is paced PER STEP, as QUORUM did: the feel of the controls
 // must not change because the navigator did. 0 -> 90 takes ~13.5 s up.
 static constexpr uint16_t MANUAL_STEP_UP_MS   = 150;
@@ -104,7 +111,19 @@ static inline uint16_t brakeStepMs(){
   return (uint16_t)(BRAKE_STEP_COAST_MS -
     ((uint32_t)(BRAKE_STEP_COAST_MS - BRAKE_STEP_HARD_MS) * brakeValue) / 255U);
 }
-static constexpr float    LOW_VOLTAGE_V = 14.4f;
+// Battery policy lives in the locomotive's profile, not here. 0.1 hard-coded
+// LOW_VOLTAGE_V = 14.4 in the sketch while Toby's profile carried a complete,
+// older, field-derived policy that was left as dead code -- two policies, one
+// of them invisible. The profile's is the one that has been on the railway:
+//     SHUTDOWN_VOLTAGE            13.25  trip
+//     RECOVERY_VOLTAGE            14.0   clear (a real band, not one threshold)
+//     DISCONNECTED_VOLTAGE_THRESHOLD 12.5  below this there is no pack at all
+//     VOLTAGE_COUNTER_LIMIT       5      consecutive readings before tripping
+//
+// 0.1's single 14.4 threshold did two wrong things on 2026-08-29: it warned
+// LOW VOLTAGE when the operator had simply disconnected the battery, and trip
+// and recovery shared one number, so a pack sagging near it would chatter in
+// and out every 5 s poll.
 
 // ---------------------------------------------------------------------------
 // LAYER 1/2 — acquisition and recognition. Both live on the Hall task.
@@ -115,9 +134,14 @@ static CaptureConfig captureCfg = {
   /*exitHoldMs */ 8, /*floorMs*/ 40, /*baselineMs*/ 25, /*primeMs*/ 2000
 };
 static HallCapture<512> capture(captureCfg);
-static RecognizerConfig recCfg;              // 0.34 / 0.13 / 200 ms, all measured
+static RecognizerConfig recCfg = {
+  /*guardMs*/        NAVI_GUARD_MS,
+  /*amplitudeFloor*/ NAVI_AMPLITUDE_FLOOR,
+  /*residualCeiling*/NAVI_RESIDUAL_CEILING,
+  /*bootstrapGain*/  NAVI_BOOTSTRAP_GAIN
+};
 static MagnetRecognizer recognizer(recCfg);
-static Navigator        navigator(recognizer);
+static Navigator        navigator;      // owns no recognizer: see Navigator.h
 
 // One judged passage, crossing to the loop thread. The waveform does NOT cross:
 // the recognizer already ran, on the task that captured it.
@@ -126,7 +150,29 @@ static QueueHandle_t judgedQ = nullptr;
 // measured time. A measurement, not a model -- nothing in the accept path uses
 // it, and no PWM value appears in it. Display only.
 static uint32_t lastAdvanceMs = 0; static uint32_t estMmPerS = 0;
-static volatile bool recognizerResetRequest = false;
+
+// THE ONLY TWO DATA THAT CROSS BETWEEN THE LOOP THREAD AND THE HALL TASK,
+// besides the queues themselves.
+//
+// recognizerResetRequest: raised on the loop thread by a declaration or a
+// direction change, honoured on the Hall task, which is the only thread that
+// may touch the recognizer or the capture buffer.
+//
+// navEpoch: which declaration is current. A passage captured under the old one
+// must not be judged against the new one -- 0.1 had a ~2 ms window in which a
+// Judged already sitting on the queue when a declaration landed advanced the
+// fresh declaration on evidence from the dead one.
+static volatile bool     recognizerResetRequest = false;
+static volatile uint32_t navEpoch = 0;
+static uint32_t staleJudged = 0;
+
+// Called on the LOOP THREAD, immediately after any Navigator call that ends a
+// frame. Navigator itself never touches the other thread's objects.
+static void carryResetRequest(){
+  if (!navigator.takeResetRequest()) return;
+  navEpoch++;
+  recognizerResetRequest = true;
+}
 
 // ---------------------------------------------------------------------------
 // IR OBSERVER — GPIO 34. Publishes. Never votes. (decisions 0055, 0057)
@@ -161,7 +207,13 @@ static volatile uint32_t irPulses=0, irRises=0, irChatter=0, irSat=0;
 static volatile int32_t  irSpan=0, irRaw=0, irRawMin=4095, irRawMax=0;
 
 static void irSample(unsigned long now);
-static bool irFitted=false, irProbing=true;
+// DECLARED in the locomotive's profile, not inferred. The boot probe survives
+// only as a REPORT: when IR is declared fitted it says what the pin looked
+// like, and disagreement is printed rather than acted on. When it is declared
+// absent the pin is never read at all -- not even to probe it, which also
+// keeps the 4 s probe from sitting on ADC1 while the Hall baseline primes.
+static bool irFitted = (IR_FITTED != 0);
+static bool irProbing = (IR_FITTED != 0);
 static int  irProbeMin=4095, irProbeMax=0;
 static unsigned long irProbeStart=0;
 
@@ -169,24 +221,31 @@ static unsigned long irProbeStart=0;
 // often. Until IR proves it is fitted, the pin is read only during the boot
 // probe and then left alone entirely.
 static void irService(unsigned long now, uint32_t tick){
+  if (!irFitted) return;                       // declared absent: never read
+  if (tick % IR_SAMPLE_EVERY) return;          // 100 Hz, probe included
   if (irProbing) {
     if (!irProbeStart) irProbeStart = now;
     int r = analogRead(IR_PIN);
+    (void)analogRead(HALL_PIN);                // and settle back, as below
     if (r < irProbeMin) irProbeMin = r;
     if (r > irProbeMax) irProbeMax = r;
     if (now - irProbeStart >= IR_PROBE_MS) {
-      irFitted = (irProbeMax - irProbeMin) >= IR_PRESENT_SPAN;
       irProbing = false;
-      Serial.printf("[IR] probe %d..%d span=%d -> %s\n", irProbeMin, irProbeMax,
-                    irProbeMax-irProbeMin, irFitted ? "FITTED, sampling at 100 Hz"
-                                                    : "NOT FITTED, pin 34 left alone");
+      const int span = irProbeMax - irProbeMin;
+      Serial.printf("[IR] declared FITTED; probe saw %d..%d span=%d%s\n",
+                    irProbeMin, irProbeMax, span,
+                    span < IR_PRESENT_SPAN ? "  (quiet — stationary, or check the wiring)" : "");
     }
     return;
   }
-  if (!irFitted) return;                       // never touch a floating pin
-  if (tick % IR_SAMPLE_EVERY) return;          // 100 Hz
   (void)analogRead(IR_PIN);                    // settle: discard after the switch
   irSample(now);
+  // AND SETTLE BACK. 0.1 discarded the first read after switching TO pin 34
+  // and nothing discarded the first read after switching back, so every tenth
+  // Hall sample -- the sensor the locomotive navigates by -- was taken
+  // immediately after the mux left the IR channel, with exactly the
+  // sample-and-hold behaviour this file's own comment describes.
+  (void)analogRead(HALL_PIN);
 }
 
 static void irSample(unsigned long now){
@@ -224,6 +283,11 @@ static void irSample(unsigned long now){
 static volatile int commandedPwm = 0, actualPwm = 0;
 static uint8_t motorDirection = 1;              // 1 = FWD, 0 = REV
 static bool autoEnrolled=false, autoRunning=false, estopped=false, lowVoltage=false;
+// An e-stop that is merely queued can be dropped -- cmdQ is 16 deep and
+// xQueueSend was called with zero timeout. This one cannot be: onMqtt raises
+// it the instant the packet is parsed, and serviceRamp() reads it directly, so
+// the motor stops whether or not the command ever reaches loop().
+static volatile bool estopAsserted = false;
 static int8_t sessionDir = 0;
 // Per-STEP ramping, as LocoDriver_v2_1 did. The first cut computed a total
 // duration when the throttle command arrived and then interpolated, so moving
@@ -257,7 +321,15 @@ static void requestPwm(int target, uint16_t up, uint16_t down){
 }
 static void serviceRamp(){
   digitalWrite(MOTOR_DIR_PIN, motorDirection ? HIGH : LOW);
-  if (estopped || lowVoltage) { actualPwm = 0; rampTarget = 0; writePwm(0); return; }
+  // E-STOP IS INSTANT. LOW VOLTAGE IS NOT -- it ramps, steeply.
+  //
+  // 0.1 gave low voltage the e-stop's instant cut, in MANUAL as well, so one
+  // glitched INA reading hard-stopped a hand-driven locomotive. The operator
+  // ruled on 2026-08-29 that the fast stop is a MESSAGE: "One strike/low
+  // battery. Steep ramp is informative. It signals that something is wrong."
+  // A steep ramp, not a dead short. serviceIna() requests AUTO_STEP_DOWN_MS.
+  if (estopped || estopAsserted) { actualPwm = 0; rampTarget = 0; writePwm(0); return; }
+  if (lowVoltage && rampTarget != 0) { rampTarget = 0; stepDownMs = AUTO_STEP_DOWN_MS; }
   if (actualPwm == rampTarget) return;
   const bool down = rampTarget < actualPwm;
   const uint16_t need = down ? (stepDownMs ? stepDownMs : brakeStepMs())
@@ -274,6 +346,17 @@ static void serviceRamp(){
 // ---------------------------------------------------------------------------
 static QueueHandle_t pubQ = nullptr, cmdQ = nullptr;
 static WiFiClient wifiClient; static PubSubClient mqtt(wifiClient);
+// NOTHING IS LOST IN SILENCE.
+//
+// 0.1's network task dequeued every message and then published it only if the
+// broker happened to be connected -- so a broker blink threw away marker
+// events, DISAGREE verdicts and the WRONG MAGNET warning itself, with no
+// record that anything had gone. In a project whose founding transport story
+// is "67 marker events destroyed", that was the same loss, deliberate.
+//
+// Now the queue HOLDS while the broker is away, and every message that is
+// genuinely lost is counted and published in the status line.
+static uint32_t pubDropped = 0, cmdDropped = 0;
 static char T[24][72];
 enum { T_ONLINE=0,T_NAV,T_MARKER,T_ALERT,T_IR,T_STAT,T_BOOT,T_WARN,
        T_ST_AUTO,T_ST_ESTOP,T_ST_THR,T_ST_DIR,T_ST_SESSDIR,T_ST_STARTMM,
@@ -299,9 +382,17 @@ static void pub(int t,const char* payload,bool retain=false){
   if(!pubQ) return;
   PubMsg m; strlcpy(m.topic,T[t],sizeof(m.topic));
   strlcpy(m.payload,payload,sizeof(m.payload)); m.retain=retain;
-  xQueueSend(pubQ,&m,0);
+  if (xQueueSend(pubQ,&m,0) != pdTRUE) ++pubDropped;
 }
+// A warning the operator has been told to go and read must survive the next
+// thing that happens. 0.1 published warn("") on GO and on clearing e-stop,
+// which overwrote the retained WRONG MAGNET text -- the one field the operator
+// had just been pointed at. A sticky warning is cleared only by declaring
+// position, which is the act that answers it.
+static bool warnSticky = false;
 static void warn(const char* text){ pub(T_WARN,text,true); Serial.printf("[WARN] %s\n",text); }
+static void warnStick(const char* text){ warn(text); warnSticky = true; }
+static void warnClear(){ if (warnSticky) return; pub(T_WARN,"",true); }
 
 // ---------------------------------------------------------------------------
 // RULE 5 — one strike. An IDENTITY failure means the map and the world
@@ -319,7 +410,8 @@ static void warn(const char* text){ pub(T_WARN,text,true); Serial.printf("[WARN]
 // program itself does not believe is worse than no stop at all.
 // ---------------------------------------------------------------------------
 static void withdraw(const char* text){
-  warn(text);
+  warnStick(text);
+  estMmPerS = 0; pub(T_SPEED,"0",true);
   autoRunning = false;
   if (autoEnrolled) { autoEnrolled = false; pub(T_ST_AUTO,"0",true); }
   requestPwm(0,0,AUTO_STEP_DOWN_MS);
@@ -352,6 +444,18 @@ static void contradicted(){
   withdraw(w);
 }
 
+// The recognizer's outcome answers "was it a magnet". On a WRONG_MAGNET or a
+// CONTRADICTED ruling it was, so 0.1 published {"ruling":"WRONG_MAGNET",
+// "why":"MAGNET"} -- technically true and unreadable on a console.
+static const char* whyName(Ruling r, Outcome o){
+  switch (r) {
+    case Ruling::WrongMagnet:  return "POLARITY_MISMATCH";
+    case Ruling::Contradicted: return "SEQUENCE_MISMATCH";
+    case Ruling::NoPosition:   return "NO_POSITION";
+    default:                   return outcomeName(o);
+  }
+}
+
 static void publishNav(const char* event,const Judged* j,Ruling r){
   const NavStatus& s = navigator.status();
   char b[420];
@@ -364,10 +468,10 @@ static void publishNav(const char* event,const Judged* j,Ruling r){
       "\"trust\":\"%s\",\"seq_at\":%u,\"adv\":%lu,\"ref\":%lu,\"notmag\":%lu}",
       event, navigator.positionKnown()?"NORMAL":"UNSET",
       navigator.positionKnown()?"NORMAL":"UNSET",
-      navigator.positionKnown()?"NORMAL":"UNSET", s.navMm, s.target,
+      navStateName(s.state), s.navMm, s.target,
       landmarkAt(r==Ruling::Advanced ? s.navMm : s.target),
       s.navDir>0?"CW":(s.navDir<0?"CCW":"UNSET"),
-      rulingName(r), outcomeName((Outcome)j->outcome),
+      rulingName(r), whyName(r,(Outcome)j->outcome),
       poleChar(j->polarity),
       poleChar(polarityAt(r==Ruling::Advanced ? s.navMm : s.target)),
       j->peak, (double)j->ratio, (double)j->residual, j->shapeTested,
@@ -381,7 +485,7 @@ static void publishNav(const char* event,const Judged* j,Ruling r){
       "\"trust\":\"%s\",\"adv\":%lu,\"ref\":%lu}",
       event, navigator.positionKnown()?"NORMAL":"UNSET",
       navigator.positionKnown()?"NORMAL":"UNSET",
-      navigator.positionKnown()?"NORMAL":"UNSET", s.navMm, s.target,
+      navStateName(s.state), s.navMm, s.target,
       s.navDir>0?"CW":(s.navDir<0?"CCW":"UNSET"), trustName(s.trust),
       (unsigned long)s.advances,(unsigned long)s.refusals);
   }
@@ -404,14 +508,17 @@ static void applyTravelDirection(){
   int8_t d = travelDir();
   if (d != 0 && d != navigator.status().navDir) {
     navigator.setDirection(d);        // steps navMm back along the OLD heading
-    recognizerResetRequest = true;
+    carryResetRequest();
     publishNav("DIRECTION",nullptr,Ruling::NoPosition);
   }
 }
 
 static void declarePosition(uint8_t mm,int8_t dir,const char* interval){
   navigator.declare(mm,dir);
-  recognizerResetRequest = true;
+  carryResetRequest();
+  warnSticky = false; pub(T_WARN,"",true);   // the declaration answers the strike
+  lastAdvanceMs = 0; estMmPerS = 0;          // no speed estimate spans a declaration
+  pub(T_SPEED,"0",true);
   char v[16]; snprintf(v,sizeof(v),"%u",mm); pub(T_ST_STARTMM,v,true);
   // The echo exists so the console's badge can read CONFIRMED. It is
   // LABELLING, NOT A GATE, and it must never become one.
@@ -438,13 +545,19 @@ static void declarePosition(uint8_t mm,int8_t dir,const char* interval){
 static void hallTask(void*){
   TickType_t wake = xTaskGetTickCount();
   uint32_t tick = 0;
+  uint32_t myEpoch = 0;
   for(;;){
     unsigned long now = millis();
-    if (recognizerResetRequest) { recognizer.reset(); recognizerResetRequest = false; }
+    if (recognizerResetRequest) {
+      recognizer.reset();
+      capture.reset();               // a passage open under the sensor belongs
+      myEpoch = navEpoch;            // to the frame that just ended
+      recognizerResetRequest = false;
+    }
     if (capture.sample(now,(int16_t)analogRead(HALL_PIN))) {
       const Passage& p = capture.passage();
       Verdict v = recognizer.examine(p);
-      Judged j{ p.openedAtMs,p.closedAtMs,p.peakCounts,p.polarity,
+      Judged j{ myEpoch,p.openedAtMs,p.closedAtMs,p.peakCounts,p.polarity,
                 (uint8_t)v.outcome,(uint8_t)v.isMagnet,
                 v.amplitudeRatio,v.residual,(uint8_t)v.shapeTested,v.gapMs,v.gain };
       if (judgedQ) xQueueSend(judgedQ,&j,0);
@@ -458,12 +571,34 @@ static void onMqtt(char* t,byte* payload,unsigned int len){
   CmdMsg c; strlcpy(c.topic,t,sizeof(c.topic));
   unsigned n = len < sizeof(c.payload)-1 ? len : sizeof(c.payload)-1;
   memcpy(c.payload,payload,n); c.payload[n]=0;
-  if (cmdQ) xQueueSend(cmdQ,&c,0);
+  // The one command that must never be dropped is acted on before it is
+  // queued. Ops.h rule 2: anything unreadable on this topic means STOP.
+  const char* leaf = strrchr(c.topic,'/'); leaf = leaf ? leaf+1 : c.topic;
+  if (!strcmp(leaf,"estop")) { bool want=true; parseEstop(c.payload,want); if (want) estopAsserted = true; }
+  if (cmdQ && xQueueSend(cmdQ,&c,0) != pdTRUE) ++cmdDropped;
 }
 static void networkTask(void*){
   char sub[72];
+  uint32_t nextConnectMs = 0, wifiSinceMs = 0;
   for(;;){
-    if (WiFi.status()==WL_CONNECTED && !mqtt.connected()) {
+    const uint32_t now = millis();
+    // The core's auto-reconnect is undocumented for 3.3.11 and was never
+    // verified here. Re-associate explicitly after 15 s down.
+    if (WiFi.status()!=WL_CONNECTED) {
+      if (!wifiSinceMs) wifiSinceMs = now;
+      else if (now - wifiSinceMs > 15000) {
+        WiFi.disconnect(); WiFi.begin(WIFI_SSID,WIFI_PASS); wifiSinceMs = now;
+        Serial.println("[NET] WiFi re-associating");
+      }
+    } else wifiSinceMs = 0;
+
+    if (WiFi.status()==WL_CONNECTED && !mqtt.connected() && now >= nextConnectMs) {
+      // setTimeout() is NOT the connect timeout on this core -- it is the
+      // stream read timeout, in seconds. setConnectionTimeout() is the one
+      // that stops a dead broker blocking this task for the full TCP wait,
+      // during which the publish queue fills and the loss becomes real.
+      wifiClient.setConnectionTimeout(3000);
+      nextConnectMs = now + 2000;              // and do not hammer it
       char id[48]; snprintf(id,sizeof(id),"NAVI_ONE_%s",LOCO_NAME);
       if (mqtt.connect(id,T[T_ONLINE],0,true,"0")) {
         mqtt.publish(T[T_ONLINE],"1",true);
@@ -485,24 +620,65 @@ static void networkTask(void*){
       }
     }
     mqtt.loop();
-    PubMsg m;
-    while (pubQ && xQueueReceive(pubQ,&m,0)==pdTRUE)
-      if (mqtt.connected()) mqtt.publish(m.topic,m.payload,m.retain);
+    // ONLY DEQUEUE WHAT CAN ACTUALLY BE SENT. While the broker is away the
+    // queue holds, so a blink of a few seconds costs nothing at all; a longer
+    // outage overflows at the enqueue end, where pub() counts every loss.
+    if (mqtt.connected()) {
+      PubMsg m;
+      while (pubQ && xQueueReceive(pubQ,&m,0)==pdTRUE)
+        if (!mqtt.publish(m.topic,m.payload,m.retain)) ++pubDropped;
+    }
     vTaskDelay(10);
   }
 }
 
 // ---------------------------------------------------------------------------
+// A snapshot of everything the policy is allowed to know. Ops.h decides; this
+// function is the only place that reads the live flags.
+static Ops opsNow(){
+  Ops o;
+  o.positionKnown = navigator.positionKnown();
+  o.enrolled      = autoEnrolled;   o.running      = autoRunning;
+  o.estopped      = estopped;       o.lowVoltage   = lowVoltage;
+  o.forward       = motorDirection; o.actualPwm    = actualPwm;
+  o.commandedPwm  = commandedPwm;   o.sessionDir   = sessionDir;
+  o.safeDirPwm    = SAFE_DIRECTION_CHANGE_PWM;
+  return o;
+}
+
+// Every refusal SAYS SO. 0.1 dropped throttle commands on the floor while
+// enlisted with no message at all, so after a strike the operator could
+// neither restart AUTO nor drive by hand and nothing on the console explained
+// which. "Refusing to run is my least favorite form of messages from a
+// locomotive" -- then the least it can do is name the reason.
+static void refuse(Refusal r){ warn(r); }
+
 static void handleCommand(const CmdMsg& c){
   const char* leaf = strrchr(c.topic,'/'); leaf = leaf ? leaf+1 : c.topic;
   const bool dispatcher = strstr(c.topic,"/dispatcher/") != nullptr;
-  int n = atoi(c.payload);
-  if (!strcmp(leaf,"estop") || (dispatcher && !strcmp(leaf,"estop"))) {
-    estopped = n != 0;
-    if (estopped){ autoRunning=false; requestPwm(0,0,1); warn("ESTOP"); } else warn("");
+  const Ops o = opsNow();
+
+  if (!strcmp(leaf,"estop")) {
+    // RULE 2 in Ops.h: on an emergency topic, anything unreadable STOPS.
+    bool want = true;
+    const bool understood = parseEstop(c.payload, want);
+    estopped = want;
+    estopAsserted = want;
+    if (estopped) {
+      autoRunning = false; requestPwm(0,0,1);
+      warn(understood ? "ESTOP" : "ESTOP: unreadable payload, assumed STOP");
+    } else {
+      warnClear();
+    }
+    char v[4]; snprintf(v,sizeof(v),"%u",estopped?1:0); pub(T_ST_ESTOP,v,true);
+
   } else if (!strcmp(leaf,"session_direction")) {
-    int8_t d = (!strcasecmp(c.payload,"CW")) ? +1 : (!strcasecmp(c.payload,"CCW") ? -1 : 0);
-    if (d){ sessionDir=d; pub(T_ST_SESSDIR,d>0?"CW":"CCW",true); applyTravelDirection(); }
+    int8_t d;
+    if (!parseSessionDir(c.payload,d)) { warn("SESSION_DIRECTION REFUSED: expected CW or CCW"); return; }
+    if (Refusal r = admitDeclaration(o)) { refuse(r); return; }
+    sessionDir = d; pub(T_ST_SESSDIR,d>0?"CW":"CCW",true);
+    applyTravelDirection();
+
   } else if (!strcmp(leaf,"start_interval")) {
     // "AAA-BBB" -- the two magnets the locomotive stands between, GEOMETRIC and
     // always ascending, because that is what the console's slider produces and
@@ -510,21 +686,28 @@ static void handleCommand(const CmdMsg& c){
     // Which end it is leaving depends on which way it faces: running CW the
     // next marker is B, so position is A; running CCW the next is A, so
     // position is B.
-    if (sessionDir==0){ warn("START_INTERVAL REFUSED: set session_direction first"); return; }
+    if (Refusal r = admitStartMarker(o)) { refuse(r); return; }
     int a=-1,b=-1;
-    if (sscanf(c.payload,"%d-%d",&a,&b)!=2){ warn("START_INTERVAL REFUSED: expected AAA-BBB"); return; }
+    if (!parseInterval(c.payload,a,b)) { warn("START_INTERVAL REFUSED: expected AAA-BBB"); return; }
     if (a<0||a>=ROUTE_N||b<0||b>=ROUTE_N){ warn("START_INTERVAL REFUSED: out of range"); return; }
     if (nextMarker((uint8_t)a,+1)!=(uint8_t)b){ warn("START_INTERVAL REFUSED: markers not adjacent"); return; }
     declarePosition(travelDir()>0?(uint8_t)a:(uint8_t)b, travelDir(), c.payload);
+
   } else if (!strcmp(leaf,"start_mm")) {
-    if (sessionDir==0){ warn("START_MM REFUSED: set session_direction first"); return; }
-    if (n<0 || n>=ROUTE_N){ warn("START_MM REFUSED: out of range"); return; }
+    if (Refusal r = admitStartMarker(o)) { refuse(r); return; }
+    int n;
+    if (!parseInt(c.payload,n))          { warn("START_MM REFUSED: not a number"); return; }
+    if (n<0 || n>=ROUTE_N)               { warn("START_MM REFUSED: out of range"); return; }
     declarePosition((uint8_t)n,travelDir(),nullptr);
+
   } else if (!strcmp(leaf,"brake")) {
+    int n;
+    if (!parseInt(c.payload,n)) { warn("BRAKE REFUSED: not a number"); return; }
     brakeValue = (uint8_t)constrain(n,0,255);
     // A LIVE state/brake, which is what 0011 asked for -- "a live state/brake
     // replacing the retained inert 0". Never an inert zero again.
     char v[8]; snprintf(v,sizeof(v),"%u",brakeValue); pub(T_BRAKE,v,true);
+
   } else if (!strcmp(leaf,"dispatcher_release")) {
     // The dispatcher console's RELEASE. P9 keeps release on that console, and
     // it must actually release: withdraw enrolment, stop, and say so. Same
@@ -536,47 +719,76 @@ static void handleCommand(const CmdMsg& c){
       warn("RELEASED by dispatcher");
       publishNav("DISPATCHER_RELEASE",nullptr,Ruling::NoPosition);
     }
+
   } else if (!strcmp(leaf,"auto")) {
-    if (n==0){ autoEnrolled=false; autoRunning=false; requestPwm(0,0,AUTO_STEP_DOWN_MS); }
-    else if (!navigator.positionKnown()) warn("AUTO REFUSED: declare position first");
-    else if (estopped||lowVoltage)       warn("AUTO REFUSED: safety interlock");
-    else if (!motorDirection)            warn("AUTO REFUSED: direction is REVERSE");
-    else autoEnrolled=true;
+    bool want;
+    if (!parseBool(c.payload,want)) { warn("AUTO REFUSED: expected 0 or 1"); return; }
+    if (!want) {
+      autoEnrolled=false; autoRunning=false; requestPwm(0,0,AUTO_STEP_DOWN_MS);
+    } else if (Refusal r = admitAuto(o)) {
+      refuse(r);
+    } else {
+      autoEnrolled = true;
+    }
     char v[4]; snprintf(v,sizeof(v),"%u",autoEnrolled?1:0); pub(T_ST_AUTO,v,true);
+
   } else if (!strcmp(leaf,"go") || (dispatcher && strstr(c.topic,"/go/"))) {
-    if (!autoEnrolled)                    warn("GO REFUSED: not enrolled");
-    else if (!navigator.positionKnown())  warn("GO REFUSED: no position");
-    else if (estopped||lowVoltage)        warn("GO REFUSED: safety interlock");
-    // Automatic operation runs FORWARD. The operator asked for this lockout
-    // after starting AUTO in reverse on 2026-08-29: "He complied and died."
-    else if (!motorDirection)             warn("GO REFUSED: direction is REVERSE");
-    else { autoRunning=true; requestPwm(AUTO_CRUISE_PWM,AUTO_STEP_UP_MS,AUTO_STEP_DOWN_MS); warn(""); }
+    if (Refusal r = admitGo(o)) { refuse(r); return; }
+    autoRunning=true;
+    requestPwm(AUTO_CRUISE_PWM,AUTO_STEP_UP_MS,AUTO_STEP_DOWN_MS);
+    warnClear();
+
   } else if (!strcmp(leaf,"stop") || (dispatcher && strstr(c.topic,"/stop/"))) {
     autoRunning=false; requestPwm(0,0,AUTO_STEP_DOWN_MS);
+
   } else if (!strcmp(leaf,"throttle")) {
-    if (!autoEnrolled) {
-      int t = constrain(n,0,255);
-      requestPwm(t, MANUAL_STEP_UP_MS, 0);   // 0 -> the brake governs the way down
-    }
+    if (Refusal r = admitThrottle(o)) { refuse(r); return; }
+    int n;
+    if (!parseInt(c.payload,n)) { warn("THROTTLE REFUSED: not a number"); return; }
+    requestPwm(constrain(n,0,255), MANUAL_STEP_UP_MS, 0);   // 0 -> the brake governs
+
   } else if (!strcmp(leaf,"direction")) {
-    if (!autoEnrolled && actualPwm<=SAFE_DIRECTION_CHANGE_PWM && n!=1) {
-      motorDirection=(n==2);
-      applyTravelDirection();          // reversing the motor reverses travel
-    }
+    bool fwd;
+    if (!parseMotorDir(c.payload,fwd)) { warn("DIRECTION REFUSED: expected 0 (REV) or 2 (FWD)"); return; }
+    if (fwd == (motorDirection!=0)) return;                 // already there
+    if (Refusal r = admitMotorDirection(o)) { refuse(r); return; }
+    motorDirection = fwd ? 1 : 0;
+    applyTravelDirection();          // reversing the motor reverses travel
   }
 }
 
+static uint8_t lowVoltCount = 0;
 static void serviceIna(){
-  static uint32_t last=0; if(!inaReady || millis()-last<5000) return; last=millis();
+  static uint32_t last=0;
+  if (!inaReady) return;
+  if (millis()-last<5000) return; last=millis();
   busV=ina219.getBusVoltage_V(); busA=ina219.getCurrent_mA()/1000.0f; busW=ina219.getPower_mW()/1000.0f;
-  bool low = busV>0.1f && busV<LOW_VOLTAGE_V;
-  if (low && !lowVoltage){ lowVoltage=true; autoRunning=false; requestPwm(0,0,AUTO_STEP_DOWN_MS); warn("LOW VOLTAGE"); }
-  if (!low && busV>=LOW_VOLTAGE_V) lowVoltage=false;
+
+  const bool noPack = busV < DISCONNECTED_VOLTAGE_THRESHOLD;
+  if (noPack) {
+    lowVoltCount = 0;                      // bench power is not a flat battery
+  } else if (busV < SHUTDOWN_VOLTAGE) {
+    if (lowVoltCount < VOLTAGE_COUNTER_LIMIT) ++lowVoltCount;
+  } else {
+    lowVoltCount = 0;
+  }
+
+  if (!lowVoltage && lowVoltCount >= VOLTAGE_COUNTER_LIMIT) {
+    lowVoltage = true;
+    autoRunning = false;
+    requestPwm(0,0,AUTO_STEP_DOWN_MS);     // steep, informative, NOT instant
+    char w[96]; snprintf(w,sizeof(w),"LOW VOLTAGE %.2f V — stopping",(double)busV);
+    warnStick(w);
+  } else if (lowVoltage && busV >= RECOVERY_VOLTAGE) {
+    lowVoltage = false; lowVoltCount = 0;
+    Serial.printf("[BATT] recovered at %.2f V\n",(double)busV);
+  }
+  pub(T_ST_LOWV, lowVoltage?"1":"0", true);
+
   char v[16];
   snprintf(v,sizeof(v),"%.2f",busV); pub(T_V,v,true);
   snprintf(v,sizeof(v),"%.2f",busA); pub(T_A,v,true);
   snprintf(v,sizeof(v),"%.2f",busW); pub(T_W,v,true);
-  snprintf(v,sizeof(v),"%u",lowVoltage?1:0); pub(T_ST_LOWV,v,true);
 }
 
 static void serviceIr(){
@@ -596,19 +808,28 @@ static void serviceIr(){
 static void serviceStatus(){
   static uint32_t last=0; if(millis()-last<1000) return; last=millis();
   const NavStatus& s=navigator.status();
-  char b[600];
+  char b[700];
   int w = snprintf(b,sizeof(b),
     // The console reads position from "dead_reckoned_mm" and renders it only
     // while "nav" is one of TRACKING / NORMAL / EVALUATING (USABLE_NAV). Both
     // names are the existing contract and are not ours to change.
     //
-    // NAVI_ONE dead-reckons NOTHING: every advance is magnet-confirmed and the
-    // field carries the confirmed position. The name is wrong for this
-    // navigator and is kept only so the dashboard keeps working.
+    // NAVI_ONE dead-reckons NOTHING: every advance is magnet-confirmed. The
+    // name is wrong for this navigator and is kept only so the dashboard keeps
+    // working.
+    //
+    // ONE EXCEPTION, AND IT IS VISIBLE. Immediately after a declaration -- and
+    // after a direction change, which steps navMm back one so the next advance
+    // lands on the marker about to be met again -- this field carries a marker
+    // the locomotive has not confirmed. That is what a declaration IS: the
+    // operator's word, not the track's. It is why "trust" reads DECLARED
+    // rather than PROVEN until ten magnets have gone by, and why nav_state
+    // reads DECLARED rather than NORMAL. The claim is published alongside its
+    // own provenance, every second.
     "{\"level\":\"%s\",\"reason\":\"STATUS\",\"loco\":\"%s\",\"uptime_ms\":%lu,"
     "\"state\":\"%s\",\"nav\":\"%s\",\"mm\":%u,\"dead_reckoned_mm\":%u,"
     "\"last_confirmed_landmark\":\"%s\",\"tgt\":%u,\"dir\":\"%s\","
-    "\"session_dir\":\"%s\",\"trust\":\"%s\",\"moving\":%u,\"est_mm_s\":%lu,"
+    "\"session_dir\":\"%s\",\"trust\":\"%s\",\"powered\":%u,\"est_mm_s\":%lu,"
     "\"pwm\":%d,\"auto\":%u,\"running\":%u,\"estop\":%u,\"lowvolt\":%u,"
     // NAVI_ONE has no candidates, no viable set and no miss streak. They are
     // published as their empty values so the console's panels render rather
@@ -616,6 +837,8 @@ static void serviceStatus(){
     "\"candidate_mm\":-1,\"viable\":[],\"miss_streak\":0,"
     "\"agree\":%lu,\"disagree\":%lu,\"notmag\":%lu,"
     "\"baseline\":%ld,\"floor_rej\":%lu,"
+    "\"nav_state\":\"%s\",\"seq_at\":%u,\"ina\":%u,"
+    "\"pub_drop\":%lu,\"cmd_drop\":%lu,\"stale\":%lu,"
     "\"ir_fitted\":%u,\"ir_probe_span\":%d}",
     navigator.positionKnown()?"CLEAR":"UNSET", LOCO_NAME,(unsigned long)millis(),
     navigator.positionKnown()?"NORMAL":"UNSET",
@@ -627,6 +850,8 @@ static void serviceStatus(){
     actualPwm, autoEnrolled?1:0, autoRunning?1:0, estopped?1:0, lowVoltage?1:0,
     (unsigned long)s.advances,(unsigned long)s.refusals,(unsigned long)s.notMagnets,
     (long)capture.baseline(),(unsigned long)capture.floorRejects(),
+    navStateName(s.state), s.seqAt, inaReady?1u:0u,
+    (unsigned long)pubDropped,(unsigned long)cmdDropped,(unsigned long)staleJudged,
     irFitted?1u:0u, irProbing ? -1 : (irProbeMax-irProbeMin));
   // NEVER ENQUEUE TRUNCATED JSON. snprintf truncates silently, the Pi's
   // json.loads() then throws, and the consumer discards the WHOLE alert --
@@ -665,16 +890,32 @@ void setup(){
 #endif
   writePwm(0);
   Wire.begin(I2C_SDA,I2C_SCL); inaReady=ina219.begin();
+  // A loose I2C wire used to convert "protected" into "unprotected" in
+  // silence: 0.1 set inaReady=false, serviceIna() returned forever, and there
+  // was no warning, no status field and not even a serial line. Battery
+  // protection absent for a whole session, invisibly.
+  if (!inaReady) Serial.println("[BATT] INA219 NOT FOUND — NO BATTERY PROTECTION THIS SESSION");
   buildTopics();
   judgedQ=xQueueCreate(16,sizeof(Judged));
-  pubQ  =xQueueCreate(48,sizeof(PubMsg));
+  pubQ  =xQueueCreate(48,sizeof(PubMsg));    // holds ~5 s while the broker is away
   cmdQ  =xQueueCreate(16,sizeof(CmdMsg));
   Serial.printf("[BOOT] %s — %s\n",SKETCH_NAME,LOCO_NAME);
   Serial.printf("[CAL] 2 s baseline — keep clear of magnets\n");
-  xTaskCreatePinnedToCore(hallTask,"hall",4096,nullptr,3,nullptr,0);
+  if (!judgedQ || !pubQ || !cmdQ) {
+    Serial.println("[BOOT] FATAL: queue allocation failed — halting");
+    writePwm(0); for(;;) delay(1000);
+  }
+  if (xTaskCreatePinnedToCore(hallTask,"hall",4096,nullptr,3,nullptr,0) != pdPASS) {
+    // QUORUM checked this and halted loudly. 0.1 ignored the return, so a
+    // failed Hall task would boot a locomotive that navigates by nothing and
+    // says nothing about it.
+    Serial.println("[BOOT] FATAL: Hall task would not start — halting");
+    writePwm(0); for(;;) delay(1000);
+  }
   WiFi.mode(WIFI_STA); WiFi.begin(WIFI_SSID,WIFI_PASS);
-  mqtt.setServer(MQTT_BROKER,MQTT_PORT); mqtt.setCallback(onMqtt); mqtt.setBufferSize(800);
-  xTaskCreatePinnedToCore(networkTask,"net",8192,nullptr,1,nullptr,1);
+  mqtt.setServer(MQTT_BROKER,MQTT_PORT); mqtt.setCallback(onMqtt); mqtt.setBufferSize(900);
+  if (xTaskCreatePinnedToCore(networkTask,"net",8192,nullptr,1,nullptr,1) != pdPASS)
+    Serial.println("[BOOT] WARNING: network task would not start — running blind");
   char b[300];
   snprintf(b,sizeof(b),
     "{\"sketch\":\"%s\",\"loco\":\"%s\",\"entry\":%d,\"exit\":%d,\"floor_ms\":%d,"
@@ -684,6 +925,7 @@ void setup(){
     (int)captureCfg.floorMs,(double)recCfg.amplitudeFloor,(double)recCfg.residualCeiling,
     (unsigned long)recCfg.guardMs,(int)SEQ_N);
   pub(T_BOOT,b,true);
+  if (!inaReady) warn("INA219 NOT FOUND — no battery protection this session");
   Serial.println("[BOOT] ready. session_direction, then start_mm, then auto, then GO.");
 }
 
@@ -692,6 +934,9 @@ void loop(){
 
   Judged j;
   while (judgedQ && xQueueReceive(judgedQ,&j,0)==pdTRUE) {
+    // Captured under a declaration that no longer stands. It is evidence about
+    // a frame that has ended and it may not advance this one.
+    if (j.epoch != navEpoch) { staleJudged++; continue; }
     Passage p; p.openedAtMs=j.openedAtMs; p.closedAtMs=j.closedAtMs;
     p.peakCounts=j.peak; p.polarity=j.polarity;
     Verdict v; v.outcome=(Outcome)j.outcome; v.isMagnet=j.isMagnet;

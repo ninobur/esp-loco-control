@@ -128,9 +128,27 @@ struct NavStatus {
   Outcome  lastOutcome = Outcome::Magnet;
 };
 
+// THE NAVIGATOR DOES NOT TOUCH THE RECOGNIZER.
+//
+// 0.1 held a reference and called rec_.reset() from declare() and
+// setDirection() -- both of which run on the loop thread, while examine() may
+// be mid-read on the Hall task. The .ino had already built a flag,
+// recognizerResetRequest, for exactly this reason, so the direct call defeated
+// the mechanism written to prevent it and then reset a second time a tick
+// later. The reference is gone. A declaration now RAISES A REQUEST, and
+// whichever thread owns the recognizer honours it:
+//
+//     if (navigator.takeResetRequest()) { recognizer.reset(); capture.reset(); }
+//
+// The host gates do the same thing, so they exercise the real structure.
 class Navigator {
  public:
-  explicit Navigator(MagnetRecognizer& rec) : rec_(rec) {}
+  Navigator() = default;
+
+  // True once, for each declaration or direction change. The gain history and
+  // the rebound anchor describe a frame that has ended; so does any passage
+  // still open under the sensor.
+  bool takeResetRequest() { bool r = resetPending_; resetPending_ = false; return r; }
 
   const NavStatus& status() const { return s_; }
   bool positionKnown() const { return s_.state == NavState::Declared && s_.navDir != 0; }
@@ -147,7 +165,7 @@ class Navigator {
     s_.seqNamed = false;
     s_.advances = s_.refusals = s_.notMagnets = 0;
     seqLen_ = 0;
-    rec_.reset();          // gain and guard describe a frame that has ended
+    resetPending_ = true;  // gain and guard describe a frame that has ended
   }
 
   // A direction change invalidates the same things a declaration does:
@@ -162,8 +180,12 @@ class Navigator {
     s_.target = nextMarker(s_.navMm, s_.navDir);
     s_.trust = Trust::Declared;
     s_.seqNamed = false;
+    // The counters describe a frame, like everything else here. 0.1 cleared
+    // them on declare() and not on setDirection(), which made the two
+    // "the frame ended" operations disagree about what a frame is.
+    s_.advances = s_.refusals = s_.notMagnets = 0;
     seqLen_ = 0;
-    rec_.reset();
+    resetPending_ = true;
   }
 
   // The whole decision. One passage in, one ruling out.
@@ -235,10 +257,10 @@ class Navigator {
     s_.state = NavState::Struck;          // withdrawn, not corrected
   }
 
-  MagnetRecognizer& rec_;
   NavStatus s_;
   uint8_t seq_[SEQ_N] = {};
   uint8_t seqLen_ = 0;
+  bool    resetPending_ = false;
 };
 
 }  // namespace navi_one

@@ -27,12 +27,24 @@ a hard one says go and look. Two stops that felt the same would throw that away.
 Not built. `requestPwm(target, up, down)` already takes a per-step down rate, so
 this is one constant and three call sites.
 
-## 1b. The 0.1 review's remaining findings
+## 1b. The 0.1 review — closed
 
-Findings 1 and 2 are done (decisions 0058, 0059). Eight remain, untouched, in
-`docs/reviews/NAVI_ONE_0_1_REVIEW_RESPONSE_20260830.md` with a suggested order.
-The two I would not fly again without: `cmd/estop` treats an unparseable payload
-as *stand down*, and a declaration is accepted while AUTO is running.
+All thirteen findings disposed of in `NAVI_ONE_0_3`; see
+`docs/reviews/NAVI_ONE_0_1_REVIEW_CLOSEOUT_20260830.md`. Decisions 0058-0062.
+Three things are deliberately open:
+
+* **The Gaussian fit runs on the sampling task** (finding 13.9). Wants one
+  bench measurement of tick jitter at passage close — not a redesign.
+* **Two display-only cross-thread reads** stay uncontracted, on purpose.
+* **A comms watchdog** — see item 1d.
+
+## 1d. In AUTO, nothing watches the radio
+
+If MQTT drops while AUTO is running at cruise, the locomotive keeps going and
+the dashboard's stop button reaches nothing. QUORUM was the same, so this is
+inherited rather than introduced. Adding a stop condition is the operator's
+call: "refusing to run is my least favorite form of messages from a
+locomotive", and a radio that blinks would become a stop. Flagged, not built.
 
 ## 1c. Six markers is the real bound
 
@@ -74,7 +86,21 @@ real-lap replay 172 advances closing at MM040.
 
 ## Where it stands, 2026-08-30
 
-`NAVI_ONE_0_2`, **not flashed**. The strike latches and the witness is armed as
-an assertion. Gates: survey 195/195 + 156/156, contract **176/0**, real-lap
-replay unchanged. Compiles at 974,707 bytes; banner `NAVI_ONE_0_2 — 9950012`.
-Every flash deserves a test run, and this one has not had it.
+`NAVI_ONE_0_3`, **not flashed**. The strike latches, the whole command layer is
+parsed strictly and gated on standing still, the publish queue holds through a
+broker blink, battery policy comes from Toby's profile, and IR presence is
+declared rather than probed.
+
+**FOUR gates now, all green:** survey 195/195 + 156/156 misclassified 0;
+contract 176 checks 0 failures; **ops 72 checks 0 failures** (the .ino layer and
+`HallCapture`, neither of which had ever been driven by a test); real-lap replay
+172 advances closing at MM040 with every record in the file accounted for.
+
+Compiles at 959,291 bytes (73%), 51,748 globals; banner `NAVI_ONE_0_3 —
+9950012`, verified in the compiled image. Selecting Otto now stops the build,
+by design.
+
+Every flash deserves a test run, and this one has not had it. Two behaviours to
+watch on the first run: the battery band is now 13.25/14.0 from the profile
+rather than a single 14.4, and a low-voltage stop ramps steeply instead of
+cutting. The console field `moving` is now `powered`.

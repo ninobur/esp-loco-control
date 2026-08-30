@@ -58,15 +58,26 @@ class HallCapture {
     const int32_t mag   = delta < 0 ? -delta : delta;
 
     if (!open_) {
-      // Keep a short pre-roll so the recognizer sees the foot of the arc.
-      pre_[preHead_] = (int16_t)delta;
-      preHead_ = (uint8_t)((preHead_ + 1) % PRE);
-      if (preLen_ < PRE) ++preLen_;
-      if (mag < cfg_.entryMargin) return false;
+      // Keep a short pre-roll so the recognizer sees the foot of the arc. The
+      // entry-crossing sample itself is NOT put here: 0.1 stored it, replayed
+      // it, and then pushed it again through the main path, so it appeared
+      // twice at the pre/passage boundary of every waveform.
+      if (mag < cfg_.entryMargin) {
+        pre_[preHead_] = (int16_t)delta;
+        preHead_ = (uint8_t)((preHead_ + 1) % PRE);
+        if (preLen_ < PRE) ++preLen_;
+        return false;
+      }
       open_ = true;
       pol_ = delta >= 0 ? 1 : 0;
       openedAtMs_ = nowMs;
       peak_ = 0; n_ = 0; quietSince_ = 0; truncated_ = false;
+      // A rail that happened between passages says nothing about THIS one.
+      // 0.1 set clipped_ from updateBaseline() at any moment and cleared it
+      // only when a passage closed, so a supply transient minutes earlier
+      // excused the shape test on the next magnet.
+      clipped_ = false;
+      dec_ = 1; decPhase_ = 0;
       // replay the pre-roll, oriented
       uint8_t start = (uint8_t)((preHead_ + PRE - preLen_) % PRE);
       for (uint8_t i = 0; i < preLen_; ++i)
@@ -89,7 +100,43 @@ class HallCapture {
 
  private:
   int16_t orient(int16_t d) const { return pol_ ? d : (int16_t)(-d); }
-  void push(int16_t v) { if (n_ < RING) buf_[n_++] = v; else truncated_ = true; }
+  // 0.1 stopped storing at RING samples (512 at 1 kHz = 512 ms) and set
+  // truncated_, which made the recognizer ABSTAIN from the shape test. So at
+  // crawl speed -- a station approach, or the 18.7 s throttle-off dwell of
+  // decision 0057 -- the second-strongest test was systematically absent, and
+  // the passage was accepted on amplitude and the guard alone.
+  //
+  // Nothing is dropped now. When the buffer fills, the whole arc is halved in
+  // place and the sample rate halves with it. The Gaussian fit derives its own
+  // centre and sigma from the data in sample-index units, so scaling x by a
+  // constant leaves the normalised residual unchanged. A 512-sample buffer at
+  // dec_ = 32768 still covers four and a half hours of passage.
+  void push(int16_t v) {
+    if (decPhase_++ % dec_) return;
+    if (n_ >= RING) {
+      if (dec_ >= 32768) { truncated_ = true; return; }   // unreachable in practice
+      for (uint16_t i = 0; i < RING / 2; ++i) buf_[i] = buf_[i * 2];
+      n_ = RING / 2;
+      preAt_ = (uint16_t)(preAt_ / 2);
+      dec_ = (uint16_t)(dec_ * 2);
+    }
+    buf_[n_++] = v;
+  }
+
+ public:
+  // A declaration, or a direction change, ends the frame. Any passage still
+  // open under the sensor belongs to the old one: 0.1 left it open, so
+  // declaring while the sensor sat in a magnet's field produced a passage on
+  // drive-off that was judged against the NEXT target -- an immediate strike,
+  // half the time, on an otherwise correct declaration. The baseline survives;
+  // it is a property of the sensor, not of the frame.
+  void reset() {
+    open_ = false; n_ = 0; preAt_ = 0; preLen_ = 0; preHead_ = 0;
+    peak_ = 0; quietSince_ = 0; truncated_ = false; clipped_ = false;
+    dec_ = 1; decPhase_ = 0;
+  }
+
+ private:
 
   bool close(uint32_t nowMs) {
     open_ = false;
@@ -105,7 +152,7 @@ class HallCapture {
     out_.preSamples = preAt_;
     out_.truncated  = truncated_;
     out_.clipped    = clipped_;
-    clipped_ = false;
+    out_.decimation = dec_;
     return true;
   }
 
@@ -134,6 +181,7 @@ class HallCapture {
   uint16_t n_ = 0, preAt_ = 0;
   int16_t  pre_[PRE] = {}; uint8_t preHead_ = 0, preLen_ = 0;
   int16_t  med_[MED] = {}; uint8_t medHead_ = 0, medLen_ = 0;
+  uint16_t dec_ = 1, decPhase_ = 0;
   int32_t  baseline_ = 0, peak_ = 0;
   uint32_t startMs_ = 0, lastBaseMs_ = 0, openedAtMs_ = 0, quietSince_ = 0;
   uint32_t floorRejects_ = 0;

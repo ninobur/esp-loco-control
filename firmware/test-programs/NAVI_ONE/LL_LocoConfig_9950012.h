@@ -105,3 +105,41 @@
 #define HALL_ENTRY_MARGIN_COUNTS   13
 #define HALL_MIN_PEAK_DELTA        35
 #define HALL_DOMINANCE_PERCENT     120U
+
+// ---------------------------------------------------------------------------
+// NAVI_ONE recognizer — MEASURED ON TOBY, and on Toby only.
+//
+// Every one of these sits at the midpoint of a measured gap between the real
+// and the false population in the 2026-08-28 PWM-90 circuit survey (351
+// waveforms; see docs/research/20260828_WHAT_THE_HALL_SENSOR_SEES.md). None of
+// them was chosen. They are not constants of the railway and they are not
+// portable: Otto enters at 70 counts against Toby's 38, a materially different
+// sensor environment, and nothing about these numbers has been measured there.
+//
+// NAVI_RECOGNIZER_MEASURED_ON is checked against LOCO_ID at compile time, so a
+// profile that has not had this work done cannot silently inherit Toby's.
+// ---------------------------------------------------------------------------
+// IR PRESENCE IS DECLARED, NOT PROBED.
+//
+// 0.1 inferred it from the peak-to-peak span of GPIO 34 over a 4 s boot
+// window, which is backwards: a fitted sensor sitting still over uniform
+// ballast has LOW variance and was called NOT FITTED, permanently, for the
+// whole session -- while a floating pin, which is what the probe was written
+// to catch, swings freely and reads as present. The operator's principle
+// applies to instruments as much as to position: the declaration is truth.
+//
+// 0 = not fitted. Pin 34 is not touched at all, which is also what keeps the
+//     floating-input crosstalk off the Hall line (see NAVI_ONE.ino).
+// 1 = fitted. Sampled at 100 Hz, observing only: no vote, no verdict, no path
+//     to navMm.
+//
+// 2026-08-30: 0. Toby's IR unit is being proved off the car in its own thread
+// before it is mounted.
+#define IR_FITTED 0
+
+#define NAVI_RECOGNIZER_MEASURED_ON  9950012UL
+#define NAVI_GUARD_MS                200U     // close-to-open, decision 0057
+#define NAVI_AMPLITUDE_FLOOR         0.34f    // of the trailing median accepted peak
+#define NAVI_RESIDUAL_CEILING        0.13f    // normalised RMS of the Gaussian fit
+#define NAVI_BOOTSTRAP_GAIN          190U     // until eight peaks are in hand
+#define NAVI_AUTO_CRUISE_PWM         90       // the surveyed regime
