@@ -243,7 +243,7 @@ static WiFiClient wifiClient; static PubSubClient mqtt(wifiClient);
 static char T[24][72];
 enum { T_ONLINE=0,T_NAV,T_MARKER,T_ALERT,T_IR,T_STAT,T_BOOT,T_WARN,
        T_ST_AUTO,T_ST_ESTOP,T_ST_THR,T_ST_DIR,T_ST_SESSDIR,T_ST_STARTMM,
-       T_ST_NAVREADY,T_ST_LOWV,T_ST_STARTINT,T_V,T_A,T_W,T_SPEED,T_CNT };
+       T_ST_NAVREADY,T_ST_LOWV,T_ST_STARTINT,T_BRAKE,T_V,T_A,T_W,T_SPEED,T_CNT };
 
 static void topic(int i,const char* suffix){ snprintf(T[i],72,"ngr/loco/%s/%s",LOCO_NAME,suffix); }
 static void buildTopics(){
@@ -256,6 +256,7 @@ static void buildTopics(){
   topic(T_ST_SESSDIR,"state/session_direction");
   topic(T_ST_STARTMM,"state/start_mm");topic(T_ST_NAVREADY,"state/nav_ready");
   topic(T_ST_LOWV,"state/lowvolt");    topic(T_ST_STARTINT,"state/start_interval");
+  topic(T_BRAKE,"state/brake");
   topic(T_V,"telem/voltage");
   topic(T_A,"telem/current");          topic(T_W,"telem/power");
   topic(T_SPEED,"telem/speed");
@@ -399,8 +400,14 @@ static void networkTask(void*){
       char id[48]; snprintf(id,sizeof(id),"NAVI_ONE_%s",LOCO_NAME);
       if (mqtt.connect(id,T[T_ONLINE],0,true,"0")) {
         mqtt.publish(T[T_ONLINE],"1",true);
+        // THERE IS NO BRAKE CHANNEL on this locomotive, and there never has
+        // been in this lineage. One retained zero at connect so the console's
+        // tile reads 0 rather than blank; cmd/brake is deliberately not
+        // subscribed. Adding a real brake is a capability decision, not a fix.
+        mqtt.publish(T[T_BRAKE],"0",true);
         const char* cmds[]={"cmd/auto","cmd/estop","cmd/throttle","cmd/direction",
-                            "cmd/session_direction","cmd/start_mm","cmd/start_interval"};
+                            "cmd/session_direction","cmd/start_mm","cmd/start_interval",
+                            "cmd/dispatcher_release"};
         for (auto c: cmds){ snprintf(sub,72,"ngr/loco/%s/%s",LOCO_NAME,c); mqtt.subscribe(sub); }
         snprintf(sub,72,"ngr/dispatcher/cmd/go/%s",LOCO_NAME);   mqtt.subscribe(sub);
         snprintf(sub,72,"ngr/dispatcher/cmd/stop/%s",LOCO_NAME); mqtt.subscribe(sub);
@@ -444,6 +451,17 @@ static void handleCommand(const CmdMsg& c){
     if (sessionDir==0){ warn("START_MM REFUSED: set session_direction first"); return; }
     if (n<0 || n>=ROUTE_N){ warn("START_MM REFUSED: out of range"); return; }
     declarePosition((uint8_t)n,travelDir(),nullptr);
+  } else if (!strcmp(leaf,"dispatcher_release")) {
+    // The dispatcher console's RELEASE. P9 keeps release on that console, and
+    // it must actually release: withdraw enrolment, stop, and say so. Same
+    // effect as cmd/auto 0. NAVI_ONE 0.1 did not subscribe to it at all, so
+    // the button responded on screen and the locomotive stayed enlisted.
+    if (autoEnrolled || autoRunning) {
+      autoEnrolled=false; autoRunning=false; requestPwm(0,RAMP_DOWN_MS);
+      pub(T_ST_AUTO,"0",true);
+      warn("RELEASED by dispatcher");
+      publishNav("DISPATCHER_RELEASE",nullptr,Ruling::NoPosition);
+    }
   } else if (!strcmp(leaf,"auto")) {
     if (n==0){ autoEnrolled=false; autoRunning=false; requestPwm(0,RAMP_DOWN_MS); }
     else if (!navigator.positionKnown()) warn("AUTO REFUSED: declare position first");
