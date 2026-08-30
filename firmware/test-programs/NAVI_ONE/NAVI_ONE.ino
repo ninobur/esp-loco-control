@@ -426,13 +426,21 @@ static void serviceStatus(){
   const NavStatus& s=navigator.status();
   char b[400];
   snprintf(b,sizeof(b),
+    // The console reads position from "dead_reckoned_mm" and renders it only
+    // while "nav" is one of TRACKING / NORMAL / EVALUATING (USABLE_NAV). Both
+    // names are the existing contract and are not ours to change.
+    //
+    // NAVI_ONE dead-reckons NOTHING: every advance is magnet-confirmed and the
+    // field carries the confirmed position. The name is wrong for this
+    // navigator and is kept only so the dashboard keeps working.
     "{\"level\":\"%s\",\"reason\":\"STATUS\",\"loco\":\"%s\",\"uptime_ms\":%lu,"
-    "\"nav\":\"%s\",\"mm\":%u,\"tgt\":%u,\"dir\":\"%s\",\"trust\":\"%s\","
+    "\"nav\":\"%s\",\"mm\":%u,\"dead_reckoned_mm\":%u,"
+    "\"tgt\":%u,\"dir\":\"%s\",\"trust\":\"%s\","
     "\"moving\":%u,"
     "\"pwm\":%d,\"auto\":%u,\"running\":%u,\"estop\":%u,\"lowvolt\":%u,"
     "\"adv\":%lu,\"ref\":%lu,\"notmag\":%lu,\"baseline\":%ld,\"floor_rej\":%lu}",
     navigator.positionKnown()?"CLEAR":"UNSET", LOCO_NAME,(unsigned long)millis(),
-    s.state==NavState::Unset?"UNSET":"DECLARED", s.navMm, s.target,
+    navigator.positionKnown()?"NORMAL":"UNSET", s.navMm, s.navMm, s.target,
     s.navDir>0?"CW":(s.navDir<0?"CCW":"UNSET"), trustName(s.trust),
     (actualPwm>0)?1u:0u,
     actualPwm, autoEnrolled?1:0, autoRunning?1:0, estopped?1:0, lowVoltage?1:0,
