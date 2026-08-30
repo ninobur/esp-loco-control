@@ -1,4 +1,4 @@
-# 0054 — Manual movement of the locomotive invalidates position, and the navigator does not recover from it
+# 0055 — Manual movement of the locomotive invalidates position, and the navigator does not recover from it
 
 Status: Accepted (operator, 2026-08-29)
 
@@ -72,6 +72,11 @@ is handling the locomotive.
 ## References
 
 - decision 0053; `firmware/test-programs/NAVI_2/NAVI_2.ino`
+- **Scope note:** this record describes `NAVI_2`, the sketch flashed to Toby on
+  2026-08-29. Decision 0054 (`NAVI_CL2`) specifies a different navigator whose
+  dt rule is wall-clock from the last accepted marker with no motion gate; the
+  hand-movement refusals this record rules on would not arise there. The two
+  lineages need reconciling — see the librarian note in that record.
 - `docs/research/20260829_A_CLEAN_LAP.md`
 - field evidence: `~/NGR/telemetry/all_20260829.log`, 18:17–18:19 (the refusals)
   and 18:36–18:40 (32/32 driven manual)
