@@ -321,6 +321,26 @@ static void publishNav(const char* event,const Judged* j,Ruling r){
   Serial.printf("[NAV] %s\n",b);
 }
 
+// TRAVEL DIRECTION IS NOT SESSION DIRECTION.
+// sessionDir is which way round the route the locomotive runs WHEN DRIVEN
+// FORWARD. Reverse the motor and it travels the other way, so navDir must be
+// derived from both. NAVI_ONE 0.1 used sessionDir alone, and on 2026-08-29 the
+// operator started AUTO with the motor in REVERSE: it drove backwards while
+// the navigator advanced as though going forward, and position was wrong from
+// the first magnet.
+static int8_t travelDir(){
+  if (sessionDir == 0) return 0;
+  return motorDirection ? sessionDir : (int8_t)(-sessionDir);
+}
+static void applyTravelDirection(){
+  int8_t d = travelDir();
+  if (d != 0 && d != navigator.status().navDir) {
+    navigator.setDirection(d);        // steps navMm back along the OLD heading
+    recognizerResetRequest = true;
+    publishNav("DIRECTION",nullptr,Ruling::NoPosition);
+  }
+}
+
 static void declarePosition(uint8_t mm,int8_t dir,const char* interval){
   navigator.declare(mm,dir);
   recognizerResetRequest = true;
@@ -406,8 +426,7 @@ static void handleCommand(const CmdMsg& c){
     if (estopped){ autoRunning=false; requestPwm(0,0); warn("ESTOP"); } else warn("");
   } else if (!strcmp(leaf,"session_direction")) {
     int8_t d = (!strcasecmp(c.payload,"CW")) ? +1 : (!strcasecmp(c.payload,"CCW") ? -1 : 0);
-    if (d){ sessionDir=d; navigator.setDirection(d); recognizerResetRequest=true;
-            pub(T_ST_SESSDIR,d>0?"CW":"CCW",true); publishNav("DIRECTION",nullptr,Ruling::NoPosition); }
+    if (d){ sessionDir=d; pub(T_ST_SESSDIR,d>0?"CW":"CCW",true); applyTravelDirection(); }
   } else if (!strcmp(leaf,"start_interval")) {
     // "AAA-BBB" -- the two magnets the locomotive stands between, GEOMETRIC and
     // always ascending, because that is what the console's slider produces and
@@ -420,21 +439,25 @@ static void handleCommand(const CmdMsg& c){
     if (sscanf(c.payload,"%d-%d",&a,&b)!=2){ warn("START_INTERVAL REFUSED: expected AAA-BBB"); return; }
     if (a<0||a>=ROUTE_N||b<0||b>=ROUTE_N){ warn("START_INTERVAL REFUSED: out of range"); return; }
     if (nextMarker((uint8_t)a,+1)!=(uint8_t)b){ warn("START_INTERVAL REFUSED: markers not adjacent"); return; }
-    declarePosition(sessionDir>0?(uint8_t)a:(uint8_t)b, sessionDir, c.payload);
+    declarePosition(travelDir()>0?(uint8_t)a:(uint8_t)b, travelDir(), c.payload);
   } else if (!strcmp(leaf,"start_mm")) {
     if (sessionDir==0){ warn("START_MM REFUSED: set session_direction first"); return; }
     if (n<0 || n>=ROUTE_N){ warn("START_MM REFUSED: out of range"); return; }
-    declarePosition((uint8_t)n,sessionDir,nullptr);
+    declarePosition((uint8_t)n,travelDir(),nullptr);
   } else if (!strcmp(leaf,"auto")) {
     if (n==0){ autoEnrolled=false; autoRunning=false; requestPwm(0,RAMP_DOWN_MS); }
     else if (!navigator.positionKnown()) warn("AUTO REFUSED: declare position first");
     else if (estopped||lowVoltage)       warn("AUTO REFUSED: safety interlock");
+    else if (!motorDirection)            warn("AUTO REFUSED: direction is REVERSE");
     else autoEnrolled=true;
     char v[4]; snprintf(v,sizeof(v),"%u",autoEnrolled?1:0); pub(T_ST_AUTO,v,true);
   } else if (!strcmp(leaf,"go") || (dispatcher && strstr(c.topic,"/go/"))) {
     if (!autoEnrolled)                    warn("GO REFUSED: not enrolled");
     else if (!navigator.positionKnown())  warn("GO REFUSED: no position");
     else if (estopped||lowVoltage)        warn("GO REFUSED: safety interlock");
+    // Automatic operation runs FORWARD. The operator asked for this lockout
+    // after starting AUTO in reverse on 2026-08-29: "He complied and died."
+    else if (!motorDirection)             warn("GO REFUSED: direction is REVERSE");
     else { autoRunning=true; requestPwm(AUTO_CRUISE_PWM,RAMP_UP_MS); warn(""); }
   } else if (!strcmp(leaf,"stop") || (dispatcher && strstr(c.topic,"/stop/"))) {
     autoRunning=false; requestPwm(0,RAMP_DOWN_MS);
@@ -447,7 +470,10 @@ static void handleCommand(const CmdMsg& c){
       requestPwm(t, (uint16_t)(ms > 65535 ? 65535 : ms));
     }
   } else if (!strcmp(leaf,"direction")) {
-    if (!autoEnrolled && actualPwm<=SAFE_DIRECTION_CHANGE_PWM && n!=1) motorDirection=(n==2);
+    if (!autoEnrolled && actualPwm<=SAFE_DIRECTION_CHANGE_PWM && n!=1) {
+      motorDirection=(n==2);
+      applyTravelDirection();          // reversing the motor reverses travel
+    }
   }
 }
 
