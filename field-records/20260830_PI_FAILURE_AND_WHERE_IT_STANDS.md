@@ -84,3 +84,87 @@ Running `NAVI_ONE_0_3`, flashed successfully, and **still without a field test**
 the Pi died before any of it could be observed. Nothing about 0.3 has been
 watched on the dashboard. He needs nothing and will reconnect on his own once a
 broker exists.
+
+---
+
+# Resolution, same day
+
+## It was never the card
+
+The Pi boots to the desktop, on the same card. Everything is back: ping, SSH,
+mosquitto on 1883, the dashboard on 8080. `ngr-app` and `mosquitto` both active.
+
+The sequence that matters:
+
+1. died mid-session
+2. power-cycled → **would not boot**: PWR solid, ACT only occasional flicker
+3. card pulled and read on the Mac → **perfect**, every boot file readable
+4. card put back in → **boots normally**
+
+Step 4 is the diagnosis. Reseating the card fixed it, which means the fault was
+**contact, not media**. And that reframes 2026-08-12: that "card failure" was
+also resolved by putting a *different card in the same socket* — which is also a
+reseat. Two card failures in eighteen days may well be one intermittent SD
+socket, and replacing the card the first time fixed it for the same reason
+reseating fixed it today.
+
+Consistent with everything observed: an SD card that loses contact under a
+running kernel takes the whole machine down at once — SSH, MQTT and HTTP die
+together because the filesystem is simply gone — and then will not boot until
+the contact is remade.
+
+The apparent network fault seen at the TV was the operator having unplugged the
+Ethernet to move the Pi. Not a fault.
+
+## There is no evidence, and that is by design
+
+`journalctl --list-boots` shows only the current boot. `/var/log/journal` exists
+but is empty. There is no `syslog`, no `kern.log`, no `messages`.
+
+**This Pi keeps no logs at all.** That is decision 0027 working exactly as
+written — the Pi serves and brokers and does not write to its own card, because
+continuous telemetry writes are what was blamed for the first failure. Today is
+the first time that trade has cost anything, and what it cost was the entire
+post-mortem: there is no record of the midday failure and there never was one.
+
+Worth revisiting, because the trade was made on a premise that now looks wrong.
+If the fault is the socket rather than write wear, the Pi is paying for card
+life it was never losing. A small capped persistent journal
+(`SystemMaxUse=50M`) would have answered today's question outright.
+
+## Not the PSU, and not undervoltage
+
+`vcgencmd get_throttled` = `0x0`, and the 07:00 report had it at `0x0` after
+five days up. The operator uses a genuine Raspberry Pi supply. The PSU theory
+carried from the 2026-08-12 runbook was over-weighted and should be set aside
+unless new evidence appears.
+
+## Toby
+
+`state/bootid` retained on the broker confirms the flash took:
+
+```json
+{"sketch":"NAVI_ONE_0_3","loco":"9950012","entry":38,"exit":25,"floor_ms":40,
+ "amp_floor":0.34,"resid_ceil":0.13,"guard_ms":200,"seq_n":10,
+ "offsets":0,"quorum":0,"velocity_model":0,"motion_gate":0,"ir_votes":0}
+```
+
+He is **not currently connected** — no live traffic in a 12 s subscribe. Powered
+off, presumably. **0.3 still has no field test.**
+
+One stale retained ghost to note: `ngr/loco/9950012/alert` holds a QUORUM-era
+payload (`moving`, `lostm`, `lc_mm`, `losts` — none of which 0.3 publishes) at
+`uptime_ms 88695`. NAVI_ONE publishes `alert` non-retained, so a live publish
+will never clear it; it will be delivered to the console on every reconnect
+until someone empties the topic deliberately. Not done — that is a change to
+shared broker state and wants the operator's word.
+
+## What is actually open
+
+1. **The SD socket.** If it happens again, the fault is the socket and the fix
+   is USB boot, which bypasses it entirely — and which is now a far
+   better-motivated recommendation than it was as a wear remedy.
+2. **Logging.** Decide whether to keep 0027 absolute or allow a capped journal.
+3. **Overlayfs** — still a good idea for hard-power-cut safety, but no longer
+   justified by the wear argument.
+4. **Toby's field test of 0.3**, not yet begun.
