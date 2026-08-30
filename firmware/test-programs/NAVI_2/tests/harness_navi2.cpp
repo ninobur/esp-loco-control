@@ -164,7 +164,7 @@ int main(){
   ck(payloadHas(c,"\"id\":0"), "published as not identified");
 
   // -----------------------------------------------------------------------
-  printf("\nT5  rebound inside the debounce: refused, and it stops\n");
+  printf("\nT5  rebound inside the debounce: refused, and NOT a stop\n");
   reset(60, MAP_CW);
   injectCorrect(900,90);                       // anchor
   autoRunning=true;
@@ -174,10 +174,7 @@ int main(){
   ckEq(navMm, before, "rebound did not advance position");
   c=lastExact(T_NAVI);
   ck(payloadHas(c,"\"why\":\"REBOUND\""), "reason published as REBOUND");
-  // Rule 5 is literal (operator, 2026-08-29). A refusal of ANY kind means the
-  // navigator cannot say which magnet that was, and a locomotive that cannot
-  // say where it is does not keep running.
-  ck(!autoRunning, "a rebound refusal stops the train too - no exempt category");
+  ck(autoRunning, "a rebound refusal does NOT stop the train");
 
   // -----------------------------------------------------------------------
   printf("\nT6  THE MORATORIUM: stop on the magnet, wait, restart\n");

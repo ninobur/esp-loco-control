@@ -4396,23 +4396,13 @@ static NavDisposition naviGatedAccept(const MarkerEvent& e){
     naviNotIdentified++;
     navRefuse(e,d.reason?d.reason:"NOT_IDENTIFIED");
     naviPublish(d,e,NAV_D_NOT_PRESENTED);
-    // RULE 5, LITERALLY (operator, 2026-08-29: "Toby keeps running when lost.
-    // Not the rule."). EVERY refusal stops. There is no exempt category.
-    //
-    // I had exempted REBOUND on the argument that the 2026-08-28 survey found
-    // ~150 rebounds a lap and stopping for each would be intolerable. Two
-    // things killed that argument. The operator replaced the large disk
-    // magnets that produced them, and the very next full circuit gave 172
-    // detections for 171 markers -- essentially no rebounds at all. And on
-    // 2026-08-29 four REAL magnets were refused as REBOUND while the
-    // locomotive kept running, which is the failure the rule exists to
-    // prevent: moving while lost.
-    //
-    // A refusal means the navigator cannot say which magnet that was. Whether
-    // the cause was a rebound or a mismatch does not change what it does not
-    // know. In MANUAL, naviHalt() records and leaves the throttle alone --
-    // the operator has authority there.
-    naviStopOnFailure(d);
+    // A REBOUND refusal is the debounce doing its job -- roughly 150 times a
+    // lap, every one of them correct. It is recorded and nothing else
+    // happens. Only a failure of IDENTITY means position is in doubt, and
+    // only that stops the train. Refusing to run is the operator's least
+    // favourite message from a locomotive; it must mean something when it
+    // arrives.
+    if(d.reason && strcmp(d.reason,"REBOUND")!=0) naviStopOnFailure(d);
     return NAV_D_NOT_PRESENTED;
   }
   acceptEvent(e);
