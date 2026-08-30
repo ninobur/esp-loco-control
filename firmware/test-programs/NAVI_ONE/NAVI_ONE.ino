@@ -116,6 +116,24 @@ static volatile bool recognizerResetRequest = false;
 // ---------------------------------------------------------------------------
 // IR OBSERVER — GPIO 34. Publishes. Never votes. (decisions 0055, 0057)
 // ---------------------------------------------------------------------------
+// ADC1 IS SHARED WITH THE HALL SENSOR, AND THAT IS NOT FREE.
+// Measured 2026-08-29 on the bench: ~1.1 floor rejects per second on the Hall
+// line, INVARIANT to the motor (1.03/s running, 1.12/s stopped) and to the
+// table (metal vs stone, no difference). A rate that ignores everything
+// external is internal, and the cause is here: pin 34 was sampled every 1 ms
+// alongside pin 33, with nothing connected to it. GPIO34 is input-only with no
+// internal pull, so it floats, and the converter's sample-and-hold does not
+// settle when swung between two very different channel voltages -- so the
+// FLOATING pin drags the reading of the sensor the locomotive navigates by.
+//
+// Three changes, all of which should have been there from the start:
+//   * do not sample pin 34 at all until IR proves it is fitted;
+//   * when fitted, sample at 100 Hz, not 1 kHz. Spokes arrive ~30 ms apart at
+//     cruise, so 1 kHz was ten times more than the measurement needs;
+//   * discard the first read after a channel switch, the standard remedy.
+#define IR_SAMPLE_EVERY   10      // ticks -> 100 Hz
+#define IR_PRESENT_SPAN   60      // raw p2p over the probe before we believe it
+#define IR_PROBE_MS     4000UL    // probe window at boot
 #define IR_ENV_N 2048
 #define IR_MIN_SPAN 120
 #define IR_RISE_DEBOUNCE_MS 15UL
@@ -126,6 +144,35 @@ static bool irPrimed=false, irInPulse=false;
 static unsigned long irRiseMs=0, irEnvMs=0;
 static volatile uint32_t irPulses=0, irRises=0, irChatter=0, irSat=0;
 static volatile int32_t  irSpan=0, irRaw=0, irRawMin=4095, irRawMax=0;
+
+static void irSample(unsigned long now);
+static bool irFitted=false, irProbing=true;
+static int  irProbeMin=4095, irProbeMax=0;
+static unsigned long irProbeStart=0;
+
+// Called every tick. Decides whether pin 34 is worth touching at all, and how
+// often. Until IR proves it is fitted, the pin is read only during the boot
+// probe and then left alone entirely.
+static void irService(unsigned long now, uint32_t tick){
+  if (irProbing) {
+    if (!irProbeStart) irProbeStart = now;
+    int r = analogRead(IR_PIN);
+    if (r < irProbeMin) irProbeMin = r;
+    if (r > irProbeMax) irProbeMax = r;
+    if (now - irProbeStart >= IR_PROBE_MS) {
+      irFitted = (irProbeMax - irProbeMin) >= IR_PRESENT_SPAN;
+      irProbing = false;
+      Serial.printf("[IR] probe %d..%d span=%d -> %s\n", irProbeMin, irProbeMax,
+                    irProbeMax-irProbeMin, irFitted ? "FITTED, sampling at 100 Hz"
+                                                    : "NOT FITTED, pin 34 left alone");
+    }
+    return;
+  }
+  if (!irFitted) return;                       // never touch a floating pin
+  if (tick % IR_SAMPLE_EVERY) return;          // 100 Hz
+  (void)analogRead(IR_PIN);                    // settle: discard after the switch
+  irSample(now);
+}
 
 static void irSample(unsigned long now){
   int raw = analogRead(IR_PIN);
@@ -302,6 +349,7 @@ static void declarePosition(uint8_t mm,int8_t dir,const char* interval){
 // ---------------------------------------------------------------------------
 static void hallTask(void*){
   TickType_t wake = xTaskGetTickCount();
+  uint32_t tick = 0;
   for(;;){
     unsigned long now = millis();
     if (recognizerResetRequest) { recognizer.reset(); recognizerResetRequest = false; }
@@ -313,7 +361,7 @@ static void hallTask(void*){
                 v.amplitudeRatio,v.residual,(uint8_t)v.shapeTested,v.gapMs,v.gain };
       if (judgedQ) xQueueSend(judgedQ,&j,0);
     }
-    irSample(now);
+    irService(now, tick++);
     vTaskDelayUntil(&wake,1);
   }
 }
