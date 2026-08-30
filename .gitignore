@@ -33,3 +33,6 @@ venv/
 firmware/libraries
 firmware/libraries
 firmware/test-programs/ESPNOW_CMD_TX/espnow_keys.h
+
+# host-test build output
+firmware/test-programs/*/tests/gen/
