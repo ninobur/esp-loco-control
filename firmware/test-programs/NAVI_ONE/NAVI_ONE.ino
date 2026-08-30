@@ -66,7 +66,7 @@ using namespace navi_one;
 
 // Types used in function signatures must appear before the Arduino
 // prototype generator's insertion point, which is just after the includes.
-struct PubMsg { char topic[72]; char payload[420]; bool retain; };
+struct PubMsg { char topic[72]; char payload[640]; bool retain; };
 struct CmdMsg { char topic[72]; char payload[64]; };
 
 static const char*   MQTT_BROKER = "192.168.68.142";
@@ -481,8 +481,8 @@ static void serviceIr(){
 static void serviceStatus(){
   static uint32_t last=0; if(millis()-last<1000) return; last=millis();
   const NavStatus& s=navigator.status();
-  char b[400];
-  snprintf(b,sizeof(b),
+  char b[600];
+  int w = snprintf(b,sizeof(b),
     // The console reads position from "dead_reckoned_mm" and renders it only
     // while "nav" is one of TRACKING / NORMAL / EVALUATING (USABLE_NAV). Both
     // names are the existing contract and are not ours to change.
@@ -513,7 +513,22 @@ static void serviceStatus(){
     (unsigned long)s.advances,(unsigned long)s.refusals,(unsigned long)s.notMagnets,
     (long)capture.baseline(),(unsigned long)capture.floorRejects(),
     irFitted?1u:0u, irProbing ? -1 : (irProbeMax-irProbeMin));
-  pub(T_ALERT,b,false);
+  // NEVER ENQUEUE TRUNCATED JSON. snprintf truncates silently, the Pi's
+  // json.loads() then throws, and the consumer discards the WHOLE alert --
+  // so one field too many makes every field disappear. That is exactly what
+  // happened on 2026-08-29: b[400] cut the payload at 399 bytes and took KPH,
+  // PWM-actual and the agree/disagree counters with it. QUORUM had this guard
+  // and I did not carry it over.
+  if (w >= (int)sizeof(b) || w < 0) {
+    char m[160];
+    snprintf(m,sizeof(m),
+      "{\"level\":\"WARN\",\"reason\":\"ALERT_OVERSIZE\",\"loco\":\"%s\",\"bytes\":%d}",
+      LOCO_NAME, w);
+    pub(T_ALERT,m,false);
+    Serial.printf("[ALERT] OVERSIZE %d bytes\n", w);
+  } else {
+    pub(T_ALERT,b,false);
+  }
   char v[8];
   snprintf(v,sizeof(v),"%d",actualPwm); pub(T_ST_THR,v,true);
   snprintf(v,sizeof(v),"%u",motorDirection?2:0); pub(T_ST_DIR,v,true);
@@ -543,7 +558,7 @@ void setup(){
   Serial.printf("[CAL] 2 s baseline — keep clear of magnets\n");
   xTaskCreatePinnedToCore(hallTask,"hall",4096,nullptr,3,nullptr,0);
   WiFi.mode(WIFI_STA); WiFi.begin(WIFI_SSID,WIFI_PASS);
-  mqtt.setServer(MQTT_BROKER,MQTT_PORT); mqtt.setCallback(onMqtt); mqtt.setBufferSize(600);
+  mqtt.setServer(MQTT_BROKER,MQTT_PORT); mqtt.setCallback(onMqtt); mqtt.setBufferSize(800);
   xTaskCreatePinnedToCore(networkTask,"net",8192,nullptr,1,nullptr,1);
   char b[300];
   snprintf(b,sizeof(b),
