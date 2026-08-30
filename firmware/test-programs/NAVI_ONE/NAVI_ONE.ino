@@ -500,7 +500,8 @@ static void serviceStatus(){
     // than blanking, and so their absence is visible rather than implied.
     "\"candidate_mm\":-1,\"viable\":[],\"miss_streak\":0,"
     "\"agree\":%lu,\"disagree\":%lu,\"notmag\":%lu,"
-    "\"baseline\":%ld,\"floor_rej\":%lu}",
+    "\"baseline\":%ld,\"floor_rej\":%lu,"
+    "\"ir_fitted\":%u,\"ir_probe_span\":%d}",
     navigator.positionKnown()?"CLEAR":"UNSET", LOCO_NAME,(unsigned long)millis(),
     navigator.positionKnown()?"NORMAL":"UNSET",
     navigator.positionKnown()?"NORMAL":"UNSET", s.navMm, s.navMm,
@@ -510,7 +511,8 @@ static void serviceStatus(){
     trustName(s.trust), (actualPwm>0)?1u:0u, (unsigned long)estMmPerS,
     actualPwm, autoEnrolled?1:0, autoRunning?1:0, estopped?1:0, lowVoltage?1:0,
     (unsigned long)s.advances,(unsigned long)s.refusals,(unsigned long)s.notMagnets,
-    (long)capture.baseline(),(unsigned long)capture.floorRejects());
+    (long)capture.baseline(),(unsigned long)capture.floorRejects(),
+    irFitted?1u:0u, irProbing ? -1 : (irProbeMax-irProbeMin));
   pub(T_ALERT,b,false);
   char v[8];
   snprintf(v,sizeof(v),"%d",actualPwm); pub(T_ST_THR,v,true);
