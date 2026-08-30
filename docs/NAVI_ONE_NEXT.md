@@ -1,0 +1,52 @@
+# NAVI_ONE — open items
+
+## 1. END AO deserves a gentle stop (operator, 2026-08-29)
+
+> "Absent EStop, END AO should have a gentle deceleration ramp like at the
+> stations."
+
+Today every automatic deceleration uses `AUTO_STEP_DOWN_MS` = 31 ms/step,
+~2.8 s from PWM 90. That is right for a fault and wrong for an operator ending
+a session.
+
+Proposed split, for the operator's confirmation:
+
+| stop | rate | why |
+|---|---|---|
+| E-stop | instant, no ramp | unchanged |
+| **END AO / dispatcher release / `cmd/auto 0`** | **~200 ms/step** (~9 s from 45) | an operator ending a session, not an emergency. Matches the passenger-gentle station pacing of QUORUM v1.12B |
+| one-strike (WRONG_MAGNET) | 31 ms/step | position is unknown; do not coast while lost |
+| low voltage | 31 ms/step | the battery is dying |
+
+Not built. `requestPwm(target, up, down)` already takes a per-step down rate, so
+this is one constant and three call sites.
+
+## 2. Stations are absent from AUTO
+
+Deliberate, per the operator: prove the circuit first. AUTO currently cruises at
+a fixed PWM and stops only on fault, release, or completion.
+
+## 3. Which navigator governs
+
+Decisions 0053/0055 (NAVI_2, two tests) and 0054 (NAVI_CL2, four tests) both
+read as current and neither mentions the other. NAVI_ONE now supersedes both in
+practice, on evidence, but nothing says so on the record. One short decision
+would fix it — pending the operator's ruling on which lineage is current.
+
+## 4. The IR observer
+
+Branched to its own thread. See `docs/IR_DEV_REC/2026-08-29_IR_HANDOFF.md`.
+Note that presence must be DECLARED, not probed — the probe reasoning in the
+current sketch is backwards and will call a fitted-but-stationary sensor absent.
+
+## 5. Watch `floor_rej`
+
+It reached zero once the floating pin 34 stopped being sampled. If it climbs
+again, either the ADC gating regressed or the probe wrongly decided IR was
+fitted. Nothing reaches the recognizer either way; it is margin, not safety.
+
+## Where it stands, 2026-08-29
+
+**528 accepted, 0 refused, 0 non-magnets — 3.09 circuits of the Lowline,
+`trust: PROVEN` throughout.** Gates: survey 195/195 + 156/156, contract 87/0,
+real-lap replay 172 advances closing at MM040.
