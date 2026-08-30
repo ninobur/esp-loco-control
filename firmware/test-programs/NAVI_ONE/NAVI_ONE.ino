@@ -107,6 +107,10 @@ struct Judged {
   float    ratio, residual; uint8_t shapeTested; uint32_t gapMs; uint16_t gain;
 };
 static QueueHandle_t judgedQ = nullptr;
+// Average speed over the last confirmed interval: surveyed distance divided by
+// measured time. A measurement, not a model -- nothing in the accept path uses
+// it, and no PWM value appears in it. Display only.
+static uint32_t lastAdvanceMs = 0; static uint32_t estMmPerS = 0;
 static volatile bool recognizerResetRequest = false;
 
 // ---------------------------------------------------------------------------
@@ -192,7 +196,7 @@ static WiFiClient wifiClient; static PubSubClient mqtt(wifiClient);
 static char T[24][72];
 enum { T_ONLINE=0,T_NAV,T_MARKER,T_ALERT,T_IR,T_STAT,T_BOOT,T_WARN,
        T_ST_AUTO,T_ST_ESTOP,T_ST_THR,T_ST_DIR,T_ST_SESSDIR,T_ST_STARTMM,
-       T_ST_NAVREADY,T_ST_LOWV,T_ST_STARTINT,T_V,T_A,T_W,T_CNT };
+       T_ST_NAVREADY,T_ST_LOWV,T_ST_STARTINT,T_V,T_A,T_W,T_SPEED,T_CNT };
 
 static void topic(int i,const char* suffix){ snprintf(T[i],72,"ngr/loco/%s/%s",LOCO_NAME,suffix); }
 static void buildTopics(){
@@ -207,6 +211,7 @@ static void buildTopics(){
   topic(T_ST_LOWV,"state/lowvolt");    topic(T_ST_STARTINT,"state/start_interval");
   topic(T_V,"telem/voltage");
   topic(T_A,"telem/current");          topic(T_W,"telem/power");
+  topic(T_SPEED,"telem/speed");
 }
 static void pub(int t,const char* payload,bool retain=false){
   if(!pubQ) return;
@@ -237,12 +242,14 @@ static void publishNav(const char* event,const Judged* j,Ruling r){
   char b[420];
   if (j) {
     snprintf(b,sizeof(b),
-      "{\"event\":\"%s\",\"nav_state\":\"%s\",\"mm\":%u,\"tgt\":%u,"
+      "{\"event\":\"%s\",\"state\":\"%s\",\"nav\":\"%s\",\"nav_state\":\"%s\",\"mm\":%u,\"tgt\":%u,"
       "\"landmark\":\"%s\",\"dir\":\"%s\",\"ruling\":\"%s\",\"why\":\"%s\","
       "\"obs\":\"%c\",\"expected\":\"%c\",\"peak\":%u,\"ratio\":%.3f,"
       "\"resid\":%.4f,\"shape\":%u,\"gap_ms\":%lu,\"gain\":%u,"
       "\"trust\":\"%s\",\"seq_at\":%u,\"adv\":%lu,\"ref\":%lu,\"notmag\":%lu}",
-      event, s.state==NavState::Unset?"UNSET":"DECLARED", s.navMm, s.target,
+      event, navigator.positionKnown()?"NORMAL":"UNSET",
+      navigator.positionKnown()?"NORMAL":"UNSET",
+      navigator.positionKnown()?"NORMAL":"UNSET", s.navMm, s.target,
       landmarkAt(r==Ruling::Advanced ? s.navMm : s.target),
       s.navDir>0?"CW":(s.navDir<0?"CCW":"UNSET"),
       rulingName(r), outcomeName((Outcome)j->outcome),
@@ -255,9 +262,11 @@ static void publishNav(const char* event,const Judged* j,Ruling r){
     pub(T_MARKER,b,false);
   } else {
     snprintf(b,sizeof(b),
-      "{\"event\":\"%s\",\"nav_state\":\"%s\",\"mm\":%u,\"tgt\":%u,\"dir\":\"%s\","
+      "{\"event\":\"%s\",\"state\":\"%s\",\"nav\":\"%s\",\"nav_state\":\"%s\",\"mm\":%u,\"tgt\":%u,\"dir\":\"%s\","
       "\"trust\":\"%s\",\"adv\":%lu,\"ref\":%lu}",
-      event, s.state==NavState::Unset?"UNSET":"DECLARED", s.navMm, s.target,
+      event, navigator.positionKnown()?"NORMAL":"UNSET",
+      navigator.positionKnown()?"NORMAL":"UNSET",
+      navigator.positionKnown()?"NORMAL":"UNSET", s.navMm, s.target,
       s.navDir>0?"CW":(s.navDir<0?"CCW":"UNSET"), trustName(s.trust),
       (unsigned long)s.advances,(unsigned long)s.refusals);
   }
@@ -434,15 +443,23 @@ static void serviceStatus(){
     // field carries the confirmed position. The name is wrong for this
     // navigator and is kept only so the dashboard keeps working.
     "{\"level\":\"%s\",\"reason\":\"STATUS\",\"loco\":\"%s\",\"uptime_ms\":%lu,"
-    "\"nav\":\"%s\",\"mm\":%u,\"dead_reckoned_mm\":%u,"
-    "\"tgt\":%u,\"dir\":\"%s\",\"trust\":\"%s\","
-    "\"moving\":%u,"
+    "\"state\":\"%s\",\"nav\":\"%s\",\"mm\":%u,\"dead_reckoned_mm\":%u,"
+    "\"last_confirmed_landmark\":\"%s\",\"tgt\":%u,\"dir\":\"%s\","
+    "\"session_dir\":\"%s\",\"trust\":\"%s\",\"moving\":%u,\"est_mm_s\":%lu,"
     "\"pwm\":%d,\"auto\":%u,\"running\":%u,\"estop\":%u,\"lowvolt\":%u,"
-    "\"adv\":%lu,\"ref\":%lu,\"notmag\":%lu,\"baseline\":%ld,\"floor_rej\":%lu}",
+    // NAVI_ONE has no candidates, no viable set and no miss streak. They are
+    // published as their empty values so the console's panels render rather
+    // than blanking, and so their absence is visible rather than implied.
+    "\"candidate_mm\":-1,\"viable\":[],\"miss_streak\":0,"
+    "\"agree\":%lu,\"disagree\":%lu,\"notmag\":%lu,"
+    "\"baseline\":%ld,\"floor_rej\":%lu}",
     navigator.positionKnown()?"CLEAR":"UNSET", LOCO_NAME,(unsigned long)millis(),
-    navigator.positionKnown()?"NORMAL":"UNSET", s.navMm, s.navMm, s.target,
-    s.navDir>0?"CW":(s.navDir<0?"CCW":"UNSET"), trustName(s.trust),
-    (actualPwm>0)?1u:0u,
+    navigator.positionKnown()?"NORMAL":"UNSET",
+    navigator.positionKnown()?"NORMAL":"UNSET", s.navMm, s.navMm,
+    landmarkAt(s.navMm), s.target,
+    s.navDir>0?"CW":(s.navDir<0?"CCW":"UNSET"),
+    sessionDir>0?"CW":(sessionDir<0?"CCW":"UNSET"),
+    trustName(s.trust), (actualPwm>0)?1u:0u, (unsigned long)estMmPerS,
     actualPwm, autoEnrolled?1:0, autoRunning?1:0, estopped?1:0, lowVoltage?1:0,
     (unsigned long)s.advances,(unsigned long)s.refusals,(unsigned long)s.notMagnets,
     (long)capture.baseline(),(unsigned long)capture.floorRejects());
@@ -502,7 +519,20 @@ void loop(){
     v.shapeTested=j.shapeTested; v.gapMs=j.gapMs; v.gain=j.gain;
     Ruling r = navigator.judge(p,v);
     switch (r) {
-      case Ruling::Advanced:   publishNav("ADVANCE",&j,r); break;
+      case Ruling::Advanced: {
+        // surveyed distance just covered / measured time. Display only.
+        const NavStatus& ns = navigator.status();
+        uint8_t from = routeMod((int32_t)ns.navMm - ns.navDir);
+        if (lastAdvanceMs) {
+          uint32_t dt = j.closedAtMs - lastAdvanceMs;
+          if (dt > 0 && dt < 30000)
+            estMmPerS = (uint32_t)((uint32_t)spanMm(from, ns.navDir) * 1000UL / dt);
+        }
+        lastAdvanceMs = j.closedAtMs;
+        char sv[12]; snprintf(sv,sizeof(sv),"%lu",(unsigned long)estMmPerS);
+        pub(T_SPEED,sv,true);
+        publishNav("ADVANCE",&j,r);
+        break; }
       case Ruling::WrongMagnet:publishNav("REFUSED",&j,r); oneStrike(j); break;
       case Ruling::NotAMagnet: publishNav("NOT_A_MAGNET",&j,r); break;
       default:                 publishNav("NO_POSITION",&j,r); break;
