@@ -1348,6 +1348,10 @@ static volatile uint32_t irPulses=0, irRises=0, irSaturated=0;
 static volatile uint32_t irContrastEpisodes=0, irOpenAborts=0;
 static volatile uint32_t irLastIntervalMs=0;
 static volatile int32_t  irSpan=0, irRawLast=0;
+// Raw min/max over the reporting second, taken BEFORE the contrast gate and
+// independent of it. A gate that refuses the signal must not also hide the
+// evidence of why -- the instrument has to say what it actually saw.
+static volatile int32_t  irRawMin=4095, irRawMax=0;
 static volatile uint8_t  irQuality=0;   // 0 none 1 no-contrast 2 marginal 3 good
 
 static void irUpdateEnvelope(int raw, unsigned long now){
@@ -1375,6 +1379,8 @@ static void irObserveSample(){
   const unsigned long now=millis();
   const int raw=analogRead(IR_OBS_PIN);
   irRawLast=raw;
+  if(raw<irRawMin) irRawMin=raw;
+  if(raw>irRawMax) irRawMax=raw;
   if(raw>=4000) irSaturated++;
   irUpdateEnvelope(raw,now);
   const int span=irRunMax-irRunMin;
@@ -2890,19 +2896,22 @@ static void irObserveService(){
   char b[224];
   snprintf(b,sizeof(b),
     "{\"pulses\":%lu,\"d\":%lu,\"rises\":%lu,\"mm\":%ld,\"mm_s\":%ld,"
-    "\"int_ms\":%lu,\"span\":%ld,\"raw\":%ld,\"q\":\"%s\","
+    "\"int_ms\":%lu,\"span\":%ld,\"raw\":%ld,\"raw_min\":%ld,\"raw_max\":%ld,"
+    "\"raw_pp\":%ld,\"q\":\"%s\","
     "\"sat\":%lu,\"no_contrast\":%lu,\"open_aborts\":%lu,\"votes\":0}",
     (unsigned long)p,(unsigned long)d,(unsigned long)irRises,
     (long)(p*IR_MM_PER_PULSE_OBS),(long)(d*IR_MM_PER_PULSE_OBS),
     (unsigned long)irLastIntervalMs,(long)irSpan,(long)irRawLast,
+    (long)irRawMin,(long)irRawMax,(long)(irRawMax-irRawMin),
     irQualityName(irQuality),
     (unsigned long)irSaturated,(unsigned long)irContrastEpisodes,
     (unsigned long)irOpenAborts);
   pub(T_IR,b,false);
-  Serial.printf("[IR] pulses=%lu +%lu mm=%ld mm/s=%ld span=%ld raw=%ld %s\n",
+  Serial.printf("[IR] pulses=%lu +%lu mm=%ld raw=%ld [%ld..%ld pp=%ld] span=%ld %s\n",
     (unsigned long)p,(unsigned long)d,(long)(p*IR_MM_PER_PULSE_OBS),
-    (long)(d*IR_MM_PER_PULSE_OBS),(long)irSpan,(long)irRawLast,
-    irQualityName(irQuality));
+    (long)irRawLast,(long)irRawMin,(long)irRawMax,(long)(irRawMax-irRawMin),
+    (long)irSpan,irQualityName(irQuality));
+  irRawMin=4095; irRawMax=0;      // per-second window
 }
 
 
