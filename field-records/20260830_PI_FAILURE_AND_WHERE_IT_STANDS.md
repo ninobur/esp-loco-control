@@ -168,3 +168,73 @@ shared broker state and wants the operator's word.
 3. **Overlayfs** — still a good idea for hard-power-cut safety, but no longer
    justified by the wear argument.
 4. **Toby's field test of 0.3**, not yet begun.
+
+---
+
+# Second correction: it was the Ethernet, and the Pi is now wireless
+
+## What actually happened
+
+Mosquitto keeps its own log on disk, rotated back to 15 August. It shows the
+broker **running and saving its database every 30 minutes** — 11:07, 11:37,
+12:07, 12:37, 13:07, 13:37, 14:07 — straight through the hours the Pi appeared
+dead. Local clients on 127.0.0.1 stayed connected the whole time. Every client
+that had to arrive over the network vanished at 10:57 and none returned until
+the cable was replugged.
+
+**The Pi never went down.** Its Ethernet link did.
+
+Everything else diagnosed that afternoon was wrong, and wrong in a way worth
+recording:
+
+- The card was never failing. It read perfectly on the Mac and boots fine.
+- The socket was not intermittent. Reseating the card fixed nothing; plugging
+  the cable in did.
+- The PSU was never implicated. `get_throttled` is `0x0` and the supply is a
+  genuine Pi unit.
+- "Not booting" was inferred from "no network", and then the LEDs were read to
+  match. **Solid red PWR with occasional green ACT is a healthy idle Pi.**
+
+The reasoning failed the same way twice: a conclusion was formed early and the
+evidence was read to fit it. The mosquitto log was there the whole time.
+
+## And the logging claim was wrong too
+
+The Pi does keep logs — mosquitto's, on its own card. `ngr-runlog` is `enabled`
+and `active`. Decision 0027, as it was described that afternoon, is not in force.
+That decision is also **not present on this branch at all**, and the operator
+states he did not make it. The whole decision log needs auditing; that is being
+taken up separately.
+
+## Wi-Fi, which should have been there all along
+
+The operator's question — *why are we using an ethernet link when the AP is
+inches away* — had no good answer. The radio was always fine:
+
+```
+NGR   DC:62:79:D9:E5:9C   CHAN 11   2462 MHz   signal 90-100
+```
+
+`wlan0` was UP, unblocked, and simply had no connection profile. A stale
+half-created profile from a first attempt was what kept refusing the password;
+`nmcli connection delete NGR` followed by `nmcli --ask device wifi connect NGR`
+worked immediately. Autoconnect is on, so it survives power cycles.
+
+`.142` was then added to the wireless profile, because Toby's firmware has the
+broker address compiled in:
+
+```bash
+sudo nmcli connection modify NGR +ipv4.addresses 192.168.68.142/22
+```
+
+Both `.142` and `.55` now answer on `wlan0`, ports 22, 1883 and 8080. The cable
+is optional. Had this been done in August, the day would have been a
+five-minute diagnosis over the wireless lifeline instead of an afternoon of
+SD cards.
+
+## One trap for next time
+
+`ssh` to this Pi requires `IdentityFile ~/.ssh/id_ed25519_github`. `~/.ssh/config`
+had a stanza only for `.142`, so connecting to the same host on any other
+address offered the default key and fell through to a password prompt — which
+looks exactly like a broken Pi and is not. Stanzas for `.55` and `.73` added.
