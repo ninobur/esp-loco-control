@@ -2706,7 +2706,10 @@ static void buildTopics(){
   snprintf(T_NAVI    ,64,"ngr/loco/%s/diag/navi"    ,id);
   snprintf(T_NAVI_TARGET,64,"ngr/loco/%s/navi/target",id);
   snprintf(T_NAVI_WAVE  ,64,"ngr/loco/%s/navi/wave"  ,id);
-  snprintf(T_IR         ,64,"ngr/loco/%s/diag/ir"      ,id);
+  // telem/ not diag/: the console subscribes to ("online","state/#","telem/#",
+  // "alert","mm/#","cmd/#"). A diag/ topic is published to the broker and
+  // recorded by nobody. Checked against server/ngr_app_v1_11_2.py.
+  snprintf(T_IR         ,64,"ngr/loco/%s/telem/ir"     ,id);
 #endif
   snprintf(T_NAV    ,64,"ngr/loco/%s/state/nav"     ,id);
   snprintf(T_MARKER ,64,"ngr/loco/%s/mm/marker"     ,id);
