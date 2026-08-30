@@ -66,6 +66,15 @@ using namespace navi_one;
 
 // Types used in function signatures must appear before the Arduino
 // prototype generator's insertion point, which is just after the includes.
+// One judged passage crossing to the loop thread. Hoisted with the other
+// types: the Arduino prototype generator inserts declarations just after the
+// includes, so anything used in a function signature must be defined above it.
+struct Judged {
+  uint32_t openedAtMs, closedAtMs;
+  uint16_t peak; uint8_t polarity;
+  uint8_t  outcome; uint8_t isMagnet;
+  float    ratio, residual; uint8_t shapeTested; uint32_t gapMs; uint16_t gain;
+};
 struct PubMsg { char topic[72]; char payload[640]; bool retain; };
 struct CmdMsg { char topic[72]; char payload[64]; };
 
@@ -82,7 +91,21 @@ static constexpr uint16_t RAMP_DOWN_MS = 2800;
 // Manual throttle is paced PER STEP, as QUORUM did: the feel of the controls
 // must not change because the navigator did. 0 -> 90 takes ~13.5 s up.
 static constexpr uint16_t MANUAL_STEP_UP_MS   = 150;
-static constexpr uint16_t MANUAL_STEP_DOWN_MS = 200;
+// THE BRAKE (decision 0011, and the behaviour the operator actually wants --
+// LocoDriver_v2_1_share.ino:318-340, which predates every sketch in this repo).
+// It is not a force applied to the motor. It is the DECELERATION STEP RATE:
+//     brake   0 -> 400 ms per step   (slow coast-down)
+//     brake 255 ->  15 ms per step   (hard brake)
+// Acceleration is unaffected. That is why it works on a PWM-only locomotive,
+// which is the question 0011 said had to be answered first -- it was answered
+// years ago in the original driver.
+static constexpr uint16_t BRAKE_STEP_COAST_MS = 400;
+static constexpr uint16_t BRAKE_STEP_HARD_MS  = 15;
+static uint8_t brakeValue = 0;
+static inline uint16_t brakeStepMs(){
+  return (uint16_t)(BRAKE_STEP_COAST_MS -
+    ((uint32_t)(BRAKE_STEP_COAST_MS - BRAKE_STEP_HARD_MS) * brakeValue) / 255U);
+}
 static constexpr float    LOW_VOLTAGE_V = 14.4f;
 
 // ---------------------------------------------------------------------------
@@ -100,12 +123,6 @@ static Navigator        navigator(recognizer);
 
 // One judged passage, crossing to the loop thread. The waveform does NOT cross:
 // the recognizer already ran, on the task that captured it.
-struct Judged {
-  uint32_t openedAtMs, closedAtMs;
-  uint16_t peak; uint8_t polarity;
-  uint8_t  outcome; uint8_t isMagnet;
-  float    ratio, residual; uint8_t shapeTested; uint32_t gapMs; uint16_t gain;
-};
 static QueueHandle_t judgedQ = nullptr;
 // Average speed over the last confirmed interval: surveyed distance divided by
 // measured time. A measurement, not a model -- nothing in the accept path uses
@@ -243,7 +260,7 @@ static WiFiClient wifiClient; static PubSubClient mqtt(wifiClient);
 static char T[24][72];
 enum { T_ONLINE=0,T_NAV,T_MARKER,T_ALERT,T_IR,T_STAT,T_BOOT,T_WARN,
        T_ST_AUTO,T_ST_ESTOP,T_ST_THR,T_ST_DIR,T_ST_SESSDIR,T_ST_STARTMM,
-       T_ST_NAVREADY,T_ST_LOWV,T_ST_STARTINT,T_V,T_A,T_W,T_SPEED,T_CNT };
+       T_ST_NAVREADY,T_ST_LOWV,T_ST_STARTINT,T_BRAKE,T_V,T_A,T_W,T_SPEED,T_CNT };
 
 static void topic(int i,const char* suffix){ snprintf(T[i],72,"ngr/loco/%s/%s",LOCO_NAME,suffix); }
 static void buildTopics(){
@@ -256,6 +273,7 @@ static void buildTopics(){
   topic(T_ST_SESSDIR,"state/session_direction");
   topic(T_ST_STARTMM,"state/start_mm");topic(T_ST_NAVREADY,"state/nav_ready");
   topic(T_ST_LOWV,"state/lowvolt");    topic(T_ST_STARTINT,"state/start_interval");
+  topic(T_BRAKE,"state/brake");
   topic(T_V,"telem/voltage");
   topic(T_A,"telem/current");          topic(T_W,"telem/power");
   topic(T_SPEED,"telem/speed");
@@ -453,23 +471,10 @@ static void handleCommand(const CmdMsg& c){
     if (n<0 || n>=ROUTE_N){ warn("START_MM REFUSED: out of range"); return; }
     declarePosition((uint8_t)n,travelDir(),nullptr);
   } else if (!strcmp(leaf,"brake")) {
-    // DECISION 0011 IS ACCEPTED AND UNIMPLEMENTED. cmd/brake has been
-    // published into the void since the SOLONAV rewrite. This sketch will not
-    // continue that silence and will not fake a state/brake, so it answers the
-    // command out loud instead. Rate-limited: the console's slider streams.
-    //
-    // 0011 requires two answers before a real brake exists, and neither is
-    // mine to give: WHAT BRAKE PHYSICALLY MEANS on a PWM-only locomotive
-    // (r12 stored and republished brakeValue but it never reached the motor,
-    // so this lineage has never braked), and WHICH CHAMBER it belongs to
-    // (re-derived under 0002, not copied from r12's dispatcherAuto refusal).
-    if (n != 0) {
-      static uint32_t lastBrakeWarn = 0;
-      if (millis() - lastBrakeWarn > 10000) {
-        lastBrakeWarn = millis();
-        warn("BRAKE NOT IMPLEMENTED — decision 0011 accepted, never built");
-      }
-    }
+    brakeValue = (uint8_t)constrain(n,0,255);
+    // A LIVE state/brake, which is what 0011 asked for -- "a live state/brake
+    // replacing the retained inert 0". Never an inert zero again.
+    char v[8]; snprintf(v,sizeof(v),"%u",brakeValue); pub(T_BRAKE,v,true);
   } else if (!strcmp(leaf,"dispatcher_release")) {
     // The dispatcher console's RELEASE. P9 keeps release on that console, and
     // it must actually release: withdraw enrolment, stop, and say so. Same
@@ -502,7 +507,7 @@ static void handleCommand(const CmdMsg& c){
     if (!autoEnrolled) {
       int t = constrain(n,0,255);
       int steps = t > actualPwm ? (t - actualPwm) : (actualPwm - t);
-      uint16_t per = t > actualPwm ? MANUAL_STEP_UP_MS : MANUAL_STEP_DOWN_MS;
+      uint16_t per = t > actualPwm ? MANUAL_STEP_UP_MS : brakeStepMs();
       uint32_t ms = (uint32_t)steps * per;
       requestPwm(t, (uint16_t)(ms > 65535 ? 65535 : ms));
     }
