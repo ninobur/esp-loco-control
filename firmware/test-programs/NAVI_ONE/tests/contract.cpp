@@ -70,7 +70,19 @@ int main(){
     Ruling g=r.feed(r.expected()?0:1,200,900);
     ck(g==Ruling::WrongMagnet,"ruled WRONG_MAGNET");
     ckEq(r.nav.status().navMm,before,"navMm unchanged");
-    ckEq((long)r.nav.status().refusals,1,"refusal counted"); }
+    ckEq((long)r.nav.status().refusals,1,"refusal counted");
+    // THE LATCH (operator's ruling 2026-08-30). 0.1 said position was unknown
+    // and then went on knowing it: judging continued, and a correct polarity
+    // during the coast-down advanced on the discredited position.
+    ck(r.nav.status().state==NavState::Struck,"state latched to STRUCK");
+    ck(!r.nav.positionKnown(),"positionKnown() is false after a strike");
+    Ruling after=r.feed(polarityAt(nextMarker(before,+1)),200,900);
+    ck(after==Ruling::NoPosition,"a correct magnet after the strike rules NO_POSITION");
+    ckEq(r.nav.status().navMm,before,"and still did not advance");
+    ckEq((long)r.nav.status().advances,1,"no advance was recorded after the strike");
+    // Only a declaration clears it.
+    r.nav.declare(60,+1);
+    ck(r.nav.positionKnown(),"a new declaration clears the latch"); }
 
   printf("\nT5  a recognizer refusal is not an identity failure\n");
   { Rig r; r.nav.declare(60,+1); r.feed(r.expected(),200,900);
@@ -111,6 +123,10 @@ int main(){
       int step=(int)r.nav.status().navMm-(int)prev; if(step<0) step+=ROUTE_N;
       if(step>1) jumps++;
       prev=r.nav.status().navMm;
+      // The strike now latches, which would end this walk at the first
+      // disagreement and make the rest of the test vacuous. Re-declare where
+      // he stands and keep feeding him garbage.
+      if(!r.nav.positionKnown()){ r.nav.declare(prev,+1); }
     }
     ckEq(jumps,0,"800 adversarial events, no multi-marker jump"); }
 
@@ -124,11 +140,53 @@ int main(){
     ck(r.feed(r.expected(),200,900)==Ruling::Advanced,"first magnet after reversal");
     ckEq(r.nav.status().navMm,45,"landed on 45"); }
 
-  printf("\nT8  the ten-magnet word proves, and contradicts\n");
+  printf("\nT8  the ten-magnet word proves (see T9 for what it cannot do)\n");
   { Rig r; r.nav.declare(0,+1);
     for(int i=0;i<12;i++) r.feed(r.expected(),200,900);
     ck(r.nav.status().trust==Trust::Proven,"PROVEN after ten clean markers");
     ckEq(r.nav.status().seqAt,r.nav.status().navMm,"and it agrees with navMm"); }
+
+  printf("\nT9  a missed magnet: how long can it hide?\n");
+  { // THE WITNESS IS A TAUTOLOGY, and this test is what proves it.
+    //
+    // verifySequence() compares each stored reading against the polarity of
+    // the marker it was stored at. But a reading is only ever stored AFTER it
+    // matched that marker's polarity -- that is the whole of judge(). So the
+    // ten-magnet word always fits the claimed position, exactly, by
+    // construction. Trust::Contradicted cannot be reached from judge(). The
+    // 0.1 review believed the witness would catch a drifted position "almost
+    // immediately"; across all 171 start positions it catches none, ever.
+    //
+    // What actually catches a missed magnet is the polarity chain, one magnet
+    // at a time -- and it catches it when the same-polarity run ends. This
+    // test measures that bound instead of asserting a capability the program
+    // does not have.
+    long silentAtOnce=0, worst=0, byWitness=0;
+    for(uint8_t start=0; start<ROUTE_N; ++start){
+      Rig r; r.nav.declare(start,+1);
+      for(int i=0;i<12;i++) r.feed(r.expected(),200,900);
+      if(r.nav.status().trust!=Trust::Proven) continue;
+      uint8_t truePos = nextMarker(r.nav.status().navMm,+1);  // the missed one
+      Ruling g = r.feed(polarityAt(nextMarker(truePos,+1)),200,900);
+      if(g==Ruling::WrongMagnet) continue;                    // caught at once
+      if(g==Ruling::Contradicted){ ++byWitness; continue; }
+      ++silentAtOnce;
+      truePos = nextMarker(truePos,+1);
+      long hid=1;
+      for(int k=0;k<ROUTE_N && r.nav.positionKnown();k++){
+        truePos = nextMarker(truePos,+1);
+        Ruling h = r.feed(polarityAt(truePos),200,900);
+        if(h!=Ruling::Advanced) break;
+        ++hid;
+      }
+      ck(!r.nav.positionKnown(),"the drift was caught within one lap");
+      if(hid>worst) worst=hid;
+    }
+    printf("  %ld of %d drifts advanced silently; the witness caught %ld;\n"
+           "  worst case hidden for %ld markers before the polarity chain "
+           "refused it\n", silentAtOnce, ROUTE_N, byWitness, worst);
+    ckEq(byWitness,0,"the ten-magnet witness never fires -- it is a tautology");
+    ck(worst<=7,"no missed magnet stayed hidden past the longest polarity run"); }
 
   printf("\n%d checks, %d failures\n",checks,failures);
   return failures?1:0;

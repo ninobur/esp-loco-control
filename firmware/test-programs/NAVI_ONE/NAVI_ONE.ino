@@ -62,7 +62,7 @@
 
 using namespace navi_one;
 
-#define SKETCH_NAME "NAVI_ONE_0_1"
+#define SKETCH_NAME "NAVI_ONE_0_2"
 
 // Types used in function signatures must appear before the Arduino
 // prototype generator's insertion point, which is just after the includes.
@@ -307,7 +307,26 @@ static void warn(const char* text){ pub(T_WARN,text,true); Serial.printf("[WARN]
 // RULE 5 — one strike. An IDENTITY failure means the map and the world
 // disagree; the navigator's job at that moment is to stop saying where it is.
 // In MANUAL the operator has authority and the throttle is left alone.
+//
+// THE STRIKE LATCHES (operator's ruling, 2026-08-30). Navigator::judge() has
+// already put the navigator in Struck, so positionKnown() is false and every
+// later passage rules NoPosition. This function withdraws the rest:
+// enrolment goes, state/auto goes to 0, nav_ready goes to 0, and GO is refused
+// until a new declaration. Review of 0.1 found the strike was advisory -- it
+// printed "position is not known", kept publishing a position, kept judging
+// (so a matching polarity during the coast-down ADVANCED on the position the
+// strike had just discredited), and let cmd/go restart AUTO on it. A stop the
+// program itself does not believe is worse than no stop at all.
 // ---------------------------------------------------------------------------
+static void withdraw(const char* text){
+  warn(text);
+  autoRunning = false;
+  if (autoEnrolled) { autoEnrolled = false; pub(T_ST_AUTO,"0",true); }
+  requestPwm(0,0,AUTO_STEP_DOWN_MS);
+  pub(T_ST_NAVREADY,"0",true);
+  lastAdvanceMs = 0;              // the next speed estimate must not span this
+}
+
 static void oneStrike(const Judged& j){
   const NavStatus& s = navigator.status();
   char w[200];
@@ -315,8 +334,22 @@ static void oneStrike(const Judged& j){
     "WRONG MAGNET at MM%03u: expected %c at MM%03u, read %c. Position is not "
     "known. Declare it.", s.navMm, poleChar(polarityAt(s.target)), s.target,
     poleChar(j.polarity));
-  warn(w);
-  if (autoRunning) { autoRunning = false; requestPwm(0,0,AUTO_STEP_DOWN_MS); }
+  withdraw(w);
+}
+
+// The ten-magnet witness, now armed. It stops and names; it never corrects.
+static void contradicted(){
+  const NavStatus& s = navigator.status();
+  char w[200];
+  if (s.seqNamed)
+    snprintf(w,sizeof(w),
+      "SEQUENCE CONTRADICTS MM%03u: the last %u magnets spell MM%03u. Position "
+      "is not known. Declare it.", s.navMm, (unsigned)SEQ_N, s.seqAt);
+  else
+    snprintf(w,sizeof(w),
+      "SEQUENCE CONTRADICTS MM%03u: the last %u magnets match no place on this "
+      "route. Position is not known. Declare it.", s.navMm, (unsigned)SEQ_N);
+  withdraw(w);
 }
 
 static void publishNav(const char* event,const Judged* j,Ruling r){
@@ -681,6 +714,7 @@ void loop(){
         publishNav("AGREE",&j,r);
         break; }
       case Ruling::WrongMagnet:publishNav("DISAGREE",&j,r); oneStrike(j); break;
+      case Ruling::Contradicted:publishNav("CONTRADICTED",&j,r); contradicted(); break;
       case Ruling::NotAMagnet: publishNav("NOT_A_MAGNET",&j,r); break;
       default:                 publishNav("NO_POSITION",&j,r); break;
     }

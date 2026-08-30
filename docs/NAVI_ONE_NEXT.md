@@ -27,10 +27,25 @@ a hard one says go and look. Two stops that felt the same would throw that away.
 Not built. `requestPwm(target, up, down)` already takes a per-step down rate, so
 this is one constant and three call sites.
 
+## 1b. The 0.1 review's remaining findings
+
+Findings 1 and 2 are done (decisions 0058, 0059). Eight remain, untouched, in
+`docs/reviews/NAVI_ONE_0_1_REVIEW_RESPONSE_20260830.md` with a suggested order.
+The two I would not fly again without: `cmd/estop` treats an unparseable payload
+as *stand down*, and a declaration is accepted while AUTO is running.
+
+## 1c. Six markers is the real bound
+
+Decision 0059. A missed magnet advances silently about half the time and can
+stay hidden for up to six markers, ~1.8 m, before the polarity chain refuses it.
+The ten-magnet witness does not close this and cannot — it is a tautology.
+Closing it needs distance, which is the IR thread's problem (item 4).
+
 ## 2. Stations are absent from AUTO
 
 Deliberate, per the operator: prove the circuit first. AUTO currently cruises at
-a fixed PWM and stops only on fault, release, or completion.
+a fixed PWM and stops only on fault or release — there is no completion
+condition in the code, contrary to what this document said before.
 
 ## 3. Which navigator governs
 
@@ -56,3 +71,10 @@ fitted. Nothing reaches the recognizer either way; it is margin, not safety.
 **528 accepted, 0 refused, 0 non-magnets — 3.09 circuits of the Lowline,
 `trust: PROVEN` throughout.** Gates: survey 195/195 + 156/156, contract 87/0,
 real-lap replay 172 advances closing at MM040.
+
+## Where it stands, 2026-08-30
+
+`NAVI_ONE_0_2`, **not flashed**. The strike latches and the witness is armed as
+an assertion. Gates: survey 195/195 + 156/156, contract **176/0**, real-lap
+replay unchanged. Compiles at 974,707 bytes; banner `NAVI_ONE_0_2 — 9950012`.
+Every flash deserves a test run, and this one has not had it.

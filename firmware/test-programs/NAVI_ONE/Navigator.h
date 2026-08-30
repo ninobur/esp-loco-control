@@ -19,8 +19,13 @@
 //      and the only one that can tell a WRONG magnet from a NON-magnet.
 //   4. Pass -> navMm advances by exactly one. advance() is the only place in
 //      this program that writes navMm.
-//   5. Fail -> navMm does not move, the reason is published, and the
-//      locomotive stops. ONE STRIKE (operator, 2026-08-29).
+//   5. Fail -> navMm does not move, the reason is published, the locomotive
+//      stops, AND POSITION IS WITHDRAWN. ONE STRIKE (operator, 2026-08-29).
+//      The strike LATCHES: state becomes Struck, positionKnown() goes false,
+//      every later passage rules NoPosition, and only declare() clears it.
+//      Operator's ruling 2026-08-30, after review found the strike was
+//      advisory -- it said "position is not known" and then went on saying
+//      where it was, judging, and accepting GO on the discredited position.
 //   6. Nothing else exists. No offsets, no scoring, no adoption, no
 //      quarantine, no recovery, no velocity model, no dead reckoning, and no
 //      "silent magnet" -- the term and the concept are banned.
@@ -31,6 +36,24 @@
 //   decision 0056 the navigator's whole job at that moment is to stop saying
 //   where it is. It cannot tell a missed magnet from a moved magnet from a bad
 //   declaration -- all three need a person.
+//
+//   A CONTRADICTED WITNESS stops it too, and names where the track says the
+//   locomotive really is -- IF IT EVER FIRES. The operator ruled on 2026-08-30
+//   that it should stop and report, and it now does. But arming it changed
+//   nothing measurable, because the witness cannot disagree:
+//
+//     verifySequence() compares each stored reading against the polarity of
+//     the marker it was stored at -- and a reading is only ever stored AFTER
+//     it matched that marker's polarity. The word always fits. Contract gate
+//     T9 walks a missed magnet from all 171 start positions: the witness fires
+//     zero times.
+//
+//   So this is an ASSERTION, not an instrument. If it ever fires, an invariant
+//   this program depends on has broken, and stopping is the right answer to
+//   that. What actually catches a missed magnet is the polarity chain, one
+//   magnet at a time, when the same-polarity run ends -- measured worst case
+//   SIX markers, about 1.8 m. Closing that window needs a second bit
+//   (distance), which this navigator does not have.
 //
 //   A RECOGNIZER refusal does not. That is the filter working before identity
 //   is asked: navMm was not written, position is not in doubt, and on the
@@ -44,13 +67,26 @@
 
 namespace navi_one {
 
-enum class NavState : uint8_t { Unset = 0, Declared };
+// Unset  -- nothing has ever been declared.
+// Struck -- a declaration existed and was discredited. Position is no more
+//           known than Unset; the distinction is kept so the operator can tell
+//           "never told him" from "he caught himself lying".
+enum class NavState : uint8_t { Unset = 0, Declared, Struck };
+
+inline const char* navStateName(NavState n) {
+  switch (n) {
+    case NavState::Declared: return "DECLARED";
+    case NavState::Struck:   return "STRUCK";
+    default:                 return "UNSET";
+  }
+}
 
 enum class Ruling : uint8_t {
   Advanced = 0,     // identity confirmed, navMm moved exactly one
   NoPosition,       // nothing declared; event recorded and discarded
   NotAMagnet,       // recognizer refused; no stop
   WrongMagnet,      // POLARITY disagreed -- one strike, stop
+  Contradicted,     // advance made, then the ten-magnet word refused it -- stop
 };
 
 inline const char* rulingName(Ruling r) {
@@ -58,7 +94,8 @@ inline const char* rulingName(Ruling r) {
     case Ruling::Advanced:    return "ADVANCED";
     case Ruling::NoPosition:  return "NO_POSITION";
     case Ruling::NotAMagnet:  return "NOT_A_MAGNET";
-    default:                  return "WRONG_MAGNET";
+    case Ruling::WrongMagnet: return "WRONG_MAGNET";
+    default:                  return "CONTRADICTED";
   }
 }
 
@@ -85,6 +122,7 @@ struct NavStatus {
   uint8_t  target  = 0;
   Trust    trust   = Trust::Declared;
   uint8_t  seqAt   = 0;          // where the ten-magnet word says it is
+  bool     seqNamed = false;     // true only if the word fits exactly one place
   uint32_t advances = 0, refusals = 0, notMagnets = 0;
   Ruling   lastRuling = Ruling::NoPosition;
   Outcome  lastOutcome = Outcome::Magnet;
@@ -106,6 +144,7 @@ class Navigator {
     s_.state = NavState::Declared;
     s_.target = nextMarker(s_.navMm, s_.navDir);
     s_.trust = Trust::Declared;
+    s_.seqNamed = false;
     s_.advances = s_.refusals = s_.notMagnets = 0;
     seqLen_ = 0;
     rec_.reset();          // gain and guard describe a frame that has ended
@@ -122,6 +161,7 @@ class Navigator {
     s_.navDir = dir;
     s_.target = nextMarker(s_.navMm, s_.navDir);
     s_.trust = Trust::Declared;
+    s_.seqNamed = false;
     seqLen_ = 0;
     rec_.reset();
   }
@@ -135,11 +175,16 @@ class Navigator {
     s_.target = nextMarker(s_.navMm, s_.navDir);
     if (p.polarity != polarityAt(s_.target)) {       // rule 3
       s_.refusals++;
-      s_.lastRuling = Ruling::WrongMagnet;           // rule 5 -- one strike
+      s_.state = NavState::Struck;                   // rule 5 -- LATCHED
+      s_.lastRuling = Ruling::WrongMagnet;
       return s_.lastRuling;
     }
     advance(p.polarity);                             // rule 4
-    s_.lastRuling = Ruling::Advanced;
+    // advance() runs the witness. If the word it just completed does not fit
+    // the position being claimed, the advance stands in the record and the
+    // position is withdrawn exactly as a strike withdraws it.
+    s_.lastRuling = (s_.state == NavState::Struck) ? Ruling::Contradicted
+                                                   : Ruling::Advanced;
     return s_.lastRuling;
   }
 
@@ -159,9 +204,11 @@ class Navigator {
     seq_[SEQ_N - 1] = pol;
   }
 
-  // Secondary verification. It REPORTS and never acts: it cannot move navMm,
-  // cannot refuse an event, and cannot stop the locomotive. Its job is to say
-  // whether the position being claimed is the one the track spells out.
+  // Secondary verification. It can WITHDRAW position and never correct it: it
+  // cannot move navMm, cannot un-refuse an event, and cannot declare. Its job
+  // is to say whether the position being claimed is the one the track spells
+  // out -- and, when it is not, to name the one place the word does fit so the
+  // operator's next declaration is informed.
   void verifySequence() {
     if (seqLen_ < SEQ_N) return;
     // The newest reading sits at navMm; reading i belongs to
@@ -171,7 +218,7 @@ class Navigator {
       uint8_t mm = routeMod((int32_t)s_.navMm - (int32_t)s_.navDir * (int32_t)(SEQ_N - 1 - i));
       if (polarityAt(mm) != seq_[i]) here = false;
     }
-    if (here) { s_.trust = Trust::Proven; s_.seqAt = s_.navMm; return; }
+    if (here) { s_.trust = Trust::Proven; s_.seqAt = s_.navMm; s_.seqNamed = true; return; }
     // Where DOES the word fit? Unique if it fits anywhere.
     uint8_t found = 0; int hits = 0;
     for (uint8_t start = 0; start < ROUTE_N; ++start) {
@@ -183,7 +230,9 @@ class Navigator {
       if (ok) { found = start; if (++hits > 1) break; }
     }
     s_.trust = Trust::Contradicted;
+    s_.seqNamed = (hits == 1);
     s_.seqAt = (hits == 1) ? found : s_.navMm;
+    s_.state = NavState::Struck;          // withdrawn, not corrected
   }
 
   MagnetRecognizer& rec_;
