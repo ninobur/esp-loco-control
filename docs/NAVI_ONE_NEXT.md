@@ -31,20 +31,25 @@ this is one constant and three call sites.
 
 All thirteen findings disposed of in `NAVI_ONE_0_3`; see
 `docs/reviews/NAVI_ONE_0_1_REVIEW_CLOSEOUT_20260830.md`. Decisions 0058-0062.
-Three things are deliberately open:
+Two things are deliberately open:
 
 * **The Gaussian fit runs on the sampling task** (finding 13.9). Wants one
   bench measurement of tick jitter at passage close — not a redesign.
 * **Two display-only cross-thread reads** stay uncontracted, on purpose.
-* **A comms watchdog** — see item 1d.
+* **A comms watchdog** — ruled out by the operator; see item 1d.
 
-## 1d. In AUTO, nothing watches the radio
+## 1d. In AUTO, nothing watches the radio — RULED, and closed
 
 If MQTT drops while AUTO is running at cruise, the locomotive keeps going and
-the dashboard's stop button reaches nothing. QUORUM was the same, so this is
-inherited rather than introduced. Adding a stop condition is the operator's
-call: "refusing to run is my least favorite form of messages from a
-locomotive", and a radio that blinks would become a stop. Flagged, not built.
+the dashboard's stop button reaches nothing. Raised 2026-08-30 as a possible
+new stop condition. The operator ruled it out the same day:
+
+> No. under most conditions, I could flip the switch if coms stopped working.
+
+There is a human with a switch, standing at the railway. That is the watchdog,
+and it is a better one than a radio timeout that would stop the locomotive
+every time the broker blinked. Not to be re-raised without new evidence that
+the switch is not reachable.
 
 ## 1c. Six markers is the real bound
 
