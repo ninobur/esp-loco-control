@@ -1,3 +1,4 @@
+#line 1 "/Users/davidbrown/esp-loco-control/firmware/test-programs/NAVI_2/NAVI_2.ino"
 /*
  * ============================================================================
  * QUORUM_1_12  —  Ninobur Garden Railway single-locomotive navigation
@@ -780,6 +781,241 @@ static uint32_t ctoLastChanCheckMs=0;
 // looking uint8_t, fire the alarm, AND latch — costing two false alarms (one
 // out, one back) and a permanently wrong reference. Anything outside 1..14 is
 // "unknown", which is the same answer as "not associated".
+#line 783 "/Users/davidbrown/esp-loco-control/firmware/test-programs/NAVI_2/NAVI_2.ino"
+static uint8_t ctoWifiChannel();
+#line 805 "/Users/davidbrown/esp-loco-control/firmware/test-programs/NAVI_2/NAVI_2.ino"
+static void pwmAttachCompat();
+#line 806 "/Users/davidbrown/esp-loco-control/firmware/test-programs/NAVI_2/NAVI_2.ino"
+static void pwmWriteCompat(int v);
+#line 832 "/Users/davidbrown/esp-loco-control/firmware/test-programs/NAVI_2/NAVI_2.ino"
+static int8_t oppositeDir(int8_t d);
+#line 897 "/Users/davidbrown/esp-loco-control/firmware/test-programs/NAVI_2/NAVI_2.ino"
+static uint8_t strengthAt(uint8_t mm);
+#line 954 "/Users/davidbrown/esp-loco-control/firmware/test-programs/NAVI_2/NAVI_2.ino"
+static int8_t effStopOffset(uint8_t idx);
+#line 961 "/Users/davidbrown/esp-loco-control/firmware/test-programs/NAVI_2/NAVI_2.ino"
+static int8_t finalEntryOffset(uint8_t idx);
+#line 975 "/Users/davidbrown/esp-loco-control/firmware/test-programs/NAVI_2/NAVI_2.ino"
+static bool stationEnabled(uint8_t i);
+#line 978 "/Users/davidbrown/esp-loco-control/firmware/test-programs/NAVI_2/NAVI_2.ino"
+static uint8_t routeMod(int32_t v);
+#line 979 "/Users/davidbrown/esp-loco-control/firmware/test-programs/NAVI_2/NAVI_2.ino"
+static uint8_t dnaAt(uint8_t mm);
+#line 980 "/Users/davidbrown/esp-loco-control/firmware/test-programs/NAVI_2/NAVI_2.ino"
+static char polChar(uint8_t p);
+#line 981 "/Users/davidbrown/esp-loco-control/firmware/test-programs/NAVI_2/NAVI_2.ino"
+static uint8_t nextMm(uint8_t mm,int8_t dir);
+#line 982 "/Users/davidbrown/esp-loco-control/firmware/test-programs/NAVI_2/NAVI_2.ino"
+static const char * dirName(int8_t d);
+#line 984 "/Users/davidbrown/esp-loco-control/firmware/test-programs/NAVI_2/NAVI_2.ino"
+static const char * landmarkAt(uint8_t mm);
+#line 994 "/Users/davidbrown/esp-loco-control/firmware/test-programs/NAVI_2/NAVI_2.ino"
+static int16_t offsetToCentre(uint8_t mm,int8_t dir,uint8_t centre);
+#line 1030 "/Users/davidbrown/esp-loco-control/firmware/test-programs/NAVI_2/NAVI_2.ino"
+static void recomputeThresholds();
+#line 1037 "/Users/davidbrown/esp-loco-control/firmware/test-programs/NAVI_2/NAVI_2.ino"
+static int readAveragedADC();
+#line 1042 "/Users/davidbrown/esp-loco-control/firmware/test-programs/NAVI_2/NAVI_2.ino"
+static int medianOfRing();
+#line 1053 "/Users/davidbrown/esp-loco-control/firmware/test-programs/NAVI_2/NAVI_2.ino"
+static void primeMedian(int seed);
+#line 1058 "/Users/davidbrown/esp-loco-control/firmware/test-programs/NAVI_2/NAVI_2.ino"
+static void updateBaseline(int raw,unsigned long now);
+#line 1198 "/Users/davidbrown/esp-loco-control/firmware/test-programs/NAVI_2/NAVI_2.ino"
+static void detectorSample();
+#line 1365 "/Users/davidbrown/esp-loco-control/firmware/test-programs/NAVI_2/NAVI_2.ino"
+static void irUpdateEnvelope(int raw, unsigned long now);
+#line 1386 "/Users/davidbrown/esp-loco-control/firmware/test-programs/NAVI_2/NAVI_2.ino"
+static void irObserveSample();
+#line 1429 "/Users/davidbrown/esp-loco-control/firmware/test-programs/NAVI_2/NAVI_2.ino"
+static void hallTask(void*);
+#line 1521 "/Users/davidbrown/esp-loco-control/firmware/test-programs/NAVI_2/NAVI_2.ino"
+static const char * ceMissionName();
+#line 1527 "/Users/davidbrown/esp-loco-control/firmware/test-programs/NAVI_2/NAVI_2.ino"
+static int ceCruisePwm();
+#line 1665 "/Users/davidbrown/esp-loco-control/firmware/test-programs/NAVI_2/NAVI_2.ino"
+static void naviPolPush(uint8_t pol);
+#line 1857 "/Users/davidbrown/esp-loco-control/firmware/test-programs/NAVI_2/NAVI_2.ino"
+static void irEnsureQueue();
+#line 1858 "/Users/davidbrown/esp-loco-control/firmware/test-programs/NAVI_2/NAVI_2.ino"
+static void serviceIrRx();
+#line 1859 "/Users/davidbrown/esp-loco-control/firmware/test-programs/NAVI_2/NAVI_2.ino"
+static void serviceIrTelemetry();
+#line 1860 "/Users/davidbrown/esp-loco-control/firmware/test-programs/NAVI_2/NAVI_2.ino"
+static void irObserversReset(const char*);
+#line 1861 "/Users/davidbrown/esp-loco-control/firmware/test-programs/NAVI_2/NAVI_2.ino"
+static void irOnAccepted(const MarkerEvent&);
+#line 1862 "/Users/davidbrown/esp-loco-control/firmware/test-programs/NAVI_2/NAVI_2.ino"
+static void irObsFinalize(const MarkerEvent&,const char*);
+#line 1863 "/Users/davidbrown/esp-loco-control/firmware/test-programs/NAVI_2/NAVI_2.ino"
+static void irObserveEventPre(const MarkerEvent&);
+#line 1864 "/Users/davidbrown/esp-loco-control/firmware/test-programs/NAVI_2/NAVI_2.ino"
+static void irObserveEventPost(const MarkerEvent&);
+#line 1934 "/Users/davidbrown/esp-loco-control/firmware/test-programs/NAVI_2/NAVI_2.ino"
+static bool navPositionUsable();
+#line 1935 "/Users/davidbrown/esp-loco-control/firmware/test-programs/NAVI_2/NAVI_2.ino"
+static const char * navStateName();
+#line 1942 "/Users/davidbrown/esp-loco-control/firmware/test-programs/NAVI_2/NAVI_2.ino"
+static const char * navAlertLevel();
+#line 1951 "/Users/davidbrown/esp-loco-control/firmware/test-programs/NAVI_2/NAVI_2.ino"
+static uint32_t spanMm(uint8_t mm,int8_t dir,uint16_t n);
+#line 1999 "/Users/davidbrown/esp-loco-control/firmware/test-programs/NAVI_2/NAVI_2.ino"
+static void updateLastConfirmed(uint8_t mm,unsigned long detectedAtMs);
+#line 2006 "/Users/davidbrown/esp-loco-control/firmware/test-programs/NAVI_2/NAVI_2.ino"
+static void acceptEvent(const MarkerEvent& e);
+#line 2022 "/Users/davidbrown/esp-loco-control/firmware/test-programs/NAVI_2/NAVI_2.ino"
+static void navRefuse(const MarkerEvent& e,const char* reason);
+#line 2033 "/Users/davidbrown/esp-loco-control/firmware/test-programs/NAVI_2/NAVI_2.ino"
+static void navDeclare(uint8_t mm);
+#line 2046 "/Users/davidbrown/esp-loco-control/firmware/test-programs/NAVI_2/NAVI_2.ino"
+static const char * navDispName(uint8_t d);
+#line 2058 "/Users/davidbrown/esp-loco-control/firmware/test-programs/NAVI_2/NAVI_2.ino"
+static NavDisposition navOnMarker(const MarkerEvent& e);
+#line 2175 "/Users/davidbrown/esp-loco-control/firmware/test-programs/NAVI_2/NAVI_2.ino"
+static int approachTargetForOffset(int16_t o,uint8_t zonePwm);
+#line 2219 "/Users/davidbrown/esp-loco-control/firmware/test-programs/NAVI_2/NAVI_2.ino"
+static bool motorIsMoving();
+#line 2226 "/Users/davidbrown/esp-loco-control/firmware/test-programs/NAVI_2/NAVI_2.ino"
+static void applyDirection();
+#line 2338 "/Users/davidbrown/esp-loco-control/firmware/test-programs/NAVI_2/NAVI_2.ino"
+static void requestPwmOver(int target,uint16_t durationMs);
+#line 2353 "/Users/davidbrown/esp-loco-control/firmware/test-programs/NAVI_2/NAVI_2.ino"
+static void servicePwmRamp();
+#line 2399 "/Users/davidbrown/esp-loco-control/firmware/test-programs/NAVI_2/NAVI_2.ino"
+static bool operatorDirectionPermitted(const char* what);
+#line 2413 "/Users/davidbrown/esp-loco-control/firmware/test-programs/NAVI_2/NAVI_2.ino"
+static void applyOperatorDirection(int v,const char* what);
+#line 2423 "/Users/davidbrown/esp-loco-control/firmware/test-programs/NAVI_2/NAVI_2.ino"
+static void stationSetPhase(StationPhase p);
+#line 2430 "/Users/davidbrown/esp-loco-control/firmware/test-programs/NAVI_2/NAVI_2.ino"
+static void serviceStations();
+#line 2719 "/Users/davidbrown/esp-loco-control/firmware/test-programs/NAVI_2/NAVI_2.ino"
+static void buildTopics();
+#line 2815 "/Users/davidbrown/esp-loco-control/firmware/test-programs/NAVI_2/NAVI_2.ino"
+static void pubMarker(const char* t,const char* m);
+#line 2830 "/Users/davidbrown/esp-loco-control/firmware/test-programs/NAVI_2/NAVI_2.ino"
+static const char * motorDirName();
+#line 2875 "/Users/davidbrown/esp-loco-control/firmware/test-programs/NAVI_2/NAVI_2.ino"
+static void publishQuorumDecision(const char* ev,const char* extra);
+#line 2889 "/Users/davidbrown/esp-loco-control/firmware/test-programs/NAVI_2/NAVI_2.ino"
+static void publishWarning(const char* text);
+#line 2897 "/Users/davidbrown/esp-loco-control/firmware/test-programs/NAVI_2/NAVI_2.ino"
+static const char * irQualityName(uint8_t q);
+#line 2901 "/Users/davidbrown/esp-loco-control/firmware/test-programs/NAVI_2/NAVI_2.ino"
+static void irObserveService();
+#line 2946 "/Users/davidbrown/esp-loco-control/firmware/test-programs/NAVI_2/NAVI_2.ino"
+static void serviceWarningExpiry();
+#line 3098 "/Users/davidbrown/esp-loco-control/firmware/test-programs/NAVI_2/NAVI_2.ino"
+static void serviceStatusBroadcast();
+#line 3108 "/Users/davidbrown/esp-loco-control/firmware/test-programs/NAVI_2/NAVI_2.ino"
+static void formatStartInterval(char* out,size_t n);
+#line 3137 "/Users/davidbrown/esp-loco-control/firmware/test-programs/NAVI_2/NAVI_2.ino"
+static void pubStateIntChanged(const char* t,int v,int* last);
+#line 3142 "/Users/davidbrown/esp-loco-control/firmware/test-programs/NAVI_2/NAVI_2.ino"
+static void pubStateStrChanged(const char* t,const char* v,char* last,size_t lastSz);
+#line 3178 "/Users/davidbrown/esp-loco-control/firmware/test-programs/NAVI_2/NAVI_2.ino"
+static void ina219Setup();
+#line 3189 "/Users/davidbrown/esp-loco-control/firmware/test-programs/NAVI_2/NAVI_2.ino"
+static bool inaVoltageKnown();
+#line 3190 "/Users/davidbrown/esp-loco-control/firmware/test-programs/NAVI_2/NAVI_2.ino"
+static float inaBusVoltage();
+#line 3192 "/Users/davidbrown/esp-loco-control/firmware/test-programs/NAVI_2/NAVI_2.ino"
+static void serviceInaTelemetry();
+#line 3225 "/Users/davidbrown/esp-loco-control/firmware/test-programs/NAVI_2/NAVI_2.ino"
+static void publishSimpleStates();
+#line 3248 "/Users/davidbrown/esp-loco-control/firmware/test-programs/NAVI_2/NAVI_2.ino"
+static void publishAllStatesRetained();
+#line 3290 "/Users/davidbrown/esp-loco-control/firmware/test-programs/NAVI_2/NAVI_2.ino"
+static void publishStat();
+#line 3328 "/Users/davidbrown/esp-loco-control/firmware/test-programs/NAVI_2/NAVI_2.ino"
+static void publishBootId();
+#line 3352 "/Users/davidbrown/esp-loco-control/firmware/test-programs/NAVI_2/NAVI_2.ino"
+static void handleCommand(const char* topic,const char* msg);
+#line 3636 "/Users/davidbrown/esp-loco-control/firmware/test-programs/NAVI_2/NAVI_2.ino"
+static void subscribeAll();
+#line 3654 "/Users/davidbrown/esp-loco-control/firmware/test-programs/NAVI_2/NAVI_2.ino"
+static void onMqttEnqueue(char* topic,byte* payload,unsigned int len);
+#line 3679 "/Users/davidbrown/esp-loco-control/firmware/test-programs/NAVI_2/NAVI_2.ino"
+static void serviceCommands();
+#line 3696 "/Users/davidbrown/esp-loco-control/firmware/test-programs/NAVI_2/NAVI_2.ino"
+static void logWifiTransition(bool up);
+#line 3703 "/Users/davidbrown/esp-loco-control/firmware/test-programs/NAVI_2/NAVI_2.ino"
+static void attemptReconnect();
+#line 3743 "/Users/davidbrown/esp-loco-control/firmware/test-programs/NAVI_2/NAVI_2.ino"
+static void networkTask(void*);
+#line 3925 "/Users/davidbrown/esp-loco-control/firmware/test-programs/NAVI_2/NAVI_2.ino"
+static uint16_t durationAt(uint8_t mm);
+#line 4026 "/Users/davidbrown/esp-loco-control/firmware/test-programs/NAVI_2/NAVI_2.ino"
+static const char * naviTrustName();
+#line 4033 "/Users/davidbrown/esp-loco-control/firmware/test-programs/NAVI_2/NAVI_2.ino"
+static void naviHalt(const char* warning);
+#line 4066 "/Users/davidbrown/esp-loco-control/firmware/test-programs/NAVI_2/NAVI_2.ino"
+static NaviVerdict naviTest(float obs, float exp, float tol);
+#line 4084 "/Users/davidbrown/esp-loco-control/firmware/test-programs/NAVI_2/NAVI_2.ino"
+static void naviPublish(const NaviDecision& p, const MarkerEvent& e, uint8_t navDisp);
+#line 4124 "/Users/davidbrown/esp-loco-control/firmware/test-programs/NAVI_2/NAVI_2.ino"
+static void naviIdentify(const MarkerEvent& e, NaviDecision& p);
+#line 4195 "/Users/davidbrown/esp-loco-control/firmware/test-programs/NAVI_2/NAVI_2.ino"
+static void naviVerifySequence();
+#line 4265 "/Users/davidbrown/esp-loco-control/firmware/test-programs/NAVI_2/NAVI_2.ino"
+static void naviStopOnFailure(const NaviDecision& p);
+#line 4280 "/Users/davidbrown/esp-loco-control/firmware/test-programs/NAVI_2/NAVI_2.ino"
+static void naviNoteAfterNav(const MarkerEvent& e, uint8_t navDisp);
+#line 4346 "/Users/davidbrown/esp-loco-control/firmware/test-programs/NAVI_2/NAVI_2.ino"
+static void naviPublishWave(const NaviWave& w, int targetMm);
+#line 4431 "/Users/davidbrown/esp-loco-control/firmware/test-programs/NAVI_2/NAVI_2.ino"
+static void drainMarkers();
+#line 4512 "/Users/davidbrown/esp-loco-control/firmware/test-programs/NAVI_2/NAVI_2.ino"
+static void calibrate();
+#line 4547 "/Users/davidbrown/esp-loco-control/firmware/test-programs/NAVI_2/NAVI_2.ino"
+static uint8_t ctoMyFrontB();
+#line 4548 "/Users/davidbrown/esp-loco-control/firmware/test-programs/NAVI_2/NAVI_2.ino"
+static uint8_t ctoMyRearB();
+#line 4550 "/Users/davidbrown/esp-loco-control/firmware/test-programs/NAVI_2/NAVI_2.ino"
+static uint16_t ctoArc(uint8_t a,uint8_t b);
+#line 4554 "/Users/davidbrown/esp-loco-control/firmware/test-programs/NAVI_2/NAVI_2.ino"
+static uint16_t ctoGapAhead(const CtoPeer& p);
+#line 4556 "/Users/davidbrown/esp-loco-control/firmware/test-programs/NAVI_2/NAVI_2.ino"
+static uint16_t ctoGapBehind(const CtoPeer& p);
+#line 4558 "/Users/davidbrown/esp-loco-control/firmware/test-programs/NAVI_2/NAVI_2.ino"
+static bool ctoPeerFresh(const CtoPeer& p);
+#line 4561 "/Users/davidbrown/esp-loco-control/firmware/test-programs/NAVI_2/NAVI_2.ino"
+static bool ctoPeerNavOk(const CtoPeer& p);
+#line 4562 "/Users/davidbrown/esp-loco-control/firmware/test-programs/NAVI_2/NAVI_2.ino"
+static bool ctoPeerSameDir(const CtoPeer& p);
+#line 4568 "/Users/davidbrown/esp-loco-control/firmware/test-programs/NAVI_2/NAVI_2.ino"
+static bool ctoPeerStopping(const CtoPeer& p);
+#line 4578 "/Users/davidbrown/esp-loco-control/firmware/test-programs/NAVI_2/NAVI_2.ino"
+static int8_t ctoPeerIdx(uint32_t id);
+#line 4582 "/Users/davidbrown/esp-loco-control/firmware/test-programs/NAVI_2/NAVI_2.ino"
+static int8_t ctoPartnerIdx();
+#line 5076 "/Users/davidbrown/esp-loco-control/firmware/test-programs/NAVI_2/NAVI_2.ino"
+static void ctoOnRecv(const esp_now_recv_info_t* info,const uint8_t* data,int len);
+#line 5104 "/Users/davidbrown/esp-loco-control/firmware/test-programs/NAVI_2/NAVI_2.ino"
+static void ctoOnSend(const wifi_tx_info_t*, esp_now_send_status_t status);
+#line 5119 "/Users/davidbrown/esp-loco-control/firmware/test-programs/NAVI_2/NAVI_2.ino"
+static void ctoTxStatus();
+#line 5143 "/Users/davidbrown/esp-loco-control/firmware/test-programs/NAVI_2/NAVI_2.ino"
+static void ctoTxEcho();
+#line 5152 "/Users/davidbrown/esp-loco-control/firmware/test-programs/NAVI_2/NAVI_2.ino"
+static void ctoAcceptPeer(const CtoPeerPacket& p);
+#line 5184 "/Users/davidbrown/esp-loco-control/firmware/test-programs/NAVI_2/NAVI_2.ino"
+static void ctoAcceptEcho(const Cto3RoleEcho& e);
+#line 5225 "/Users/davidbrown/esp-loco-control/firmware/test-programs/NAVI_2/NAVI_2.ino"
+static bool ceNearPeer();
+#line 5279 "/Users/davidbrown/esp-loco-control/firmware/test-programs/NAVI_2/NAVI_2.ino"
+static void ctoLatch(CtoRole r,uint32_t partner);
+#line 5293 "/Users/davidbrown/esp-loco-control/firmware/test-programs/NAVI_2/NAVI_2.ino"
+static void ctoEvaluateRoles();
+#line 5494 "/Users/davidbrown/esp-loco-control/firmware/test-programs/NAVI_2/NAVI_2.ino"
+static void ctoServiceFleetStop();
+#line 5521 "/Users/davidbrown/esp-loco-control/firmware/test-programs/NAVI_2/NAVI_2.ino"
+static void ctoServiceEchoCheck();
+#line 5780 "/Users/davidbrown/esp-loco-control/firmware/test-programs/NAVI_2/NAVI_2.ino"
+void setup();
+#line 5892 "/Users/davidbrown/esp-loco-control/firmware/test-programs/NAVI_2/NAVI_2.ino"
+void loop();
+#line 783 "/Users/davidbrown/esp-loco-control/firmware/test-programs/NAVI_2/NAVI_2.ino"
 static inline uint8_t ctoWifiChannel(){
   int c=WiFi.channel();
   return (c>=1 && c<=14) ? (uint8_t)c : 0;
@@ -5920,3 +6156,4 @@ void loop(){
   serviceInaTelemetry();
   publishStat();
 }
+
