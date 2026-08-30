@@ -9,14 +9,20 @@ Today every automatic deceleration uses `AUTO_STEP_DOWN_MS` = 31 ms/step,
 ~2.8 s from PWM 90. That is right for a fault and wrong for an operator ending
 a session.
 
-Proposed split, for the operator's confirmation:
+**Ruled by the operator, 2026-08-29:** the steep ramp stays for one-strike and
+low voltage, and the reason is not safety — it is *communication*.
+
+> "Steep ramp is informative. It signals that something is wrong."
+
+The way a locomotive stops is a channel. A gentle stop says the session ended;
+a hard one says go and look. Two stops that felt the same would throw that away.
 
 | stop | rate | why |
 |---|---|---|
 | E-stop | instant, no ramp | unchanged |
 | **END AO / dispatcher release / `cmd/auto 0`** | **~200 ms/step** (~9 s from 45) | an operator ending a session, not an emergency. Matches the passenger-gentle station pacing of QUORUM v1.12B |
-| one-strike (WRONG_MAGNET) | 31 ms/step | position is unknown; do not coast while lost |
-| low voltage | 31 ms/step | the battery is dying |
+| one-strike (WRONG_MAGNET) | 31 ms/step | **informative**: the manner of the stop tells the operator something is wrong |
+| low voltage | 31 ms/step | **informative**, same reason |
 
 Not built. `requestPwm(target, up, down)` already takes a per-step down rate, so
 this is one constant and three call sites.
