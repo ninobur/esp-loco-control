@@ -192,7 +192,7 @@ static WiFiClient wifiClient; static PubSubClient mqtt(wifiClient);
 static char T[24][72];
 enum { T_ONLINE=0,T_NAV,T_MARKER,T_ALERT,T_IR,T_STAT,T_BOOT,T_WARN,
        T_ST_AUTO,T_ST_ESTOP,T_ST_THR,T_ST_DIR,T_ST_SESSDIR,T_ST_STARTMM,
-       T_ST_NAVREADY,T_ST_LOWV,T_V,T_A,T_W,T_CNT };
+       T_ST_NAVREADY,T_ST_LOWV,T_ST_STARTINT,T_V,T_A,T_W,T_CNT };
 
 static void topic(int i,const char* suffix){ snprintf(T[i],72,"ngr/loco/%s/%s",LOCO_NAME,suffix); }
 static void buildTopics(){
@@ -204,7 +204,8 @@ static void buildTopics(){
   topic(T_ST_THR,"state/throttle");    topic(T_ST_DIR,"state/direction");
   topic(T_ST_SESSDIR,"state/session_direction");
   topic(T_ST_STARTMM,"state/start_mm");topic(T_ST_NAVREADY,"state/nav_ready");
-  topic(T_ST_LOWV,"state/lowvolt");    topic(T_V,"telem/voltage");
+  topic(T_ST_LOWV,"state/lowvolt");    topic(T_ST_STARTINT,"state/start_interval");
+  topic(T_V,"telem/voltage");
   topic(T_A,"telem/current");          topic(T_W,"telem/power");
 }
 static void pub(int t,const char* payload,bool retain=false){
@@ -264,10 +265,18 @@ static void publishNav(const char* event,const Judged* j,Ruling r){
   Serial.printf("[NAV] %s\n",b);
 }
 
-static void declarePosition(uint8_t mm,int8_t dir){
+static void declarePosition(uint8_t mm,int8_t dir,const char* interval){
   navigator.declare(mm,dir);
   recognizerResetRequest = true;
-  char v[8]; snprintf(v,sizeof(v),"%u",mm); pub(T_ST_STARTMM,v,true);
+  char v[16]; snprintf(v,sizeof(v),"%u",mm); pub(T_ST_STARTMM,v,true);
+  // THE ECHO THE CONSOLE WAITS FOR. Its pre-flight tests the locomotive's
+  // echoed state/start_interval, not the command it sent -- a locomotive that
+  // never echoes cannot be put into AUTO, which is the correct interlock.
+  if (interval && *interval) pub(T_ST_STARTINT,interval,true);
+  else { char iv[12];
+         snprintf(iv,sizeof(iv),"%03u-%03u", dir>0?mm:(unsigned)nextMarker(mm,-1),
+                                             dir>0?(unsigned)nextMarker(mm,+1):mm);
+         pub(T_ST_STARTINT,iv,true); }
   pub(T_ST_NAVREADY,"1",true);
   publishNav("DECLARED",nullptr,Ruling::NoPosition);
 }
@@ -307,7 +316,7 @@ static void networkTask(void*){
       if (mqtt.connect(id,T[T_ONLINE],0,true,"0")) {
         mqtt.publish(T[T_ONLINE],"1",true);
         const char* cmds[]={"cmd/auto","cmd/estop","cmd/throttle","cmd/direction",
-                            "cmd/session_direction","cmd/start_mm"};
+                            "cmd/session_direction","cmd/start_mm","cmd/start_interval"};
         for (auto c: cmds){ snprintf(sub,72,"ngr/loco/%s/%s",LOCO_NAME,c); mqtt.subscribe(sub); }
         snprintf(sub,72,"ngr/dispatcher/cmd/go/%s",LOCO_NAME);   mqtt.subscribe(sub);
         snprintf(sub,72,"ngr/dispatcher/cmd/stop/%s",LOCO_NAME); mqtt.subscribe(sub);
@@ -335,10 +344,23 @@ static void handleCommand(const CmdMsg& c){
     int8_t d = (!strcasecmp(c.payload,"CW")) ? +1 : (!strcasecmp(c.payload,"CCW") ? -1 : 0);
     if (d){ sessionDir=d; navigator.setDirection(d); recognizerResetRequest=true;
             pub(T_ST_SESSDIR,d>0?"CW":"CCW",true); publishNav("DIRECTION",nullptr,Ruling::NoPosition); }
+  } else if (!strcmp(leaf,"start_interval")) {
+    // "AAA-BBB" -- the two magnets the locomotive stands between, GEOMETRIC and
+    // always ascending, because that is what the console's slider produces and
+    // what the operator can see on the ground. It is NOT a travel-order pair.
+    // Which end it is leaving depends on which way it faces: running CW the
+    // next marker is B, so position is A; running CCW the next is A, so
+    // position is B.
+    if (sessionDir==0){ warn("START_INTERVAL REFUSED: set session_direction first"); return; }
+    int a=-1,b=-1;
+    if (sscanf(c.payload,"%d-%d",&a,&b)!=2){ warn("START_INTERVAL REFUSED: expected AAA-BBB"); return; }
+    if (a<0||a>=ROUTE_N||b<0||b>=ROUTE_N){ warn("START_INTERVAL REFUSED: out of range"); return; }
+    if (nextMarker((uint8_t)a,+1)!=(uint8_t)b){ warn("START_INTERVAL REFUSED: markers not adjacent"); return; }
+    declarePosition(sessionDir>0?(uint8_t)a:(uint8_t)b, sessionDir, c.payload);
   } else if (!strcmp(leaf,"start_mm")) {
     if (sessionDir==0){ warn("START_MM REFUSED: set session_direction first"); return; }
     if (n<0 || n>=ROUTE_N){ warn("START_MM REFUSED: out of range"); return; }
-    declarePosition((uint8_t)n,sessionDir);
+    declarePosition((uint8_t)n,sessionDir,nullptr);
   } else if (!strcmp(leaf,"auto")) {
     if (n==0){ autoEnrolled=false; autoRunning=false; requestPwm(0,RAMP_DOWN_MS); }
     else if (!navigator.positionKnown()) warn("AUTO REFUSED: declare position first");
@@ -399,11 +421,13 @@ static void serviceStatus(){
   snprintf(b,sizeof(b),
     "{\"level\":\"%s\",\"reason\":\"STATUS\",\"loco\":\"%s\",\"uptime_ms\":%lu,"
     "\"nav\":\"%s\",\"mm\":%u,\"tgt\":%u,\"dir\":\"%s\",\"trust\":\"%s\","
+    "\"moving\":%u,"
     "\"pwm\":%d,\"auto\":%u,\"running\":%u,\"estop\":%u,\"lowvolt\":%u,"
     "\"adv\":%lu,\"ref\":%lu,\"notmag\":%lu,\"baseline\":%ld,\"floor_rej\":%lu}",
     navigator.positionKnown()?"CLEAR":"UNSET", LOCO_NAME,(unsigned long)millis(),
     s.state==NavState::Unset?"UNSET":"DECLARED", s.navMm, s.target,
     s.navDir>0?"CW":(s.navDir<0?"CCW":"UNSET"), trustName(s.trust),
+    (actualPwm>0)?1u:0u,
     actualPwm, autoEnrolled?1:0, autoRunning?1:0, estopped?1:0, lowVoltage?1:0,
     (unsigned long)s.advances,(unsigned long)s.refusals,(unsigned long)s.notMagnets,
     (long)capture.baseline(),(unsigned long)capture.floorRejects());
