@@ -1962,7 +1962,11 @@ function renderAgreement(s){
       var back = (asc[j-1][0] - asc[j][0] + MM_TOTAL) % MM_TOTAL;
       var step = Math.min(fwd, back);
       if (asc[j][0] >= 0 && asc[j-1][0] >= 0 && step > 1){
-        out.push('<span class="tickgap">'+(step-1)+' silent</span>');
+        // "N silent" removed 2026-08-29 (operator). The dashboard cannot know
+        // why navMm stepped by more than one -- a declaration and a direction
+        // change both do it legitimately -- and naming the gap "silent
+        // magnets" asserted a cause that is not in evidence. The firmware has
+        // no such concept; this chip was the last place it survived.
       }
     }
     var mm = (asc[j][0] >= 0) ? ('000'+asc[j][0]).slice(-3) : '???';
