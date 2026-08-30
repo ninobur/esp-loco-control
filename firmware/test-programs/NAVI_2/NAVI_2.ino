@@ -1296,6 +1296,118 @@ static void detectorSample(){
   }
 }
 
+
+// ===========================================================================
+// IR WHEEL OBSERVER — GPIO34, ADC1_CH6
+// ===========================================================================
+// Fitted to Toby's power car 2026-08-29: a trailing, unpowered wheel on the
+// same rigid frame as the Hall sensor, so the distance it measures is the
+// distance the Hall sensor travelled — no tow offset, no radio in the path
+// (decision 0021). Ten-spoke LGB plastic wheel, 96.52 mm measured rolling
+// circumference, 9.652 mm per completed pulse (decision 0022).
+//
+//                    THIS OBSERVES. IT DOES NOT VOTE.
+//
+// Nothing below is reachable from naviIdentify(), navOnMarker(), acceptEvent()
+// or navMm. There is no IR verdict, no IR test, no IR arm in the identity
+// conjunction. It counts pulses and publishes them; that is the whole of its
+// authority. The reason is on the record: on 2026-08-26 this instrument
+// undercounted surveyed track distance by between 1% and 39% while every
+// health signal it exposes read normal. An instrument that can be wrong by
+// 39% in silence may witness. It may not adjudicate.
+//
+// The detector is IR_SPEED_LOCAL_1_2's, unchanged: a 5th/95th-percentile
+// envelope over a 2.048 s window, two-thirds/one-third hysteresis, a contrast
+// gate, and an open-pulse abort. It is sampled inside hallTask's existing
+// 1 ms tick so that ADC1 has exactly one owner — pin 33 (Hall, CH5) and pin 34
+// (IR, CH6) share ADC1, and a second sampler task would contend with the
+// detector this locomotive navigates by.
+// ---------------------------------------------------------------------------
+#define IR_OBS_PIN            34
+#define IR_ENV_WIN_N        2048     // 2.048 s at 1 kHz
+#define IR_ENV_PRIME_N       512
+#define IR_ENV_UPDATE_MS     250
+#define IR_ENV_PCT_LO          5
+#define IR_ENV_PCT_HI         95
+#define IR_MIN_USABLE_SPAN   120
+#define IR_MARGINAL_SPAN     300
+#define IR_OPEN_ABORT_MS    2500UL
+static const float IR_MM_PER_PULSE_OBS = 9.652f;   // 96.52 mm / 10 spokes
+
+static uint8_t  irEnvWin[IR_ENV_WIN_N];
+static uint16_t irEnvHist[256];
+static int      irEnvIdx=0, irEnvFilled=0;
+static int      irRunMin=0, irRunMax=0;
+static bool     irPrimed=false;
+static bool     irInPulse=false, irAwaitLow=false, irAbortCounted=false;
+static unsigned long irRiseMs=0, irPrevRiseMs=0, irEnvUpdMs=0;
+// Published counters. Written on hallTask, read on loop — 32-bit aligned
+// scalars, and every consumer is a report, so a torn read costs a log line,
+// never a decision.
+static volatile uint32_t irPulses=0, irRises=0, irSaturated=0;
+static volatile uint32_t irContrastEpisodes=0, irOpenAborts=0;
+static volatile uint32_t irLastIntervalMs=0;
+static volatile int32_t  irSpan=0, irRawLast=0;
+static volatile uint8_t  irQuality=0;   // 0 none 1 no-contrast 2 marginal 3 good
+
+static void irUpdateEnvelope(int raw, unsigned long now){
+  uint8_t bucket=(uint8_t)(raw>>4);
+  if(irEnvFilled==IR_ENV_WIN_N) irEnvHist[irEnvWin[irEnvIdx]]--;
+  irEnvWin[irEnvIdx]=bucket; irEnvHist[bucket]++;
+  irEnvIdx=(irEnvIdx+1)%IR_ENV_WIN_N;
+  if(irEnvFilled<IR_ENV_WIN_N) irEnvFilled++;
+  if((unsigned long)(now-irEnvUpdMs)<IR_ENV_UPDATE_MS || irEnvFilled<64) return;
+  irEnvUpdMs=now;
+  const int needLo=(irEnvFilled*IR_ENV_PCT_LO)/100;
+  const int needHi=(irEnvFilled*IR_ENV_PCT_HI)/100;
+  int cum=0, lo=-1, hi=-1;
+  for(int b=0;b<256;b++){
+    cum+=irEnvHist[b];
+    if(lo<0 && cum>needLo) lo=b;
+    if(hi<0 && cum>=needHi){ hi=b; break; }
+  }
+  if(lo>=0 && hi>=0){ irRunMin=lo*16; irRunMax=hi*16+15; }
+  irPrimed = irEnvFilled>=IR_ENV_PRIME_N;
+}
+
+// One sample. Called from hallTask immediately after detectorSample().
+static void irObserveSample(){
+  const unsigned long now=millis();
+  const int raw=analogRead(IR_OBS_PIN);
+  irRawLast=raw;
+  if(raw>=4000) irSaturated++;
+  irUpdateEnvelope(raw,now);
+  const int span=irRunMax-irRunMin;
+  irSpan=span;
+
+  if(!(irPrimed && span>=IR_MIN_USABLE_SPAN)){
+    if(irQuality>1) irContrastEpisodes++;
+    irQuality=1;
+    irAwaitLow = irAwaitLow || irInPulse;   // an open high episode must end first
+    irInPulse=false; irAbortCounted=false; irPrevRiseMs=0;
+    return;
+  }
+  const bool marginal = span<IR_MARGINAL_SPAN;
+  irQuality = marginal?2:3;
+  const int thrHigh=irRunMin+(span*2)/3;
+  const int thrLow =irRunMin+span/3;
+
+  // An indefinitely open pulse is a stuck reading, not a very long spoke.
+  if(irInPulse && (unsigned long)(now-irRiseMs)>IR_OPEN_ABORT_MS){
+    if(!irAbortCounted){ irOpenAborts++; irAbortCounted=true; }
+    irInPulse=false; irAwaitLow=true; irPrevRiseMs=0;
+  }
+  if(irAwaitLow && raw<thrLow) irAwaitLow=false;
+
+  if(!irInPulse && !irAwaitLow && raw>thrHigh){
+    irInPulse=true; irAbortCounted=false; irRiseMs=now; irRises++;
+  }else if(irInPulse && raw<thrLow){
+    irInPulse=false; irPulses++;
+    if(irPrevRiseMs) irLastIntervalMs=(uint32_t)(irRiseMs-irPrevRiseMs);
+    irPrevRiseMs=irRiseMs;
+  }
+}
+
 static void hallTask(void*){
   unsigned long prev=millis();
   for(;;){
@@ -1304,6 +1416,7 @@ static void hallTask(void*){
     if(gap>taskMaxGapMs) taskMaxGapMs=gap;
     prev=now; taskLastRunMs=now;
     detectorSample();
+    irObserveSample();     // observes only; see the banner above
     vTaskDelay(HALL_TASK_TICK_MS);
   }
 }
@@ -2552,6 +2665,7 @@ static char T_ONLINE[64],T_NAV[64],T_MARKER[64],T_STATION[64],T_STAT[64],T_BOOT[
 #ifdef NAVI_ENABLED
 static char T_ADMIT_REJECT[64];   // TEMPLATES audit trail; diagnostic only
 static char T_NAVI[64];       // identity-test decision record (spec §10)
+static char T_IR[64];         // IR wheel observer — telemetry only, never a vote
 static char T_NAVI_TARGET[64];// "what am I looking for" — retained
 static char T_NAVI_WAVE[64];  // waveform survey for the fingerprint study
 #endif
@@ -2592,6 +2706,7 @@ static void buildTopics(){
   snprintf(T_NAVI    ,64,"ngr/loco/%s/diag/navi"    ,id);
   snprintf(T_NAVI_TARGET,64,"ngr/loco/%s/navi/target",id);
   snprintf(T_NAVI_WAVE  ,64,"ngr/loco/%s/navi/wave"  ,id);
+  snprintf(T_IR         ,64,"ngr/loco/%s/diag/ir"      ,id);
 #endif
   snprintf(T_NAV    ,64,"ngr/loco/%s/state/nav"     ,id);
   snprintf(T_MARKER ,64,"ngr/loco/%s/mm/marker"     ,id);
@@ -2754,6 +2869,39 @@ static void publishWarning(const char* text){
   pub(T_ST_WARNING,text);
   warningSetMs = text[0] ? millis() : 0;
 }
+
+// Report, on the loop thread. One line per second while anything is moving,
+// then quiet. Publishes distance so the number can be compared against the
+// surveyed map by hand — it is never compared against it by the navigator.
+static const char* irQualityName(uint8_t q){
+  switch(q){ case 1: return "NO_CONTRAST"; case 2: return "MARGINAL";
+             case 3: return "GOOD";        default: return "COLD"; }
+}
+static void irObserveService(){
+  static unsigned long lastMs=0;
+  static uint32_t lastPulses=0;
+  unsigned long now=millis();
+  if((unsigned long)(now-lastMs)<1000UL) return;
+  lastMs=now;
+  uint32_t p=irPulses, d=p-lastPulses; lastPulses=p;
+  char b[224];
+  snprintf(b,sizeof(b),
+    "{\"pulses\":%lu,\"d\":%lu,\"rises\":%lu,\"mm\":%ld,\"mm_s\":%ld,"
+    "\"int_ms\":%lu,\"span\":%ld,\"raw\":%ld,\"q\":\"%s\","
+    "\"sat\":%lu,\"no_contrast\":%lu,\"open_aborts\":%lu,\"votes\":0}",
+    (unsigned long)p,(unsigned long)d,(unsigned long)irRises,
+    (long)(p*IR_MM_PER_PULSE_OBS),(long)(d*IR_MM_PER_PULSE_OBS),
+    (unsigned long)irLastIntervalMs,(long)irSpan,(long)irRawLast,
+    irQualityName(irQuality),
+    (unsigned long)irSaturated,(unsigned long)irContrastEpisodes,
+    (unsigned long)irOpenAborts);
+  pub(T_IR,b,false);
+  Serial.printf("[IR] pulses=%lu +%lu mm=%ld mm/s=%ld span=%ld raw=%ld %s\n",
+    (unsigned long)p,(unsigned long)d,(long)(p*IR_MM_PER_PULSE_OBS),
+    (long)(d*IR_MM_PER_PULSE_OBS),(long)irSpan,(long)irRawLast,
+    irQualityName(irQuality));
+}
+
 
 // CODEX 1.16 review, finding 1 — THE RESUME INTERLOCK, enforced not promised.
 // enterNoQuorum() never drops autoRunning (it stops via a zero request), so
@@ -5720,6 +5868,7 @@ void loop(){
   serviceCommands();
 #ifdef NAVI_ENABLED
   naviNoteMotion();     // observe standstill BEFORE this pass's Hall drain
+  irObserveService();   // report the wheel. It never votes.
 #endif
   serviceIrRx();          // IR TEST A §10: accept radio facts before this
                           // pass's Hall drain. Inert stub on Otto.
