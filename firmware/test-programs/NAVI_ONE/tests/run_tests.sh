@@ -2,7 +2,7 @@
 # NAVI_ONE gates. All three must pass before anything is flashed.
 set -eu
 here=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
-repo=$(CDPATH= cd -- "$here/../../.." && pwd)
+repo=$(CDPATH= cd -- "$here/../../../.." && pwd)
 tmp=$(mktemp -d); trap 'rm -rf "$tmp"' EXIT
 CXX="c++ -std=c++17 -O1 -Wall -Wextra"
 
