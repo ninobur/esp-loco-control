@@ -86,8 +86,6 @@ static constexpr uint8_t IR_PIN   = 34;      // ADC1_CH6, input-only, no pull
 static constexpr uint8_t I2C_SDA  = 21, I2C_SCL = 22;
 
 static constexpr uint8_t  AUTO_CRUISE_PWM = 90;
-static constexpr uint16_t RAMP_UP_MS   = 5600;   // passenger-gentle
-static constexpr uint16_t RAMP_DOWN_MS = 2800;
 // Manual throttle is paced PER STEP, as QUORUM did: the feel of the controls
 // must not change because the navigator did. 0 -> 90 takes ~13.5 s up.
 static constexpr uint16_t MANUAL_STEP_UP_MS   = 150;
@@ -227,7 +225,20 @@ static volatile int commandedPwm = 0, actualPwm = 0;
 static uint8_t motorDirection = 1;              // 1 = FWD, 0 = REV
 static bool autoEnrolled=false, autoRunning=false, estopped=false, lowVoltage=false;
 static int8_t sessionDir = 0;
-static uint32_t rampStartMs = 0; static int rampFrom = 0, rampTo = 0; static uint16_t rampMs = 0;
+// Per-STEP ramping, as LocoDriver_v2_1 did. The first cut computed a total
+// duration when the throttle command arrived and then interpolated, so moving
+// the brake DURING a deceleration changed nothing -- which is the only way a
+// brake is ever used. serviceRamp() now asks brakeStepMs() at every step.
+//
+// AUTO keeps FIXED step rates and is deliberately NOT brake-governed: with the
+// brake at rest (400 ms/step) an automatic stop from PWM 90 would take 36
+// seconds, and the one-strike stop must not be slow. E-stop still bypasses
+// ramping entirely.
+static constexpr uint16_t AUTO_STEP_UP_MS   = 62;   // ~5.6 s to cruise 90
+static constexpr uint16_t AUTO_STEP_DOWN_MS = 31;   // ~2.8 s to stop from 90
+static int rampTarget = 0;
+static uint16_t stepUpMs = MANUAL_STEP_UP_MS, stepDownMs = 0;  // 0 = use the brake
+static unsigned long lastStepMs = 0;
 static Adafruit_INA219 ina219; static bool inaReady=false;
 static float busV=0, busA=0, busW=0;
 
@@ -238,18 +249,24 @@ static void writePwm(int v){
   ledcWrite(PWM_CHANNEL, v);
 #endif
 }
-static void requestPwm(int target, uint16_t ms){
-  rampFrom = actualPwm; rampTo = target; rampMs = ms; rampStartMs = millis();
-  commandedPwm = target;
+// down=0 means "governed by the brake slider" (manual). A non-zero down is a
+// fixed rate the operator cannot slow down (auto).
+static void requestPwm(int target, uint16_t up, uint16_t down){
+  rampTarget = target; commandedPwm = target;
+  stepUpMs = up; stepDownMs = down;
 }
 static void serviceRamp(){
-  if (estopped || lowVoltage) { actualPwm = 0; writePwm(0); return; }
-  uint32_t el = millis() - rampStartMs;
-  int v = (rampMs == 0 || el >= rampMs) ? rampTo
-        : rampFrom + (int)((int32_t)(rampTo - rampFrom) * (int32_t)el / (int32_t)rampMs);
-  actualPwm = v;
   digitalWrite(MOTOR_DIR_PIN, motorDirection ? HIGH : LOW);
-  writePwm(v);
+  if (estopped || lowVoltage) { actualPwm = 0; rampTarget = 0; writePwm(0); return; }
+  if (actualPwm == rampTarget) return;
+  const bool down = rampTarget < actualPwm;
+  const uint16_t need = down ? (stepDownMs ? stepDownMs : brakeStepMs())
+                             : (stepUpMs ? stepUpMs : 1);
+  unsigned long now = millis();
+  if (now - lastStepMs < need) return;
+  lastStepMs = now;
+  actualPwm += down ? -1 : +1;
+  writePwm(actualPwm);
 }
 
 // ---------------------------------------------------------------------------
@@ -299,7 +316,7 @@ static void oneStrike(const Judged& j){
     "known. Declare it.", s.navMm, poleChar(polarityAt(s.target)), s.target,
     poleChar(j.polarity));
   warn(w);
-  if (autoRunning) { autoRunning = false; requestPwm(0, RAMP_DOWN_MS); }
+  if (autoRunning) { autoRunning = false; requestPwm(0,0,AUTO_STEP_DOWN_MS); }
 }
 
 static void publishNav(const char* event,const Judged* j,Ruling r){
@@ -449,7 +466,7 @@ static void handleCommand(const CmdMsg& c){
   int n = atoi(c.payload);
   if (!strcmp(leaf,"estop") || (dispatcher && !strcmp(leaf,"estop"))) {
     estopped = n != 0;
-    if (estopped){ autoRunning=false; requestPwm(0,0); warn("ESTOP"); } else warn("");
+    if (estopped){ autoRunning=false; requestPwm(0,0,1); warn("ESTOP"); } else warn("");
   } else if (!strcmp(leaf,"session_direction")) {
     int8_t d = (!strcasecmp(c.payload,"CW")) ? +1 : (!strcasecmp(c.payload,"CCW") ? -1 : 0);
     if (d){ sessionDir=d; pub(T_ST_SESSDIR,d>0?"CW":"CCW",true); applyTravelDirection(); }
@@ -481,13 +498,13 @@ static void handleCommand(const CmdMsg& c){
     // effect as cmd/auto 0. NAVI_ONE 0.1 did not subscribe to it at all, so
     // the button responded on screen and the locomotive stayed enlisted.
     if (autoEnrolled || autoRunning) {
-      autoEnrolled=false; autoRunning=false; requestPwm(0,RAMP_DOWN_MS);
+      autoEnrolled=false; autoRunning=false; requestPwm(0,0,AUTO_STEP_DOWN_MS);
       pub(T_ST_AUTO,"0",true);
       warn("RELEASED by dispatcher");
       publishNav("DISPATCHER_RELEASE",nullptr,Ruling::NoPosition);
     }
   } else if (!strcmp(leaf,"auto")) {
-    if (n==0){ autoEnrolled=false; autoRunning=false; requestPwm(0,RAMP_DOWN_MS); }
+    if (n==0){ autoEnrolled=false; autoRunning=false; requestPwm(0,0,AUTO_STEP_DOWN_MS); }
     else if (!navigator.positionKnown()) warn("AUTO REFUSED: declare position first");
     else if (estopped||lowVoltage)       warn("AUTO REFUSED: safety interlock");
     else if (!motorDirection)            warn("AUTO REFUSED: direction is REVERSE");
@@ -500,16 +517,13 @@ static void handleCommand(const CmdMsg& c){
     // Automatic operation runs FORWARD. The operator asked for this lockout
     // after starting AUTO in reverse on 2026-08-29: "He complied and died."
     else if (!motorDirection)             warn("GO REFUSED: direction is REVERSE");
-    else { autoRunning=true; requestPwm(AUTO_CRUISE_PWM,RAMP_UP_MS); warn(""); }
+    else { autoRunning=true; requestPwm(AUTO_CRUISE_PWM,AUTO_STEP_UP_MS,AUTO_STEP_DOWN_MS); warn(""); }
   } else if (!strcmp(leaf,"stop") || (dispatcher && strstr(c.topic,"/stop/"))) {
-    autoRunning=false; requestPwm(0,RAMP_DOWN_MS);
+    autoRunning=false; requestPwm(0,0,AUTO_STEP_DOWN_MS);
   } else if (!strcmp(leaf,"throttle")) {
     if (!autoEnrolled) {
       int t = constrain(n,0,255);
-      int steps = t > actualPwm ? (t - actualPwm) : (actualPwm - t);
-      uint16_t per = t > actualPwm ? MANUAL_STEP_UP_MS : brakeStepMs();
-      uint32_t ms = (uint32_t)steps * per;
-      requestPwm(t, (uint16_t)(ms > 65535 ? 65535 : ms));
+      requestPwm(t, MANUAL_STEP_UP_MS, 0);   // 0 -> the brake governs the way down
     }
   } else if (!strcmp(leaf,"direction")) {
     if (!autoEnrolled && actualPwm<=SAFE_DIRECTION_CHANGE_PWM && n!=1) {
@@ -523,7 +537,7 @@ static void serviceIna(){
   static uint32_t last=0; if(!inaReady || millis()-last<5000) return; last=millis();
   busV=ina219.getBusVoltage_V(); busA=ina219.getCurrent_mA()/1000.0f; busW=ina219.getPower_mW()/1000.0f;
   bool low = busV>0.1f && busV<LOW_VOLTAGE_V;
-  if (low && !lowVoltage){ lowVoltage=true; autoRunning=false; requestPwm(0,RAMP_DOWN_MS); warn("LOW VOLTAGE"); }
+  if (low && !lowVoltage){ lowVoltage=true; autoRunning=false; requestPwm(0,0,AUTO_STEP_DOWN_MS); warn("LOW VOLTAGE"); }
   if (!low && busV>=LOW_VOLTAGE_V) lowVoltage=false;
   char v[16];
   snprintf(v,sizeof(v),"%.2f",busV); pub(T_V,v,true);
@@ -664,9 +678,9 @@ void loop(){
         lastAdvanceMs = j.closedAtMs;
         char sv[12]; snprintf(sv,sizeof(sv),"%lu",(unsigned long)estMmPerS);
         pub(T_SPEED,sv,true);
-        publishNav("ADVANCE",&j,r);
+        publishNav("AGREE",&j,r);
         break; }
-      case Ruling::WrongMagnet:publishNav("REFUSED",&j,r); oneStrike(j); break;
+      case Ruling::WrongMagnet:publishNav("DISAGREE",&j,r); oneStrike(j); break;
       case Ruling::NotAMagnet: publishNav("NOT_A_MAGNET",&j,r); break;
       default:                 publishNav("NO_POSITION",&j,r); break;
     }
