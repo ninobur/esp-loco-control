@@ -79,6 +79,10 @@ static constexpr uint8_t I2C_SDA  = 21, I2C_SCL = 22;
 static constexpr uint8_t  AUTO_CRUISE_PWM = 90;
 static constexpr uint16_t RAMP_UP_MS   = 5600;   // passenger-gentle
 static constexpr uint16_t RAMP_DOWN_MS = 2800;
+// Manual throttle is paced PER STEP, as QUORUM did: the feel of the controls
+// must not change because the navigator did. 0 -> 90 takes ~13.5 s up.
+static constexpr uint16_t MANUAL_STEP_UP_MS   = 150;
+static constexpr uint16_t MANUAL_STEP_DOWN_MS = 200;
 static constexpr float    LOW_VOLTAGE_V = 14.4f;
 
 // ---------------------------------------------------------------------------
@@ -349,7 +353,13 @@ static void handleCommand(const CmdMsg& c){
   } else if (!strcmp(leaf,"stop") || (dispatcher && strstr(c.topic,"/stop/"))) {
     autoRunning=false; requestPwm(0,RAMP_DOWN_MS);
   } else if (!strcmp(leaf,"throttle")) {
-    if (!autoEnrolled) requestPwm(constrain(n,0,255),0);
+    if (!autoEnrolled) {
+      int t = constrain(n,0,255);
+      int steps = t > actualPwm ? (t - actualPwm) : (actualPwm - t);
+      uint16_t per = t > actualPwm ? MANUAL_STEP_UP_MS : MANUAL_STEP_DOWN_MS;
+      uint32_t ms = (uint32_t)steps * per;
+      requestPwm(t, (uint16_t)(ms > 65535 ? 65535 : ms));
+    }
   } else if (!strcmp(leaf,"direction")) {
     if (!autoEnrolled && actualPwm<=SAFE_DIRECTION_CHANGE_PWM && n!=1) motorDirection=(n==2);
   }

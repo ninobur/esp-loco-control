@@ -1439,7 +1439,11 @@ input.interval-slider { width:100%; height:34px; border-radius:17px;
            pollState() syncs this from the locomotive's commanded throttle
            whenever the operator is not touching it. -->
       <input type="range" min="0" max="255" value="0" step="1"
-             id="throttle-slider" oninput="sendThrottle(this.value)" />
+             id="throttle-slider"
+             onpointerdown="thrDragStart(this.value)"
+             ontouchstart="thrDragStart(this.value)"
+             oninput="thrInput(this.value)"
+             onchange="thrRelease(this.value)" />
       <span class="slider-val green" id="thr-val">0</span>
     </div>
     <div class="gate-note" id="throttle-gate-note"></div>
@@ -1750,6 +1754,24 @@ function sendCmd(sub, val) {
 // debounce and NOT a confirmation wait: the first move goes out at once, and
 // if one is in flight the NEWEST value is held and sent when it returns.
 var thrInFlight = false, thrPending = null;
+
+// STARTING FROM ZERO, PUBLISH ON RELEASE ONLY (operator, 2026-08-29).
+// Dragging up from a standstill published every intermediate value, so the
+// locomotive chased the slider through the whole sweep and the departure was
+// whatever the drag happened to look like. Once it is already moving the
+// operator is trimming a running train and wants the wheel to answer at once,
+// so continuous publishing stays for that case.
+var thrFromZero = false;
+function thrDragStart(v){ thrFromZero = (parseInt(v,10) === 0); }
+function thrInput(v){
+  document.getElementById("thr-val").textContent = v;
+  document.getElementById("throttle-display").innerHTML = v + "<span> / 255</span>";
+  if (!thrFromZero) sendThrottle(v);
+}
+function thrRelease(v){
+  thrFromZero = false;
+  sendThrottle(v);
+}
 function sendThrottle(v) {
   document.getElementById('thr-val').textContent = v;
   document.getElementById('throttle-display').innerHTML = v + '<span> / 255</span>';
