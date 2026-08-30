@@ -1332,6 +1332,14 @@ static void detectorSample(){
 #define IR_MIN_USABLE_SPAN   120
 #define IR_MARGINAL_SPAN     300
 #define IR_OPEN_ABORT_MS    2500UL
+// Rise-to-rise debounce, from IR_SCOPE's detector (DEBOUNCE_US 15000). Added
+// 2026-08-29 after the observer's first field run: at MARGINAL contrast the
+// hysteresis thresholds sit close enough that one spoke produces several
+// rises. 1,269 s of telemetry gave rise intervals with p05 = 2 ms and peaks
+// of 239 pulses/s -- 2.3 m/s at 9.652 mm/pulse, on a railway whose ceiling is
+// about 0.33. At 0.30 m/s a real spoke arrives every ~32 ms, so 15 ms cannot
+// refuse a genuine one until roughly 0.64 m/s, well above any operating speed.
+#define IR_RISE_DEBOUNCE_MS   15UL
 static const float IR_MM_PER_PULSE_OBS = 9.652f;   // 96.52 mm / 10 spokes
 
 static uint8_t  irEnvWin[IR_ENV_WIN_N];
@@ -1345,7 +1353,7 @@ static unsigned long irRiseMs=0, irPrevRiseMs=0, irEnvUpdMs=0;
 // scalars, and every consumer is a report, so a torn read costs a log line,
 // never a decision.
 static volatile uint32_t irPulses=0, irRises=0, irSaturated=0;
-static volatile uint32_t irContrastEpisodes=0, irOpenAborts=0;
+static volatile uint32_t irContrastEpisodes=0, irOpenAborts=0, irChatter=0;
 static volatile uint32_t irLastIntervalMs=0;
 static volatile int32_t  irSpan=0, irRawLast=0;
 // Raw min/max over the reporting second, taken BEFORE the contrast gate and
@@ -1406,7 +1414,11 @@ static void irObserveSample(){
   if(irAwaitLow && raw<thrLow) irAwaitLow=false;
 
   if(!irInPulse && !irAwaitLow && raw>thrHigh){
-    irInPulse=true; irAbortCounted=false; irRiseMs=now; irRises++;
+    if(irRiseMs && (unsigned long)(now-irRiseMs)<IR_RISE_DEBOUNCE_MS){
+      irChatter++;              // counted, never silently dropped
+    }else{
+      irInPulse=true; irAbortCounted=false; irRiseMs=now; irRises++;
+    }
   }else if(irInPulse && raw<thrLow){
     irInPulse=false; irPulses++;
     if(irPrevRiseMs) irLastIntervalMs=(uint32_t)(irRiseMs-irPrevRiseMs);
@@ -2898,14 +2910,14 @@ static void irObserveService(){
     "{\"pulses\":%lu,\"d\":%lu,\"rises\":%lu,\"mm\":%ld,\"mm_s\":%ld,"
     "\"int_ms\":%lu,\"span\":%ld,\"raw\":%ld,\"raw_min\":%ld,\"raw_max\":%ld,"
     "\"raw_pp\":%ld,\"q\":\"%s\","
-    "\"sat\":%lu,\"no_contrast\":%lu,\"open_aborts\":%lu,\"votes\":0}",
+    "\"sat\":%lu,\"no_contrast\":%lu,\"open_aborts\":%lu,\"chatter\":%lu,\"votes\":0}",
     (unsigned long)p,(unsigned long)d,(unsigned long)irRises,
     (long)(p*IR_MM_PER_PULSE_OBS),(long)(d*IR_MM_PER_PULSE_OBS),
     (unsigned long)irLastIntervalMs,(long)irSpan,(long)irRawLast,
     (long)irRawMin,(long)irRawMax,(long)(irRawMax-irRawMin),
     irQualityName(irQuality),
     (unsigned long)irSaturated,(unsigned long)irContrastEpisodes,
-    (unsigned long)irOpenAborts);
+    (unsigned long)irOpenAborts,(unsigned long)irChatter);
   pub(T_IR,b,false);
   Serial.printf("[IR] pulses=%lu +%lu mm=%ld raw=%ld [%ld..%ld pp=%ld] span=%ld %s\n",
     (unsigned long)p,(unsigned long)d,(long)(p*IR_MM_PER_PULSE_OBS),
