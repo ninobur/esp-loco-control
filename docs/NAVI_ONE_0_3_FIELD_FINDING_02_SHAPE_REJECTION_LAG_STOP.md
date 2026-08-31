@@ -132,11 +132,24 @@ This raises two separate questions, which should not be collapsed into one:
    both fine — fails only the shape test?** This is a policy decision, not a
    diagnostic one, and needs the operator's ruling before anything changes.
 
+## Update: the mechanism recurred, on a different marker
+
+Later the same night, the same mechanism reproduced at physical MM146/147 —
+see `docs/NAVI_ONE_0_3_FIELD_FINDING_03_SECOND_SHAPE_REJECTION_MM146.md`. Not
+the same marker recurring, but the same failure class: a substantial, normal
+passage rejected on shape alone, residual 0.1811 that time (higher than this
+event's 0.1422), amplitude and polarity both unremarkable, same silent-lag,
+same delayed strike. Two occurrences on two markers in one session changes
+"one occurrence does not establish a pattern" (below, as originally written)
+into a pattern worth instrumenting. That instrument — a six-passage waveform
+window, published only when AUTO is withdrawn for a navigation reason — is
+built and bench-verified per decision 0063, not yet field-validated.
+
 ## Recommendation
 
 Declare position at MM105 (confirmed in place), `cmd/auto 1`, GO. Run again to
 see whether the shape rejection repeats at MM110 or elsewhere before treating
-it as a pattern.
+it as a pattern. (Superseded by the update above: it did recur, elsewhere.)
 
 On question 2 above, the operator's stated inclination is: a `WRONG_SHAPE`
 outcome on an otherwise-substantial passage (amplitude and polarity both

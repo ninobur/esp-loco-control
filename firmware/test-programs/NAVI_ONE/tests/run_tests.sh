@@ -22,3 +22,7 @@ echo ""
 echo "== gate 3: real-lap replay — the 2026-08-29 circuit =="
 $CXX "$here/replay_lap.cpp" -o "$tmp/lap"
 "$tmp/lap" "$repo/field-records/logs/20260829_navi2_first_lap/20260829_toby_navi2_markers.tsv"
+
+echo ""
+echo "== gate 5: waveform window + wire format =="
+$CXX "$here/gate_waveform.cpp" -o "$tmp/waveform"; "$tmp/waveform"

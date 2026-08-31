@@ -60,6 +60,8 @@
 #include "Navigator.h"
 #include "HallCapture.h"
 #include "Ops.h"
+#include "WaveformWindow.h"
+#include "WaveformDump.h"
 
 using namespace navi_one;
 
@@ -77,7 +79,11 @@ struct Judged {
   uint8_t  outcome; uint8_t isMagnet;
   float    ratio, residual; uint8_t shapeTested; uint32_t gapMs; uint16_t gain;
 };
-struct PubMsg { char topic[72]; char payload[704]; bool retain; };
+// len: 0 means "text, use strlen(payload) at send time" (every existing text
+// pub() call). Non-zero means "exactly this many bytes, verbatim, including
+// any embedded zero" -- the waveform dump is the one binary payload on this
+// build, and a raw int16 sample can legitimately be 0.
+struct PubMsg { char topic[72]; char payload[704]; uint16_t len; bool retain; };
 struct CmdMsg { char topic[72]; char payload[64]; };
 
 static const char*   MQTT_BROKER = "192.168.68.142";
@@ -143,15 +149,23 @@ static RecognizerConfig recCfg = {
 static MagnetRecognizer recognizer(recCfg);
 static Navigator        navigator;      // owns no recognizer: see Navigator.h
 
-// One judged passage, crossing to the loop thread. The waveform does NOT cross:
-// the recognizer already ran, on the task that captured it.
+// A short trailing memory of raw passages, pushed only on the Hall task,
+// right alongside recognizer.examine() -- see WaveformWindow.h. It does not
+// cross threads itself; only the dump IT triggers (see dumpWindowRequest
+// below) does, and even then only as outgoing MQTT messages.
+static WaveformWindow<6> waveformWindow;
+
+// One judged passage, crossing to the loop thread. The waveform does NOT cross
+// there: the recognizer already ran, on the task that captured it. (It is
+// separately retained in waveformWindow, above, for the rare case AUTO gets
+// withdrawn and the operator wants to see it.)
 static QueueHandle_t judgedQ = nullptr;
 // Average speed over the last confirmed interval: surveyed distance divided by
 // measured time. A measurement, not a model -- nothing in the accept path uses
 // it, and no PWM value appears in it. Display only.
 static uint32_t lastAdvanceMs = 0; static uint32_t estMmPerS = 0;
 
-// THE ONLY TWO DATA THAT CROSS BETWEEN THE LOOP THREAD AND THE HALL TASK,
+// THE ONLY THREE DATA THAT CROSS BETWEEN THE LOOP THREAD AND THE HALL TASK,
 // besides the queues themselves.
 //
 // recognizerResetRequest: raised on the loop thread by a declaration or a
@@ -162,8 +176,14 @@ static uint32_t lastAdvanceMs = 0; static uint32_t estMmPerS = 0;
 // must not be judged against the new one -- 0.1 had a ~2 ms window in which a
 // Judged already sitting on the queue when a declaration landed advanced the
 // fresh declaration on evidence from the dead one.
+//
+// dumpWindowRequest: raised on the loop thread by withdraw() -- i.e. any event
+// that shuts AUTO down for a navigation reason (WrongMagnet, Contradicted).
+// Honoured on the Hall task, which is the only thread allowed to read
+// waveformWindow, same rule as the recognizer and capture buffer.
 static volatile bool     recognizerResetRequest = false;
 static volatile uint32_t navEpoch = 0;
+static volatile bool     dumpWindowRequest = false;
 static uint32_t staleJudged = 0;
 
 // Called on the LOOP THREAD, immediately after any Navigator call that ends a
@@ -360,7 +380,8 @@ static uint32_t pubDropped = 0, cmdDropped = 0;
 static char T[24][72];
 enum { T_ONLINE=0,T_NAV,T_MARKER,T_ALERT,T_IR,T_STAT,T_BOOT,T_WARN,
        T_ST_AUTO,T_ST_ESTOP,T_ST_THR,T_ST_DIR,T_ST_SESSDIR,T_ST_STARTMM,
-       T_ST_NAVREADY,T_ST_LOWV,T_ST_STARTINT,T_BRAKE,T_V,T_A,T_W,T_SPEED,T_CNT };
+       T_ST_NAVREADY,T_ST_LOWV,T_ST_STARTINT,T_BRAKE,T_V,T_A,T_W,T_SPEED,
+       T_WAVEFORM,T_CNT };
 
 static void topic(int i,const char* suffix){ snprintf(T[i],72,"ngr/loco/%s/%s",LOCO_NAME,suffix); }
 static void buildTopics(){
@@ -377,11 +398,25 @@ static void buildTopics(){
   topic(T_V,"telem/voltage");
   topic(T_A,"telem/current");          topic(T_W,"telem/power");
   topic(T_SPEED,"telem/speed");
+  // Not retained: a one-shot diagnostic burst, meaningful only right after
+  // the strike/contradiction that triggered it, per decisions on waveform
+  // capture (2026-08-31). A retained copy would misdescribe every later
+  // boot as if it had just been struck.
+  topic(T_WAVEFORM,"diag/waveform");
 }
 static void pub(int t,const char* payload,bool retain=false){
   if(!pubQ) return;
   PubMsg m; strlcpy(m.topic,T[t],sizeof(m.topic));
-  strlcpy(m.payload,payload,sizeof(m.payload)); m.retain=retain;
+  strlcpy(m.payload,payload,sizeof(m.payload)); m.len=0; m.retain=retain;
+  if (xQueueSend(pubQ,&m,0) != pdTRUE) ++pubDropped;
+}
+// Binary variant: exactly `len` bytes, verbatim (no strlen, no truncation at
+// an embedded zero). Used only for the waveform dump.
+static void pubBin(int t,const uint8_t* data,uint16_t len,bool retain=false){
+  if(!pubQ) return;
+  if (len > sizeof(PubMsg::payload)) len = sizeof(PubMsg::payload); // cannot happen: chunker sizes to fit
+  PubMsg m; strlcpy(m.topic,T[t],sizeof(m.topic));
+  memcpy(m.payload,data,len); m.len=len; m.retain=retain;
   if (xQueueSend(pubQ,&m,0) != pdTRUE) ++pubDropped;
 }
 // A warning the operator has been told to go and read must survive the next
@@ -417,6 +452,12 @@ static void withdraw(const char* text){
   requestPwm(0,0,AUTO_STEP_DOWN_MS);
   pub(T_ST_NAVREADY,"0",true);
   lastAdvanceMs = 0;              // the next speed estimate must not span this
+  // withdraw() is the one choke point for both navigation-caused stops
+  // (oneStrike, contradicted) -- see 2026-08-31 field findings 02/03. Neither
+  // manual auto-off, dispatcher_release, e-stop, nor low voltage call this
+  // function, so none of them trigger a waveform dump; only a shape/polarity
+  // disagreement does.
+  dumpWindowRequest = true;
 }
 
 static void oneStrike(const Judged& j){
@@ -539,6 +580,35 @@ static void declarePosition(uint8_t mm,int8_t dir,const char* interval){
   publishNav("DECLARED",nullptr,Ruling::NoPosition);
 }
 
+// Publishes the trailing window on withdraw() -- see dumpWindowRequest above.
+// Runs on the Hall task, the only thread allowed to read waveformWindow.
+// Chunks each slot so nothing is ever truncated: "do not discard information
+// the firmware processes to compute the value" (operator's ruling,
+// 2026-08-31). Slot 0 is the most recently pushed passage (closest to
+// whatever triggered the withdrawal); higher indices are older.
+static void publishWaveformWindow(){
+  const uint8_t total = waveformWindow.count();
+  const uint16_t perChunk = wavChunkCapacity(sizeof(PubMsg::payload));
+  uint8_t buf[sizeof(PubMsg::payload)];
+  for (uint8_t slot = 0; slot < total; ++slot) {
+    const auto& e = waveformWindow.at(slot);
+    if (!e.valid) continue;
+    const uint8_t chunks = wavChunkCount(e.sampleCount, perChunk);
+    for (uint8_t c = 0; c < chunks; ++c) {
+      const uint16_t offset = (uint16_t)(c * perChunk);
+      const uint16_t remain  = (uint16_t)(e.sampleCount - offset);
+      const uint16_t n = remain < perChunk ? remain : perChunk;
+      const uint16_t bytes = wavEncodeChunk(
+        buf, sizeof(buf), slot, total, c, chunks,
+        e.polarity, e.outcome, e.isMagnet, e.shapeTested,
+        e.sampleCount, e.decimation, e.peakCounts, e.gain,
+        e.amplitudeRatio, e.residual, e.gapMs, e.openedAtMs, e.closedAtMs,
+        e.samples, offset, n);
+      if (bytes) pubBin(T_WAVEFORM, buf, bytes, false);
+    }
+  }
+}
+
 // ---------------------------------------------------------------------------
 // TASKS
 // ---------------------------------------------------------------------------
@@ -557,10 +627,17 @@ static void hallTask(void*){
     if (capture.sample(now,(int16_t)analogRead(HALL_PIN))) {
       const Passage& p = capture.passage();
       Verdict v = recognizer.examine(p);
+      // Copied here, before the next capture.sample() call starts
+      // overwriting HallCapture's own buffer with the following passage.
+      waveformWindow.push(p, v);
       Judged j{ myEpoch,p.openedAtMs,p.closedAtMs,p.peakCounts,p.polarity,
                 (uint8_t)v.outcome,(uint8_t)v.isMagnet,
                 v.amplitudeRatio,v.residual,(uint8_t)v.shapeTested,v.gapMs,v.gain };
       if (judgedQ) xQueueSend(judgedQ,&j,0);
+    }
+    if (dumpWindowRequest) {
+      dumpWindowRequest = false;
+      publishWaveformWindow();
     }
     irService(now, tick++);
     vTaskDelayUntil(&wake,1);
@@ -625,8 +702,14 @@ static void networkTask(void*){
     // outage overflows at the enqueue end, where pub() counts every loss.
     if (mqtt.connected()) {
       PubMsg m;
-      while (pubQ && xQueueReceive(pubQ,&m,0)==pdTRUE)
-        if (!mqtt.publish(m.topic,m.payload,m.retain)) ++pubDropped;
+      while (pubQ && xQueueReceive(pubQ,&m,0)==pdTRUE) {
+        // Explicit length always -- text messages carry len=0 (use
+        // strlen), the waveform dump carries its true byte count, which may
+        // include zero bytes that mqtt.publish(topic,cstring,retain) would
+        // have truncated at.
+        size_t n = m.len ? m.len : strlen(m.payload);
+        if (!mqtt.publish(m.topic,(const uint8_t*)m.payload,n,m.retain)) ++pubDropped;
+      }
     }
     vTaskDelay(10);
   }
