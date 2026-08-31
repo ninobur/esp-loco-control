@@ -173,8 +173,9 @@ separates them, which is why the instrument exists.
 
 ## Carried forward
 
-- Chunking (`chunkTotal > 1`) is still bench-only; every passage today fit one
-  message.
+- Chunking (`chunkTotal > 1`) is field-proven as of 10:37:16, when a 368-sample
+  passage (capacity is 332 per message) split across two chunks and reassembled
+  correctly. Every passage in the 10:28 dump had fit one message.
 - The pre-fix corrupted payloads remain in `all_20260831.log` at 10:20:14. The
   decoder refuses them by design rather than reconstructing something plausible.
 - The cause of the MM110 and MM146 residual excursions remains unknown, and the
