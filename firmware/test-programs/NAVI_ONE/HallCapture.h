@@ -69,9 +69,14 @@ class HallCapture {
         return false;
       }
       open_ = true;
-      pol_ = delta >= 0 ? 1 : 0;
       openedAtMs_ = nowMs;
       peak_ = 0; n_ = 0; quietSince_ = 0; truncated_ = false;
+      // The pole is NOT decided here. 0.3 latched it from this one sample --
+      // the entry crossing -- and on 2026-08-31 a single-sample artifact of
+      // +41 (MM70) and -43 (MM119), each a few counts over entryMargin and
+      // opposite to the field that was arriving, latched the wrong pole twice
+      // and stopped the locomotive twice. Findings 05 and 06, decision 0064.
+      maxPos_ = 0; maxNeg_ = 0; sum_ = 0;
       // A rail that happened between passages says nothing about THIS one.
       // 0.1 set clipped_ from updateBaseline() at any moment and cleared it
       // only when a passage closed, so a supply transient minutes earlier
@@ -80,14 +85,17 @@ class HallCapture {
       dec_ = 1; decPhase_ = 0;
       // replay the pre-roll, oriented
       uint8_t start = (uint8_t)((preHead_ + PRE - preLen_) % PRE);
-      for (uint8_t i = 0; i < preLen_; ++i)
-        push(orient(pre_[(start + i) % PRE]));
+      for (uint8_t i = 0; i < preLen_; ++i) {
+        const int16_t v = pre_[(start + i) % PRE];
+        push(v); tally(v);
+      }
       preAt_ = n_;
     }
 
-    push(orient((int16_t)delta));
-    const int32_t oriented = pol_ ? delta : -delta;
-    if (oriented > peak_) peak_ = oriented;
+    // Signed, baseline-relative, unoriented. The buffer is oriented once at
+    // close(), when the pole is known from the whole passage.
+    push((int16_t)delta);
+    tally((int16_t)delta);
 
     if (mag < cfg_.exitMargin) {
       if (!quietSince_) quietSince_ = nowMs;
@@ -99,7 +107,19 @@ class HallCapture {
   }
 
  private:
-  int16_t orient(int16_t d) const { return pol_ ? d : (int16_t)(-d); }
+  // Every sample of the passage is summed, signed. The sign of that sum is the
+  // pole. One sample cannot carry it: the +41 and -43 artifacts of findings 05
+  // and 06 sit against sums of -12,691 and +19,742. int64 because a passage may
+  // legitimately last hours (decision 0057) and a 32-bit sum could wrap.
+  //
+  // Each side's extreme is kept too, because the peak must be measured in
+  // whichever direction the sum chooses -- polarity and amplitude answer
+  // different questions.
+  void tally(int16_t d) {
+    sum_ += d;
+    if (d > maxPos_) maxPos_ = d;
+    else if (-d > maxNeg_) maxNeg_ = -d;
+  }
   // 0.1 stopped storing at RING samples (512 at 1 kHz = 512 ms) and set
   // truncated_, which made the recognizer ABSTAIN from the shape test. So at
   // crawl speed -- a station approach, or the 18.7 s throttle-off dwell of
@@ -134,6 +154,7 @@ class HallCapture {
     open_ = false; n_ = 0; preAt_ = 0; preLen_ = 0; preHead_ = 0;
     peak_ = 0; quietSince_ = 0; truncated_ = false; clipped_ = false;
     dec_ = 1; decPhase_ = 0;
+    maxPos_ = 0; maxNeg_ = 0; sum_ = 0;
   }
 
  private:
@@ -142,11 +163,23 @@ class HallCapture {
     open_ = false;
     const uint32_t dur = nowMs - openedAtMs_;
     if (dur < cfg_.floorMs) { ++floorRejects_; return false; }
+    // ------------------------------------------------------------------
+    // THE POLE IS DECIDED HERE, and only here, from the completed passage.
+    // Never from the entry sample. Never from RouteMap: the map may not be
+    // consulted, or a mis-latched passage would simply be told what it ought
+    // to have been and the instrument would stop being an instrument.
+    // ------------------------------------------------------------------
+    pol_  = sum_ >= 0 ? 1 : 0;
+    peak_ = pol_ ? maxPos_ : maxNeg_;
+    if (!pol_)
+      for (uint16_t i = 0; i < n_; ++i) buf_[i] = (int16_t)(-buf_[i]);
+
     out_ = Passage{};
     out_.openedAtMs = openedAtMs_;
     out_.closedAtMs = nowMs;
     out_.peakCounts = (uint16_t)(peak_ > 65535 ? 65535 : peak_);
     out_.polarity   = pol_;
+    out_.signedSum  = sum_;
     out_.oriented   = buf_;
     out_.sampleCount= n_;
     out_.preSamples = preAt_;
@@ -183,6 +216,8 @@ class HallCapture {
   int16_t  med_[MED] = {}; uint8_t medHead_ = 0, medLen_ = 0;
   uint16_t dec_ = 1, decPhase_ = 0;
   int32_t  baseline_ = 0, peak_ = 0;
+  int32_t  maxPos_ = 0, maxNeg_ = 0;
+  int64_t  sum_ = 0;
   uint32_t startMs_ = 0, lastBaseMs_ = 0, openedAtMs_ = 0, quietSince_ = 0;
   uint32_t floorRejects_ = 0;
   bool     primed_ = false, open_ = false, truncated_ = false, clipped_ = false;

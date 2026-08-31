@@ -1,5 +1,5 @@
 #!/bin/sh
-# NAVI_ONE gates. ALL FOUR must pass before anything is flashed.
+# NAVI_ONE gates. ALL OF THEM must pass before anything is flashed.
 set -eu
 here=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 repo=$(CDPATH= cd -- "$here/../../../.." && pwd)
@@ -26,3 +26,13 @@ $CXX "$here/replay_lap.cpp" -o "$tmp/lap"
 echo ""
 echo "== gate 5: waveform window + wire format =="
 $CXX "$here/gate_waveform.cpp" -o "$tmp/waveform"; "$tmp/waveform"
+
+echo ""
+echo "== gate 6: polarity is decided by the whole passage =="
+$CXX "$here/gate_polarity.cpp" -o "$tmp/polarity"
+"$tmp/polarity" "$repo/field-records/logs/20260831_navi_one_waveforms/captured_passages.tsv"
+
+echo ""
+echo "== gate 7: survey polarity replay — 2026-08-28 circuit =="
+$CXX "$here/replay_polarity_survey.cpp" -o "$tmp/polsurvey"
+"$tmp/polsurvey" "$tmp/survey.log"

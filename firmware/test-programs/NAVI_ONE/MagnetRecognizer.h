@@ -98,6 +98,10 @@ struct Passage {
   bool          truncated    = false;
   bool          clipped      = false;
   uint16_t      decimation   = 1;       // samples per stored point (see HallCapture)
+  // Signed sum of every sample in the passage. Its sign IS the polarity
+  // (HallCapture::close). Carried so a judgement's basis travels with it;
+  // nothing thresholds on it. Decision 0064.
+  int64_t       signedSum    = 0;
 };
 
 struct Verdict {
