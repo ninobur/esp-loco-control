@@ -238,3 +238,79 @@ SD cards.
 had a stanza only for `.142`, so connecting to the same host on any other
 address offered the default key and fell through to a password prompt — which
 looks exactly like a broken Pi and is not. Stanzas for `.55` and `.73` added.
+
+---
+
+# Every change made on 2026-08-30, explicitly
+
+The narrative above mentions these in passing. That is not good enough — the
+2026-08-12 card failure taught this repo that configuration living only on the
+Pi is configuration that gets lost. So, as a list.
+
+## On the Pi
+
+All of these were typed by the operator, at my instruction. **Every SSH session
+I opened was read-only**; I ran no command that changed the Pi's state.
+
+**1. Wi-Fi profile `NGR` created.**
+
+```bash
+sudo nmcli connection delete NGR          # a stale half-made profile from a
+                                          # failed first attempt, which was what
+                                          # kept rejecting the password
+sudo nmcli --ask device wifi connect NGR
+```
+
+Result: `/etc/NetworkManager/system-connections/NGR.nmconnection`, root-only,
+`connection.autoconnect: yes`. **That file contains the Wi-Fi PSK and must never
+be committed to this repo.** If the card is ever rebuilt, recreate it with the
+second command above; nothing else about it is special.
+
+**2. `192.168.68.142` added to the Wi-Fi profile.**
+
+```bash
+sudo nmcli connection modify NGR +ipv4.addresses 192.168.68.142/22
+sudo nmcli connection up NGR
+```
+
+Reason: Toby's firmware has the broker address compiled in
+(`NAVI_ONE.ino`, `MQTT_BROKER = "192.168.68.142"`), so the Pi must answer on
+`.142` whichever interface it is using.
+
+**THIS CHANGE IS THE PRIME SUSPECT FOR THE EVENING'S OUTAGE AND SHOULD BE
+TREATED AS A REGRESSION UNTIL PROVEN OTHERWISE.** It was applied to a live
+connection and never tested from cold. Two ways it can break a boot:
+
+- adding a static address can flip `ipv4.method` from `auto` to `manual`, and a
+  manual profile with no gateway or DNS will fail to activate at startup;
+- `.142` is *also* static on `Wired connection 1`, so both profiles now claim
+  one address. NetworkManager's duplicate-address detection can then refuse to
+  activate the wired connection while the radio holds `.142` — which would
+  explain a Pi that is plugged in, powered, and still unreachable.
+
+To undo:
+
+```bash
+sudo nmcli connection modify NGR -ipv4.addresses 192.168.68.142/22
+sudo nmcli connection up NGR
+```
+
+The intended end state, once it can be tested properly: `.142` lives in exactly
+one place, and the wireless lifeline sits on `.55` alone.
+
+## On the Mac (not the Pi)
+
+**3. `~/.ssh/config`** gained stanzas for `192.168.68.55` and `192.168.68.73`,
+both pointing at `IdentityFile ~/.ssh/id_ed25519_github` — the key the existing
+`.142` stanza already used, and the only key the Pi accepts. Backup at
+`~/.ssh/config.bak.20260830`.
+
+Without this, SSH to any address of this host other than `.142` offers the
+default `id_ed25519`, is refused, and falls through to a password prompt. That
+looks exactly like a broken Pi and is not.
+
+## Nothing else
+
+No firmware was flashed. The Pi's Flask app, mosquitto configuration, systemd
+units and telemetry were not touched. No retained MQTT topic was published or
+cleared.
