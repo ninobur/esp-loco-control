@@ -1,6 +1,10 @@
 # 0064 — Polarity is the sign of the summed passage, not of the entry sample
 
-Status: Proposed  (2026-08-31)
+Status: Accepted  (2026-08-31)
+
+Reviewed and approved by the operator, 2026-08-31, for implementation as
+described. Approval covers the design and the committed implementation; it is
+not by itself authority to flash, which remains a separate go-ahead.
 
 ## Decision
 
@@ -86,8 +90,9 @@ depend on knowing it. Findings 05 and 06 hold the evidence.
 - Findings 02 and 03 — the `WRONG_SHAPE` residual excursions at MM110 and MM146
   — are **not** addressed. A 46-count mid-arc artifact produced residual 0.0613;
   reaching MM110's 0.1422 needs roughly 200 counts. Different mechanism, still open.
-- Unratified. Per the operator's ruling of 2026-08-30 no record here has force
-  until he reviews it personally, and nothing is flashed without his go-ahead.
+- Ratified by the operator on 2026-08-31, per his ruling of 2026-08-30 that no
+  record here has force until he reviews it personally. Flashing remains a
+  separate go-ahead.
 
 ## Verification
 
