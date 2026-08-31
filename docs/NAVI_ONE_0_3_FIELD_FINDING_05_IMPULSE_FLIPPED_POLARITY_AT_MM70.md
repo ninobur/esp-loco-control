@@ -156,13 +156,72 @@ No scalar in the published set could have distinguished these. `peak`, `ratio`,
 
 ---
 
+## Evaluating "polarity from the completed passage" against the captured waveforms
+
+Asked whether polarity can be tied to the whole wave rather than the entry
+sample. It can, and the change is structurally contained.
+
+**Passage segmentation is already polarity-agnostic.** Exit tests `mag`
+(absolute, `HallCapture.h:91`) and the floor is duration, so where a passage
+begins and ends does not depend on the pole. Only the interpretation does.
+
+What is coupled to the entry latch is the *orientation*, applied per sample on
+the way into the buffer (`push(orient(delta))`, `:88`) and to the peak
+(`:89-90`). So a whole-passage rule requires three changes together:
+
+1. store raw deltas in `buf_` (the pre-roll already stores raw and orients at
+   replay, `:84`, so this makes the two paths consistent)
+2. track `maxPos_` and `maxNeg_` during capture instead of one oriented `peak_`
+3. at `close()`, set the pole from the dominant excursion, set `peak_` from it,
+   and orient the buffer once — an O(n) pass, n <= 512, once per passage
+
+### Result on all 18 captured passages
+
+Candidate rule: `pol = maxPos >= maxNeg`, `peak = max(maxPos, maxNeg)`.
+
+**17 of 18 resolve identically** — same pole, same peak. The recognizer's
+amplitude calibration is therefore untouched for every passage that was already
+judged correctly. Exactly one changes: MM70.
+
+| | firmware | pole from completed passage |
+|---|---|---|
+| polarity | 1 (N) | **0 (S)** — matches surveyed MM70 |
+| peak | 41 | **183** |
+| ampRatio | 0.1925 (below the ~0.34 floor) | **0.8592** (neighbours 0.78–0.84) |
+| residual | shape test never ran | **0.0573** (ceiling 0.13) |
+| ruling | `TOO_WEAK` -> lag -> strike | **`MAGNET`, S, matches expectation** |
+
+The residual is not an estimate. `fitResidual` (`MagnetRecognizer.h:167-222`)
+was reimplemented off-target and reproduces all 16 published residuals in these
+dumps to **zero error** at `preSamples = 12`; MM70's 0.0573 is that same
+arithmetic applied to the correctly oriented samples. It is the second-best fit
+in its own window (the six range 0.0569–0.0736).
+
+So the correction does not merely move the failure from the amplitude gate to
+the shape gate. It resolves the passage cleanly.
+
+### A caution on refusing ambiguous passages
+
+Refusing ambiguity is the natural companion rule, and this data argues against
+adding it yet. Ranking the 18 passages by dominance — the ratio of the dominant
+excursion to the opposing one — **MM70 is the lowest of all at 4.5:1**. The next
+lowest is 5.7:1 and the remainder have no opposing excursion at all.
+
+A dominance floor placed to reject ambiguous passages would therefore re-reject
+the precise case this change exists to fix, and 18 passages give no basis for
+siting one. Taking the pole from the completed passage, with no refusal rule,
+is what the evidence currently supports.
+
+---
+
 ## No change proposed
 
-Candidate remedies exist — confirming the pole over several samples, taking the
-pole from the passage body rather than the entry crossing, or median-filtering
-the input — and each has consequences for latency and for the recognizer's
-existing calibration. **None is proposed here and none has been decided.** This
-record exists so the defect is known and argued before anything is changed.
+The evaluation above is analysis, not a proposal. Taking the pole from the
+completed passage is the option the captured waveforms support; median-filtering
+the input and confirming the pole over several samples were not evaluated.
+**Nothing is proposed here and nothing has been decided.** No firmware,
+threshold or control was changed. This record exists so the defect and the
+candidate remedy are argued before anything is.
 
 Recognition thresholds remain untouched.
 
