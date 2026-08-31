@@ -123,46 +123,45 @@ across both runs because both runs crossed the same markers. Closed.
 
 ---
 
-## What the data supports
+## The conclusion
 
-1. **The dump path works.** Trigger, window depth, ordering, encoding, transport
-   and decode are all confirmed against real field data. Each passage fit in one
-   message; chunking was published as `chunkTotal=1` and therefore has *not*
-   been exercised in the field.
-2. **The design worked exactly as decision 0058 intended.** The recognizer
-   judged the inserted magnet a well-formed magnet — correctly, it is one — and
-   the navigator rejected it on identity. Recognition and position stayed
-   separate.
-3. **The five surveyed markers sit squarely inside the calibration.**
-   `MagnetRecognizer.h` records real magnets at residual 0.0473–0.0805; MM045–049
-   came in at 0.0632–0.0766.
+**Waveforms are now recorded in detail when a disagreement happens, so that the
+cause of a change in the residual can be discerned.**
 
-## What the data does NOT support
+That is the whole of it. Everything the published scalars can tell us about a
+residual excursion, they had already told us, and it was not enough.
 
-The inserted magnet returned residual 0.1023 at amplitude ratio 0.5642, against
-0.063–0.077 at 1.09–1.26 for the surveyed five. It is tempting to read this as
-*low amplitude inflates the Gaussian residual*, which would be a tidy
-explanation for findings 02 (MM110, residual 0.1422) and 03 (MM146, 0.1811).
+### Why the scalars were never going to be enough
 
-**That inference is not available from this data**, for two reasons:
+Every MM110 pass across the session of findings 02/03, pulled from the retained
+log:
 
-- It rests on a single low-amplitude point. Across the five surveyed markers,
-  amplitude ranges 1.09→1.26 with no monotonic relationship to residual.
-- It is confounded. The inserted magnet is a physically different magnet — 175
-  samples against 149–162, visibly broader and flatter-topped — so its shape may
-  depart from Gaussian for reasons that have nothing to do with amplitude.
-  Findings 02 and 03 were rejections of *surveyed* markers.
+| time | peak | ratio | resid | gap_ms | gain |
+|------|-----:|------:|------:|-------:|-----:|
+| 22:27:20 | 176 | 0.838 | 0.0800 | 1125 | 210 |
+| 22:30:42 | 180 | 0.865 | 0.0825 | 1138 | 208 |
+| 22:34:04 | 177 | 0.839 | 0.0788 | 1126 | 211 |
+| 22:37:27 | 175 | 0.841 | 0.0868 | 1138 | 208 |
+| **22:40:50 (rejected)** | **179** | **0.856** | **0.1422** | 1164 | 209 |
 
-Notably, 0.1023 lands in the empty gap between the two calibrated populations
-(real 0.0473–0.0805, non-primary 0.1948–1.1660, ceiling 0.13) — which is where a
-genuine magnet that is not one of ours ought to land.
+Peak, ratio, gap and gain on the rejected pass all sit inside the range of the
+four clean passes immediately before it. Only the residual moves, to nearly
+double the highest clean value. Nothing else about the crossing was different in
+any dimension NAVI_ONE publishes.
 
-The open question from findings 02 and 03 therefore remains open. The way to
-close it is the operator's stated plan: capture a naturally occurring shape
-rejection with the now-working dump path, **without touching recognition
-thresholds**.
+This also settles a question left open in the first draft of this record. The
+inserted magnet in today's test had both low amplitude (0.5642) and an elevated
+residual (0.1023), which invited reading residual as amplitude-driven. The MM110
+table refutes that for the case that matters: ratio 0.856 is unremarkable while
+the residual nearly doubles. Amplitude is not the mechanism there.
 
----
+Residual is the normalised RMS error of a best-amplitude Gaussian fit to the
+arc above 20% of peak. It rises for asymmetry, a shoulder or double bump, a
+flattened or truncated top, a skewed arc from speed change during the crossing,
+edge noise inside the threshold window, or any brief electrical transient. Each
+of those has a distinct sample-by-sample signature and none of them is
+distinguishable from the others in a scalar. The waveform is the only thing that
+separates them, which is why the instrument exists.
 
 ## Artefacts
 
@@ -174,6 +173,13 @@ thresholds**.
 
 ## Carried forward
 
-- Chunking (`chunkTotal > 1`) is still bench-only.
+- Chunking (`chunkTotal > 1`) is still bench-only; every passage today fit one
+  message.
 - The pre-fix corrupted payloads remain in `all_20260831.log` at 10:20:14. The
   decoder refuses them by design rather than reconstructing something plausible.
+- The cause of the MM110 and MM146 residual excursions remains unknown, and the
+  thresholds remain untouched.
+- A shape rejection lags one marker and the lag is exposed by the next polarity
+  mismatch, which strikes, stops and dumps — so the event is captured. Note only
+  that `WaveformWindow<6>` retains the strike passage plus five older ones, and
+  `ROUTE_POLARITY` has same-polarity runs of 6 (MM36–41) and 7 (MM107–113).
