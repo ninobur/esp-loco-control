@@ -175,13 +175,15 @@ the way into the buffer (`push(orient(delta))`, `:88`) and to the peak
 3. at `close()`, set the pole from the dominant excursion, set `peak_` from it,
    and orient the buffer once — an O(n) pass, n <= 512, once per passage
 
-### Result on all 18 captured passages
+### Result on the captured passages
 
-Candidate rule: `pol = maxPos >= maxNeg`, `peak = max(maxPos, maxNeg)`.
+Candidate rule A ("extrema"): `pol = maxPos >= maxNeg`, `peak = max(maxPos, maxNeg)`.
 
-**17 of 18 resolve identically** — same pole, same peak. The recognizer's
-amplitude calibration is therefore untouched for every passage that was already
-judged correctly. Exactly one changes: MM70.
+The 18 dumped slots contain **16 distinct passages** — `103716_slot4/5` are
+re-dumps of `102823_slot0/1`, still in the ring from the earlier stop (corrected
+after review; an earlier draft of this record said 18). Of those 16, **15
+resolve identically** under rule A — same pole, same peak. Exactly one changes:
+MM70.
 
 | | firmware | pole from completed passage |
 |---|---|---|
@@ -192,25 +194,67 @@ judged correctly. Exactly one changes: MM70.
 | ruling | `TOO_WEAK` -> lag -> strike | **`MAGNET`, S, matches expectation** |
 
 The residual is not an estimate. `fitResidual` (`MagnetRecognizer.h:167-222`)
-was reimplemented off-target and reproduces all 16 published residuals in these
-dumps to **zero error** at `preSamples = 12`; MM70's 0.0573 is that same
-arithmetic applied to the correctly oriented samples. It is the second-best fit
-in its own window (the six range 0.0569–0.0736).
+was reimplemented off-target and reproduces all 16 published residuals to zero
+error at `preSamples = 12`. Codex independently replayed the same data through
+the actual C++ `fitResidual()` and agreed to within 1.5e-8.
 
 So the correction does not merely move the failure from the amplitude gate to
-the shape gate. It resolves the passage cleanly.
+the shape gate. It resolves the passage cleanly. This holds **for these
+recordings**; it is not a statement about the full survey or about future
+running.
 
-### A caution on refusing ambiguous passages
+### Rule A is still a single-sample rule (review finding)
 
-Refusing ambiguity is the natural companion rule, and this data argues against
-adding it yet. Ranking the 18 passages by dominance — the ratio of the dominant
-excursion to the opposing one — **MM70 is the lowest of all at 4.5:1**. The next
-lowest is 5.7:1 and the remainder have no opposing excursion at all.
+Codex's review made the decisive objection: `maxPos >= maxNeg` examines the
+completed passage but still lets **one** sample decide, if that sample is the
+largest excursion. It removes the first sample's special authority without
+removing single-sample authority.
 
-A dominance floor placed to reject ambiguous passages would therefore re-reject
-the precise case this change exists to fix, and 18 passages give no basis for
-siting one. Taking the pole from the completed passage, with no refusal rule,
-is what the evidence currently supports.
+Candidate rule B ("support"): compare the accumulated positive and negative
+signal **areas**, which weighs strength and duration together.
+
+Both rules are correct on all 16 recordings. They differ enormously in margin:
+
+| | worst-case margin over the 16 | smallest opposite disturbance that defeats it |
+|---|---|---|
+| A, extrema | **4.5 : 1** (MM70) | a single sample ~1.05x peak — 130 counts on a 123-count passage |
+| B, area | **310 : 1** (MM70) | no single sample within ADC range; a 10-sample burst needs 1270–3750 counts |
+
+Injection was searched over every insertion position in each passage, for
+1-sample and 10-sample opposite-polarity bursts, per the review's request to
+test spikes larger than the main peak.
+
+Rule B has roughly seventy times the headroom and cannot be defeated by any
+single sample. On this evidence **B is the better candidate**, and A should not
+be adopted merely because it is the smaller change.
+
+### Ambiguity refusal, restated
+
+An earlier draft of this record argued that a dominance floor "would re-reject
+the precise case this change exists to fix". That was too strong, and the review
+was right to say so: a floor below 4.5:1 leaves MM70 untouched. The correct
+statement was that we lacked evidence to site one.
+
+Under rule B we have more. The worst real passage sits at 310:1, so a floor
+anywhere between roughly 5:1 and 100:1 accepts all 16 recordings while still
+refusing a genuinely bipolar passage. Rule B makes an ambiguity threshold
+tractable where rule A does not. Sixteen passages from two short runs is still
+thin ground for siting one, and the survey replay the review asks for should
+come first.
+
+### Correction: the stored orientation is reversible
+
+An earlier draft said the entry latch left "nothing left to reconsider" and
+called the orientation irreversible. **That is wrong.** Negation is
+information-preserving because the chosen pole is recorded alongside it — the
+whole analysis above depends on recovering the raw deltas from exactly that
+buffer, `delta = pol ? stored : -stored`.
+
+What the latch actually destroys is the *filtered peak*: `peak_` only ever rose
+on samples agreeing with `pol_`, so it cannot be recovered and must be
+recomputed. A correction could therefore be made entirely inside `close()`
+against the existing buffer. Storing signed deltas and orienting once is still
+the clearer implementation, but it is a clarity argument, not a necessity.
 
 ---
 
