@@ -56,7 +56,12 @@ int main(int argc,char**argv){
     // never see N or S. On the locomotive HallCapture does this; here the
     // replay must do the same or it is testing a different function.
     if(!p.polarity) for(auto& x: samples) x = (int16_t)(-x);
-    p.oriented=samples.data(); p.sampleCount=(uint16_t)samples.size();
+    // On the locomotive HallCapture builds this once at close(); the replay
+    // must build it too, or it is testing the pre-0065 function.
+    std::vector<int16_t> judged(samples.size());
+    medianOfThree(samples.data(),(uint16_t)samples.size(),judged.data());
+    p.oriented=samples.data(); p.judged=judged.data();
+    p.sampleCount=(uint16_t)samples.size();
     Verdict v=rec.examine(p);
     tally[rej][outcomeName(v.outcome)]++;
     total++;
