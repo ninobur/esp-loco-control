@@ -1,6 +1,6 @@
 /*
  * ============================================================================
- * NAVI_ONE 0.5  —  Ninobur Garden Railway navigation, built from the ground up
+ * NAVI_ONE 0.4  —  Ninobur Garden Railway navigation, built from the ground up
  * ============================================================================
  * Development. NOT FIELD ACCEPTED.
  *
@@ -67,7 +67,7 @@ using namespace navi_one;
 
 // Published on state/bootid. It is the ONLY thing that tells telemetry which
 // build is running, so it advances with every behavioural change.
-#define SKETCH_NAME "NAVI_ONE_0_5"
+#define SKETCH_NAME "NAVI_ONE_0_4"
 
 // Types used in function signatures must appear before the Arduino
 // prototype generator's insertion point, which is just after the includes.

@@ -1,5 +1,39 @@
 # 0065 — Judgement reads a median-of-three copy; the recording is never filtered
 
+Status: **Withdrawn — rolled back in the field**  (2026-08-31)
+
+Implemented, flashed, and rolled back the same day at the operator's direction:
+"Roll it back to 04. This dog don't hunt." The firmware is reverted to 0.4 and
+this record is kept, unedited below, because the reasoning and the measurements
+stand on their own and the problem it addresses is still open.
+
+**What the field showed.** Three stops in a row on the build carrying this
+change, all with the same signature. The cause was traced to something this
+decision does not touch: a sustained baseline offset of about 45 counts holding
+a single passage OPEN for seconds — 12,740 ms in one case — during which no
+further passage can open and the baseline cannot re-reference itself, so every
+real magnet crossed in that window is swallowed and the navigator lags. See
+finding 08.
+
+**On whether this change caused those stops.** The evidence says it did not: the
+one amplitude rejection published ratio 0.2684 at peak 51, implying gain 190, so
+on 0.4's raw peak of 64 the ratio is 0.337 — still under the 0.34 floor, still
+`TOO_WEAK`; every other rejection was `TOO_SOON`, decided on the clock before
+amplitude is consulted. That analysis is recorded for whoever revisits this. The
+operator's decision to return to a known-good build while an unexplained stall
+mechanism is open stands regardless of it, and is not disputed here.
+
+**Note on identification.** The build carrying this change reported itself as
+`NAVI_ONE_0_4`, because the sketch was compiled from an editor buffer predating
+the `SKETCH_NAME` bump while the headers came from disk. It was identified as
+0.5 only by fingerprinting the peak derivation against the captured waveforms —
+8 slots matched median-of-three exactly, none matched a raw maximum. A build
+that cannot be identified from its telemetry costs more than the bump does.
+
+---
+
+Original record, as written before the field run:
+
 Status: Proposed  (2026-08-31)
 
 ## Decision

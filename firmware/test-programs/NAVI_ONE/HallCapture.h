@@ -76,7 +76,7 @@ class HallCapture {
       // +41 (MM70) and -43 (MM119), each a few counts over entryMargin and
       // opposite to the field that was arriving, latched the wrong pole twice
       // and stopped the locomotive twice. Findings 05 and 06, decision 0064.
-      sum_ = 0;
+      maxPos_ = 0; maxNeg_ = 0; sum_ = 0;
       // A rail that happened between passages says nothing about THIS one.
       // 0.1 set clipped_ from updateBaseline() at any moment and cleared it
       // only when a passage closed, so a supply transient minutes earlier
@@ -112,10 +112,14 @@ class HallCapture {
   // and 06 sit against sums of -12,691 and +19,742. int64 because a passage may
   // legitimately last hours (decision 0057) and a 32-bit sum could wrap.
   //
-  // The peak is NOT tracked here. A running maximum is decided by one sample,
-  // and on 2026-08-31 one sample of +313 in MM169's tail became its peak. The
-  // peak is read from the judgement copy at close() instead. Decision 0065.
-  void tally(int16_t d) { sum_ += d; }
+  // Each side's extreme is kept too, because the peak must be measured in
+  // whichever direction the sum chooses -- polarity and amplitude answer
+  // different questions.
+  void tally(int16_t d) {
+    sum_ += d;
+    if (d > maxPos_) maxPos_ = d;
+    else if (-d > maxNeg_) maxNeg_ = -d;
+  }
   // 0.1 stopped storing at RING samples (512 at 1 kHz = 512 ms) and set
   // truncated_, which made the recognizer ABSTAIN from the shape test. So at
   // crawl speed -- a station approach, or the 18.7 s throttle-off dwell of
@@ -150,7 +154,7 @@ class HallCapture {
     open_ = false; n_ = 0; preAt_ = 0; preLen_ = 0; preHead_ = 0;
     peak_ = 0; quietSince_ = 0; truncated_ = false; clipped_ = false;
     dec_ = 1; decPhase_ = 0;
-    sum_ = 0;
+    maxPos_ = 0; maxNeg_ = 0; sum_ = 0;
   }
 
  private:
@@ -165,18 +169,10 @@ class HallCapture {
     // consulted, or a mis-latched passage would simply be told what it ought
     // to have been and the instrument would stop being an instrument.
     // ------------------------------------------------------------------
-    pol_ = sum_ >= 0 ? 1 : 0;
+    pol_  = sum_ >= 0 ? 1 : 0;
+    peak_ = pol_ ? maxPos_ : maxNeg_;
     if (!pol_)
       for (uint16_t i = 0; i < n_; ++i) buf_[i] = (int16_t)(-buf_[i]);
-
-    // buf_ is now THE RECORDING and is never touched again: it is what the
-    // waveform dump publishes, artifacts included. Everything judged -- the
-    // peak here, the Gaussian fit in MagnetRecognizer -- reads judge_ instead,
-    // so no lone sample can set an amplitude or a shape. Decision 0065.
-    medianOfThree(buf_, n_, judge_);
-    peak_ = 0;
-    for (uint16_t i = 0; i < n_; ++i)
-      if (judge_[i] > peak_) peak_ = judge_[i];
 
     out_ = Passage{};
     out_.openedAtMs = openedAtMs_;
@@ -184,8 +180,7 @@ class HallCapture {
     out_.peakCounts = (uint16_t)(peak_ > 65535 ? 65535 : peak_);
     out_.polarity   = pol_;
     out_.signedSum  = sum_;
-    out_.oriented   = buf_;          // the recording, unfiltered
-    out_.judged     = judge_;        // the median-of-three judgement copy
+    out_.oriented   = buf_;
     out_.sampleCount= n_;
     out_.preSamples = preAt_;
     out_.truncated  = truncated_;
@@ -215,13 +210,13 @@ class HallCapture {
   }
 
   CaptureConfig cfg_;
-  int16_t  buf_[RING] = {};        // the recording: signed, oriented at close
-  int16_t  judge_[RING] = {};      // median-of-three copy, built once at close
+  int16_t  buf_[RING] = {};
   uint16_t n_ = 0, preAt_ = 0;
   int16_t  pre_[PRE] = {}; uint8_t preHead_ = 0, preLen_ = 0;
   int16_t  med_[MED] = {}; uint8_t medHead_ = 0, medLen_ = 0;
   uint16_t dec_ = 1, decPhase_ = 0;
   int32_t  baseline_ = 0, peak_ = 0;
+  int32_t  maxPos_ = 0, maxNeg_ = 0;
   int64_t  sum_ = 0;
   uint32_t startMs_ = 0, lastBaseMs_ = 0, openedAtMs_ = 0, quietSince_ = 0;
   uint32_t floorRejects_ = 0;

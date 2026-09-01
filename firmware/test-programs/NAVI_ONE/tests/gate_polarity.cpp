@@ -16,7 +16,6 @@
 #include <cstring>
 #include <string>
 #include <vector>
-#include <cmath>
 #include "../HallCapture.h"
 using namespace navi_one;
 
@@ -89,43 +88,17 @@ int main(int argc, char** argv) {
     ok(p.polarity == r.wantPol, "polarity", id);
     ok((int)p.peakCounts == r.wantPeak, "peak", id);
     if (r.note == "nominal") {
-      // A passage the old code judged correctly keeps its pole exactly, and its
-      // peak to within a few counts -- the median of three trims a sample from
-      // the very tip of a bell, never reshapes it. Anything larger would mean
-      // the judgement copy is not a copy.
-      ok(p.polarity == r.gotPol, "nominal pole unchanged", id);
-      ok(std::abs((int)p.peakCounts - r.gotPeak) <= 8, "nominal peak within 8 counts", id);
+      // A passage the old code judged correctly must be judged identically:
+      // this change may not disturb the recognizer's existing calibration.
+      ok(p.polarity == r.gotPol && (int)p.peakCounts == r.gotPeak,
+         "nominal passage unchanged", id);
       ++unchanged;
     } else {
-      ok(p.polarity != r.gotPol || (int)p.peakCounts != r.gotPeak,
-         "known artifact case corrected", id);
+      ok(p.polarity != r.gotPol, "mis-latch corrected", id);
       ++corrected;
     }
   }
   printf("  %d nominal passages unchanged, %d mis-latches corrected\n", unchanged, corrected);
-
-  printf("part D: the tail artifact of MM169 must no longer fail the shape test\n");
-  {
-    const Row* mm169 = nullptr;
-    for (const Row& r : rows) if (r.note == "MM169-tail-artifact") mm169 = &r;
-    ok(mm169 != nullptr, "MM169 present in the fixture");
-    if (mm169) {
-      Passage p;
-      ok(run(mm169->deltas, p), "MM169 closed");
-      float rJudged = 0.0f, rRaw = 0.0f;
-      const bool okJ = MagnetRecognizer::fitResidual(p, rJudged);
-      // and the same fit against the RECORDING, which is what 0.4 did
-      Passage praw = p; praw.judged = nullptr;
-      const bool okR = MagnetRecognizer::fitResidual(praw, rRaw);
-      ok(okJ && okR, "both fits produced a residual");
-      char d[160];
-      snprintf(d, sizeof d, "(recording %.4f -> judgement copy %.4f, ceiling 0.13)", rRaw, rJudged);
-      ok(rRaw > 0.13f, "the recording still fails the shape test -- the artifact is NOT hidden", d);
-      ok(rJudged <= 0.13f, "the judgement copy passes", d);
-      ok((int)p.peakCounts == mm169->wantPeak, "peak comes from the copy, not the spike", d);
-      printf("  %s  peak %d (spike was %d)\n", d, (int)p.peakCounts, mm169->gotPeak);
-    }
-  }
 
   printf("part B: opposite-polarity spikes must not flip the pole\n");
   // Take the largest nominal passage as the victim.
