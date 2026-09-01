@@ -74,12 +74,41 @@ static inline const char* landmarkAt(uint8_t mm) {
     case 63: return "Grillers";
     case 72: return "Westpoint";
     case 98: return "Northpoint";
-    case 107: return "Arches";
+    case 108: return "Arches";
     case 140: return "Eastpoint";
     case 157: return "Bamboo";
     default: return "";
   }
 }
+
+// ===========================================================================
+// WHEN SPEED CONTROL ARRIVES, DELETE THIS. (operator, 2026-09-01)
+// ---------------------------------------------------------------------------
+// Everything below is OPEN-LOOP GRADE COMPENSATION. Each number exists for one
+// reason: the locomotive has no idea how fast it is going, so a human measured
+// where it struggles and hand-wrote a throttle for those places.
+//
+// A speed-based controller measures the very thing these numbers guess at. It
+// sees the locomotive slow on a grade and adds power without being told the
+// grade exists. At that point `cruisePwmAt()` stops being a help and becomes a
+// SECOND, UNCOORDINATED COMPENSATOR fighting the loop: the controller raises
+// power because the train is slow, this table raises power because of where the
+// train is, and neither knows about the other. The failure would look like
+// surging on the climbs -- the two compensators taking turns.
+//
+// So this is not code to port forward. RETIRE IT:
+//   * `cruisePwmAt()` goes, and its call site in the advance handler with it.
+//   * The section BOUNDARIES are still worth having -- MM65-80 CW and MM33-26
+//     CCW are real features of the railway, and a speed controller may want a
+//     target SPEED per section. Keep the geography, drop the PWM.
+//   * The measured grade indices are the durable part and live in the
+//     calibration data, not here: CCW MM29 makes 0.72 of predicted speed, CW
+//     MM76 makes 0.87. Those are properties of the track and stay true.
+//
+// What does NOT belong in this category, and must survive: station centres,
+// stop offsets and dwell. Those are geometry and timetable, not compensation
+// for the locomotive's ignorance of its own speed.
+// ===========================================================================
 
 // ---------------------------------------------------------------------------
 // SECTION CRUISE — the one place on this railway where the throttle depends on
@@ -108,6 +137,37 @@ static inline const char* landmarkAt(uint8_t mm) {
 // than the 24% the speed change itself accounts for — so a per-step pacing
 // table would have been precision the railway cannot honour.
 // ---------------------------------------------------------------------------
+// CCW, MM33 down to MM26: a curve on a climb, immediately before Patio (MM15).
+//
+// Operator, 2026-09-01: "This one is different because it is a curve before a
+// station ... It is okay if the approach is a bit slower but the train should
+// travel smoothly through the curve."
+//
+// Measured from the 2026-06-30 calibration (Otto, two coaches): the locomotive
+// makes only 0.72 of the speed its throttle predicts at MM29, 0.74-0.77 through
+// MM31-27. That is roughly twice the deficit of the Grillers climb, whose worst
+// marker is 0.87.
+//
+// The section ENDS at MM26 and there is deliberately NO back-off ramp, because
+// the whole run-in from MM33 to the platform is uphill -- nothing recovers to
+// level anywhere, and it is still 0.90 at MM15. The grade is the brake. Ending
+// the section one marker before the station approach begins (MM25, ten markers
+// out from MM15) means the locomotive never accelerates just before it must
+// decelerate, which is the thing the operator asked to avoid.
+//
+// 105 rather than 110: it holds about 89% of normal cruise speed through the
+// worst of the curve. Steady beats fast here -- one throttle setting across the
+// whole curve so nothing shifts under the train mid-bend.
+//
+// When the station machine lands, the Patio approach should ramp down FROM this
+// value, not from base cruise, or the step this section exists to remove simply
+// reappears at MM25. Until then the handover is a paced 105 -> 90 at
+// GRADE_STEP_MS, which is 15 counts over about four seconds -- still one count
+// at a time, still not a step.
+static const uint8_t CURVE_TOP_CCW     = 33;   // section begins here, descending
+static const uint8_t CURVE_END_CCW     = 26;   // last marker at section speed
+static const uint8_t CURVE_CRUISE_PWM  = 105;
+
 static const uint8_t GRADE_FROM_CW     = 65;   // climb begins, CW
 static const uint8_t GRADE_TOP_CW      = 80;   // top: backing off starts here
 static const uint8_t GRADE_CRUISE_PWM  = 110;  // was 120; 120 zooms the grade
@@ -118,8 +178,13 @@ static const uint16_t GRADE_STEP_MS    = 280;  // one PWM count at a time
 // The cruise PWM for a position. Pure: no state, no hardware, gate-testable.
 // dir: +1 CW, -1 CCW, 0 unset. Anything but CW returns the base cruise.
 inline uint8_t cruisePwmAt(uint8_t mm, int8_t dir, uint8_t baseCruise) {
-  if (dir <= 0) return baseCruise;
+  if (dir == 0) return baseCruise;
   mm = (uint8_t)(mm % ROUTE_N);
+  if (dir < 0) {   // CCW: the curve into Patio. No ramp -- the grade is the brake.
+    if (mm >= CURVE_END_CCW && mm <= CURVE_TOP_CCW)
+      return CURVE_CRUISE_PWM > baseCruise ? CURVE_CRUISE_PWM : baseCruise;
+    return baseCruise;
+  }
   if (mm >= GRADE_FROM_CW && mm < GRADE_TOP_CW) return GRADE_CRUISE_PWM;
   if (mm >= GRADE_TOP_CW && mm < GRADE_RAMP_END_CW) {
     // MM80 -> 106, MM81 -> 102, MM82 -> 98, MM83 -> 94, MM84 -> 90.

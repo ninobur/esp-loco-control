@@ -14,7 +14,7 @@ struct PwmSpeedEntry {
 //
 // VERIFY AFTER FLASHING. The boot serial line must read
 //
-//     [BOOT] NAVI_ONE_0_6 — 9950012
+//     [BOOT] NAVI_ONE_0_7 — 9950012
 //
 // If it names the other locomotive, the wrong profile was compiled in and the
 // image must be rebuilt: an ID mismatch puts two locomotives on the same MQTT

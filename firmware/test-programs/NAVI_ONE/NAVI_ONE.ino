@@ -1,6 +1,6 @@
 /*
  * ============================================================================
- * NAVI_ONE 0.6  —  Ninobur Garden Railway navigation, built from the ground up
+ * NAVI_ONE 0.7  —  Ninobur Garden Railway navigation, built from the ground up
  * ============================================================================
  * Development. NOT FIELD ACCEPTED.
  *
@@ -67,7 +67,7 @@ using namespace navi_one;
 
 // Published on state/bootid. It is the ONLY thing that tells telemetry which
 // build is running, so it advances with every behavioural change.
-#define SKETCH_NAME "NAVI_ONE_0_6"
+#define SKETCH_NAME "NAVI_ONE_0_7"
 
 // Types used in function signatures must appear before the Arduino
 // prototype generator's insertion point, which is just after the includes.
@@ -1042,8 +1042,10 @@ void loop(){
         char sv[12]; snprintf(sv,sizeof(sv),"%lu",(unsigned long)estMmPerS);
         pub(T_SPEED,sv,true);
 
-        // SECTION CRUISE (decision 0066). The throttle follows POSITION on the
-        // Grillers climb and its ramp-down, and nowhere else. Requested only
+        // SECTION CRUISE (decisions 0066, 0067). The throttle follows POSITION
+        // on the Grillers climb CW and the curve into Patio CCW, nowhere else.
+        // Open-loop grade compensation -- see the retirement note in RouteMap.h
+        // before carrying any of this into a speed-based controller. Requested only
         // when the section target actually changes, so the pacing clock is not
         // restarted every marker mid-ramp.
         //

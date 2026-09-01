@@ -55,15 +55,36 @@ int main() {
     }
   }
 
-  printf("F. CCW is untouched everywhere\n");
-  for (int mm = 0; mm < ROUTE_N; ++mm)
-    ok(cruisePwmAt((uint8_t)mm, -1, BASE) == BASE, "CCW disturbed", mm);
+  printf("F. CCW: 105 across the curve MM33..26, base cruise everywhere else\n");
+  for (int mm = 0; mm < ROUTE_N; ++mm) {
+    const bool inCurve = (mm >= 26 && mm <= 33);
+    const uint8_t got = cruisePwmAt((uint8_t)mm, -1, BASE);
+    ok(got == (inCurve ? 105 : BASE), inCurve ? "curve value wrong" : "CCW disturbed", mm);
+  }
+
+  printf("F2. the curve ends BEFORE the Patio approach begins\n");
+  {
+    // Patio is MM15 and the approach starts ten markers out, at MM25. The
+    // section must be finished by then, or the locomotive accelerates
+    // immediately before it has to decelerate -- the thing this exists to avoid.
+    ok(cruisePwmAt(26, -1, BASE) == 105, "section should still be live at MM26");
+    ok(cruisePwmAt(25, -1, BASE) == BASE, "section must be over by MM25");
+    for (int mm = 25; mm >= 15; --mm)
+      ok(cruisePwmAt((uint8_t)mm, -1, BASE) == BASE, "approach run-in disturbed", mm);
+  }
+
+  printf("F3. the two sections do not leak into each other's direction\n");
+  for (int mm = 26; mm <= 33; ++mm)
+    ok(cruisePwmAt((uint8_t)mm, +1, BASE) == BASE, "CCW curve leaked into CW", mm);
+  for (int mm = 65; mm <= 84; ++mm)
+    ok(cruisePwmAt((uint8_t)mm, -1, BASE) == BASE, "CW grade leaked into CCW", mm);
 
   printf("G. an unset direction never raises the throttle\n");
   for (int mm = 0; mm < ROUTE_N; ++mm)
     ok(cruisePwmAt((uint8_t)mm, 0, BASE) == BASE, "unset dir disturbed", mm);
 
   printf("H. it holds for any base cruise, not just 90\n");
+  ok(cruisePwmAt(29, -1, 110) == 110, "a base above the curve value wins");
   for (uint8_t b : {60, 80, 90, 100}) {
     ok(cruisePwmAt(70, +1, b) == 110, "grade value should not depend on base");
     ok(cruisePwmAt(90, +1, b) == b,   "off-section should return base");
