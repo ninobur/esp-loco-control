@@ -2,7 +2,7 @@
 
 **Date:** 2026-09-01
 **Host:** ngr-pi (192.168.68.142 on eth0, 192.168.68.55 on wlan0)
-**Status:** Applied and verified. One reboot still needed to prove it persists.
+**Status:** Applied, verified, and confirmed to persist across a reboot.
 
 ## The symptom, as the operator saw it
 
@@ -88,9 +88,18 @@ SSH on eth0 so the wireless bounce could not sever the session.
 **The check that counts is `sudo iw dev wlan0 get power_save`.** `nmcli` output
 is not evidence.
 
-**Still outstanding:** this has not survived a reboot yet. The `conf.d` file
-should make it hold, but that is a prediction, not a result. Confirm at the
-next restart.
+**Confirmed across a reboot, same day.** The operator restarted the Pi and the
+drop-in held. `dmesg` shows both halves of the mechanism:
+
+```
+[   11.613317] brcmfmac: brcmf_cfg80211_set_power_mgmt: power save enabled
+[   14.654660] brcmfmac: brcmf_cfg80211_set_power_mgmt: power save disabled
+```
+
+The driver enables it at 11.6s; NetworkManager reads the drop-in and disables
+it three seconds later. `sudo iw dev wlan0 get power_save` reports
+`Power save: off` on a cold boot. Services came back on their own (`mosquitto`
+and `ngr-app` both active) and the host went down and returned in 27 seconds.
 
 ## What this does NOT explain
 
