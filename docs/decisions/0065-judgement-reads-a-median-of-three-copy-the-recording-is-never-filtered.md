@@ -1,38 +1,36 @@
 # 0065 — Judgement reads a median-of-three copy; the recording is never filtered
 
-Status: **Withdrawn — rolled back in the field**  (2026-08-31)
+Status: Proposed — reinstated for a second field trial  (2026-08-31)
 
-Implemented, flashed, and rolled back the same day at the operator's direction:
-"Roll it back to 04. This dog don't hunt." The firmware is reverted to 0.4 and
-this record is kept, unedited below, because the reasoning and the measurements
-stand on their own and the problem it addresses is still open.
+**History of this record, in order.** Implemented and flashed on 2026-08-31.
+Three stops followed and the operator directed a rollback — "Roll it back to 04.
+This dog don't hunt." The firmware returned to 0.4 and this record was withdrawn.
 
-**What the field showed.** Three stops in a row on the build carrying this
-change, all with the same signature. The cause was traced to something this
-decision does not touch: a sustained baseline offset of about 45 counts holding
-a single passage OPEN for seconds — 12,740 ms in one case — during which no
-further passage can open and the baseline cannot re-reference itself, so every
-real magnet crossed in that window is swallowed and the navigator lags. See
-finding 08.
+The cause of those stops was then identified and is **not** this change. A
+sustained DC offset of 26 counts or more latches a passage permanently open:
+`updateBaseline()` will not sample while a passage is open, so the offset that
+holds it open is the one thing that cannot be measured away, and every magnet of
+the same polarity as the offset is then invisible. Finding 08 holds the evidence,
+and gate 8 reproduces it on **0.4's own code**, with results identical line for
+line to 0.5's — the boundary at −24 clean, −26 latched in both. Acquisition does
+not differ between the builds.
 
-**On whether this change caused those stops.** The evidence says it did not: the
-one amplitude rejection published ratio 0.2684 at peak 51, implying gain 190, so
-on 0.4's raw peak of 64 the ratio is 0.337 — still under the 0.34 floor, still
-`TOO_WEAK`; every other rejection was `TOO_SOON`, decided on the clock before
-amplitude is consulted. That analysis is recorded for whoever revisits this. The
-operator's decision to return to a known-good build while an unexplained stall
-mechanism is open stands regardless of it, and is not disputed here.
+What produced the offset that evening is still unknown. The locomotive had stood
+for two hours; a later five-minute stand on 0.4 produced no offset at all.
 
-**Note on identification.** The build carrying this change reported itself as
-`NAVI_ONE_0_4`, because the sketch was compiled from an editor buffer predating
-the `SKETCH_NAME` bump while the headers came from disk. It was identified as
-0.5 only by fingerprinting the peak derivation against the captured waveforms —
-8 slots matched median-of-three exactly, none matched a raw maximum. A build
-that cannot be identified from its telemetry costs more than the bump does.
+Reinstated at the operator's direction for a second trial: "If that was a unique
+set of circumstances, it should run." Approval to trial is not ratification.
+
+**This build identifies itself.** The first trial reported `NAVI_ONE_0_4` because
+the sketch was compiled from an editor buffer predating the `SKETCH_NAME` bump,
+and had to be identified after the fact by fingerprinting peak derivation against
+captured waveforms. `SKETCH_NAME` is `NAVI_ONE_0_5` here and the boot line must
+read `[BOOT] NAVI_ONE_0_5 — 9950012`. If it does not, the trial is not testing
+this build.
 
 ---
 
-Original record, as written before the field run:
+Original record, as written before the first field trial:
 
 Status: Proposed  (2026-08-31)
 

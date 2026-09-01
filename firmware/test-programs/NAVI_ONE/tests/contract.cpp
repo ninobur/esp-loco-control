@@ -24,6 +24,7 @@ struct Rig {
   RecognizerConfig cfg; MagnetRecognizer rec; Navigator nav;
   uint32_t t=100000;
   std::vector<int16_t> buf;
+  std::vector<int16_t> judgedBuf;
   Rig():rec(cfg){}
   // The .ino does exactly this, on the loop thread: the Navigator raises a
   // request and whoever owns the recognizer honours it. Testing the real shape.
@@ -34,7 +35,10 @@ struct Rig {
     t += gapMs;
     buf = gauss(peak,140,12);
     Passage p; p.openedAtMs=t; p.closedAtMs=t+dur; p.peakCounts=(uint16_t)peak;
-    p.polarity=pol; p.oriented=buf.data(); p.sampleCount=(uint16_t)buf.size();
+    judgedBuf.assign(buf.size(),0);
+    medianOfThree(buf.data(),(uint16_t)buf.size(),judgedBuf.data());
+    p.polarity=pol; p.oriented=buf.data(); p.judged=judgedBuf.data();
+    p.sampleCount=(uint16_t)buf.size();
     p.preSamples=12;
     t += dur;
     Verdict v=rec.examine(p);

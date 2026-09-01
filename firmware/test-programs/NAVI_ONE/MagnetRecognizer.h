@@ -92,7 +92,11 @@ struct Passage {
   uint32_t      closedAtMs   = 0;
   uint16_t      peakCounts   = 0;
   uint8_t       polarity     = 0;       // 1 = N, 0 = S -- passed through, not tested
-  const int16_t* oriented    = nullptr;
+  const int16_t* oriented    = nullptr;   // THE RECORDING. Never filtered.
+  // The JUDGEMENT COPY: `oriented` passed through a median of three, built
+  // once at capture close. Peak and shape are read from this; the recording
+  // above is what gets stored and published, spikes and all. Decision 0065.
+  const int16_t* judged      = nullptr;
   uint16_t      sampleCount  = 0;
   uint16_t      preSamples   = 0;
   bool          truncated    = false;
@@ -103,6 +107,26 @@ struct Passage {
   // nothing thresholds on it. Decision 0064.
   int64_t       signedSum    = 0;
 };
+
+// Median of three, endpoints copied. One reading cannot carry a value here:
+// a lone sample is outvoted by the two beside it, while a real feature spanning
+// two or more samples survives intact. src and dst must not overlap.
+//
+// On 2026-08-31 a single +313 sample in the tail of MM169 -- neighbours +17 and
+// +21 -- became the passage's peak (313 against a true 185, ratio 1.68 against
+// a true 1.0) and put the Gaussian residual at 0.1307 against a 0.13 ceiling.
+// The magnet was fine. Finding 07.
+inline void medianOfThree(const int16_t* src, uint16_t n, int16_t* dst) {
+  if (!src || !dst || n == 0) return;
+  if (n < 3) { for (uint16_t i = 0; i < n; ++i) dst[i] = src[i]; return; }
+  dst[0] = src[0];
+  for (uint16_t i = 1; i + 1 < n; ++i) {
+    const int16_t a = src[i - 1], b = src[i], c = src[i + 1];
+    dst[i] = a < b ? (b < c ? b : (a < c ? c : a))
+                   : (a < c ? a : (b < c ? c : b));
+  }
+  dst[n - 1] = src[n - 1];
+}
 
 struct Verdict {
   Outcome  outcome        = Outcome::NoCurve;
@@ -171,24 +195,27 @@ class MagnetRecognizer {
   // Normalised RMS residual of a least-squares-amplitude Gaussian fit over the
   // arc above 20% of peak. Returns false when there is no usable arc.
   static bool fitResidual(const Passage& p, float& out) {
-    if (!p.oriented || p.sampleCount <= p.preSamples + 4) return false;
+    // Judged, not recorded: one sample may not decide the arc, the centre, the
+    // width or the error. The recording itself is never altered (decision 0065).
+    const int16_t* o = p.judged ? p.judged : p.oriented;
+    if (!o || p.sampleCount <= p.preSamples + 4) return false;
     const uint16_t begin = p.preSamples;
-    uint16_t peakAt = begin; int16_t peak = p.oriented[begin];
+    uint16_t peakAt = begin; int16_t peak = o[begin];
     for (uint16_t i = begin + 1; i < p.sampleCount; ++i)
-      if (p.oriented[i] > peak) { peak = p.oriented[i]; peakAt = i; }
+      if (o[i] > peak) { peak = o[i]; peakAt = i; }
     if (peak <= 0) return false;
 
     const float thr = 0.20f * (float)peak;
     uint16_t lo = peakAt, hi = peakAt;
-    while (lo > begin && (float)p.oriented[lo - 1] > thr) --lo;
-    while (hi + 1 < p.sampleCount && (float)p.oriented[hi + 1] > thr) ++hi;
-    while (lo > begin && p.oriented[lo - 1] > 0) --lo;
-    while (hi + 1 < p.sampleCount && p.oriented[hi + 1] > 0) ++hi;
+    while (lo > begin && (float)o[lo - 1] > thr) --lo;
+    while (hi + 1 < p.sampleCount && (float)o[hi + 1] > thr) ++hi;
+    while (lo > begin && o[lo - 1] > 0) --lo;
+    while (hi + 1 < p.sampleCount && o[hi + 1] > 0) ++hi;
     if (hi <= lo + 3) return false;
 
     float w = 0.0f, wx = 0.0f;
     for (uint16_t i = lo; i <= hi; ++i) {
-      float y = p.oriented[i] > 0 ? (float)p.oriented[i] : 0.0f;
+      float y = o[i] > 0 ? (float)o[i] : 0.0f;
       w += y; wx += y * (float)i;
     }
     if (w <= 0.0f) return false;
@@ -196,7 +223,7 @@ class MagnetRecognizer {
 
     float var = 0.0f;
     for (uint16_t i = lo; i <= hi; ++i) {
-      float y = p.oriented[i] > 0 ? (float)p.oriented[i] : 0.0f;
+      float y = o[i] > 0 ? (float)o[i] : 0.0f;
       float dx = (float)i - centre;
       var += y * dx * dx;
     }
@@ -206,7 +233,7 @@ class MagnetRecognizer {
 
     float gy = 0.0f, gg = 0.0f;
     for (uint16_t i = lo; i <= hi; ++i) {
-      float y = p.oriented[i] > 0 ? (float)p.oriented[i] : 0.0f;
+      float y = o[i] > 0 ? (float)o[i] : 0.0f;
       float dx = ((float)i - centre) / sigma;
       float g = expf(-0.5f * dx * dx);
       gy += y * g; gg += g * g;
@@ -217,7 +244,7 @@ class MagnetRecognizer {
     float se = 0.0f;
     const uint16_t n = (uint16_t)(hi - lo + 1);
     for (uint16_t i = lo; i <= hi; ++i) {
-      float y = p.oriented[i] > 0 ? (float)p.oriented[i] : 0.0f;
+      float y = o[i] > 0 ? (float)o[i] : 0.0f;
       float dx = ((float)i - centre) / sigma;
       float e = y - amp * expf(-0.5f * dx * dx);
       se += e * e;
