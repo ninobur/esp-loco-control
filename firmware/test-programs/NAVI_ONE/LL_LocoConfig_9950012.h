@@ -143,3 +143,23 @@
 #define NAVI_RESIDUAL_CEILING        0.13f    // normalised RMS of the Gaussian fit
 #define NAVI_BOOTSTRAP_GAIN          190U     // until eight peaks are in hand
 #define NAVI_AUTO_CRUISE_PWM         90       // the surveyed regime
+
+// ---------------------------------------------------------------------------
+// STATION APPROACH MARKER TIMES — how long THIS locomotive takes to cross one
+// marker at each step of a station approach, from -10 to -6. Milliseconds.
+//
+// PER-LOCOMOTIVE, and it must be. The station machine paces the approach ramp
+// as (marker time / counts shed this marker), so a locomotive that runs faster
+// crosses each marker in less time and needs its own smaller numbers. Toby's
+// figures would pace a faster loco's ramp too slowly and the throttle would
+// still be moving when the next marker arrived.
+//
+// Measured for Toby: 1,326 ms per marker at PWM 90, from the passage timestamps
+// of 2026-08-31, scaled by speed proportional to (PWM - 25.1). That floor is
+// fitted to 4,617 samples of the 2026-06-30 calibration.
+//
+// TO MEASURE THESE FOR ANOTHER LOCOMOTIVE: hold 87, 81, 75, 69 and 63 for a few
+// markers each and read gap_ms off mm/marker. Those are the mean throttles of
+// the five approach steps. No modelling needed -- the numbers ARE the marker
+// times.
+#define NAVI_APPROACH_MARKER_MS   { 1390, 1539, 1725, 1960, 2271 }

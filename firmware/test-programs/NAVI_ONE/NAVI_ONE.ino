@@ -1,6 +1,6 @@
 /*
  * ============================================================================
- * NAVI_ONE 0.7  —  Ninobur Garden Railway navigation, built from the ground up
+ * NAVI_ONE 0.6  —  Ninobur Garden Railway navigation, built from the ground up
  * ============================================================================
  * Development. NOT FIELD ACCEPTED.
  *
@@ -62,12 +62,13 @@
 #include "Ops.h"
 #include "WaveformWindow.h"
 #include "WaveformDump.h"
+#include "Stations.h"
 
 using namespace navi_one;
 
 // Published on state/bootid. It is the ONLY thing that tells telemetry which
 // build is running, so it advances with every behavioural change.
-#define SKETCH_NAME "NAVI_ONE_0_7"
+#define SKETCH_NAME "NAVI_ONE_0_6"
 
 // Types used in function signatures must appear before the Arduino
 // prototype generator's insertion point, which is just after the includes.
@@ -157,6 +158,12 @@ static Navigator        navigator;      // owns no recognizer: see Navigator.h
 // below) does, and even then only as outgoing MQTT messages.
 static WaveformWindow<6> waveformWindow;
 
+// STATIONS (decision 0068). Pure machine in Stations.h; this is the only place
+// it touches the locomotive. It is serviced on every loop pass, not only on an
+// advance, because the dwell clock and the completion of the zero ramp are both
+// events with no marker behind them.
+static StationMachine stationMachine;
+
 // One judged passage, crossing to the loop thread. The waveform does NOT cross
 // there: the recognizer already ran, on the task that captured it. (It is
 // separately retained in waveformWindow, above, for the rare case AUTO gets
@@ -194,6 +201,10 @@ static void carryResetRequest(){
   if (!navigator.takeResetRequest()) return;
   navEpoch++;
   recognizerResetRequest = true;
+  // A declaration or a direction change moves the locomotive's idea of where it
+  // is. A station armed against the old frame would be measuring its approach
+  // from a position that no longer exists, so the machine stands down with it.
+  stationMachine.reset();
 }
 
 // ---------------------------------------------------------------------------
@@ -383,7 +394,7 @@ static char T[24][72];
 enum { T_ONLINE=0,T_NAV,T_MARKER,T_ALERT,T_IR,T_STAT,T_BOOT,T_WARN,
        T_ST_AUTO,T_ST_ESTOP,T_ST_THR,T_ST_DIR,T_ST_SESSDIR,T_ST_STARTMM,
        T_ST_NAVREADY,T_ST_LOWV,T_ST_STARTINT,T_BRAKE,T_V,T_A,T_W,T_SPEED,
-       T_WAVEFORM,T_CNT };
+       T_WAVEFORM,T_STATION,T_CNT };
 
 static void topic(int i,const char* suffix){ snprintf(T[i],72,"ngr/loco/%s/%s",LOCO_NAME,suffix); }
 static void buildTopics(){
@@ -405,6 +416,7 @@ static void buildTopics(){
   // capture (2026-08-31). A retained copy would misdescribe every later
   // boot as if it had just been struck.
   topic(T_WAVEFORM,"diag/waveform");
+  topic(T_STATION,"state/station");
 }
 static void pub(int t,const char* payload,bool retain=false){
   if(!pubQ) return;
@@ -1014,8 +1026,37 @@ void setup(){
   Serial.println("[BOOT] ready. session_direction, then start_mm, then auto, then GO.");
 }
 
+// The station machine's single call site. AUTO only: MANUAL keeps operator
+// authority, and a struck locomotive has autoRunning false so this cannot put
+// power back into one that has stopped.
+//
+// The cruise it is handed is the SECTION cruise, so an approach off the Grillers
+// climb or the Patio curve ramps down from the speed actually being run rather
+// than from the flat base (decisions 0066, 0067).
+static void stationService(uint32_t now){
+  const NavStatus& s = navigator.status();
+  if (!autoRunning || !navigator.positionKnown()) {
+    if (stationMachine.phase() != StPhase::Idle) stationMachine.reset();
+    return;
+  }
+  const uint8_t cruise = cruisePwmAt(s.navMm, s.navDir, AUTO_CRUISE_PWM);
+  StationOrder o = stationMachine.tick(s.navMm, s.navDir,
+                                       (uint8_t)actualPwm, cruise, now);
+  if (o.setThrottle) requestPwm((int)o.pwm, AUTO_STEP_UP_MS, o.stepMs);
+  if (o.event) {
+    char b[192];
+    snprintf(b,sizeof(b),
+      "{\"event\":\"%s\",\"phase\":\"%s\",\"station\":\"%s\",\"off\":%d,"
+      "\"mm\":%u,\"dir\":\"%s\",\"pwm\":%u,\"step_ms\":%u}",
+      o.event, stPhaseName(stationMachine.phase()), o.station, (int)o.offset,
+      (unsigned)s.navMm, s.navDir>0?"CW":"CCW", (unsigned)o.pwm, (unsigned)o.stepMs);
+    pub(T_STATION,b);
+  }
+}
+
 void loop(){
   CmdMsg c; while (cmdQ && xQueueReceive(cmdQ,&c,0)==pdTRUE) handleCommand(c);
+  stationService(millis());
 
   Judged j;
   while (judgedQ && xQueueReceive(judgedQ,&j,0)==pdTRUE) {
@@ -1056,7 +1097,9 @@ void loop(){
         // Backing off uses GRADE_STEP_MS (one PWM count at a time). Every other
         // downward path -- withdraw, e-stop, low voltage -- sets its own rate
         // explicitly at its own call site, so none of them inherits this one.
-        if (autoRunning) {
+        // A station in charge owns the throttle: a section boundary crossed
+        // during a stop or a dwell must not wind the locomotive back up.
+        if (autoRunning && stationMachine.phase() == StPhase::Idle) {
           const uint8_t want = cruisePwmAt(ns.navMm, ns.navDir, AUTO_CRUISE_PWM);
           if ((int)want != rampTarget)
             requestPwm((int)want, AUTO_STEP_UP_MS,

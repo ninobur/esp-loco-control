@@ -44,3 +44,7 @@ $CXX "$here/gate_baseline_latch.cpp" -o "$tmp/latch"; "$tmp/latch"
 echo ""
 echo "== gate 9: section cruise — the Grillers climb and its ramp-down =="
 $CXX "$here/gate_section_cruise.cpp" -o "$tmp/section"; "$tmp/section"
+
+echo ""
+echo "== gate 10: stations — approach, stop, dwell, departure =="
+$CXX "$here/gate_station.cpp" -o "$tmp/station"; "$tmp/station"
