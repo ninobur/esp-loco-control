@@ -1,6 +1,6 @@
 /*
  * ============================================================================
- * NAVI_ONE 0.5  —  Ninobur Garden Railway navigation, built from the ground up
+ * NAVI_ONE 0.6  —  Ninobur Garden Railway navigation, built from the ground up
  * ============================================================================
  * Development. NOT FIELD ACCEPTED.
  *
@@ -67,7 +67,7 @@ using namespace navi_one;
 
 // Published on state/bootid. It is the ONLY thing that tells telemetry which
 // build is running, so it advances with every behavioural change.
-#define SKETCH_NAME "NAVI_ONE_0_5"
+#define SKETCH_NAME "NAVI_ONE_0_6"
 
 // Types used in function signatures must appear before the Arduino
 // prototype generator's insertion point, which is just after the includes.
@@ -1041,6 +1041,25 @@ void loop(){
         lastAdvanceMs = j.closedAtMs;
         char sv[12]; snprintf(sv,sizeof(sv),"%lu",(unsigned long)estMmPerS);
         pub(T_SPEED,sv,true);
+
+        // SECTION CRUISE (decision 0066). The throttle follows POSITION on the
+        // Grillers climb and its ramp-down, and nowhere else. Requested only
+        // when the section target actually changes, so the pacing clock is not
+        // restarted every marker mid-ramp.
+        //
+        // AUTO only. MANUAL keeps operator authority, and a struck locomotive
+        // has already had requestPwm(0) from withdraw() -- autoRunning is false
+        // by then, so this cannot restore power to a locomotive that stopped.
+        //
+        // Backing off uses GRADE_STEP_MS (one PWM count at a time). Every other
+        // downward path -- withdraw, e-stop, low voltage -- sets its own rate
+        // explicitly at its own call site, so none of them inherits this one.
+        if (autoRunning) {
+          const uint8_t want = cruisePwmAt(ns.navMm, ns.navDir, AUTO_CRUISE_PWM);
+          if ((int)want != rampTarget)
+            requestPwm((int)want, AUTO_STEP_UP_MS,
+                       (int)want < rampTarget ? GRADE_STEP_MS : AUTO_STEP_DOWN_MS);
+        }
         publishNav("AGREE",&j,r);
         break; }
       case Ruling::WrongMagnet:publishNav("DISAGREE",&j,r); oneStrike(j); break;

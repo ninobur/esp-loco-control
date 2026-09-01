@@ -40,3 +40,7 @@ $CXX "$here/replay_polarity_survey.cpp" -o "$tmp/polsurvey"
 echo ""
 echo "== gate 8: acquisition under a sustained DC offset =="
 $CXX "$here/gate_baseline_latch.cpp" -o "$tmp/latch"; "$tmp/latch"
+
+echo ""
+echo "== gate 9: section cruise — the Grillers climb and its ramp-down =="
+$CXX "$here/gate_section_cruise.cpp" -o "$tmp/section"; "$tmp/section"
