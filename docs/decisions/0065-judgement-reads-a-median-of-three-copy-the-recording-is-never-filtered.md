@@ -1,6 +1,13 @@
 # 0065 — Judgement reads a median-of-three copy; the recording is never filtered
 
-Status: Proposed — reinstated for a second field trial  (2026-08-31)
+Status: **Accepted, and it stays**  (2026-09-01)
+
+Operator's ruling, 2026-09-01, after the second field trial: *"0065 stays. If the
+problem returns, it will be examined. If other problems occur, it will be
+reviewed as will all other edits."*
+
+It remains in service on that footing — conditionally, and subject to review
+alongside every other edit if anything else goes wrong. It is not closed.
 
 **History of this record, in order.** Implemented and flashed on 2026-08-31.
 Three stops followed and the operator directed a rollback — "Roll it back to 04.
