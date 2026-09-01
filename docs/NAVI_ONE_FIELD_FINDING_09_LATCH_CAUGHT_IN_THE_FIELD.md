@@ -210,3 +210,66 @@ condition and not a sufficient one.
 
 - `field-records/logs/20260901_navi_one_mm41_latch/` — the raw dump line and all
   six decoded CSVs, headers included.
+
+---
+
+# Addendum, same day — the baseline telemetry names the cause
+
+The 1 Hz `alert` payload publishes `capture.baseline()`. Reading it across the
+day settles what the waveform window could only imply.
+
+## Every baseline change today
+
+```
+15:11:34 .. 15:13:31   1917 / 1918 / 1919   <- previous boot, healthy wander
+                       ---- reboot at ~15:14:01 ----
+15:14:02.493           1842
+15:14:02.957           1751
+15:14:03.957           1787   <- frozen here
+16:26:45.977           1789   <- ONE count, in the 27 ms gap between slots 3 and 2
+                                 still 1789 at 16:40 and counting
+```
+
+A healthy rolling median on this ADC wanders a count or two every few seconds;
+the previous boot shows exactly that. **Since 15:14:03.957 it has moved by one
+count in 86 minutes.** `updateBaseline()` has been returning early at
+`if (open_) return;` essentially without interruption.
+
+## Three things follow
+
+**1. The latch is live right now, and has been for 86 minutes.** The frozen
+baseline is direct evidence of a passage open under the sensor at this moment,
+with `pwm` 0 and `nav_state` STRUCK.
+
+**2. It resolves the caveat this record left open.** Finding 09 above noted that
+a passage open across the 15:23→16:26 hour would leave no trace, because
+`reset()` drops an open passage without publishing. The frozen baseline is that
+trace. The line was *not* quiet for 63 minutes; it was latched the whole time,
+and the passage was silently discarded by the declaration at 16:26:33.
+
+**3. The trigger was a poisoned boot prime, not a drifting sensor.**
+`primeMs` is 2000 ms and priming requires only that 2 s have passed and the
+median holds ≥ 20 samples. It does **not** require the line to have been quiet.
+The prime window here — 15:14:01 to 15:14:03 — overlaps slot 5, which opened at
+15:14:03.3 and swings to −225 counts. The median settled at **1787**.
+
+The resting level it should have found is recoverable from the recording:
+slot 3's samples average +68.4 and slot 4's +75.6 against a baseline of 1787,
+so the true idle level was about **1857–1863**. The previous boot sat at 1918.
+
+**The baseline was primed ~70 counts low, which is above `entryMargin` (38).**
+A passage therefore opened on the first sample after priming and could never
+close, and because it never closed the baseline could never be corrected. The
+"mysterious DC offset" is the priming error, seen from the wrong side.
+
+## What this predicts for the operator's test
+
+- **Does the latch persist?** It is persisting now. Nothing needs to be done to
+  reproduce it.
+- **Does a power cycle clear it?** It should — but only if the prime window is
+  clean, and the evidence is that the last one was not. The test is therefore
+  sharper than it looks: **read `baseline` in the first status message after the
+  reboot.** Near ~1860 means a good prime. Another value ~70 low means the prime
+  itself is the recurring fault and the reboot has merely re-armed it.
+- **Order matters:** a flash reboots the ESP32. Power-cycling must be tested
+  *before* flashing 0.6, or the test is spent.
