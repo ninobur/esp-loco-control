@@ -180,6 +180,43 @@ correlation with 0.5 remains unexplained rather than dismissed.
 
 ---
 
+## A reboot clears it, and nothing else does — so four stops were one condition
+
+The operator's reading, 2026-08-31: "the earlier circumstances may have been
+alleviated by a simple re-boot. It is a rare event even though persistent
+circumstances made it look like four."
+
+Confirmed on the bench. The baseline is learned at boot: `primeMs` is 2,000 ms
+with no passage open, so priming adopts whatever DC level is present as the new
+zero. Identical 20-second runs, the only difference being whether the boot
+happened after the offset appeared:
+
+| | baseline after 20 s | magnets seen |
+|---|---|---|
+| offset appeared after boot, no reboot since | 1834 | **0 / 20 — latched** |
+| rebooted with the offset present | **1784** | **20 / 20 — clean** |
+
+A latch can never clear itself: the passage stays open, so the baseline can never
+sample, so the offset is never measured away. But a reboot re-references the
+sensor onto the offset and there is nothing left to latch. Gate 8 case E.
+
+**Two consequences.**
+
+The four stops of 18:14, 18:15, 18:20 and 18:25 were **one persistent condition**,
+not four events. That is why they looked like a deteriorating fault.
+
+And the flash at 18:36 that appeared to fix them **fixed them by rebooting**. The
+rollback to 0.4 and the reboot were the same action, and this record's earlier
+drafts never separated them. On the evidence, 0.5 was never implicated at all:
+gate 8 returns results identical line for line on both builds, and the apparent
+cure was the reboot. A second field trial of 0.5 at 19:03 ran 164 advances with
+no strike.
+
+**Operationally, until this is addressed:** if the railway starts swallowing
+markers, reboot the locomotive. Nothing else recovers it.
+
+---
+
 ## A prior record that may need re-reading
 
 `HallCapture.h:17-19` records that there is deliberately no duration ceiling,

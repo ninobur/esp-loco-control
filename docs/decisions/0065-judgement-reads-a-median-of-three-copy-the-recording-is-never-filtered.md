@@ -18,6 +18,18 @@ not differ between the builds.
 What produced the offset that evening is still unknown. The locomotive had stood
 for two hours; a later five-minute stand on 0.4 produced no offset at all.
 
+**Second field trial, 2026-08-31 19:03, passed.** 193 advances, no strike; the
+only two refusals were `TOO_SOON` rebounds at peaks 41 and 29. Accepted peaks
+152–293, median 206.
+
+Decisively, **MM169 — the passage this decision exists for — crossed as an
+ordinary advance**: `ADVANCED`, obs N, peak **189**, ratio 0.867, residual
+**0.0787**. On 0.4 at 15:16:43 the same marker was refused `WRONG_SHAPE` at peak
+313, ratio 1.6828, residual 0.1307. The tail artifact no longer sets the peak or
+breaks the fit, and the recording still carries the spike.
+
+Still Proposed: a passed trial is not the operator's ratification.
+
 Reinstated at the operator's direction for a second trial: "If that was a unique
 set of circumstances, it should run." Approval to trial is not ratification.
 

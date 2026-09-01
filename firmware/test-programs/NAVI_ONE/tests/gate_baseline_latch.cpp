@@ -101,6 +101,33 @@ int main() {
     if (off <= -26) ok(r.seen == 0, "above exitMargin 25: latches, even well below entryMargin 38");
   }
 
+  printf("\nE. a reboot clears the latch; nothing else does\n");
+  {
+    // Identical 20 s run either way. The only difference is whether the offset
+    // was present while the baseline primed -- i.e. whether the locomotive was
+    // rebooted after the offset appeared. Priming adopts whatever DC level is
+    // there as the new zero, so a reboot re-references the sensor and there is
+    // nothing left to latch. This is why the four stops of 2026-08-31 evening
+    // were ONE persistent condition rather than four events, and why the flash
+    // that appeared to fix them fixed them by rebooting.
+    CaptureConfig cfg; HallCapture<> cap(cfg);
+    uint32_t t = 0;
+    const int OFF = -50;
+    for (; t < 3000; ++t) cap.sample(t, (int16_t)(BASE + OFF));   // primed WITH it
+    int crossed = 0, seen = 0;
+    for (int ms = 0; ms < 20000; ++ms, ++t) {
+      int v = OFF; const int ph = ms % 1000;
+      if (ph < 150) { const double x = (ph - 75) / 28.0;
+                      v -= (int)(220.0 * std::exp(-0.5 * x * x));
+                      if (!ph) ++crossed; }
+      if (cap.sample(t, (int16_t)(BASE + v)) && cap.passage().peakCounts > 150) ++seen;
+    }
+    printf("   primed WITH the offset: baseline=%d seen=%d/%d\n",
+           (int)cap.baseline(), seen, crossed);
+    ok(cap.baseline() == BASE + OFF, "priming adopts the offset as the new zero");
+    ok(seen == crossed, "REBOOT CLEARS THE LATCH -- every magnet seen again");
+  }
+
   printf("\n%d checks, %d failures\n", checks, failures);
   if (failures) { printf("GATE 8 FAILED\n"); return 1; }
   printf("GATE 8 PASSED (behaviour recorded; this gate asserts no fix)\n");
