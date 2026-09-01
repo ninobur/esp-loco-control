@@ -89,6 +89,69 @@ latch, were at 260–285.
 
 ---
 
+## Confirmed on the bench, on 0.4's own code
+
+Gate 8 (`tests/gate_baseline_latch.cpp`, new) drives a synthetic DC offset
+through the real `HallCapture` at repo HEAD — that is, **0.4**. Twenty seconds of
+running, one 150 ms 220-count magnet per second.
+
+| offset | magnets crossed | passages closed | magnets seen | baseline |
+|---|---|---|---|---|
+| none | 20 | 20 | **20** | 1834, undisturbed |
+| −50, magnets of **opposite** polarity | 20 | 39 | **20** | **1834 — frozen**, never re-references to 1784 |
+| −50, magnets of **same** polarity | 20 | **0** | **0** | **1834 — frozen** |
+
+The mechanism is therefore **not** in the withdrawn 0.5 change. It is in 0.4, and
+in 0.3 before it.
+
+### It is polarity-dependent, which is why one evening produced two signatures
+
+An earlier draft of this record said the latch swallows markers. That is only
+half right, and the half that is wrong matters:
+
+- **Opposite polarity.** The magnet's field cancels the offset, carries the
+  signal through the exit window, and the stalled passage closes. The magnet
+  then gets its own passage. Observed as an offset passage plus a magnet passage
+  for every marker — the pattern at 18:20 and 18:25, which produced rejections
+  but no lag.
+- **Same polarity.** The magnet deepens the offset. The passage never closes and
+  the marker is invisible, because `HallCapture` cannot open a passage while one
+  is open. The pattern at 18:14 and 18:15 — where the offset was South and
+  MM121, MM122 and MM123 are three consecutive South markers.
+
+### The threshold is exitMargin, not entryMargin
+
+This record first assumed a latch needs an offset above `entryMargin` (38).
+**It does not.** The magnet itself opens the passage; the offset then only has
+to hold the signal above `exitMargin` (25) for it never to close. Gate 8 finds
+the boundary exactly:
+
+```
+offset -24 -> 20/20 magnets seen   clean
+offset -26 ->  0/20 magnets seen   LATCHED
+```
+
+**A sustained offset of 26 counts is enough** — about 12% of a typical 200-count
+magnet, and a third below the figure this record first assumed. That is a far
+easier condition to meet than originally stated.
+
+---
+
+## What five minutes of standing did NOT do
+
+On 0.4, at MM033, Toby stood for five and a half minutes and was restarted:
+27 advances, no rejections, no strike, peaks 169–264. The first passage
+afterwards reported `gap_ms = 333485`, matching the stand exactly — meaning **no
+passage opened at all while he stood.**
+
+So standing is not by itself sufficient. The latch needs an offset to exist
+first, and five minutes at that spot did not produce one. What produced the
+offset on the evening of 2026-08-31 remains **unknown**. The candidates not yet
+separated are the length of the stand (two hours, against five minutes), where
+he stood, and the build.
+
+---
+
 ## Relation to the 0.5 rollback
 
 The three stops that caused the rollback all carry this signature. The code
@@ -104,15 +167,16 @@ The two sessions differed in operating condition, not only in build:
 - **0.4 session:** deliberately placed at a known startup location, MM040–041,
   and started immediately. 70 advances, one `TOO_SOON`, no strike.
 
-**This does not clear 0.5 by itself.** The correlation with the build is real
-and was observed three times. What it says is that a build-independent mechanism
-sufficient to produce every symptom has been identified in the source, and that
-the two sessions were not a controlled comparison.
+**The mechanism is now proven build-independent** — gate 8 reproduces every
+symptom on 0.4's own `HallCapture`, including the polarity-dependent split
+between swallowing and pairing. 0.5 cannot be the cause of a behaviour that 0.4
+exhibits on the bench.
 
-**The test that settles it:** on 0.4, park Toby as he was parked, leave him
-standing several minutes, then drive off. If the latch reproduces, the mechanism
-is build-independent and 0.5 was a passenger. If 0.4 runs clean through the same
-condition, 0.5 is implicated and this finding is incomplete.
+**What is still unexplained is the trigger.** The latch needs a sustained offset
+of 26 counts or more to already exist. Five minutes standing on 0.4 did not
+produce one. Two hours standing, on the build that failed, apparently did — but
+the stand length, the location and the build were all different at once, so the
+correlation with 0.5 remains unexplained rather than dismissed.
 
 ---
 

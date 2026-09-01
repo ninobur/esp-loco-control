@@ -36,3 +36,7 @@ echo ""
 echo "== gate 7: survey polarity replay — 2026-08-28 circuit =="
 $CXX "$here/replay_polarity_survey.cpp" -o "$tmp/polsurvey"
 "$tmp/polsurvey" "$tmp/survey.log"
+
+echo ""
+echo "== gate 8: acquisition under a sustained DC offset =="
+$CXX "$here/gate_baseline_latch.cpp" -o "$tmp/latch"; "$tmp/latch"
