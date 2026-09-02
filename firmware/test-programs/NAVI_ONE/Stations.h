@@ -97,10 +97,24 @@ struct StationDefinition {
 //
 //     So the RAMP POINT returns to the +1 standard while the RESTING PLACE is
 //     meant to stay near where +2 put it this morning, the levelled track
-//     having bought the coast the extra marker used to buy. That is the intent
-//     behind the number, not a measurement of it: the landing under the new
-//     railway has not been observed yet, and where it comes to rest relative to
-//     MM110 is the thing to watch on the next CW lap.
+//     having bought the coast the extra marker used to buy. That was the
+//     intent, and it was borne out: "This time the Hall stopped between
+//     magnets at Arches. Coach placement at platform correct."
+//
+//     +1 -> 0, the same afternoon and the third move of the day. The operator
+//     went back to the track a second time: "I made additional track work at
+//     arches. Dip removed. Train no longer spinning." Taking the dip out took
+//     the last of the grade with it, and the coast grew again. His
+//     instruction: "please move Arches only stop point CW only 1 MM earlier."
+//     Arches is now the only platform that ramps AT its centre marker in both
+//     directions.
+//
+//     THE SLIP IS GONE FROM THE TRACK, NOT FROM THE FIRMWARE. Three moves of
+//     this number and two sessions with a shovel have removed the conditions
+//     that produced field finding 14 AT ARCHES. They have not removed the
+//     fault: a departure that slips and catches anywhere on the railway still
+//     splices a waveform the shape test will not have. See finding 14 and the
+//     analysis of 2026-09-02.
 //
 //     CCW is untouched by both moves: it stops at 0 by the 2026-09-01 ruling
 //     and has never shown this.
@@ -126,7 +140,7 @@ static const StationDefinition STATIONS[] = {
   //  name        centre  pwmCW pwmCCW  stopCW stopCCW  depCW depCCW   0 = as per routing
   { "Patio",         15,    60,    60,      1,      0,      0,     0 },
   { "Grillers",      63,    60,    72,     -1,     -1,    110,     0 },
-  { "Arches",       108,    60,    60,      1,      0,      0,     0 },
+  { "Arches",       108,    60,    60,      0,      0,      0,     0 },
   { "Bamboo",       157,    60,    60,      1,     -1,      0,     0 },
 };
 static const uint8_t STATION_COUNT = (uint8_t)(sizeof(STATIONS)/sizeof(STATIONS[0]));

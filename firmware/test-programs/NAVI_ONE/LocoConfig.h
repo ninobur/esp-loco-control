@@ -14,7 +14,7 @@ struct PwmSpeedEntry {
 //
 // VERIFY AFTER FLASHING. The boot serial line must read
 //
-//     [BOOT] NAVI_ONE_1_0X3_FIELDTEST — 9950012
+//     [BOOT] NAVI_ONE_1_0X4_FIELDTEST — 9950012
 //     [BOOT] EXPERIMENTAL FIELD-TEST BUILD — not field-accepted NAVI_ONE 1.0.
 //
 // If it names the other locomotive, the wrong profile was compiled in and the

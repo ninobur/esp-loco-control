@@ -128,13 +128,14 @@ int main() {
     // measurement the operator took from an observed landing and any drift in
     // them is a change to where the locomotive stops in front of visitors.
     // Order: Patio, Grillers, Arches, Bamboo.
-    // Arches CW moved twice on 2026-09-02: +1 -> +2 in the morning to take the
-    // departure off the slight grade after three departures spun over MM110 and
-    // lost the apex (field finding 14), then +2 -> +1 in the afternoon once the
-    // operator levelled that track by hand and the longer coast it bought
-    // carried the stop too far forward. Back at the standard, over different
-    // track. See the note in Stations.h -- the second move is not a revert.
-    const int8_t wantCW[4]  = {  1, -1,  1,  1 };
+    // Arches CW moved three times on 2026-09-02, once for the firmware and
+    // twice for the track: +1 -> +2 to take a slipping departure off the slight
+    // grade (field finding 14), +2 -> +1 when the operator levelled that track
+    // by hand and the longer coast carried the stop too far forward, +1 -> 0
+    // when he went back and took the dip out as well. Each number was measured
+    // from where Toby actually landed. See the note in Stations.h; none of the
+    // three is a revert of another.
+    const int8_t wantCW[4]  = {  1, -1,  0,  1 };
     const int8_t wantCCW[4] = {  0, -1,  0, -1 };
     for (uint8_t i = 0; i < STATION_COUNT; ++i) {
       ok(stopOffsetFor(STATIONS[i], +1) == wantCW[i],  "CW stop offset");
@@ -229,16 +230,17 @@ int main() {
   printf("J. the DEPARTURE change reaches Grillers CW and nothing else\n");
   {
     // The 110 departure is Grillers CW alone; every other platform-direction
-    // departs as per routing. Grillers CW at -1 is once again the ONLY clockwise
-    // exception to the +1 standard, Arches having returned to it on 2026-09-02
-    // over re-laid track; this asserts that one and no second.
+    // departs as per routing. TWO clockwise exceptions to the +1 standard --
+    // Grillers at -1 for the grade, Arches at 0 over track the operator re-laid
+    // twice on 2026-09-02 -- and this asserts exactly those two and no third.
     for (uint8_t i = 0; i < STATION_COUNT; ++i) {
       const StationDefinition& s2 = STATIONS[i];
       const bool grillersCW = (i == 1);
+      const bool archesCW   = (i == 2);
       ok(departPwmFor(s2, +1, 90) == (grillersCW ? 110 : 90), "CW departure target");
       ok(departPwmFor(s2, -1, 90) == 90, "CCW departs as per routing everywhere");
       ok(departPwmFor(s2, -1, 105) == 105, "including off the Patio curve at 105");
-      ok(stopOffsetFor(s2, +1) == (grillersCW ? -1 : 1),
+      ok(stopOffsetFor(s2, +1) == (grillersCW ? -1 : (archesCW ? 0 : 1)),
          "CW stop offset");
       ok(departPwmFor(s2, -1, 72) == 72, "CCW departure follows the cruise it is handed");
     }
