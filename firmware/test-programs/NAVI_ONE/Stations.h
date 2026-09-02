@@ -38,17 +38,34 @@ struct StationDefinition {
   uint8_t centre;
   uint8_t pwmCW, pwmCCW;          // speed held from the zone to the stop trigger
   int8_t  stopOffsetCW, stopOffsetCCW;   // markers from centre; zero ramp starts here
+  // Departure throttle. ZERO means "as per routing" -- take whatever the
+  // section cruise says, which is the case at every platform but one.
+  uint8_t departCW, departCCW;
 };
 
-// Grillers CCW is the one asymmetry: 72 climbing, 60 the other way, because
-// "72 is wrong for downhill at Grillers". Everything else starts from the
-// standard and gets tuned per platform per direction from observed landings.
+// Grillers is the one asymmetric platform, in three separate ways, all of them
+// clockwise and all of them the grade:
+//
+//   * 72 CCW and 60 CW, because "72 is wrong for downhill at Grillers".
+//   * stop at -1 CW, not the +1 standard. On 2026-09-01 the +1 stop put Toby
+//     ON the climb: "The problem was Toby was attempting to start the grade
+//     while on the grade. At that point, traction not adequate to launch 3
+//     coaches." Stopping a marker short of centre gives him level track to
+//     launch from and a run at the grade. CCW keeps +1 -- that direction is
+//     the descent and has no such problem.
+//   * departs to 110 CW. "PWM 110 is sustained after Grillers CW departure
+//     until MM80 then use current ramp down." The section cruise reaches 110
+//     at MM65 on its own (decision 0066), so this only covers the markers
+//     between the stop and the band; the MM80 ramp-down is untouched.
+//
+// Everything else starts from the standard and gets tuned per platform per
+// direction from observed landings.
 static const StationDefinition STATIONS[] = {
-  //  name        centre  pwmCW pwmCCW  stopCW stopCCW
-  { "Patio",         15,    60,    60,      1,      1 },
-  { "Grillers",      63,    60,    72,      1,      1 },
-  { "Arches",       108,    60,    60,      1,      1 },
-  { "Bamboo",       157,    60,    60,      1,      1 },
+  //  name        centre  pwmCW pwmCCW  stopCW stopCCW  depCW depCCW   0 = as per routing
+  { "Patio",         15,    60,    60,      1,      1,      0,     0 },
+  { "Grillers",      63,    60,    72,     -1,      1,    110,     0 },
+  { "Arches",       108,    60,    60,      1,      1,      0,     0 },
+  { "Bamboo",       157,    60,    60,      1,      1,      0,     0 },
 };
 static const uint8_t STATION_COUNT = (uint8_t)(sizeof(STATIONS)/sizeof(STATIONS[0]));
 
@@ -57,7 +74,14 @@ static const int8_t   ZONE_START         = -5;   // at station speed by here
 static const int8_t   OVERSHOOT_ABANDON  = 5;    // past centre -> give up, stay honest
 static const uint32_t STATION_DWELL_MS   = 30000UL;
 static const uint16_t STATION_STOP_STEP_MS   = 200;  // the gentle brake
-static const uint16_t STATION_DEPART_STEP_MS = 200;  // "Restart ... should have a slow ramp. 200."
+// "Restart from the station should have a slow ramp. 200."
+//
+// A 300 ms slope was tried on 2026-09-01 and withdrawn the same day on field
+// observation: "Do not change Toby ramp slope out of Grillers." The slope was
+// never the fault. "The problem was Toby was attempting to start the grade
+// while on the grade. At that point, traction not adequate to launch 3
+// coaches." The remedy is where he stops and what he departs to, below.
+static const uint16_t STATION_DEPART_STEP_MS = 200;
 static const uint32_t STATION_MAX_PHASE_MS   = 120000UL;
 
 // Marker times across the approach, one per marker from -10 to -6. The table is
@@ -109,6 +133,12 @@ inline uint8_t stationPwm(const StationDefinition& s, int8_t dir) {
 inline int8_t stopOffsetFor(const StationDefinition& s, int8_t dir) {
   return dir > 0 ? s.stopOffsetCW : s.stopOffsetCCW;
 }
+// The throttle a departure asks for: the platform's own figure when it has one,
+// otherwise the section cruise it was handed.
+inline uint8_t departPwmFor(const StationDefinition& s, int8_t dir, uint8_t cruisePwm) {
+  const uint8_t d = dir > 0 ? s.departCW : s.departCCW;
+  return d ? d : cruisePwm;
+}
 
 struct StationOrder {
   bool        setThrottle = false;
@@ -129,6 +159,9 @@ class StationMachine {
   // Called on every advance AND periodically, so the dwell clock and the ramp
   // completion are seen without waiting for a marker. Returns an order; an
   // order with setThrottle false and event null means "nothing to do".
+  // cruisePwm -- the section cruise where the locomotive is. Sets the approach
+  //              entry speed, is what an abandoned approach hands back, and is
+  //              what a departure asks for unless the platform overrides it.
   StationOrder tick(uint8_t mm, int8_t dir, uint8_t actualPwm,
                     uint8_t cruisePwm, uint32_t nowMs) {
     StationOrder o;
@@ -202,7 +235,8 @@ class StationMachine {
       case StPhase::Dwell:
         if (nowMs - dwellFromMs_ >= STATION_DWELL_MS) {
           setPhase(StPhase::Depart, nowMs);
-          return order(o, dir, off, cruisePwm, STATION_DEPART_STEP_MS, "DEPART");
+          return order(o, dir, off, departPwmFor(st, dir, cruisePwm),
+                       STATION_DEPART_STEP_MS, "DEPART");
         }
         return o;
 

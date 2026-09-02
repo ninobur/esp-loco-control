@@ -10,6 +10,7 @@
 // Toby's profile carries NAVI_APPROACH_MARKER_MS, and this gate tests HIS
 // numbers, so it includes the profile directly rather than a synthetic table.
 #include "../LL_LocoConfig_9950012.h"
+#include "../RouteMap.h"
 #include "../Stations.h"
 using namespace navi_one;
 
@@ -123,7 +124,9 @@ int main() {
 
   printf("F. stop offsets are per station AND per direction\n");
   for (uint8_t i = 0; i < STATION_COUNT; ++i) {
-    ok(stopOffsetFor(STATIONS[i], +1) == 1, "CW stop offset is the +1 standard");
+    // Grillers CW is the one departure from the standard, and it is a
+    // per-direction one: -1 clockwise, +1 the other way. Section I says why.
+    ok(stopOffsetFor(STATIONS[i], +1) == (i == 1 ? -1 : 1), "CW stop offset");
     ok(stopOffsetFor(STATIONS[i], -1) == 1, "CCW stop offset is the +1 standard");
   }
   ok(STATION_COUNT == 4, "four platforms");
@@ -148,6 +151,58 @@ int main() {
     StationMachine m;
     for (int mm = 0; mm < ROUTE_N; ++mm) m.tick((uint8_t)mm, 0, 90, 90, 0);
     ok(m.phase() == StPhase::Idle, "never armed with dir 0");
+  }
+
+  printf("I. Grillers CW: stops a marker SHORT of centre and departs to 110\n");
+  {
+    // 2026-09-01, after the wheels spun leaving Grillers: "The problem was Toby
+    // was attempting to start the grade while on the grade." Centre is 63, so a
+    // -1 stop puts the zero ramp at MM62, off the climb, with a run at it. The
+    // departure asks for 110 outright; the section cruise reaches 110 at MM65
+    // by itself, so the two agree and nothing steps between them.
+    const StationDefinition& g = STATIONS[1];
+    ok(g.centre == 63, "Grillers centre");
+    ok(stopOffsetFor(g, +1) == -1, "CW stop moved to -1");
+    ok(stopOffsetFor(g, -1) == +1, "CCW stop stays at the +1 standard");
+
+    StationMachine m; uint32_t t = 0; uint8_t pwm = 90;
+    bool rampedAt62 = false;
+    for (int mm = 53; mm <= 62; ++mm, t += 1500) {
+      StationOrder o = m.tick((uint8_t)mm, +1, pwm, cruisePwmAt((uint8_t)mm, +1, 90), t);
+      if (o.setThrottle) pwm = o.pwm;
+      if (mm == 62 && m.phase() == StPhase::Ramp) rampedAt62 = true;
+    }
+    ok(rampedAt62, "the zero ramp starts at MM62, one marker before centre");
+    pwm = 0; t += 1500;
+    m.tick(62, +1, pwm, cruisePwmAt(62, +1, 90), t);
+    ok(m.phase() == StPhase::Dwell, "dwell begins");
+    const uint32_t from = t;
+    StationOrder d = m.tick(62, +1, 0, cruisePwmAt(62, +1, 90), from + 30001);
+    ok(m.phase() == StPhase::Depart, "departs after 30 s");
+    ok(cruisePwmAt(62, +1, 90) == 90, "the section cruise at the stop is still 90");
+    ok(d.setThrottle && d.pwm == 110, "but the departure asks for 110");
+    ok(d.stepMs == 200, "at the unchanged 200 ms pacing");
+
+    // and 110 is sustained to MM80, where the existing ramp-down takes over.
+    for (int mm = 65; mm < 80; ++mm)
+      ok(cruisePwmAt((uint8_t)mm, +1, 90) == 110, "110 held across the climb");
+    ok(cruisePwmAt(80, +1, 90) == 106, "MM80 begins the existing ramp down");
+    ok(cruisePwmAt(85, +1, 90) == 90,  "and reaches 90 by MM85, untouched");
+  }
+
+  printf("J. the change reaches Grillers CW and nothing else\n");
+  {
+    // Every other platform-direction departs as per routing, and every other
+    // stop offset is the +1 standard.
+    for (uint8_t i = 0; i < STATION_COUNT; ++i) {
+      const StationDefinition& s2 = STATIONS[i];
+      const bool grillersCW = (i == 1);
+      ok(departPwmFor(s2, +1, 90) == (grillersCW ? 110 : 90), "CW departure target");
+      ok(departPwmFor(s2, -1, 90) == 90, "CCW departs as per routing everywhere");
+      ok(departPwmFor(s2, -1, 105) == 105, "including off the Patio curve at 105");
+      ok(stopOffsetFor(s2, +1) == (grillersCW ? -1 : 1), "CW stop offset");
+      ok(stopOffsetFor(s2, -1) == 1, "CCW stop offset unchanged everywhere");
+    }
   }
 
   printf("\n%d checks, %d failures\n", checks, failures);
