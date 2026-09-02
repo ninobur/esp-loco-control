@@ -78,7 +78,11 @@ def stitched_events(path):
             j = json.loads(line.split("\t")[-1])
         except Exception:
             continue
-        if not j.get("stitched"):
+        # Every passage that spanned or abutted a stop: the ones the firmware
+        # labelled stitched, and the ones it did NOT -- a passage that opened
+        # on a stationary artifact and ran through the whole dwell is not
+        # labelled anything, and it is the worst of them.
+        if not j.get("stitched") and not (j.get("shape") and j.get("resid", 0) > 0.13):
             continue
         k = (j.get("resid"), j.get("paused_ms"), j.get("mm"))
         if k in seen:
@@ -146,14 +150,32 @@ struct ArchesFixture {
         splice = max(range(1, len(m)), key=lambda i: abs(m[i] - m[i-1]))
         if abs(m[splice] - m[splice-1]) < 30:
             splice = -1
-        kind = ("slip, wheels spun then caught" if ev["paused_ms"] < 10000
-                else "station dwell INSIDE the field")
-        what = "%s %s -- %s%s" % (ev["dir"], "Arches", kind,
-                                  "" if splice >= 0 else "; ARRIVAL ONLY, no departure recorded")
+        wall = b["closed"] - b["opened"]
+        if not ev.get("stitched"):
+            kind = ("opened on a stationary artifact and spanned the whole dwell"
+                    if wall > 10000 else "refused on shape, no stop in it")
+        elif ev["paused_ms"] < 10000:
+            kind = "slip, wheels spun then caught"
+        else:
+            kind = "station dwell INSIDE the field"
+        # Name the platform from the marker, not from the file's title: the
+        # dwell faults are not confined to Arches and calling them all Arches
+        # would hide that.
+        STATIONS = {15: "Patio", 63: "Grillers", 108: "Arches", 157: "Bamboo"}
+        near = min(STATIONS, key=lambda c: min((ev["mm"] - c) % 171, (c - ev["mm"]) % 171))
+        off = min((ev["mm"] - near) % 171, (near - ev["mm"]) % 171)
+        where = "%s%s" % (STATIONS[near], "" if off <= 3 else " (%d markers out)" % off)
+        # "ARRIVAL ONLY" means the firmware said it stitched and the record has
+        # no join in it. A passage that never stitched has no departure segment
+        # to be missing.
+        missing = "; ARRIVAL ONLY, no departure recorded" if (ev.get("stitched") and splice < 0) else ""
+        what = "%s %s -- %s%s" % (ev["dir"], where, kind, missing)
         print("\n// %s  mm %d -> %d, peak %d of gain %d, paused %d ms, residual %.4f -- %s"
               % (tag, ev["mm"], ev["tgt"], ev["peak"], ev["gain"], ev["paused_ms"],
                  ev["resid"], "ACCEPTED" if ev["event"] == "AGREE" else "REFUSED"))
         print("// %s" % what)
+        print("// wall %u ms, %u samples at %u ms each = %u ms of record"
+              % (wall, len(s), b["dec"], len(s) * b["dec"]))
         print("static const int16_t FX_%s[] = {" % tag)
         for k in range(0, len(s), 16):
             print("  " + ",".join("%d" % v for v in s[k:k+16]) + ",")

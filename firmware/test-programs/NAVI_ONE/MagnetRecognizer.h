@@ -109,6 +109,12 @@ struct Passage {
   // diagnostics and for any judgement that needs to know the passage was
   // observed in two intervals; the recording either side of it is untouched.
   uint16_t      stitchAt     = 0;
+  // TRUE if a controlled stop was in progress at any point while this passage
+  // was open -- an approach ramp, a dwell, or a departure. It does not say the
+  // passage paused; it says the passage happened AROUND a stop. A refusal that
+  // carries this loses a marker exactly where the geometry is most delicate,
+  // and must not be allowed to pass quietly.
+  bool          stopEpisode  = false;
   // Signed sum of every sample in the passage. Its sign IS the polarity
   // (HallCapture::close). Carried so a judgement's basis travels with it;
   // nothing thresholds on it. Decision 0064.

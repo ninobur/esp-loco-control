@@ -200,9 +200,12 @@ struct Rig {
         case Ruling::Advanced:    ++advances; break;
         case Ruling::NotAMagnet:
           ++notMagnets;
-          // Experimental field-test build: a refused STITCHED waveform stops.
-          // An ordinary refusal with no stop in it does not -- unchanged.
-          if (cap.pausedMs()) refusedStitched();
+          // Experimental field-test build: a refusal that happened AROUND A
+          // STOP stops the locomotive -- whether or not the measurement was
+          // paused. Conditioning on the pause alone is what let Bamboo run on
+          // after a 0.5586 refusal and strike a marker later. An ordinary
+          // refusal with no stop near it does not stop him, unchanged.
+          if (cap.pausedMs() || p.stopEpisode) refusedStitched();
           break;
         case Ruling::WrongMagnet:
         case Ruling::Contradicted: ++strikes; withdraw(); break;
@@ -804,6 +807,70 @@ int main() {
       if (rg.dwellTo > rg.dwellFrom)
         ok(rg.dwellTo - rg.dwellFrom >= STATION_DWELL_MS, "the dwell was not shortened", tag);
     }
+  }
+
+  // =========================================================================
+  printf("\n\nI. a passage may not open while the locomotive is standing still\n");
+  printf("   Bamboo CCW, 2026-09-02 12:29:07, reconstructed. Toby came to rest\n");
+  printf("   with about 30 counts of a neighbouring field on the sensor -- FIVE\n");
+  printf("   counts above the 25 that would have closed a passage, eight below\n");
+  printf("   the 38 that opens one. One artifact sample carried him over the\n");
+  printf("   opening threshold. The passage could then neither close (the field\n");
+  printf("   never fell far enough) nor pause (it had shown no progress since it\n");
+  printf("   opened), so it ran for 35.8 SECONDS, decimated to 128 ms a sample\n");
+  printf("   holding a flat line, and recorded the real departure magnet in\n");
+  printf("   eight samples. Residual 0.5586, refused, marker lost -- and the\n");
+  printf("   strike came a marker later, three markers from where Toby was.\n");
+  {
+    struct Case { const char* name; bool artifact; int want; };
+    const Case CASES[] = {
+      { "no artifact: nothing opens early, the departure is judged alone", false, 1 },
+      { "THE FIELD CASE: one artifact sample opens a passage at rest",     true,  1 },
+    };
+    for (const Case& C : CASES) {
+      Rig rg; uint32_t t = 1;
+      rg.useStations = false;
+      primeCapture(rg, t);
+      rg.nav.declare(157, -1);
+      primeLap(rg, 6, 213, t);
+      rg.clearTrace();
+      const int sign =
+        polarityAt(nextMarker(rg.nav.status().navMm, rg.nav.status().navDir)) ? 1 : -1;
+      Noise nz;
+      // Rolled to a stand inside a neighbouring fringe; the field settles at 30.
+      rg.arm = StopArming::Decelerating; rg.actualPwm = 0; rg.rampTarget = 0;
+      for (int i = 0; i < 1200; ++i, ++t)
+        rg.tick(t, (int16_t)(IDLE + sign * (30 + nz.next(4))));
+      // The artifact: ONE sample over entryMargin. Decision 0065's population,
+      // and the same one that put a -5 and a +93 in the records of that day.
+      if (C.artifact) { rg.tick(t, (int16_t)(IDLE + sign * 46)); ++t; }
+      for (int i = 0; i < 30000; ++i, ++t)          // the dwell
+        rg.tick(t, (int16_t)(IDLE + sign * (30 + nz.next(4))));
+      rg.arm = StopArming::Departing; rg.actualPwm = 60; rg.rampTarget = 90;
+      for (int i = 0; i < 900; ++i, ++t) {          // the real departure magnet
+        const double f = 30.0 + gaussAt(i, 450, 120, 190);
+        rg.tick(t, (int16_t)(IDLE + sign * (int)(f + 0.5) + nz.next(4)));
+      }
+      for (int i = 0; i < 1500; ++i, ++t)
+        rg.tick(t, (int16_t)(IDLE + sign * (30 + nz.next(4))));
+      rg.arm = StopArming::None;
+      for (int i = 0; i < 3000; ++i, ++t) rg.tick(t, (int16_t)(IDLE + nz.next(4)));
+
+      rg.report(C.name);
+      ok(rg.advances == C.want, "the departure magnet is counted, once", C.name);
+      ok(rg.strikes == 0, "no strike", C.name);
+      ok(rg.autoRunning, "AUTO still running", C.name);
+      ok(rg.nav.status().state == NavState::Declared, "position held", C.name);
+      // The invariant itself, stated as the operator stated it: stationary time
+      // during a controlled stop never belongs in a moving-magnet waveform.
+      ok(rg.lastPassageSamples < 4000,
+         "no passage carried the dwell",
+         std::string(C.name) + " judged " + std::to_string(rg.lastPassageSamples) +
+         " samples");
+    }
+    printf("\n   The artifact case and the clean case now reach the same verdict\n"
+           "   by the same road: the stationary opening is discarded, and the\n"
+           "   departure arc is judged as the ordinary passage it is.\n");
   }
 
   printf("\n\n%d checks, %d failures\n", checks, failures);

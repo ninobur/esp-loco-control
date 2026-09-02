@@ -187,6 +187,10 @@ class HallCapture {
   // Wall clock spent paused. The measurement clock excludes it; the watchdogs
   // do not.
   uint32_t  pausedMs() const { return pausedTotalMs_; }
+  // Openings thrown away because the locomotive was standing still when they
+  // happened. Not a fault by itself; a rising count says the sensor is coming
+  // to rest in a field somewhere it should not be.
+  uint32_t  discards() const { return discards_; }
 
   // One ADC sample. Returns true when a passage has just CLOSED and passage()
   // holds it. Runs on the Hall task; touches nothing else.
@@ -245,6 +249,7 @@ class HallCapture {
       open_ = true;
       openedAtMs_ = nowMs;
       pausedTotalMs_ = 0; resumedAtMs_ = 0; sawProgress_ = false; stitchAt_ = 0;
+      stopEpisode_ = false;
       // The reference this passage will be MEASURED against, fixed here and not
       // touched again until it closes.
       entryBaseline_ = baseline_;
@@ -285,9 +290,37 @@ class HallCapture {
     // Departing arms it too, for the locomotive that stalls halfway out of a
     // magnet: the field stops moving, so the measurement stops, and the same
     // resumption test applies when it starts again.
+    if (arm != StopArming::None) stopEpisode_ = true;
     if (arm != StopArming::None && !plateau_) sawProgress_ = true;
     if (arm != StopArming::None && plateau_ && sawProgress_) {
       pauseMeasurement(nowMs);
+      return false;
+    }
+    // NO OPEN PASSAGE MAY CARRY STATIONARY SAMPLES ACROSS A CONTROLLED STOP.
+    //
+    // The line above pauses a passage that was MOVING and stopped. A passage
+    // that was already stationary when it opened never sets sawProgress_, so
+    // before this it could do neither: it could not pause, and it could not
+    // close either, because closing needs the field to fall below exitMargin
+    // and a resting offset ABOVE that margin never does.
+    //
+    // Bamboo CCW, 2026-09-02 12:29:07, is what that costs. Toby came to rest
+    // with about 30 counts of a neighbouring field on the sensor -- five
+    // counts above the 25 that would have closed it -- and a single-sample
+    // artifact carried the reading over entryMargin and opened a passage. It
+    // stayed open for 35.8 SECONDS. The buffer decimated to 128 ms a sample
+    // holding a flat line, and when the real departure magnet finally arrived
+    // it was recorded in EIGHT samples. Residual 0.5586, refused, and the
+    // marker lost; the next magnet was the opposite pole against a stale
+    // expectation, which struck and shut the session down three markers from
+    // where Toby actually was.
+    //
+    // A stationary opening is not partial evidence of a magnet. There is
+    // nothing to preserve, so it is discarded rather than paused: the reading
+    // is still under the sensor, so nothing re-opens until the field genuinely
+    // moves again, and the departure arc gets a clean passage of its own.
+    if (arm != StopArming::None && plateau_ && !sawProgress_) {
+      discard();
       return false;
     }
 
@@ -361,7 +394,7 @@ class HallCapture {
     // never saw the stop.
     paused_ = false; sawProgress_ = false;
     pausedAtMs_ = 0; pausedTotalMs_ = 0; departArmedMs_ = 0; resumedAtMs_ = 0;
-    stitchAt_ = 0;
+    stitchAt_ = 0; stopEpisode_ = false;
     ev_ = HallEvent::None;
     prLen_ = 0; prHead_ = 0; plateau_ = false;
     rsLen_ = 0; rsHead_ = 0;
@@ -554,6 +587,23 @@ class HallCapture {
     quietSince_ = 0;
   }
 
+  // AN OPENING WITH NO MOVEMENT IN IT. Distinct from abandon(): abandon says a
+  // marker may have gone uncounted, because a moving passage was under way and
+  // was lost. Nothing was under way here -- the locomotive was standing still
+  // when the passage opened -- so there is nothing to report and nothing to
+  // withdraw. The passage is simply un-opened, and counted so the field can
+  // see how often it happens.
+  void discard() {
+    open_ = false; paused_ = false;
+    n_ = 0; preAt_ = 0; dec_ = 1; decPhase_ = 0; sum_ = 0;
+    quietSince_ = 0; truncated_ = false; clipped_ = false;
+    pausedTotalMs_ = 0; departArmedMs_ = 0; resumedAtMs_ = 0; sawProgress_ = false;
+    stitchAt_ = 0; stopEpisode_ = false; stopEpisode_ = false;
+    rsLen_ = 0; rsHead_ = 0;
+    entryBaseline_ = baseline_;
+    ++discards_;
+  }
+
   // A pause that never resumed. There is no half a magnet to report and
   // nothing to judge: the passage is discarded and the caller is told, at
   // once, that a marker may have gone uncounted.
@@ -610,6 +660,7 @@ class HallCapture {
     out_.clipped    = clipped_;
     out_.decimation = dec_;
     out_.stitchAt   = stitchAt_;
+    out_.stopEpisode = stopEpisode_;
     ev_ = HallEvent::Passage;
     return true;
   }
@@ -716,6 +767,8 @@ class HallCapture {
   int32_t   sign_ = 1, peakSoFar_ = 0, pauseAbs_ = 0;
   uint32_t  lastFlatMs_ = 0;
   uint16_t  stitchAt_ = 0;
+  bool      stopEpisode_ = false;
+  uint32_t  discards_ = 0;
   uint32_t  pausedAtMs_ = 0, pausedTotalMs_ = 0;
   uint32_t  departArmedMs_ = 0, resumedAtMs_ = 0;
   bool      plateau_ = false, sawProgress_ = false, paused_ = false;

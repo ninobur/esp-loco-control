@@ -92,7 +92,7 @@ using namespace navi_one;
 // THE CEILING IS NOT ADJUSTED TO MAKE IT PASS. If the field refuses it, the
 // refusal is the result -- the complete stitched waveform is published, nothing
 // is advanced, and the locomotive stops. That is the measurement.
-#define SKETCH_NAME    "NAVI_ONE_1_0X4_FIELDTEST"
+#define SKETCH_NAME    "NAVI_ONE_1_0X5_FIELDTEST"
 #define BUILD_CLASS    "EXPERIMENTAL_FIELD_TEST"
 #define FIELD_ACCEPTED 0
 
@@ -112,6 +112,10 @@ struct Judged {
   // paused passage abandoned on a wall-clock watchdog. pausedMs is wall clock
   // spent stopped; the recognizer never saw it.
   uint8_t  kind; uint32_t pausedMs;
+  // TRUE if a controlled stop was in progress at any point while this passage
+  // was open. kind says the measurement PAUSED; this says the passage merely
+  // happened around a stop, which is a weaker claim and a wider net.
+  uint8_t  stopEpisode;
 };
 // len: 0 means "text, use strlen(payload) at send time" (every existing text
 // pub() call). Non-zero means "exactly this many bytes, verbatim, including
@@ -742,12 +746,13 @@ static void hallTask(void*){
         j = Judged{ myEpoch,p.openedAtMs,p.closedAtMs,p.peakCounts,p.polarity,
                     (uint8_t)v.outcome,(uint8_t)v.isMagnet,
                     v.amplitudeRatio,v.residual,(uint8_t)v.shapeTested,v.gapMs,v.gain,
-                    (uint8_t)(capture.pausedMs() ? 1 : 0), capture.pausedMs() };
+                    (uint8_t)(capture.pausedMs() ? 1 : 0), capture.pausedMs(),
+                    (uint8_t)(p.stopEpisode ? 1 : 0) };
       } else {
         // A paused measurement that outlived a wall-clock watchdog. There is
         // no waveform to judge and nothing to advance.
         j = Judged{ myEpoch,now,now,0,0,(uint8_t)Outcome::NoCurve,0,
-                    0.0f,0.0f,0,0,0, 2, 0 };
+                    0.0f,0.0f,0,0,0, 2, 0, 1 };
       }
       if (judgedQ) xQueueSend(judgedQ,&j,0);
     }
@@ -1283,11 +1288,22 @@ void loop(){
       case Ruling::Contradicted:publishNav("CONTRADICTED",&j,r); contradicted(); break;
       case Ruling::NotAMagnet:
         publishNav("NOT_A_MAGNET",&j,r);
-        // EXPERIMENTAL FIELD-TEST BUILD. kind 1 is a passage whose measurement
-        // a stop interrupted and which was stitched back together. Refused, it
-        // stops. kind 0 -- an ordinary refusal with no stop in it -- does not,
-        // exactly as before.
-        if (j.kind == 1) refusedStitched(j);
+        // EXPERIMENTAL FIELD-TEST BUILD. A refusal that happened AROUND A STOP
+        // stops the locomotive. kind 1 -- the measurement was paused and
+        // stitched -- is one way to be that; it is not the only way, and
+        // conditioning on it alone is what let Bamboo run on.
+        //
+        // Bamboo CCW, 2026-09-02 12:29:07: a passage that opened on a
+        // stationary artifact never paused, so it was labelled kind 0, so a
+        // 0.5586 refusal on a 35-second flat line was treated as ordinary and
+        // Toby kept going. The marker was lost, the next magnet was the
+        // opposite pole against a stale expectation, and that struck -- by
+        // which time he was THREE MARKERS from where navigation believed.
+        //
+        // A refusal with no stop anywhere near it still does not stop him,
+        // exactly as before: that is an ordinary lost marker on open track and
+        // the polarity chain is what catches it.
+        if (j.kind == 1 || j.stopEpisode) refusedStitched(j);
         break;
       default:                 publishNav("NO_POSITION",&j,r); break;
     }

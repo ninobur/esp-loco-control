@@ -32,6 +32,7 @@ struct ArchesFixture {
 
 // A1967_CW  mm 109 -> 110, peak 138 of gain 218, paused 1600 ms, residual 0.1967 -- REFUSED
 // CW Arches -- slip, wheels spun then caught
+// wall 2297 ms, 179 samples at 2 ms each = 358 ms of record
 static const int16_t FX_A1967_CW[] = {
   31,34,33,30,32,34,38,37,37,36,34,32,34,38,38,39,
   40,37,40,38,40,40,42,43,45,43,43,38,40,39,40,41,
@@ -55,6 +56,7 @@ static const ArchesFixture AX_A1967_CW = { "A1967_CW", "CW Arches -- slip, wheel
 
 // A1818_CW  mm 109 -> 110, peak 140 of gain 218, paused 4075 ms, residual 0.1818 -- REFUSED
 // CW Arches -- slip, wheels spun then caught
+// wall 5022 ms, 291 samples at 2 ms each = 582 ms of record
 static const int16_t FX_A1818_CW[] = {
   23,25,24,24,24,26,57,26,24,25,25,24,24,24,19,25,
   26,26,26,25,26,26,27,27,27,27,28,26,31,27,27,27,
@@ -78,8 +80,63 @@ static const int16_t FX_A1818_CW[] = {
 };
 static const ArchesFixture AX_A1818_CW = { "A1818_CW", "CW Arches -- slip, wheels spun then caught", 1, 2, 218, 140, 0.1818f, 1452424u, 1457446u, 166, false, FX_A1818_CW };
 
+// A2680_CW  mm 109 -> 110, peak 73 of gain 214, paused 0 ms, residual 0.2680 -- REFUSED
+// CW Arches -- refused on shape, no stop in it
+// wall 2516 ms, 317 samples at 8 ms each = 2536 ms of record
+static const int16_t FX_A2680_CW[] = {
+  36,35,38,30,36,42,41,41,41,44,43,47,47,46,48,51,
+  41,48,52,51,54,54,55,58,56,56,57,56,54,57,56,56,
+  56,56,55,57,57,56,56,57,58,59,54,54,60,58,59,59,
+  61,59,59,60,59,56,54,58,56,60,60,60,64,59,60,59,
+  62,60,60,56,56,56,59,56,57,58,54,58,58,55,60,62,
+  51,60,63,59,60,60,62,63,62,63,61,63,62,54,68,63,
+  60,63,62,62,62,62,67,62,60,63,53,56,63,64,64,63,
+  60,63,63,61,62,62,56,56,56,63,62,64,60,60,63,61,
+  60,60,63,56,60,57,59,63,64,62,63,63,64,63,66,62,
+  60,56,67,64,62,62,71,63,62,62,55,66,60,65,63,63,
+  62,63,63,66,63,61,64,64,63,57,57,57,60,60,59,62,
+  59,60,60,68,64,63,55,60,58,67,63,63,62,64,63,66,
+  64,64,55,59,59,60,60,55,60,59,60,61,68,63,68,63,
+  57,59,61,66,66,63,63,63,63,64,67,61,66,57,68,64,
+  65,62,64,67,62,66,74,64,64,60,60,58,61,63,67,67,
+  65,66,66,64,64,64,59,61,67,66,64,68,64,64,64,64,
+  67,64,66,60,61,63,71,67,67,64,64,64,66,67,68,67,
+  66,62,67,64,71,71,71,68,70,69,68,68,63,71,70,71,
+  68,71,70,68,68,70,70,71,70,60,64,63,60,62,73,70,
+  69,71,70,68,70,70,66,72,70,70,72,64,73,
+};
+static const ArchesFixture AX_A2680_CW = { "A2680_CW", "CW Arches -- refused on shape, no stop in it", 1, 8, 214, 73, 0.2680f, 203684u, 206200u, -1, false, FX_A2680_CW };
+
+// A2548_CW  mm 109 -> 110, peak 180 of gain 214, paused 0 ms, residual 0.2548 -- REFUSED
+// CW Arches -- refused on shape, no stop in it
+// wall 2527 ms, 318 samples at 8 ms each = 2544 ms of record
+static const int16_t FX_A2548_CW[] = {
+  28,32,38,41,46,49,53,59,59,69,70,73,78,84,88,91,
+  96,101,105,110,114,118,120,123,126,130,133,138,139,142,149,152,
+  154,155,157,156,160,165,168,168,170,170,172,172,173,174,175,180,
+  180,173,176,175,174,174,176,176,171,175,173,173,182,173,173,176,
+  171,173,171,171,171,169,170,168,171,176,170,169,170,166,168,169,
+  166,169,167,167,165,168,165,166,168,166,171,171,170,168,169,167,
+  172,167,201,169,164,165,166,163,164,164,164,164,166,164,164,155,
+  164,165,162,164,164,164,162,164,162,162,166,164,168,162,162,162,
+  164,162,161,164,164,165,162,164,164,170,164,164,161,165,164,162,
+  165,162,166,164,161,161,160,159,164,164,157,162,162,162,162,162,
+  164,162,161,160,165,160,162,158,161,161,162,160,161,162,161,169,
+  168,161,162,162,159,162,160,161,161,159,164,160,170,168,161,160,
+  164,164,160,164,160,164,164,161,160,169,161,160,162,162,163,162,
+  160,164,171,161,162,162,178,168,166,168,166,164,166,166,162,158,
+  161,162,172,169,162,160,161,160,164,164,164,161,160,162,162,170,
+  168,160,160,160,162,162,160,162,161,162,164,161,170,160,162,161,
+  161,162,160,164,161,165,165,161,162,157,160,160,160,161,165,162,
+  164,162,161,160,160,164,160,159,162,162,163,164,162,162,166,164,
+  161,162,171,158,162,164,164,161,165,160,165,162,165,162,165,171,
+  170,162,164,164,164,161,164,162,161,161,164,164,167,164,
+};
+static const ArchesFixture AX_A2548_CW = { "A2548_CW", "CW Arches -- refused on shape, no stop in it", 0, 8, 214, 180, 0.2548f, 230551u, 233078u, -1, false, FX_A2548_CW };
+
 // A1810_CW  mm 111 -> 112, peak 176 of gain 213, paused 35002 ms, residual 0.1810 -- REFUSED
 // CW Arches -- station dwell INSIDE the field
+// wall 36632 ms, 254 samples at 4 ms each = 1016 ms of record
 static const int16_t FX_A1810_CW[] = {
   32,33,35,40,35,37,37,39,41,37,40,40,42,41,43,41,
   43,42,45,44,44,40,41,46,49,42,43,47,46,45,48,51,
@@ -100,8 +157,46 @@ static const int16_t FX_A1810_CW[] = {
 };
 static const ArchesFixture AX_A1810_CW = { "A1810_CW", "CW Arches -- station dwell INSIDE the field", 1, 4, 213, 176, 0.1810f, 241180u, 277812u, 188, false, FX_A1810_CW };
 
+// A3408_UNSET  mm 0 -> 0, peak 287 of gain 190, paused 0 ms, residual 0.3408 -- REFUSED
+// UNSET Bamboo (14 markers out) -- refused on shape, no stop in it
+// wall 42 ms, 55 samples at 1 ms each = 55 ms of record
+static const int16_t FX_A3408_UNSET[] = {
+  -6,-5,-6,-5,-3,5,13,25,26,33,26,28,38,113,170,73,
+  152,41,77,143,287,99,357,29,32,148,75,133,129,107,107,112,
+  71,76,70,90,48,27,29,29,28,28,27,44,28,25,10,9,
+  14,5,-3,24,17,20,20,
+};
+static const ArchesFixture AX_A3408_UNSET = { "A3408_UNSET", "UNSET Bamboo (14 markers out) -- refused on shape, no stop in it", 1, 1, 190, 287, 0.3408f, 42780u, 42822u, 22, false, FX_A3408_UNSET };
+
+// A4048_UNSET  mm 0 -> 0, peak 154 of gain 190, paused 0 ms, residual 0.4048 -- REFUSED
+// UNSET Bamboo (14 markers out) -- refused on shape, no stop in it
+// wall 60 ms, 73 samples at 1 ms each = 73 ms of record
+static const int16_t FX_A4048_UNSET[] = {
+  -5,-3,5,13,25,26,33,26,28,10,30,21,94,115,33,14,
+  124,77,71,33,76,256,152,154,25,-6,8,63,9,40,33,90,
+  87,45,70,65,74,83,90,152,154,85,58,41,90,127,131,109,
+  73,33,78,58,91,69,23,55,56,58,58,17,37,55,11,25,
+  -6,-7,-6,-8,-5,-11,-9,-6,-5,
+};
+static const ArchesFixture AX_A4048_UNSET = { "A4048_UNSET", "UNSET Bamboo (14 markers out) -- refused on shape, no stop in it", 1, 1, 190, 154, 0.4048f, 42826u, 42886u, 24, false, FX_A4048_UNSET };
+
+// A3172_UNSET  mm 0 -> 0, peak 109 of gain 190, paused 0 ms, residual 0.3172 -- REFUSED
+// UNSET Bamboo (14 markers out) -- refused on shape, no stop in it
+// wall 99 ms, 112 samples at 1 ms each = 112 ms of record
+static const int16_t FX_A3172_UNSET[] = {
+  -8,-6,-6,7,1,5,10,15,13,26,23,21,40,46,47,60,
+  65,59,39,38,45,41,49,47,47,49,53,45,47,47,40,41,
+  57,49,44,51,41,45,39,41,59,58,57,230,109,32,37,53,
+  31,75,58,57,48,51,31,33,31,30,43,35,37,38,30,31,
+  32,26,28,27,26,29,21,26,21,26,24,24,26,24,24,25,
+  24,23,25,26,25,23,22,25,26,25,23,26,24,26,24,25,
+  24,24,25,21,24,24,26,20,16,16,20,19,16,17,13,17,
+};
+static const ArchesFixture AX_A3172_UNSET = { "A3172_UNSET", "UNSET Bamboo (14 markers out) -- refused on shape, no stop in it", 1, 1, 190, 109, 0.3172f, 42976u, 43075u, 45, false, FX_A3172_UNSET };
+
 // A2695_CCW  mm 107 -> 106, peak 134 of gain 204, paused 37211 ms, residual 0.2695 -- REFUSED
 // CCW Arches -- station dwell INSIDE the field; ARRIVAL ONLY, no departure recorded
+// wall 38059 ms, 242 samples at 2 ms each = 484 ms of record
 static const int16_t FX_A2695_CCW[] = {
   29,29,32,29,29,29,41,40,56,36,35,36,30,29,31,32,
   32,34,35,34,37,36,35,35,38,38,39,38,38,39,54,40,
@@ -122,5 +217,30 @@ static const int16_t FX_A2695_CCW[] = {
 };
 static const ArchesFixture AX_A2695_CCW = { "A2695_CCW", "CCW Arches -- station dwell INSIDE the field; ARRIVAL ONLY, no departure recorded", 0, 2, 204, 134, 0.2695f, 323985u, 362044u, -1, false, FX_A2695_CCW };
 
-static const ArchesFixture* const ARCHES_FIXTURES[] = { &AX_A1967_CW, &AX_A1818_CW, &AX_A1810_CW, &AX_A2695_CCW };
-static const int ARCHES_FIXTURE_COUNT = 4;
+// A5586_CCW  mm 157 -> 156, peak 193 of gain 213, paused 0 ms, residual 0.5586 -- REFUSED
+// CCW Bamboo -- opened on a stationary artifact and spanned the whole dwell
+// wall 35790 ms, 280 samples at 128 ms each = 35840 ms of record
+static const int16_t FX_A5586_CCW[] = {
+  31,31,30,29,29,30,30,24,33,35,29,30,27,30,30,30,
+  32,31,29,30,29,30,31,26,31,28,38,30,30,29,29,31,
+  30,30,29,30,30,29,29,28,30,30,30,29,30,30,29,35,
+  30,29,30,30,31,29,29,31,29,28,30,30,28,30,29,31,
+  30,29,30,26,28,30,31,27,29,29,30,28,28,26,30,30,
+  31,31,31,28,28,29,30,30,30,29,30,29,30,30,32,31,
+  26,30,30,27,31,29,31,29,30,31,42,25,29,26,31,30,
+  30,30,30,27,26,31,31,30,31,29,30,31,30,28,31,26,
+  28,29,29,29,30,31,30,29,28,30,29,28,31,31,30,29,
+  31,24,31,28,31,31,29,27,29,22,28,28,29,25,29,26,
+  30,28,30,29,29,28,32,29,31,29,36,30,31,31,32,28,
+  30,30,36,29,31,30,32,27,30,29,34,30,31,30,33,29,
+  30,31,32,24,31,31,31,29,29,22,34,30,29,29,33,29,
+  31,31,30,29,32,31,36,29,30,30,34,31,27,28,32,30,
+  26,30,31,32,30,29,31,26,30,30,28,32,31,31,33,30,
+  30,30,26,28,26,30,31,26,29,24,30,30,31,31,33,27,
+  30,30,31,29,31,33,30,31,30,28,31,29,28,30,29,30,
+  -1,33,63,112,185,223,193,95,
+};
+static const ArchesFixture AX_A5586_CCW = { "A5586_CCW", "CCW Bamboo -- opened on a stationary artifact and spanned the whole dwell", 0, 128, 213, 193, 0.5586f, 1244009u, 1279799u, 279, false, FX_A5586_CCW };
+
+static const ArchesFixture* const ARCHES_FIXTURES[] = { &AX_A1967_CW, &AX_A1818_CW, &AX_A2680_CW, &AX_A2548_CW, &AX_A1810_CW, &AX_A3408_UNSET, &AX_A4048_UNSET, &AX_A3172_UNSET, &AX_A2695_CCW, &AX_A5586_CCW };
+static const int ARCHES_FIXTURE_COUNT = 10;
