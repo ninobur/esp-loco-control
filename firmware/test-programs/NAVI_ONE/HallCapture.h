@@ -630,14 +630,37 @@ class HallCapture {
 
     // WALL CLOCK. The measurement clock is paused; these are not.
     if (nowMs - pausedAtMs_ > cfg_.pauseMaxMs) return abandon(nowMs);
+    // THE RESUMPTION WATCHDOG belongs to DEPARTING and only to it: it asks
+    // "departure was commanded and nothing coherent has appeared", and there is
+    // no such question while the throttle is still coming down.
     if (arm == StopArming::Departing) {
       if (!departArmedMs_) departArmedMs_ = nowMs;
       else if (nowMs - departArmedMs_ > cfg_.resumeMaxMs) return abandon(nowMs);
     } else {
       departArmedMs_ = 0;
-      return false;               // resumption is not being watched for
     }
-    if (resumeReady()) resumeMeasurement(nowMs);
+
+    // BUT THE ARC CONTINUING IS THE ARC CONTINUING, whichever sentinel is up.
+    // Until 1.0X7 this test was reached only when arm was Departing, so a
+    // passage paused on an APPROACH RAMP could never resume at all. It could
+    // only close on baseline proximity -- throwing its falling side away -- or
+    // time out on a watchdog.
+    //
+    // Arches CCW, 2026-09-02 15:03, is what that costs. The zero ramp is
+    // running, the throttle is coming down through 44, 39, 34, 29, 24, 19, and
+    // Toby is still coasting into MM106. The field flattens as he slows, the
+    // measurement pauses -- correctly -- and then he keeps rolling. Resumption
+    // is never even tested. He coasts out the far side, the field returns to
+    // baseline, and the passage closes with nothing but its rising flank in it:
+    // 33 up to 117 and then nothing, 364 ms of moving arc discarded, residual
+    // 0.2816, refused, session stopped.
+    //
+    // Nothing is loosened by testing it here. resumeReady() is unchanged and
+    // still demands resumeMove counts of organised, monotone travel inside
+    // resumeWindowMs -- 125 counts a second, which a drifting reference cannot
+    // fake and a stationary locomotive cannot produce. The throttle still
+    // decides nothing: it only says which question is being asked.
+    if (arm != StopArming::None && resumeReady()) resumeMeasurement(nowMs);
     return false;
   }
 

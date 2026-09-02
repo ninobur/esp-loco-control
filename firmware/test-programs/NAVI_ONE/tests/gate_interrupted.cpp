@@ -935,6 +935,66 @@ int main() {
            "   departure arc is judged as the ordinary passage it is.\n");
   }
 
+  // =========================================================================
+  printf("\n\nJ. a passage paused on the APPROACH RAMP can resume\n");
+  printf("   Arches CCW, 2026-09-02 15:03. The zero ramp is running, the\n");
+  printf("   throttle is coming down through 44, 39, 34, 29, 24, 19, and Toby\n");
+  printf("   is still COASTING into MM106. The field flattens as he slows, the\n");
+  printf("   measurement pauses -- correctly -- and then he keeps rolling.\n");
+  printf("   Until X7 resumption was tested only under Departing, so this\n");
+  printf("   passage could never resume: it closed on baseline proximity with\n");
+  printf("   nothing but its rising flank, 33 up to 117 and then nothing.\n");
+  printf("   364 ms of moving arc discarded, residual 0.2816, session stopped.\n");
+  {
+    printf("\n   %8s %8s | %6s %7s %8s  %s\n",
+           "stall@mm", "stall ms", "peak", "paused", "resid", "outcome");
+    int accepted = 0, total = 0;
+    for (double sx : { -14.0, -8.0, -3.0, 2.0, 8.0 }) {
+      for (uint32_t sms : { 700u, 1072u, 2000u }) {
+        Rig rg; uint32_t t = 1;
+        rg.useStations = false;
+        primeCapture(rg, t); rg.nav.declare(108, -1); primeLap(rg, 6, 202, t);
+        rg.clearTrace();
+        const int sign =
+          polarityAt(nextMarker(rg.nav.status().navMm, rg.nav.status().navDir)) ? 1 : -1;
+        double x = -60.0; int ph = 0; uint32_t at = 0;
+        // Decelerating armed throughout, throttle under the tractive floor,
+        // locomotive still coasting. This is a ZERO_RAMP, not a departure.
+        rg.arm = StopArming::Decelerating; rg.actualPwm = 20; rg.rampTarget = 0;
+        for (int i = 0; i < 40000; ++i, ++t) {
+          double v = 45.0;
+          if (ph == 0) { if (x >= sx) { ph = 1; at = t; } }
+          else if (ph == 1) { v = 0.0; if (t - at >= sms) ph = 2; }
+          else v = 25.0;                    // rolls on and leaves the far side
+          x += v / 1000.0;
+          rg.tick(t, (int16_t)(IDLE + sign * (int)gaussAt(x, 0, SIGMA_MM, 202.0)));
+          if (rg.advances || rg.notMagnets || rg.abandoned) break;
+          if (x > 400.0) break;
+        }
+        for (int i = 0; i < 3000; ++i, ++t) rg.tick(t, IDLE);
+        ++total; if (rg.advances) ++accepted;
+        printf("   %8.0f %8u | %6u %6ums %8.4f  %s\n", sx, (unsigned)sms,
+               (unsigned)rg.lastPeak, (unsigned long)rg.lastPausedMs,
+               (double)rg.lastResidual, rg.advances ? "accepted" : "REFUSED");
+        const std::string tag = "ramp stall at " + std::to_string((int)sx) +
+                                " mm for " + std::to_string(sms) + " ms";
+        // The claim is NOT that every one is accepted -- a stall deep on the
+        // rising flank still makes a poor arc and is still refused, which is
+        // correct. The claim is that the FALLING SIDE IS RECORDED, so what the
+        // recognizer judges is the whole crossing and not half of it.
+        ok(rg.lastPeak >= 160, "the apex was recorded", tag);
+        ok(rg.strikes == 0, "no strike", tag);
+        ok(rg.advances <= 1, "at most one advance", tag);
+      }
+    }
+    printf("\n   %d of %d accepted. On the build this replaces, NONE were: the\n"
+           "   passage closed out of its pause every time, keeping the rise and\n"
+           "   discarding the fall, for residuals of 0.23 to 0.285.\n",
+           accepted, total);
+    ok(accepted >= 10, "most approach-ramp stalls are now judged whole",
+       std::to_string(accepted) + " of " + std::to_string(total));
+  }
+
   printf("\n\n%d checks, %d failures\n", checks, failures);
   if (!knownRisks.empty()) {
     printf("\n");
