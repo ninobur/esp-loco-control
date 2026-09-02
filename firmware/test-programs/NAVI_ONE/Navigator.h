@@ -87,6 +87,9 @@ enum class Ruling : uint8_t {
   NotAMagnet,       // recognizer refused; no stop
   WrongMagnet,      // POLARITY disagreed -- one strike, stop
   Contradicted,     // advance made, then the ten-magnet word refused it -- stop
+  // Appended, so the existing five numbers keep their wire meaning.
+  Unresolved,       // a controlled stop cut a passage in half and NO Hall
+                    // evidence ever established what it was -- stop
 };
 
 inline const char* rulingName(Ruling r) {
@@ -95,6 +98,7 @@ inline const char* rulingName(Ruling r) {
     case Ruling::NoPosition:  return "NO_POSITION";
     case Ruling::NotAMagnet:  return "NOT_A_MAGNET";
     case Ruling::WrongMagnet: return "WRONG_MAGNET";
+    case Ruling::Unresolved:  return "UNRESOLVED_INTERRUPTION";
     default:                  return "CONTRADICTED";
   }
 }
@@ -186,6 +190,31 @@ class Navigator {
     s_.advances = s_.refusals = s_.notMagnets = 0;
     seqLen_ = 0;
     resetPending_ = true;
+  }
+
+  // AN INTERRUPTION EPISODE THAT ENDED WITH NOTHING (decision 0070).
+  //
+  // A controlled stop cut a passage in half; neither the pre-stop evidence nor
+  // the departure evidence established a magnet; the field has now cleared.
+  // Either a marker was crossed and not counted, or it was not -- and this
+  // layer cannot tell which, which is the same position it is in after a
+  // WrongMagnet. So it does the same thing: withdraws, at once.
+  //
+  // WHY IT MAY NOT WAIT. The alternative is to carry on and let the polarity
+  // chain catch it, which is what today's firmware does by accident. Decision
+  // 0059 measured that window: SIX markers, about 1.8 m, because ROUTE_POLARITY
+  // has same-polarity runs of six and seven. Findings 12 and 13 are both that
+  // failure -- a marker lost at a station, six advances of confident wrong
+  // position, and the strike arriving at the first opposite pole with the
+  // locomotive nowhere near where the dashboard said. A stop the program can
+  // justify at the moment the evidence runs out is worth more than a stop it
+  // can justify a metre and a half later.
+  Ruling unresolved() {
+    if (!positionKnown()) { s_.lastRuling = Ruling::NoPosition; return s_.lastRuling; }
+    s_.refusals++;
+    s_.state = NavState::Struck;          // withdrawn, exactly as a strike does
+    s_.lastRuling = Ruling::Unresolved;
+    return s_.lastRuling;
   }
 
   // The whole decision. One passage in, one ruling out.

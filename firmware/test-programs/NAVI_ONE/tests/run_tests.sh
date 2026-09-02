@@ -51,3 +51,7 @@ $CXX "$here/gate_station.cpp" -o "$tmp/station"; "$tmp/station"
 
 echo "== gate 11: the baseline through a station stop =="
 $CXX "$here/gate_station_baseline.cpp" -o "$tmp/stbase"; "$tmp/stbase"
+
+echo ""
+echo "== gate 12: the interrupted-traversal rule (decision 0070) =="
+$CXX "$here/gate_interrupted.cpp" -o "$tmp/interrupted"; "$tmp/interrupted"

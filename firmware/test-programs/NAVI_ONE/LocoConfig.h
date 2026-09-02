@@ -14,11 +14,19 @@ struct PwmSpeedEntry {
 //
 // VERIFY AFTER FLASHING. The boot serial line must read
 //
-//     [BOOT] NAVI_ONE_0_9 — 9950012
+//     [BOOT] NAVI_ONE_1_0X_FIELDTEST — 9950012
+//     [BOOT] EXPERIMENTAL FIELD-TEST BUILD — not field-accepted NAVI_ONE 1.0.
 //
 // If it names the other locomotive, the wrong profile was compiled in and the
 // image must be rebuilt: an ID mismatch puts two locomotives on the same MQTT
 // topics.
+//
+// IF THE SECOND LINE IS ABSENT you are looking at a different image than the
+// one this file describes. The FIELDTEST suffix is not decoration: this build
+// carries decision 0070's paused/resumed recognizer with finding 13's residual
+// margin still an open question, and a refused stitched waveform STOPS THE
+// LOCOMOTIVE where the accepted build would have carried on and lost a marker
+// quietly. Expect stops you would not have had before. That is the point.
 //
 // ----------------------------------------------------------------------------
 // THIS FILE'S OWN HISTORY, WHICH IT KEEPS REPEATING

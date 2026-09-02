@@ -1,11 +1,17 @@
 # 0070 — A passage may not span a stop
 
-**Status:** PROPOSED. Not ratified. **No firmware has been modified.**
-**Date:** 2026-09-01, rewritten 2026-09-02 on the operator's ruling
+**Status:** RATIFIED FOR FIELD TEST, 2026-09-02. **Not field-accepted.**
+The operator's words were *"It is time to take it down the runway and see if it
+flies"*, followed by the six conditions recorded under
+[The field-test build](#the-field-test-build) below. The design is in
+`firmware/`; whether it is correct on real track is the open question, and this
+record stays open until the field answers it.
+**Date:** 2026-09-01, rewritten 2026-09-02 on the operator's ruling, landed
+2026-09-02.
 **Touches:** 0054 (four conjunctive characteristics), 0057 (no duration ceiling,
 no motion gate on the guard), 0059 (the six-marker window), 0064, 0065.
 **Evidence:** findings 09, 11, 13; `tools/interrupted_replay/`.
-**Would ship as:** NAVI_ONE 1.0.
+**Ships as:** `NAVI_ONE_1_0X_FIELDTEST` — deliberately **not** NAVI_ONE 1.0.
 
 ---
 
@@ -320,13 +326,15 @@ at most once and was never shortened, at most one stitched waveform, no strike.
 ## What this cannot do
 
 - **Finding 13 sits on the shape ceiling.** Clean it fits at 0.1271; with three
-  counts of added noise it fits at 0.1321, against a ceiling of 0.13. Which side
-  of the line it falls on is decided by noise. Nothing is miscounted — the
-  waveform is refused, the marker is lost, and the strike arrives later — but
-  this is the design's principal open risk, and **it must not be answered by
-  moving the ceiling.** What would answer it is a field capture of a stop-and-go
-  at Arches under this firmware, undecimated, to see where the real residual
-  lands.
+  counts of added noise it fits at 0.1321, against a ceiling of 0.13. A margin
+  of 0.0029 — about 2 % of the ceiling. Which side of the line it falls on is
+  decided by noise. Nothing is miscounted: in the field-test build the complete
+  stitched waveform is published, nothing advances, and Toby stops there and
+  then. But this is the design's principal open risk, and **it must not be
+  answered by moving the ceiling.** What answers it is a field capture of a
+  stop-and-go at Arches under this build, undecimated, to see where the real
+  residual lands. Gate 12 says this in its own summary and refuses to end on a
+  bare pass.
 - **A magnet crossed almost entirely at a crawl is not recognisable, stop or no
   stop.** Six of the eighteen stop geometries are refused; the eighteen matching
   creeps are all refused. This is a pre-existing limit of the Gaussian in index
@@ -354,14 +362,80 @@ e-stop, low-voltage and position-invalidation semantics.
 
 Changed: `HallCapture` pauses and resumes one measurement; `Navigator` gains
 `Ruling::Unresolved` and `unresolved()`; the `.ino` raises the two sentinels,
-routes an abandoned pause, and publishes `stitched` and `paused_ms`; a version
-bump to NAVI_ONE 1.0.
+routes an abandoned pause, and publishes `stitched` and `paused_ms`. Then, for
+the field test only: any refusal publishes its complete waveform at once, a
+refused *stitched* waveform stops the locomotive, and the build names itself
+`NAVI_ONE_1_0X_FIELDTEST`.
+
+## The field-test build
+
+Ratified for field test on 2026-09-02 with six conditions, all of which are in
+the build:
+
+| condition | where it is | verified by |
+|---|---|---|
+| Accept clean finding 13 at 0.1271 | the unchanged recognizer | gate 12 §C — MAGNET, one advance |
+| Safely refuse its noisy reconstruction at 0.1321 | the unchanged recognizer | gate 12 §C — WRONG\_SHAPE, zero advances |
+| Publish and dump the complete stitched waveform on **any** refusal | `hallTask()`: `if (!v.isMagnet) publishWaveformSlot(0, 1);` | gate 12 §C asserts the dump carries every sample the recognizer judged |
+| Advance zero and stop if it refuses | `refusedStitched()` off `Ruling::NotAMagnet` when `kind == 1` | gate 12 §C — AUTO withdrawn, nav STRUCK, on the refusal itself |
+| Preserve all existing diagnostics | nothing removed; the dump wire format is untouched | the eleven pre-existing gates, byte-for-byte identical to `1b8b828` |
+| Identify itself as an experimental field-test build | `SKETCH_NAME`, `build_class`, `field_accepted: 0`, three boot lines | boot serial and `state/bootid` |
+
+**The residual ceiling was not touched.** `MagnetRecognizer.h` is byte for byte
+the accepted one and does not appear in the diff at all.
+
+### What it does that the accepted build did not
+
+1. **Every refusal publishes its waveform immediately**, on the Hall task that
+   still holds it — not markers later when a polarity chain catches up, and not
+   only if AUTO is eventually withdrawn. One passage is at most 512 samples,
+   which chunks into two messages. The trailing-window dump on `withdraw()` is
+   unchanged and still fires as well. The wire format in `WaveformDump.h` is
+   untouched: a single-slot dump simply reports `slotTotal` 1.
+2. **A refused stitched waveform stops the locomotive.** `refusedStitched()`
+   calls `navigator.unresolved()` and `withdraw()`, publishing
+   `STITCHED_REFUSED`. An ordinary refusal with no stop in it behaves exactly as
+   before.
+
+### The unintended consequence of that second one, stated plainly
+
+**Toby will stop more often than he used to.** Before this build, a refused
+waveform cost a marker silently and navigation carried on until the polarity
+chain noticed — which is the failure findings 11 and 13 are made of. Now the
+refusal stops him where he stands. That is the safer behaviour and it is what
+was asked for, but it converts a quiet, delayed fault into a loud, immediate
+one, and on a bad day it will end a running session at a station rather than
+half a lap later. **A stop is the build working, not the build failing.**
+Anyone reading the dashboard should expect it.
+
+The second consequence: `field_accepted` is `0` in `state/bootid`, so anything
+downstream that keys on the sketch name sees a name it has never seen before.
+Nothing in this repository does; the Pi console reads `sketch` only for display.
+
+### What to watch for, and when to stop
+
+- `state/bootid` must read `NAVI_ONE_1_0X_FIELDTEST` with `field_accepted: 0`,
+  and the serial console must print the three `[BOOT]` lines. If the second line
+  is absent, a different image is running.
+- The event to look for is `STITCHED_REFUSED` on the marker topic, with the
+  `diag/waveform` dump that precedes it. **That dump is the measurement this
+  build was flashed to take.** Keep it.
+- `nav.stitched` and `nav.paused_ms` on an `AGREE` say a stop was crossed and
+  reconstructed successfully.
+- Abort and go back to `1b8b828` if a stitched waveform is ever **accepted at
+  the wrong marker** — that is the one failure mode gate 12 cannot rule out from
+  records alone.
 
 ## Ratification
 
-Nothing here is authoritative. `git status --short firmware/test-programs/NAVI_ONE`
-is empty and the harness prints it before it runs anything. The exact diff is
-`tools/interrupted_replay/0070.diff` — 499 lines added, 18 removed, across four
-files plus the gate runner and two new test files.
+The exact diff is `tools/interrupted_replay/0070.diff`, against `1b8b828`
+(NAVI_ONE 0.9, the last accepted firmware): 1,593 lines added, 40 removed,
+across four firmware files, the gate runner, and two new test files.
 
-**No firmware will be modified until the operator ratifies this design.**
+`sh tools/interrupted_replay/build_and_run.sh` extracts `1b8b828` from git,
+runs the eleven pre-existing gates against both trees with the base commit's own
+runner, and diffs them byte for byte. It reads IDENTICAL. Gate 12 reports 196
+checks, 0 failures, **and one known risk it explicitly does not close.**
+
+**This record does not become "accepted" by being flashed.** It becomes accepted
+when the field answers finding 13's margin, and not before.

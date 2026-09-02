@@ -24,9 +24,10 @@
 //       the samples the firmware itself published on diag/waveform. Rig below
 //       reproduces NAVI_ONE.ino's hallTask(), stationService(), loop() and
 //       serviceRamp(); they are meant to be read side by side.
-// NOT:  the ADC. A decimated field record is expanded by median-filtering the
-//       stored samples and interpolating between them -- the readings between
-//       were never transmitted. Sections D onwards drive a physical model: a
+// NOT:  the ADC. A decimated field record is expanded by INTERPOLATING between
+//       the stored samples -- the readings between were never transmitted, and
+//       they are not median-filtered: the filter would smooth the five stored
+//       samples that ARE finding 13's departure crossing. Sections D onwards drive a physical model: a
 //       30 mm magnet (15 mm sigma) and Toby's measured fit
 //       3.990 x (PWM - 25.1) mm/s, with the throttle scripted exactly as the
 //       station machine scripts it.
@@ -46,6 +47,17 @@
 using namespace navi_one;
 
 static int checks = 0, failures = 0;
+
+// A RISK THIS GATE DOES NOT CLOSE.
+//
+// Registered explicitly so that a green run cannot be mistaken for a resolved
+// question. Whatever is in here is carried into the field UNANSWERED, and the
+// gate says so in its own summary line rather than ending on a bare pass.
+struct KnownRisk { std::string what, detail; };
+static std::vector<KnownRisk> knownRisks;
+static void risk(const std::string& what, const std::string& detail) {
+  knownRisks.push_back({ what, detail });
+}
 static void ok(bool c, const char* what, const std::string& d = "") {
   ++checks;
   if (!c) { ++failures; printf("  *** FAIL  %s %s\n", what, d.c_str()); }
@@ -85,6 +97,10 @@ struct Rig {
 
   std::vector<std::string> log, events;
   int advances = 0, notMagnets = 0, unresolvedCount = 0, strikes = 0;
+  // Experimental field-test build: refusals that stopped the locomotive, and
+  // waveform dumps published because of a refusal.
+  int stitchedRefusals = 0, dumps = 0;
+  uint16_t lastDumpSamples = 0, lastPassageSamples = 0;
   int stitched = 0, abandoned = 0, pauses = 0, resumes = 0;
   uint32_t lastPausedMs = 0;
   float    lastResidual = 0.0f, lastRatio = 0.0f;
@@ -112,6 +128,13 @@ struct Rig {
   void unresolvedInterruption() {
     nav.unresolved(); ++unresolvedCount;
     note("UNRESOLVED (a paused measurement never resumed)");
+    withdraw();
+  }
+
+  // NAVI_ONE.ino: refusedStitched()
+  void refusedStitched() {
+    nav.unresolved(); ++stitchedRefusals;
+    note("STITCHED_REFUSED (advance zero, stop)");
     withdraw();
   }
 
@@ -157,6 +180,11 @@ struct Rig {
       Verdict v = rec.examine(p);                  // THE UNCHANGED RECOGNIZER
       lastResidual = v.residual; lastRatio = v.amplitudeRatio;
       lastPeak = p.peakCounts; lastPausedMs = cap.pausedMs();
+      // NAVI_ONE.ino hallTask(): if (!v.isMagnet) publishWaveformSlot(0, 1).
+      // The COMPLETE passage, every sample the recognizer judged, published
+      // from the task that still holds it.
+      lastPassageSamples = p.sampleCount;
+      if (!v.isMagnet) { ++dumps; lastDumpSamples = p.sampleCount; }
       if (cap.pausedMs()) ++stitched;
       char b[220];
       snprintf(b, sizeof(b),
@@ -170,7 +198,12 @@ struct Rig {
       Ruling r = nav.judge(p, v);
       switch (r) {
         case Ruling::Advanced:    ++advances; break;
-        case Ruling::NotAMagnet:  ++notMagnets; break;
+        case Ruling::NotAMagnet:
+          ++notMagnets;
+          // Experimental field-test build: a refused STITCHED waveform stops.
+          // An ordinary refusal with no stop in it does not -- unchanged.
+          if (cap.pausedMs()) refusedStitched();
+          break;
         case Ruling::WrongMagnet:
         case Ruling::Contradicted: ++strikes; withdraw(); break;
         default: break;
@@ -188,6 +221,7 @@ struct Rig {
     log.clear(); events.clear();
     advances = notMagnets = unresolvedCount = strikes = 0;
     stitched = abandoned = pauses = resumes = 0;
+    stitchedRefusals = dumps = 0; lastDumpSamples = lastPassageSamples = 0;
   }
   void report(const std::string& name) const {
     printf("\n  %s\n", name.c_str());
@@ -195,6 +229,7 @@ struct Rig {
     for (const auto& e : log) printf("   %s\n", e.c_str());
     printf("   advances %d  notMagnet %d  stitched %d  abandoned %d  pauses %d  resumes %d\n",
            advances, notMagnets, stitched, abandoned, pauses, resumes);
+    printf("   refusal dumps %d  stop-on-refusal %d\n", dumps, stitchedRefusals);
     printf("   final: AUTO %s  nav %s  mm %u\n",
            autoRunning ? "RUNNING" : "WITHDRAWN",
            navStateName(nav.status().state), nav.status().navMm);
@@ -308,7 +343,9 @@ static void runStop(Rig& rg, uint32_t& t, const StopRun& R, int sign, int cap_ms
 
 int main() {
   printf("gate 12 -- a passage may not span a stop (decision 0070)\n");
-  printf("           PROPOSED. Firmware unchanged; this compiles the proposed tree.\n");
+  printf("           EXPERIMENTAL FIELD-TEST BUILD -- NOT field-accepted NAVI_ONE 1.0.\n");
+  printf("           MagnetRecognizer.h and WaveformWindow.h are unmodified: there is\n");
+  printf("           no second recognizer here to test, and no ceiling was moved.\n");
   printf("           MagnetRecognizer.h and WaveformWindow.h are the firmware's,\n");
   printf("           byte for byte. There is no second recognizer here to test.\n\n");
 
@@ -431,13 +468,40 @@ int main() {
              std::string(F.tag) + " got " + std::to_string(rg.advances));
         } else if (rg.advances != W.adv) {
           // NOT a pass, and NOT a failure of the invariant: a MEASUREMENT.
+          // What IS asserted here is that the refusal is SAFE and VISIBLE --
+          // the four things the field-test build owes the operator when the
+          // ceiling goes against it.
+          ok(rg.advances == 0, "it advanced NOTHING", F.tag);
+          ok(rg.stitchedRefusals == 1, "the refusal stopped the locomotive", F.tag);
+          ok(!rg.autoRunning, "AUTO withdrawn on the refusal itself", F.tag);
+          ok(rg.nav.status().state == NavState::Struck, "position withdrawn", F.tag);
+          ok(rg.dumps >= 1, "the refused waveform was published", F.tag);
+          ok(rg.lastDumpSamples == rg.lastPassageSamples && rg.lastDumpSamples > 0,
+             "and published COMPLETE -- every sample the recognizer judged",
+             std::string(F.tag) + " dumped " + std::to_string(rg.lastDumpSamples) +
+             " of " + std::to_string(rg.lastPassageSamples));
           printf("   *** NOTE: with noise this one lands at residual %.4f against the\n"
                  "   0.13 ceiling -- REFUSED. Clean it is %.4f, accepted. Finding 13 sits\n"
                  "   on the line, and which side it falls is decided by three counts of\n"
-                 "   noise. Nothing is miscounted; the marker is lost and the strike\n"
-                 "   arrives later. This is decision 0070's principal open risk and it\n"
-                 "   must not be answered by moving the ceiling.\n",
+                 "   noise. Nothing is miscounted: the complete stitched waveform is\n"
+                 "   published, nothing advances, and the locomotive stops there and\n"
+                 "   then rather than carrying a lost marker to a later strike.\n"
+                 "   THE CEILING IS NOT MOVED TO ANSWER THIS. The field answers it.\n",
                  (double)rg.lastResidual, 0.1271);
+        }
+        // Registered whichever way the noise happened to fall. The margin is
+        // the risk; this run is one sample of it, not a verdict on it.
+        if (variant == 1 && !strcmp(F.tag, "F13")) {
+          char d[400];
+          snprintf(d, sizeof(d),
+            "clean %.4f ACCEPTED, +/-3 counts of noise %.4f %s, ceiling 0.130. "
+            "Margin %.4f -- about %.0f%% of the ceiling. This gate reproduces "
+            "the record; it does not measure the real line. What answers it is "
+            "an undecimated capture of a stop-and-go at Arches under this build.",
+            0.1271, (double)rg.lastResidual,
+            rg.advances == W.adv ? "still accepted" : "REFUSED",
+            0.130 - 0.1271, (0.130 - 0.1271) / 0.130 * 100.0);
+          risk("Finding 13's stitched waveform sits on the 0.13 shape ceiling", d);
         }
       }
     }
@@ -743,5 +807,32 @@ int main() {
   }
 
   printf("\n\n%d checks, %d failures\n", checks, failures);
+  if (!knownRisks.empty()) {
+    printf("\n");
+    printf("  ======================================================================\n");
+    printf("   %u KNOWN RISK%s CARRIED INTO THE FIELD -- THIS GATE DOES NOT CLOSE %s\n",
+           (unsigned)knownRisks.size(), knownRisks.size() == 1 ? "" : "S",
+           knownRisks.size() == 1 ? "IT" : "THEM");
+    printf("  ======================================================================\n");
+    for (size_t i = 0; i < knownRisks.size(); ++i) {
+      printf("   %u. %s\n", (unsigned)(i + 1), knownRisks[i].what.c_str());
+      // wrap the detail at ~68 columns
+      const std::string& d = knownRisks[i].detail;
+      size_t at = 0;
+      while (at < d.size()) {
+        size_t take = d.size() - at < 68 ? d.size() - at : 68;
+        if (at + take < d.size()) {
+          size_t sp = d.rfind(' ', at + take);
+          if (sp != std::string::npos && sp > at) take = sp - at;
+        }
+        printf("      %s\n", d.substr(at, take).c_str());
+        at += take; while (at < d.size() && d[at] == ' ') ++at;
+      }
+    }
+    printf("\n   A green run of this gate is NOT a clearance. It says the design\n"
+           "   behaves as specified INCLUDING when the ceiling goes against it:\n"
+           "   nothing advances, the whole waveform is published, and Toby stops.\n"
+           "   Whether the ceiling goes against it on real track is unmeasured.\n");
+  }
   return failures ? 1 : 0;
 }

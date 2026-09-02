@@ -1,6 +1,6 @@
 /*
  * ============================================================================
- * NAVI_ONE 0.9  —  Ninobur Garden Railway navigation, built from the ground up
+ * NAVI_ONE 1.0  —  Ninobur Garden Railway navigation, built from the ground up
  * ============================================================================
  * Development. NOT FIELD ACCEPTED.
  *
@@ -72,7 +72,22 @@ using namespace navi_one;
 
 // Published on state/bootid. It is the ONLY thing that tells telemetry which
 // build is running, so it advances with every behavioural change.
-#define SKETCH_NAME "NAVI_ONE_0_9"
+//
+// THIS IS AN EXPERIMENTAL FIELD-TEST BUILD. IT IS NOT FIELD-ACCEPTED
+// NAVI_ONE 1.0 AND MUST NOT BE RECORDED AS ONE.
+//
+// It carries decision 0070's paused/resumed recognizer into the field with one
+// known risk deliberately left OPEN. Finding 13's stitched waveform sits on the
+// shape ceiling: residual 0.1271 reconstructed clean, 0.1321 with three counts
+// of injected noise, against a ceiling of 0.13. Which side of that line a real
+// stop-and-go at Arches falls on is the question this build exists to answer.
+//
+// THE CEILING IS NOT ADJUSTED TO MAKE IT PASS. If the field refuses it, the
+// refusal is the result -- the complete stitched waveform is published, nothing
+// is advanced, and the locomotive stops. That is the measurement.
+#define SKETCH_NAME    "NAVI_ONE_1_0X_FIELDTEST"
+#define BUILD_CLASS    "EXPERIMENTAL_FIELD_TEST"
+#define FIELD_ACCEPTED 0
 
 // Types used in function signatures must appear before the Arduino
 // prototype generator's insertion point, which is just after the includes.
@@ -85,6 +100,11 @@ struct Judged {
   uint16_t peak; uint8_t polarity;
   uint8_t  outcome; uint8_t isMagnet;
   float    ratio, residual; uint8_t shapeTested; uint32_t gapMs; uint16_t gain;
+  // Decision 0070, telemetry only. kind 0 an ordinary completed passage, 1 a
+  // passage whose measurement was paused across a stop and stitched, 2 a
+  // paused passage abandoned on a wall-clock watchdog. pausedMs is wall clock
+  // spent stopped; the recognizer never saw it.
+  uint8_t  kind; uint32_t pausedMs;
 };
 // len: 0 means "text, use strlen(payload) at send time" (every existing text
 // pub() call). Non-zero means "exactly this many bytes, verbatim, including
@@ -197,6 +217,33 @@ static uint32_t lastAdvanceMs = 0; static uint32_t estMmPerS = 0;
 static volatile bool     recognizerResetRequest = false;
 static volatile uint32_t navEpoch = 0;
 static volatile bool     dumpWindowRequest = false;
+// stopArming: the FOURTH datum, added by decision 0070. Raised on the loop
+// thread by stationService() and read on the Hall task, where it selects WHAT
+// TO WATCH FOR and nothing else.
+//
+//   Decelerating  a controlled stop is running -- watch for the field to stop
+//                 moving, and pause the measurement when it does.
+//   Departing     a controlled departure is running -- watch for the arc to
+//                 continue, and resume the measurement when it does.
+//
+// PWM DOES NOT PROVE MOVEMENT. It does not decide a polarity, identify a
+// magnet, contribute a sample, or advance anything. Falling PWM pauses
+// nothing while Toby coasts; rising PWM resumes nothing while he stalls,
+// spins, or takes his time. The Hall signal decides both, every time.
+//
+// WHICH AUTHORITIES ARM IT, AND WHICH DELIBERATELY DO NOT
+//   station zero-ramp, station dwell .... Decelerating. The only ones today.
+//   station departure .................... Departing.
+//   a CTO stop ........................... NOT IMPLEMENTED in NAVI_ONE 1.0.
+//                                          When it arrives it arms here,
+//                                          explicitly, in one line.
+//   MANUAL ............................... no. stationService() returns early
+//                                          unless autoRunning.
+//   e-stop, low voltage, dispatcher
+//   release, a strike, a contradiction ... no. Every one clears autoRunning.
+//   MISSED, PHASE_TIMEOUT ................ no. The station has stood down.
+// None of those semantics change. This flag is additive.
+static volatile uint8_t  stopArming = (uint8_t)StopArming::None;
 static uint32_t staleJudged = 0;
 
 // Called on the LOOP THREAD, immediately after any Navigator call that ends a
@@ -511,19 +558,21 @@ static const char* whyName(Ruling r, Outcome o){
     case Ruling::WrongMagnet:  return "POLARITY_MISMATCH";
     case Ruling::Contradicted: return "SEQUENCE_MISMATCH";
     case Ruling::NoPosition:   return "NO_POSITION";
+    case Ruling::Unresolved:   return "INTERRUPTION_UNRESOLVED";
     default:                   return outcomeName(o);
   }
 }
 
 static void publishNav(const char* event,const Judged* j,Ruling r){
   const NavStatus& s = navigator.status();
-  char b[420];
+  char b[500];
   if (j) {
     snprintf(b,sizeof(b),
       "{\"event\":\"%s\",\"state\":\"%s\",\"nav\":\"%s\",\"nav_state\":\"%s\",\"mm\":%u,\"tgt\":%u,"
       "\"landmark\":\"%s\",\"dir\":\"%s\",\"ruling\":\"%s\",\"why\":\"%s\","
       "\"obs\":\"%c\",\"expected\":\"%c\",\"peak\":%u,\"ratio\":%.3f,"
       "\"resid\":%.4f,\"shape\":%u,\"gap_ms\":%lu,\"gain\":%u,"
+      "\"stitched\":%u,\"paused_ms\":%lu,"
       "\"trust\":\"%s\",\"seq_at\":%u,\"adv\":%lu,\"ref\":%lu,\"notmag\":%lu}",
       event, navigator.positionKnown()?"NORMAL":"UNSET",
       navigator.positionKnown()?"NORMAL":"UNSET",
@@ -535,6 +584,7 @@ static void publishNav(const char* event,const Judged* j,Ruling r){
       poleChar(polarityAt(r==Ruling::Advanced ? s.navMm : s.target)),
       j->peak, (double)j->ratio, (double)j->residual, j->shapeTested,
       (unsigned long)j->gapMs, j->gain,
+      j->kind, (unsigned long)j->pausedMs,
       trustName(s.trust), s.seqAt,
       (unsigned long)s.advances,(unsigned long)s.refusals,(unsigned long)s.notMagnets);
     pub(T_MARKER,b,false);
@@ -604,27 +654,35 @@ static void declarePosition(uint8_t mm,int8_t dir,const char* interval){
 // the firmware processes to compute the value" (operator's ruling,
 // 2026-08-31). Slot 0 is the most recently pushed passage (closest to
 // whatever triggered the withdrawal); higher indices are older.
-static void publishWaveformWindow(){
-  const uint8_t total = waveformWindow.count();
+// ONE slot of the trailing window, chunked so nothing is ever truncated.
+// Split out of publishWaveformWindow() so a refusal can publish the single
+// waveform it just refused without dumping the whole window. The WIRE FORMAT
+// IS UNCHANGED (WaveformDump.h is byte-for-byte the accepted one): a
+// single-slot dump simply reports slotTotal 1, which every existing decoder
+// already handles.
+static void publishWaveformSlot(uint8_t slot, uint8_t total){
+  const auto& e = waveformWindow.at(slot);
+  if (!e.valid) return;
   const uint16_t perChunk = wavChunkCapacity(sizeof(PubMsg::payload));
   uint8_t buf[sizeof(PubMsg::payload)];
-  for (uint8_t slot = 0; slot < total; ++slot) {
-    const auto& e = waveformWindow.at(slot);
-    if (!e.valid) continue;
-    const uint8_t chunks = wavChunkCount(e.sampleCount, perChunk);
-    for (uint8_t c = 0; c < chunks; ++c) {
-      const uint16_t offset = (uint16_t)(c * perChunk);
-      const uint16_t remain  = (uint16_t)(e.sampleCount - offset);
-      const uint16_t n = remain < perChunk ? remain : perChunk;
-      const uint16_t bytes = wavEncodeChunk(
-        buf, sizeof(buf), slot, total, c, chunks,
-        e.polarity, e.outcome, e.isMagnet, e.shapeTested,
-        e.sampleCount, e.decimation, e.peakCounts, e.gain,
-        e.amplitudeRatio, e.residual, e.gapMs, e.openedAtMs, e.closedAtMs,
-        e.samples, offset, n);
-      if (bytes) pubBin(T_WAVEFORM, buf, bytes, false);
-    }
+  const uint8_t chunks = wavChunkCount(e.sampleCount, perChunk);
+  for (uint8_t c = 0; c < chunks; ++c) {
+    const uint16_t offset = (uint16_t)(c * perChunk);
+    const uint16_t remain  = (uint16_t)(e.sampleCount - offset);
+    const uint16_t n = remain < perChunk ? remain : perChunk;
+    const uint16_t bytes = wavEncodeChunk(
+      buf, sizeof(buf), slot, total, c, chunks,
+      e.polarity, e.outcome, e.isMagnet, e.shapeTested,
+      e.sampleCount, e.decimation, e.peakCounts, e.gain,
+      e.amplitudeRatio, e.residual, e.gapMs, e.openedAtMs, e.closedAtMs,
+      e.samples, offset, n);
+    if (bytes) pubBin(T_WAVEFORM, buf, bytes, false);
   }
+}
+
+static void publishWaveformWindow(){
+  const uint8_t total = waveformWindow.count();
+  for (uint8_t slot = 0; slot < total; ++slot) publishWaveformSlot(slot, total);
 }
 
 // ---------------------------------------------------------------------------
@@ -648,15 +706,42 @@ static void hallTask(void*){
     // postpones adaptation by a second, while adapting while secretly parked
     // over a magnet makes the reference BE the magnet. Findings 09 and 10.
     const bool mayAdapt = actualPwm > NAVI_BASELINE_ADAPT_PWM;
-    if (capture.sample(now,(int16_t)analogRead(HALL_PIN), mayAdapt)) {
-      const Passage& p = capture.passage();
-      Verdict v = recognizer.examine(p);
-      // Copied here, before the next capture.sample() call starts
-      // overwriting HallCapture's own buffer with the following passage.
-      waveformWindow.push(p, v);
-      Judged j{ myEpoch,p.openedAtMs,p.closedAtMs,p.peakCounts,p.polarity,
-                (uint8_t)v.outcome,(uint8_t)v.isMagnet,
-                v.amplitudeRatio,v.residual,(uint8_t)v.shapeTested,v.gapMs,v.gain };
+    // stopArming ARMS OBSERVATION. See its declaration; it is not evidence.
+    if (capture.sample(now,(int16_t)analogRead(HALL_PIN), mayAdapt,
+                       (StopArming)stopArming)) {
+      Judged j{};
+      if (capture.event() == HallEvent::Passage) {
+        const Passage& p = capture.passage();
+        // THE FULL RECOGNIZER. Amplitude, whole-wave signed polarity, Gaussian
+        // morphology, clipping, rebound guard -- on the complete waveform,
+        // whether or not its measurement was paused in the middle. There is no
+        // second, weaker path and nothing waives the shape test.
+        Verdict v = recognizer.examine(p);
+        // Copied here, before the next capture.sample() call starts
+        // overwriting HallCapture's own buffer with the following passage.
+        waveformWindow.push(p, v);
+        // EXPERIMENTAL FIELD-TEST BUILD. Any refusal publishes the complete
+        // waveform it refused, AT ONCE, on the task that still holds it --
+        // not markers later when a polarity chain catches up, and not only if
+        // AUTO is eventually withdrawn. The whole historical complaint
+        // (WaveformWindow.h) is that a refusal was invisible until it had
+        // already become a strike; a stitched waveform refused on the shape
+        // ceiling is precisely the thing this build was flashed to see.
+        //
+        // Bounded: one passage is at most RING samples, which chunks into two
+        // messages of PubMsg::payload. The trailing-window dump on withdraw()
+        // is untouched and still fires as well.
+        if (!v.isMagnet) publishWaveformSlot(0, 1);
+        j = Judged{ myEpoch,p.openedAtMs,p.closedAtMs,p.peakCounts,p.polarity,
+                    (uint8_t)v.outcome,(uint8_t)v.isMagnet,
+                    v.amplitudeRatio,v.residual,(uint8_t)v.shapeTested,v.gapMs,v.gain,
+                    (uint8_t)(capture.pausedMs() ? 1 : 0), capture.pausedMs() };
+      } else {
+        // A paused measurement that outlived a wall-clock watchdog. There is
+        // no waveform to judge and nothing to advance.
+        j = Judged{ myEpoch,now,now,0,0,(uint8_t)Outcome::NoCurve,0,
+                    0.0f,0.0f,0,0,0, 2, 0 };
+      }
       if (judgedQ) xQueueSend(judgedQ,&j,0);
     }
     if (dumpWindowRequest) {
@@ -1007,6 +1092,11 @@ void setup(){
   pubQ  =xQueueCreate(48,sizeof(PubMsg));    // holds ~5 s while the broker is away
   cmdQ  =xQueueCreate(16,sizeof(CmdMsg));
   Serial.printf("[BOOT] %s — %s\n",SKETCH_NAME,LOCO_NAME);
+  Serial.printf("[BOOT] EXPERIMENTAL FIELD-TEST BUILD — not field-accepted NAVI_ONE 1.0.\n");
+  Serial.printf("[BOOT] Known open risk: finding 13 sits on the 0.13 shape ceiling "
+                "(0.1271 clean / 0.1321 noisy). The ceiling is unchanged. A refused\n");
+  Serial.printf("[BOOT] stitched waveform is published in full, advances nothing, "
+                "and stops the locomotive.\n");
   Serial.printf("[CAL] 2 s baseline — keep clear of magnets\n");
   if (!judgedQ || !pubQ || !cmdQ) {
     Serial.println("[BOOT] FATAL: queue allocation failed — halting");
@@ -1023,17 +1113,69 @@ void setup(){
   mqtt.setServer(MQTT_BROKER,MQTT_PORT); mqtt.setCallback(onMqtt); mqtt.setBufferSize(900);
   if (xTaskCreatePinnedToCore(networkTask,"net",8192,nullptr,1,nullptr,1) != pdPASS)
     Serial.println("[BOOT] WARNING: network task would not start — running blind");
-  char b[300];
+  char b[400];
   snprintf(b,sizeof(b),
-    "{\"sketch\":\"%s\",\"loco\":\"%s\",\"entry\":%d,\"exit\":%d,\"floor_ms\":%d,"
+    "{\"sketch\":\"%s\",\"build_class\":\"%s\",\"field_accepted\":%d,"
+    "\"loco\":\"%s\",\"entry\":%d,\"exit\":%d,\"floor_ms\":%d,"
     "\"amp_floor\":%.2f,\"resid_ceil\":%.2f,\"guard_ms\":%lu,\"seq_n\":%d,"
-    "\"offsets\":0,\"quorum\":0,\"velocity_model\":0,\"motion_gate\":%d,\"ir_votes\":0}",
-    SKETCH_NAME,LOCO_NAME,(int)captureCfg.entryMargin,(int)captureCfg.exitMargin,
+    "\"offsets\":0,\"quorum\":0,\"velocity_model\":0,\"motion_gate\":%d,\"ir_votes\":0,"
+    "\"pause_resume\":1,\"settle_span\":%d,\"settle_ms\":%u,\"resume_move\":%d,"
+    "\"pause_max_ms\":%lu,\"resume_max_ms\":%lu}",
+    SKETCH_NAME,BUILD_CLASS,(int)FIELD_ACCEPTED,
+    LOCO_NAME,(int)captureCfg.entryMargin,(int)captureCfg.exitMargin,
     (int)captureCfg.floorMs,(double)recCfg.amplitudeFloor,(double)recCfg.residualCeiling,
-    (unsigned long)recCfg.guardMs,(int)SEQ_N,(int)NAVI_BASELINE_ADAPT_PWM);
+    (unsigned long)recCfg.guardMs,(int)SEQ_N,(int)NAVI_BASELINE_ADAPT_PWM,
+    (int)captureCfg.settleSpan,(unsigned)captureCfg.settleWindowMs,
+    (int)captureCfg.resumeMove,(unsigned long)captureCfg.pauseMaxMs,
+    (unsigned long)captureCfg.resumeMaxMs);
   pub(T_BOOT,b,true);
   if (!inaReady) warn("INA219 NOT FOUND — no battery protection this session");
   Serial.println("[BOOT] ready. session_direction, then start_mm, then auto, then GO.");
+}
+
+// A PAUSED MEASUREMENT THAT NEVER RESUMED (decision 0070).
+//
+// A controlled stop cut a passage in half; the arc never continued, on either
+// wall-clock watchdog. A marker may have been crossed and not counted, and
+// this program cannot tell whether it was. That is the same position a
+// WrongMagnet leaves it in, so it does the same thing, at once -- not six
+// markers later when the polarity chain happens to catch up (decision 0059).
+static void unresolvedInterruption(){
+  navigator.unresolved();
+  const NavStatus& s = navigator.status();
+  char w[220];
+  snprintf(w,sizeof(w),
+    "PAUSED MEASUREMENT NEVER RESUMED at MM%03u: a stop interrupted a passage "
+    "and the waveform never continued. A marker may have gone uncounted. "
+    "Position is not known. Declare it.", s.navMm);
+  withdraw(w);
+  publishNav("INTERRUPTION_UNRESOLVED",nullptr,Ruling::Unresolved);
+}
+
+// A STITCHED WAVEFORM THE RECOGNIZER REFUSED (decision 0070, requirement 10).
+//
+// The measurement was paused by a controlled stop, resumed on Hall morphology,
+// stitched, and put to the UNCHANGED full recognizer -- which refused it.
+// Nothing is miscounted. The marker is simply lost, and this program cannot
+// tell whether one was crossed at all. That is the same position an unresolved
+// interruption leaves it in, so it does the same thing, and at once: advance
+// zero, stop safely, say why.
+//
+// ORDINARY UN-STITCHED REFUSALS ARE NOT ROUTED HERE. They keep the behaviour
+// every existing gate was written against, unchanged.
+static void refusedStitched(const Judged& j){
+  navigator.unresolved();
+  const NavStatus& s = navigator.status();
+  char w[250];
+  snprintf(w,sizeof(w),
+    "STITCHED WAVEFORM REFUSED at MM%03u: a passage was paused by a stop, "
+    "resumed on Hall morphology, and then refused by the recognizer "
+    "(%s, resid %.4f, ratio %.3f, paused %lums). A marker may have gone "
+    "uncounted. Position is not known. Declare it.",
+    s.navMm, outcomeName((Outcome)j.outcome), (double)j.residual,
+    (double)j.ratio, (unsigned long)j.pausedMs);
+  withdraw(w);
+  publishNav("STITCHED_REFUSED",&j,Ruling::Unresolved);
 }
 
 // The station machine's single call site. AUTO only: MANUAL keeps operator
@@ -1047,11 +1189,23 @@ static void stationService(uint32_t now){
   const NavStatus& s = navigator.status();
   if (!autoRunning || !navigator.positionKnown()) {
     if (stationMachine.phase() != StPhase::Idle) stationMachine.reset();
+    stopArming = (uint8_t)StopArming::None;
     return;
   }
   const uint8_t cruise = cruisePwmAt(s.navMm, s.navDir, AUTO_CRUISE_PWM);
   StationOrder o = stationMachine.tick(s.navMm, s.navDir,
                                        (uint8_t)actualPwm, cruise, now);
+
+  // THE TWO SENTINELS (decision 0070), and the whole of them. The throttle
+  // coming down arms the Hall task to watch for the field to stop moving; the
+  // throttle going up arms it to watch for the arc to continue. Neither does
+  // anything by itself.
+  switch (stationMachine.phase()) {
+    case StPhase::Ramp:
+    case StPhase::Dwell:  stopArming = (uint8_t)StopArming::Decelerating; break;
+    case StPhase::Depart: stopArming = (uint8_t)StopArming::Departing;    break;
+    default:              stopArming = (uint8_t)StopArming::None;         break;
+  }
   if (o.setThrottle) requestPwm((int)o.pwm, AUTO_STEP_UP_MS, o.stepMs);
   if (o.event) {
     char b[192];
@@ -1073,6 +1227,7 @@ void loop(){
     // Captured under a declaration that no longer stands. It is evidence about
     // a frame that has ended and it may not advance this one.
     if (j.epoch != navEpoch) { staleJudged++; continue; }
+    if (j.kind == 2) { unresolvedInterruption(); continue; }
     Passage p; p.openedAtMs=j.openedAtMs; p.closedAtMs=j.closedAtMs;
     p.peakCounts=j.peak; p.polarity=j.polarity;
     Verdict v; v.outcome=(Outcome)j.outcome; v.isMagnet=j.isMagnet;
@@ -1119,7 +1274,14 @@ void loop(){
         break; }
       case Ruling::WrongMagnet:publishNav("DISAGREE",&j,r); oneStrike(j); break;
       case Ruling::Contradicted:publishNav("CONTRADICTED",&j,r); contradicted(); break;
-      case Ruling::NotAMagnet: publishNav("NOT_A_MAGNET",&j,r); break;
+      case Ruling::NotAMagnet:
+        publishNav("NOT_A_MAGNET",&j,r);
+        // EXPERIMENTAL FIELD-TEST BUILD. kind 1 is a passage whose measurement
+        // a stop interrupted and which was stitched back together. Refused, it
+        // stops. kind 0 -- an ordinary refusal with no stop in it -- does not,
+        // exactly as before.
+        if (j.kind == 1) refusedStitched(j);
+        break;
       default:                 publishNav("NO_POSITION",&j,r); break;
     }
   }

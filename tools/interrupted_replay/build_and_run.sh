@@ -1,15 +1,18 @@
 #!/bin/sh
-# Decision 0070's harness.
+# Decision 0070's harness, run against the FIELD-TEST BUILD.
 #
-# NOTHING IN firmware/ IS MODIFIED OR COMPILED IN PLACE. This assembles two
-# build trees under a temporary directory --
+# The change has landed in firmware/. This no longer compares a proposal
+# against the tree -- it compares the WORKING TREE against the last accepted
+# firmware commit, so the equivalence claim keeps its meaning after the fact:
 #
-#   actual/    firmware/test-programs/NAVI_ONE, verbatim
-#   proposed/  the same, with tools/interrupted_replay/proposed/ overlaid
+#   base/      firmware/test-programs/NAVI_ONE at $NAVI_ONE_BASE (NAVI_ONE 0.9,
+#              the last accepted build), extracted from git, never the checkout
+#   fieldtest/ the working tree as it stands now
 #
-# -- runs the existing eleven gates against BOTH with the SAME unmodified
-# runner, diffs the two outputs byte for byte to show the ordinary path is
-# untouched, and then runs gate 12, which only exists in the proposed tree.
+# It runs the ELEVEN pre-existing gates against both with the SAME unmodified
+# runner -- the one from the base commit -- and diffs the two outputs byte for
+# byte. Anything but IDENTICAL means the pause/resume path has reached into the
+# ordinary one. Then it runs gate 12, which only exists in the field-test tree.
 #
 # The trees are laid out at the same depth as the real one, with field-records
 # symlinked, because run_tests.sh finds the repository by walking up from
@@ -18,39 +21,46 @@ set -eu
 here=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 repo=$(CDPATH= cd -- "$here/../.." && pwd)
 src="$repo/firmware/test-programs/NAVI_ONE"
+rel="firmware/test-programs/NAVI_ONE"
+# NAVI_ONE 0.9 -- the last firmware commit before decision 0070, and the build
+# Toby last ran. Override to compare against something else.
+base=${NAVI_ONE_BASE:-1b8b828}
 tmp=$(mktemp -d); trap 'rm -rf "$tmp"' EXIT
 
-for tree in actual proposed; do
-  mkdir -p "$tmp/$tree/firmware/test-programs"
-  cp -R "$src" "$tmp/$tree/firmware/test-programs/NAVI_ONE"
-  ln -s "$repo/field-records" "$tmp/$tree/field-records"
-done
-p="$tmp/proposed/firmware/test-programs/NAVI_ONE"
-cp "$here/proposed/"*.h "$here/proposed/"*.ino "$p/"
-cp "$here/proposed/tests/"* "$p/tests/"
-# The eleven existing gates are run in the proposed tree by the UNMODIFIED
-# runner, so the comparison below is gate for gate with nothing new in the way.
-cp "$src/tests/run_tests.sh" "$p/tests/run_eleven.sh"
+mkdir -p "$tmp/base/firmware/test-programs" "$tmp/fieldtest/firmware/test-programs"
+git -C "$repo" archive "$base" "$rel" | tar -x -C "$tmp/base"
+cp -R "$src" "$tmp/fieldtest/$rel"
+for tree in base fieldtest; do ln -s "$repo/field-records" "$tmp/$tree/field-records"; done
+b="$tmp/base/$rel"
+f="$tmp/fieldtest/$rel"
+# credentials.h is git-ignored, so it is not in the archive. The gates include
+# it through LL_LocoConfig_9950012.h and will not compile without it. It never
+# leaves this machine: $tmp is removed on exit.
+[ -f "$src/credentials.h" ] && cp "$src/credentials.h" "$b/credentials.h"
+# The eleven are run in the field-test tree by the BASE COMMIT'S runner, so the
+# comparison below is gate for gate with nothing new in the way.
+cp "$b/tests/run_tests.sh" "$f/tests/run_eleven.sh"
 
 echo "=============================================================================="
-echo " 0. the working tree is untouched"
+echo " 0. what changed in firmware/"
 echo "=============================================================================="
-git -C "$repo" status --short firmware/test-programs/NAVI_ONE || true
-echo "(no lines above: no firmware file has been modified)"
+git -C "$repo" diff --stat "$base" -- "$rel" || true
+echo ""
+git -C "$repo" status --short "$rel" || true
 
 echo ""
 echo "=============================================================================="
-echo " 1. the eleven existing gates, against the UNMODIFIED firmware"
+echo " 1. the eleven existing gates, at $base (NAVI_ONE 0.9)"
 echo "=============================================================================="
-sh "$tmp/actual/firmware/test-programs/NAVI_ONE/tests/run_tests.sh" > "$tmp/actual.log" 2>&1 && a=0 || a=$?
-tail -n 4 "$tmp/actual.log"; echo "[exit $a]"
+sh "$b/tests/run_tests.sh" > "$tmp/base.log" 2>&1 && a=0 || a=$?
+tail -n 4 "$tmp/base.log"; echo "[exit $a]"
 
 echo ""
 echo "=============================================================================="
-echo " 2. the same eleven, against the PROPOSED firmware"
+echo " 2. the same eleven, against the FIELD-TEST BUILD"
 echo "=============================================================================="
-sh "$p/tests/run_eleven.sh" > "$tmp/proposed.log" 2>&1 && b=0 || b=$?
-tail -n 4 "$tmp/proposed.log"; echo "[exit $b]"
+sh "$f/tests/run_eleven.sh" > "$tmp/field.log" 2>&1 && c=0 || c=$?
+tail -n 4 "$tmp/field.log"; echo "[exit $c]"
 
 echo ""
 echo "=============================================================================="
@@ -60,9 +70,9 @@ echo "The eleven include the 2026-08-28 survey replay -- 187 real passages and"
 echo "their residuals -- the 2026-08-29 lap replay, the polarity survey and the"
 echo "two baseline gates. Every line of all eleven, both trees, compared:"
 d=0
-if diff -u "$tmp/actual.log" "$tmp/proposed.log" > "$tmp/gates.diff" 2>&1; then
-  echo "  IDENTICAL. The proposed change alters no verdict, residual or ruling"
-  echo "  anywhere the existing gates reach."
+if diff -u "$tmp/base.log" "$tmp/field.log" > "$tmp/gates.diff" 2>&1; then
+  echo "  IDENTICAL. Nothing in the field-test build alters a verdict, residual"
+  echo "  or ruling anywhere the pre-existing gates reach."
 else
   d=1
   echo "  *** THE TWO TREES DISAGREE:"
@@ -73,12 +83,13 @@ echo ""
 echo "=============================================================================="
 echo " 4. gate 12 -- the interrupted-traversal rule, adversarially"
 echo "=============================================================================="
-c++ -std=c++17 -O1 -Wall -Wextra "$p/tests/gate_interrupted.cpp" -o "$tmp/g12"
+c++ -std=c++17 -O1 -Wall -Wextra "$f/tests/gate_interrupted.cpp" -o "$tmp/g12"
 "$tmp/g12" && g=0 || g=$?
 
 echo ""
 echo "=============================================================================="
-[ "$a" = 0 ] && [ "$b" = 0 ] && [ "$d" = 0 ] && [ "$g" = 0 ] \
-  && echo " ALL PASS" || echo " *** SOMETHING FAILED (eleven:$a/$b diff:$d gate12:$g)"
+[ "$a" = 0 ] && [ "$c" = 0 ] && [ "$d" = 0 ] && [ "$g" = 0 ] \
+  && echo " ALL PASS -- and gate 12 carries a known risk it does not close. Read it." \
+  || echo " *** SOMETHING FAILED (eleven:$a/$c diff:$d gate12:$g)"
 echo "=============================================================================="
-[ "$a" = 0 ] && [ "$b" = 0 ] && [ "$d" = 0 ] && [ "$g" = 0 ]
+[ "$a" = 0 ] && [ "$c" = 0 ] && [ "$d" = 0 ] && [ "$g" = 0 ]
