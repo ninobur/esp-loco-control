@@ -127,7 +127,7 @@ int main() {
     // Grillers CW is the one departure from the standard, and it is a
     // per-direction one: -1 clockwise, +1 the other way. Section I says why.
     ok(stopOffsetFor(STATIONS[i], +1) == (i == 1 ? -1 : 1), "CW stop offset");
-    ok(stopOffsetFor(STATIONS[i], -1) == 1, "CCW stop offset is the +1 standard");
+    ok(stopOffsetFor(STATIONS[i], -1) == (i == 1 ? -1 : 1), "CCW stop offset");
   }
   ok(STATION_COUNT == 4, "four platforms");
   {
@@ -163,7 +163,7 @@ int main() {
     const StationDefinition& g = STATIONS[1];
     ok(g.centre == 63, "Grillers centre");
     ok(stopOffsetFor(g, +1) == -1, "CW stop moved to -1");
-    ok(stopOffsetFor(g, -1) == +1, "CCW stop stays at the +1 standard");
+    ok(stopOffsetFor(g, -1) == -1, "CCW stop is also -1: the descent overshot too");
 
     StationMachine m; uint32_t t = 0; uint8_t pwm = 90;
     bool rampedAt62 = false;
@@ -190,6 +190,30 @@ int main() {
     ok(cruisePwmAt(85, +1, 90) == 90,  "and reaches 90 by MM85, untouched");
   }
 
+  printf("I2. Grillers CCW ramps at MM64 -- two markers earlier than it did\n");
+  {
+    // Counter-clockwise is the descent. At station speed 72 he carried two
+    // markers past the ramp point on 2026-09-01: ZERO_RAMP MM62, rest MM60,
+    // which parked the sensor in MM59's field. Finding 11. The ramp now starts
+    // at MM64 and the departure is as per routing, not the CW 110.
+    StationMachine m; uint32_t t = 0; uint8_t pwm = 90;
+    bool rampedAt64 = false;
+    for (int mm = 73; mm >= 64; --mm, t += 1500) {
+      StationOrder o = m.tick((uint8_t)mm, -1, pwm, cruisePwmAt((uint8_t)mm, -1, 90), t);
+      if (o.setThrottle) pwm = o.pwm;
+      if (mm == 64 && m.phase() == StPhase::Ramp) rampedAt64 = true;
+    }
+    ok(rampedAt64, "the zero ramp starts at MM64");
+    ok(offsetToCentre(64, -1, 63) == -1, "which is offset -1 counter-clockwise");
+    ok(offsetToCentre(62, -1, 63) == +1, "where MM62, the old ramp point, is +1");
+    pwm = 0; t += 1500;
+    m.tick(64, -1, pwm, cruisePwmAt(64, -1, 90), t);
+    ok(m.phase() == StPhase::Dwell, "dwell begins");
+    StationOrder d = m.tick(64, -1, 0, cruisePwmAt(64, -1, 90), t + 30001);
+    ok(m.phase() == StPhase::Depart, "departs after 30 s");
+    ok(d.setThrottle && d.pwm == 90, "CCW departs as per routing, NOT the CW 110");
+  }
+
   printf("J. the change reaches Grillers CW and nothing else\n");
   {
     // Every other platform-direction departs as per routing, and every other
@@ -201,7 +225,7 @@ int main() {
       ok(departPwmFor(s2, -1, 90) == 90, "CCW departs as per routing everywhere");
       ok(departPwmFor(s2, -1, 105) == 105, "including off the Patio curve at 105");
       ok(stopOffsetFor(s2, +1) == (grillersCW ? -1 : 1), "CW stop offset");
-      ok(stopOffsetFor(s2, -1) == 1, "CCW stop offset unchanged everywhere");
+      ok(stopOffsetFor(s2, -1) == (grillersCW ? -1 : 1), "CCW stop offset");
     }
   }
 

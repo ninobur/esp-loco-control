@@ -47,12 +47,24 @@ struct StationDefinition {
 // clockwise and all of them the grade:
 //
 //   * 72 CCW and 60 CW, because "72 is wrong for downhill at Grillers".
-//   * stop at -1 CW, not the +1 standard. On 2026-09-01 the +1 stop put Toby
-//     ON the climb: "The problem was Toby was attempting to start the grade
-//     while on the grade. At that point, traction not adequate to launch 3
-//     coaches." Stopping a marker short of centre gives him level track to
-//     launch from and a run at the grade. CCW keeps +1 -- that direction is
-//     the descent and has no such problem.
+//   * stop at -1 in BOTH directions, against the +1 standard, for two
+//     different reasons.
+//
+//     CW, 2026-09-01: the +1 stop put Toby ON the climb. "The problem was Toby
+//     was attempting to start the grade while on the grade. At that point,
+//     traction not adequate to launch 3 coaches." A marker short of centre
+//     gives him level track to launch from and a run at the grade.
+//
+//     CCW, later the same day: the same +1 stop overshot. "What is different
+//     about Grillers is that it is a station at the end of the grade. Toby is
+//     also stopping too late for the station geography." Counter-clockwise is
+//     the DESCENT and he holds 72 into it, so he carried two markers past the
+//     ramp point -- ZERO_RAMP at MM62, rest at MM60 -- against one marker
+//     clockwise. That landing put the sensor in MM59's field and the 37.7 s
+//     dwell passage was rejected on shape, losing the marker. Finding 11.
+//     Moving the ramp two markers earlier, to MM64, is the operator's
+//     instruction and is explicitly an experiment: "Let'"'"'s see if the Hall
+//     sensor still lands too close to a magnet."
 //   * departs to 110 CW. "PWM 110 is sustained after Grillers CW departure
 //     until MM80 then use current ramp down." The section cruise reaches 110
 //     at MM65 on its own (decision 0066), so this only covers the markers
@@ -63,7 +75,7 @@ struct StationDefinition {
 static const StationDefinition STATIONS[] = {
   //  name        centre  pwmCW pwmCCW  stopCW stopCCW  depCW depCCW   0 = as per routing
   { "Patio",         15,    60,    60,      1,      1,      0,     0 },
-  { "Grillers",      63,    60,    72,     -1,      1,    110,     0 },
+  { "Grillers",      63,    60,    72,     -1,     -1,    110,     0 },
   { "Arches",       108,    60,    60,      1,      1,      0,     0 },
   { "Bamboo",       157,    60,    60,      1,      1,      0,     0 },
 };
