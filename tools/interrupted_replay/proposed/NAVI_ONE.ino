@@ -85,10 +85,11 @@ struct Judged {
   uint16_t peak; uint8_t polarity;
   uint8_t  outcome; uint8_t isMagnet;
   float    ratio, residual; uint8_t shapeTested; uint32_t gapMs; uint16_t gain;
-  // Decision 0070. kind: 0 an ordinary passage, 1 the pre-stop segment of an
-  // interruption, 2 its departure segment, 3 an episode that established
-  // nothing and has now cleared. Only kind 0 carries a residual.
-  uint8_t  kind; uint8_t interrupted; int16_t growth; uint16_t support;
+  // Decision 0070, telemetry only. kind 0 an ordinary completed passage, 1 a
+  // passage whose measurement was paused across a stop and stitched, 2 a
+  // paused passage abandoned on a wall-clock watchdog. pausedMs is wall clock
+  // spent stopped; the recognizer never saw it.
+  uint8_t  kind; uint32_t pausedMs;
 };
 // len: 0 means "text, use strlen(payload) at send time" (every existing text
 // pub() call). Non-zero means "exactly this many bytes, verbatim, including
@@ -201,29 +202,33 @@ static uint32_t lastAdvanceMs = 0; static uint32_t estMmPerS = 0;
 static volatile bool     recognizerResetRequest = false;
 static volatile uint32_t navEpoch = 0;
 static volatile bool     dumpWindowRequest = false;
-// stopIntent: the FOURTH datum, added by decision 0070. Raised on the loop
-// thread by stationService() while an identified controlled stop is executing
-// -- the zero ramp and the dwell, and nothing else -- and read on the Hall
-// task, where it selects the interrupted-traversal rule and NOTHING ELSE. It
-// is not evidence: it cannot create a magnet, name one, or advance anything.
+// stopArming: the FOURTH datum, added by decision 0070. Raised on the loop
+// thread by stationService() and read on the Hall task, where it selects WHAT
+// TO WATCH FOR and nothing else.
 //
-// WHICH AUTHORITIES PARTICIPATE, AND WHICH DELIBERATELY DO NOT
-//   station zero-ramp, station dwell .... yes. The only ones today.
+//   Decelerating  a controlled stop is running -- watch for the field to stop
+//                 moving, and pause the measurement when it does.
+//   Departing     a controlled departure is running -- watch for the arc to
+//                 continue, and resume the measurement when it does.
+//
+// PWM DOES NOT PROVE MOVEMENT. It does not decide a polarity, identify a
+// magnet, contribute a sample, or advance anything. Falling PWM pauses
+// nothing while Toby coasts; rising PWM resumes nothing while he stalls,
+// spins, or takes his time. The Hall signal decides both, every time.
+//
+// WHICH AUTHORITIES ARM IT, AND WHICH DELIBERATELY DO NOT
+//   station zero-ramp, station dwell .... Decelerating. The only ones today.
+//   station departure .................... Departing.
 //   a CTO stop ........................... NOT IMPLEMENTED in NAVI_ONE 1.0.
-//                                          When it arrives it must opt in
-//                                          here, explicitly, in one line.
+//                                          When it arrives it arms here,
+//                                          explicitly, in one line.
 //   MANUAL ............................... no. stationService() returns early
-//                                          unless autoRunning, so a hand on
-//                                          the throttle never selects this.
+//                                          unless autoRunning.
 //   e-stop, low voltage, dispatcher
-//   release, a strike, a contradiction ... no. Every one of them clears
-//                                          autoRunning, and a frame nobody is
-//                                          navigating gets no alternate
-//                                          recognizer.
-//   MISSED, PHASE_TIMEOUT ................ no. The station machine has stood
-//                                          down; there is no stop to speak of.
+//   release, a strike, a contradiction ... no. Every one clears autoRunning.
+//   MISSED, PHASE_TIMEOUT ................ no. The station has stood down.
 // None of those semantics change. This flag is additive.
-static volatile bool     stopIntent = false;
+static volatile uint8_t  stopArming = (uint8_t)StopArming::None;
 static uint32_t staleJudged = 0;
 
 // Called on the LOOP THREAD, immediately after any Navigator call that ends a
@@ -545,14 +550,14 @@ static const char* whyName(Ruling r, Outcome o){
 
 static void publishNav(const char* event,const Judged* j,Ruling r){
   const NavStatus& s = navigator.status();
-  char b[520];
+  char b[500];
   if (j) {
     snprintf(b,sizeof(b),
       "{\"event\":\"%s\",\"state\":\"%s\",\"nav\":\"%s\",\"nav_state\":\"%s\",\"mm\":%u,\"tgt\":%u,"
       "\"landmark\":\"%s\",\"dir\":\"%s\",\"ruling\":\"%s\",\"why\":\"%s\","
       "\"obs\":\"%c\",\"expected\":\"%c\",\"peak\":%u,\"ratio\":%.3f,"
       "\"resid\":%.4f,\"shape\":%u,\"gap_ms\":%lu,\"gain\":%u,"
-      "\"interrupted\":%u,\"seg\":%u,\"growth\":%d,\"support\":%u,"
+      "\"stitched\":%u,\"paused_ms\":%lu,"
       "\"trust\":\"%s\",\"seq_at\":%u,\"adv\":%lu,\"ref\":%lu,\"notmag\":%lu}",
       event, navigator.positionKnown()?"NORMAL":"UNSET",
       navigator.positionKnown()?"NORMAL":"UNSET",
@@ -564,7 +569,7 @@ static void publishNav(const char* event,const Judged* j,Ruling r){
       poleChar(polarityAt(r==Ruling::Advanced ? s.navMm : s.target)),
       j->peak, (double)j->ratio, (double)j->residual, j->shapeTested,
       (unsigned long)j->gapMs, j->gain,
-      j->interrupted, j->kind, (int)j->growth, j->support,
+      j->kind, (unsigned long)j->pausedMs,
       trustName(s.trust), s.seqAt,
       (unsigned long)s.advances,(unsigned long)s.refusals,(unsigned long)s.notMagnets);
     pub(T_MARKER,b,false);
@@ -678,42 +683,29 @@ static void hallTask(void*){
     // postpones adaptation by a second, while adapting while secretly parked
     // over a magnet makes the reference BE the magnet. Findings 09 and 10.
     const bool mayAdapt = actualPwm > NAVI_BASELINE_ADAPT_PWM;
-    // stopIntent selects the MODE and nothing else. See its declaration for
-    // which authorities raise it and which are deliberately excluded.
-    if (capture.sample(now,(int16_t)analogRead(HALL_PIN), mayAdapt, stopIntent)) {
+    // stopArming ARMS OBSERVATION. See its declaration; it is not evidence.
+    if (capture.sample(now,(int16_t)analogRead(HALL_PIN), mayAdapt,
+                       (StopArming)stopArming)) {
       Judged j{};
-      switch (capture.event()) {
-        case HallEvent::Passage: {
-          const Passage& p = capture.passage();
-          Verdict v = recognizer.examine(p);          // THE COMPLETE RECOGNIZER
-          // Copied here, before the next capture.sample() call starts
-          // overwriting HallCapture's own buffer with the following passage.
-          waveformWindow.push(p, v);
-          j = Judged{ myEpoch,p.openedAtMs,p.closedAtMs,p.peakCounts,p.polarity,
-                      (uint8_t)v.outcome,(uint8_t)v.isMagnet,
-                      v.amplitudeRatio,v.residual,(uint8_t)v.shapeTested,v.gapMs,v.gain,
-                      0,0,0,0 };
-          break; }
-        case HallEvent::PreStop:
-        case HallEvent::Departure: {
-          // HALF a traversal, cut by a controlled stop. No Gaussian, and no
-          // entry into the gain history -- see acceptInterrupted().
-          const Segment& sg = capture.segment();
-          Verdict v = recognizer.examineInterrupted(sg);
-          if (v.isMagnet) capture.episodeCounted();   // at most one, per episode
-          waveformWindow.push(sg, v);
-          j = Judged{ myEpoch, sg.fromMs, sg.toMs, v.peak, sg.polarity,
-                      (uint8_t)v.outcome,(uint8_t)v.isMagnet,
-                      v.amplitudeRatio, 0.0f, 0, v.gapMs, v.gain,
-                      (uint8_t)(capture.event()==HallEvent::PreStop ? 1 : 2), 1,
-                      v.entryGrowth, v.support };
-          break; }
-        default: {                                    // HallEvent::Abandoned
-          const Segment& sg = capture.segment();
-          j = Judged{ myEpoch, sg.fromMs, sg.toMs, 0, 0,
-                      (uint8_t)Outcome::NoEntry, 0, 0.0f, 0.0f, 0, 0, 0,
-                      3, 1, 0, 0 };
-          break; }
+      if (capture.event() == HallEvent::Passage) {
+        const Passage& p = capture.passage();
+        // THE FULL RECOGNIZER. Amplitude, whole-wave signed polarity, Gaussian
+        // morphology, clipping, rebound guard -- on the complete waveform,
+        // whether or not its measurement was paused in the middle. There is no
+        // second, weaker path and nothing waives the shape test.
+        Verdict v = recognizer.examine(p);
+        // Copied here, before the next capture.sample() call starts
+        // overwriting HallCapture's own buffer with the following passage.
+        waveformWindow.push(p, v);
+        j = Judged{ myEpoch,p.openedAtMs,p.closedAtMs,p.peakCounts,p.polarity,
+                    (uint8_t)v.outcome,(uint8_t)v.isMagnet,
+                    v.amplitudeRatio,v.residual,(uint8_t)v.shapeTested,v.gapMs,v.gain,
+                    (uint8_t)(capture.pausedMs() ? 1 : 0), capture.pausedMs() };
+      } else {
+        // A paused measurement that outlived a wall-clock watchdog. There is
+        // no waveform to judge and nothing to advance.
+        j = Judged{ myEpoch,now,now,0,0,(uint8_t)Outcome::NoCurve,0,
+                    0.0f,0.0f,0,0,0, 2, 0 };
       }
       if (judgedQ) xQueueSend(judgedQ,&j,0);
     }
@@ -1086,45 +1078,34 @@ void setup(){
     "{\"sketch\":\"%s\",\"loco\":\"%s\",\"entry\":%d,\"exit\":%d,\"floor_ms\":%d,"
     "\"amp_floor\":%.2f,\"resid_ceil\":%.2f,\"guard_ms\":%lu,\"seq_n\":%d,"
     "\"offsets\":0,\"quorum\":0,\"velocity_model\":0,\"motion_gate\":%d,\"ir_votes\":0,"
-    "\"interrupted_rule\":1,\"settle_span\":%d,\"settle_ms\":%u,\"settle_step_ms\":%u}",
+    "\"pause_resume\":1,\"settle_span\":%d,\"settle_ms\":%u,\"resume_move\":%d,"
+    "\"pause_max_ms\":%lu,\"resume_max_ms\":%lu}",
     SKETCH_NAME,LOCO_NAME,(int)captureCfg.entryMargin,(int)captureCfg.exitMargin,
     (int)captureCfg.floorMs,(double)recCfg.amplitudeFloor,(double)recCfg.residualCeiling,
     (unsigned long)recCfg.guardMs,(int)SEQ_N,(int)NAVI_BASELINE_ADAPT_PWM,
     (int)captureCfg.settleSpan,(unsigned)captureCfg.settleWindowMs,
-    (unsigned)captureCfg.settleStepMs);
+    (int)captureCfg.resumeMove,(unsigned long)captureCfg.pauseMaxMs,
+    (unsigned long)captureCfg.resumeMaxMs);
   pub(T_BOOT,b,true);
-  // The interrupted path restates three of the acquisition layer's measured
-  // constants (decision 0070). A build in which they have drifted apart is
-  // judging segments by one number and opening passages by another.
-  if (!recognizer.checkInterruptedConfig(captureCfg.entryMargin,
-                                         captureCfg.exitMargin,
-                                         captureCfg.floorMs))
-    warnStick("INTERRUPTED-PATH CONSTANTS DISAGREE WITH THE CAPTURE CONFIG");
   if (!inaReady) warn("INA219 NOT FOUND — no battery protection this session");
   Serial.println("[BOOT] ready. session_direction, then start_mm, then auto, then GO.");
 }
 
-// AN INTERRUPTION EPISODE THAT ESTABLISHED NOTHING (decision 0070).
+// A PAUSED MEASUREMENT THAT NEVER RESUMED (decision 0070).
 //
-// Two ways in, and they are different failures with the same answer:
-//   * the episode ran its course -- neither the pre-stop nor the departure
-//     evidence established a magnet -- and the field has now cleared;
-//   * departure was about to be authorised with a passage still open and no
-//     settle ever established, so there is no interruption to reason about
-//     and a 30 s dwell is about to be fitted to a Gaussian. Findings 11 and
-//     13 are exactly that, twice, twenty-one minutes apart.
-//
-// Either way a marker may have been crossed and not counted, and this program
-// cannot tell whether it was. That is the same position a WrongMagnet leaves
-// it in, so it does the same thing, at once -- not six markers later when the
-// polarity chain happens to catch up (decision 0059).
-static void unresolvedInterruption(const char* what){
+// A controlled stop cut a passage in half; the arc never continued, on either
+// wall-clock watchdog. A marker may have been crossed and not counted, and
+// this program cannot tell whether it was. That is the same position a
+// WrongMagnet leaves it in, so it does the same thing, at once -- not six
+// markers later when the polarity chain happens to catch up (decision 0059).
+static void unresolvedInterruption(){
   navigator.unresolved();
   const NavStatus& s = navigator.status();
   char w[220];
   snprintf(w,sizeof(w),
-    "UNRESOLVED INTERRUPTION at MM%03u: %s. A marker may have gone uncounted. "
-    "Position is not known. Declare it.", s.navMm, what);
+    "PAUSED MEASUREMENT NEVER RESUMED at MM%03u: a stop interrupted a passage "
+    "and the waveform never continued. A marker may have gone uncounted. "
+    "Position is not known. Declare it.", s.navMm);
   withdraw(w);
   publishNav("INTERRUPTION_UNRESOLVED",nullptr,Ruling::Unresolved);
 }
@@ -1140,31 +1121,23 @@ static void stationService(uint32_t now){
   const NavStatus& s = navigator.status();
   if (!autoRunning || !navigator.positionKnown()) {
     if (stationMachine.phase() != StPhase::Idle) stationMachine.reset();
-    stopIntent = false;
+    stopArming = (uint8_t)StopArming::None;
     return;
   }
   const uint8_t cruise = cruisePwmAt(s.navMm, s.navDir, AUTO_CRUISE_PWM);
   StationOrder o = stationMachine.tick(s.navMm, s.navDir,
                                        (uint8_t)actualPwm, cruise, now);
 
-  // MODE SELECTION for decision 0070, and the whole of it. An identified
-  // controlled stop is running: the zero ramp, or the dwell. Not the approach,
-  // where the locomotive is still meant to be moving through magnets; not the
-  // departure, by which time any settle worth having was established 30 s ago.
-  stopIntent = (stationMachine.phase() == StPhase::Ramp ||
-                stationMachine.phase() == StPhase::Dwell);
-
-  // THE LIVENESS RULE. A passage may not stay an ordinary passage across a
-  // controlled stop. If the machine is authorising departure while one is
-  // still open and no interruption was ever established, the dwell is about to
-  // become waveform morphology. Hold, and say so; do not obey the order.
-  if (o.event && !strcmp(o.event, "DEPART") && capture.openUnsettled()) {
-    unresolvedInterruption("a passage stayed open across the whole dwell and "
-                           "the field never settled, so the stop could not be "
-                           "judged");
-    return;
+  // THE TWO SENTINELS (decision 0070), and the whole of them. The throttle
+  // coming down arms the Hall task to watch for the field to stop moving; the
+  // throttle going up arms it to watch for the arc to continue. Neither does
+  // anything by itself.
+  switch (stationMachine.phase()) {
+    case StPhase::Ramp:
+    case StPhase::Dwell:  stopArming = (uint8_t)StopArming::Decelerating; break;
+    case StPhase::Depart: stopArming = (uint8_t)StopArming::Departing;    break;
+    default:              stopArming = (uint8_t)StopArming::None;         break;
   }
-
   if (o.setThrottle) requestPwm((int)o.pwm, AUTO_STEP_UP_MS, o.stepMs);
   if (o.event) {
     char b[192];
@@ -1186,19 +1159,12 @@ void loop(){
     // Captured under a declaration that no longer stands. It is evidence about
     // a frame that has ended and it may not advance this one.
     if (j.epoch != navEpoch) { staleJudged++; continue; }
-    // An interruption episode that cleared having established nothing. It is
-    // not a passage and there is nothing for the Navigator to identify.
-    if (j.kind == 3) {
-      unresolvedInterruption("a station stop cut a passage in half and neither "
-                             "the approach nor the departure established a magnet");
-      continue;
-    }
+    if (j.kind == 2) { unresolvedInterruption(); continue; }
     Passage p; p.openedAtMs=j.openedAtMs; p.closedAtMs=j.closedAtMs;
     p.peakCounts=j.peak; p.polarity=j.polarity;
     Verdict v; v.outcome=(Outcome)j.outcome; v.isMagnet=j.isMagnet;
     v.amplitudeRatio=j.ratio; v.residual=j.residual;
     v.shapeTested=j.shapeTested; v.gapMs=j.gapMs; v.gain=j.gain;
-    v.interrupted=j.interrupted;
     Ruling r = navigator.judge(p,v);
     switch (r) {
       case Ruling::Advanced: {

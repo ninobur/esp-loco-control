@@ -60,16 +60,22 @@ struct CaptureConfig {
   // is allowed to follow it.
   uint16_t openMigrateMs = 2000;
 
-  // ======================================================================
-  // SETTLE DETECTION (decision 0070). Does the field under the sensor sit
-  // still? Nothing else in this file asks that question, and no PWM, station
-  // state or map position answers it.
+  // =========================================================================
+  // A PASSAGE MAY NOT SPAN A STOP (decision 0070). A controlled stop pauses
+  // the measurement; it does not end it and it does not judge it. There is no
+  // second, weaker way to establish a magnet: the stitched waveform goes to
+  // the unchanged recognizer, shape test and all.
   //
-  // THE CONSTANTS ARE MEASURED, AND THE FIRST PROPOSAL FAILED THE MEASUREMENT.
-  // A raw +/-8 count band held for 400 ms was proposed on 2026-09-01 and is
-  // arithmetically incapable of firing on this sensor. Four stationary
-  // plateaus in the field captures -- 261 to 386 real 1 kHz samples each,
-  // taken while Toby was demonstrably not moving -- give:
+  // LOSS OF PROGRESSION. A moving magnet moves the field. When the field stops
+  // moving, the measurement stops. 16 samples at 25 ms -- the cadence the
+  // baseline sampler already runs at -- and the window's span with the single
+  // highest and single lowest discarded must sit at or below settleSpan.
+  //
+  // THE CONSTANT IS MEASURED, AND THE FIRST PROPOSAL FAILED THE MEASUREMENT.
+  // A raw +/-8 count band was proposed on 2026-09-01 and is arithmetically
+  // incapable of firing on this sensor. Four stationary plateaus in the field
+  // captures -- 261 to 386 real 1 kHz readings each, taken while Toby was
+  // demonstrably parked -- give:
   //
   //   plateau (capture)                sd    16-sample window span
   //                                          raw p95 / max   trimmed p95 / max
@@ -78,78 +84,87 @@ struct CaptureConfig {
   //   finding 09 A, latched offset    3.02      21 / 30            11 / 13
   //   finding 09 B, latched offset    3.81      22 / 24            11 / 13
   //
-  // The raw span is dominated by single-sample outliers -- the same population
-  // that made decision 0065 necessary. Discarding the one highest and the one
-  // lowest sample of the window collapses it to a maximum of 13 counts across
-  // every plateau on record. 20 sits above that with margin and an order of
-  // magnitude below the 148-count excursion a departing magnet produces.
-  //
-  // 16 samples at 25 ms is the same cadence the baseline sampler already runs
-  // at, so this costs one more ring of 64 bytes and no new timebase.
+  // The raw span is dominated by single-sample outliers -- the population
+  // decision 0065 exists for, present at rest as well as in motion. Discarding
+  // one high and one low collapses it to 13 counts at worst. 20 sits above
+  // that with margin and far below the excursion a departing magnet makes.
   uint16_t settleStepMs   = 25;
-  uint16_t settleWindowMs = 400;   // = 16 * settleStepMs; see kSettle
+  uint16_t settleWindowMs = 400;   // = kProgress * settleStepMs
   int16_t  settleSpan     = 20;    // trimmed span ceiling, counts
 
-  // A changing stretch shorter than the passage floor is a transient, not a
-  // traversal. Restated from floorMs so the interrupted path and the ordinary
-  // one cannot drift apart; MagnetRecognizer::checkInterruptedConfig() and
-  // gate 12 both assert the equality.
-  uint16_t interruptMinMs = 40;
+  // RESUMPTION. Nothing resumes because the throttle came up. The field must
+  // show sustained, organised continuation of the arc: a monotone run over
+  // resumeWindowMs that covers at least resumeMove counts without reversing
+  // through the baseline. resumeMove is exitMargin -- the same number that
+  // decides a passage has left a magnet decides that it has started moving
+  // through one again.
+  uint16_t resumeWindowMs = 200;   // 8 samples at settleStepMs
+  int16_t  resumeMove     = 25;
+  uint8_t  resumeAgree    = 6;     // of the 7 steps, how many must run the same way
 
-  // HOW LONG THE SENSOR MUST BE CLEAR BEFORE AN EPISODE IS OVER.
+  // A CEILING on how much is stitched back in once resumption is confirmed --
+  // not the amount. The amount is decided by the same plateau test that cut
+  // the pre-stop side, so the excised interval is the stationary one at BOTH
+  // ends and the arc does not come out lopsided.
   //
-  // Not exitHoldMs. Ending a PASSAGE early costs a few samples of tail; ending
-  // an EPISODE early truncates the departure evidence, and a departure that
-  // crosses the idle level on its way to a magnet passes through the exit band
-  // for tens of milliseconds. Gate 12 case F7 -- parked in an opposite-sign
-  // fringe, departing across a same-sign magnet -- spends 49 ms inside the
-  // band on the way up, and an 8 ms rule cut the segment off there, judged the
-  // 13-count stub NO_CURVE, and withdrew AUTO on a departure that was about to
-  // be textbook.
+  // Why it has to be the same test: the pre-stop side is cut at the start of
+  // the plateau window, keeping everything down to a field rate of about
+  // settleSpan per settleWindowMs -- 50 counts a second. Resumption is only
+  // CONFIRMED at 125 counts a second, deliberately harder because it must
+  // reject spikes and steps. Restarting the recording there would drop
+  // everything between 50 and 125 counts a second that the approach side
+  // kept. Measured in gate 12 D: restarting at confirmation put a stop on the
+  // falling flank at 0.134 against a 0.13 ceiling, and a fixed 400 ms stitch
+  // made it worse still (0.160) by dragging stationary samples back in.
+  uint16_t stitchBackMaxMs = 512;
+
+  // WALL-CLOCK WATCHDOGS. They keep running while the measurement clock is
+  // paused, and they are the only thing that ends a pause that never resumes.
+  // A paused passage that outlives either one is ABANDONED -- zero advances,
+  // and a controlled stop with a diagnostic. Neither is a magnet test.
   //
-  // 400 ms is the settle window, reused. The check is that it still fits
-  // between real magnets at the fastest the railway runs: at PWM 110 Toby
-  // makes 340 mm/s, markers are 300 mm apart, and a 210-count magnet with a
-  // 15 mm sigma is inside the 25-count exit band beyond 31 mm, so the flat
-  // between two magnets is 238 mm -- 700 ms. It fits, with 300 ms to spare.
-  uint16_t episodeClearMs = 400;
+  //   pauseMaxMs   the whole pause: the rest of a zero ramp, a 30 s dwell, and
+  //                whatever it takes to get moving. 90 s is twice that.
+  //   resumeMaxMs  after departure has been commanded and nothing coherent has
+  //                appeared. Deliberately long: Toby spins, stalls and takes
+  //                his time on the Grillers grade, and none of that is a
+  //                navigation fault.
+  uint32_t pauseMaxMs  = 90000;
+  uint32_t resumeMaxMs = 30000;
 };
 
-// What sample() has just produced. `None` is zero, so the historical
-// `if (cap.sample(...))` still reads "something is ready" -- but a caller that
-// treats a true return as "a passage closed" is now WRONG unless it also
-// passes stopIntent false, which is what every gate written before decision
-// 0070 does. New call sites must switch on event().
+// What the caller is doing with the throttle. It ARMS OBSERVATION AND NOTHING
+// ELSE: it cannot pause a passage, resume one, decide a polarity, contribute a
+// sample or advance anything. Every one of those is decided by the Hall signal
+// below. PWM does not prove movement -- 14 counts moves Toby downhill at
+// Westpoint and 35 may not move him uphill (decision 0057) -- which is exactly
+// why it is a sentinel and not evidence.
+enum class StopArming : uint8_t {
+  None = 0,
+  Decelerating,   // an identified controlled stop: watch for loss of progression
+  Departing,      // an identified controlled departure: watch for its return
+};
+
+inline const char* stopArmingName(StopArming a) {
+  switch (a) {
+    case StopArming::Decelerating: return "DECELERATING";
+    case StopArming::Departing:    return "DEPARTING";
+    default:                       return "NONE";
+  }
+}
+
+// What sample() has just produced.
 enum class HallEvent : uint8_t {
   None = 0,
-  Passage,      // an ordinary completed traversal -- passage(), full recognizer
-  PreStop,      // segment(): the changing evidence before a controlled stop
-  Departure,    // segment(): the changing evidence after it
-  Abandoned,    // an interruption episode cleared having established nothing
+  Passage,     // a complete traversal -- passage(), and the FULL recognizer
+  Abandoned,   // a paused passage outlived a wall-clock watchdog
 };
 
 inline const char* hallEventName(HallEvent e) {
   switch (e) {
     case HallEvent::Passage:   return "PASSAGE";
-    case HallEvent::PreStop:   return "PRE_STOP";
-    case HallEvent::Departure: return "DEPARTURE";
     case HallEvent::Abandoned: return "ABANDONED";
     default:                   return "NONE";
-  }
-}
-
-// Where an interruption episode stands. None means the ordinary world.
-enum class Occupancy : uint8_t {
-  None = 0,
-  Pending,      // the pre-stop evidence did not establish a magnet
-  Counted,      // it did, exactly once; everything else is suppressed
-};
-
-inline const char* occupancyName(Occupancy o) {
-  switch (o) {
-    case Occupancy::Pending: return "OCCUPIED_PENDING";
-    case Occupancy::Counted: return "OCCUPIED_COUNTED";
-    default:                 return "TRAVERSING";
   }
 }
 
@@ -165,26 +180,13 @@ class HallCapture {
 
   int32_t entryBaseline() const { return entryBaseline_; }
 
-  // ---- interruption episode (decision 0070) -------------------------------
-  HallEvent event()      const { return ev_; }
-  const Segment& segment() const { return seg_; }
-  Occupancy occupancy()  const { return occ_; }
-  bool     settled()     const { return settled_; }
-  int32_t  settledLevel() const { return settledLevel_; }
-
-  // THE LIVENESS RULE. A passage that is open while a controlled stop runs its
-  // course, and never settles, is neither an ordinary traversal nor an
-  // interruption this layer can reason about -- and it is about to swallow a
-  // 30 s dwell into one Gaussian, which is findings 11 and 13 exactly. The
-  // caller asks this at the one moment it matters, when it is about to
-  // authorise departure, and holds the locomotive if it is true.
-  bool openUnsettled() const { return open_ && occ_ == Occupancy::None; }
-
-  // The caller reports back what the recognizer made of a segment. Only an
-  // ACCEPTANCE is reported: a rejection leaves the episode Pending, so the
-  // departure still has its chance, and an episode that ends Pending is
-  // abandoned rather than counted. Exactly zero or one advance, per episode.
-  void episodeCounted() { occ_ = Occupancy::Counted; counted_ = true; }
+  // ---- the paused measurement (decision 0070) -----------------------------
+  HallEvent event()  const { return ev_; }
+  bool      paused() const { return paused_; }
+  bool      open()   const { return open_; }
+  // Wall clock spent paused. The measurement clock excludes it; the watchdogs
+  // do not.
+  uint32_t  pausedMs() const { return pausedTotalMs_; }
 
   // One ADC sample. Returns true when a passage has just CLOSED and passage()
   // holds it. Runs on the Hall task; touches nothing else.
@@ -208,26 +210,24 @@ class HallCapture {
   // is a fixed-reference measurement of the field, and the open/close test is
   // free to follow the sensor.
   //
-  // stopIntent is the caller's statement that THE FIRMWARE IS EXECUTING AN
-  // IDENTIFIED CONTROLLED STOP -- today, a station zero-ramp or dwell. It is
-  // the mode selector of decision 0070 and it is NOT evidence: it cannot
-  // create a magnet, supply identity or authorise an advance, and every test
-  // below this line is a Hall test. Settling alone must never select the
-  // alternate rule, so an uninterrupted slow crossing whose apex looks flat
-  // for half a second keeps the complete Gaussian recognizer.
-  bool sample(uint32_t nowMs, int16_t raw, bool mayAdapt, bool stopIntent = false) {
+  // `arm` says what the caller is doing with the throttle. It selects WHAT TO
+  // WATCH FOR and nothing else -- see StopArming. Every decision below is the
+  // Hall signal's.
+  bool sample(uint32_t nowMs, int16_t raw, bool mayAdapt,
+              StopArming arm = StopArming::None) {
     ev_ = HallEvent::None;
     updateBaseline(nowMs, raw, mayAdapt);
-    updateSettle(nowMs, raw);
+    updateProgress(nowMs, raw);
     if (!primed_) return false;
 
     // LIVE reference: threshold arithmetic only.
     const int32_t delta = (int32_t)raw - baseline_;
     const int32_t mag   = delta < 0 ? -delta : delta;
 
-    // An interruption episode owns the sensor until its field clears. Nothing
-    // opens, nothing closes and nothing is recorded through the dwell.
-    if (occ_ != Occupancy::None) return serviceOccupied(nowMs, raw, mag);
+    // A PAUSED MEASUREMENT. Nothing is recorded, nothing is judged, and
+    // nothing here can close the passage. The only questions are whether the
+    // arc has started moving again and whether a watchdog has run out.
+    if (paused_) return servicePaused(nowMs, raw, arm);
 
     if (!open_) {
       // Keep a short pre-roll so the recognizer sees the foot of the arc. The
@@ -244,6 +244,7 @@ class HallCapture {
       }
       open_ = true;
       openedAtMs_ = nowMs;
+      pausedTotalMs_ = 0; resumedAtMs_ = 0; sawProgress_ = false;
       // The reference this passage will be MEASURED against, fixed here and not
       // touched again until it closes.
       entryBaseline_ = baseline_;
@@ -277,9 +278,18 @@ class HallCapture {
     push((int16_t)rec);
     tally((int16_t)rec);
 
-    // BOTH conditions, never one. The stop is what selects the mode; the
-    // settle is what proves the traversal was cut in half.
-    if (stopIntent && settled_) return interrupt(nowMs);
+    // LOSS OF PROGRESSION. Armed by the throttle coming down; decided, here,
+    // by the field having stopped moving. Falling PWM alone pauses nothing --
+    // while Toby coasts, the field keeps moving and so does the recording,
+    // even at PWM 0.
+    // Departing arms it too, for the locomotive that stalls halfway out of a
+    // magnet: the field stops moving, so the measurement stops, and the same
+    // resumption test applies when it starts again.
+    if (arm != StopArming::None && !plateau_) sawProgress_ = true;
+    if (arm != StopArming::None && plateau_ && sawProgress_) {
+      pauseMeasurement(nowMs);
+      return false;
+    }
 
     if (mag < cfg_.exitMargin) {
       if (!quietSince_) quietSince_ = nowMs;
@@ -318,6 +328,15 @@ class HallCapture {
       for (uint16_t i = 0; i < RING / 2; ++i) buf_[i] = buf_[i * 2];
       n_ = RING / 2;
       preAt_ = (uint16_t)(preAt_ / 2);
+      // The progression ring remembers WHERE IN THE BUFFER each of its samples
+      // was taken, so that a pause can rewind to the last moment the field was
+      // moving. Halving the buffer renumbers every one of those, exactly as it
+      // renumbers preAt_. Without this line the rewind lands in the wrong
+      // place on any passage long enough to decimate -- which is every passage
+      // that spans a stop -- and the stitch shows a step where the arc should
+      // be continuous. Finding: gate 12, finding 11's own record, a 42-count
+      // discontinuity at the junction.
+      for (uint8_t i = 0; i < kProgress; ++i) prN_[i] = (uint16_t)(prN_[i] / 2);
       dec_ = (uint16_t)(dec_ * 2);
     }
     buf_[n_++] = v;
@@ -336,210 +355,220 @@ class HallCapture {
     dec_ = 1; decPhase_ = 0;
     sum_ = 0;
     entryBaseline_ = baseline_;
-    // An episode belongs to the frame that has ended, like everything else
-    // here. It may not carry a suppression, or a pending judgement, across a
-    // declaration into a frame that never saw the stop.
-    occ_ = Occupancy::None; counted_ = false; depOpen_ = false; depJudged_ = false;
-    depSince_ = 0; ev_ = HallEvent::None; seg_ = Segment{};
-    stlLen_ = 0; stlHead_ = 0; settled_ = false;
+    // A paused measurement belongs to the frame that has ended, like
+    // everything else here. It may not be resumed into a declaration that
+    // never saw the stop.
+    paused_ = false; sawProgress_ = false;
+    pausedAtMs_ = 0; pausedTotalMs_ = 0; departArmedMs_ = 0; resumedAtMs_ = 0;
+    ev_ = HallEvent::None;
+    prLen_ = 0; prHead_ = 0; plateau_ = false;
+    rsLen_ = 0; rsHead_ = 0;
   }
 
  private:
   // =========================================================================
-  // INTERRUPTION HANDLING (decision 0070). Everything below is reachable only
-  // when the caller passes stopIntent true AND the field has settled. With
-  // stopIntent false -- every gate written before this decision, and every
-  // moment of ordinary running -- none of it executes and the class behaves
-  // exactly as it did.
+  // A PASSAGE MAY NOT SPAN A STOP (decision 0070).
+  //
+  // Everything below pauses and resumes ONE measurement. None of it judges,
+  // none of it accepts, and none of it can advance anything: the stitched
+  // waveform leaves close() as an ordinary Passage and meets the unchanged
+  // recognizer, shape test included. With arm == None -- every gate written
+  // before this decision, and every moment of ordinary running -- the pause
+  // path cannot be entered and the class behaves exactly as it did.
   // =========================================================================
 
-  // Is the field sitting still? A 400 ms window of samples at the baseline
-  // sampler's own cadence, with the single highest and single lowest
-  // discarded, must span no more than settleSpan counts. The trim is not
+  // Is the field still moving? A 400 ms window at the baseline sampler's
+  // cadence, with the single highest and single lowest sample discarded, must
+  // span more than settleSpan counts for the answer to be yes. The trim is not
   // fussiness: on four real stationary plateaus the untrimmed span reached 50
-  // counts while the trimmed span never passed 13. One outlier sample is the
-  // population decision 0065 exists for, and it is present at rest too.
-  void updateSettle(uint32_t nowMs, int16_t raw) {
-    if (!lastStlMs_) { lastStlMs_ = nowMs; return; }
-    if (nowMs - lastStlMs_ < cfg_.settleStepMs) return;
-    lastStlMs_ = nowMs;
-    stl_[stlHead_] = raw; stlN_[stlHead_] = n_; stlAt_[stlHead_] = nowMs;
-    stlHead_ = (uint8_t)((stlHead_ + 1) % kSettle);
-    if (stlLen_ < kSettle) ++stlLen_;
-    settled_ = false;
-    if (stlLen_ < kSettle) return;
-    int16_t c[kSettle];
-    for (uint8_t i = 0; i < kSettle; ++i) c[i] = stl_[i];
-    for (uint8_t i = 1; i < kSettle; ++i) {
+  // counts while the trimmed span never passed 13.
+  void updateProgress(uint32_t nowMs, int16_t raw) {
+    if (!lastPrMs_) { lastPrMs_ = nowMs; return; }
+    if (nowMs - lastPrMs_ < cfg_.settleStepMs) return;
+    lastPrMs_ = nowMs;
+    pr_[prHead_] = raw; prN_[prHead_] = n_;
+    prHead_ = (uint8_t)((prHead_ + 1) % kProgress);
+    if (prLen_ < kProgress) ++prLen_;
+    plateau_ = false;
+    if (prLen_ < kProgress) return;
+    int16_t c[kProgress];
+    for (uint8_t i = 0; i < kProgress; ++i) c[i] = pr_[i];
+    for (uint8_t i = 1; i < kProgress; ++i) {
       int16_t v = c[i]; int j = (int)i - 1;
       while (j >= 0 && c[j] > v) { c[j + 1] = c[j]; --j; }
       c[j + 1] = v;
     }
-    if ((int32_t)c[kSettle - 2] - (int32_t)c[1] > (int32_t)cfg_.settleSpan) return;
-    settled_ = true;
-    settledLevel_ = c[kSettle / 2];
-    // stlHead_ now indexes the OLDEST entry: the start of this window, and
-    // therefore the last moment the field was demonstrably still changing.
-    settleFromMs_ = stlAt_[stlHead_];
-    settleFromN_  = stlN_[stlHead_];
+    if ((int32_t)c[kProgress - 2] - (int32_t)c[1] > (int32_t)cfg_.settleSpan) return;
+    plateau_ = true;
+    plateauLevel_ = c[kProgress / 2];
+    lastFlatMs_ = nowMs;
+    // prHead_ now indexes the OLDEST entry: the start of this window, and so
+    // the last moment the field was demonstrably still moving.
+    progressFromN_ = prN_[prHead_];
   }
 
-  // The traversal was cut in half. Hand out everything recorded BEFORE the
-  // settle window opened; the window itself, and every stationary sample after
-  // it, is excluded by construction.
-  bool interrupt(uint32_t nowMs) {
-    (void)nowMs;
-    const uint16_t segN = settleFromN_ > n_ ? n_ : settleFromN_;
-    seg_ = Segment{};
-    seg_.v = buf_;
-    seg_.n = segN;
-    seg_.preSamples = preAt_ > segN ? segN : preAt_;
-    seg_.fromMs = openedAtMs_;
-    // A passage that opened onto an ALREADY settled field -- a latch -- has a
-    // window that predates it and therefore no changing evidence at all. Zero
-    // duration, refused by the recognizer's floor.
-    seg_.toMs = settleFromMs_ > openedAtMs_ ? settleFromMs_ : openedAtMs_;
-    int64_t sum = 0;
-    for (uint16_t i = 0; i < segN; ++i) sum += buf_[i];
-    seg_.signedSum = sum;
-    seg_.polarity  = sum >= 0 ? 1 : 0;            // decision 0064, on the segment
-    const int32_t sign = seg_.polarity ? 1 : -1;
-    // The level the field sat at before it arrived: the median of the first
-    // three samples of the pre-roll, never one sample. With no pre-roll -- the
-    // first passage after a declaration -- this reads inside the arc itself,
-    // the growth comes out small, and the segment is refused. That is the
-    // conservative direction: entry cannot be proved without a before.
-    seg_.growthFrom = (int16_t)(sign * (int32_t)med3At(buf_, segN, 1));
-    seg_.clipped    = clipped_;
-    seg_.decimation = dec_;
-    seg_.departure  = false;
-    // FROZEN HERE. settledLevel_ keeps tracking -- it has to, so that a later
-    // stop is measured from where the locomotive then is -- but the level this
-    // EPISODE is referenced to is the one it parked at, and it may not drift
-    // under the episode any more than entryBaseline_ may drift under a
-    // passage. Same argument, same shape, one layer up.
-    parkedLevel_ = settledLevel_;
-    occ_ = Occupancy::Pending;      // the caller promotes it if the Hall says so
-    counted_ = false; depOpen_ = false; depJudged_ = false; pendingEnd_ = false;
-    quietSince_ = 0; depSince_ = 0;
-    ev_ = HallEvent::PreStop;
-    return true;
+  // Stop the measurement. Nothing is judged and nothing is thrown away.
+  void pauseMeasurement(uint32_t nowMs) {
+    // Drop the samples taken while the field was already flat. The stationary
+    // interval is excluded from the waveform, which is the whole point.
+    //
+    // WHY THE CUT IS THE PLATEAU WINDOW AND NOT A MOVEMENT TEST. An earlier
+    // draft rewound to the last window in which the field had travelled
+    // resumeMove counts, to make the two ends of the excision symmetric. It
+    // is wrong, and gate 12 D showed it: AT A MAGNET'S APEX THE FIELD IS FLAT
+    // BY NATURE, whatever the speed, so a movement test excises the top of
+    // every arc it is applied to and leaves a cusp for the Gaussian to
+    // object to. The window-SPAN test does not have that failure: at speed
+    // the 400 ms window covers 55 mm of track and spans the whole apex.
+    uint16_t keep = progressFromN_;
+    if (keep > n_) keep = n_;
+    if (keep < (uint16_t)(preAt_ + 1)) keep = (uint16_t)(preAt_ + 1);
+    n_ = keep;
+    // sum_ and the running peak have to describe what is actually retained.
+    sum_ = 0;
+    for (uint16_t i = 0; i < n_; ++i) sum_ += buf_[i];
+    sign_ = sum_ >= 0 ? 1 : -1;
+    peakSoFar_ = 0;
+    for (uint16_t i = 0; i < n_; ++i) {
+      const int32_t o = sign_ * (int32_t)buf_[i];
+      if (o > peakSoFar_) peakSoFar_ = o;
+    }
+    pauseAbs_ = sign_ * (plateauLevel_ - entryBaseline_);
+    paused_ = true;
+    pausedAtMs_ = nowMs;
+    lastFlatMs_ = nowMs;
+    departArmedMs_ = 0;
+    rsLen_ = 0; rsHead_ = 0;
+    quietSince_ = 0;
   }
 
-  // The sensor is in an occupied field. Nothing here can close a passage or
-  // record a dwell; the only thing being watched for is the field CHANGING
-  // again, which is the departure.
-  bool serviceOccupied(uint32_t nowMs, int16_t raw, int32_t mag) {
-    if (pendingEnd_) { pendingEnd_ = false; return endEpisode(nowMs); }
+  // While paused: watch, and nothing else. A plateau reading, an isolated
+  // spike, a reversal, a step or any disorganised variation neither confirms
+  // nor vetoes the pending passage -- it simply is not the arc continuing.
+  bool servicePaused(uint32_t nowMs, int16_t raw, StopArming arm) {
+    // The full-rate ring. When the arc does continue, the two hundred
+    // milliseconds that proved it are part of it and get stitched back in.
+    rs_[rsHead_] = raw;
+    rsHead_ = (uint16_t)((rsHead_ + 1) % kResume);
+    if (rsLen_ < kResume) ++rsLen_;
 
-    const int32_t d  = (int32_t)raw - parkedLevel_;    // boundaries: where it parked
-    const int32_t dm = d < 0 ? -d : d;
-
-    if (!depOpen_) {
-      pre_[preHead_] = raw;                      // a pre-roll for the departure
-      preHead_ = (uint8_t)((preHead_ + 1) % PRE);
-      if (preLen_ < PRE) ++preLen_;
-
-      if (dm < cfg_.entryMargin) {
-        depSince_ = 0;
-        // Still parked. The episode ends when the ORIGINAL field clears -- a
-        // field the locomotive never left cannot be "returned to".
-        if (mag < cfg_.exitMargin) {
-          if (!quietSince_) quietSince_ = nowMs;
-          if (nowMs - quietSince_ >= cfg_.episodeClearMs) return endEpisode(nowMs);
-        } else quietSince_ = 0;
-        return false;
-      }
-      // SUSTAINED, for the same hold the exit rule uses. One sample may not
-      // open a departure: at rest the raw stream throws single-sample outliers
-      // of 25 counts and more -- the F11 plateau reached 47 -- and an outlier
-      // that opened a departure segment would spend the episode's evidence on
-      // 8 ms of noise. Measured, like everything else here: see gate 12 C.
-      if (!depSince_) depSince_ = nowMs;
-      if (nowMs - depSince_ < cfg_.exitHoldMs) return false;
-      // Moving again. A FRESH recording, referenced to the idle level, with
-      // where the locomotive was parked carried as the growth reference.
-      depOpen_ = true;
-      depFromMs_ = nowMs;
-      depRef_ = baseline_;
-      n_ = 0; preAt_ = 0; dec_ = 1; decPhase_ = 0; sum_ = 0; clipped_ = false;
-      const uint8_t start = (uint8_t)((preHead_ + PRE - preLen_) % PRE);
-      for (uint8_t i = 0; i < preLen_; ++i) {
-        const int16_t v = (int16_t)((int32_t)pre_[(start + i) % PRE] - depRef_);
-        push(v); tally(v);
-      }
-      preAt_ = n_;
-      quietSince_ = 0;
+    // THE ARC MAY SIMPLY HAVE FINISHED. Requirement 8 is that a passage closes
+    // when the complete waveform has returned to baseline, and that does not
+    // stop being true because the measurement is paused. Toby coming to rest
+    // on a magnet's TAIL -- inside the entry margin but with only a few counts
+    // of field left -- can never satisfy the resumption test, because there is
+    // no longer 25 counts of arc to travel. Without this the measurement would
+    // hang until a watchdog and withdraw AUTO on a magnet that was crossed
+    // perfectly. Gate 12 D, "falling edge, 15% of peak".
+    //
+    // It needs a settle window of quiet, not the 8 ms an ordinary close takes:
+    // 8 ms of noise near the threshold is common and this decision cannot be
+    // taken back.
+    {
+      const int32_t d = (int32_t)raw - baseline_;
+      const int32_t m = d < 0 ? -d : d;
+      if (m < cfg_.exitMargin) {
+        if (!quietSince_) quietSince_ = nowMs;
+        if (nowMs - quietSince_ >= cfg_.settleWindowMs) {
+          paused_ = false;
+          pausedTotalMs_ += nowMs - pausedAtMs_;
+          return close(nowMs);
+        }
+      } else quietSince_ = 0;
     }
 
-    const int32_t rec = (int32_t)raw - depRef_;
-    push((int16_t)rec); tally((int16_t)rec);
-
-    // Two ways for a departure excursion to end: back to where the locomotive
-    // was parked, or clear of everything. The second needs the longer hold --
-    // see episodeClearMs. The first does not: a field the sensor has returned
-    // to is a field it is sitting in.
-    const bool clearOfAll = mag < cfg_.exitMargin;
-    const bool backToPark = dm < cfg_.exitMargin;
-    if (backToPark || clearOfAll) {
-      if (!quietSince_) quietSince_ = nowMs;
-      const uint32_t need = backToPark ? cfg_.exitHoldMs : cfg_.episodeClearMs;
-      if (nowMs - quietSince_ >= need) {
-        depOpen_ = false; quietSince_ = 0; depSince_ = 0;
-        // THE CAP IS ON ACCEPTANCE, NOT ON EVALUATION. Once a magnet has been
-        // established the episode is Counted and nothing more is judged, so
-        // there can never be two advances. But a departure excursion that is
-        // REFUSED must not consume the episode's only chance -- a rejected
-        // rebound followed by the real crossing is an ordinary sequence, and
-        // the ordinary path would have judged both.
-        const bool judge = (occ_ == Occupancy::Pending);
-        depJudged_ = true;
-        if (judge) {
-          buildDeparture(nowMs);
-          pendingEnd_ = clearOfAll;              // ended next tick, after the copy
-          return true;
-        }
-        if (clearOfAll) return endEpisode(nowMs);
-      }
-    } else quietSince_ = 0;
+    // WALL CLOCK. The measurement clock is paused; these are not.
+    if (nowMs - pausedAtMs_ > cfg_.pauseMaxMs) return abandon(nowMs);
+    if (arm == StopArming::Departing) {
+      if (!departArmedMs_) departArmedMs_ = nowMs;
+      else if (nowMs - departArmedMs_ > cfg_.resumeMaxMs) return abandon(nowMs);
+    } else {
+      departArmedMs_ = 0;
+      return false;               // resumption is not being watched for
+    }
+    if (resumeReady()) resumeMeasurement(nowMs);
     return false;
   }
 
-  void buildDeparture(uint32_t nowMs) {
-    seg_ = Segment{};
-    seg_.v = buf_; seg_.n = n_; seg_.preSamples = preAt_;
-    seg_.fromMs = depFromMs_; seg_.toMs = nowMs;
-    seg_.signedSum = sum_;
-    seg_.polarity  = sum_ >= 0 ? 1 : 0;
-    const int32_t sign = seg_.polarity ? 1 : -1;
-    seg_.growthFrom = (int16_t)(sign * (parkedLevel_ - depRef_));
-    seg_.clipped    = clipped_;
-    seg_.decimation = dec_;
-    seg_.departure  = true;
-    ev_ = HallEvent::Departure;
+  // Has the arc started moving again? Not "has the throttle come up".
+  //
+  //   * a monotone run across the whole resume window, allowing one step to
+  //     disagree, so a single sample can neither cause nor block it;
+  //   * at least resumeMove counts of travel, which a drift cannot make in
+  //     200 ms and a step makes in one sample and therefore fails the run;
+  //   * no reversal through the baseline -- the arc has one sign;
+  //   * and a direction the arc could actually take from where it stopped.
+  //     Below its own peak, Toby is past the top, and only a continued fall is
+  //     plausible. At its own peak he may be on the way up or at the apex, and
+  //     either a further rise or the fall is plausible.
+  bool resumeReady() const {
+    if (prLen_ < kProgress) return false;
+    const uint8_t N = (uint8_t)(cfg_.resumeWindowMs / cfg_.settleStepMs);
+    if (N < 3 || N > kProgress) return false;
+    int32_t o[kProgress];
+    for (uint8_t i = 0; i < N; ++i) {
+      const uint8_t idx = (uint8_t)((prHead_ + kProgress - N + i) % kProgress);
+      o[i] = sign_ * ((int32_t)pr_[idx] - entryBaseline_);
+      if (o[i] < -(int32_t)cfg_.exitMargin) return false;      // reversed
+    }
+    const int32_t total = o[N - 1] - o[0];
+    const int32_t mv = total < 0 ? -total : total;
+    if (mv < cfg_.resumeMove) return false;
+    uint8_t agree = 0;
+    for (uint8_t i = 1; i < N; ++i) {
+      const int32_t d = o[i] - o[i - 1];
+      if ((total > 0 && d > 0) || (total < 0 && d < 0)) ++agree;
+    }
+    if (agree < cfg_.resumeAgree) return false;
+    if (total > 0 && pauseAbs_ < peakSoFar_ - (int32_t)cfg_.resumeMove) return false;
+    return true;
   }
 
-  // The field has cleared. If nothing was ever established the caller is told
-  // so at once -- decision 0059 measured what waiting costs.
-  bool endEpisode(uint32_t nowMs) {
-    const bool nothing = !counted_;
-    const uint32_t from = openedAtMs_;
-    open_ = false; occ_ = Occupancy::None;
-    depOpen_ = false; depJudged_ = false; pendingEnd_ = false; depSince_ = 0;
+  // Stitch. The stationary interval is excluded and the measurement clock skips
+  // it; the two hundred milliseconds of proof are real moving samples and are
+  // put back at full rate, so the arc has no gap in it and no change of
+  // sampling density where it was joined.
+  void resumeMeasurement(uint32_t nowMs) {
+    paused_ = false;
+    pausedTotalMs_ += nowMs - pausedAtMs_;
+    resumedAtMs_ = nowMs;
+    sawProgress_ = false;
+    // Back to the moment the field stopped being flat -- the same test, and
+    // the same threshold, that decided where the pre-stop side was cut.
+    uint32_t back = lastFlatMs_ ? (nowMs - lastFlatMs_) : cfg_.resumeWindowMs;
+    if (back > cfg_.stitchBackMaxMs) back = cfg_.stitchBackMaxMs;
+    if (back > kResume) back = kResume;
+    if (back > rsLen_) back = rsLen_;
+    for (uint16_t i = 0; i < (uint16_t)back; ++i) {
+      const uint16_t idx = (uint16_t)((rsHead_ + kResume - (uint16_t)back + i) % kResume);
+      const int32_t rec = (int32_t)rs_[idx] - entryBaseline_;
+      push((int16_t)rec); tally((int16_t)rec);
+    }
+    rsLen_ = 0; rsHead_ = 0;
+    quietSince_ = 0;
+  }
+
+  // A pause that never resumed. There is no half a magnet to report and
+  // nothing to judge: the passage is discarded and the caller is told, at
+  // once, that a marker may have gone uncounted.
+  bool abandon(uint32_t nowMs) {
+    open_ = false; paused_ = false;
     n_ = 0; preAt_ = 0; dec_ = 1; decPhase_ = 0; sum_ = 0;
-    quietSince_ = 0; clipped_ = false; truncated_ = false;
+    quietSince_ = 0; truncated_ = false; clipped_ = false;
+    pausedTotalMs_ = 0; departArmedMs_ = 0; resumedAtMs_ = 0; sawProgress_ = false;
+    rsLen_ = 0; rsHead_ = 0;
     entryBaseline_ = baseline_;
-    counted_ = false;
-    if (!nothing) return false;
-    seg_ = Segment{};
-    seg_.fromMs = from; seg_.toMs = nowMs;
+    (void)nowMs;
     ev_ = HallEvent::Abandoned;
     return true;
   }
 
   bool close(uint32_t nowMs) {
     open_ = false;
-    const uint32_t dur = nowMs - openedAtMs_;
+    // THE MEASUREMENT CLOCK, not the wall clock: a stop does not make a
+    // passage long. The wall clock is what the watchdogs run on, and it is
+    // still there in openedAtMs / closedAtMs for the rebound guard.
+    const uint32_t dur = (nowMs - openedAtMs_) - pausedTotalMs_;
     if (dur < cfg_.floorMs) { ++floorRejects_; return false; }
     // ------------------------------------------------------------------
     // THE POLE IS DECIDED HERE, and only here, from the completed passage.
@@ -621,8 +650,17 @@ class HallCapture {
     if (primed_) {
       if (!mayAdapt) { adaptSinceMs_ = 0; return; }   // at or below the floor: frozen
       if (!adaptSinceMs_) adaptSinceMs_ = nowMs;
+      // A PAUSED passage is one the locomotive is sitting inside. Migration
+      // is exactly the wrong thing there -- it is finding 10 by another road --
+      // and the motion gate above already refuses at PWM 0, but a departure
+      // that has crossed the tractive floor while the measurement is still
+      // paused would otherwise re-open the door.
+      if (paused_) return;
       if (open_) {
-        const uint32_t from = (openedAtMs_ > adaptSinceMs_) ? openedAtMs_ : adaptSinceMs_;
+        uint32_t from = (openedAtMs_ > adaptSinceMs_) ? openedAtMs_ : adaptSinceMs_;
+        // ...and not for openMigrateMs after it resumes, so the reference
+        // cannot walk under the second half of a stitched arc.
+        if (resumedAtMs_ > from) from = resumedAtMs_;
         if (nowMs - from < cfg_.openMigrateMs) return;
       }
     }
@@ -656,21 +694,23 @@ class HallCapture {
   uint8_t  pol_ = 1;
   Passage  out_;
 
-  // ---- interruption state (decision 0070). 96 bytes. ----------------------
-  static constexpr uint8_t kSettle = 16;     // * settleStepMs = settleWindowMs
-  int16_t   stl_[kSettle] = {};
-  uint16_t  stlN_[kSettle] = {};
-  uint32_t  stlAt_[kSettle] = {};
-  uint8_t   stlHead_ = 0, stlLen_ = 0;
-  uint32_t  lastStlMs_ = 0, settleFromMs_ = 0, depFromMs_ = 0;
-  uint16_t  settleFromN_ = 0;
-  int32_t   settledLevel_ = 0, parkedLevel_ = 0, depRef_ = 0;
-  bool      settled_ = false, counted_ = false;
-  uint32_t  depSince_ = 0;
-  bool      depOpen_ = false, depJudged_ = false, pendingEnd_ = false;
-  Occupancy occ_ = Occupancy::None;
+  // ---- the paused measurement (decision 0070). 640 bytes. -----------------
+  static constexpr uint8_t  kProgress = 16;    // * settleStepMs = settleWindowMs
+  static constexpr uint16_t kResume   = 512;   // full-rate ring for the stitch
+  int16_t   pr_[kProgress] = {};
+  uint16_t  prN_[kProgress] = {};
+  uint8_t   prHead_ = 0, prLen_ = 0;
+  uint32_t  lastPrMs_ = 0;
+  int32_t   plateauLevel_ = 0;
+  uint16_t  progressFromN_ = 0;
+  int16_t   rs_[kResume] = {};
+  uint16_t  rsHead_ = 0, rsLen_ = 0;
+  int32_t   sign_ = 1, peakSoFar_ = 0, pauseAbs_ = 0;
+  uint32_t  lastFlatMs_ = 0;
+  uint32_t  pausedAtMs_ = 0, pausedTotalMs_ = 0;
+  uint32_t  departArmedMs_ = 0, resumedAtMs_ = 0;
+  bool      plateau_ = false, sawProgress_ = false, paused_ = false;
   HallEvent ev_ = HallEvent::None;
-  Segment   seg_;
 };
 
 }  // namespace navi_one

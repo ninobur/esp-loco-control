@@ -6,7 +6,9 @@ holds the proposal, the exact diff it would apply, and the test bench that runs
 the real firmware classes with that diff applied in a temporary build tree.
 
 ```
-proposed/            the six changed firmware files, complete, with the change applied
+proposed/            the four changed firmware files, complete, with the change
+                     applied. MagnetRecognizer.h and WaveformWindow.h are NOT
+                     here: this design does not touch them.
   tests/
     gate_interrupted.cpp   gate 12 -- the new gate, run against the proposed tree
     fixtures_captures.h    GENERATED: the four field records, verbatim
@@ -38,34 +40,34 @@ reach, that diff would show it.
 
 | | |
 |---|---|
-| A | `med3At` is `medianOfThree` elementwise — 20,000 random vectors |
-| B | the constants the recognizer and the capture each restate agree |
-| C | settle detection against the **measured** stationary noise of four real plateaus |
-| D | findings 09 A, 09 B, 11 and 13 replayed through the real stack, clean and with noise |
-| E | stops at 15 / 25 / 40 % rising, the peak, 40 / 15 % falling |
-| F | eight things that are not magnets, with the stop rule switched **on** |
-| G | uninterrupted slow crossings, 108 ms to 1800 ms sigma, each at its own physical PWM |
+| A | the constants, and that `resumeMove` is `exitMargin` rather than a new number |
+| B | loss-of-progression against the **measured** stationary noise of four real plateaus |
+| C | findings 09 A, 09 B, 11 and 13 replayed through the real stack, clean and with noise |
+| D | stops around the arc at three approach and three departure speeds, each against a **control** that creeps through the same way without stopping |
+| E | the four artifacts the withdrawn design would have accepted, all refused |
+| F | the sentinels: falling PWM does not pause a coasting locomotive; rising PWM does not resume a stationary, stalled or spinning one |
+| G | uninterrupted crossings — nothing pauses without an arming |
 | H | the real `StationMachine` over modelled track, coast swept 60–140 % |
-| I | twenty interrupted acceptances do not move the gain median |
-| J | an episode that establishes nothing withdraws AUTO at once |
 
 ## What is real and what is modelled
 
 **Real:** `HallCapture`, `MagnetRecognizer`, `Navigator`, `StationMachine` and
 `RouteMap` are the firmware classes, compiled from the firmware headers with the
-proposed diff applied. `Rig` in gate 12 reproduces `NAVI_ONE.ino`'s `hallTask()`,
+proposed diff applied. `MagnetRecognizer` and `WaveformWindow` are the
+firmware's **unaltered** — this design has no second recognizer to test. `Rig` in gate 12 reproduces `NAVI_ONE.ino`'s `hallTask()`,
 `stationService()`, `loop()` and `serviceRamp()`; they are meant to be read side
 by side. The four records in `fixtures_captures.h` are the samples the firmware
 itself published on `diag/waveform`.
 
-**Modelled:** the ADC. A decimated field record is expanded by median-filtering
-the stored samples and interpolating between them — the readings in between were
-never transmitted. Section H generates the field from a Gaussian model of a 30 mm
-magnet and Toby's measured speed fit. Decision 0070 lists what these therefore do
-not prove.
+**Modelled:** the ADC. A decimated field record is expanded by interpolating
+across each stored reading's interval — the readings in between were never
+transmitted. Sections D onwards generate the field from a Gaussian model of a
+30 mm magnet and drive it with Toby's measured speed fit,
+`3.990 × (PWM − 25.1)` mm/s, and the station machine's own ramp rates. Decision
+0070 lists what these therefore do not prove.
 
 ## The sketch compiles
 
 `arduino-cli compile --fqbn esp32:esp32:esp32`, core 3.3.11, against stub headers
 for `PubSubClient` and `Adafruit_INA219` (neither is installed on this machine).
-Cost of the change: **+3,364 bytes of flash, +232 bytes of RAM.**
+Cost of the change: **+2,116 bytes of flash, +1,168 bytes of RAM.**

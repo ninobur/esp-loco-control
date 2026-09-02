@@ -11,7 +11,7 @@ cd "$repo"
   echo "#   sh tools/interrupted_replay/make_diff.sh"
   echo "# NOT APPLIED. firmware/ is untouched until the operator ratifies."
   echo "#"
-  for f in MagnetRecognizer.h HallCapture.h Navigator.h WaveformWindow.h LocoConfig.h NAVI_ONE.ino; do
+  for f in HallCapture.h Navigator.h LocoConfig.h NAVI_ONE.ino; do
     diff -u "$src/$f" "$here/proposed/$f" \
       | sed -e "1s|.*|--- $src/$f|" -e "2s|.*|+++ $src/$f (proposed)|" || true
   done
