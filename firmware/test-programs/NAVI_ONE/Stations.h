@@ -72,12 +72,27 @@ struct StationDefinition {
 //
 // Everything else starts from the standard and gets tuned per platform per
 // direction from observed landings.
+// COUNTER-CLOCKWISE STOP OFFSETS ARE MEASURED, NOT ASSUMED
+// --------------------------------------------------------
+// Landings from the 0.8 CCW run of 2026-09-01, identical on both laps, so these
+// are measurements rather than one-off observations:
+//
+//     station    ramp at   came to rest   coast
+//     Arches       +1          +2           1 marker
+//     Grillers     -1          +2           3 markers
+//     Patio        +1          +2           1 marker
+//     Bamboo       +1          +3           2 markers
+//
+// The operator then set each one from where it actually landed: "Patio CCW only
+// adjust to stop one magnet sooner. Bamboo CCW only adjust to stop 2 magnets
+// sooner. Arches CCW only stop 1 magnet sooner. Grillers problem currently
+// solved." Clockwise offsets are untouched by that ruling.
 static const StationDefinition STATIONS[] = {
   //  name        centre  pwmCW pwmCCW  stopCW stopCCW  depCW depCCW   0 = as per routing
-  { "Patio",         15,    60,    60,      1,      1,      0,     0 },
+  { "Patio",         15,    60,    60,      1,      0,      0,     0 },
   { "Grillers",      63,    60,    72,     -1,     -1,    110,     0 },
-  { "Arches",       108,    60,    60,      1,      1,      0,     0 },
-  { "Bamboo",       157,    60,    60,      1,      1,      0,     0 },
+  { "Arches",       108,    60,    60,      1,      0,      0,     0 },
+  { "Bamboo",       157,    60,    60,      1,     -1,      0,     0 },
 };
 static const uint8_t STATION_COUNT = (uint8_t)(sizeof(STATIONS)/sizeof(STATIONS[0]));
 

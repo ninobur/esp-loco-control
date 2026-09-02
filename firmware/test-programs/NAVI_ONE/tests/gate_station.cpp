@@ -123,11 +123,17 @@ int main() {
   }
 
   printf("F. stop offsets are per station AND per direction\n");
-  for (uint8_t i = 0; i < STATION_COUNT; ++i) {
-    // Grillers CW is the one departure from the standard, and it is a
-    // per-direction one: -1 clockwise, +1 the other way. Section I says why.
-    ok(stopOffsetFor(STATIONS[i], +1) == (i == 1 ? -1 : 1), "CW stop offset");
-    ok(stopOffsetFor(STATIONS[i], -1) == (i == 1 ? -1 : 1), "CCW stop offset");
+  {
+    // The whole table, asserted literally, because every one of these is a
+    // measurement the operator took from an observed landing and any drift in
+    // them is a change to where the locomotive stops in front of visitors.
+    // Order: Patio, Grillers, Arches, Bamboo.
+    const int8_t wantCW[4]  = {  1, -1,  1,  1 };
+    const int8_t wantCCW[4] = {  0, -1,  0, -1 };
+    for (uint8_t i = 0; i < STATION_COUNT; ++i) {
+      ok(stopOffsetFor(STATIONS[i], +1) == wantCW[i],  "CW stop offset");
+      ok(stopOffsetFor(STATIONS[i], -1) == wantCCW[i], "CCW stop offset");
+    }
   }
   ok(STATION_COUNT == 4, "four platforms");
   {
@@ -225,7 +231,7 @@ int main() {
       ok(departPwmFor(s2, -1, 90) == 90, "CCW departs as per routing everywhere");
       ok(departPwmFor(s2, -1, 105) == 105, "including off the Patio curve at 105");
       ok(stopOffsetFor(s2, +1) == (grillersCW ? -1 : 1), "CW stop offset");
-      ok(stopOffsetFor(s2, -1) == (grillersCW ? -1 : 1), "CCW stop offset");
+      ok(departPwmFor(s2, -1, 72) == 72, "CCW departure follows the cruise it is handed");
     }
   }
 
