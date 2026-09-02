@@ -361,8 +361,48 @@ class HallCapture {
     // is still under the sensor, so nothing re-opens until the field genuinely
     // moves again, and the departure arc gets a clean passage of its own.
     if (arm != StopArming::None && plateau_ && !sawProgress_) {
-      discard();
-      return false;
+      // ONLY IF THERE IS NO FIELD THERE. The discard exists for a passage that
+      // opened on an ARTIFACT while the locomotive stood in a fringe -- Bamboo,
+      // 30 counts on the sensor and one sample over the threshold. It is wrong
+      // for a locomotive resting INSIDE a magnet, and 1.0X6 shipped it without
+      // that guard.
+      //
+      // Arches CCW, 2026-09-02 14:14:40, is what that cost. Toby came to rest
+      // at 88 counts -- 44% of MM106's gain, a real field, not a fringe. The
+      // passage was open through the dwell, and the discard fired on it every
+      // sample: opened at mag >= entryMargin, discarded as flat-with-no-
+      // progress, reopened on the very next reading because the field was
+      // still there. Round and round for thirty seconds, with the pre-roll
+      // frozen the whole time because a pre-roll does not fill while a passage
+      // is open. It only stopped when the trailing plateau window finally
+      // cleared, some 400 ms into the departure -- by which time the top of the
+      // arc had gone. What reached the recognizer was twelve stale pre-roll
+      // samples at 28 and then a bare falling side, 88 down to 17. Residual
+      // 0.2706.
+      //
+      // So: a resting level BELOW the opening threshold cannot be a magnet the
+      // locomotive is sitting in -- nothing that weak opens a passage -- and
+      // whatever opened it was an artifact. Discard that. A resting level at or
+      // above it is a real field, and the passage belongs to it; the pause path
+      // takes it, dwell excluded and departure stitched, exactly as it does for
+      // a locomotive that was still moving when the passage opened.
+      //
+      // AND NOTHING ELSE. Resting in a real field is left exactly as it
+      // behaved before the discard existed: the passage stays open and the
+      // dwell goes into it. That is a known fault -- it is the Bamboo 12:29
+      // fault at a higher field strength -- and it is left alone deliberately.
+      // Pausing such a passage instead was tried and is worse: with the
+      // locomotive stationary and the field still on the sensor, the passage
+      // abandons on its watchdog, reopens on the very next reading because the
+      // field has not gone anywhere, pauses, abandons again. Gate 12 F caught
+      // it looping, and one run showed PAUSE and RESUME alternating every
+      // millisecond. A fault that is understood and bounded beats a fix that
+      // thrashes.
+      const int32_t rest = plateauLevel_ - entryBaseline_;
+      if ((rest < 0 ? -rest : rest) < (int32_t)cfg_.entryMargin) {
+        discard();
+        return false;
+      }
     }
 
     if (mag < cfg_.exitMargin) {

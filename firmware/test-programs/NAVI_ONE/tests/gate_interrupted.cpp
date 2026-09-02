@@ -874,6 +874,46 @@ int main() {
          std::string(C.name) + " judged " + std::to_string(rg.lastPassageSamples) +
          " samples");
     }
+    // 1.0X6 shipped the discard WITHOUT the field guard and this is what it
+    // cost: Arches CCW 2026-09-02 14:14:40. Toby rests INSIDE a magnet, not in
+    // a fringe -- 88 counts, 44% of MM106's gain. The discard fired on that
+    // passage every sample, and it reopened every sample because the field was
+    // still there, so the pre-roll froze and the arrival never reached the
+    // record. What the recognizer got was twelve stale pre-roll samples and a
+    // bare falling side. Residual 0.2706.
+    printf("\n   AND THE OTHER HALF OF THE RULE: resting INSIDE a field is not a\n");
+    printf("   false opening. There is a magnet there and the passage is its own.\n");
+    for (double frac : { 0.44, 0.60 }) {
+      const double xr = -SIGMA_MM * sqrt(2.0 * log(1.0 / frac));
+      Rig rg; uint32_t t = 1;
+      rg.useStations = false;
+      primeCapture(rg, t); rg.nav.declare(108, -1); primeLap(rg, 6, 201, t);
+      rg.clearTrace();
+      const int sign =
+        polarityAt(nextMarker(rg.nav.status().navMm, rg.nav.status().navDir)) ? 1 : -1;
+      double x = -70.0; int ph = 0; uint32_t at = 0;
+      rg.arm = StopArming::Decelerating; rg.actualPwm = 0; rg.rampTarget = 0;
+      for (int i = 0; i < 80000; ++i, ++t) {
+        double v = 0.0;
+        if (ph == 0) { v = 40.0; if (x >= xr) { ph = 1; at = t; } }
+        else if (ph == 1) { if (t - at >= 30000u) { ph = 2; at = t;
+              rg.arm = StopArming::Departing; rg.actualPwm = 60; rg.rampTarget = 90; } }
+        else { const double e = (double)(t - at); v = 150.0 * (e < 600.0 ? e / 600.0 : 1.0); }
+        x += v / 1000.0;
+        rg.tick(t, (int16_t)(IDLE + sign * (int)gaussAt(x, 0, SIGMA_MM, 201.0)));
+        if (rg.advances || rg.notMagnets) break;
+        if (x > 400.0) break;
+      }
+      for (int i = 0; i < 3000; ++i, ++t) rg.tick(t, IDLE);
+      char nm[120];
+      snprintf(nm, sizeof(nm), "rolls in and rests at %.0f%% of peak, INSIDE the field",
+               frac * 100);
+      rg.report(nm);
+      ok(rg.advances == 1, "the magnet it is parked on is still counted", nm);
+      ok(rg.pauses >= 1, "the dwell was PAUSED out, not discarded", nm);
+      ok(rg.strikes == 0, "no strike", nm);
+      ok(rg.autoRunning, "AUTO still running", nm);
+    }
     printf("\n   The artifact case and the clean case now reach the same verdict\n"
            "   by the same road: the stationary opening is discarded, and the\n"
            "   departure arc is judged as the ordinary passage it is.\n");
