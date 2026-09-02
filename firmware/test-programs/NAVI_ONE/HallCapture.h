@@ -380,12 +380,22 @@ class HallCapture {
       // samples at 28 and then a bare falling side, 88 down to 17. Residual
       // 0.2706.
       //
-      // So: a resting level BELOW the opening threshold cannot be a magnet the
-      // locomotive is sitting in -- nothing that weak opens a passage -- and
-      // whatever opened it was an artifact. Discard that. A resting level at or
-      // above it is a real field, and the passage belongs to it; the pause path
-      // takes it, dwell excluded and departure stitched, exactly as it does for
-      // a locomotive that was still moving when the passage opened.
+      // THE TEST, STATED NARROWLY, because the broad version is false. A
+      // sustained field below entryMargin is NOT evidence that there is no
+      // magnet there: finding 13 is a locomotive parked in a real fringe, and
+      // Bamboo's 30-count plateau was a real neighbouring field. Below 38 does
+      // not mean not magnetic and this code must never say that it does.
+      //
+      // What is true is narrower and is enough: A SUSTAINED FIELD BELOW
+      // entryMargin COULD NOT HAVE OPENED THIS PASSAGE BY ITSELF. If a passage
+      // is open and the level the locomotive has settled at is below the
+      // opening threshold, then something else opened it -- an excursion that
+      // has since gone. That opening is the suspect thing, and it is what is
+      // discarded; the fringe it was sitting in is not being judged at all.
+      //
+      // At or above the threshold the sustained field alone accounts for the
+      // opening, so the passage belongs to a magnet the locomotive is in, and
+      // it is left to the pause path.
       //
       // AND NOTHING ELSE. Resting in a real field is left exactly as it
       // behaved before the discard existed: the passage stays open and the

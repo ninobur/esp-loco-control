@@ -914,6 +914,22 @@ int main() {
       ok(rg.strikes == 0, "no strike", nm);
       ok(rg.autoRunning, "AUTO still running", nm);
     }
+    risk("X7 is validated against a MODEL of the X6 failure, not the stream",
+         "The Arches CCW record of 2026-09-02 14:14:40 cannot be replayed to "
+         "test this: its arrival is what 1.0X6 destroyed, and the published "
+         "waveform is the damaged one. The 44% and 60% cases above are a "
+         "reconstruction of that geometry, not that stream. They show the "
+         "discard/reopen thrashing is gone from the model. Only the field can "
+         "show it is gone from the railway.");
+    risk("a passage that opens with no progression, in a field at or above "
+         "entryMargin, still spans its dwell",
+         "X7 divides the cases: below entryMargin the suspect opening is "
+         "discarded and the departure gets a clean passage; at or above it, "
+         "with prior progression, the pause path takes it. The third case -- at "
+         "or above, with NO recorded progression -- is left exactly as it "
+         "behaved before the discard existed, and its dwell still goes into the "
+         "waveform. That is the Bamboo 12:29 fault at a higher field strength. "
+         "It is bounded by the stop-on-stop-episode rule and it is not fixed.");
     printf("\n   The artifact case and the clean case now reach the same verdict\n"
            "   by the same road: the stationary opening is discarded, and the\n"
            "   departure arc is judged as the ordinary passage it is.\n");
