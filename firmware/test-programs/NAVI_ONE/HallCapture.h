@@ -290,7 +290,7 @@ class HallCapture {
       openedAtMs_ = nowMs;
       pausedTotalMs_ = 0; resumedAtMs_ = 0; sawProgress_ = false; stitchAt_ = 0;
       stopEpisode_ = false;
-    stitchBackMs_ = 0; provLen_ = 0; provQuiet_ = 0; provPeak_ = 0;
+    stitchBackMs_ = 0; provLen_ = 0; provQuiet_ = 0; provPeak_ = 0; provMark_ = 0;
       // The reference this passage will be MEASURED against, fixed here and not
       // touched again until it closes.
       entryBaseline_ = baseline_;
@@ -453,6 +453,7 @@ class HallCapture {
       n_ = RING / 2;
       preAt_ = (uint16_t)(preAt_ / 2);
       stitchAt_ = (uint16_t)(stitchAt_ / 2);
+      provMark_ = (uint16_t)(provMark_ / 2);
       // The progression ring remembers WHERE IN THE BUFFER each of its samples
       // was taken, so that a pause can rewind to the last moment the field was
       // moving. Halving the buffer renumbers every one of those, exactly as it
@@ -487,7 +488,7 @@ class HallCapture {
     pausedAtMs_ = 0; pausedTotalMs_ = 0; departArmedMs_ = 0; resumedAtMs_ = 0;
     stitchAt_ = 0; stopEpisode_ = false;
     ev_ = HallEvent::None;
-    stitchBackMs_ = 0; provLen_ = 0; provQuiet_ = 0; provPeak_ = 0;
+    stitchBackMs_ = 0; provLen_ = 0; provQuiet_ = 0; provPeak_ = 0; provMark_ = 0;
     prLen_ = 0; prHead_ = 0; plateau_ = false;
     rsLen_ = 0; rsHead_ = 0;
   }
@@ -534,6 +535,19 @@ class HallCapture {
     progressFromN_ = prN_[prHead_];
   }
 
+  // sum_ and the running peak have to describe what is actually retained;
+  // after a rewind they are rebuilt from the record.
+  void retally() {
+    sum_ = 0;
+    for (uint16_t i = 0; i < n_; ++i) sum_ += buf_[i];
+    sign_ = sum_ >= 0 ? 1 : -1;
+    peakSoFar_ = 0;
+    for (uint16_t i = 0; i < n_; ++i) {
+      const int32_t o = sign_ * (int32_t)buf_[i];
+      if (o > peakSoFar_) peakSoFar_ = o;
+    }
+  }
+
   // Stop the measurement. Nothing is judged and nothing is thrown away.
   void pauseMeasurement(uint32_t nowMs) {
     // Drop the samples taken while the field was already flat. The stationary
@@ -550,6 +564,65 @@ class HallCapture {
     uint16_t keep = progressFromN_;
     if (keep > n_) keep = n_;
     if (keep < (uint16_t)(preAt_ + 1)) keep = (uint16_t)(preAt_ + 1);
+    // A SECOND STOP AFTER A RESUME. The measurement resumed, and now the field
+    // is flat again without the passage having closed: whatever that
+    // "departure" was, it did not leave the magnet, so it belongs to the stop.
+    // Fold it back in -- drop everything from the join on -- so the record
+    // keeps ONE join, the one the eventual departure makes. Stationary time
+    // never belongs in the waveform, and neither does a false start.
+    //
+    // Seen in gate 12 C under X8: resumption armed during deceleration can
+    // fire on the replayed fixtures' interpolated stationary samples, and the
+    // re-stitched chunk left an arrival the archaeology rightly refused to
+    // call a flank. A one-Gaussian fit had tolerated it; that is not a
+    // recommendation for it.
+    //
+    // BUT ONLY IF IT CAME HOME. A pause at a magnet's apex is not a stop: the
+    // top is flat by nature, and a departure crawling over it at 25 mm/s keeps
+    // the window inside settleSpan for a full second. Folding THAT back threw
+    // away the rise the retention had just kept (gate 12 J). A false start
+    // returns to the level it left; the apex is the one place it cannot be.
+    // So the join is kept unless the field is back within the band of the
+    // level it rested at, and a pause elsewhere is just a second excision
+    // inside the departure -- the flat top, which the judgement reads as a
+    // top either way.
+    bool folded = false;
+    {
+      const int32_t dh = (int32_t)plateauLevel_ - (int32_t)pauseLevel_;
+      const bool home = (dh < 0 ? -dh : dh) <= (int32_t)(cfg_.settleSpan / 2);
+      if (stitchAt_ && home && stitchAt_ < keep) keep = stitchAt_;
+      if (stitchAt_ && home) { stitchAt_ = 0; folded = true; }
+    }
+    // THE LAST MOVING SAMPLE, NOT THE WINDOW'S START. The first flat window is
+    // declared with two or three moving samples still in it -- the trim
+    // allows that -- so its start sits 50 to 75 ms before the locomotive
+    // stopped, and at 45 mm/s that is 2 to 3 mm of arc thrown away: an
+    // arrival ending at 172 of a 198-count resting field (gate 12 J). Walk
+    // forward from the window's start while the record is still outside the
+    // band round the resting level; the first run of three inside it is the
+    // stop. Tried on 2026-09-02 morning and withdrawn, because under a
+    // one-Gaussian judge it let the electrical step advance; the two-sided
+    // judge refuses that step on its shape, so the walk is safe to keep.
+    // THE FIRST SUSTAINED ENTRY INTO THE BAND IS THE STOP. Not the last
+    // excursion out of it: a spike in the stationary tail -- one sample in
+    // the field, eight once a decimated record is interpolated for replay --
+    // would otherwise drag the tail in behind it and become the fragment's
+    // maximum. Findings 11 and 13 both did exactly that.
+    // ...unless a fold-back has just placed the stop: walking forward from a
+    // folded join would march straight back out over the false start it
+    // removed, and did -- findings 11 and 13 came back with the false
+    // start's spike as the arrival's maximum.
+    if (!folded) {
+      const int32_t band = (int32_t)(cfg_.settleSpan / 2);
+      const int32_t lvl  = (int32_t)plateauLevel_ - entryBaseline_;
+      uint16_t quiet = 0, last = keep;
+      for (uint16_t i = keep; i < n_; ++i) {
+        const int32_t d = (int32_t)buf_[i] - lvl;
+        if ((d < 0 ? -d : d) > band) { quiet = 0; last = (uint16_t)(i + 1); }
+        else if (++quiet >= 3) break;
+      }
+      if (last > keep) keep = last;
+    }
     n_ = keep;
     // sum_ and the running peak have to describe what is actually retained.
     sum_ = 0;
@@ -561,9 +634,16 @@ class HallCapture {
       if (o > peakSoFar_) peakSoFar_ = o;
     }
     pauseAbs_ = sign_ * (plateauLevel_ - entryBaseline_);
+    // THE RESTING LEVEL, frozen for the departure. plateauLevel_ keeps
+    // following the window, and at a magnet's apex the window goes flat
+    // again and re-defines "resting" as the top -- so a departure crawling
+    // over the apex looked like it had come home and was rewound as a false
+    // start. Gate 12 J, X9. It may follow slow drift during the dwell, but
+    // not while a provisional run is in progress.
+    pauseLevel_ = plateauLevel_;
     paused_ = true;
     pausedAtMs_ = nowMs;
-    provLen_ = 0; provQuiet_ = 0; provPeak_ = 0;
+    provLen_ = 0; provQuiet_ = 0; provPeak_ = 0; provMark_ = 0;
     lastFlatMs_ = nowMs;
     departArmedMs_ = 0;
     rsLen_ = 0; rsHead_ = 0;
@@ -580,27 +660,73 @@ class HallCapture {
     rsHead_ = (uint16_t)((rsHead_ + 1) % kResume);
     if (rsLen_ < kResume) ++rsLen_;
 
-    // PROVISIONALLY THE PASSAGE'S, from the moment the field stopped being
-    // flat. This decides nothing: resumeReady() below is still the only thing
-    // that resumes a measurement. All it decides is how much of what was
-    // already recorded gets committed when it does.
+    // PROVISIONALLY THE PASSAGE'S -- AND RECORDED AS IT HAPPENS. The
+    // operator and CODEX, 2026-09-02: "retain Hall samples starting with the
+    // first departure-side loss of plateau; do not wait for the strong
+    // resumption test; use the later sustained-movement test to commit or
+    // discard that provisional sequence."
     //
-    // THE TEST IS THE PLATEAU TEST -- the same one that cut the pre-stop side,
-    // so the two ends of one arc are cut by one rule. It keeps everything down
-    // to a field rate of about settleSpan per settleWindowMs and no slower.
+    // The 512-sample ring is not big enough to be that buffer. A departure
+    // over the top at 25 mm/s moves 14 mm in the time the ring holds 10, and
+    // the apex is what falls off the end: gate 12 J's stalls at the top came
+    // back with 186 of a 202-count magnet, the top excised by the capture
+    // itself, and no judgement can restore what was never kept.
     //
-    // ANYTHING MORE SENSITIVE RETAINS CREEP, and that was measured twice on
-    // 2026-09-02. A 10-count band round the resting level -- half the span that
-    // decided the field was flat -- retains a locomotive easing out of a fringe
-    // long before it is moving in any sense the pre-stop side would have
-    // recorded. It cost finding 13 its acceptance (0.1271 -> 0.1507) and let
-    // section E's electrical step advance a marker at 0.1264. Both times.
+    // So from the first loss of plateau the samples go into buf_ like any
+    // other, behind a mark. resumeReady() -- unchanged, still the only thing
+    // that resumes -- commits them by leaving them there. A run that goes
+    // quiet again for onsetHoldMs was not a departure: the record rewinds to
+    // the mark, and the false start joins the stop it was part of.
+    //
+    // The first sample of the run is placed by walking the ring back, at most
+    // one plateau window, to where the field left the band round its resting
+    // level -- the plateau test brackets the onset, the band finds it inside.
+    if (plateau_ && !provLen_) pauseLevel_ = plateauLevel_;   // drift while parked, not while departing
     if (!plateau_) {
-      if (provLen_ < kResume) ++provLen_;
+      if (!provLen_) {
+        provMark_ = n_;
+        const int32_t band = (int32_t)(cfg_.settleSpan / 2);
+        uint16_t cap = cfg_.settleWindowMs;
+        if (cap > rsLen_)  cap = rsLen_;
+        if (cap > kResume) cap = kResume;
+        uint16_t back = 0;
+        for (uint16_t i = 1; i <= cap; ++i) {
+          const uint16_t idx = (uint16_t)((rsHead_ + kResume - i) % kResume);
+          const int32_t d = (int32_t)rs_[idx] - (int32_t)pauseLevel_;
+          if ((d < 0 ? -d : d) > band) back = i;
+        }
+        // the ring's last `back` samples, then this one, into the record
+        for (uint16_t i = back; i >= 1; --i) {
+          const uint16_t idx = (uint16_t)((rsHead_ + kResume - i) % kResume);
+          const int32_t rec = (int32_t)rs_[idx] - entryBaseline_;
+          push((int16_t)rec); tally((int16_t)rec);
+        }
+        provLen_ = back ? back : 1;
+      } else {
+        const int32_t rec = (int32_t)raw - entryBaseline_;
+        push((int16_t)rec); tally((int16_t)rec);
+        if (provLen_ < 0xFFFF) ++provLen_;
+      }
       provQuiet_ = 0;
     } else if (provLen_) {
-      if (provLen_ < kResume) ++provLen_;
-      if (++provQuiet_ >= cfg_.onsetHoldMs) { provLen_ = 0; provQuiet_ = 0; }
+      const int32_t rec = (int32_t)raw - entryBaseline_;
+      push((int16_t)rec); tally((int16_t)rec);
+      if (provLen_ < 0xFFFF) ++provLen_;
+      // A FALSE START RETURNS TO WHERE IT WAS. "Flat" alone cannot cancel the
+      // run: over a magnet's top the field is flat by nature, and a departure
+      // crawling over the apex at 25 mm/s keeps the trailing window inside
+      // settleSpan for a full second. Measured in gate 12 J: the rise to the
+      // top was rewound as a false start and the record resumed at 186 of a
+      // 202-count magnet, on the far side. So the quiet that cancels must be
+      // quiet AT THE RESTING LEVEL -- back inside the band the field left.
+      const int32_t dp = (int32_t)raw - (int32_t)pauseLevel_;
+      const bool home = (dp < 0 ? -dp : dp) <= (int32_t)(cfg_.settleSpan / 2);
+      if (!home) provQuiet_ = 0;
+      else if (++provQuiet_ >= cfg_.onsetHoldMs) {
+        // Everything since the mark was the stop after all.
+        n_ = provMark_; provLen_ = 0; provQuiet_ = 0;
+        retally();
+      }
     }
 
     // THE ARC MAY SIMPLY HAVE FINISHED. Requirement 8 is that a passage closes
@@ -621,6 +747,14 @@ class HallCapture {
       if (m < cfg_.exitMargin) {
         if (!quietSince_) quietSince_ = nowMs;
         if (nowMs - quietSince_ >= cfg_.settleWindowMs) {
+          // The arc finished while paused. If a departure was being retained
+          // it is the falling side, already in the record: commit it as a
+          // join. If nothing was, the record is an arrival with no departure,
+          // and the join is placed at its end so the judgement says so --
+          // INSUFFICIENT, "a marker may have gone uncounted" -- instead of
+          // the one-Gaussian fit calling half an arc the wrong shape.
+          stitchAt_ = provLen_ ? provMark_ : n_;
+          provLen_ = 0; provQuiet_ = 0; provMark_ = 0;
           paused_ = false;
           pausedTotalMs_ += nowMs - pausedAtMs_;
           return close(nowMs);
@@ -707,34 +841,15 @@ class HallCapture {
     pausedTotalMs_ += nowMs - pausedAtMs_;
     resumedAtMs_ = nowMs;
     sawProgress_ = false;
-    // Back to the first loss of the plateau band: everything provisionally
-    // retained since the field started moving again, now committed. The old
-    // reach-back stands only if nothing was retained at all, which resumeReady()
-    // makes very nearly impossible -- it takes resumeMove counts of travel to
-    // get here, and that is well outside the band this counts from.
-    //
-    // THE PRE-STOP SIDE IS NOT TOUCHED. pauseMeasurement's rewind is a separate
-    // excision with a separate hazard: at an apex the field is flat by nature,
-    // and a movement test there eats the top of every arc it is applied to.
-    // Changing both ends at once on 2026-09-02 cost finding 13 its acceptance
-    // and let an electrical step advance a marker. One end at a time.
-    uint32_t back = provLen_ ? provLen_
-                             : (lastFlatMs_ ? (nowMs - lastFlatMs_) : cfg_.resumeWindowMs);
-    if (back > cfg_.stitchBackMaxMs) back = cfg_.stitchBackMaxMs;
-    if (back > kResume) back = kResume;
-    if (back > rsLen_) back = rsLen_;
-    // The boundary between the two movement intervals, in the record's own
-    // numbering. Everything before it was observed on the way in, everything
-    // from it on the way out. Renumbered with the buffer if it decimates.
-    stitchAt_ = n_;
-    for (uint16_t i = 0; i < (uint16_t)back; ++i) {
-      const uint16_t idx = (uint16_t)((rsHead_ + kResume - (uint16_t)back + i) % kResume);
-      const int32_t rec = (int32_t)rs_[idx] - entryBaseline_;
-      push((int16_t)rec); tally((int16_t)rec);
-    }
-    stitchBackMs_ = (uint16_t)back;
+    // The departure is already in the record, behind the mark the first loss
+    // of plateau left. Nothing is stitched here any more: the join is the
+    // mark, and what follows it was retained as it happened. The pre-stop side
+    // is untouched -- pauseMeasurement's rewind is a separate excision.
+    const uint32_t back = provLen_ ? (uint32_t)(n_ - provMark_) : 0;
+    stitchAt_ = provLen_ ? provMark_ : n_;
+    stitchBackMs_ = (uint16_t)(back > 0xFFFF ? 0xFFFF : back);
     rsLen_ = 0; rsHead_ = 0;
-    provLen_ = 0; provQuiet_ = 0; provPeak_ = 0;
+    provLen_ = 0; provQuiet_ = 0; provPeak_ = 0; provMark_ = 0; provMark_ = 0;
     quietSince_ = 0;
   }
 
@@ -753,7 +868,7 @@ class HallCapture {
     rsLen_ = 0; rsHead_ = 0;
     entryBaseline_ = baseline_;
     ++discards_;
-    stitchBackMs_ = 0; provLen_ = 0; provQuiet_ = 0; provPeak_ = 0;
+    stitchBackMs_ = 0; provLen_ = 0; provQuiet_ = 0; provPeak_ = 0; provMark_ = 0;
   }
 
   // A pause that never resumed. There is no half a magnet to report and
@@ -768,7 +883,7 @@ class HallCapture {
     rsLen_ = 0; rsHead_ = 0;
     entryBaseline_ = baseline_;
     (void)nowMs;
-    stitchBackMs_ = 0; provLen_ = 0; provQuiet_ = 0; provPeak_ = 0;
+    stitchBackMs_ = 0; provLen_ = 0; provQuiet_ = 0; provPeak_ = 0; provMark_ = 0;
     ev_ = HallEvent::Abandoned;
     return true;
   }
@@ -814,6 +929,7 @@ class HallCapture {
     out_.decimation = dec_;
     out_.stitchAt   = stitchAt_;
     out_.stopEpisode = stopEpisode_;
+    out_.restLevel  = pausedTotalMs_ ? (int16_t)(sign_ * ((int32_t)pauseLevel_ - entryBaseline_)) : 0;
     ev_ = HallEvent::Passage;
     return true;
   }
@@ -922,7 +1038,8 @@ class HallCapture {
   uint16_t  stitchAt_ = 0;
   bool      stopEpisode_ = false;
   uint16_t  stitchBackMs_ = 0;
-  uint16_t  provLen_ = 0, provQuiet_ = 0;
+  uint16_t  provLen_ = 0, provQuiet_ = 0, provMark_ = 0;
+  int16_t   pauseLevel_ = 0;
   int32_t   provPeak_ = 0;
   uint32_t  discards_ = 0;
   uint32_t  pausedAtMs_ = 0, pausedTotalMs_ = 0;

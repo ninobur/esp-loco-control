@@ -55,3 +55,8 @@ $CXX "$here/gate_station_baseline.cpp" -o "$tmp/stbase"; "$tmp/stbase"
 echo ""
 echo "== gate 12: the interrupted-traversal rule (decision 0070) =="
 $CXX "$here/gate_interrupted.cpp" -o "$tmp/interrupted"; "$tmp/interrupted"
+
+echo ""
+echo "== gate 13: the archaeology, on the railway's own magnets =="
+$CXX "$here/gate_two_sided.cpp" -lz -o "$tmp/twosided"
+"$tmp/twosided" "$repo/field-records/logs/20260828_survey/toby_1_13X_survey_waveforms.log.gz"

@@ -92,7 +92,7 @@ using namespace navi_one;
 // THE CEILING IS NOT ADJUSTED TO MAKE IT PASS. If the field refuses it, the
 // refusal is the result -- the complete stitched waveform is published, nothing
 // is advanced, and the locomotive stops. That is the measurement.
-#define SKETCH_NAME    "NAVI_ONE_1_0X8_FIELDTEST"
+#define SKETCH_NAME    "NAVI_ONE_1_0X9_FIELDTEST"
 #define BUILD_CLASS    "EXPERIMENTAL_FIELD_TEST"
 #define FIELD_ACCEPTED 0
 
@@ -116,6 +116,11 @@ struct Judged {
   // was open. kind says the measurement PAUSED; this says the passage merely
   // happened around a stop, which is a weaker claim and a wider net.
   uint8_t  stopEpisode;
+  // Decision 0070's archaeology: judged as two fragments of one arc, and which
+  // fragment set the scale (1 arrival, 2 departure, 3 both). kind 3 is a split
+  // passage of which NOT ENOUGH SURVIVED to judge -- routed like an abandoned
+  // one: "a marker may have gone uncounted", not "wrong shape".
+  uint8_t  twoSided, trunk;
 };
 // len: 0 means "text, use strlen(payload) at send time" (every existing text
 // pub() call). Non-zero means "exactly this many bytes, verbatim, including
@@ -583,7 +588,7 @@ static void publishNav(const char* event,const Judged* j,Ruling r){
       "\"landmark\":\"%s\",\"dir\":\"%s\",\"ruling\":\"%s\",\"why\":\"%s\","
       "\"obs\":\"%c\",\"expected\":\"%c\",\"peak\":%u,\"ratio\":%.3f,"
       "\"resid\":%.4f,\"shape\":%u,\"gap_ms\":%lu,\"gain\":%u,"
-      "\"stitched\":%u,\"paused_ms\":%lu,"
+      "\"two_sided\":%u,\"trunk\":%u,\"stitched\":%u,\"paused_ms\":%lu,"
       "\"trust\":\"%s\",\"seq_at\":%u,\"adv\":%lu,\"ref\":%lu,\"notmag\":%lu}",
       event, navigator.positionKnown()?"NORMAL":"UNSET",
       navigator.positionKnown()?"NORMAL":"UNSET",
@@ -595,7 +600,7 @@ static void publishNav(const char* event,const Judged* j,Ruling r){
       poleChar(polarityAt(r==Ruling::Advanced ? s.navMm : s.target)),
       j->peak, (double)j->ratio, (double)j->residual, j->shapeTested,
       (unsigned long)j->gapMs, j->gain,
-      j->kind, (unsigned long)j->pausedMs,
+      j->twoSided, j->trunk, (unsigned)(j->kind == 1), (unsigned long)j->pausedMs,
       trustName(s.trust), s.seqAt,
       (unsigned long)s.advances,(unsigned long)s.refusals,(unsigned long)s.notMagnets);
     pub(T_MARKER,b,false);
@@ -746,13 +751,14 @@ static void hallTask(void*){
         j = Judged{ myEpoch,p.openedAtMs,p.closedAtMs,p.peakCounts,p.polarity,
                     (uint8_t)v.outcome,(uint8_t)v.isMagnet,
                     v.amplitudeRatio,v.residual,(uint8_t)v.shapeTested,v.gapMs,v.gain,
-                    (uint8_t)(capture.pausedMs() ? 1 : 0), capture.pausedMs(),
-                    (uint8_t)(p.stopEpisode ? 1 : 0) };
+                    (uint8_t)(v.outcome == Outcome::Insufficient ? 3 : (capture.pausedMs() ? 1 : 0)),
+                    capture.pausedMs(), (uint8_t)(p.stopEpisode ? 1 : 0),
+                    (uint8_t)(v.twoSided ? 1 : 0), v.trunk };
       } else {
         // A paused measurement that outlived a wall-clock watchdog. There is
         // no waveform to judge and nothing to advance.
         j = Judged{ myEpoch,now,now,0,0,(uint8_t)Outcome::NoCurve,0,
-                    0.0f,0.0f,0,0,0, 2, 0, 1 };
+                    0.0f,0.0f,0,0,0, 2, 0, 1, 0, 0 };
       }
       if (judgedQ) xQueueSend(judgedQ,&j,0);
     }
@@ -1159,7 +1165,7 @@ void setup(){
 // this program cannot tell whether it was. That is the same position a
 // WrongMagnet leaves it in, so it does the same thing, at once -- not six
 // markers later when the polarity chain happens to catch up (decision 0059).
-static void unresolvedInterruption(){
+static void unresolvedInterruption(bool insufficient = false){
   navigator.unresolved();
   const NavStatus& s = navigator.status();
   char w[220];
@@ -1168,7 +1174,10 @@ static void unresolvedInterruption(){
     "and the waveform never continued. A marker may have gone uncounted. "
     "Position is not known. Declare it.", s.navMm);
   withdraw(w);
-  publishNav("INTERRUPTION_UNRESOLVED",nullptr,Ruling::Unresolved);
+  // INSUFFICIENT_EVIDENCE: the passage was split by a stop and no fragment
+  // reached the apex, so nothing can be said about it -- the same honest
+  // answer as a pause that never resumed, and the same safe stop.
+  publishNav(insufficient ? "INSUFFICIENT_EVIDENCE" : "INTERRUPTION_UNRESOLVED",nullptr,Ruling::Unresolved);
 }
 
 // A STITCHED WAVEFORM THE RECOGNIZER REFUSED (decision 0070, requirement 10).
@@ -1246,7 +1255,7 @@ void loop(){
     // Captured under a declaration that no longer stands. It is evidence about
     // a frame that has ended and it may not advance this one.
     if (j.epoch != navEpoch) { staleJudged++; continue; }
-    if (j.kind == 2) { unresolvedInterruption(); continue; }
+    if (j.kind == 2 || j.kind == 3) { unresolvedInterruption(j.kind == 3); continue; }
     Passage p; p.openedAtMs=j.openedAtMs; p.closedAtMs=j.closedAtMs;
     p.peakCounts=j.peak; p.polarity=j.polarity;
     Verdict v; v.outcome=(Outcome)j.outcome; v.isMagnet=j.isMagnet;

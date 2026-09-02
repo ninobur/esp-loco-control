@@ -44,6 +44,7 @@
 #include "../Navigator.h"
 #include "../Stations.h"
 #include "fixtures_captures.h"
+#include "fixtures_arches.h"
 using namespace navi_one;
 
 static int checks = 0, failures = 0;
@@ -101,7 +102,7 @@ struct Rig {
   // waveform dumps published because of a refusal.
   int stitchedRefusals = 0, dumps = 0;
   uint16_t lastDumpSamples = 0, lastPassageSamples = 0;
-  int stitched = 0, abandoned = 0, pauses = 0, resumes = 0;
+  int stitched = 0, abandoned = 0, pauses = 0, resumes = 0, insufficient = 0;
   uint32_t lastPausedMs = 0;
   float    lastResidual = 0.0f, lastRatio = 0.0f;
   uint16_t lastPeak = 0;
@@ -190,11 +191,23 @@ struct Rig {
       snprintf(b, sizeof(b),
         "%-8s pol %c peak %4u ratio %.3f resid %.4f shape %d guard %d gap %6lu "
         "paused %5lums -> %s",
-        cap.pausedMs() ? "STITCHED" : "PASSAGE", poleChar(p.polarity), p.peakCounts,
+        v.twoSided ? "TWO-SIDED" : (cap.pausedMs() ? "STITCHED" : "PASSAGE"), poleChar(p.polarity), p.peakCounts,
         (double)v.amplitudeRatio, (double)v.residual, v.shapeTested ? 1 : 0,
         v.guardTested ? 1 : 0, (unsigned long)v.gapMs,
         (unsigned long)cap.pausedMs(), outcomeName(v.outcome));
       note(b);
+      if (v.twoSided) {
+        char a[200];
+        snprintf(a, sizeof a, "   archaeology: %s (trunk %u)  arr max %d decel %.2f reg %.2f | dep max %d decel %.2f reg %.2f",
+                 v.why, v.trunk, v.arch.maxArr, v.arch.decelArr, v.arch.regArr, v.arch.maxDep, v.arch.decelDep, v.arch.regDep);
+        note(a);
+      }
+      // NAVI_ONE.ino loop(): kind 3 -- a split passage of which not enough
+      // survived -- goes the way an abandoned pause goes, before any ruling.
+      if (v.outcome == Outcome::Insufficient) {
+        ++insufficient; note("INSUFFICIENT_EVIDENCE (advance zero, stop)");
+        unresolvedInterruption(); return;
+      }
       Ruling r = nav.judge(p, v);
       switch (r) {
         case Ruling::Advanced:    ++advances; break;
@@ -223,7 +236,7 @@ struct Rig {
   void clearTrace() {
     log.clear(); events.clear();
     advances = notMagnets = unresolvedCount = strikes = 0;
-    stitched = abandoned = pauses = resumes = 0;
+    stitched = abandoned = pauses = resumes = insufficient = 0;
     stitchedRefusals = dumps = 0; lastDumpSamples = lastPassageSamples = 0;
   }
   void report(const std::string& name) const {
@@ -993,6 +1006,40 @@ int main() {
            accepted, total);
     ok(accepted >= 10, "most approach-ramp stalls are now judged whole",
        std::to_string(accepted) + " of " + std::to_string(total));
+  }
+
+  // =========================================================================
+  printf("\n\nK. the real interrupted records of 2026-09-02, judged as two fragments\n");
+  printf("   Every stitched waveform Toby published that day, verbatim, with the\n");
+  printf("   join where the record shows it was made. The one-Gaussian fit refused\n");
+  printf("   all of them. The archaeology is asked what it makes of each.\n\n");
+  {
+    struct Want { const char* tag; int n; bool magnet; const char* note; };
+    const Want WANTS[] = {
+      { "A1967_CW",  179, true,  "slip on departure, wheels caught -- 0.1967 refused" },
+      { "A1818_CW",  291, true,  "the same a lap later -- 0.1818 refused" },
+      { "A1810_CW",  254, true,  "dwell inside the field, 35 s -- 0.1810 refused" },
+      { "A2695_CCW", 242, false, "arrival only: closed out of its pause, no departure recorded" },
+      { "A5586_CCW", 280, false, "35 s of plateau at decimation 128, then eight samples of arc" },
+    };
+    for (const Want& W : WANTS) {
+      const ArchesFixture* F = nullptr;
+      for (int i = 0; i < ARCHES_FIXTURE_COUNT; ++i) if (!strcmp(ARCHES_FIXTURES[i]->tag, W.tag)) F = ARCHES_FIXTURES[i];
+      if (!F) { ok(false, "fixture present", W.tag); continue; }
+      std::vector<int16_t> o(F->v, F->v + W.n), j(W.n);
+      medianOfThree(o.data(), (uint16_t)W.n, j.data());
+      int16_t pk = 0; for (int i = 12; i < W.n; ++i) pk = std::max(pk, j[i]);
+      Passage p; p.oriented = o.data(); p.judged = j.data();
+      p.sampleCount = (uint16_t)W.n; p.preSamples = 12; p.peakCounts = (uint16_t)pk;
+      p.stitchAt = (uint16_t)(F->splice >= 0 ? F->splice : W.n);   // no join: an arrival with nothing after it
+      const ArchVerdict a = examineInterrupted(p, 0.13f);
+      printf("   %-10s %-12s %-44s %s\n", W.tag, archName(a.outcome), a.why, W.note);
+      if (W.magnet) ok(a.outcome == Arch::Magnet, "restored as one arc", W.tag);
+      else          ok(a.outcome != Arch::Magnet, "not called a magnet", W.tag);
+    }
+    printf("\n   The accepted stitched arc of 11:03 (0.1223) is absent: the build never\n"
+           "   published it. The two that were slips and the one that was a dwell are\n"
+           "   the operator's own acceptance set for this judgement.\n");
   }
 
   printf("\n\n%d checks, %d failures\n", checks, failures);

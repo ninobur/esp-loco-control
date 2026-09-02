@@ -64,6 +64,12 @@ enum class Outcome : uint8_t {
   TooSoon,        // inside the rebound guard (200 ms, measured) -- a re-read
   TooWeak,        // amplitude ratio below floor
   WrongShape,     // Gaussian residual above ceiling
+  // A passage split by a stop, of which not enough survived to say what it
+  // was: no fragment reached the apex. NOT wrong shape -- it may well have
+  // been a magnet -- and not a magnet either. "A marker may have gone
+  // uncounted", which the caller already knows how to say. Decision 0070's
+  // archaeology, 2026-09-02.
+  Insufficient,
   NoCurve,        // clean waveform expected but unusable
 };
 
@@ -73,6 +79,7 @@ inline const char* outcomeName(Outcome o) {
     case Outcome::TooSoon:    return "TOO_SOON";
     case Outcome::TooWeak:    return "TOO_WEAK";
     case Outcome::WrongShape: return "WRONG_SHAPE";
+    case Outcome::Insufficient: return "INSUFFICIENT";
     default:                  return "NO_CURVE";
   }
 }
@@ -115,6 +122,13 @@ struct Passage {
   // carries this loses a marker exactly where the geometry is most delicate,
   // and must not be allowed to pass quietly.
   bool          stopEpisode  = false;
+  // THE LEVEL THE LOCOMOTIVE RESTED AT during the pause -- oriented, entry-
+  // baseline-relative, the median of a 400 ms flat window. Zero if it never
+  // paused. It is the best-measured sample in the passage, and for a stop on
+  // the top of a magnet it is the apex itself: the band round it excises the
+  // last few counts of both flanks, so neither fragment carries the top --
+  // this does.
+  int16_t       restLevel    = 0;
   // Signed sum of every sample in the passage. Its sign IS the polarity
   // (HallCapture::close). Carried so a judgement's basis travels with it;
   // nothing thresholds on it. Decision 0064.
@@ -141,12 +155,23 @@ inline void medianOfThree(const int16_t* src, uint16_t n, int16_t* dst) {
   dst[n - 1] = src[n - 1];
 }
 
+}  // namespace navi_one
+// The archaeology for a passage split by a stop. Needs Passage and
+// medianOfThree above; provides examineInterrupted(). It opens the namespace
+// itself, so it is included between two halves of this one.
+#include "TwoSided.h"
+namespace navi_one {
+
 struct Verdict {
   Outcome  outcome        = Outcome::NoCurve;
   bool     isMagnet       = false;
   float    amplitudeRatio = 0.0f;
   float    residual       = 0.0f;
   bool     shapeTested    = false;      // false = abstained
+  bool     twoSided       = false;      // judged as two fragments of one arc (stitchAt != 0)
+  uint8_t  trunk          = 0;          // 1 arrival set the scale, 2 departure, 3 both
+  const char* why         = "";         // the archaeology's reason, for the trace and the field
+  ArchVerdict arch;                     // and everything it measured
   bool     guardTested    = false;      // false = abstained (no previous accept)
   uint32_t gapMs          = 0;
   uint16_t gain           = 0;
@@ -193,10 +218,25 @@ class MagnetRecognizer {
     // evidence either way. It must not become a silent refusal.
     if (!p.truncated && !p.clipped) {
       float r;
-      if (!fitResidual(p, r)) { v.outcome = Outcome::NoCurve; return v; }
-      v.shapeTested = true;
-      v.residual = r;
-      if (r > cfg_.residualCeiling) { v.outcome = Outcome::WrongShape; return v; }
+      if (p.stitchAt) {
+        // TWO FRAGMENTS OF ONE ARC. One Gaussian with one width is the wrong
+        // model for a passage observed in two movement intervals: measured on
+        // 312 real magnets, the halves differ in width by 10% median even
+        // uninterrupted, and a stop can put a 4x speed change between them.
+        // The archaeology restores the arc from the fragments -- the one that
+        // reached the apex sets the scale, the other must fit it -- under the
+        // SAME ceiling, and says "insufficient" when not enough survived.
+        const ArchVerdict a = examineInterrupted(p, cfg_.residualCeiling);
+        v.shapeTested = true; v.twoSided = true; v.trunk = a.trunk; v.why = a.why; v.arch = a;
+        v.residual = a.residArr > a.residDep ? a.residArr : a.residDep;
+        if (a.outcome == Arch::Insufficient) { v.outcome = Outcome::Insufficient; return v; }
+        if (a.outcome == Arch::WrongShape)   { v.outcome = Outcome::WrongShape;   return v; }
+      } else {
+        if (!fitResidual(p, r)) { v.outcome = Outcome::NoCurve; return v; }
+        v.shapeTested = true;
+        v.residual = r;
+        if (r > cfg_.residualCeiling) { v.outcome = Outcome::WrongShape; return v; }
+      }
     }
 
     v.outcome = Outcome::Magnet;
