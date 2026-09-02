@@ -1041,6 +1041,12 @@ static void serviceStatus(){
     "\"candidate_mm\":-1,\"viable\":[],\"miss_streak\":0,"
     "\"agree\":%lu,\"disagree\":%lu,\"notmag\":%lu,"
     "\"baseline\":%ld,\"floor_rej\":%lu,"
+    // OPENINGS THROWN AWAY because the locomotive was standing still in a
+    // fringe when they happened. Not a fault by itself. A rising count says
+    // the sensor is coming to rest somewhere it should not be, and it is the
+    // number that would have named the Arches CCW failure of 2026-09-02
+    // 14:14:40 in one line instead of an afternoon of waveform forensics.
+    "\"discards\":%lu,"
     "\"nav_state\":\"%s\",\"seq_at\":%u,\"ina\":%u,"
     "\"pub_drop\":%lu,\"cmd_drop\":%lu,\"stale\":%lu,"
     "\"ir_fitted\":%u,\"ir_probe_span\":%d}",
@@ -1054,6 +1060,7 @@ static void serviceStatus(){
     actualPwm, autoEnrolled?1:0, autoRunning?1:0, estopped?1:0, lowVoltage?1:0,
     (unsigned long)s.advances,(unsigned long)s.refusals,(unsigned long)s.notMagnets,
     (long)capture.baseline(),(unsigned long)capture.floorRejects(),
+    (unsigned long)capture.discards(),
     navStateName(s.state), s.seqAt, inaReady?1u:0u,
     (unsigned long)pubDropped,(unsigned long)cmdDropped,(unsigned long)staleJudged,
     irFitted?1u:0u, irProbing ? -1 : (irProbeMax-irProbeMin));
