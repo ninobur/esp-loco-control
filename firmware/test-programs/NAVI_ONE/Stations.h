@@ -74,6 +74,20 @@ struct StationDefinition {
 // direction from observed landings.
 // COUNTER-CLOCKWISE STOP OFFSETS ARE MEASURED, NOT ASSUMED
 // --------------------------------------------------------
+//   * ARCHES CW STOPS ONE MARKER LATER FROM 2026-09-02: +1 -> +2. Three
+//     consecutive CW departures from the +1 stop spun the wheels while crossing
+//     MM110 and lost the magnet's apex to the pause; two of the three were
+//     refused and shut the session down (field finding 14). The operator:
+//     "We need to advance the CW only stop at Arches by 1 MM. The grade is
+//     slight there but is part of the problem." The remedy is geographic --
+//     it moves the departure off the grade, so the slip does not coincide with
+//     a magnet. CCW is untouched: it stops at 0 by the 2026-09-01 ruling and
+//     has never shown this.
+//
+//     THIS DOES NOT FIX THE DEFECT, and is not meant to. The apex loss is a
+//     recording fault in the pause/resume path and will recur anywhere a
+//     departure slips over a marker. See finding 14.
+//
 // Landings from the 0.8 CCW run of 2026-09-01, identical on both laps, so these
 // are measurements rather than one-off observations:
 //
@@ -91,7 +105,7 @@ static const StationDefinition STATIONS[] = {
   //  name        centre  pwmCW pwmCCW  stopCW stopCCW  depCW depCCW   0 = as per routing
   { "Patio",         15,    60,    60,      1,      0,      0,     0 },
   { "Grillers",      63,    60,    72,     -1,     -1,    110,     0 },
-  { "Arches",       108,    60,    60,      1,      0,      0,     0 },
+  { "Arches",       108,    60,    60,      2,      0,      0,     0 },
   { "Bamboo",       157,    60,    60,      1,     -1,      0,     0 },
 };
 static const uint8_t STATION_COUNT = (uint8_t)(sizeof(STATIONS)/sizeof(STATIONS[0]));

@@ -82,10 +82,17 @@ using namespace navi_one;
 // of injected noise, against a ceiling of 0.13. Which side of that line a real
 // stop-and-go at Arches falls on is the question this build exists to answer.
 //
+// X2, 2026-09-02: Arches CW stops one marker later (+1 -> +2). Three
+// consecutive departures from the +1 stop spun over MM110 and lost the apex;
+// two were refused and shut the session down. That is a GEOGRAPHIC mitigation
+// on the operator's reading of the grade -- IT DOES NOT FIX THE DEFECT, which
+// is in the pause/resume recording path and will recur wherever a departure
+// slips over a marker. Field finding 14.
+//
 // THE CEILING IS NOT ADJUSTED TO MAKE IT PASS. If the field refuses it, the
 // refusal is the result -- the complete stitched waveform is published, nothing
 // is advanced, and the locomotive stops. That is the measurement.
-#define SKETCH_NAME    "NAVI_ONE_1_0X_FIELDTEST"
+#define SKETCH_NAME    "NAVI_ONE_1_0X2_FIELDTEST"
 #define BUILD_CLASS    "EXPERIMENTAL_FIELD_TEST"
 #define FIELD_ACCEPTED 0
 

@@ -128,7 +128,11 @@ int main() {
     // measurement the operator took from an observed landing and any drift in
     // them is a change to where the locomotive stops in front of visitors.
     // Order: Patio, Grillers, Arches, Bamboo.
-    const int8_t wantCW[4]  = {  1, -1,  1,  1 };
+    // Arches CW became +2 on 2026-09-02: three consecutive departures from the
+    // +1 stop spun over MM110 and lost the apex, two of them refused and shut
+    // the session down. The operator moved it a marker later to take the
+    // departure off the slight grade there. Field finding 14.
+    const int8_t wantCW[4]  = {  1, -1,  2,  1 };
     const int8_t wantCCW[4] = {  0, -1,  0, -1 };
     for (uint8_t i = 0; i < STATION_COUNT; ++i) {
       ok(stopOffsetFor(STATIONS[i], +1) == wantCW[i],  "CW stop offset");
@@ -220,17 +224,21 @@ int main() {
     ok(d.setThrottle && d.pwm == 90, "CCW departs as per routing, NOT the CW 110");
   }
 
-  printf("J. the change reaches Grillers CW and nothing else\n");
+  printf("J. the DEPARTURE change reaches Grillers CW and nothing else\n");
   {
-    // Every other platform-direction departs as per routing, and every other
-    // stop offset is the +1 standard.
+    // The 110 departure is Grillers CW alone; every other platform-direction
+    // departs as per routing. Stop offsets are now TWO exceptions to the +1
+    // standard, not one -- Grillers CW at -1 and Arches CW at +2 -- and this
+    // asserts exactly those two and no third.
     for (uint8_t i = 0; i < STATION_COUNT; ++i) {
       const StationDefinition& s2 = STATIONS[i];
       const bool grillersCW = (i == 1);
+      const bool archesCW   = (i == 2);
       ok(departPwmFor(s2, +1, 90) == (grillersCW ? 110 : 90), "CW departure target");
       ok(departPwmFor(s2, -1, 90) == 90, "CCW departs as per routing everywhere");
       ok(departPwmFor(s2, -1, 105) == 105, "including off the Patio curve at 105");
-      ok(stopOffsetFor(s2, +1) == (grillersCW ? -1 : 1), "CW stop offset");
+      ok(stopOffsetFor(s2, +1) == (grillersCW ? -1 : (archesCW ? 2 : 1)),
+         "CW stop offset");
       ok(departPwmFor(s2, -1, 72) == 72, "CCW departure follows the cruise it is handed");
     }
   }
