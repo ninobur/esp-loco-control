@@ -92,7 +92,7 @@ using namespace navi_one;
 // THE CEILING IS NOT ADJUSTED TO MAKE IT PASS. If the field refuses it, the
 // refusal is the result -- the complete stitched waveform is published, nothing
 // is advanced, and the locomotive stops. That is the measurement.
-#define SKETCH_NAME    "NAVI_ONE_1_0X5_FIELDTEST"
+#define SKETCH_NAME    "NAVI_ONE_1_0X6_FIELDTEST"
 #define BUILD_CLASS    "EXPERIMENTAL_FIELD_TEST"
 #define FIELD_ACCEPTED 0
 

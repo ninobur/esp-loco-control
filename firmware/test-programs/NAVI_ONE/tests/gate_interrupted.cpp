@@ -415,6 +415,11 @@ int main() {
     for (int f = 0; f < CAPTURE_COUNT; ++f) {
       const CaptureFixture& F = CAPTURES[f];
       const Want& W = WANTS[f];
+      // The clean run's own residual, carried into the noisy run's report. It
+      // used to be a literal 0.1271; the departure-side retention of
+      // 2026-09-02 moved it, and a risk register that quotes a stale number is
+      // worse than none.
+      float cleanResid = 0.0f;
       for (int variant = 0; variant < 2; ++variant) {
         Noise nz; Noise* pn = variant ? &nz : nullptr;
         Rig rg; uint32_t t = 1;
@@ -467,6 +472,7 @@ int main() {
         ok(rg.strikes == 0, "no strike", F.tag);
         ok(rg.advances <= W.adv, "never more than the wanted advance", F.tag);
         if (variant == 0) {
+          cleanResid = rg.lastResidual;
           ok(rg.advances == W.adv, "advance count",
              std::string(F.tag) + " got " + std::to_string(rg.advances));
         } else if (rg.advances != W.adv) {
@@ -490,7 +496,7 @@ int main() {
                  "   published, nothing advances, and the locomotive stops there and\n"
                  "   then rather than carrying a lost marker to a later strike.\n"
                  "   THE CEILING IS NOT MOVED TO ANSWER THIS. The field answers it.\n",
-                 (double)rg.lastResidual, 0.1271);
+                 (double)rg.lastResidual, (double)cleanResid);
         }
         // Registered whichever way the noise happened to fall. The margin is
         // the risk; this run is one sample of it, not a verdict on it.
@@ -501,9 +507,9 @@ int main() {
             "Margin %.4f -- about %.0f%% of the ceiling. This gate reproduces "
             "the record; it does not measure the real line. What answers it is "
             "an undecimated capture of a stop-and-go at Arches under this build.",
-            0.1271, (double)rg.lastResidual,
+            (double)cleanResid, (double)rg.lastResidual,
             rg.advances == W.adv ? "still accepted" : "REFUSED",
-            0.130 - 0.1271, (0.130 - 0.1271) / 0.130 * 100.0);
+            0.130 - cleanResid, (0.130 - cleanResid) / 0.130 * 100.0);
           risk("Finding 13's stitched waveform sits on the 0.13 shape ceiling", d);
         }
       }
