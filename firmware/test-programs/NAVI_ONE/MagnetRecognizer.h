@@ -102,6 +102,13 @@ struct Passage {
   bool          truncated    = false;
   bool          clipped      = false;
   uint16_t      decimation   = 1;       // samples per stored point (see HallCapture)
+  // WHERE THE RECORD WAS JOINED. 0 means it was not: an ordinary passage is
+  // one movement interval and has no boundary in it. Non-zero is the index of
+  // the FIRST sample of the departure segment, so [preSamples, stitchAt) is
+  // the arrival and [stitchAt, sampleCount) is the departure. Carried for
+  // diagnostics and for any judgement that needs to know the passage was
+  // observed in two intervals; the recording either side of it is untouched.
+  uint16_t      stitchAt     = 0;
   // Signed sum of every sample in the passage. Its sign IS the polarity
   // (HallCapture::close). Carried so a judgement's basis travels with it;
   // nothing thresholds on it. Decision 0064.

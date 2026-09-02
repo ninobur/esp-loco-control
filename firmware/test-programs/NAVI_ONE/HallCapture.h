@@ -244,7 +244,7 @@ class HallCapture {
       }
       open_ = true;
       openedAtMs_ = nowMs;
-      pausedTotalMs_ = 0; resumedAtMs_ = 0; sawProgress_ = false;
+      pausedTotalMs_ = 0; resumedAtMs_ = 0; sawProgress_ = false; stitchAt_ = 0;
       // The reference this passage will be MEASURED against, fixed here and not
       // touched again until it closes.
       entryBaseline_ = baseline_;
@@ -328,6 +328,7 @@ class HallCapture {
       for (uint16_t i = 0; i < RING / 2; ++i) buf_[i] = buf_[i * 2];
       n_ = RING / 2;
       preAt_ = (uint16_t)(preAt_ / 2);
+      stitchAt_ = (uint16_t)(stitchAt_ / 2);
       // The progression ring remembers WHERE IN THE BUFFER each of its samples
       // was taken, so that a pause can rewind to the last moment the field was
       // moving. Halving the buffer renumbers every one of those, exactly as it
@@ -360,6 +361,7 @@ class HallCapture {
     // never saw the stop.
     paused_ = false; sawProgress_ = false;
     pausedAtMs_ = 0; pausedTotalMs_ = 0; departArmedMs_ = 0; resumedAtMs_ = 0;
+    stitchAt_ = 0;
     ev_ = HallEvent::None;
     prLen_ = 0; prHead_ = 0; plateau_ = false;
     rsLen_ = 0; rsHead_ = 0;
@@ -539,6 +541,10 @@ class HallCapture {
     if (back > cfg_.stitchBackMaxMs) back = cfg_.stitchBackMaxMs;
     if (back > kResume) back = kResume;
     if (back > rsLen_) back = rsLen_;
+    // The boundary between the two movement intervals, in the record's own
+    // numbering. Everything before it was observed on the way in, everything
+    // from it on the way out. Renumbered with the buffer if it decimates.
+    stitchAt_ = n_;
     for (uint16_t i = 0; i < (uint16_t)back; ++i) {
       const uint16_t idx = (uint16_t)((rsHead_ + kResume - (uint16_t)back + i) % kResume);
       const int32_t rec = (int32_t)rs_[idx] - entryBaseline_;
@@ -556,6 +562,7 @@ class HallCapture {
     n_ = 0; preAt_ = 0; dec_ = 1; decPhase_ = 0; sum_ = 0;
     quietSince_ = 0; truncated_ = false; clipped_ = false;
     pausedTotalMs_ = 0; departArmedMs_ = 0; resumedAtMs_ = 0; sawProgress_ = false;
+    stitchAt_ = 0;
     rsLen_ = 0; rsHead_ = 0;
     entryBaseline_ = baseline_;
     (void)nowMs;
@@ -602,6 +609,7 @@ class HallCapture {
     out_.truncated  = truncated_;
     out_.clipped    = clipped_;
     out_.decimation = dec_;
+    out_.stitchAt   = stitchAt_;
     ev_ = HallEvent::Passage;
     return true;
   }
@@ -707,6 +715,7 @@ class HallCapture {
   uint16_t  rsHead_ = 0, rsLen_ = 0;
   int32_t   sign_ = 1, peakSoFar_ = 0, pauseAbs_ = 0;
   uint32_t  lastFlatMs_ = 0;
+  uint16_t  stitchAt_ = 0;
   uint32_t  pausedAtMs_ = 0, pausedTotalMs_ = 0;
   uint32_t  departArmedMs_ = 0, resumedAtMs_ = 0;
   bool      plateau_ = false, sawProgress_ = false, paused_ = false;
