@@ -36,6 +36,29 @@ struct CaptureConfig {
   uint16_t floorMs       = 40;
   uint16_t baselineMs    = 25;    // one baseline sample every 25 ms
   uint16_t primeMs       = 2000;  // 2 s before the baseline is trusted
+  // How long a passage must have been open before the LIVE baseline is allowed
+  // to migrate underneath it. Above the tractive floor the reference must be
+  // able to walk onto a stale offset and close a false latch, but it must not
+  // do that to a real magnet still being crossed.
+  //
+  // Sized from measurement, not taste. The median needs 21 of 41 samples at
+  // 25 ms to move, i.e. ~525 ms of open line. The longest LEGITIMATE passage
+  // recorded above the floor is 554 ms (2026-09-01 16:55:02, departing Bamboo
+  // through the ramp band); at the ~30 mm effective magnet width these
+  // locomotives show, PWM 30 gives about 1.5 s. Every latched passage on record
+  // is far longer: 3,628 ms, 12,717 ms, 554,998 ms. 2 s sits above the one and
+  // an order of magnitude below the others.
+  // The clock runs from whichever is LATER: the passage opening, or the moment
+  // motion permission arrived. Both matter. From the opening, so a real magnet
+  // being crossed is never migrated out from under. From the permission,
+  // because a locomotive standing in a magnet's fringe field holds a passage
+  // open for the whole dwell, and the instant the departure throttle crosses
+  // the floor that passage is already older than the guard -- migration would
+  // walk the reference straight onto the parked field, which is the Bamboo
+  // capture again by another road. Waiting the guard out from the permission
+  // means the locomotive is actually rolling, and clear, before the reference
+  // is allowed to follow it.
+  uint16_t openMigrateMs = 2000;
 };
 
 template <uint16_t RING = 512, uint8_t PRE = 12, uint8_t MED = 41>
@@ -48,12 +71,34 @@ class HallCapture {
   const Passage& passage() const { return out_; }
   uint32_t floorRejects() const { return floorRejects_; }
 
+  int32_t entryBaseline() const { return entryBaseline_; }
+
   // One ADC sample. Returns true when a passage has just CLOSED and passage()
   // holds it. Runs on the Hall task; touches nothing else.
-  bool sample(uint32_t nowMs, int16_t raw) {
-    updateBaseline(nowMs, raw);
+  //
+  // mayAdapt is positive evidence of tractive motion -- actualPwm above THIS
+  // locomotive's measured floor. It governs the baseline only. See
+  // updateBaseline() for why the reference may not be maintained at rest.
+  //
+  // TWO REFERENCES, ONE SENSOR (decision pending; findings 09 and 10)
+  // -----------------------------------------------------------------
+  // baseline_      LIVE. Decides only whether a passage is OPEN or CLOSED.
+  //                It is allowed to move under an open passage so that a
+  //                stale offset cannot hold one open for ever.
+  // entryBaseline_ FROZEN at the instant the passage opened. Every stored
+  //                sample, and therefore the polarity, the peak, the amplitude
+  //                ratio and the Gaussian residual, is measured against it.
+  //
+  // Without the split, letting the reference migrate to clear a latch would
+  // drag the recording with it and deform the very curve decisions 0064 and
+  // 0065 exist to protect. With it, the two jobs stop fighting: the recording
+  // is a fixed-reference measurement of the field, and the open/close test is
+  // free to follow the sensor.
+  bool sample(uint32_t nowMs, int16_t raw, bool mayAdapt) {
+    updateBaseline(nowMs, raw, mayAdapt);
     if (!primed_) return false;
 
+    // LIVE reference: threshold arithmetic only.
     const int32_t delta = (int32_t)raw - baseline_;
     const int32_t mag   = delta < 0 ? -delta : delta;
 
@@ -63,13 +108,18 @@ class HallCapture {
       // it, and then pushed it again through the main path, so it appeared
       // twice at the pre/passage boundary of every waveform.
       if (mag < cfg_.entryMargin) {
-        pre_[preHead_] = (int16_t)delta;
+        // RAW, not delta. The pre-roll is replayed at open against
+        // entryBaseline_, so it must not carry a reference of its own.
+        pre_[preHead_] = raw;
         preHead_ = (uint8_t)((preHead_ + 1) % PRE);
         if (preLen_ < PRE) ++preLen_;
         return false;
       }
       open_ = true;
       openedAtMs_ = nowMs;
+      // The reference this passage will be MEASURED against, fixed here and not
+      // touched again until it closes.
+      entryBaseline_ = baseline_;
       peak_ = 0; n_ = 0; quietSince_ = 0; truncated_ = false;
       // The pole is NOT decided here. 0.3 latched it from this one sample --
       // the entry crossing -- and on 2026-08-31 a single-sample artifact of
@@ -86,16 +136,19 @@ class HallCapture {
       // replay the pre-roll, oriented
       uint8_t start = (uint8_t)((preHead_ + PRE - preLen_) % PRE);
       for (uint8_t i = 0; i < preLen_; ++i) {
-        const int16_t v = pre_[(start + i) % PRE];
+        const int16_t v = (int16_t)((int32_t)pre_[(start + i) % PRE] - entryBaseline_);
         push(v); tally(v);
       }
       preAt_ = n_;
     }
 
-    // Signed, baseline-relative, unoriented. The buffer is oriented once at
-    // close(), when the pole is known from the whole passage.
-    push((int16_t)delta);
-    tally((int16_t)delta);
+    // Signed, ENTRY-baseline-relative, unoriented. The buffer is oriented once
+    // at close(), when the pole is known from the whole passage. Note this is
+    // deliberately NOT `delta`: the recording may not move when the live
+    // reference does.
+    const int32_t rec = (int32_t)raw - entryBaseline_;
+    push((int16_t)rec);
+    tally((int16_t)rec);
 
     if (mag < cfg_.exitMargin) {
       if (!quietSince_) quietSince_ = nowMs;
@@ -151,6 +204,7 @@ class HallCapture {
     peak_ = 0; quietSince_ = 0; truncated_ = false; clipped_ = false;
     dec_ = 1; decPhase_ = 0;
     sum_ = 0;
+    entryBaseline_ = baseline_;
   }
 
  private:
@@ -194,12 +248,55 @@ class HallCapture {
     return true;
   }
 
-  void updateBaseline(uint32_t nowMs, int16_t raw) {
+  // WHY THE REFERENCE IS GATED ON MOTION
+  // ------------------------------------
+  // A rolling median is robust to magnets only while the locomotive is MOVING:
+  // a magnet that is traversed contributes at most a sample or two out of 41,
+  // and the median ignores it. A magnet the locomotive is PARKED on contributes
+  // every sample, and the reference becomes the magnet.
+  //
+  // Observed, 2026-09-01, coming to rest at Bamboo: the baseline walked from
+  // 1853 to 1899 in about one second at throttle 22 -> 17, while Toby was still
+  // rolling below the tractive floor. It then held that value through the whole
+  // 30 s dwell. On departure the true idle level read 46 counts low, a 3,628 ms
+  // passage opened, swallowed the real MM161 magnet whole and was rejected
+  // TOO_SOON, and the next magnet disagreed. Finding 10.
+  //
+  // The capture happened during the DECELERATION, not during the dwell, so a
+  // shorter dwell is no defence and the gate has to be closed through the
+  // approach ramp. The floor is this locomotive's measured tractive floor,
+  // supplied by the caller -- not a borrowed constant.
+  //
+  // WHY IT MAY NEVERTHELESS MOVE UNDER AN OPEN PASSAGE
+  // --------------------------------------------------
+  // 0.1 through 0.6 refused outright: `if (open_) return;`. That is what makes
+  // a wrong reference permanent. A baseline primed ~70 counts low on
+  // 2026-09-01 opened a passage on its first sample and could never close it;
+  // the reference was frozen because a passage was open and the passage stayed
+  // open because the reference was frozen. It held for 72 minutes across two
+  // declarations, because reset() preserves the baseline and the median needs
+  // ~525 ms of CLOSED line to move while the offset re-opens a passage after
+  // one 25 ms interval. Finding 09.
+  //
+  // So above the floor the reference is allowed to walk onto a stale offset and
+  // close the passage. openMigrateMs keeps it off a real magnet that is still
+  // being crossed. The RECORDING is unaffected either way: it is measured
+  // against entryBaseline_, which is frozen.
+  void updateBaseline(uint32_t nowMs, int16_t raw, bool mayAdapt) {
     if (raw <= 8 || raw >= 4087) clipped_ = true;
     if (!startMs_) startMs_ = nowMs;
     if (nowMs - lastBaseMs_ < cfg_.baselineMs) return;
     lastBaseMs_ = nowMs;
-    if (open_) return;                       // never sample the baseline inside a passage
+    // Priming is exempt: the locomotive is stationary at boot, so a motion gate
+    // above this line would mean there is never a first reference at all.
+    if (primed_) {
+      if (!mayAdapt) { adaptSinceMs_ = 0; return; }   // at or below the floor: frozen
+      if (!adaptSinceMs_) adaptSinceMs_ = nowMs;
+      if (open_) {
+        const uint32_t from = (openedAtMs_ > adaptSinceMs_) ? openedAtMs_ : adaptSinceMs_;
+        if (nowMs - from < cfg_.openMigrateMs) return;
+      }
+    }
     med_[medHead_] = raw;
     medHead_ = (uint8_t)((medHead_ + 1) % MED);
     if (medLen_ < MED) ++medLen_;
@@ -221,7 +318,8 @@ class HallCapture {
   int16_t  pre_[PRE] = {}; uint8_t preHead_ = 0, preLen_ = 0;
   int16_t  med_[MED] = {}; uint8_t medHead_ = 0, medLen_ = 0;
   uint16_t dec_ = 1, decPhase_ = 0;
-  int32_t  baseline_ = 0, peak_ = 0;
+  int32_t  baseline_ = 0, entryBaseline_ = 0, peak_ = 0;
+  uint32_t adaptSinceMs_ = 0;   // when motion permission last arrived; 0 = not permitted
   int64_t  sum_ = 0;
   uint32_t startMs_ = 0, lastBaseMs_ = 0, openedAtMs_ = 0, quietSince_ = 0;
   uint32_t floorRejects_ = 0;

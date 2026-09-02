@@ -48,3 +48,6 @@ $CXX "$here/gate_section_cruise.cpp" -o "$tmp/section"; "$tmp/section"
 echo ""
 echo "== gate 10: stations — approach, stop, dwell, departure =="
 $CXX "$here/gate_station.cpp" -o "$tmp/station"; "$tmp/station"
+
+echo "== gate 11: the baseline through a station stop =="
+$CXX "$here/gate_station_baseline.cpp" -o "$tmp/stbase"; "$tmp/stbase"

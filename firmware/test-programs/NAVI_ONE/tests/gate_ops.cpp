@@ -117,16 +117,16 @@ int main(){
   struct Rig {
     CaptureConfig cfg; HallCapture<512> cap; uint32_t t=0; int base=1834;
     Rig():cap(cfg){}
-    void prime(){ for(int i=0;i<3000;i++) cap.sample(t++, (int16_t)base); }
+    void prime(){ for(int i=0;i<3000;i++) cap.sample(t++, (int16_t)base, true); }
     // A Gaussian bump of the given peak and full duration, in milliseconds.
     bool bump(int peak,int durMs,int railAt=-1){
       bool closed=false; const double c=durMs/2.0, s=durMs/6.0;
       for(int i=0;i<durMs;i++){
         double d=(i-c)/s; int v=base+(int)(peak*std::exp(-0.5*d*d));
         if(railAt>=0 && i==railAt) v=4095;
-        if(cap.sample(t++, (int16_t)v)) closed=true;
+        if(cap.sample(t++, (int16_t)v, true)) closed=true;
       }
-      for(int i=0;i<60;i++) if(cap.sample(t++,(int16_t)base)) closed=true;
+      for(int i=0;i<60;i++) if(cap.sample(t++,(int16_t)base, true)) closed=true;
       return closed;
     }
   };
@@ -165,8 +165,8 @@ int main(){
   printf("\nC3  a rail between passages does not excuse the NEXT one\n");
   { Rig r; r.prime();
     // A supply transient far from any magnet, then a clean passage.
-    for(int i=0;i<5;i++) r.cap.sample(r.t++, 4095);
-    for(int i=0;i<200;i++) r.cap.sample(r.t++, (int16_t)r.base);
+    for(int i=0;i<5;i++) r.cap.sample(r.t++, 4095, true);
+    for(int i=0;i<200;i++) r.cap.sample(r.t++, (int16_t)r.base, true);
     ck(r.bump(200,180),"the next passage closes");
     ck(!r.cap.passage().clipped,
        "and is NOT marked clipped — 0.1 carried the rail forward for minutes");
@@ -179,10 +179,10 @@ int main(){
   { Rig r; r.prime();
     // Open a passage and leave the sensor inside the field, as declaring
     // while stopped over a magnet does.
-    for(int i=0;i<100;i++) r.cap.sample(r.t++,(int16_t)(r.base+200));
+    for(int i=0;i<100;i++) r.cap.sample(r.t++,(int16_t)(r.base+200), true);
     r.cap.reset();                       // the declaration
     bool closed=false;
-    for(int i=0;i<200;i++) if(r.cap.sample(r.t++,(int16_t)r.base)) closed=true;
+    for(int i=0;i<200;i++) if(r.cap.sample(r.t++,(int16_t)r.base, true)) closed=true;
     ck(!closed,"driving off does not emit the old frame's passage");
     ck(r.bump(200,180),"and the next real magnet still closes normally"); }
 

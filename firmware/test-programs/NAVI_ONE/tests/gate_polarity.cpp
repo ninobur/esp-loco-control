@@ -33,13 +33,13 @@ static void ok(bool cond, const char* what, const char* detail = "") {
 static bool run(const std::vector<int16_t>& deltas, Passage& out) {
   CaptureConfig cfg; HallCapture<> cap(cfg);
   uint32_t t = 0;
-  for (; t < 2600; ++t) cap.sample(t, BASE);            // prime the baseline
+  for (; t < 2600; ++t) cap.sample(t, BASE, true);            // prime the baseline
   if (!cap.ready()) return false;
   bool closed = false;
   for (size_t i = 0; i < deltas.size(); ++i, ++t)
-    if (cap.sample(t, (int16_t)(BASE + deltas[i]))) { out = cap.passage(); closed = true; }
+    if (cap.sample(t, (int16_t)(BASE + deltas[i]), true)) { out = cap.passage(); closed = true; }
   for (int i = 0; i < 40 && !closed; ++i, ++t)          // trailing quiet closes it
-    if (cap.sample(t, BASE)) { out = cap.passage(); closed = true; }
+    if (cap.sample(t, BASE, true)) { out = cap.passage(); closed = true; }
   return closed;
 }
 

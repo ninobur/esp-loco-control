@@ -64,6 +64,10 @@
 #include "WaveformDump.h"
 #include "Stations.h"
 
+#ifndef NAVI_BASELINE_ADAPT_PWM
+#error "This locomotive's profile has no NAVI_BASELINE_ADAPT_PWM. Measure the tractive floor from its own PWM/speed fit; do not copy another locomotive's."
+#endif
+
 using namespace navi_one;
 
 // Published on state/bootid. It is the ONLY thing that tells telemetry which
@@ -638,7 +642,13 @@ static void hallTask(void*){
       myEpoch = navEpoch;            // to the frame that just ended
       recognizerResetRequest = false;
     }
-    if (capture.sample(now,(int16_t)analogRead(HALL_PIN))) {
+    // The baseline may be maintained only with positive evidence of tractive
+    // motion. Not proof of rest -- a locomotive can coast at PWM 0 -- but the
+    // error cases are asymmetric: refusing to adapt while secretly moving
+    // postpones adaptation by a second, while adapting while secretly parked
+    // over a magnet makes the reference BE the magnet. Findings 09 and 10.
+    const bool mayAdapt = actualPwm > NAVI_BASELINE_ADAPT_PWM;
+    if (capture.sample(now,(int16_t)analogRead(HALL_PIN), mayAdapt)) {
       const Passage& p = capture.passage();
       Verdict v = recognizer.examine(p);
       // Copied here, before the next capture.sample() call starts
@@ -1017,10 +1027,10 @@ void setup(){
   snprintf(b,sizeof(b),
     "{\"sketch\":\"%s\",\"loco\":\"%s\",\"entry\":%d,\"exit\":%d,\"floor_ms\":%d,"
     "\"amp_floor\":%.2f,\"resid_ceil\":%.2f,\"guard_ms\":%lu,\"seq_n\":%d,"
-    "\"offsets\":0,\"quorum\":0,\"velocity_model\":0,\"motion_gate\":0,\"ir_votes\":0}",
+    "\"offsets\":0,\"quorum\":0,\"velocity_model\":0,\"motion_gate\":%d,\"ir_votes\":0}",
     SKETCH_NAME,LOCO_NAME,(int)captureCfg.entryMargin,(int)captureCfg.exitMargin,
     (int)captureCfg.floorMs,(double)recCfg.amplitudeFloor,(double)recCfg.residualCeiling,
-    (unsigned long)recCfg.guardMs,(int)SEQ_N);
+    (unsigned long)recCfg.guardMs,(int)SEQ_N,(int)NAVI_BASELINE_ADAPT_PWM);
   pub(T_BOOT,b,true);
   if (!inaReady) warn("INA219 NOT FOUND — no battery protection this session");
   Serial.println("[BOOT] ready. session_direction, then start_mm, then auto, then GO.");

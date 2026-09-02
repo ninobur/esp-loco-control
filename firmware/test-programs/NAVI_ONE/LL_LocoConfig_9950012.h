@@ -163,3 +163,21 @@
 // the five approach steps. No modelling needed -- the numbers ARE the marker
 // times.
 #define NAVI_APPROACH_MARKER_MS   { 1390, 1539, 1725, 1960, 2271 }
+
+// ---------------------------------------------------------------------------
+// BASELINE ADAPTATION FLOOR -- the PWM at or below which the Hall reference is
+// frozen. Below this the locomotive is not reliably being driven, and a median
+// taken at rest walks onto whatever magnet the sensor is parked over.
+//
+// TOBY'S MEASURED FLOOR. From his own PWM/speed calibration:
+//
+//     speed_mm_s = 3.990 x (PWM - 25.1)
+//
+// so 25 is the last PWM at which he produces no tractive effort. This is NOT
+// QUORUM's MOTOR_DEAD_ZONE_PWM of 20: on 2026-09-01 the baseline capture at
+// Bamboo began at throttle 22, which a gate of 20 would have let through and a
+// gate of 25 refuses. Finding 10.
+//
+// MEASURE THIS ON ANY OTHER LOCOMOTIVE. It is the intercept of that
+// locomotive's own PWM/speed fit, not a number to be copied from here.
+#define NAVI_BASELINE_ADAPT_PWM   25
