@@ -121,6 +121,9 @@ struct Judged {
   // passage of which NOT ENOUGH SURVIVED to judge -- routed like an abandoned
   // one: "a marker may have gone uncounted", not "wrong shape".
   uint8_t  twoSided, trunk;
+  // The archaeology's reason, a pointer to a string literal in TwoSided.h --
+  // static storage, so it survives the queue. Empty for an ordinary passage.
+  const char* why;
 };
 // len: 0 means "text, use strlen(payload) at send time" (every existing text
 // pub() call). Non-zero means "exactly this many bytes, verbatim, including
@@ -581,14 +584,17 @@ static const char* whyName(Ruling r, Outcome o){
 
 static void publishNav(const char* event,const Judged* j,Ruling r){
   const NavStatus& s = navigator.status();
-  char b[500];
+  // 640, not 500: the archaeology's reason adds up to ~60 bytes and the
+  // longest event of 2026-09-02 was already 430. A truncated event is a lost
+  // event -- the Pi's json.loads throws and the whole line is dropped.
+  char b[640];
   if (j) {
     snprintf(b,sizeof(b),
       "{\"event\":\"%s\",\"state\":\"%s\",\"nav\":\"%s\",\"nav_state\":\"%s\",\"mm\":%u,\"tgt\":%u,"
       "\"landmark\":\"%s\",\"dir\":\"%s\",\"ruling\":\"%s\",\"why\":\"%s\","
       "\"obs\":\"%c\",\"expected\":\"%c\",\"peak\":%u,\"ratio\":%.3f,"
       "\"resid\":%.4f,\"shape\":%u,\"gap_ms\":%lu,\"gain\":%u,"
-      "\"two_sided\":%u,\"trunk\":%u,\"stitched\":%u,\"paused_ms\":%lu,"
+      "\"two_sided\":%u,\"trunk\":%u,\"why2\":\"%s\",\"stitched\":%u,\"paused_ms\":%lu,"
       "\"trust\":\"%s\",\"seq_at\":%u,\"adv\":%lu,\"ref\":%lu,\"notmag\":%lu}",
       event, navigator.positionKnown()?"NORMAL":"UNSET",
       navigator.positionKnown()?"NORMAL":"UNSET",
@@ -600,7 +606,7 @@ static void publishNav(const char* event,const Judged* j,Ruling r){
       poleChar(polarityAt(r==Ruling::Advanced ? s.navMm : s.target)),
       j->peak, (double)j->ratio, (double)j->residual, j->shapeTested,
       (unsigned long)j->gapMs, j->gain,
-      j->twoSided, j->trunk, (unsigned)(j->kind == 1), (unsigned long)j->pausedMs,
+      j->twoSided, j->trunk, j->why ? j->why : "", (unsigned)(j->kind == 1), (unsigned long)j->pausedMs,
       trustName(s.trust), s.seqAt,
       (unsigned long)s.advances,(unsigned long)s.refusals,(unsigned long)s.notMagnets);
     pub(T_MARKER,b,false);
@@ -753,12 +759,12 @@ static void hallTask(void*){
                     v.amplitudeRatio,v.residual,(uint8_t)v.shapeTested,v.gapMs,v.gain,
                     (uint8_t)(v.outcome == Outcome::Insufficient ? 3 : (capture.pausedMs() ? 1 : 0)),
                     capture.pausedMs(), (uint8_t)(p.stopEpisode ? 1 : 0),
-                    (uint8_t)(v.twoSided ? 1 : 0), v.trunk };
+                    (uint8_t)(v.twoSided ? 1 : 0), v.trunk, v.why };
       } else {
         // A paused measurement that outlived a wall-clock watchdog. There is
         // no waveform to judge and nothing to advance.
         j = Judged{ myEpoch,now,now,0,0,(uint8_t)Outcome::NoCurve,0,
-                    0.0f,0.0f,0,0,0, 2, 0, 1, 0, 0 };
+                    0.0f,0.0f,0,0,0, 2, 0, 1, 0, 0, "" };
       }
       if (judgedQ) xQueueSend(judgedQ,&j,0);
     }
@@ -1041,6 +1047,14 @@ static void serviceStatus(){
     "\"last_confirmed_landmark\":\"%s\",\"tgt\":%u,\"dir\":\"%s\","
     "\"session_dir\":\"%s\",\"trust\":\"%s\",\"powered\":%u,\"est_mm_s\":%lu,"
     "\"pwm\":%d,\"auto\":%u,\"running\":%u,\"estop\":%u,\"lowvolt\":%u,"
+    // MOTION, for the console's motion bar. It derives MOVING / STOPPED /
+    // UNKNOWN from this field of the 1 Hz alert, which Otto's firmware sends
+    // and this one never did -- so Toby's bar read "UNKNOWN -- STALE" all
+    // day, dwelling or not, and on 2026-09-02 the operator read it as
+    // position at the one moment it mattered. Throttle above zero is the
+    // claim being made, and nothing else is: the Hall sensor's own view of
+    // movement lives in the nav events.
+    "\"moving\":%u,"
     // NAVI_ONE has no candidates, no viable set and no miss streak. They are
     // published as their empty values so the console's panels render rather
     // than blanking, and so their absence is visible rather than implied.
@@ -1064,6 +1078,7 @@ static void serviceStatus(){
     sessionDir>0?"CW":(sessionDir<0?"CCW":"UNSET"),
     trustName(s.trust), (actualPwm>0)?1u:0u, (unsigned long)estMmPerS,
     actualPwm, autoEnrolled?1:0, autoRunning?1:0, estopped?1:0, lowVoltage?1:0,
+    (actualPwm>0)?1u:0u,
     (unsigned long)s.advances,(unsigned long)s.refusals,(unsigned long)s.notMagnets,
     (long)capture.baseline(),(unsigned long)capture.floorRejects(),
     (unsigned long)capture.discards(),
