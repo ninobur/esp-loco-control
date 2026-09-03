@@ -92,7 +92,7 @@ using namespace navi_one;
 // THE CEILING IS NOT ADJUSTED TO MAKE IT PASS. If the field refuses it, the
 // refusal is the result -- the complete stitched waveform is published, nothing
 // is advanced, and the locomotive stops. That is the measurement.
-#define SKETCH_NAME    "NAVI_ONE_1_0X10_FIELDTEST"
+#define SKETCH_NAME    "NAVI_ONE_1_0X11_FIELDTEST"
 #define BUILD_CLASS    "EXPERIMENTAL_FIELD_TEST"
 #define FIELD_ACCEPTED 0
 
@@ -323,6 +323,31 @@ static unsigned long irProbeStart=0;
 // Called every tick. Decides whether pin 34 is worth touching at all, and how
 // often. Until IR proves it is fitted, the pin is read only during the boot
 // probe and then left alone entirely.
+// ONE HALL SAMPLE IS THE MEDIAN OF FIVE READS. The 2026-08-28 survey build
+// (QUORUM 1.13X) averaged ADC_SAMPLES reads per sample and its 187 crossings
+// carried not one reading more than 20 counts off the median-filtered copy.
+// NAVI_ONE read the pin once, and on 2026-09-02 forty of seventy-four
+// undecimated passages carried one -- half of them DROPOUTS toward the idle
+// level in the middle of a 120-count flank, which no field can produce. A
+// burst of them refused MM157 at 0.1506 and stopped the train (decision
+// 0071's record).
+//
+// The operator's bench tests -- electronics on, motor off; on blocks at 90
+// PWM -- showed no transients, which fits: a read that returns a stale or
+// mid-rail value is invisible while the true signal IS the idle level, and
+// shows only on a flank. "It is all the magnets" in the sense that the
+// magnets are where the signal is not idle.
+//
+// A MEDIAN, not an average: an average dilutes a wild read by 1/N and leaves
+// it in; a median of five rejects up to two outright and passes the others
+// untouched. Five one-shot reads cost about 100 us of the 1 ms tick.
+static int16_t hallRead(){
+  int r[5];
+  for (int i = 0; i < 5; ++i) r[i] = analogRead(HALL_PIN);
+  for (int i = 1; i < 5; ++i) { int v = r[i], j = i - 1; while (j >= 0 && r[j] > v) { r[j+1] = r[j]; --j; } r[j+1] = v; }
+  return (int16_t)r[2];
+}
+
 static void irService(unsigned long now, uint32_t tick){
   if (!irFitted) return;                       // declared absent: never read
   if (tick % IR_SAMPLE_EVERY) return;          // 100 Hz, probe included
@@ -729,7 +754,7 @@ static void hallTask(void*){
     // over a magnet makes the reference BE the magnet. Findings 09 and 10.
     const bool mayAdapt = actualPwm > NAVI_BASELINE_ADAPT_PWM;
     // stopArming ARMS OBSERVATION. See its declaration; it is not evidence.
-    if (capture.sample(now,(int16_t)analogRead(HALL_PIN), mayAdapt,
+    if (capture.sample(now, hallRead(), mayAdapt,
                        (StopArming)stopArming)) {
       Judged j{};
       if (capture.event() == HallEvent::Passage) {
