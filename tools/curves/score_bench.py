@@ -45,6 +45,15 @@ def records(path, t0, t1):
         # shape: how much of the record sits within 10% of its top
         top = sum(1 for x in m if x >= 0.9*pk) / len(m)
         kind = "hold" if top > 0.35 else "slide"
+        if kind == "hold":
+            # A held record is scored on its flat top only. At decimation 32
+            # the slide in and out is a few stored samples of 30-count steps,
+            # and a five-wide median flags every one of them; those are the
+            # ruler moving, not the sensor. 2026-09-03 00:17:05: four "bad"
+            # samples, all four on the ramps, a flat top of 427 with none.
+            idx = [i for i, x in enumerate(m) if x >= 0.8 * pk]
+            a, b2 = idx[0] + 3, idx[-1] - 3
+            if b2 - a >= 32: v, m = v[a:b2 + 1], m[a:b2 + 1]
         drop = sum(1 for a, b2 in zip(v, m) if a - b2 < -20)
         spike = sum(1 for a, b2 in zip(v, m) if a - b2 > 20)
         worst = max((abs(a - b2) for a, b2 in zip(v, m)), default=0)
