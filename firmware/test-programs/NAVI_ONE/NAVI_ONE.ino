@@ -94,6 +94,11 @@ using namespace navi_one;
 // is advanced, and the locomotive stops. That is the measurement.
 #define SKETCH_NAME    "NAVI_ONE_1_0X11_FIELDTEST"
 #define BUILD_CLASS    "EXPERIMENTAL_FIELD_TEST"
+// X11's subtitle, at the operator's request, to memorialise the moment the
+// day's transients stopped being "the magnets" and became "wherever the
+// signal is not idle" -- and two bench tests that seemed to rule out the read
+// path turned out to have been the one place it could hide.
+#define BUILD_SUBTITLE "Epiphany"
 #define FIELD_ACCEPTED 0
 
 // Types used in function signatures must appear before the Arduino
@@ -1156,7 +1161,7 @@ void setup(){
   judgedQ=xQueueCreate(16,sizeof(Judged));
   pubQ  =xQueueCreate(48,sizeof(PubMsg));    // holds ~5 s while the broker is away
   cmdQ  =xQueueCreate(16,sizeof(CmdMsg));
-  Serial.printf("[BOOT] %s — %s\n",SKETCH_NAME,LOCO_NAME);
+  Serial.printf("[BOOT] %s \"%s\" — %s\n",SKETCH_NAME,BUILD_SUBTITLE,LOCO_NAME);
   Serial.printf("[BOOT] EXPERIMENTAL FIELD-TEST BUILD — not field-accepted NAVI_ONE 1.0.\n");
   Serial.printf("[BOOT] Known open risk: finding 13 sits on the 0.13 shape ceiling "
                 "(0.1271 clean / 0.1321 noisy). The ceiling is unchanged. A refused\n");
@@ -1180,13 +1185,13 @@ void setup(){
     Serial.println("[BOOT] WARNING: network task would not start — running blind");
   char b[400];
   snprintf(b,sizeof(b),
-    "{\"sketch\":\"%s\",\"build_class\":\"%s\",\"field_accepted\":%d,"
+    "{\"sketch\":\"%s\",\"subtitle\":\"%s\",\"build_class\":\"%s\",\"field_accepted\":%d,"
     "\"loco\":\"%s\",\"entry\":%d,\"exit\":%d,\"floor_ms\":%d,"
     "\"amp_floor\":%.2f,\"resid_ceil\":%.2f,\"guard_ms\":%lu,\"seq_n\":%d,"
     "\"offsets\":0,\"quorum\":0,\"velocity_model\":0,\"motion_gate\":%d,\"ir_votes\":0,"
     "\"pause_resume\":1,\"settle_span\":%d,\"settle_ms\":%u,\"resume_move\":%d,"
     "\"pause_max_ms\":%lu,\"resume_max_ms\":%lu}",
-    SKETCH_NAME,BUILD_CLASS,(int)FIELD_ACCEPTED,
+    SKETCH_NAME,BUILD_SUBTITLE,BUILD_CLASS,(int)FIELD_ACCEPTED,
     LOCO_NAME,(int)captureCfg.entryMargin,(int)captureCfg.exitMargin,
     (int)captureCfg.floorMs,(double)recCfg.amplitudeFloor,(double)recCfg.residualCeiling,
     (unsigned long)recCfg.guardMs,(int)SEQ_N,(int)NAVI_BASELINE_ADAPT_PWM,
