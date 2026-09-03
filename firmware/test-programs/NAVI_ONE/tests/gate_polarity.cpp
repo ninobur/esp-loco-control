@@ -16,6 +16,7 @@
 #include <cstring>
 #include <string>
 #include <vector>
+#include <algorithm>
 #include <cmath>
 #include "../HallCapture.h"
 using namespace navi_one;
@@ -87,7 +88,11 @@ int main(int argc, char** argv) {
     char id[64]; snprintf(id, sizeof id, "[%u %s]", r.opened, r.note.c_str());
     if (!run(r.deltas, p)) { ok(false, "passage closed", id); continue; }
     ok(p.polarity == r.wantPol, "polarity", id);
-    ok((int)p.peakCounts == r.wantPeak, "peak", id);
+    // Within four counts, not to the count: wantPeak was recorded by a build
+    // whose judgement copy was a three-wide median; it is five-wide since
+    // 2026-09-02 (see MagnetRecognizer.h), and on 312 real passages that moves
+    // the peak by at most 4 counts, p95 3. Polarity is still exact.
+    ok(abs((int)p.peakCounts - r.wantPeak) <= 4, "peak within 4", id);
     if (r.note == "nominal") {
       // A passage the old code judged correctly keeps its pole exactly, and its
       // peak to within a few counts -- the median of three trims a sample from
@@ -177,6 +182,33 @@ int main(int argc, char** argv) {
     ok(p.polarity == 0, "summed sign picks the sustained side, not the tall spur");
     ok(p.signedSum < 0, "signed sum recorded and negative");
     ok(p.peakCounts >= 120 && p.peakCounts <= 130, "peak taken in the chosen orientation");
+  }
+
+
+  // ---------------------------------------------------------------------
+  printf("part E: a burst of bad readings on a good magnet must not refuse it\n");
+  {
+    // Bamboo CCW, 2026-09-02 18:55:54, X9. MM157 crossed on the zero ramp:
+    // 356 samples, peak 192 of gain 221, and on the falling flank a burst --
+    // 105, -2, -13, 108, 109, 174, 68, 48 -- that a three-wide median leaves
+    // in. It scored 0.1506 and stopped the train. Verbatim from the withdraw
+    // dump (both refusal chunks arrived too; nothing was lost on the wire).
+    static const int16_t MM157[356] = {29,29,29,32,30,30,32,32,32,29,32,35,39,39,40,43,37,48,51,47,52,53,51,53,56,53,57,59,60,61,30,63,65,67,68,67,68,70,73,73,73,77,77,77,78,81,79,81,81,85,87,85,88,89,91,93,93,94,95,97,100,101,103,103,106,108,107,110,110,110,110,113,114,116,117,116,121,133,123,125,126,128,129,131,132,135,134,137,139,137,141,133,132,133,136,138,142,140,142,143,143,146,149,149,149,151,151,155,155,157,157,158,158,158,160,165,161,164,162,158,167,164,168,171,173,172,171,173,174,172,173,173,174,174,186,185,183,184,187,183,188,185,184,187,187,187,190,191,187,189,187,188,185,190,188,189,190,189,192,188,190,190,189,191,192,191,189,191,189,189,191,191,190,192,189,190,192,192,190,191,190,191,192,189,189,190,189,189,189,187,187,184,186,175,176,177,180,174,169,179,174,177,174,174,175,174,172,174,174,174,174,173,171,171,194,169,171,174,175,175,175,174,173,172,170,169,168,165,163,165,163,169,160,161,159,158,158,158,154,155,151,151,152,152,148,147,149,145,144,143,142,142,141,141,140,139,133,137,135,133,130,132,129,132,114,128,125,124,123,123,124,105,-2,-13,108,109,174,68,48,106,114,100,99,101,98,93,94,94,92,94,92,81,88,88,80,80,81,78,78,69,78,78,76,73,75,73,67,71,68,67,64,64,61,60,59,58,47,53,52,53,46,49,48,46,45,46,46,43,46,43,42,37,39,42,36,33,33,31,30,32,30,30,29,28,28,28,25,21,24,21,21,24,20,19,20,15};
+    std::vector<int16_t> o(MM157, MM157 + 356), j(356);
+    medianOfFive(o.data(), 356, j.data());
+    Passage p; p.oriented = o.data(); p.judged = j.data();
+    p.sampleCount = 356; p.preSamples = 12;
+    int16_t pk = 0; for (int i = 12; i < 356; ++i) pk = std::max(pk, j[i]);
+    p.peakCounts = (uint16_t)pk;
+    float r = 0; const bool fit = MagnetRecognizer::fitResidual(p, r);
+    printf("  five-wide median: peak %d residual %.4f\n", pk, r);
+    ok(fit && r <= 0.13f, "the burst is outvoted and the magnet accepted", "MM157 2026-09-02 18:55:54");
+    // and what a three-wide median made of it, so the record says why
+    std::vector<int16_t> j3(356);
+    for (int i = 0; i < 356; ++i) { int a = i > 0 ? i - 1 : 0, b = i < 355 ? i + 1 : 355; int16_t w[3] = { o[a], o[i], o[b] }; std::sort(w, w + 3); j3[i] = w[1]; }
+    Passage p3 = p; p3.judged = j3.data(); float r3 = 0; MagnetRecognizer::fitResidual(p3, r3);
+    printf("  three-wide, for the record: residual %.4f -- what the field saw\n", r3);
+    ok(r3 > 0.13f, "and a three-wide median really did refuse it", "MM157");
   }
 
   printf("\n%d checks, %d failures\n", checks, failures);

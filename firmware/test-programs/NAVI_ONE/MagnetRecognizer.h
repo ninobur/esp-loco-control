@@ -135,25 +135,46 @@ struct Passage {
   int64_t       signedSum    = 0;
 };
 
-// Median of three, endpoints copied. One reading cannot carry a value here:
-// a lone sample is outvoted by the two beside it, while a real feature spanning
-// two or more samples survives intact. src and dst must not overlap.
+// THE JUDGEMENT COPY: a median of FIVE, endpoints held. One reading cannot
+// carry a value here, and from 2026-09-02 neither can two: a lone sample is
+// outvoted by the two beside it, an adjacent pair by the three around them.
+// The recording itself is never altered (decision 0065); this is the copy the
+// peak and the shape are read from.
 //
-// On 2026-08-31 a single +313 sample in the tail of MM169 -- neighbours +17 and
-// +21 -- became the passage's peak (313 against a true 185, ratio 1.68 against
-// a true 1.0) and put the Gaussian residual at 0.1307 against a 0.13 ceiling.
-// The magnet was fine. Finding 07.
-inline void medianOfThree(const int16_t* src, uint16_t n, int16_t* dst) {
-  if (!src || !dst || n == 0) return;
-  if (n < 3) { for (uint16_t i = 0; i < n; ++i) dst[i] = src[i]; return; }
-  dst[0] = src[0];
-  for (uint16_t i = 1; i + 1 < n; ++i) {
-    const int16_t a = src[i - 1], b = src[i], c = src[i + 1];
-    dst[i] = a < b ? (b < c ? b : (a < c ? c : a))
-                   : (a < c ? a : (b < c ? c : b));
+// WHY FIVE. Bamboo CCW, 2026-09-02 18:55:54, X9: an ordinary crossing of
+// MM157 on the zero ramp -- 356 samples, a clean rise to 192 and a broad top
+// -- carried a BURST on its falling flank, samples 272-280: 105, -2, -13, 108,
+// 109, 174, 68, 48. Adjacent pairs, and a three-wide median leaves them in.
+// Residual 0.1506, refused, and the stop-episode rule stopped the train for
+// a burst of bad readings on a good magnet. Under a five-wide median the
+// same record is 0.0816 -- an ordinary magnet -- and with the burst simply
+// interpolated away it is 0.0825, so the five-wide median recovers exactly
+// what the burst cost and nothing else.
+//
+// WHAT IT COSTS, measured on 312 real accepted passages: nothing. Residual
+// p50 0.0709 under either width, the largest change 0.0009; peak moved by at
+// most 4 counts (p95 3). Every waveform-replay gate passes with it: the 2799
+// survey records, the 2026-08-29 lap, the survey polarity replay, gates 12
+// and 13. Gate 6 part A wanted the peak to the count and now allows the 4.
+//
+// WHERE IT COULD BITE. The copy is built on the STORED record, so at heavy
+// decimation five samples is a long time -- 640 ms at decimation 128 -- and
+// a real feature that short would be smoothed. Nothing this recognizer
+// accepts is that short; a departure stub of eight samples at 128 ms (Bamboo
+// 12:29) was already unjudgeable for other reasons. Registered, not fixed.
+inline void medianOfFive(const int16_t* in, uint16_t n, int16_t* out) {
+  for (uint16_t i = 0; i < n; ++i) {
+    int a = (int)i - 2; if (a < 0) a = 0;
+    int b = (int)i + 2; if (b > (int)n - 1) b = (int)n - 1;
+    int16_t w[5]; int m = 0;
+    for (int q = a; q <= b; ++q) w[m++] = in[q];
+    for (int x = 1; x < m; ++x) { int16_t v = w[x]; int y = x - 1; while (y >= 0 && w[y] > v) { w[y + 1] = w[y]; --y; } w[y + 1] = v; }
+    out[i] = w[m / 2];
   }
-  dst[n - 1] = src[n - 1];
 }
+// The old name, kept so nothing that reads a record needs to know which width
+// the judgement uses this week.
+inline void medianOfThree(const int16_t* in, uint16_t n, int16_t* out) { medianOfFive(in, n, out); }
 
 }  // namespace navi_one
 // The archaeology for a passage split by a stop. Needs Passage and
