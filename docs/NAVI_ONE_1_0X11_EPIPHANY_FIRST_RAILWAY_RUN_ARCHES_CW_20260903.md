@@ -118,12 +118,63 @@ MM111 passage opened, so the passage carried the flag, and the refusal stopped T
 paused, resumed on Hall morphology and stitched. For this passage (kind 0, paused 0, stitched 0) that text is
 false. The routing and the wording are two different things.
 
+## The mechanism, from the code
+
+This is a code reading, not yet independently verified; the trace in the last section is checking it.
+
+The discard branch ([HallCapture.h:363](../firmware/test-programs/NAVI_ONE/HallCapture.h)) fires on a
+sample when the stop machinery is armed, `plateau_` is true, the passage has not yet seen progress
+(`sawProgress_` false) and the settled level is below the entry margin. Its own comment records the
+first form of this fault, Arches CCW 2026-09-02 14:14:40: discard on every sample, reopen on the next,
+"with the pre-roll frozen the whole time because a pre-roll does not fill while a passage is open",
+residual 0.2706. The guard added then, "only if there is no field there", tests the *settled* level.
+
+`plateau_` is not computed per sample. `updateProgress()`
+([HallCapture.h:513](../firmware/test-programs/NAVI_ONE/HallCapture.h)) takes one raw sample every
+25 ms into a 16-sample window (400 ms), sorts it, drops the single highest and single lowest, and calls
+the field flat when the remaining span is 20 counts or less. Between updates the flag holds.
+
+Put those together on a departure flank:
+
+1. Between magnets the window holds 16 samples near zero. `plateau_` is true and `plateauLevel_` is near
+   zero, well below 38, so the "no field there" guard passes.
+2. The flank arrives. Within one 25 ms step it crosses the entry margin. At most one window sample shows
+   the rise, and the trim discards the single highest sample, so the window still reads flat.
+3. The passage opens on the entry sample with `plateau_` true and `sawProgress_` false, and is discarded on
+   that sample. The field is still over the threshold, so it reopens on the next sample and is discarded
+   again. The pre-roll ring is not fed while a passage is open, so it keeps the twelve samples from before
+   the first opening.
+4. At the next 25 ms update a second flank sample enters the window, the trimmed span exceeds 20, `plateau_`
+   clears, and the passage stays open from wherever the flank has reached, spliced onto the stale pre-roll.
+
+The amputation is therefore bounded at one progress step, 25 ms, and its size in counts is the flank slope
+times the time lost. Measured against the records: MM111 lost ~25 ms at 3.2 counts/ms, an 80-count step;
+MM110 lost ~21 ms at 1.8 counts/ms, a 38-count step. The 55 discards in those two seconds are one per
+sample of cycling, 46 of them in the two flanks. Each discard fires only while armed, so cruise passages
+are untouched, and a slow flank loses little. The exposure is a strong magnet crossed at departure speed
+inside the armed window. MM111 is that magnet, ratio 1.02, and it was inside the window today because
+DEPARTED had not fired; on the five earlier CW departures the stop lay past MM110 and MM111 was met later
+in the departure at a shallower slope.
+
+**None of this code changed between X9 and X11.** `git diff e010846..HEAD` on HallCapture.h is empty; X10
+and X11 touched only NAVI_ONE.ino. The 20 discards at Grillers today and yesterday's 2340 on X9 are the
+same branch. What made today's instance visible is geography: the Arches CW stop fell at MM108 with the
+rest on MM109, where earlier CW runs stopped past MM110. Whether X11's quieter samples also lengthen the
+flat verdict is not established and is left to the trace.
+
+## Side finding: the boot line is truncated
+
+The `state/bootid` payload arrives as exactly 399 characters ending in `"resume`, cut inside a key. The
+buffer is `char b[400]` ([NAVI_ONE.ino:1186](../firmware/test-programs/NAVI_ONE/NAVI_ONE.ino)) and the
+X-series fields outgrew it. Any consumer that parses the boot JSON discards it.
+
 ## What this run does not settle
 
-- Whether the amputation is X11-specific. X9 discarded at departures too and its post-departure residuals
-  were healthy, but no X9 post-departure record was ever published (accepted passages publish only in a
-  withdraw window), so the X9 flanks have not been seen.
-- Why the cycling stopped at 72 and 117 rather than running to the apex.
+- Whether X11 changes how often the 400 ms window reads flat between magnets. No X9 post-departure record
+  was ever published (accepted passages publish only in a withdraw window), so the X9 flanks have not
+  been seen, and yesterday's post-departure residuals of 0.070 to 0.101 are consistent with smaller steps
+  on shallower flanks.
+- Why the Arches CW stop landed at MM108 today and past MM110 on 2026-09-01. Not looked at here.
 - The stitched MM109 residual of 0.0128 is far below any ordinary passage; the fit ran on a decimation-4
   record. Worth understanding before it is treated as a quality signal.
 
