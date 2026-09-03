@@ -1,219 +1,215 @@
-# NAVI_ONE — publish every judged passage: a proposal with numbers
+# NAVI_ONE — publish every judged passage: a proposal, with the field's numbers
 
-**Date:** 2026-09-02, evening
+**Date:** 2026-09-02, rewritten 2026-09-03 on the operator's field run and
+Sam/CODEX's review.
 **Locomotive:** Toby (9950012)
-**Status:** PROPOSAL. No firmware has been modified. Nothing has been flashed.
-Every figure below is measured on the telemetry mirror or computed from the
-fielded wire format; none is from a build that exists.
-**Serves:** decision 0072 (proposed), the magnet-curve database.
+**Status:** PROPOSAL, GATED. No permanent firmware is proposed for building.
+The measurement gate this document used to ask for has been **run** — by the
+operator, with his own diagnostic sketch — and its results are below.
+**Serves:** decision 0075 (proposed).
 
 ---
 
-## What is asked
+## What changed since the first draft
 
-Publish every passage the recognizer judges — accepted or refused — so the
-database on the Pi holds every curve, not only the 2% that today's build
-publishes on refusal or on withdrawal. Carry `stitchAt` and `restLevel` on the
-wire. Do it so that archive traffic never competes with running.
+Everything quantitative. The first draft estimated the archive's size and rate
+from the 215 waveforms in the mirror, which were there **because** they were
+refusals or members of a withdrawal window — a sample selected for being
+abnormal. The review said so, and asked for instrumented measurement over
+complete runs before anything was built.
 
-The operator's concern is stated precisely: not bits, **radio airtime**. The
-fielded QUORUM firmware shares the 2.4 GHz radio with ESP-NOW for inter-loco
-CTO; NAVI_ONE does not have ESP-NOW yet, and the build that first has both
-inherits whatever this proposal costs.
+The operator built `NAVI_ONE_STATION_CURVES_0_1` from X11 and ran it. It keeps
+X11's Hall acquisition, median-of-five reads, Gaussian recognizer, navigation,
+station ramps, dwell, departure and stopping behaviour unchanged, and adds one
+thing: every completed passage is published immediately — the binary waveform
+on `diag/waveform` as before, plus a companion JSON on `diag/wave_meta`.
 
-## The numbers
+Every number below is from that run, decoded into the curve database.
 
-### What the archive would carry
+## The measurement
 
-From the 215 wire passages in the mirror (2026-08-31 to 2026-09-02):
+**The run.** 2026-09-03, 15:08:00 to 15:52:04, 44.1 minutes. 1,177 passages,
+sequence 1 to 1177, **no gaps**. `pub_drop` 0, `cmd_drop` 0. 351 CW, 826 CCW.
+344 station-associated. Every station-associated passage accepted. Five
+refusals, all `TOO_SOON`, all off-station near MM001–002. No paused or
+stitched passage occurred.
+
+**Size and rate.**
 
 | | |
 |---|---|
-| samples per passage, mean / max | 221 / 501 |
-| bytes per passage on the wire (40-byte header + 2 per sample + 12-byte trailer), mean / max | 494 / 1,054 |
-| passages that fit **one** 704-byte MQTT payload (n ≤ 326) | 186 of 215 (87%) |
-| passages needing two | 29 (13%): the slow and the decimated ones |
+| passages a minute | 26.7 mean; busiest minute **50** |
+| samples per passage | median 148, p95 270, max 494 |
+| bytes on the wire (40-byte header + 2 per sample) | median 336, mean 375, max 1,028 |
+| fitting one 704-byte MQTT payload (n ≤ 332) | **1,135 of 1,177 = 96.4%** |
+| frames a second | 0.46 mean, about 0.9 in the busiest minute |
+| **archive traffic** | **167 B/s mean, 319 B/s in the busiest minute** |
 
-At 45 markers a minute, mean records: **370 B/s**, under one message a second.
-If every record were the two-frame maximum: 790 B/s, 1.5 messages a second.
+Against Toby's own 2.1 KB/s at cruise, the archive is about **8%** of his
+traffic, and under one message a second against his 8.5. The first draft
+guessed 370 to 600 B/s. The field says 167.
 
-Against Toby's own traffic at cruise, measured 2026-09-02: **2.1 KB/s** by
-the operator's measurement; 8.5 messages a second on the mirror (10:49–10:52,
-98 markers in 180 s, payload only 1,258 B/s, of which `alert` alone is 549 B/s).
-The archive is +18% of bytes and +9% of messages in the typical case.
+**Residual and record length by station phase** — the part that is evidence
+about the recognizer and not only about the radio:
 
-### Airtime
+| phase | n | median resid | max resid | refused | median samples |
+|---|---:|---:|---:|---:|---:|
+| cruise / IDLE | 833 | 0.0691 | 0.0990 | 5 | 145 |
+| approach | 135 | 0.0735 | 0.0885 | 0 | 161 |
+| zone | 128 | 0.0735 | 0.0897 | 0 | 222 |
+| **zero ramp** | 54 | 0.0820 | **0.1150** | 0 | **331** |
+| **departure** | 27 | 0.0741 | **0.1180** | 0 | 309 |
 
-One full frame — 704 B payload, MQTT fixed header and topic, TCP/IP, 802.11
-MAC — is about 825 bytes on the air.
+**The longest records are made where the locomotive moves slowest.** A
+zero-ramp passage runs to a median of 331 samples against 145 at cruise —
+exactly the 332-sample one-frame boundary. So the records that a dwell-time
+drain would carry are the *largest* ones, and a station is where they are
+produced, not merely where they would be sent. And 0.1180 against the 0.13
+ceiling is the closest any accepted passage came all day: the departure is
+where the recognizer has least margin, which is consistent with the
+archaeology's own warning about deceleration within a fragment.
 
-| rate | one frame, with preamble, SIFS, ACK, DIFS | at 45 passages/min, mean record | if every record were two frames |
-|---|---|---|---|
-| 802.11n MCS0, 6.5 Mbps | ≈ 1.2 ms | ≈ 0.9 ms/s (0.09% of the channel) | ≈ 1.8 ms/s |
-| 802.11b, 1 Mbps (the floor a weak link falls to) | ≈ 7 ms | ≈ 5 ms/s (0.5%) | ≈ 10 ms/s (1%) |
+## Verbatim or 8-bit
 
-Toby's existing 8.5 messages a second cost roughly 4 ms/s at MCS0. The archive
-adds about a quarter to *Toby's* airtime and under a tenth of a percent to the
-channel's.
-
-### ESP-NOW
-
-QUORUM 1.14's CTO beacon runs at `CTO_TX_INTERVAL_MS = 500`. ESP-NOW frames
-default to 1 Mbps and take about a millisecond each. A Wi-Fi frame already on
-the air is not pre-empted, so the worst an archive frame can do to a beacon is
-delay it by **one frame's airtime: 1.2 ms typical, 7 ms at the 1 Mbps floor**,
-against a 500 ms period. That is the bound the design below guarantees. It is
-a bound by construction, not a measurement: the first build carrying both must
-measure the beacon's jitter with the archive running and without.
-
-### 8-bit or 16-bit
-
-The survey of 2026-08-28 published 8-bit samples at scale 2 and the
-calibration used 187 of them without complaint. Measured on the 140 accepted
-16-bit wire passages, quantized to int8 at scale 2 and run through the same
-tools (`tools/two_sided/calibrate.cpp`, `consistency.cpp`):
+Unchanged from the first draft, and still measured on the 140 accepted 16-bit
+passages of 08-31 to 09-02, quantized to int8 at scale 2 and run through
+`tools/two_sided/calibrate.cpp` and `consistency.cpp`:
 
 | | 16-bit verbatim | 8-bit, scale 2 |
 |---|---|---|
 | whole-passage residual, median / p95 / max | 0.0727 / 0.1034 / 0.1109 | 0.0728 / 0.1035 / 0.1107 |
-| half-amplitude disagreement, median / p95 / max | 1.9% / 6.1% / 15.2% | 2.3% / 7.1% / 20.9% |
 | tail residual against the trunk, median / max | 0.0084 / 0.0206 | 0.0093 / 0.0204 |
 | tails over the 0.13 ceiling | 0 of 137 | 0 of 135 |
-| **refused as "two apexes"** (the structural rule) | **3 of 140** | **5 of 140** |
+| **refused as "two apexes"** | **3 of 140** | **5 of 140** |
 
-The fit does not care. The structural rule does: two counts of quantization
-noise on a flank is enough to manufacture a second apex twice in 140. Halving
-the bytes saves about 0.5 ms of airtime per passage and costs the archaeology
-two false structural refusals per 140 real magnets, and it makes the archive's
-copy differ from the copy the firmware judged, so a replay would not reproduce
-the field verdict to the count (0065, 0071).
+The fit does not care; the structural rule does. Two counts of quantisation
+noise on a flank manufacture a second apex twice more per 140 real magnets.
+Halving the bytes now saves about 80 B/s of a 167 B/s stream, and it makes the
+stored copy differ from the copy the firmware judged, so a replay would no
+longer reproduce the field verdict to the count (0065, 0071).
 
-**Recommendation: verbatim.** Bytes were never the concern, and the airtime
-difference is half a millisecond. The trailer carries a `quant` byte so the
-8-bit encoding can be switched on for a passage that would otherwise need two
-frames, if the field ever says the second frame matters; the Pi decoder already
-reads both.
+**Recommendation: verbatim.** The trailer below still carries a `quant` byte,
+and the decoder already reads both, so the choice stays open without being
+taken now.
 
-## The design
+## What a permanent protocol needs that the diagnostic does not have
 
-### 0. First, a number nobody has
+The operator's own list, and it is the right one:
 
-`state/loopstat` gains `heap_free` (`ESP.getFreeHeap()`) and `heap_min`
-(`ESP.getMinFreeHeap()`). The static RAM figure is 64,508; free heap under
-Wi-Fi, MQTT and the Hall task has never been reported. No queue is sized
-until it is.
+1. `seq` restarts at every reboot.
+2. There is no generated unique `boot_id`.
+3. `seq` is only in `wave_meta` — not in the binary waveform, not in
+   `mm/marker`.
+4. Delivery is best-effort through the existing RAM queue at QoS 0.
+5. NAVI_ONE has no CTO, so contention is untested.
 
-### 1. Wire format: the same topic, the same header, a trailer
+Item 4 of that list is now on the Pi side: `decode_curves.py` ingests
+`wave_meta`, joins it to the binary waveform, and stores `seq`, the phases,
+the station, `stitchAt`, `restLevel` and `preSamples` with `wire` provenance.
+All 1,177 metas joined to their waveforms exactly.
 
-`diag/waveform` and its 40-byte `WavHeader` stay **byte-for-byte** what they
-are. After the samples of a chunk, 12 bytes are appended:
+### Identity on the wire
+
+`boot_id` — generated once at boot, 32 bits, from the hardware RNG — and
+`passage_seq` go into **all three** places: the binary waveform, `wave_meta`,
+and `mm/marker`. `(loco, boot_id, passage_seq)` then joins them deterministically
+and the Pi's derived boot and heuristic match become a legacy path.
+
+For the binary waveform, a 16-byte trailer **after** the samples, so every
+existing decoder — all of which read `b[40:40+2n]` and stop — stays correct:
 
 ```
 struct WavTrailer {        // little-endian, packed, AFTER the samples
   char     magic[2];       // "S1"
+  uint32_t bootId;         // generated at boot; 0 = not supported
+  uint16_t passageSeq;     // judged passages since boot, from 1
   uint16_t stitchAt;       // first sample of the departure; 0 = not joined
   int16_t  restLevel;      // level rested at during a pause; 0 = never paused
-  uint16_t preSamples;     // stored points before the excursion opened
+  uint16_t preSamples;
   uint8_t  quant;          // 1 = int16 verbatim; q > 1 = int8, each q counts
   uint8_t  flags;          // bit0 archive, bit1 refusal dump, bit2 window dump
-  uint16_t seq;            // judged passages since boot; a gap is visible
 };
 ```
 
-Why a trailer and not a longer header: every decoder in the repo reads
-`b[40:40+2n]` and stops. A trailer leaves all of them correct;
-`decode_curves.py` looks for the magic at the end and reads it. Why the same
-topic: the Pi's logger base64-encodes binary **only** on `diag/waveform`
-(`ngr_runlog.py`, `topic.endswith("/diag/waveform")`). A new topic published
-before the logger was updated would be written raw and lose every byte over
-127 — which is precisely how six lines of 2026-08-31 were lost. Reusing the
-topic removes a deploy-ordering hazard instead of documenting one.
+Same topic, because the Pi's logger base64-encodes binary **only** on
+`diag/waveform`; a new binary topic published before the logger was updated
+would be written raw and lose every byte over 127, which is exactly how six
+lines of 2026-08-31 were lost. Gate 5 asserts that the first `40 + 2n` bytes
+are untouched, that a decoder ignoring the trailer still reads the samples,
+that every field round-trips, and that 326 samples plus trailer fit 704 bytes.
 
-**Gate 5** (`gate_waveform.cpp`) gains: the first `40 + 2n` bytes of a chunk
-are unchanged by the trailer; a decoder that ignores the trailer reads the
-samples correctly; the trailer round-trips every field; a chunk of 326 samples
-plus trailer fits 704 bytes.
+### Queue discipline, corrected
 
-The chunk capacity drops from 332 samples to 326 to make room for the trailer.
-Six samples of a 700-byte payload; no passage in the mirror crosses from one
-frame to two because of it.
+The first draft's rule was wrong in two ways the review named, and both are
+fixed here.
 
-### 2. Where the record is made
+**It may only send when the locomotive is stopped.** Not `!autoRunning` — a
+locomotive under manual control is moving, and its commands matter more than
+its diagnostics, not less. The gate is `actualPwm == 0 && commandedPwm == 0`.
 
-In `hallTask()`, where `waveformWindow.push(p, v)` already copies the passage
-while its buffer is still valid: encode the archive frames there, into a byte
-FIFO, on the Hall task. The Hall task never blocks; encoding 500 samples is a
-`memcpy`.
+**It is rate-limited in every state, including a dwell.** A token bucket, not
+"one per network-task pass": at a 10 ms task period that was 100 publishes a
+second, which at the 1 Mbps floor is most of the channel. Start at 2 to 5
+frames a second and let measurement move it. At the measured mean of 26.7
+passages a minute, 3 frames a second empties a full inter-station backlog in
+well under a minute of dwell.
 
-Every judged passage is encoded once, flagged `archive`. A refusal still
-publishes its slot at once, flagged `refusal`, as today; a withdraw still
-dumps the window, flagged `window`. The Pi dedupes on the passage's own
-open/close times, so the extra copies cost nothing but the bytes, and each
-arrival is recorded.
+**It suspends entirely** while CTO is paired, while traffic is holding or
+decelerating, while peer freshness is degrading, on any suspicion of a channel
+change, and whenever ordinary outbound traffic is backed up. It is enqueued
+only on a pass where `pubQ` came up empty, and `mqtt.loop()` is serviced on a
+reserved interval rather than after an unbounded drain.
 
-### 3. A queue below every other queue
+**What that does and does not guarantee.** It limits each scheduling decision
+to one publish. It does **not** bound the end-to-end delay imposed on a CTO
+beacon: driver contention between TCP/MQTT and ESP-NOW, retransmission,
+backoff, rate fallback, the blocking `mqtt.publish()` call, task scheduling,
+and several locomotives at one station are all outside it. That impact is
+**unbounded until measured**, and 0075 gates a build on measuring it.
 
-A **byte FIFO of 32 KB** in the Hall task's memory, holding about 65 mean
-passages, about 87 s of cruise at 45 markers a minute — longer than the longest
-inter-station run at cruise (Patio to Grillers, 48 markers). Frames are cut
-from it on the way out. Sized only after step 0 says the heap allows it; 16 KB
-with the trickle rule below is the fallback.
+### Sizing, now from a measurement
 
-The network task's loop today: connect if needed, `mqtt.loop()`, then drain
-`pubQ` completely. Add, after that and only if `pubQ` came up empty on this
-pass:
+At a median 336 bytes a passage, an inter-station run of the longest leg
+(Patio to Grillers, 48 markers) is about 16 KB. A **32 KB** FIFO holds roughly
+95 passages, comfortably more than the longest leg and about 3.5 minutes at
+the measured mean rate. That size is now derived from the field rather than
+guessed — but it is still contingent on the free-heap figure, which this
+lineage has never reported. `state/loopstat` must carry `ESP.getFreeHeap()`
+and `ESP.getMinFreeHeap()` first.
 
-| state | archive frames sent on this pass |
-|---|---|
-| `stationMachine.holding()` (zero-ramp or dwell), or `!autoRunning` (MANUAL, released, e-stopped, low voltage) | **one** — about 100 a second, the FIFO empties in under a second at a dwell |
-| running, FIFO below 75% | **none** — it waits for the dwell |
-| running, FIFO at or above 75% | one, and not again for 2 s — a trickle, so a long run without a stop cannot fill it |
-| broker away | none; the FIFO holds. When full, the **oldest** record is dropped and `arch_drop` counts it in the status line. Loss is counted, never silent — the rule the transport was rebuilt on. |
+### Delivery, described honestly
 
-Three properties follow, and they are the whole point:
-
-- **Never ahead of a running message.** An archive frame is enqueued to the
-  radio only on a pass where nothing else was waiting. A marker event, a
-  station order, an alert, an e-stop acknowledgement never queue behind a
-  waveform.
-- **At most one frame in the air at a time from this path**, so the delay it
-  can impose on anything — a CTO beacon included — is one frame's airtime.
-- **By preference, none of it while moving.** On an ordinary lap with station
-  stops every archive frame goes out during a dwell, when nothing about the
-  locomotive's movement depends on the radio.
-
-### 4. What the Pi sees
-
-`decode_curves.py` already: reads the trailer when present and records
-`stitch_at`, `rest_level`, `pre_samples` as `wire` instead of `derived`;
-reads `quant` and widens int8 records on the way in; records `flags` and
-`seq`; dedupes the archive copy against the refusal and window copies; matches
-the marker event by peak and residual over a thirty-minute window, so a record
-that waited at a dwell still finds its event. Nothing on the Pi needs to change
-for this proposal, and it has been proven on the fielded format and on a
-synthetic trailer round-trip.
+Every judged passage is **offered** to the archive; loss is **detectable**.
+The FIFO drops its oldest record when full and counts it as `arch_drop`; the
+sequence number makes a gap visible on the Pi, which the decoder's `audit`
+command reports per boot. That is not retention, and this document does not
+claim it is. Literal completeness would need durable buffering on the
+locomotive or an acknowledged protocol with retransmission, and neither is
+proposed.
 
 ## Cost summary
 
 | | |
 |---|---|
+| bytes | +167 B/s measured mean, +319 B/s busiest minute (~8% of Toby's own) |
+| frames | 0.46/s mean; 96.4% of passages are one frame |
+| airtime | ~0.6 ms/s at MCS0, ~3.2 ms/s at the 1 Mbps floor — **Toby's own share**; the effect on CTO is not bounded by this and is untested |
+| RAM | 32 KB FIFO, after free heap is reported |
 | flash | small: one encoder call, one FIFO, one drain rule |
-| RAM | 32 KB (or 16 KB) FIFO, after step 0 |
-| bytes | +370 B/s typical at 45 markers/min, +790 worst |
-| airtime | +0.9 ms/s typical at MCS0; one frame (≤ 7 ms at the floor) is the most any single message can be delayed |
-| when | by preference at station dwells; otherwise trickled at one frame per 2 s |
 | wire compatibility | every existing decoder unchanged; gate 5 asserts it |
-| Pi | no change needed; the logger already encodes this topic |
+| Pi | already done — `wave_meta` ingested, trailer decoded when present |
 
 ## What needs the operator's hand
 
-1. Whether to do it at all, and whether verbatim (recommended) or 8-bit.
-2. Step 0: a build that reports free heap, flashed and read, before the FIFO
-   is sized.
-3. The FIFO size and the 75% / 2 s trickle numbers are engineering guesses to
-   be replaced by the field's: how long is the longest run between dwells at
-   the marker rate he actually runs.
-4. The ESP-NOW bound is by construction. The first build with both must
-   measure beacon jitter, archive on and off.
-5. This modifies `NAVI_ONE.ino`, `WaveformDump.h` and gate 5. Not to be done
-   without his say-so.
+1. Whether to build a permanent archive at all, and verbatim (recommended) or
+   8-bit.
+2. A build that reports free heap, flashed and read, before any FIFO is sized.
+3. The token-bucket rate and the stopped-only gate are engineering choices to
+   be replaced by the field's.
+4. **The CTO gate.** Two locomotives, weak WiFi, broker failure, archive on
+   and off, comparing peer receive gaps, beacon jitter, stale transitions,
+   fleet holds, MQTT command latency, Hall-task timing and minimum heap. Until
+   that is run, nothing here should be flashed on a build that has CTO.
+5. Whether the station-curves sketch should keep running meanwhile. It is
+   already producing exactly the records the database wants, and its 1,177
+   passages are the best evidence the archive has.

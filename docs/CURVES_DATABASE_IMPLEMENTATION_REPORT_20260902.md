@@ -2,12 +2,19 @@
 
 **Date:** 2026-09-02, evening
 **Locomotive:** Toby (9950012); the database is per-locomotive by column
-**Status:** BUILT AND PROVEN ON THE MIRROR. Not deployed: the Pi is the
-operator's. Decision 0072 PROPOSED. Loco-side change PROPOSED, not built.
+**Status:** SUPERSEDED IN PART, 2026-09-03. Sam/CODEX reviewed this work and
+found a critical defect in the passage key (it was not boot-safe) and three
+more; the operator then ran his own `NAVI_ONE_STATION_CURVES_0_1` sketch, whose
+1,177 passages replace the airtime estimates below. Read
+`docs/CURVES_DATABASE_REVIEW_RESPONSE_20260903.md` first — it says what changed
+and what the numbers really are. Decision 0072 has been narrowed to the Pi-side
+database and the locomotive-side change split into decision 0075, gated.
+Everything below stands as written on 2026-09-02 and is kept for the record.
 **Files:** `tools/curves/decode_curves.py`, `tools/curves/deploy_curves.sh`,
 `server/ngr-curves.service`, `server/ngr-curves.timer`, a step in
-`tools/provision_pi.sh`, `docs/decisions/0072-every-judged-passage-is-kept.md`,
-`docs/NAVI_ONE_PUBLISH_EVERY_PASSAGE_PROPOSAL_20260902.md`.
+`tools/provision_pi.sh` (since made opt-in),
+`docs/decisions/0072-every-judged-passage-is-kept.md` (scope narrowed 2026-09-03),
+`docs/NAVI_ONE_PUBLISH_EVERY_PASSAGE_PROPOSAL_20260903.md` (redated).
 
 ---
 

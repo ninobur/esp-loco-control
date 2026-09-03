@@ -69,14 +69,20 @@ ssh "$PI" 'sudo mv /tmp/ngr-app.service /etc/systemd/system/ngr-app.service
   sudo systemctl enable ngr-app ngr-runlog
   sudo systemctl restart ngr-app ngr-runlog'
 
-say "Magnet-curve database (decision 0072, proposed)"
-# One Python file, a oneshot service and a five-minute timer. Derived data,
-# rebuilt from the logs; see tools/curves/deploy_curves.sh for what it does.
-PI="$PI" ./tools/curves/deploy_curves.sh
+say "Magnet-curve database (decision 0072) — OPT IN"
+# DELIBERATELY NOT AUTOMATIC. Decision 0072 is PROPOSED and carries no force
+# until the operator ratifies it, so rebuilding a card must not quietly enact
+# it. Run the deploy by hand, or set CURVES=1 to include it here.
+if [ "${CURVES:-0}" = "1" ]; then
+  PI="$PI" ./tools/curves/deploy_curves.sh
+else
+  echo "skipped (decision 0072 is proposed, not ratified)."
+  echo "To install it:  ./tools/curves/deploy_curves.sh    or  CURVES=1 $0"
+fi
 
 say "Verifying"
 sleep 6
-ssh "$PI" 'for s in ngr-app ngr-runlog mosquitto ngr-curves.timer; do printf "%-16s %s\n" "$s" "$(systemctl is-active $s)"; done
+ssh "$PI" 'for s in ngr-app ngr-runlog mosquitto; do printf "%-16s %s\n" "$s" "$(systemctl is-active $s)"; done
   echo "--- log growing? ---"
   ls -la /home/david/NGR/telemetry/all_*.log 2>/dev/null || echo "(no log yet — normal if nothing is publishing)"
   df -h / | tail -1'
