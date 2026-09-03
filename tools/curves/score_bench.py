@@ -40,7 +40,11 @@ def records(path, t0, t1):
         if len(d["s"]) < d["n"]: continue
         v = [d["s"][i] for i in sorted(d["s"])]
         m = med5(v)
-        pk = max(m) if m else 0
+        # The level of the top is the median of the middle third, not the
+        # maximum: a ruler that overshoots (00:40:20, 358 on the way in,
+        # 275 held) would otherwise put its own hold below the 90% line.
+        mid = sorted(m[len(m)//3:2*len(m)//3]) if m else []
+        pk = mid[len(mid)//2] if mid else 0
         if pk < 40: continue
         # shape: how much of the record sits within 10% of its top
         top = sum(1 for x in m if x >= 0.9*pk) / len(m)
@@ -51,8 +55,13 @@ def records(path, t0, t1):
             # and a five-wide median flags every one of them; those are the
             # ruler moving, not the sensor. 2026-09-03 00:17:05: four "bad"
             # samples, all four on the ramps, a flat top of 427 with none.
+            # The ruler also rings for the best part of a second after it
+            # stops (00:40:00: 254 227 200 204 234 262 258 at 64 ms a sample),
+            # so the first second and the last half second of the top are
+            # left out as well.
             idx = [i for i, x in enumerate(m) if x >= 0.8 * pk]
-            a, b2 = idx[0] + 3, idx[-1] - 3
+            a = idx[0] + max(3, (1000 + d["dec"] - 1) // d["dec"])
+            b2 = idx[-1] - max(3, (500 + d["dec"] - 1) // d["dec"])
             if b2 - a >= 32: v, m = v[a:b2 + 1], m[a:b2 + 1]
         drop = sum(1 for a, b2 in zip(v, m) if a - b2 < -20)
         spike = sum(1 for a, b2 in zip(v, m) if a - b2 > 20)
