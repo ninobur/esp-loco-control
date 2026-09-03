@@ -1,0 +1,14 @@
+[Unit]
+Description=Run the NGR magnet-curve ingest every five minutes
+
+[Timer]
+# Three minutes after boot (the runlog and broker are up by then), then every
+# five minutes after the previous run finished. A pass with nothing new takes
+# well under a second; the first pass over a full card takes minutes.
+OnBootSec=3min
+OnUnitActiveSec=5min
+AccuracySec=30s
+Persistent=true
+
+[Install]
+WantedBy=timers.target

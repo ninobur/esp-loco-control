@@ -69,9 +69,14 @@ ssh "$PI" 'sudo mv /tmp/ngr-app.service /etc/systemd/system/ngr-app.service
   sudo systemctl enable ngr-app ngr-runlog
   sudo systemctl restart ngr-app ngr-runlog'
 
+say "Magnet-curve database (decision 0072, proposed)"
+# One Python file, a oneshot service and a five-minute timer. Derived data,
+# rebuilt from the logs; see tools/curves/deploy_curves.sh for what it does.
+PI="$PI" ./tools/curves/deploy_curves.sh
+
 say "Verifying"
 sleep 6
-ssh "$PI" 'for s in ngr-app ngr-runlog mosquitto; do printf "%-12s %s\n" "$s" "$(systemctl is-active $s)"; done
+ssh "$PI" 'for s in ngr-app ngr-runlog mosquitto ngr-curves.timer; do printf "%-16s %s\n" "$s" "$(systemctl is-active $s)"; done
   echo "--- log growing? ---"
   ls -la /home/david/NGR/telemetry/all_*.log 2>/dev/null || echo "(no log yet — normal if nothing is publishing)"
   df -h / | tail -1'

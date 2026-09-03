@@ -1,0 +1,17 @@
+[Unit]
+# The magnet-curve database (decision 0072, proposed). Reads the all_ logs the
+# runlog writes and appends one row per passage to curves.sqlite. Idempotent
+# and incremental: it remembers where it read each log to. Run by
+# ngr-curves.timer. WRITTEN 2026-09-02, deployed by tools/curves/deploy_curves.sh
+# when the operator says so.
+Description=NGR magnet-curve database ingest
+After=ngr-runlog.service
+
+[Service]
+Type=oneshot
+User=david
+WorkingDirectory=/home/david/NGR/curves
+ExecStart=/usr/bin/python3 /home/david/NGR/curves/decode_curves.py ingest /home/david/NGR/telemetry /home/david/NGR/curves/curves.sqlite
+# The runlog's writes to the card come first; this is a reader that can wait.
+Nice=10
+IOSchedulingClass=idle
