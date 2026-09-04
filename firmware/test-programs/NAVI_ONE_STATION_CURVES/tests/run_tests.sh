@@ -60,7 +60,3 @@ echo ""
 echo "== gate 13: the archaeology, on the railway's own magnets =="
 $CXX "$here/gate_two_sided.cpp" -lz -o "$tmp/twosided"
 "$tmp/twosided" "$repo/field-records/logs/20260828_survey/toby_1_13X_survey_waveforms.log.gz"
-
-echo ""
-echo "== gate 14: a rising reading is not a false start (the discard branch) =="
-$CXX "$here/gate_flank_discard.cpp" -o "$tmp/flank"; "$tmp/flank"

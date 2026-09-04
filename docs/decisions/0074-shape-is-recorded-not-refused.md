@@ -1,7 +1,11 @@
 # 0074 — Shape is recorded, not refused
 
 **Date:** 2026-09-03
-**Status:** PROPOSED. Not authoritative until the operator reviews and approves it.
+**Status:** PROPOSED and DEFERRED. On 2026-09-03 the operator ruled that this
+question waits: the acquisition defect (0075) is fixed first and alone, and
+whether the residual keeps operational authority is decided afterwards, on
+demonstrated clean acquisition. Nothing in this record is to be built until
+then. Not authoritative until the operator reviews and approves it.
 **Touches:** 0054 (four conjunctive characteristics), 0062 (the shape test
 abstains on a railed passage), 0070 (a passage may not span a stop), 0072
 (every judged passage is kept), and the stop-episode rule of X5 (commit
@@ -41,9 +45,11 @@ That single change retires, because they have nothing left to act on:
    ceiling. Their measurements stay in the record as data; their power to
    change a verdict goes.
 
-It separately fixes one defect that the retirements expose but do not cure:
+The discard-branch fix that was item 5 here is now its own record, 0075, at
+the operator's direction that the two decisions be kept separate. It is
+summarised for context:
 
-5. **The discard branch amputates flanks.** `HallCapture.h:363` discards a
+5. **The discard branch amputates flanks** (moved to 0075). `HallCapture.h:363` discards a
    just-opened passage as a false start when the reading looks flat and has
    shown no progress. The flatness test drops the one rising sample from a
    sixteen-sample window, so a genuine flank reads flat for one 25 ms step,
@@ -86,6 +92,25 @@ rule turned those refusals into shutdowns; stitching and the archaeology
 were built to rescue stop passages from the ceiling; the discard branch, added
 for a stop on a magnet, now manufactures the shapes the ceiling refuses. Each
 layer defends against a failure the layer below created.
+
+## The evidence that arrived after this was written, and what it changes
+
+The recorder run of 2026-09-03 ended in a shutdown on the fourth Arches CW
+departure: passage 1805, MM110 targeting MM111, pole N expected and observed,
+ratio 1.005, an ordinary passage, residual 0.1372, WRONG_SHAPE, routed to a
+shutdown by the stop-episode rule. The raw record shows a 103-count step from
+the pre-roll to the first kept sample. All six captured Arches CW departures
+show the same step at 35 to 103 counts, with the residual tracking the size
+of the hole (`docs/NAVI_ONE_DISCARD_FLANK_FIX_20260903.md`).
+
+The operator's reading: the defect is repeatable, lives in the recorder as
+well as X11, and the Gaussian crosses its ceiling only when the amputation is
+severe. Making shape advisory, as this record proposes, would have prevented
+that shutdown **and masked the corrupted acquisition instead of repairing it.**
+That is the reason this record is deferred rather than acted on. The shape
+test was, in these six cases, the only thing that noticed the recording was
+wrong. Whatever is decided about its authority is decided on records that are
+whole.
 
 ## The counter-evidence, stated plainly
 

@@ -92,13 +92,13 @@ using namespace navi_one;
 // THE CEILING IS NOT ADJUSTED TO MAKE IT PASS. If the field refuses it, the
 // refusal is the result -- the complete stitched waveform is published, nothing
 // is advanced, and the locomotive stops. That is the measurement.
-#define SKETCH_NAME    "NAVI_ONE_1_0X12_FIELDTEST"
-#define BUILD_CLASS    "EXPERIMENTAL_FIELD_TEST"
+#define SKETCH_NAME    "NAVI_ONE_STATION_CURVES_0_2"
+#define BUILD_CLASS    "DIAGNOSTIC_FIELD_TEST"
 // X11's subtitle, at the operator's request, to memorialise the moment the
 // day's transients stopped being "the magnets" and became "wherever the
 // signal is not idle" -- and two bench tests that seemed to rule out the read
 // path turned out to have been the one place it could hide.
-#define BUILD_SUBTITLE "Whole flank"
+#define BUILD_SUBTITLE "Station curve recorder"
 #define FIELD_ACCEPTED 0
 
 // Types used in function signatures must appear before the Arduino
@@ -211,6 +211,16 @@ static WaveformWindow<6> waveformWindow;
 // advance, because the dwell clock and the completion of the zero ramp are both
 // events with no marker behind them.
 static StationMachine stationMachine;
+
+// A read-only mirror for the Hall task. StationMachine remains owned by the
+// loop task; these naturally aligned scalar snapshots let a completed Hall
+// passage say what the locomotive was doing without moving station control
+// across cores or letting diagnostics influence it.
+static volatile uint8_t stationDiagPhase = (uint8_t)StPhase::Idle;
+static volatile int8_t  stationDiagIndex = -1;
+static volatile int16_t stationDiagOffset = 0;
+static volatile uint8_t stationDiagMm = 0;
+static volatile int8_t  stationDiagDir = 0;
 
 // One judged passage, crossing to the loop thread. The waveform does NOT cross
 // there: the recognizer already ran, on the task that captured it. (It is
@@ -490,11 +500,11 @@ static WiFiClient wifiClient; static PubSubClient mqtt(wifiClient);
 // Now the queue HOLDS while the broker is away, and every message that is
 // genuinely lost is counted and published in the status line.
 static uint32_t pubDropped = 0, cmdDropped = 0;
-static char T[24][72];
 enum { T_ONLINE=0,T_NAV,T_MARKER,T_ALERT,T_IR,T_STAT,T_BOOT,T_WARN,
        T_ST_AUTO,T_ST_ESTOP,T_ST_THR,T_ST_DIR,T_ST_SESSDIR,T_ST_STARTMM,
        T_ST_NAVREADY,T_ST_LOWV,T_ST_STARTINT,T_BRAKE,T_V,T_A,T_W,T_SPEED,
-       T_WAVEFORM,T_STATION,T_CNT };
+       T_WAVEFORM,T_WAVE_META,T_STATION,T_CNT };
+static char T[T_CNT][72];
 
 static void topic(int i,const char* suffix){ snprintf(T[i],72,"ngr/loco/%s/%s",LOCO_NAME,suffix); }
 static void buildTopics(){
@@ -516,6 +526,7 @@ static void buildTopics(){
   // capture (2026-08-31). A retained copy would misdescribe every later
   // boot as if it had just been struck.
   topic(T_WAVEFORM,"diag/waveform");
+  topic(T_WAVE_META,"diag/wave_meta");
   topic(T_STATION,"state/station");
 }
 static void pub(int t,const char* payload,bool retain=false){
@@ -737,6 +748,57 @@ static void publishWaveformWindow(){
   for (uint8_t slot = 0; slot < total; ++slot) publishWaveformSlot(slot, total);
 }
 
+// Companion JSON for every waveform, joined by open_ms/close_ms to the binary
+// WavHeader. phase_mask records every station phase observed while the passage
+// was open (bit 1 << StPhase), so a curve spanning RAMP->DWELL or
+// DWELL->DEPART is not mislabeled by its closing instant alone.
+static void publishCurveMeta(const Passage& p, const Verdict& v,
+                             uint32_t seq, uint8_t phaseMask,
+                             uint8_t phaseOpen, uint8_t phaseClose,
+                             int8_t stationOpen, int8_t stationClose,
+                             int16_t offsetOpen, int16_t offsetClose,
+                             uint8_t mmOpen, uint8_t mmClose,
+                             int8_t dirOpen, int8_t dirClose,
+                             int pwmCmdOpen, int pwmActualOpen,
+                             int pwmCmdClose, int pwmActualClose,
+                             uint32_t pausedMs) {
+  int8_t station = stationOpen >= 0 ? stationOpen : stationClose;
+  const char* stationName = (station >= 0 && station < (int8_t)STATION_COUNT)
+                              ? STATIONS[station].name : "";
+  char b[704];
+  const int written = snprintf(b,sizeof(b),
+    "{\"schema\":\"station_curve_v1\",\"seq\":%lu,"
+    "\"open_ms\":%lu,\"close_ms\":%lu,\"phase_mask\":%u,"
+    "\"phase_open\":\"%s\",\"phase_close\":\"%s\","
+    "\"station\":\"%s\",\"station_open\":%d,\"station_close\":%d,"
+    "\"off_open\":%d,\"off_close\":%d,\"mm_open\":%u,\"mm_close\":%u,"
+    "\"dir_open\":\"%s\",\"dir_close\":\"%s\","
+    "\"pwm_cmd_open\":%d,\"pwm_actual_open\":%d,"
+    "\"pwm_cmd_close\":%d,\"pwm_actual_close\":%d,"
+    "\"stop_episode\":%u,\"paused_ms\":%lu,\"stitch_at\":%u,"
+    "\"rest_level\":%d,\"pre_samples\":%u,\"decimation\":%u,"
+    "\"outcome\":\"%s\",\"is_magnet\":%u,\"shape_tested\":%u,"
+    "\"resid\":%.4f,\"ratio\":%.3f}",
+    (unsigned long)seq,(unsigned long)p.openedAtMs,(unsigned long)p.closedAtMs,
+    (unsigned)phaseMask,stPhaseName((StPhase)phaseOpen),stPhaseName((StPhase)phaseClose),
+    stationName,(int)stationOpen,(int)stationClose,(int)offsetOpen,(int)offsetClose,
+    (unsigned)mmOpen,(unsigned)mmClose,
+    dirOpen>0?"CW":(dirOpen<0?"CCW":"UNSET"),
+    dirClose>0?"CW":(dirClose<0?"CCW":"UNSET"),
+    pwmCmdOpen,pwmActualOpen,pwmCmdClose,pwmActualClose,
+    p.stopEpisode?1u:0u,(unsigned long)pausedMs,(unsigned)p.stitchAt,
+    (int)p.restLevel,(unsigned)p.preSamples,(unsigned)p.decimation,
+    outcomeName(v.outcome),v.isMagnet?1u:0u,v.shapeTested?1u:0u,
+    (double)v.residual,(double)v.amplitudeRatio);
+  if (written < 0 || written >= (int)sizeof(b)) {
+    ++pubDropped;
+    Serial.printf("[CURVE] metadata oversize (%d bytes) for seq %lu\n",
+                  written,(unsigned long)seq);
+    return;
+  }
+  pub(T_WAVE_META,b,false);
+}
+
 // ---------------------------------------------------------------------------
 // TASKS
 // ---------------------------------------------------------------------------
@@ -744,11 +806,18 @@ static void hallTask(void*){
   TickType_t wake = xTaskGetTickCount();
   uint32_t tick = 0;
   uint32_t myEpoch = 0;
+  uint32_t curveSeq = 0;
+  uint8_t curvePhaseMask = 0, curvePhaseOpen = (uint8_t)StPhase::Idle;
+  int8_t curveStationOpen = -1, curveDirOpen = 0;
+  int16_t curveOffsetOpen = 0;
+  uint8_t curveMmOpen = 0;
+  int curveCmdOpen = 0, curveActualOpen = 0;
   for(;;){
     unsigned long now = millis();
     if (recognizerResetRequest) {
       recognizer.reset();
       capture.reset();               // a passage open under the sensor belongs
+      curvePhaseMask = 0;
       myEpoch = navEpoch;            // to the frame that just ended
       recognizerResetRequest = false;
     }
@@ -759,8 +828,23 @@ static void hallTask(void*){
     // over a magnet makes the reference BE the magnet. Findings 09 and 10.
     const bool mayAdapt = actualPwm > NAVI_BASELINE_ADAPT_PWM;
     // stopArming ARMS OBSERVATION. See its declaration; it is not evidence.
-    if (capture.sample(now, hallRead(), mayAdapt,
-                       (StopArming)stopArming)) {
+    const bool wasOpen = capture.open();
+    const uint8_t phaseNow = stationDiagPhase;
+    const bool completed = capture.sample(now, hallRead(), mayAdapt,
+                                          (StopArming)stopArming);
+    if (!wasOpen && capture.open()) {
+      curvePhaseMask = (uint8_t)(1u << phaseNow);
+      curvePhaseOpen = phaseNow;
+      curveStationOpen = stationDiagIndex;
+      curveOffsetOpen = stationDiagOffset;
+      curveMmOpen = stationDiagMm;
+      curveDirOpen = stationDiagDir;
+      curveCmdOpen = commandedPwm;
+      curveActualOpen = actualPwm;
+    } else if (wasOpen) {
+      curvePhaseMask |= (uint8_t)(1u << phaseNow);
+    }
+    if (completed) {
       Judged j{};
       if (capture.event() == HallEvent::Passage) {
         const Passage& p = capture.passage();
@@ -783,7 +867,14 @@ static void hallTask(void*){
         // Bounded: one passage is at most RING samples, which chunks into two
         // messages of PubMsg::payload. The trailing-window dump on withdraw()
         // is untouched and still fires as well.
-        if (!v.isMagnet) publishWaveformSlot(0, 1);
+        const uint32_t seq = ++curveSeq;
+        publishCurveMeta(p,v,seq,curvePhaseMask,curvePhaseOpen,phaseNow,
+                         curveStationOpen,stationDiagIndex,
+                         curveOffsetOpen,stationDiagOffset,
+                         curveMmOpen,stationDiagMm,curveDirOpen,stationDiagDir,
+                         curveCmdOpen,curveActualOpen,commandedPwm,actualPwm,
+                         capture.pausedMs());
+        publishWaveformSlot(0, 1);
         j = Judged{ myEpoch,p.openedAtMs,p.closedAtMs,p.peakCounts,p.polarity,
                     (uint8_t)v.outcome,(uint8_t)v.isMagnet,
                     v.amplitudeRatio,v.residual,(uint8_t)v.shapeTested,v.gapMs,v.gain,
@@ -796,6 +887,7 @@ static void hallTask(void*){
         j = Judged{ myEpoch,now,now,0,0,(uint8_t)Outcome::NoCurve,0,
                     0.0f,0.0f,0,0,0, 2, 0, 1, 0, 0, "" };
       }
+      curvePhaseMask = 0;
       if (judgedQ) xQueueSend(judgedQ,&j,0);
     }
     if (dumpWindowRequest) {
@@ -1165,8 +1257,8 @@ void setup(){
   Serial.printf("[BOOT] EXPERIMENTAL FIELD-TEST BUILD — not field-accepted NAVI_ONE 1.0.\n");
   Serial.printf("[BOOT] Known open risk: finding 13 sits on the 0.13 shape ceiling "
                 "(0.1271 clean / 0.1321 noisy). The ceiling is unchanged. A refused\n");
-  Serial.printf("[BOOT] stitched waveform is published in full, advances nothing, "
-                "and stops the locomotive.\n");
+  Serial.printf("[BOOT] DIAGNOSTIC: every completed Hall passage publishes its full "
+                "waveform and station/PWM context. Recognition is unchanged.\n");
   Serial.printf("[CAL] 2 s baseline — keep clear of magnets\n");
   if (!judgedQ || !pubQ || !cmdQ) {
     Serial.println("[BOOT] FATAL: queue allocation failed — halting");
@@ -1183,7 +1275,9 @@ void setup(){
   mqtt.setServer(MQTT_BROKER,MQTT_PORT); mqtt.setCallback(onMqtt); mqtt.setBufferSize(900);
   if (xTaskCreatePinnedToCore(networkTask,"net",8192,nullptr,1,nullptr,1) != pdPASS)
     Serial.println("[BOOT] WARNING: network task would not start — running blind");
-  char b[400];
+  // X11 used 400 bytes here and silently truncated this JSON. This diagnostic
+  // depends on a parseable build identity, so size it to the transport payload.
+  char b[704];
   snprintf(b,sizeof(b),
     "{\"sketch\":\"%s\",\"subtitle\":\"%s\",\"build_class\":\"%s\",\"field_accepted\":%d,"
     "\"loco\":\"%s\",\"entry\":%d,\"exit\":%d,\"floor_ms\":%d,"
@@ -1263,11 +1357,19 @@ static void stationService(uint32_t now){
   if (!autoRunning || !navigator.positionKnown()) {
     if (stationMachine.phase() != StPhase::Idle) stationMachine.reset();
     stopArming = (uint8_t)StopArming::None;
+    stationDiagPhase = (uint8_t)StPhase::Idle;
+    stationDiagIndex = -1; stationDiagOffset = 0;
+    stationDiagMm = s.navMm; stationDiagDir = s.navDir;
     return;
   }
   const uint8_t cruise = cruisePwmAt(s.navMm, s.navDir, AUTO_CRUISE_PWM);
   StationOrder o = stationMachine.tick(s.navMm, s.navDir,
                                        (uint8_t)actualPwm, cruise, now);
+  stationDiagPhase = (uint8_t)stationMachine.phase();
+  stationDiagIndex = stationMachine.stationIdx();
+  stationDiagMm = s.navMm; stationDiagDir = s.navDir;
+  stationDiagOffset = stationDiagIndex >= 0
+    ? offsetToCentre(s.navMm,s.navDir,STATIONS[stationDiagIndex].centre) : 0;
 
   // THE TWO SENTINELS (decision 0070), and the whole of them. The throttle
   // coming down arms the Hall task to watch for the field to stop moving; the
