@@ -1,11 +1,13 @@
 # 0074 — Shape is recorded, not refused
 
 **Date:** 2026-09-03
-**Status:** PROPOSED and DEFERRED. On 2026-09-03 the operator ruled that this
-question waits: the acquisition defect (0075) is fixed first and alone, and
-whether the residual keeps operational authority is decided afterwards, on
-demonstrated clean acquisition. Nothing in this record is to be built until
-then. Not authoritative until the operator reviews and approves it.
+**Status:** PROPOSED, revised 2026-09-03 night. The deferral of the evening
+is withdrawn by the operator: 0075 need not be proven on the railway before
+the residual loses its veto, because making records conform better to a
+Gaussian does not establish that the Gaussian should have navigation
+authority. Built as NAVI_ONE 1.0X13 "Shape is diagnostic" and recorder 0.3
+(`docs/NAVI_ONE_1_0X13_SHAPE_IS_DIAGNOSTIC_20260903.md`). **Not flashed.**
+Not authoritative until the operator reviews and approves it.
 **Touches:** 0054 (four conjunctive characteristics), 0062 (the shape test
 abstains on a railed passage), 0070 (a passage may not span a stop), 0072
 (every judged passage is kept), and the stop-episode rule of X5 (commit
@@ -14,7 +16,7 @@ abstains on a railed passage), 0070 (a passage may not span a stop), 0072
 (the Arches CW shutdown); the `NAVI_ONE_STATION_CURVES_0_1` diagnostic run of
 2026-09-03 (1,177 passages, every one published); the recognizer's own
 tuning table at `firmware/test-programs/NAVI_ONE/MagnetRecognizer.h:24`.
-**Builds:** none. Nothing in this record has been built.
+**Builds:** NAVI_ONE_1_0X13_FIELDTEST and NAVI_ONE_STATION_CURVES_0_3, compiled 2026-09-03 night, not flashed.
 
 ---
 
@@ -25,11 +27,21 @@ buying anything at low speed. He then asked where the project is, having
 watched each gain add a layer of logic that solved part of a problem and
 created one of its own.
 
-## The decision proposed
+## The decision proposed, in the operator's words (2026-09-03 night)
 
-A passage is a magnet when its amplitude ratio, its polarity and its spacing
-say so. The Gaussian residual is computed, published and archived on every
-passage, and can no longer refuse one.
+> Gaussian shape and two-sided archaeology are diagnostic measurements, not
+> navigation tests. They may be calculated, published and archived, but may
+> not reject a passage or stop the locomotive.
+
+Navigation admission rests on the existing physical evidence: the capture's
+duration floor, the rebound/spacing guard, the amplitude floor, and the
+expected polarity and route sequence. Applied globally, not only at
+stations. The residual, `shape_tested`, `two_sided`, `trunk` and `why2` stay
+on the wire and in the archive, joined by `shape_refuse` / `shape_outcome`
+(`would_shape_refuse` on the recorder) so the archive records when the
+former rule would have refused. A failed fit, an excessive residual or an
+archaeological WRONG_SHAPE / INSUFFICIENT cannot change `isMagnet` once the
+physical tests have passed.
 
 That single change retires, because they have nothing left to act on:
 
@@ -111,6 +123,27 @@ That is the reason this record is deferred rather than acted on. The shape
 test was, in these six cases, the only thing that noticed the recording was
 wrong. Whatever is decided about its authority is decided on records that are
 whole.
+
+## The one observed counter-example, found by the replays
+
+Finding 09 A (2026-09-01, NAVI_ONE 0.5): a latched baseline offset held the
+reading about 40 counts up for 12 s while Toby stood still; a blip at the end
+gave the passage a judged peak of 73, ratio 0.36–0.38 against the 0.34
+floor, residual 0.27. Shape refused it, and nothing else would have. Under
+this decision it is admitted, navigation advances one marker wrongly, and
+the next passage, opposite pole, strikes one marker later. So the residual
+HAS uniquely excluded one observed non-magnet. Its cause was an acquisition
+latch (finding 08, closed in gate 8 for the moving case; at rest the latch
+remains). The operator's rule for this record is that the answer to an
+acquisition fault belongs in acquisition, not in a shape veto; the case is
+carried in gate 12 as a registered risk with its numbers, and the
+experiment's ending condition (a DISAGREE or CONTRADICTED with
+`shape_refuse:1`) is written for exactly this shape of event.
+
+The synthetic step, shoulder and double lobe of gate 12 E, which clear
+amplitude, time and pole by construction, are now admitted. None has been
+observed on the railway. They are a stated theoretical cost, not a hidden
+failure.
 
 ## The counter-evidence, stated plainly
 

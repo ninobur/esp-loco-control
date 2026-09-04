@@ -218,7 +218,10 @@ struct Rig {
           // paused. Conditioning on the pause alone is what let Bamboo run on
           // after a 0.5586 refusal and strike a marker later. An ordinary
           // refusal with no stop near it does not stop him, unchanged.
-          if (cap.pausedMs() || p.stopEpisode) refusedStitched();
+          // Decision 0074: the stop-episode widening is withdrawn; only a
+          // passage whose measurement was paused and stitched is a stitched
+          // refusal. Mirrors NAVI_ONE.ino.
+          if (cap.pausedMs()) refusedStitched();
           break;
         case Ruling::WrongMagnet:
         case Ruling::Contradicted: ++strikes; withdraw(); break;
@@ -482,6 +485,24 @@ int main() {
         rg.report(nm);
         printf("   wanted: %d advance, %d stitched -- %s\n", W.adv, W.stitched, W.note);
         ok(rg.stitched == W.stitched, "stitched-waveform count", F.tag);
+        // DECISION 0074: shape no longer refuses. Finding 09's two latched
+        // passages (peak 73/69, ratio 0.38/0.36 against the 0.34 floor,
+        // residual 0.27) were refused by shape ALONE. Under 0074 the first
+        // ADVANCES and the second, opposite pole, STRIKES one marker later.
+        // This is the one observed non-magnet the residual uniquely excluded.
+        // It is registered as a risk, not passed over, and not fixed here:
+        // the latch that produced it is an acquisition fault (finding 08,
+        // gate 8), and the answer to it belongs there, not in a shape veto.
+        const bool latchCase = (F.tag[1] == '0');          // F09A, F09B
+        if (latchCase && rg.advances != W.adv) {
+          char rk[240];
+          snprintf(rk, sizeof rk, "%s %s: advanced %d (wanted 0), strikes %d, ratio %.3f resid %.4f -- refused by shape alone before 0074",
+                   F.tag, variant ? "noisy" : "clean", rg.advances, rg.strikes,
+                   (double)rg.lastRatio, (double)rg.lastResidual);
+          risk("a latched-offset passage advances under 0074 and is caught by the polarity chain a marker later", rk);
+          ok(rg.strikes == 1 && !rg.autoRunning, "the false advance is caught by the polarity chain and stops the locomotive", F.tag);
+          continue;
+        }
         ok(rg.strikes == 0, "no strike", F.tag);
         ok(rg.advances <= W.adv, "never more than the wanted advance", F.tag);
         if (variant == 0) {
@@ -644,7 +665,17 @@ int main() {
       rg.arm = StopArming::None;
       for (int i = 0; i < 3000; ++i, ++t) rg.tick(t, IDLE);
       rg.report(NAMES[c]);
-      ok(rg.advances == 0, "REFUSED -- zero advances", NAMES[c]);
+      // DECISION 0074: these four are SYNTHETIC. They pass the amplitude
+      // floor, the time guard and the expected pole by construction, and
+      // shape was the only test that refused them. Under 0074 they are
+      // admitted. That is a stated, theoretical cost -- none has been
+      // observed on the railway -- and it is registered, not asserted away.
+      if (rg.advances != 0) {
+        char rk[200]; snprintf(rk, sizeof rk, "%s: advanced %d, resid %.4f ratio %.3f", NAMES[c], rg.advances, (double)rg.lastResidual, (double)rg.lastRatio);
+        risk("a synthetic non-magnet that clears every physical test is admitted under 0074", rk);
+      } else {
+        ok(true, "refused on physical evidence", NAMES[c]);
+      }
     }
   }
 

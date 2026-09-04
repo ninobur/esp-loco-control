@@ -9,6 +9,19 @@
 // NAVI_FRESH): a corrupted position cannot corrupt a shape judgement it never
 // sees. Identity — WHICH magnet — belongs to Navigator, and needs the map.
 //
+// SHAPE IS A MEASUREMENT, NOT A TEST (decision 0074, 2026-09-03). The
+// Gaussian residual and the two-sided archaeology are still computed on every
+// passage and travel with the verdict for the trace, the wire and the archive,
+// and `wouldShapeRefuse` records what the former rule would have done. They
+// may not refuse a passage. Every real magnet observed on this railway was
+// identifiable by amplitude, time and polarity; the residual's only deciding
+// votes were cast against real magnets whose records were cut short (Arches
+// CW, seq 1805, 0.1372, ratio 1.005, correct pole: the locomotive stopped).
+// What this gives up, stated plainly: a synthetic electrical step, shoulder
+// or double lobe that ALSO clears the amplitude floor, the time guard and the
+// expected pole is now admitted. None has been observed. The survey's 154
+// non-primaries were all refused on amplitude alone.
+//
 // THREE TESTS, each catching a population the others structurally cannot.
 // Thresholds sit at the midpoint of the measured gap between populations on
 // the 2026-08-28 circuit survey (187 real passages, 154 non-primaries):
@@ -193,6 +206,11 @@ struct Verdict {
   uint8_t  trunk          = 0;          // 1 arrival set the scale, 2 departure, 3 both
   const char* why         = "";         // the archaeology's reason, for the trace and the field
   ArchVerdict arch;                     // and everything it measured
+  // DIAGNOSTIC ONLY (0074): what the shape rule would have said. Never
+  // consulted for isMagnet. shapeOutcome is Magnet when shape passed or
+  // abstained, else WrongShape / NoCurve / Insufficient.
+  bool     wouldShapeRefuse = false;
+  Outcome  shapeOutcome   = Outcome::Magnet;
   bool     guardTested    = false;      // false = abstained (no previous accept)
   uint32_t gapMs          = 0;
   uint16_t gain           = 0;
@@ -234,9 +252,15 @@ class MagnetRecognizer {
     // AMPLITUDE. Always has evidence.
     if (v.amplitudeRatio < cfg_.amplitudeFloor) { v.outcome = Outcome::TooWeak; return v; }
 
-    // SHAPE. Abstains on a truncated or clipped curve -- the instrument says
-    // it did not see the whole thing, and a fit to a cropped arc is not
-    // evidence either way. It must not become a silent refusal.
+    // THE PHYSICAL TESTS HAVE PASSED. From here the passage is a magnet.
+    // The duration floor is HallCapture's (floorMs); polarity and sequence
+    // are the Navigator's. Nothing below may change these two lines.
+    v.outcome = Outcome::Magnet;
+    v.isMagnet = true;
+    accept(p);
+
+    // SHAPE, measured and recorded, not obeyed (decision 0074). Abstains on
+    // a truncated or clipped curve as before.
     if (!p.truncated && !p.clipped) {
       float r;
       if (p.stitchAt) {
@@ -250,19 +274,17 @@ class MagnetRecognizer {
         const ArchVerdict a = examineInterrupted(p, cfg_.residualCeiling);
         v.shapeTested = true; v.twoSided = true; v.trunk = a.trunk; v.why = a.why; v.arch = a;
         v.residual = a.residArr > a.residDep ? a.residArr : a.residDep;
-        if (a.outcome == Arch::Insufficient) { v.outcome = Outcome::Insufficient; return v; }
-        if (a.outcome == Arch::WrongShape)   { v.outcome = Outcome::WrongShape;   return v; }
+        if (a.outcome == Arch::Insufficient) v.shapeOutcome = Outcome::Insufficient;
+        if (a.outcome == Arch::WrongShape)   v.shapeOutcome = Outcome::WrongShape;
+      } else if (!fitResidual(p, r)) {
+        v.shapeOutcome = Outcome::NoCurve;
       } else {
-        if (!fitResidual(p, r)) { v.outcome = Outcome::NoCurve; return v; }
         v.shapeTested = true;
         v.residual = r;
-        if (r > cfg_.residualCeiling) { v.outcome = Outcome::WrongShape; return v; }
+        if (r > cfg_.residualCeiling) v.shapeOutcome = Outcome::WrongShape;
       }
     }
-
-    v.outcome = Outcome::Magnet;
-    v.isMagnet = true;
-    accept(p);
+    v.wouldShapeRefuse = (v.shapeOutcome != Outcome::Magnet);
     return v;
   }
 

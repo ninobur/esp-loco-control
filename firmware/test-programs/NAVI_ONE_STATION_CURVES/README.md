@@ -54,3 +54,12 @@ the reading itself is below `entryMargin`. 0.1's first run showed every Arches
 CW departure record beginning mid-flank (decision 0075, gate 14). Compiled,
 not yet run. The field proof is repeated Arches CW departures with continuous
 published flanks and `discards` at zero, not merely a lap without a shutdown.
+
+## 0.3
+
+Decision 0074: the Gaussian residual and the two-sided archaeology are
+diagnostics. They are still computed and published, and `wave_meta` now
+carries `would_shape_refuse` and `shape_outcome`, but they cannot refuse a
+passage. Admission is the time guard, the amplitude floor, and the
+Navigator's polarity and sequence. The stop-episode widening of refusals is
+removed. Compiled, not yet run.

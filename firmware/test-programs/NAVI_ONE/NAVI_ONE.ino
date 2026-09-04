@@ -92,13 +92,13 @@ using namespace navi_one;
 // THE CEILING IS NOT ADJUSTED TO MAKE IT PASS. If the field refuses it, the
 // refusal is the result -- the complete stitched waveform is published, nothing
 // is advanced, and the locomotive stops. That is the measurement.
-#define SKETCH_NAME    "NAVI_ONE_1_0X12_FIELDTEST"
+#define SKETCH_NAME    "NAVI_ONE_1_0X13_FIELDTEST"
 #define BUILD_CLASS    "EXPERIMENTAL_FIELD_TEST"
 // X11's subtitle, at the operator's request, to memorialise the moment the
 // day's transients stopped being "the magnets" and became "wherever the
 // signal is not idle" -- and two bench tests that seemed to rule out the read
 // path turned out to have been the one place it could hide.
-#define BUILD_SUBTITLE "Whole flank"
+#define BUILD_SUBTITLE "Shape is diagnostic"
 #define FIELD_ACCEPTED 0
 
 // Types used in function signatures must appear before the Arduino
@@ -129,6 +129,9 @@ struct Judged {
   // The archaeology's reason, a pointer to a string literal in TwoSided.h --
   // static storage, so it survives the queue. Empty for an ordinary passage.
   const char* why;
+  // Decision 0074: what the shape rule WOULD have said. Diagnostic; never
+  // consulted. shapeOutcome is an Outcome (MAGNET when shape passed or abstained).
+  uint8_t  wouldShapeRefuse, shapeOutcome;
 };
 // len: 0 means "text, use strlen(payload) at send time" (every existing text
 // pub() call). Non-zero means "exactly this many bytes, verbatim, including
@@ -625,6 +628,7 @@ static void publishNav(const char* event,const Judged* j,Ruling r){
       "\"obs\":\"%c\",\"expected\":\"%c\",\"peak\":%u,\"ratio\":%.3f,"
       "\"resid\":%.4f,\"shape\":%u,\"gap_ms\":%lu,\"gain\":%u,"
       "\"two_sided\":%u,\"trunk\":%u,\"why2\":\"%s\",\"stitched\":%u,\"paused_ms\":%lu,"
+      "\"shape_refuse\":%u,\"shape_outcome\":\"%s\","
       "\"trust\":\"%s\",\"seq_at\":%u,\"adv\":%lu,\"ref\":%lu,\"notmag\":%lu}",
       event, navigator.positionKnown()?"NORMAL":"UNSET",
       navigator.positionKnown()?"NORMAL":"UNSET",
@@ -637,6 +641,7 @@ static void publishNav(const char* event,const Judged* j,Ruling r){
       j->peak, (double)j->ratio, (double)j->residual, j->shapeTested,
       (unsigned long)j->gapMs, j->gain,
       j->twoSided, j->trunk, j->why ? j->why : "", (unsigned)(j->kind == 1), (unsigned long)j->pausedMs,
+      j->wouldShapeRefuse, outcomeName((Outcome)j->shapeOutcome),
       trustName(s.trust), s.seqAt,
       (unsigned long)s.advances,(unsigned long)s.refusals,(unsigned long)s.notMagnets);
     pub(T_MARKER,b,false);
@@ -783,18 +788,21 @@ static void hallTask(void*){
         // Bounded: one passage is at most RING samples, which chunks into two
         // messages of PubMsg::payload. The trailing-window dump on withdraw()
         // is untouched and still fires as well.
-        if (!v.isMagnet) publishWaveformSlot(0, 1);
+        // Decision 0074: a passage the shape rule WOULD have refused is
+        // published too, so the archive holds the record behind the diagnosis.
+        if (!v.isMagnet || v.wouldShapeRefuse) publishWaveformSlot(0, 1);
         j = Judged{ myEpoch,p.openedAtMs,p.closedAtMs,p.peakCounts,p.polarity,
                     (uint8_t)v.outcome,(uint8_t)v.isMagnet,
                     v.amplitudeRatio,v.residual,(uint8_t)v.shapeTested,v.gapMs,v.gain,
-                    (uint8_t)(v.outcome == Outcome::Insufficient ? 3 : (capture.pausedMs() ? 1 : 0)),
+                    (uint8_t)(capture.pausedMs() ? 1 : 0),
                     capture.pausedMs(), (uint8_t)(p.stopEpisode ? 1 : 0),
-                    (uint8_t)(v.twoSided ? 1 : 0), v.trunk, v.why };
+                    (uint8_t)(v.twoSided ? 1 : 0), v.trunk, v.why,
+                    (uint8_t)(v.wouldShapeRefuse ? 1 : 0), (uint8_t)v.shapeOutcome };
       } else {
         // A paused measurement that outlived a wall-clock watchdog. There is
         // no waveform to judge and nothing to advance.
         j = Judged{ myEpoch,now,now,0,0,(uint8_t)Outcome::NoCurve,0,
-                    0.0f,0.0f,0,0,0, 2, 0, 1, 0, 0, "" };
+                    0.0f,0.0f,0,0,0, 2, 0, 1, 0, 0, "", 0, (uint8_t)Outcome::Magnet };
       }
       if (judgedQ) xQueueSend(judgedQ,&j,0);
     }
@@ -1364,7 +1372,11 @@ void loop(){
         // A refusal with no stop anywhere near it still does not stop him,
         // exactly as before: that is an ordinary lost marker on open track and
         // the polarity chain is what catches it.
-        if (j.kind == 1 || j.stopEpisode) refusedStitched(j);
+        // Decision 0074: the stop-episode widening is withdrawn. Only a
+        // passage whose measurement was actually paused and stitched (kind 1)
+        // is a stitched refusal. An ordinary refusal around a stop -- now only
+        // ever TOO_SOON or TOO_WEAK -- is an ordinary refusal.
+        if (j.kind == 1) refusedStitched(j);
         break;
       default:                 publishNav("NO_POSITION",&j,r); break;
     }
