@@ -11,8 +11,8 @@ operational authority is decided afterwards, on clean acquisition.
 **Evidence:** `docs/NAVI_ONE_DISCARD_FLANK_FIX_20260903.md`; the six Arches CW
 departures of the `NAVI_ONE_STATION_CURVES_0_1` run, verbatim in
 `firmware/test-programs/NAVI_ONE/tests/fixtures_arches_departures.h`.
-**Builds:** NAVI_ONE 1.0X12 "Whole flank" and NAVI_ONE_STATION_CURVES 0.2,
-compiled, **not flashed, not run**.
+**Builds:** NAVI_ONE 1.0X12 "Whole flank" and NAVI_ONE_STATION_CURVES 0.2, compiled.
+**Field:** the condition flew inside recorder 0.3 on 2026-09-04: sixteen Arches CW departures, pre-roll-to-flank steps of −2 to 6 counts (yesterday 35 to 103), residuals 0.072 to 0.115, all accepted, no shutdown (`docs/NAVI_ONE_X13_FIELD_VERDICT_20260904.md`). Still PROPOSED.
 
 ---
 

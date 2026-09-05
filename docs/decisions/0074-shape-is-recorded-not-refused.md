@@ -16,7 +16,8 @@ abstains on a railed passage), 0070 (a passage may not span a stop), 0072
 (the Arches CW shutdown); the `NAVI_ONE_STATION_CURVES_0_1` diagnostic run of
 2026-09-03 (1,177 passages, every one published); the recognizer's own
 tuning table at `firmware/test-programs/NAVI_ONE/MagnetRecognizer.h:24`.
-**Builds:** NAVI_ONE_1_0X13_FIELDTEST and NAVI_ONE_STATION_CURVES_0_3, compiled 2026-09-03 night, not flashed.
+**Builds:** NAVI_ONE_1_0X13_FIELDTEST and NAVI_ONE_STATION_CURVES_0_3, compiled 2026-09-03 night.
+**Field:** recorder 0.3 flown 2026-09-04, two hours both directions, 3,284 magnets, 76 stops, no shutdown, no strike; zero passages the old rule would have refused, so the rule's cost is not yet measured (`docs/NAVI_ONE_X13_FIELD_VERDICT_20260904.md`). Still PROPOSED.
 
 ---
 
