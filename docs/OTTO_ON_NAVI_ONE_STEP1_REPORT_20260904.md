@@ -299,10 +299,8 @@ guard is the operator's. **I have not written those values into the repository.*
    also keeps floating-input crosstalk off the Hall line.
 3. **Otto's tractive floor** — a creep test, or set it high and conservative
    pending one? (§6)
-4. **Otto's entry threshold** — leave the QUORUM-era 70 alone for the survey, so
-   the survey measures the loco as he actually runs today? My recommendation is
-   yes: change one thing at a time, and the survey will tell us whether 70 is
-   costing markers. (§3)
+4. **Otto's entry threshold** — **survey at 38, not 70. See §10; this reverses
+   the recommendation this report was first committed with.**
 
 ## 9. Housekeeping
 
@@ -325,3 +323,86 @@ reused by the rules in `docs/CLAUDE.md`. Flagged, not touched.
 - Calibration fits: `field-records/cal/cal_9950011_*.txt` (8,928 rows),
   `cal_9950012_*.txt` (1,575 rows).
 - Amplitude floor behaviour: `docs/NAVI_ONE_AMPLITUDE_FLOOR_SWEEP_20260904.md`.
+
+
+---
+
+## 10. Addendum, 2026-09-05 — the entry threshold for the survey
+
+The operator's challenge to §8 question 4: *"Why would we keep the same
+possibly troublesome settings?"*
+
+**He is right, and the original recommendation is withdrawn.** It applied "one
+behavioural change per field build" to a build that has no behaviour. The
+survey never declares position, never enters AUTO, and advances nothing. There
+is no behaviour to hold constant.
+
+### The entry threshold is the one setting that gates data rather than labelling it
+
+That is the whole argument of §7: under recorder 0.3 the recognizer constants
+*label* the published record, so any of them can be re-judged offline. The
+entry threshold is different in kind. It decides whether a passage is ever
+captured. Nothing below it is published, refused, or counted — it does not
+exist.
+
+`NAVI_ONE_STATION_CURVES.ino:192` sets
+`entryMargin = HALL_DEADBAND_COUNTS + HALL_ENTRY_MARGIN_COUNTS`, so **Otto
+surveys at 70 counts, Toby at 38.**
+
+Surveying Otto at 70 to find out whether 70 is costing him markers is measuring
+through the filter under test. It cannot produce the answer. Worse, it cannot
+even show the phantom population the gate was raised against — the 2026-08-20
+cluster at peaks 40–91 was only ever visible *because* Otto was running at the
+low threshold at the time. Raise the gate and the evidence disappears along with
+the phantoms, and we lose the ability to tell the two apart.
+
+### 38 is not an invented number
+
+It is the acquisition setting the 2026-08-28 Toby survey ran at — the survey
+that produced every constant in the NAVI recognizer block. Fitting Otto's block
+from a survey run at a different aperture means fitting it by a different method
+than Toby's, which is precisely the fault §6 flags in the unreproducible speed
+fit. **Same instrument, same acquisition, two locomotives** is the only way the
+two blocks stay comparable.
+
+It is also a *wider* aperture than Otto's own measured 45. It can only add
+records, never remove them. Otto keeps his own `HALL_DEADBAND_COUNTS 25` as the
+exit threshold; only the entry margin moves, and only for acquisition.
+
+### The cost is about 2%
+
+From the 596-marker post-realignment sample in Otto's own profile: 585 genuine,
+11 spurious. Toby's survey sustained 2,092 full-rate captures over twelve laps.
+Volume is not the constraint. `pub_drop` and `wave_meta.seq` continuity remain
+the acceptance check either way.
+
+### What this does NOT settle: the gate for the navigation build
+
+The survey answers the question; it does not presume the answer. At entry 38
+with Otto's post-realignment gain of about 176, the amplitude floor sits at
+`0.34 x 176 ~= 60` counts. Against the measured phantom cluster:
+
+| phantom peak | caught by | |
+|---|---|---|
+| 40, 43, 49, 51 (the four that cost the 14:30:51 NO_QUORUM) | amplitude floor at 60 | yes |
+| up to the observed maximum of 91 | **not the floor** | reaches the Navigator |
+
+Duration does not save it either: `floorMs` is 40 ms and nine of the eleven
+phantoms measured 40–58 ms.
+
+So at 38 a phantom of 60–91 counts, correct polarity, more than
+`NAVI_GUARD_MS` after the previous close, reaches the Navigator's sequence test
+— and **decision 0076, navigation recovers from one wrong observation, is
+proposed and not built.** That is a real risk for build 1b and an argument for
+neither 38 nor 70 in advance.
+
+**The entry threshold for Otto's navigation build is an output of the survey,
+not an input to it.** It may come out at 38, at 70, or between. The survey is
+what earns the number, which is the reason to open the gate rather than keep it.
+
+### Revised recommendation
+
+- **1a survey:** entry margin 13 (threshold 38), matching Toby's survey. Safe
+  because nothing navigates.
+- **1b navigation:** entry threshold chosen from Otto's survey data, recorded
+  with its evidence in his profile the way the 2026-08-20 note was.
