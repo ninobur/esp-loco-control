@@ -85,6 +85,29 @@ number.
 - Write the record when the decision or finding is made, not reconstructed
   long after.
 
+## Known numbering collision: two records numbered 0075
+
+Two files carry the number 0075:
+
+- `0075-a-rising-reading-is-not-a-false-start.md`
+- `0075-publishing-every-passage-is-gated-on-measurement.md`
+
+This is the branch-dependent numbering above behaving exactly as warned:
+concurrent `agent/*` runs each allocated 0075 without seeing the other, and both
+were kept. **Neither is to be renumbered.** The rule one line up — "numbered
+sequentially, never renumbered" — outranks the tidiness of a unique index, and a
+renumber would break every existing reference to whichever file lost.
+
+Recorded 2026-09-10, on operator instruction, as documentation only. No
+renumbering was attempted and none is proposed.
+
+**When citing 0075, cite the filename, not the number.** 0076 refers to "0075
+(the discard fix)", which is
+`0075-publishing-every-passage-is-gated-on-measurement.md`. A reader who resolves
+"0075" to the other file will follow a chain of reasoning that was never written.
+
+Numbering continued from 0076 with 0077, 0078 and 0079 on 2026-09-10.
+
 ## Template
 
 ```
