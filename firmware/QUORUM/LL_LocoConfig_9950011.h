@@ -59,7 +59,7 @@
 
 // Motor control pins
 #define MOTOR_PWM_PIN 4
-#define MOTOR_DIR_PIN 2
+#define MOTOR_DIR_PIN 16
 
 #define PWM_CHANNEL 0
 #define PWM_FREQUENCY 20000

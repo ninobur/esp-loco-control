@@ -52,7 +52,7 @@ struct PwmSpeedEntry {
 // ONE LINE PER LOCOMOTIVE. EVERY LINE POINTS AT A FILE THAT EXISTS.
 // ============================================================================
 //#include "LL_LocoConfig_9950011.h"   // Otto
-#include "LL_LocoConfig_9950012.h"     // Toby   <-- ACTIVE
+#include "LL_LocoConfig_9950011.h"     // Toby   <-- ACTIVE
 
 #ifndef LOCO_ID
 #error "No locomotive profile selected in LocoConfig.h."
