@@ -27,7 +27,12 @@
 
 // Motor control pins
 #define MOTOR_PWM_PIN 4
-#define MOTOR_DIR_PIN 2
+// MOTOR_DIR_PIN is 16, NOT 2. Otto's ESP32 was replaced 2026-09-09; the new
+// board wires direction to GPIO 16. Commit 4f6e0b0 changed only the QUORUM
+// profiles, leaving every other Otto profile with the dead pin. Flashing 2
+// gives a locomotive that answers the throttle and ignores forward.
+// Per-board fact: Toby's board is unchanged and stays on 2.
+#define MOTOR_DIR_PIN 16
 
 #define PWM_CHANNEL 0
 #define PWM_FREQUENCY 20000
