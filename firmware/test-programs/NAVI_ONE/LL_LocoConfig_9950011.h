@@ -58,8 +58,18 @@
 #define VPIN_CURRENT_DISPLAY V6
 
 // Motor control pins
+//
+// MOTOR_DIR_PIN is 16, NOT 2. Otto's ESP32 was replaced; the new board wires
+// direction to GPIO 16. Commit 4f6e0b0 (2026-09-09) made that change in the
+// QUORUM profiles he was actually flashing and nowhere else, so every NAVI
+// profile carried 2 until now. Flashing Otto with 2 drives the direction line
+// into a pin that is not connected to the H-bridge: the locomotive would
+// answer the throttle and ignore the map's sense of forward.
+//
+// Toby's board is unchanged and stays on 2. This is a per-board fact, not a
+// fleet constant.
 #define MOTOR_PWM_PIN 4
-#define MOTOR_DIR_PIN 2
+#define MOTOR_DIR_PIN 16
 
 #define PWM_CHANNEL 0
 #define PWM_FREQUENCY 20000
@@ -192,3 +202,63 @@
 // missed marker and a position lag. Watch for quorum adopting POSITIVE offsets.
 // ---------------------------------------------------------------------------
 #define Q_FLOOR_MS_OVERRIDE 500
+
+// ---------------------------------------------------------------------------
+// NAVI_ONE recognizer — MEASURED ON OTTO, and on Otto only.
+//
+// Source: field-records/logs/20260909_survey/, Otto's bidirectional Hall
+// survey on the new external-antenna board at PWM 90, CW and CCW, full 171-
+// position coverage. The hardware-consistency cutoff is absolute and was
+// applied: nothing before the 21:04:17 boot on 2026-09-09 enters any figure
+// below. Derivation is written up in
+// docs/NAVI_CTO_ARCHITECTURE_AND_PROVENANCE_20260909.md section 3.
+//
+// These are NOT Toby's numbers rescaled. Otto enters at 70 counts against
+// Toby's 38 — a materially different sensor environment — and every value here
+// comes from Otto's own waveforms. NAVI_RECOGNIZER_MEASURED_ON is checked
+// against LOCO_ID at compile time so this cannot be inherited by accident.
+// ---------------------------------------------------------------------------
+
+// IR PRESENCE IS DECLARED, NOT PROBED. Operator declaration 2026-09-09: Otto
+// carries no wheel sensor on pin 34. 0 leaves the pin untouched, which is also
+// what keeps floating-input crosstalk off the Hall line.
+//
+// This says nothing about the towed IR test car, which is a different
+// instrument on a different vehicle and reaches the locomotive over ESP-NOW,
+// not over pin 34. As of 2026-09-10 that car is not producing usable counts
+// (field-records/20260910_IR_CAR_BENCH_WHEEL_TEST.md); NAVI_ONE does not
+// consume it in any case.
+#define IR_FITTED 0
+
+#define NAVI_RECOGNIZER_MEASURED_ON  9950011UL
+#define NAVI_GUARD_MS                200U     // nearest genuine gap 710 CW / 917 CCW
+#define NAVI_AMPLITUDE_FLOOR         0.34f    // 0.34 x 173 = 59, inside the 33->144 gap
+#define NAVI_RESIDUAL_CEILING        0.13f    // diagnostic reference; it cannot refuse
+#define NAVI_BOOTSTRAP_GAIN          175U     // Otto's combined median accepted peak
+#define NAVI_AUTO_CRUISE_PWM         90       // the surveyed regime
+
+// ---------------------------------------------------------------------------
+// STATION APPROACH MARKER TIMES — how long OTTO takes to cross one marker at
+// each step of a station approach, from -10 to -6. Milliseconds.
+//
+// Obtained by NAVI_ONE's own stated method, the one used for Toby: a measured
+// marker time at PWM 90, scaled by speed proportional to (PWM - intercept).
+// Otto's measured figure is 1,158 ms per marker; his fit
+//
+//     speed_mm_s = 3.872 x (PWM - 23.6)
+//
+// comes from 4,959 phantom-filtered MOVING rows across 34 PWM bins and
+// predicts that 1,158 ms to +0.8%.
+//
+// Corroboration that these are Otto's and not a copy: Toby's profile fit
+// predicts 1,159 ms where Toby actually runs 1,326 (-12.6%). The fit recorded
+// in Toby's profile describes Otto, not Toby. Recorded in section 3.9 of the
+// provenance report; Toby's own numbers are left exactly as they are.
+#define NAVI_APPROACH_MARKER_MS   { 1213, 1340, 1496, 1694, 1952 }
+
+// ---------------------------------------------------------------------------
+// BASELINE ADAPTATION FLOOR — the PWM at or below which the Hall reference is
+// frozen. OTTO'S OWN INTERCEPT: 23.6 from the fit above, rounded UP to 24 so
+// the gate errs one count toward freezing rather than toward adapting on a
+// locomotive that may not be moving. Toby's 25 is his and stays his.
+#define NAVI_BASELINE_ADAPT_PWM   24
