@@ -138,7 +138,7 @@
 #define IR_FITTED 0
 
 #define NAVI_RECOGNIZER_MEASURED_ON  9950012UL
-#define NAVI_GUARD_MS                200U     // close-to-open, decision 0057
+#define NAVI_GUARD_MS                500U     // operator ruling 2026-09-10; decision 0057
 #define NAVI_AMPLITUDE_FLOOR         0.34f    // of the trailing median accepted peak
 #define NAVI_RESIDUAL_CEILING        0.13f    // normalised RMS of the Gaussian fit
 #define NAVI_BOOTSTRAP_GAIN          190U     // until eight peaks are in hand

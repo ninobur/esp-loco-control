@@ -231,7 +231,7 @@
 #define IR_FITTED 0
 
 #define NAVI_RECOGNIZER_MEASURED_ON  9950011UL
-#define NAVI_GUARD_MS                200U     // nearest genuine gap 710 CW / 917 CCW
+#define NAVI_GUARD_MS                500U     // operator ruling 2026-09-10; decision 0057
 #define NAVI_AMPLITUDE_FLOOR         0.34f    // 0.34 x 173 = 59, inside the 33->144 gap
 #define NAVI_RESIDUAL_CEILING        0.13f    // diagnostic reference; it cannot refuse
 #define NAVI_BOOTSTRAP_GAIN          175U     // Otto's combined median accepted peak

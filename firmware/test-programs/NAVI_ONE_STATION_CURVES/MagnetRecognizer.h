@@ -41,12 +41,49 @@
 //               of real magnets. This is why the constant is measured, not
 //               chosen.
 //
-//   TIME        close-of-previous-accepted to open-of-this >= 200 ms.
-//               Measured populations on the survey: rebounds 1..64 ms (n=152),
-//               real magnets 436 ms minimum then 836 ms. 200 sits between, at
-//               3.1x the largest rebound and 2.2x below the smallest real
-//               passage. The operator's original 500 ms was 8x above the
-//               rebound population and refused one genuine magnet.
+//   TIME        close-of-previous-accepted to open-of-this >= 500 ms.
+//
+//               OPERATOR RULING 2026-09-10, restoring his original value. Read
+//               the correction before changing this number again.
+//
+//               This block previously read 200 ms and justified it like this:
+//               measured populations on the 2026-08-28 survey were rebounds
+//               1..64 ms (n=152) and "real magnets 436 ms minimum then 836 ms";
+//               200 sat between them; and the operator's 500 ms "refused one
+//               genuine magnet". The arithmetic was right and the conclusion
+//               was wrong, because the 436 ms event was never checked against
+//               the speed the locomotive can physically reach.
+//
+//               A 436 ms close-to-open gap over the shortest map interval of
+//               280 mm requires about 473 mm/s -- 88 pKph. Toby's fastest
+//               marker-to-marker pass in that same survey was 319 mm/s
+//               (59 pKph) and the fleet maximum is 400 mm/s (74 pKph). By
+//               Toby's own PWM/speed fit, 88 pKph needs PWM 144. The highest
+//               throttle anywhere in that dataset is 120, on a run driven
+//               manually at cruise 90.
+//
+//               So the "one genuine magnet" that 500 ms refused could not have
+//               been a genuine adjacent-magnet passage. It has the signature of
+//               a re-read -- precisely the population this guard exists to
+//               refuse. The guard was widened to admit the thing it was built
+//               to catch, on a sample of one.
+//
+//               The rest of that population supports it: the header's own next
+//               value, 836 ms, plus a ~160 ms passage gives a 996 ms traverse
+//               = 281 mm/s = 52 pKph, squarely inside Toby's measured range.
+//               The genuine population begins at 836 ms. 436 sits alone below
+//               the physical floor with a 400 ms hole above it.
+//
+//               500 ms therefore clears the rebound population (max 64 ms) by
+//               nearly 8x and still sits 336 ms below the smallest genuine
+//               gap. On Otto it refuses both known double-reads, which measure
+//               209 ms and 290 ms close-to-open, and which a 200 ms guard
+//               admits.
+//
+//               BEFORE PROPOSING ANY VALUE HERE: convert the candidate gap to
+//               mm/s, to pKph, and to the PWM the locomotive would need. If the
+//               PWM exceeds anything in the dataset, the event is an artifact,
+//               not a data point.
 //               Catches THE SAME MAGNET COUNTED TWICE. A re-read is full
 //               amplitude and perfect shape, so neither test above can see it;
 //               only elapsed time can. Note that AMPLITUDE alone refuses all
@@ -74,7 +111,7 @@ namespace navi_one {
 
 enum class Outcome : uint8_t {
   Magnet = 0,
-  TooSoon,        // inside the rebound guard (200 ms, measured) -- a re-read
+  TooSoon,        // inside the rebound guard (500 ms, operator) -- a re-read
   TooWeak,        // amplitude ratio below floor
   WrongShape,     // Gaussian residual above ceiling
   // A passage split by a stop, of which not enough survived to say what it
@@ -98,7 +135,7 @@ inline const char* outcomeName(Outcome o) {
 }
 
 struct RecognizerConfig {
-  uint32_t guardMs          = 200;      // close-to-open
+  uint32_t guardMs          = 500;      // close-to-open; operator ruling 2026-09-10
   float    amplitudeFloor   = 0.34f;    // of trailing median accepted peak
   float    residualCeiling  = 0.13f;    // normalised RMS of Gaussian fit
   uint16_t bootstrapGain    = 190;      // until the median has 8 samples
