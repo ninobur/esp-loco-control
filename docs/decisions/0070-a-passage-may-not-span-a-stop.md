@@ -1,11 +1,18 @@
 # 0070 — A passage may not span a stop
 
-**Status:** RATIFIED FOR FIELD TEST, 2026-09-02. **Not field-accepted.**
-The operator's words were *"It is time to take it down the runway and see if it
+**Status:** **Superseded by 0080, 2026-09-10.** Formerly RATIFIED FOR FIELD
+TEST, 2026-09-02; never field-accepted.
+
+> **Historical field-test record.** The experimental acquisition evidence is
+> retained below, but its stop-spanning morphology/stitching design and its
+> special shutdown rules no longer govern NAVI. Struck-through text is an
+> expired instruction, not current operating policy. See 0080.
+
+~~The operator's words were *"It is time to take it down the runway and see if it
 flies"*, followed by the six conditions recorded under
 [The field-test build](#the-field-test-build) below. The design is in
 `firmware/`; whether it is correct on real track is the open question, and this
-record stays open until the field answers it.
+record stays open until the field answers it.~~
 **Date:** 2026-09-01, rewritten 2026-09-02 on the operator's ruling, landed
 2026-09-02.
 **Touches:** 0054 (four conjunctive characteristics), 0057 (no duration ceiling,
@@ -15,18 +22,18 @@ no motion gate on the guard), 0059 (the six-marker window), 0064, 0065.
 
 ---
 
-## The governing rule
+## The former field-test rule — superseded
 
-> A magnetic level is not a magnet event. A partial arc is not a magnet event.
-> Only a completed, coherent rise-and-fall waveform establishes a MOVING MAGNET.
+> ~~A magnetic level is not a magnet event. A partial arc is not a magnet event.~~
+> ~~Only a completed, coherent rise-and-fall waveform establishes a MOVING MAGNET.~~
 >
-> A controlled stop should behave like a timeout in a game. The measurement is
-> paused while Toby is stationary, then resumed when moving-magnet morphology
-> returns.
+> ~~A controlled stop should behave like a timeout in a game. The measurement is~~
+> ~~paused while Toby is stationary, then resumed when moving-magnet morphology~~
+> ~~returns.~~
 >
-> PWM transitions arm observation. Hall morphology determines whether
-> measurement pauses or resumes. Only the completed moving rise-and-fall pattern
-> establishes a magnet.
+> ~~PWM transitions arm observation. Hall morphology determines whether~~
+> ~~measurement pauses or resumes. Only the completed moving rise-and-fall pattern~~
+> ~~establishes a magnet.~~
 >
 > — the operator, 2026-09-02
 
@@ -367,19 +374,19 @@ the field test only: any refusal publishes its complete waveform at once, a
 refused *stitched* waveform stops the locomotive, and the build names itself
 `NAVI_ONE_1_0X_FIELDTEST`.
 
-## The field-test build
+## The field-test build — expired
 
-Ratified for field test on 2026-09-02 with six conditions, all of which are in
-the build:
+~~Ratified for field test on 2026-09-02 with six conditions, all of which are in
+the build:~~
 
 | condition | where it is | verified by |
 |---|---|---|
-| Accept clean finding 13 at 0.1271 | the unchanged recognizer | gate 12 §C — MAGNET, one advance |
-| Safely refuse its noisy reconstruction at 0.1321 | the unchanged recognizer | gate 12 §C — WRONG\_SHAPE, zero advances |
-| Publish and dump the complete stitched waveform on **any** refusal | `hallTask()`: `if (!v.isMagnet) publishWaveformSlot(0, 1);` | gate 12 §C asserts the dump carries every sample the recognizer judged |
-| Advance zero and stop if it refuses | `refusedStitched()` off `Ruling::NotAMagnet` when `kind == 1` | gate 12 §C — AUTO withdrawn, nav STRUCK, on the refusal itself |
-| Preserve all existing diagnostics | nothing removed; the dump wire format is untouched | the eleven pre-existing gates, byte-for-byte identical to `1b8b828` |
-| Identify itself as an experimental field-test build | `SKETCH_NAME`, `build_class`, `field_accepted: 0`, three boot lines | boot serial and `state/bootid` |
+| ~~Accept clean finding 13 at 0.1271~~ | ~~the unchanged recognizer~~ | ~~gate 12 §C — MAGNET, one advance~~ |
+| ~~Safely refuse its noisy reconstruction at 0.1321~~ | ~~the unchanged recognizer~~ | ~~gate 12 §C — WRONG\_SHAPE, zero advances~~ |
+| ~~Publish and dump the complete stitched waveform on **any** refusal~~ | ~~`hallTask()`: `if (!v.isMagnet) publishWaveformSlot(0, 1);`~~ | ~~gate 12 §C asserts the dump carries every sample the recognizer judged~~ |
+| ~~Advance zero and stop if it refuses~~ | ~~`refusedStitched()` off `Ruling::NotAMagnet` when `kind == 1`~~ | ~~gate 12 §C — AUTO withdrawn, nav STRUCK, on the refusal itself~~ |
+| ~~Preserve all existing diagnostics~~ | ~~nothing removed; the dump wire format is untouched~~ | ~~the eleven pre-existing gates, byte-for-byte identical to `1b8b828`~~ |
+| ~~Identify itself as an experimental field-test build~~ | ~~`SKETCH_NAME`, `build_class`, `field_accepted: 0`, three boot lines~~ | ~~boot serial and `state/bootid`~~ |
 
 **The residual ceiling was not touched.** `MagnetRecognizer.h` is byte for byte
 the accepted one and does not appear in the diff at all.
@@ -392,39 +399,43 @@ the accepted one and does not appear in the diff at all.
    which chunks into two messages. The trailing-window dump on `withdraw()` is
    unchanged and still fires as well. The wire format in `WaveformDump.h` is
    untouched: a single-slot dump simply reports `slotTotal` 1.
-2. **A refused stitched waveform stops the locomotive.** `refusedStitched()`
+2. ~~**A refused stitched waveform stops the locomotive.** `refusedStitched()`
    calls `navigator.unresolved()` and `withdraw()`, publishing
    `STITCHED_REFUSED`. An ordinary refusal with no stop in it behaves exactly as
-   before.
+   before.~~ **Superseded by 0080.**
 
 ### The unintended consequence of that second one, stated plainly
 
-**Toby will stop more often than he used to.** Before this build, a refused
+~~**Toby will stop more often than he used to.** Before this build, a refused
 waveform cost a marker silently and navigation carried on until the polarity
 chain noticed — which is the failure findings 11 and 13 are made of. Now the
 refusal stops him where he stands. That is the safer behaviour and it is what
 was asked for, but it converts a quiet, delayed fault into a loud, immediate
 one, and on a bad day it will end a running session at a station rather than
 half a lap later. **A stop is the build working, not the build failing.**
-Anyone reading the dashboard should expect it.
+Anyone reading the dashboard should expect it.~~
+
+**Expired with the field test.** This paragraph documented the deliberately
+conservative behavior of one development instrument. It is not a perpetual
+justification for a navigation stop and confers no authority on later builds.
 
 The second consequence: `field_accepted` is `0` in `state/bootid`, so anything
 downstream that keys on the sketch name sees a name it has never seen before.
 Nothing in this repository does; the Pi console reads `sketch` only for display.
 
-### What to watch for, and when to stop
+### What the field test instructed the operator to watch for — expired
 
-- `state/bootid` must read `NAVI_ONE_1_0X_FIELDTEST` with `field_accepted: 0`,
+- ~~`state/bootid` must read `NAVI_ONE_1_0X_FIELDTEST` with `field_accepted: 0`,
   and the serial console must print the three `[BOOT]` lines. If the second line
-  is absent, a different image is running.
-- The event to look for is `STITCHED_REFUSED` on the marker topic, with the
+  is absent, a different image is running.~~
+- ~~The event to look for is `STITCHED_REFUSED` on the marker topic, with the
   `diag/waveform` dump that precedes it. **That dump is the measurement this
-  build was flashed to take.** Keep it.
-- `nav.stitched` and `nav.paused_ms` on an `AGREE` say a stop was crossed and
-  reconstructed successfully.
-- Abort and go back to `1b8b828` if a stitched waveform is ever **accepted at
+  build was flashed to take.** Keep it.~~
+- ~~`nav.stitched` and `nav.paused_ms` on an `AGREE` say a stop was crossed and
+  reconstructed successfully.~~
+- ~~Abort and go back to `1b8b828` if a stitched waveform is ever **accepted at
   the wrong marker** — that is the one failure mode gate 12 cannot rule out from
-  records alone.
+  records alone.~~
 
 ## Ratification
 
@@ -437,5 +448,7 @@ runs the eleven pre-existing gates against both trees with the base commit's own
 runner, and diffs them byte for byte. It reads IDENTICAL. Gate 12 reports 196
 checks, 0 failures, **and one known risk it explicitly does not close.**
 
-**This record does not become "accepted" by being flashed.** It becomes accepted
-when the field answers finding 13's margin, and not before.
+~~**This record does not become "accepted" by being flashed.** It becomes accepted
+when the field answers finding 13's margin, and not before.~~
+
+It never became field-accepted and is superseded by 0080.

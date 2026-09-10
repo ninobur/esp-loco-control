@@ -1,13 +1,8 @@
 # 0074 — Shape is recorded, not refused
 
 **Date:** 2026-09-03
-**Status:** PROPOSED, revised 2026-09-03 night. The deferral of the evening
-is withdrawn by the operator: 0075 need not be proven on the railway before
-the residual loses its veto, because making records conform better to a
-Gaussian does not establish that the Gaussian should have navigation
-authority. Built as NAVI_ONE 1.0X13 "Shape is diagnostic" and recorder 0.3
-(`docs/NAVI_ONE_1_0X13_SHAPE_IS_DIAGNOSTIC_20260903.md`). **Not flashed.**
-Not authoritative until the operator reviews and approves it.
+**Status:** **Superseded by 0080, 2026-09-10.** The diagnostic-only principle is
+affirmed there; this proposal's retained 0070 stitching exception is not.
 **Touches:** 0054 (four conjunctive characteristics), 0062 (the shape test
 abstains on a railed passage), 0070 (a passage may not span a stop), 0072
 (every judged passage is kept), and the stop-episode rule of X5 (commit
@@ -77,7 +72,7 @@ summarised for context:
 | stays | why |
 |---|---|
 | 0054's amplitude, polarity and spacing tests | They are the tests that have never been wrong in the field. |
-| 0070 and the stitch across a stop | A magnet the train stops on must be counted once, not twice. That is a counting question and is untouched by shape. |
+| ~~0070 and the stitch across a stop~~ | ~~A magnet the train stops on must be counted once, not twice. That is a counting question and is untouched by shape.~~ **Superseded by 0080: morphology may not gain navigation authority through acquisition or stitching.** |
 | 0071, 0073 | Acquisition rules. They fixed real sensor faults and are proven over 1,263 railway passages with zero disagreements and zero floor rejections. |
 | 0072, the archive | It is the instrument that let the diagnostic run answer a question instead of raising one. |
 | The residual itself, on the wire and in the database | It is still the best single measure of record quality, which is exactly the job it is being moved to. |
