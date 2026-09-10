@@ -105,3 +105,90 @@ That tension is the substance of the next task and is not resolved here.
 - Repeater foreign counter: `ngr/survey/ESPNOW_REP_2/health`, 5 samples over 20 s.
 - Repeater receive path: `ESPNOW_REPEATER.ino:238,430,504`.
 - LAN: gateway 192.168.68.1 reachable as positive control; full /24 sweep, one Espressif host.
+
+---
+
+## Addendum, same night, later: the car is transmitting, and it is not the sketch
+## this record assumed
+
+The determination above was made without a listener. A listener then turned up:
+the CP2102 on the Mac's USB was `ESPNOW_REP_2`, the bench repeater, site
+`MAC_BENCH`, `192.168.68.81`, channel 11 — running, and printing its health line
+to the console.
+
+### What it counted
+
+`ESPNOW_REPEATER.ino` increments `rxForeign` for every ESP-NOW frame it receives
+whose length exceeds `sizeof(CtoPeerPacket)` (45 bytes). The console showed:
+
+    HLT,5000,repeat,ch=11,src=0,ap=-36,foreign=34,drop=0,tx=0/0
+    HLT,10000,repeat,ch=11,src=0,ap=-57,foreign=86,drop=0,tx=0/0
+
+(86 − 34) / 5 s = **10.4 oversized ESP-NOW frames per second on channel 11**,
+with `src=0` — no CTO-shaped source at all. Something is on the air that is not
+a locomotive.
+
+### What that rate identifies
+
+`IR_SCOPE_ESPNOW_TX.ino` samples GPIO34 on a fixed 1000 µs schedule
+(`sampleSeq*1000` µs, line 143) and ships `BATCH_N = 96` samples per packet.
+That is 1000 / 96 = **10.417 packets per second**. Its `Packet` is exactly 250
+bytes — far above the repeater's 45-byte foreign threshold, so every one is
+counted and none is relayed.
+
+Measured 10.4/s against predicted 10.417/s is a match to 0.2%. Both the frame
+size class and the cadence agree. The IR test car is powered, sampling, and
+broadcasting.
+
+### This overturns Blocker 1, and it should be said plainly
+
+The body of this record concluded the car was aimed at a locomotive that no
+longer exists. That was true of `IR_ESPNOW_SENDER`, whose `ir_espnow_config.h`
+still unicasts to `B0:CB:D8:D0:FF:4C`. It is not true of what is actually
+running. `IR_SCOPE_ESPNOW_TX` sends to `BROADCAST` (line 19, used at line 159)
+and adds the broadcast address as its only peer (line 193). A broadcast address
+cannot go stale, so the board swap does not reach it.
+
+`IR_SCOPE_ESPNOW_TX.ino` was last modified 2026-09-09 20:05 — the evening the
+operator said he set the car up. The unicast sender was last touched 2026-08-28.
+The mtimes agree with the radio evidence.
+
+Blocker 2 stands unchanged: nothing on the track is flashed to receive this. For
+a bench test that does not matter, because the raw recorder can.
+
+### What is still not established
+
+- **That the optics are producing useful counts.** A transmitting car and a
+  seeing car are different claims. The batch cadence is driven by the sample
+  timer and is identical whether the IR sensor is reading a wheel or reading
+  nothing. Only the payload settles it — `pulses`, `runMin/runMax`,
+  `thrHigh/thrLow`, and the 96-sample waveform inside each packet.
+- **The 2026-09-10 ~06:31Z figure of 9.2/s** from the MQTT `foreign` counter is
+  ~12% below tonight's bench figure. Consistent with frames lost at range, but
+  it is not proof of anything and is not used here.
+
+### The instrument for the next step
+
+`firmware/test-programs/IR_SCOPE_ESPNOW_RX` is the raw channel-11 recorder: it
+prints every frame as `RX <millis> <rssi> <len> <crc16> <hex>` at 921600 baud,
+and ACKs type-3 fusion reports. Compiled clean this session against
+esp32:esp32:esp32 — 884,380 bytes flash (67%), 45,472 bytes RAM (13%). The
+operator's own decoders `tools/ir_scope_espnow_to_csv.py` and
+`tools/ir_scope_espnow_analyze.py` consume that format.
+
+It has not been flashed. Flashing it to `ESPNOW_REP_2` would overwrite the
+repeater firmware, which is a separate instrument the operator may want back; a
+spare ESP32 avoids that trade.
+
+### Interruption
+
+Mid-measurement the CP2102 disappeared from USB entirely (no `/dev/cu.usbserial-0001`,
+no CP2102 in `ioreg`), and `ngr/survey/ESPNOW_REP_2/online` went to `0`.
+Unplugged or unpowered at the bench; nothing in this session can cause that.
+Both repeaters now read offline.
+
+### Method, addendum
+
+Read-only throughout. Serial console read at 115200 with DTR/RTS deasserted;
+baud identified by sweep. No MQTT publish, no command sent to either repeater,
+no locomotive touched, nothing flashed.
