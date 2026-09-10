@@ -32,10 +32,11 @@ full in §3. Stated here because they change the shape of the plan:
    at peaks 40–91 does not reappear. In 4,090 waveforms the entire
    sub-threshold population tops out at **33 counts**. There is exactly **one**
    spurious accepted event in ~3,100 steady-state passages.
-2. **`NAVI_APPROACH_MARKER_MS` still cannot be fitted.** The survey ran at a
-   held PWM 90. The five approach throttles have 0–2 samples each. This is the
-   same gap that blocked 2026-09-04, and the 2026-09-09 session did not close
-   it. **Stage 1 needs one more short measurement run, or an operator ruling.**
+2. **`NAVI_APPROACH_MARKER_MS` and the tractive floor are fittable from data
+   already in hand.** This reverses what this report said when first committed.
+   See §3.9 — the earlier version demanded a throttle-ladder
+   test that was never performed on Toby and that could not have measured what
+   it claimed to. **Stage 1 is not blocked on any new measurement.**
 
 ---
 
@@ -169,8 +170,8 @@ The nine symbols Otto's NAVI profile lacks, against the 2026-09-09 dataset:
 | 4 | `NAVI_BOOTSTRAP_GAIN` | **yes** | §3.5 |
 | 5 | `NAVI_RESIDUAL_CEILING` | **n/a — diagnostic reference** | decision 0074 made the residual unable to refuse. Otto takes Toby's `0.13f` **labelled as a diagnostic reference, not a threshold**, so his shape diagnostics are directly comparable with Toby's. This is the one value where copying is correct. |
 | 6 | `NAVI_AUTO_CRUISE_PWM` | policy — `90` is the surveyed regime | operator |
-| 7 | `NAVI_APPROACH_MARKER_MS` | **NO — see §3.6** | blocking |
-| 8 | `NAVI_BASELINE_ADAPT_PWM` | **NO — see §3.7** | blocking |
+| 7 | `NAVI_APPROACH_MARKER_MS` | **yes** | §3.6 |
+| 8 | `NAVI_BASELINE_ADAPT_PWM` | **yes** | §3.7 |
 | 9 | `IR_FITTED` | operator declaration, never probed | operator |
 
 CW and CCW are evaluated separately throughout, and stay separate in the
@@ -296,61 +297,102 @@ folds. Fit on laps 1..n−1, evaluate on lap n, rotate. Report false-accept and
 false-reject per fold, per direction, separately. A constant that only works on
 the pooled data does not ship. No threshold is moved to make training data pass.
 
-### 3.6 `NAVI_APPROACH_MARKER_MS` — **blocking, and the survey did not close it**
+### 3.6 `NAVI_APPROACH_MARKER_MS` — fitted from Otto's own PWM-90 passages
 
-`Stations.h:182` reads five values, the marker time at each approach step from
-−10 to −6. Toby's were measured by holding PWM 87, 81, 75, 69 and 63 for a few
-markers each and reading `gap_ms` — the numbers *are* the marker times, no
-modelling.
+**Correction.** An earlier version of this report read the *"TO MEASURE THESE FOR
+ANOTHER LOCOMOTIVE"* note in Toby's profile as the method that produced his
+values, and asked for a throttle-ladder run on Otto. It is not the method. The
+paragraph two lines above it states what was actually done, and the arithmetic
+confirms it exactly:
 
-Sample counts in the 2026-09-09 survey at exactly those throttles:
+> *"Measured for Toby: 1,326 ms per marker at PWM 90, from the passage timestamps
+> of 2026-08-31, scaled by speed proportional to (PWM − 25.1)."*
 
-| PWM | 87 | 81 | 75 | 69 | 63 |
-|---|---:|---:|---:|---:|---:|
-| CW | 0 | 0 | 2 | 0 | 0 |
-| CCW | 1 | 1 | 0 | 1 | 0 |
+| PWM | 1326 × (90−25.1)/(PWM−25.1) | in Toby's profile |
+|---|---:|---:|
+| 87 | 1390.3 | **1390** |
+| 81 | 1539.5 | **1539** |
+| 75 | 1724.6 | **1725** |
+| 69 | 1960.3 | **1960** |
+| 63 | 2270.6 | **2271** |
 
-Everything else is PWM 90 (1,053 CW / 2,055 CCW). The handful of sub-90 samples
-are ramp-up transients carrying `RAMP` or `NO_PREV` timing gates — they are
-acceleration, not held throttle, and cannot measure a marker time.
+All five reproduce to the millisecond. **Toby's five values are one PWM-90
+measurement scaled by his linear speed fit. The ladder was never run on him,
+and running it on Otto would have fitted the two locomotives by different
+methods** — the exact fault §3.7 flags in the unreproducible speed fit.
 
-**This is the same gap that blocked 2026-09-04.** It cannot be closed by
-analysis, by scaling Toby's numbers, or by fitting a speed model to this data.
-Two honest routes, and the choice is the operator's:
+**Why the ladder could not have worked anyway** — the operator's objection, that
+acceleration and deceleration are location-specific, is correct and the survey
+quantifies it. At a single held PWM 90, across 171 markers with ≥ 4 laps each:
 
-- **(a) The approach ladder.** One short manual run — hold 87, 81, 75, 69, 63 for
-  a few markers each, both directions, on the survey build already proven on
-  Otto. Perhaps fifteen minutes. Produces the five numbers directly and by
-  Toby's own method, which keeps the two locomotives comparable.
-- **(b) Defer.** Give Otto provisional values and accept that his first station
-  approaches are paced wrong. **Not recommended:** a mis-paced ramp means the
-  throttle is still moving when the next marker arrives, which is a station
-  behaviour fault in a build whose acceptance test is station behaviour.
+| | CW | CCW |
+|---|---:|---:|
+| per-marker median gap, min | 954 ms (mm 103) | 926 ms (mm 74) |
+| median | 1,148 ms | 1,168 ms |
+| max | 1,523 ms (mm 65) | 1,552 ms (mm 129) |
+| **spread at one constant throttle** | **1.60×** | **1.68×** |
+| lap-to-lap spread at a *fixed* marker | ~27 ms | ~24 ms |
 
-### 3.7 `NAVI_BASELINE_ADAPT_PWM` — **blocking, and the method is not recoverable**
+Location moves the marker time by 60–68%. The locomotive itself is repeatable to
+about 2%. The ladder spans PWM 87→63, a modelled change of 1.63× — **the same
+magnitude as the location effect**. Holding each throttle "for a few markers"
+wherever the locomotive happened to be would have measured the railway, not the
+locomotive, and could not have separated the two.
 
-Toby's 25 comes from *"speed_mm_s = 3.990 × (PWM − 25.1)"*, cited by decision
-0066 as fitted to 4,617 samples. The 2026-09-04 report could not reproduce that
-fit from either locomotive's calibration files, and found the documented
-coefficients land on **Otto's** June data, not Toby's. No script in the repository
-reproduces it.
+**Otto's equivalent measurement, by Toby's method**, from the 2026-09-09 survey,
+`ACTIVE`-gated, held PWM 90, startup and phantom records excluded:
 
-That open issue is **recorded, not fixed, and Toby's frozen field-accepted build
-is not touched on the strength of it.** But it means Otto's floor cannot be
-derived "the same way", because the way is not written down.
+- CW 1,148 ms/marker · CCW 1,168 ms/marker · **combined 1,158 ms**
+- The two directions differ by 1.7%, inside the lap-to-lap noise. **No
+  direction-specific constant is warranted, and none is proposed.**
 
-Two routes:
+Otto is materially faster than Toby at the same throttle (1,158 against 1,326),
+which is precisely the case the profile comment warns about: *"Toby's figures
+would pace a faster loco's ramp too slowly and the throttle would still be
+moving when the next marker arrived."* Otto is that faster locomotive.
 
-- **(a) Creep test.** Raise PWM one count at a time from 15 until Otto just
-  moves. Two minutes on a bench or a straight. Direct measurement of the thing
-  the symbol names.
-- **(b) Operator ruling to err high.** Freezing the baseline too often is a much
-  milder fault than letting a median walk onto a magnet the locomotive is parked
-  over (finding 10). A conservative value pending a creep test is defensible if
-  it is recorded as provisional.
+Scaled by his own fit (§3.7):
 
-**Recommendation: (a) for both §3.6 and §3.7, in the same session.** Together
-they are one short run and they unblock Stage 1 completely.
+```
+#define NAVI_APPROACH_MARKER_MS   { 1213, 1340, 1496, 1694, 1952 }
+```
+
+**Margin and sensitivity:** using the documented 25.1 intercept instead of Otto's
+own 23.6 moves the largest value by 31 ms — 1.6%, against a location effect of
+60%. The result is not sensitive to the intercept.
+
+### 3.7 `NAVI_BASELINE_ADAPT_PWM` — fitted from Otto's own calibration
+
+Toby's `25` is the intercept of *"speed_mm_s = 3.990 × (PWM − 25.1)"*. The
+2026-09-04 report could not reproduce that fit and found the documented
+coefficients land on Otto's June data rather than Toby's. **That flag stands, and
+Toby's frozen field-accepted build is not touched on the strength of it.**
+
+It does not block Otto, because Otto's intercept comes from Otto's own data by
+the stated form of the fit. `field-records/cal/cal_9950011_*.txt`, 8,928 rows,
+filtered to `timing_mode=MOVING` on the fixed 300 mm segment with the phantom
+population removed (`dt ≥ 500 ms`, i.e. under ~600 mm/s — the same reads the
+2026-08-20 record identifies), leaving **4,959 rows across 34 PWM bins** of ≥ 20
+samples each:
+
+```
+speed_mm_s = 3.872 × (PWM − 23.6)
+```
+
+against the 2026-09-04 unfiltered OLS of `3.975 × (PWM − 25.8)` and the
+documented `3.990 × (PWM − 25.1)`. Three methods within 3% on slope and ~2 counts
+on intercept.
+
+**Sensor realignment does not affect this fit.** The 2026-09-04 objection that
+Otto's June data is stale applies to *amplitude* — his peaks changed twice. The
+motor did not. Interval-derived speed is corrupted by phantoms, which is what the
+filter above removes.
+
+**Proposed `NAVI_BASELINE_ADAPT_PWM 24.`** Toby's convention was to floor the
+intercept (25.1 → 25), which would give 23. Rounding to 24 errs one count high,
+and per finding 10 freezing the baseline too often is a much milder fault than
+letting a median walk onto a magnet the locomotive is parked over. **A one-count
+question, and the operator's to settle.**
 
 ### 3.8 What the derivation report will contain
 
@@ -358,6 +400,43 @@ For every fitted value, without exception: source dataset; inclusion and
 exclusion rules; sample count; CW result; CCW result; holdout method; selected
 value; margin to the nearest observed failure population; expected false-accept
 and false-reject behaviour. The §3.4/§3.5 tables above are the template.
+
+### 3.9 Corrections to this report, on operator challenge
+
+Recorded here rather than edited away, because the reasoning is the point.
+
+**(a) The throttle-ladder test was never performed on Toby, and I proposed it
+anyway.** I read the *"TO MEASURE THESE FOR ANOTHER LOCOMOTIVE"* note as a record
+of what was done. It is a suggestion; the method actually used is stated two
+lines above it and reproduces to the millisecond (§3.6). The consequence was a
+demand for a field session the operator did not need to run.
+
+**(b) The ladder could not have measured what I claimed.** The operator's
+objection — acceleration and deceleration are location-specific — is correct,
+and the survey puts numbers on it: 1.6–1.7× spread by location at one constant
+throttle, against ~2% lap-to-lap repeatability at a fixed marker (§3.6).
+
+**(c) Otto's thresholds were already measured, and I re-opened them.** His
+`HALL_DEADBAND_COUNTS 25`, `HALL_ENTRY_MARGIN_COUNTS 45` and
+`HALL_MIN_PEAK_DELTA 35` are his own 2026-08-20 measurements and are **already in
+his NAVI_ONE profile**. NAVI_ONE has been using them all along. **The question
+"38 or 70 for the navigation build" is withdrawn.** Otto flies Stage 1 on his
+measured 70.
+
+The §3.3 finding stands as an *observation*, not a proposal: at the 38-count
+survey aperture the phantom population that justified the 70-count gate does not
+reappear, and Otto's one surviving spurious event is refused by
+`NAVI_GUARD_MS` rather than by amplitude. If Otto's Stage 1 session shows lost
+position rather than false advance, that observation is where to look. It is not
+a reason to change a measured setting before the session.
+
+**(d) NAVI_ONE's derivation rules are not mine to rewrite.** They already state
+how each constant is obtained. The correct posture is to follow them for Otto,
+which is what §3.6 and §3.7 now do. The one genuinely new value is
+`NAVI_BOOTSTRAP_GAIN`, because it is per-locomotive and Otto has never had one.
+
+**What actually remains open after these corrections: `IR_FITTED`.** That is a
+declaration and the firmware will not guess it.
 
 ---
 
@@ -645,7 +724,7 @@ in the same field build.**
 Otto and Toby NAVI builds, separate measured profiles, correct identity at boot,
 reproducible derivation report, CW and CCW reported independently, no excluded
 Otto data, no architecture change.
-**Blocked on §3.6 and §3.7** — the approach ladder and the tractive floor.
+**Not blocked on any new measurement** (§3.6, §3.7).
 **Field acceptance:** Otto completes ≥ 1 h in each direction, ≥ 20 station stops,
 with **zero false positions, zero navigation shutdowns, zero transport loss** —
 the same bar Toby cleared on 2026-09-04. Toby's build must be **behaviourally
@@ -760,22 +839,37 @@ here is flashed without explicit authorization.**
 
 ## 14. What I need from the operator before Stage 1
 
-1. **The approach ladder and the creep test (§3.6, §3.7).** One short session:
-   hold 87/81/75/69/63 for a few markers each in both directions, then raise PWM
-   one count from 15 until Otto just moves. This is the only thing standing
-   between the 2026-09-09 dataset and a complete Otto block. Run it, or rule
-   that Otto flies Stage 1 with provisional approach pacing and a conservative
-   floor.
-2. **`IR_FITTED` for Otto — 0 or 1?** Declaration, never probed. `0` means pin 34
+Reduced to one question by §3.9.
+
+1. **`IR_FITTED` for Otto — 0 or 1?** Declaration, never probed. `0` means pin 34
    is never touched, which also keeps floating-input crosstalk off the Hall line.
-3. **Otto's entry threshold for the navigation build.** My recommendation is to
-   let the §12 replay decide: if the guard refuses the mm 68 phantom, go to 38
-   and recover the sensitivity; if not, stay at 70. Do you want that decision
-   made by the replay, or do you want to make it?
-4. **Decision records.** This work implies at least three — the CTO authority
+
+And two one-count/format confirmations, neither blocking:
+
+2. **`NAVI_BASELINE_ADAPT_PWM` — 23 or 24?** Otto's intercept is 23.6. Toby's
+   convention floors it (23); erring one count high (24) is the milder fault per
+   finding 10. §3.7.
+3. **Decision records.** This work implies at least three — the CTO authority
    boundary, the wire-mapping of NAVI states onto the frozen v3 fields, and
-   Otto's measured block. Numbering continues from **0076** (0077 next).
-   I have not written any. Say the word and I will draft them as *Proposed*.
+   Otto's measured block. Numbering continues from **0076** (0077 next). I have
+   not written any. Say the word and I will draft them as *Proposed*.
+
+Otto's proposed block, complete, every value from Otto's own data:
+
+```c
+#define NAVI_RECOGNIZER_MEASURED_ON  9950011UL
+#define NAVI_GUARD_MS                200U     // nearest genuine gap 710 CW / 917 CCW
+#define NAVI_AMPLITUDE_FLOOR         0.34f    // 0.34 x 173 = 59, in the 33->144 gap
+#define NAVI_RESIDUAL_CEILING        0.13f    // diagnostic reference, cannot refuse
+#define NAVI_BOOTSTRAP_GAIN          175U     // Otto's combined median accepted peak
+#define NAVI_AUTO_CRUISE_PWM         90       // the surveyed regime
+#define NAVI_APPROACH_MARKER_MS   { 1213, 1340, 1496, 1694, 1952 }
+#define NAVI_BASELINE_ADAPT_PWM   24          // intercept 23.6, erring one count high
+#define IR_FITTED                 ?           // OPERATOR DECLARATION
+```
+
+Otto keeps his measured `HALL_DEADBAND_COUNTS 25` and
+`HALL_ENTRY_MARGIN_COUNTS 45` unchanged.
 
 Note also, unchanged since 2026-09-04 and still not touched: `docs/decisions/`
 contains two files numbered **0075**. Flagged, not resolved.
