@@ -809,16 +809,70 @@ its own verdict document, and its own rollback identity (§13). **Navigation,
 station behaviour, CTO, mission behaviour and radio transport are never changed
 in the same field build.**
 
-### Stage 1 — locomotive-specific NAVI models. **No CTO. No radio.**
-Otto and Toby NAVI builds, separate measured profiles, correct identity at boot,
-reproducible derivation report, CW and CCW reported independently, no excluded
-Otto data, no architecture change.
-**Not blocked on any new measurement** (§3.6, §3.7).
-**Field acceptance:** Otto completes ≥ 1 h in each direction, ≥ 20 station stops,
-with **zero false positions, zero navigation shutdowns, zero transport loss** —
-the same bar Toby cleared on 2026-09-04. Toby's build must be **behaviourally
-identical** to his accepted image; his own replay suite proves it.
-*Compiling is not acceptance.*
+### Stage 1 — Otto's measured NAVI model. **Otto only. No CTO. No radio. No source change.**
+
+**What it is.** Stage 1 is not a NAVI_CTO build and contains no CTO code. It is
+the completion of *"Otto on NAVI_ONE step 1"*, blocked at the compiler on
+2026-09-04 for want of a measured recognizer block, and unblocked by the
+2026-09-09 survey. Calling it `NAVI_CTO_0_1` would advertise content it does not
+have.
+
+**Toby is not part of Stage 1.** His block is already measured, already flown
+and already frozen; his profile is not touched and there is nothing to prove on
+him. Stage 1 is Otto catching up to where Toby already is.
+
+**Image.** `NAVI_ONE_STATION_CURVES_0_3` — the image Toby actually flew on
+2026-09-04 — compiled against Otto's profile. Same sketch, same acquisition,
+same recognizer, same navigator, same station machine; only the profile differs.
+That is the same "same instrument, two locomotives" discipline that governed the
+survey, and its unconditional per-passage publication is what makes Otto's block
+verifiable in the field and yields the coast measurement of §6.4 as a by-product.
+
+**Files changed — two, both configuration, zero behavioural source:**
+
+| file | change |
+|---|---|
+| `LL_LocoConfig_9950011.h` | add the nine measured `NAVI_*` symbols (§14) |
+| `LocoConfig.h` | move the active `#include` to Otto **and update the TARGET/boot-verify comment block with it** |
+
+No `.ino` and no shared header is edited. `LocoConfig.h`'s own recorded history
+is that its comment block goes stale and then misdirects the person verifying
+the flash — it has done so on 2026-08-12, 08-18 and 08-30. Flipping the selector
+without rewriting the comment recreates that trap exactly.
+
+**Pre-flight, all of it before a flash is proposed:** clean `--build-path`
+compile; boot banner reads `NAVI_ONE_STATION_CURVES_0_3 … 9950011` (read from
+the build path or the banner, never `strings` over a stale `build/`); all 19
+inherited NAVI tests pass unchanged; the §12 replay of the 21:17:23 mm 68 record
+confirms the guard-time refusal, and the mm 100 candidate is resolved the same
+way.
+
+**Field acceptance — what must be true to accept Otto's model:**
+
+- ≥ 1 h in each direction, ≥ 20 completed station stops.
+- **Zero false positions** — no accepted marker disagreeing with the railway.
+- **Zero navigation shutdowns** — no strike, no withdrawal of authority.
+- **Zero transport loss** — `pub_drop` 0, no gaps in `wave_meta.seq`.
+- Complete station behaviour at every station in both directions: approach,
+  zero ramp, dwell, departure, and correct stitching around each controlled stop.
+
+**What rejects it, and which constant each failure points at.** This is the part
+that makes the session a test rather than a demonstration:
+
+| observed | suspect |
+|---|---|
+| lost position, markers silently missed | `HALL_ENTRY_MARGIN_COUNTS 45` — his gate is a QUORUM-era number and §3.3 shows the phantom population it defends against is absent from the 2026-09-09 data |
+| false advance, then a strike | `NAVI_GUARD_MS` / `NAVI_AMPLITUDE_FLOOR` — a phantom reached the Navigator |
+| throttle still moving when the next marker arrives on approach | `NAVI_APPROACH_MARKER_MS` — the §3.6 scaling is wrong for him |
+| baseline walking onto a magnet at rest | `NAVI_BASELINE_ADAPT_PWM` too low |
+
+**By-product to capture, not a separate test:** `ZERO_RAMP` → `DWELL` for every
+stop, giving Otto's own coast (§6.4) before Stage 3 needs it.
+
+**Rollback:** Otto's current image, recorded as QUORUM 1.12C — **to be confirmed
+at the locomotive before the flash, not trusted from this document.**
+
+*Compiling is not acceptance. The field session is the acceptance.*
 
 ### Stage 2 — ESP-NOW observation only
 Frozen wire + 1.16Ra radio instrumentation. **No cap, no roles, no fleet stop, no
@@ -912,8 +966,8 @@ candidate the same way.
 
 | build | identity | rollback to |
 |---|---|---|
-| Otto Stage 1 | `NAVI_CTO_0_1_FIELDTEST` — 9950011 | Otto's current **QUORUM 1.12C** |
-| Toby Stage 1 | `NAVI_CTO_0_1_FIELDTEST` — 9950012 | **`NAVI_ONE_STATION_CURVES_0_3`**, the 2026-09-04 image |
+| Otto Stage 1 | `NAVI_ONE_STATION_CURVES_0_3` — 9950011 | Otto's current image (recorded as QUORUM 1.12C; confirm at the locomotive) |
+| Toby Stage 1 | *not built — Toby is not part of Stage 1* | — |
 | Stage 2 | `NAVI_CTO_0_2_FIELDTEST` | that locomotive's Stage 1 image |
 | Stage 3 | `NAVI_CTO_0_3_FIELDTEST` | Stage 2 |
 | Stage 4 | `NAVI_CTO_0_4_FIELDTEST` | Stage 3 |
