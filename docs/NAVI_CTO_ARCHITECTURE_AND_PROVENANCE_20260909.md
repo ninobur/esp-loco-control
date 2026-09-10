@@ -611,6 +611,71 @@ every approach to a hold, both directions, across at least twenty approaches.**
 Assumed stopping distance is not evidence. If the achieved minimum crowds the
 6-marker invariant, 9 goes back up.
 
+### 6.4 The one open number, and it may already be measured
+
+**The deceleration rate carries over cleanly.** QUORUM brakes every CTO-caused
+reduction at `STATION_DOWN_STEP_MS` 200 ms/count; NAVI's station brake
+`STATION_STOP_STEP_MS` is **also 200 ms/count**. The "one deceleration profile"
+of §6.1 is the same rate the spacing ladder was derived from, so nothing about
+the ladder's basis changes in the move to NAVI. (NAVI's `AUTO_STEP_DOWN_MS` 31
+is the one-strike/emergency rate and stays separate, correctly.)
+
+**But the stopping distance itself was never measured.** CODEX's note on the
+12 → 9 change is explicit that it is *"a smaller experimental margin, not a
+stronger guarantee"* and that the field test *"must MEASURE the minimum bound
+gap actually achieved rather than assume it."* That measurement was never taken.
+
+Integrating the ramp at 200 ms/count from cruise 90 to zero, on each
+locomotive's own speed fit, at 300 mm marker spacing:
+
+| | v(90) | stop distance | in markers |
+|---|---:|---:|---:|
+| Otto | 257.1 mm/s | 1,733 mm | **5.8** |
+| Toby | 259.0 mm/s | 1,707 mm | **5.7** |
+
+`CTO_STOP_GAP_MARKERS` 9 begins the stop; `CTO_CLEAR_GAP_MARKERS` 6 is the
+decision 0033 invariant. In the worst case — leader stationary, follower closing
+the whole stopping distance — that leaves **3.2 markers (Otto) / 3.3 (Toby)
+against an invariant of 6.**
+
+If that arithmetic holds, **9 does not preserve the 0033 invariant and the
+12 → 9 change made it worse, not merely tighter.** I do not want Stage 4 flown on
+my arithmetic.
+
+**It probably does not need a new test.** Every NAVI station stop is a controlled
+stop from cruise at exactly this rate, and `state/station` publishes `mm` at each
+phase transition — so `ZERO_RAMP` → `DWELL` gives the stopping distance directly.
+**Toby's 2026-09-04 session contains 76 of them, both directions.** That log is on
+the Pi (`~/NGR/telemetry/`) and is not in this repository. It is the cheapest
+possible source for the number CODEX asked for: already recorded, no field time,
+76 samples instead of the ten a purpose-built run would give.
+
+*Only if that log turns out not to carry it* is a new measurement worth the
+operator's time: ten commanded AUTO stops from cruise at known markers, each
+direction, each locomotive.
+
+### 6.5 A corroboration of the open speed-fit flag
+
+Each locomotive's documented speed fit, used to predict its measured PWM-90
+marker time against the survey:
+
+| | fit | predicts | measured | error |
+|---|---|---:|---:|---:|
+| Otto | `3.872 × (PWM − 23.6)`, his own (§3.7) | 1,167 ms | 1,158 ms | **+0.8%** |
+| Toby | `3.990 × (PWM − 25.1)`, in his profile | 1,159 ms | 1,326 ms | **−12.6%** |
+
+Otto's fit describes Otto. **Toby's profile fit does not describe Toby** — it
+describes a locomotive running Otto's speed. This independently corroborates the
+2026-09-04 finding that the documented coefficients land on Otto's data, from a
+completely different direction: not by re-fitting the calibration files, but by
+predicting a marker time measured eleven days later on a different sketch.
+
+**Nothing is changed on the strength of it.** Toby's build is frozen and
+field-accepted, his base 1,326 ms was measured on him directly, and only the
+*scaling* between approach steps uses the suspect intercept — which is why it
+flew 76 station stops without complaint. Recorded because stopping distance is
+computed from speed, and stopping distance is what the spacing ladder rests on.
+
 ---
 
 ## 7. Station-policy integration
