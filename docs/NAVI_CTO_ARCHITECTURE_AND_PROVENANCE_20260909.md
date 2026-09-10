@@ -625,34 +625,58 @@ is the one-strike/emergency rate and stays separate, correctly.)
 stronger guarantee"* and that the field test *"must MEASURE the minimum bound
 gap actually achieved rather than assume it."* That measurement was never taken.
 
-Integrating the ramp at 200 ms/count from cruise 90 to zero, on each
-locomotive's own speed fit, at 300 mm marker spacing:
+#### The correction: the ramp is not the unknown, the coast is
 
-| | v(90) | stop distance | in markers |
-|---|---:|---:|---:|
-| Otto | 257.1 mm/s | 1,733 mm | **5.8** |
-| Toby | 259.0 mm/s | 1,707 mm | **5.7** |
+An earlier version of this section integrated the speed curve down the whole
+ramp and reported 5.8 markers (Otto) / 5.7 (Toby) as *the* stopping distance.
+**That was wrong in both directions at once, on operator challenge.**
 
-`CTO_STOP_GAP_MARKERS` 9 begins the stop; `CTO_CLEAR_GAP_MARKERS` 6 is the
-decision 0033 invariant. In the worst case — leader stationary, follower closing
-the whole stopping distance — that leaves **3.2 markers (Otto) / 3.3 (Toby)
-against an invariant of 6.**
+The stop has two parts, and only one of them is uncertain:
 
-If that arithmetic holds, **9 does not preserve the 0033 invariant and the
-12 → 9 change made it worse, not merely tighter.** I do not want Stage 4 flown on
-my arithmetic.
+1. **The powered ramp — commanded, therefore known.** PWM steps down one count
+   every 200 ms and at each step the locomotive must meet that PWM target. It is
+   a glide path. There is no uncertainty to measure here: given the entry
+   throttle, the profile determines the distance, and it can be computed
+   separately for each case.
+2. **The coast — from the moment PWM falls below the tractive floor until the
+   train is at rest.** Nothing drives it and nothing controls it. Rolling
+   resistance, mass, and grade decide it.
 
-**It probably does not need a new test.** Every NAVI station stop is a controlled
-stop from cruise at exactly this rate, and `state/station` publishes `mm` at each
-phase transition — so `ZERO_RAMP` → `DWELL` gives the stopping distance directly.
-**Toby's 2026-09-04 session contains 76 of them, both directions.** That log is on
-the Pi (`~/NGR/telemetry/`) and is not in this repository. It is the cheapest
-possible source for the number CODEX asked for: already recorded, no field time,
-76 samples instead of the ten a purpose-built run would give.
+**My integral assigned the coast a distance of zero.** It summed
+`v(PWM) × 200 ms` for every count down to the tractive floor and stopped there,
+because `v` is zero below the floor by construction of the fit. So 5.8 markers is
+the **powered ramp alone**, and the true figure is `5.8 + coast`. The ladder
+arithmetic gets worse, not better: 9 − (5.8 + coast) leaves **less** than the 3.2
+markers reported above, against an invariant of 6.
 
-*Only if that log turns out not to carry it* is a new measurement worth the
-operator's time: ten commanded AUTO stops from cruise at known markers, each
-direction, each locomotive.
+#### Why this makes the measurement cheaper, not more expensive
+
+The coast is the **transferable** quantity. Entering the coast, PWM has just
+crossed the tractive floor, so the speed at that moment is roughly the same
+whether the ramp began at cruise 90 or at a station zone throttle. Measure the
+coast once; compute the ramp per case. That decomposition is what makes a
+station stop usable as evidence about a traffic stop.
+
+And it means a station stop is a *better* coast measurement than first assumed.
+`startRamp()` orders PWM 0 from `stationPwm(st, dir)` — the station zone speed
+reached across the five approach markers — **not from cruise** (`Stations.h:292,
+344`). The ramp portion of a station stop is therefore short, and
+`ZERO_RAMP` → `DWELL` is mostly coast.
+
+**Toby's 2026-09-04 session holds 76 of them, both directions, across four
+stations.** That log is on the Pi (`~/NGR/telemetry/`) and is not in this
+repository.
+
+**Stated limitation:** stations are four fixed places. A CTO traffic stop can be
+ordered anywhere, including on the Grillers climb and the curve into Patio. The
+coast is grade-dependent, so the value taken from station stops must be the
+**longest observed, not the mean** — a conservative bound, with the spread across
+the four stations and both directions reported alongside it. That is still
+enough to size the ladder without new field time.
+
+**No new stopping test is required on either locomotive.** Otto's Stage 1
+acceptance session produces ~20 of his own station stops as a by-product, before
+any CTO code exists and well before Stage 3 needs the number.
 
 ### 6.5 A corroboration of the open speed-fit flag
 
