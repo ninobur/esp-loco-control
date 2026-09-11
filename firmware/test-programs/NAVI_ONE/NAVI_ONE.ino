@@ -19,8 +19,8 @@
  *   Navigator         "Is it the one the map says comes next?"  Owns navMm.
  *   RouteMap          the surveyed truth. A declaration, per decision 0056.
  *
- * The recognizer never learns where the locomotive is, so a corrupted position
- * cannot corrupt a shape judgement. The navigator never sees a waveform. That
+ * The recognizer never learns where the locomotive is, so corrupted position
+ * cannot affect magnet admission. The navigator never sees a waveform. That
  * split is CODEX's, from NAVI_FRESH, and it is the best idea in any of the
  * three predecessors.
  *
@@ -73,32 +73,11 @@ using namespace navi_one;
 // Published on state/bootid. It is the ONLY thing that tells telemetry which
 // build is running, so it advances with every behavioural change.
 //
-// THIS IS AN EXPERIMENTAL FIELD-TEST BUILD. IT IS NOT FIELD-ACCEPTED
-// NAVI_ONE 1.0 AND MUST NOT BE RECORDED AS ONE.
-//
-// It carries decision 0070's paused/resumed recognizer into the field with one
-// known risk deliberately left OPEN. Finding 13's stitched waveform sits on the
-// shape ceiling: residual 0.1271 reconstructed clean, 0.1321 with three counts
-// of injected noise, against a ceiling of 0.13. Which side of that line a real
-// stop-and-go at Arches falls on is the question this build exists to answer.
-//
-// X2, 2026-09-02: Arches CW stops one marker later (+1 -> +2). Three
-// consecutive departures from the +1 stop spun over MM110 and lost the apex;
-// two were refused and shut the session down. That is a GEOGRAPHIC mitigation
-// on the operator's reading of the grade -- IT DOES NOT FIX THE DEFECT, which
-// is in the pause/resume recording path and will recur wherever a departure
-// slips over a marker. Field finding 14.
-//
-// THE CEILING IS NOT ADJUSTED TO MAKE IT PASS. If the field refuses it, the
-// refusal is the result -- the complete stitched waveform is published, nothing
-// is advanced, and the locomotive stops. That is the measurement.
-#define SKETCH_NAME    "NAVI_ONE_1_0X13_FIELDTEST"
+// Corrective field-test build. Decisions 0080/0081: morphology is diagnostic
+// only, passages are never paused or stitched, and the rebound guard is 500 ms.
+#define SKETCH_NAME    "NAVI_ONE_1_0X14_FIELDTEST"
 #define BUILD_CLASS    "EXPERIMENTAL_FIELD_TEST"
-// X11's subtitle, at the operator's request, to memorialise the moment the
-// day's transients stopped being "the magnets" and became "wherever the
-// signal is not idle" -- and two bench tests that seemed to rule out the read
-// path turned out to have been the one place it could hide.
-#define BUILD_SUBTITLE "Shape is diagnostic"
+#define BUILD_SUBTITLE "Operator-ruling corrective"
 #define FIELD_ACCEPTED 0
 
 // Types used in function signatures must appear before the Arduino
@@ -111,27 +90,7 @@ struct Judged {
   uint32_t openedAtMs, closedAtMs;
   uint16_t peak; uint8_t polarity;
   uint8_t  outcome; uint8_t isMagnet;
-  float    ratio, residual; uint8_t shapeTested; uint32_t gapMs; uint16_t gain;
-  // Decision 0070, telemetry only. kind 0 an ordinary completed passage, 1 a
-  // passage whose measurement was paused across a stop and stitched, 2 a
-  // paused passage abandoned on a wall-clock watchdog. pausedMs is wall clock
-  // spent stopped; the recognizer never saw it.
-  uint8_t  kind; uint32_t pausedMs;
-  // TRUE if a controlled stop was in progress at any point while this passage
-  // was open. kind says the measurement PAUSED; this says the passage merely
-  // happened around a stop, which is a weaker claim and a wider net.
-  uint8_t  stopEpisode;
-  // Decision 0070's archaeology: judged as two fragments of one arc, and which
-  // fragment set the scale (1 arrival, 2 departure, 3 both). kind 3 is a split
-  // passage of which NOT ENOUGH SURVIVED to judge -- routed like an abandoned
-  // one: "a marker may have gone uncounted", not "wrong shape".
-  uint8_t  twoSided, trunk;
-  // The archaeology's reason, a pointer to a string literal in TwoSided.h --
-  // static storage, so it survives the queue. Empty for an ordinary passage.
-  const char* why;
-  // Decision 0074: what the shape rule WOULD have said. Diagnostic; never
-  // consulted. shapeOutcome is an Outcome (MAGNET when shape passed or abstained).
-  uint8_t  wouldShapeRefuse, shapeOutcome;
+  float    ratio; uint32_t gapMs; uint16_t gain;
 };
 // len: 0 means "text, use strlen(payload) at send time" (every existing text
 // pub() call). Non-zero means "exactly this many bytes, verbatim, including
@@ -197,7 +156,6 @@ static HallCapture<512> capture(captureCfg);
 static RecognizerConfig recCfg = {
   /*guardMs*/        NAVI_GUARD_MS,
   /*amplitudeFloor*/ NAVI_AMPLITUDE_FLOOR,
-  /*residualCeiling*/NAVI_RESIDUAL_CEILING,
   /*bootstrapGain*/  NAVI_BOOTSTRAP_GAIN
 };
 static MagnetRecognizer recognizer(recCfg);
@@ -244,33 +202,6 @@ static uint32_t lastAdvanceMs = 0; static uint32_t estMmPerS = 0;
 static volatile bool     recognizerResetRequest = false;
 static volatile uint32_t navEpoch = 0;
 static volatile bool     dumpWindowRequest = false;
-// stopArming: the FOURTH datum, added by decision 0070. Raised on the loop
-// thread by stationService() and read on the Hall task, where it selects WHAT
-// TO WATCH FOR and nothing else.
-//
-//   Decelerating  a controlled stop is running -- watch for the field to stop
-//                 moving, and pause the measurement when it does.
-//   Departing     a controlled departure is running -- watch for the arc to
-//                 continue, and resume the measurement when it does.
-//
-// PWM DOES NOT PROVE MOVEMENT. It does not decide a polarity, identify a
-// magnet, contribute a sample, or advance anything. Falling PWM pauses
-// nothing while Toby coasts; rising PWM resumes nothing while he stalls,
-// spins, or takes his time. The Hall signal decides both, every time.
-//
-// WHICH AUTHORITIES ARM IT, AND WHICH DELIBERATELY DO NOT
-//   station zero-ramp, station dwell .... Decelerating. The only ones today.
-//   station departure .................... Departing.
-//   a CTO stop ........................... NOT IMPLEMENTED in NAVI_ONE 1.0.
-//                                          When it arrives it arms here,
-//                                          explicitly, in one line.
-//   MANUAL ............................... no. stationService() returns early
-//                                          unless autoRunning.
-//   e-stop, low voltage, dispatcher
-//   release, a strike, a contradiction ... no. Every one clears autoRunning.
-//   MISSED, PHASE_TIMEOUT ................ no. The station has stood down.
-// None of those semantics change. This flag is additive.
-static volatile uint8_t  stopArming = (uint8_t)StopArming::None;
 static uint32_t staleJudged = 0;
 
 // Called on the LOOP THREAD, immediately after any Navigator call that ends a
@@ -610,7 +541,6 @@ static const char* whyName(Ruling r, Outcome o){
     case Ruling::WrongMagnet:  return "POLARITY_MISMATCH";
     case Ruling::Contradicted: return "SEQUENCE_MISMATCH";
     case Ruling::NoPosition:   return "NO_POSITION";
-    case Ruling::Unresolved:   return "INTERRUPTION_UNRESOLVED";
     default:                   return outcomeName(o);
   }
 }
@@ -626,9 +556,7 @@ static void publishNav(const char* event,const Judged* j,Ruling r){
       "{\"event\":\"%s\",\"state\":\"%s\",\"nav\":\"%s\",\"nav_state\":\"%s\",\"mm\":%u,\"tgt\":%u,"
       "\"landmark\":\"%s\",\"dir\":\"%s\",\"ruling\":\"%s\",\"why\":\"%s\","
       "\"obs\":\"%c\",\"expected\":\"%c\",\"peak\":%u,\"ratio\":%.3f,"
-      "\"resid\":%.4f,\"shape\":%u,\"gap_ms\":%lu,\"gain\":%u,"
-      "\"two_sided\":%u,\"trunk\":%u,\"why2\":\"%s\",\"stitched\":%u,\"paused_ms\":%lu,"
-      "\"shape_refuse\":%u,\"shape_outcome\":\"%s\","
+      "\"gap_ms\":%lu,\"gain\":%u,"
       "\"trust\":\"%s\",\"seq_at\":%u,\"adv\":%lu,\"ref\":%lu,\"notmag\":%lu}",
       event, navigator.positionKnown()?"NORMAL":"UNSET",
       navigator.positionKnown()?"NORMAL":"UNSET",
@@ -638,10 +566,7 @@ static void publishNav(const char* event,const Judged* j,Ruling r){
       rulingName(r), whyName(r,(Outcome)j->outcome),
       poleChar(j->polarity),
       poleChar(polarityAt(r==Ruling::Advanced ? s.navMm : s.target)),
-      j->peak, (double)j->ratio, (double)j->residual, j->shapeTested,
-      (unsigned long)j->gapMs, j->gain,
-      j->twoSided, j->trunk, j->why ? j->why : "", (unsigned)(j->kind == 1), (unsigned long)j->pausedMs,
-      j->wouldShapeRefuse, outcomeName((Outcome)j->shapeOutcome),
+      j->peak, (double)j->ratio, (unsigned long)j->gapMs, j->gain,
       trustName(s.trust), s.seqAt,
       (unsigned long)s.advances,(unsigned long)s.refusals,(unsigned long)s.notMagnets);
     pub(T_MARKER,b,false);
@@ -763,47 +688,18 @@ static void hallTask(void*){
     // postpones adaptation by a second, while adapting while secretly parked
     // over a magnet makes the reference BE the magnet. Findings 09 and 10.
     const bool mayAdapt = actualPwm > NAVI_BASELINE_ADAPT_PWM;
-    // stopArming ARMS OBSERVATION. See its declaration; it is not evidence.
-    if (capture.sample(now, hallRead(), mayAdapt,
-                       (StopArming)stopArming)) {
-      Judged j{};
-      if (capture.event() == HallEvent::Passage) {
-        const Passage& p = capture.passage();
-        // THE FULL RECOGNIZER. Amplitude, whole-wave signed polarity, Gaussian
-        // morphology, clipping, rebound guard -- on the complete waveform,
-        // whether or not its measurement was paused in the middle. There is no
-        // second, weaker path and nothing waives the shape test.
-        Verdict v = recognizer.examine(p);
+    if (capture.sample(now, hallRead(), mayAdapt)) {
+      const Passage& p = capture.passage();
+      // Production admission uses time and amplitude only (decisions 0080/0082).
+      Verdict v = recognizer.examine(p);
         // Copied here, before the next capture.sample() call starts
         // overwriting HallCapture's own buffer with the following passage.
         waveformWindow.push(p, v);
-        // EXPERIMENTAL FIELD-TEST BUILD. Any refusal publishes the complete
-        // waveform it refused, AT ONCE, on the task that still holds it --
-        // not markers later when a polarity chain catches up, and not only if
-        // AUTO is eventually withdrawn. The whole historical complaint
-        // (WaveformWindow.h) is that a refusal was invisible until it had
-        // already become a strike; a stitched waveform refused on the shape
-        // ceiling is precisely the thing this build was flashed to see.
-        //
-        // Bounded: one passage is at most RING samples, which chunks into two
-        // messages of PubMsg::payload. The trailing-window dump on withdraw()
-        // is untouched and still fires as well.
-        // Decision 0074: a passage the shape rule WOULD have refused is
-        // published too, so the archive holds the record behind the diagnosis.
-        if (!v.isMagnet || v.wouldShapeRefuse) publishWaveformSlot(0, 1);
-        j = Judged{ myEpoch,p.openedAtMs,p.closedAtMs,p.peakCounts,p.polarity,
-                    (uint8_t)v.outcome,(uint8_t)v.isMagnet,
-                    v.amplitudeRatio,v.residual,(uint8_t)v.shapeTested,v.gapMs,v.gain,
-                    (uint8_t)(capture.pausedMs() ? 1 : 0),
-                    capture.pausedMs(), (uint8_t)(p.stopEpisode ? 1 : 0),
-                    (uint8_t)(v.twoSided ? 1 : 0), v.trunk, v.why,
-                    (uint8_t)(v.wouldShapeRefuse ? 1 : 0), (uint8_t)v.shapeOutcome };
-      } else {
-        // A paused measurement that outlived a wall-clock watchdog. There is
-        // no waveform to judge and nothing to advance.
-        j = Judged{ myEpoch,now,now,0,0,(uint8_t)Outcome::NoCurve,0,
-                    0.0f,0.0f,0,0,0, 2, 0, 1, 0, 0, "", 0, (uint8_t)Outcome::Magnet };
-      }
+      // Preserve the raw waveform behind every refusal for crash analysis.
+      if (!v.isMagnet) publishWaveformSlot(0, 1);
+      Judged j{ myEpoch,p.openedAtMs,p.closedAtMs,p.peakCounts,p.polarity,
+                (uint8_t)v.outcome,(uint8_t)v.isMagnet,
+                v.amplitudeRatio,v.gapMs,v.gain };
       if (judgedQ) xQueueSend(judgedQ,&j,0);
     }
     if (dumpWindowRequest) {
@@ -1099,11 +995,8 @@ static void serviceStatus(){
     "\"candidate_mm\":-1,\"viable\":[],\"miss_streak\":0,"
     "\"agree\":%lu,\"disagree\":%lu,\"notmag\":%lu,"
     "\"baseline\":%ld,\"floor_rej\":%lu,"
-    // OPENINGS THROWN AWAY because the locomotive was standing still in a
-    // fringe when they happened. Not a fault by itself. A rising count says
-    // the sensor is coming to rest somewhere it should not be, and it is the
-    // number that would have named the Arches CCW failure of 2026-09-02
-    // 14:14:40 in one line instead of an afternoon of waveform forensics.
+    // Retained protocol field from the superseded 0070 discard experiment.
+    // Ordinary acquisition discards no opening based on morphology.
     "\"discards\":%lu,"
     "\"nav_state\":\"%s\",\"seq_at\":%u,\"ina\":%u,"
     "\"pub_drop\":%lu,\"cmd_drop\":%lu,\"stale\":%lu,"
@@ -1119,7 +1012,7 @@ static void serviceStatus(){
     (actualPwm>0)?1u:0u,
     (unsigned long)s.advances,(unsigned long)s.refusals,(unsigned long)s.notMagnets,
     (long)capture.baseline(),(unsigned long)capture.floorRejects(),
-    (unsigned long)capture.discards(),
+    0UL,
     navStateName(s.state), s.seqAt, inaReady?1u:0u,
     (unsigned long)pubDropped,(unsigned long)cmdDropped,(unsigned long)staleJudged,
     irFitted?1u:0u, irProbing ? -1 : (irProbeMax-irProbeMin));
@@ -1170,11 +1063,8 @@ void setup(){
   pubQ  =xQueueCreate(48,sizeof(PubMsg));    // holds ~5 s while the broker is away
   cmdQ  =xQueueCreate(16,sizeof(CmdMsg));
   Serial.printf("[BOOT] %s \"%s\" — %s\n",SKETCH_NAME,BUILD_SUBTITLE,LOCO_NAME);
-  Serial.printf("[BOOT] EXPERIMENTAL FIELD-TEST BUILD — not field-accepted NAVI_ONE 1.0.\n");
-  Serial.printf("[BOOT] Known open risk: finding 13 sits on the 0.13 shape ceiling "
-                "(0.1271 clean / 0.1321 noisy). The ceiling is unchanged. A refused\n");
-  Serial.printf("[BOOT] stitched waveform is published in full, advances nothing, "
-                "and stops the locomotive.\n");
+  Serial.printf("[BOOT] CORRECTIVE FIELD-TEST BUILD — not field-accepted NAVI_ONE 1.0.\n");
+  Serial.printf("[BOOT] Morphology is diagnostic only; pause/resume/stitch authority removed.\n");
   Serial.printf("[CAL] 2 s baseline — keep clear of magnets\n");
   if (!judgedQ || !pubQ || !cmdQ) {
     Serial.println("[BOOT] FATAL: queue allocation failed — halting");
@@ -1192,71 +1082,22 @@ void setup(){
   if (xTaskCreatePinnedToCore(networkTask,"net",8192,nullptr,1,nullptr,1) != pdPASS)
     Serial.println("[BOOT] WARNING: network task would not start — running blind");
   char b[400];
-  snprintf(b,sizeof(b),
+  const int bootLen = snprintf(b,sizeof(b),
     "{\"sketch\":\"%s\",\"subtitle\":\"%s\",\"build_class\":\"%s\",\"field_accepted\":%d,"
     "\"loco\":\"%s\",\"entry\":%d,\"exit\":%d,\"floor_ms\":%d,"
-    "\"amp_floor\":%.2f,\"resid_ceil\":%.2f,\"guard_ms\":%lu,\"seq_n\":%d,"
-    "\"offsets\":0,\"quorum\":0,\"velocity_model\":0,\"motion_gate\":%d,\"ir_votes\":0,"
-    "\"pause_resume\":1,\"settle_span\":%d,\"settle_ms\":%u,\"resume_move\":%d,"
-    "\"pause_max_ms\":%lu,\"resume_max_ms\":%lu}",
+    "\"amp_floor\":%.2f,\"guard_ms\":%lu,\"seq_n\":%d,"
+    "\"offsets\":0,\"quorum\":0,\"velocity_model\":0,\"baseline_adapt_pwm\":%d,\"ir_votes\":0}",
     SKETCH_NAME,BUILD_SUBTITLE,BUILD_CLASS,(int)FIELD_ACCEPTED,
     LOCO_NAME,(int)captureCfg.entryMargin,(int)captureCfg.exitMargin,
-    (int)captureCfg.floorMs,(double)recCfg.amplitudeFloor,(double)recCfg.residualCeiling,
-    (unsigned long)recCfg.guardMs,(int)SEQ_N,(int)NAVI_BASELINE_ADAPT_PWM,
-    (int)captureCfg.settleSpan,(unsigned)captureCfg.settleWindowMs,
-    (int)captureCfg.resumeMove,(unsigned long)captureCfg.pauseMaxMs,
-    (unsigned long)captureCfg.resumeMaxMs);
+    (int)captureCfg.floorMs,(double)recCfg.amplitudeFloor,
+    (unsigned long)recCfg.guardMs,(int)SEQ_N,(int)NAVI_BASELINE_ADAPT_PWM);
+  if (bootLen < 0 || bootLen >= (int)sizeof(b)) {
+    Serial.printf("[BOOT] FATAL: boot record oversize (%d bytes) — halting\n",bootLen);
+    writePwm(0); for(;;) delay(1000);
+  }
   pub(T_BOOT,b,true);
   if (!inaReady) warn("INA219 NOT FOUND — no battery protection this session");
   Serial.println("[BOOT] ready. session_direction, then start_mm, then auto, then GO.");
-}
-
-// A PAUSED MEASUREMENT THAT NEVER RESUMED (decision 0070).
-//
-// A controlled stop cut a passage in half; the arc never continued, on either
-// wall-clock watchdog. A marker may have been crossed and not counted, and
-// this program cannot tell whether it was. That is the same position a
-// WrongMagnet leaves it in, so it does the same thing, at once -- not six
-// markers later when the polarity chain happens to catch up (decision 0059).
-static void unresolvedInterruption(bool insufficient = false){
-  navigator.unresolved();
-  const NavStatus& s = navigator.status();
-  char w[220];
-  snprintf(w,sizeof(w),
-    "PAUSED MEASUREMENT NEVER RESUMED at MM%03u: a stop interrupted a passage "
-    "and the waveform never continued. A marker may have gone uncounted. "
-    "Position is not known. Declare it.", s.navMm);
-  withdraw(w);
-  // INSUFFICIENT_EVIDENCE: the passage was split by a stop and no fragment
-  // reached the apex, so nothing can be said about it -- the same honest
-  // answer as a pause that never resumed, and the same safe stop.
-  publishNav(insufficient ? "INSUFFICIENT_EVIDENCE" : "INTERRUPTION_UNRESOLVED",nullptr,Ruling::Unresolved);
-}
-
-// A STITCHED WAVEFORM THE RECOGNIZER REFUSED (decision 0070, requirement 10).
-//
-// The measurement was paused by a controlled stop, resumed on Hall morphology,
-// stitched, and put to the UNCHANGED full recognizer -- which refused it.
-// Nothing is miscounted. The marker is simply lost, and this program cannot
-// tell whether one was crossed at all. That is the same position an unresolved
-// interruption leaves it in, so it does the same thing, and at once: advance
-// zero, stop safely, say why.
-//
-// ORDINARY UN-STITCHED REFUSALS ARE NOT ROUTED HERE. They keep the behaviour
-// every existing gate was written against, unchanged.
-static void refusedStitched(const Judged& j){
-  navigator.unresolved();
-  const NavStatus& s = navigator.status();
-  char w[250];
-  snprintf(w,sizeof(w),
-    "STITCHED WAVEFORM REFUSED at MM%03u: a passage was paused by a stop, "
-    "resumed on Hall morphology, and then refused by the recognizer "
-    "(%s, resid %.4f, ratio %.3f, paused %lums). A marker may have gone "
-    "uncounted. Position is not known. Declare it.",
-    s.navMm, outcomeName((Outcome)j.outcome), (double)j.residual,
-    (double)j.ratio, (unsigned long)j.pausedMs);
-  withdraw(w);
-  publishNav("STITCHED_REFUSED",&j,Ruling::Unresolved);
 }
 
 // The station machine's single call site. AUTO only: MANUAL keeps operator
@@ -1270,23 +1111,12 @@ static void stationService(uint32_t now){
   const NavStatus& s = navigator.status();
   if (!autoRunning || !navigator.positionKnown()) {
     if (stationMachine.phase() != StPhase::Idle) stationMachine.reset();
-    stopArming = (uint8_t)StopArming::None;
     return;
   }
   const uint8_t cruise = cruisePwmAt(s.navMm, s.navDir, AUTO_CRUISE_PWM);
   StationOrder o = stationMachine.tick(s.navMm, s.navDir,
                                        (uint8_t)actualPwm, cruise, now);
 
-  // THE TWO SENTINELS (decision 0070), and the whole of them. The throttle
-  // coming down arms the Hall task to watch for the field to stop moving; the
-  // throttle going up arms it to watch for the arc to continue. Neither does
-  // anything by itself.
-  switch (stationMachine.phase()) {
-    case StPhase::Ramp:
-    case StPhase::Dwell:  stopArming = (uint8_t)StopArming::Decelerating; break;
-    case StPhase::Depart: stopArming = (uint8_t)StopArming::Departing;    break;
-    default:              stopArming = (uint8_t)StopArming::None;         break;
-  }
   if (o.setThrottle) requestPwm((int)o.pwm, AUTO_STEP_UP_MS, o.stepMs);
   if (o.event) {
     char b[192];
@@ -1308,12 +1138,10 @@ void loop(){
     // Captured under a declaration that no longer stands. It is evidence about
     // a frame that has ended and it may not advance this one.
     if (j.epoch != navEpoch) { staleJudged++; continue; }
-    if (j.kind == 2 || j.kind == 3) { unresolvedInterruption(j.kind == 3); continue; }
     Passage p; p.openedAtMs=j.openedAtMs; p.closedAtMs=j.closedAtMs;
     p.peakCounts=j.peak; p.polarity=j.polarity;
     Verdict v; v.outcome=(Outcome)j.outcome; v.isMagnet=j.isMagnet;
-    v.amplitudeRatio=j.ratio; v.residual=j.residual;
-    v.shapeTested=j.shapeTested; v.gapMs=j.gapMs; v.gain=j.gain;
+    v.amplitudeRatio=j.ratio; v.gapMs=j.gapMs; v.gain=j.gain;
     Ruling r = navigator.judge(p,v);
     switch (r) {
       case Ruling::Advanced: {
@@ -1355,29 +1183,7 @@ void loop(){
         break; }
       case Ruling::WrongMagnet:publishNav("DISAGREE",&j,r); oneStrike(j); break;
       case Ruling::Contradicted:publishNav("CONTRADICTED",&j,r); contradicted(); break;
-      case Ruling::NotAMagnet:
-        publishNav("NOT_A_MAGNET",&j,r);
-        // EXPERIMENTAL FIELD-TEST BUILD. A refusal that happened AROUND A STOP
-        // stops the locomotive. kind 1 -- the measurement was paused and
-        // stitched -- is one way to be that; it is not the only way, and
-        // conditioning on it alone is what let Bamboo run on.
-        //
-        // Bamboo CCW, 2026-09-02 12:29:07: a passage that opened on a
-        // stationary artifact never paused, so it was labelled kind 0, so a
-        // 0.5586 refusal on a 35-second flat line was treated as ordinary and
-        // Toby kept going. The marker was lost, the next magnet was the
-        // opposite pole against a stale expectation, and that struck -- by
-        // which time he was THREE MARKERS from where navigation believed.
-        //
-        // A refusal with no stop anywhere near it still does not stop him,
-        // exactly as before: that is an ordinary lost marker on open track and
-        // the polarity chain is what catches it.
-        // Decision 0074: the stop-episode widening is withdrawn. Only a
-        // passage whose measurement was actually paused and stitched (kind 1)
-        // is a stitched refusal. An ordinary refusal around a stop -- now only
-        // ever TOO_SOON or TOO_WEAK -- is an ordinary refusal.
-        if (j.kind == 1) refusedStitched(j);
-        break;
+      case Ruling::NotAMagnet: publishNav("NOT_A_MAGNET",&j,r); break;
       default:                 publishNav("NO_POSITION",&j,r); break;
     }
   }

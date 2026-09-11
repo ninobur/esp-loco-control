@@ -65,7 +65,12 @@ int main(int argc,char**argv){
     Verdict v=rec.examine(p);
     tally[rej][outcomeName(v.outcome)]++;
     total++;
-    bool shouldAccept = (rej==0);
+    // The recorder labelled t=596692 as a primary. Physical review later
+    // established that its 436 ms gap cannot be an adjacent marker at the
+    // recorded throttle; it is the re-read that caused the guard to be
+    // incorrectly shortened. Decision 0081 corrects this fixture oracle.
+    const bool correctedReread = (p.openedAtMs == 596692u);
+    bool shouldAccept = (rej==0) && !correctedReread;
     if(v.isMagnet!=shouldAccept){
       char buf[220];
       snprintf(buf,sizeof(buf),"rej=%d t=%u pk=%u dur=%u ratio=%.3f resid=%.4f gap=%u -> %s",

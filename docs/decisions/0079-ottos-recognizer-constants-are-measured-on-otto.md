@@ -1,9 +1,10 @@
 # 0079 — Otto's recognizer constants are measured on Otto, and on Otto only
 
 **Date:** 2026-09-10
-**Status:** PROPOSED. Not authoritative until the operator reviews and approves
-it. Drafting it allocates it no authority whatsoever, and nothing in it
-authorizes an agent to act. **The entry threshold is expressly excluded from
+**Status:** PROPOSED, with its `NAVI_GUARD_MS 200U` line **superseded by 0081,
+2026-09-10**. The remainder is not authoritative until the operator reviews and
+approves it. Drafting it allocates it no authority whatsoever, and nothing in
+it authorizes an agent to act. **The entry threshold is expressly excluded from
 this record** — see "What this record does not decide".
 **Follows:** 0057 (the close-to-open guard), 0072/0074 (every judged passage is
 kept; shape is recorded, not refused), 0076 (navigation recovers from one wrong
@@ -25,7 +26,7 @@ NAVI_ONE's own stated method. It is not Toby's block rescaled.
 
 ```c
 #define NAVI_RECOGNIZER_MEASURED_ON  9950011UL
-#define NAVI_GUARD_MS                200U
+#define NAVI_GUARD_MS                500U  // 0081; the former 200U is superseded
 #define NAVI_AMPLITUDE_FLOOR         0.34f
 #define NAVI_RESIDUAL_CEILING        0.13f
 #define NAVI_BOOTSTRAP_GAIN          175U

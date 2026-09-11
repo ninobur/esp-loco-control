@@ -109,8 +109,8 @@ int main(){
     ck(g==Ruling::NotAMagnet,"event inside the guard is NOT_A_MAGNET");
     ckEq(r.nav.status().navMm,at,"and did not advance");
     // A REFUSED event must not move the anchor. Constructed so the two
-    // hypotheses give opposite answers: event B is 330 ms after the
-    // ACCEPTANCE (passes) but only 160 ms after the refused event A (would
+    // hypotheses give opposite answers: event B is 530 ms after the
+    // ACCEPTANCE (passes) but only 360 ms after the refused event A (would
     // fail). B advancing is proof the anchor stayed where it belongs.
     Rig q; q.declare(60,+1);
     q.feed(q.expected(),200,900,20);               // accepted -- anchor here
@@ -118,7 +118,7 @@ int main(){
     Ruling a1=q.feed(q.expected(),200,150,20);     // 150 ms: refused by guard
     ck(a1==Ruling::NotAMagnet,"event A refused inside the guard");
     ckEq(q.nav.status().navMm,at2,"A did not advance");
-    Ruling b1=q.feed(q.expected(),200,160,20);     // 330 ms from acceptance
+    Ruling b1=q.feed(q.expected(),200,360,20);     // 530 ms from acceptance
     ck(b1==Ruling::Advanced,"a refused event did not re-anchor the guard"); }
 
   printf("\nT6  no event of any kind advances navMm by more than one\n");

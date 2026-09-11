@@ -53,14 +53,5 @@ echo "== gate 11: the baseline through a station stop =="
 $CXX "$here/gate_station_baseline.cpp" -o "$tmp/stbase"; "$tmp/stbase"
 
 echo ""
-echo "== gate 12: the interrupted-traversal rule (decision 0070) =="
-$CXX "$here/gate_interrupted.cpp" -o "$tmp/interrupted"; "$tmp/interrupted"
-
-echo ""
-echo "== gate 13: the archaeology, on the railway's own magnets =="
-$CXX "$here/gate_two_sided.cpp" -lz -o "$tmp/twosided"
-"$tmp/twosided" "$repo/field-records/logs/20260828_survey/toby_1_13X_survey_waveforms.log.gz"
-
-echo ""
-echo "== gate 14: a rising reading is not a false start (the discard branch) =="
-$CXX "$here/gate_flank_discard.cpp" -o "$tmp/flank"; "$tmp/flank"
+echo "== gate 12: Grillers regression — no station/morphology withdrawal =="
+$CXX "$here/gate_grillers.cpp" -o "$tmp/grillers"; "$tmp/grillers"

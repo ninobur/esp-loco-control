@@ -10,23 +10,22 @@ struct PwmSpeedEntry {
 // ============================================================================
 // ACTIVE PROFILE SELECTOR — exactly ONE include below may be uncommented.
 //
-// TARGET: Toby (9950012).
+// TARGET: Otto (9950011).
 //
 // VERIFY AFTER FLASHING. The boot serial line must read
 //
-//     [BOOT] NAVI_ONE_1_0X11_FIELDTEST — 9950012
-//     [BOOT] EXPERIMENTAL FIELD-TEST BUILD — not field-accepted NAVI_ONE 1.0.
+//     [BOOT] NAVI_ONE_1_0X14_FIELDTEST "Operator-ruling corrective" — 9950011
+//     [BOOT] CORRECTIVE FIELD-TEST BUILD — not field-accepted NAVI_ONE 1.0.
+//     [BOOT] Morphology is diagnostic only; pause/resume/stitch authority removed.
 //
 // If it names the other locomotive, the wrong profile was compiled in and the
 // image must be rebuilt: an ID mismatch puts two locomotives on the same MQTT
 // topics.
 //
-// IF THE SECOND LINE IS ABSENT you are looking at a different image than the
+// IF THESE LINES ARE ABSENT you are looking at a different image than the
 // one this file describes. The FIELDTEST suffix is not decoration: this build
-// carries decision 0070's paused/resumed recognizer with finding 13's residual
-// margin still an open question, and a refused stitched waveform STOPS THE
-// LOCOMOTIVE where the accepted build would have carried on and lost a marker
-// quietly. Expect stops you would not have had before. That is the point.
+// removes decision 0070's expired paused/resumed/stitch experiment and restores
+// the operator's 500 ms re-read guard. Morphology has no navigation authority.
 //
 // ----------------------------------------------------------------------------
 // THIS FILE'S OWN HISTORY, WHICH IT KEEPS REPEATING
@@ -48,6 +47,11 @@ struct PwmSpeedEntry {
 //   not in this directory, and there was no line for Otto at all, though his
 //   profile sits here — so selecting Otto meant typing a new line, which is
 //   how the typos start.
+// 2026-09-10: commit 7781951 selected Otto while the header still said TARGET
+//   Toby and still named X11/Toby as the expected image. X14 corrected the
+//   target but initially wrote the friendly name "Otto" where the firmware
+//   actually prints the numeric LOCO_NAME, 9950011. The verification text now
+//   quotes the compiled serial output exactly.
 //
 // ONE LINE PER LOCOMOTIVE. EVERY LINE POINTS AT A FILE THAT EXISTS.
 // ============================================================================
