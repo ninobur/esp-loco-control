@@ -75,7 +75,7 @@ using namespace navi_one;
 //
 // Corrective field-test build. Decisions 0080/0081: morphology is diagnostic
 // only, passages are never paused or stitched, and the rebound guard is 500 ms.
-#define SKETCH_NAME    "NAVI_ONE_1_0X14_FIELDTEST"
+#define SKETCH_NAME    "NAVI_ONE_1_0X15_FIELDTEST"
 #define BUILD_CLASS    "EXPERIMENTAL_FIELD_TEST"
 #define BUILD_SUBTITLE "Operator-ruling corrective"
 #define FIELD_ACCEPTED 0
@@ -89,7 +89,7 @@ struct Judged {
   uint32_t epoch;                 // the declaration this passage was captured under
   uint32_t openedAtMs, closedAtMs;
   uint16_t peak; uint8_t polarity;
-  uint8_t  outcome; uint8_t isMagnet;
+  uint8_t  outcome; uint8_t isMagnet; uint8_t postStopSuccessor;
   float    ratio; uint32_t gapMs; uint16_t gain;
 };
 // len: 0 means "text, use strlen(payload) at send time" (every existing text
@@ -183,7 +183,7 @@ static QueueHandle_t judgedQ = nullptr;
 // it, and no PWM value appears in it. Display only.
 static uint32_t lastAdvanceMs = 0; static uint32_t estMmPerS = 0;
 
-// THE ONLY THREE DATA THAT CROSS BETWEEN THE LOOP THREAD AND THE HALL TASK,
+// THE ONLY FOUR DATA THAT CROSS BETWEEN THE LOOP THREAD AND THE HALL TASK,
 // besides the queues themselves.
 //
 // recognizerResetRequest: raised on the loop thread by a declaration or a
@@ -202,13 +202,35 @@ static uint32_t lastAdvanceMs = 0; static uint32_t estMmPerS = 0;
 static volatile bool     recognizerResetRequest = false;
 static volatile uint32_t navEpoch = 0;
 static volatile bool     dumpWindowRequest = false;
+// A controlled ramp reached zero while navigation remained valid. The Hall
+// task consumes this request and arms decision 0083's one-shot successor rule.
+enum : uint8_t { POST_STOP_NONE=0, POST_STOP_ARM=1, POST_STOP_CANCEL=2 };
+static volatile uint8_t  postStopRequest = POST_STOP_NONE;
+static portMUX_TYPE      postStopMux = portMUX_INITIALIZER_UNLOCKED;
 static uint32_t staleJudged = 0;
+
+// Cross-core command with cancellation dominant. A single atomic mailbox
+// avoids the arm/cancel ordering race that two volatile booleans create.
+static void signalPostStop(uint8_t request){
+  portENTER_CRITICAL(&postStopMux);
+  if (request == POST_STOP_CANCEL || postStopRequest == POST_STOP_NONE)
+    postStopRequest = request;
+  portEXIT_CRITICAL(&postStopMux);
+}
+static uint8_t takePostStopRequest(){
+  portENTER_CRITICAL(&postStopMux);
+  const uint8_t request = postStopRequest;
+  postStopRequest = POST_STOP_NONE;
+  portEXIT_CRITICAL(&postStopMux);
+  return request;
+}
 
 // Called on the LOOP THREAD, immediately after any Navigator call that ends a
 // frame. Navigator itself never touches the other thread's objects.
 static void carryResetRequest(){
   if (!navigator.takeResetRequest()) return;
   navEpoch++;
+  signalPostStop(POST_STOP_CANCEL);
   recognizerResetRequest = true;
   // A declaration or a direction change moves the locomotive's idea of where it
   // is. A station armed against the old frame would be measuring its approach
@@ -368,6 +390,7 @@ static int8_t sessionDir = 0;
 static constexpr uint16_t AUTO_STEP_UP_MS   = 62;   // ~5.6 s to cruise 90
 static constexpr uint16_t AUTO_STEP_DOWN_MS = 31;   // ~2.8 s to stop from 90
 static int rampTarget = 0;
+static StopArmingPolicy stopArmingPolicy;
 static uint16_t stepUpMs = MANUAL_STEP_UP_MS, stepDownMs = 0;  // 0 = use the brake
 static unsigned long lastStepMs = 0;
 static Adafruit_INA219 ina219; static bool inaReady=false;
@@ -382,9 +405,11 @@ static void writePwm(int v){
 }
 // down=0 means "governed by the brake slider" (manual). A non-zero down is a
 // fixed rate the operator cannot slow down (auto).
-static void requestPwm(int target, uint16_t up, uint16_t down){
+static void requestPwm(int target, uint16_t up, uint16_t down,
+                       StopCause stopCause = StopCause::Controlled){
   rampTarget = target; commandedPwm = target;
   stepUpMs = up; stepDownMs = down;
+  stopArmingPolicy.requested(target, stopCause);
 }
 static void serviceRamp(){
   digitalWrite(MOTOR_DIR_PIN, motorDirection ? HIGH : LOW);
@@ -395,8 +420,16 @@ static void serviceRamp(){
   // ruled on 2026-08-29 that the fast stop is a MESSAGE: "One strike/low
   // battery. Steep ramp is informative. It signals that something is wrong."
   // A steep ramp, not a dead short. serviceIna() requests AUTO_STEP_DOWN_MS.
-  if (estopped || estopAsserted) { actualPwm = 0; rampTarget = 0; writePwm(0); return; }
-  if (lowVoltage && rampTarget != 0) { rampTarget = 0; stepDownMs = AUTO_STEP_DOWN_MS; }
+  if (estopped || estopAsserted) {
+    stopArmingPolicy.requested(0, StopCause::Safety);
+    signalPostStop(POST_STOP_CANCEL);
+    actualPwm = 0; rampTarget = 0; writePwm(0); return;
+  }
+  if (lowVoltage) signalPostStop(POST_STOP_CANCEL);
+  if (lowVoltage && rampTarget != 0) {
+    rampTarget = 0; stepDownMs = AUTO_STEP_DOWN_MS;
+    stopArmingPolicy.requested(0, StopCause::Safety);
+  }
   if (actualPwm == rampTarget) return;
   const bool down = rampTarget < actualPwm;
   const uint16_t need = down ? (stepDownMs ? stepDownMs : brakeStepMs())
@@ -404,8 +437,11 @@ static void serviceRamp(){
   unsigned long now = millis();
   if (now - lastStepMs < need) return;
   lastStepMs = now;
+  const int before = actualPwm;
   actualPwm += down ? -1 : +1;
   writePwm(actualPwm);
+  if (stopArmingPolicy.reachedZero(before, actualPwm, navigator.positionKnown()))
+    signalPostStop(POST_STOP_ARM);
 }
 
 // ---------------------------------------------------------------------------
@@ -497,7 +533,8 @@ static void withdraw(const char* text){
   estMmPerS = 0; pub(T_SPEED,"0",true);
   autoRunning = false;
   if (autoEnrolled) { autoEnrolled = false; pub(T_ST_AUTO,"0",true); }
-  requestPwm(0,0,AUTO_STEP_DOWN_MS);
+  requestPwm(0,0,AUTO_STEP_DOWN_MS,StopCause::Safety);
+  signalPostStop(POST_STOP_CANCEL);
   pub(T_ST_NAVREADY,"0",true);
   lastAdvanceMs = 0;              // the next speed estimate must not span this
   // withdraw() is the one choke point for both navigation-caused stops
@@ -556,7 +593,7 @@ static void publishNav(const char* event,const Judged* j,Ruling r){
       "{\"event\":\"%s\",\"state\":\"%s\",\"nav\":\"%s\",\"nav_state\":\"%s\",\"mm\":%u,\"tgt\":%u,"
       "\"landmark\":\"%s\",\"dir\":\"%s\",\"ruling\":\"%s\",\"why\":\"%s\","
       "\"obs\":\"%c\",\"expected\":\"%c\",\"peak\":%u,\"ratio\":%.3f,"
-      "\"gap_ms\":%lu,\"gain\":%u,"
+      "\"gap_ms\":%lu,\"gain\":%u,\"post_stop_successor\":%u,"
       "\"trust\":\"%s\",\"seq_at\":%u,\"adv\":%lu,\"ref\":%lu,\"notmag\":%lu}",
       event, navigator.positionKnown()?"NORMAL":"UNSET",
       navigator.positionKnown()?"NORMAL":"UNSET",
@@ -567,6 +604,7 @@ static void publishNav(const char* event,const Judged* j,Ruling r){
       poleChar(j->polarity),
       poleChar(polarityAt(r==Ruling::Advanced ? s.navMm : s.target)),
       j->peak, (double)j->ratio, (unsigned long)j->gapMs, j->gain,
+      (unsigned)j->postStopSuccessor,
       trustName(s.trust), s.seqAt,
       (unsigned long)s.advances,(unsigned long)s.refusals,(unsigned long)s.notMagnets);
     pub(T_MARKER,b,false);
@@ -682,6 +720,9 @@ static void hallTask(void*){
       myEpoch = navEpoch;            // to the frame that just ended
       recognizerResetRequest = false;
     }
+    const uint8_t postStop = takePostStopRequest();
+    if (postStop == POST_STOP_CANCEL) recognizer.cancelPostStop();
+    else if (postStop == POST_STOP_ARM) recognizer.armPostStop();
     // The baseline may be maintained only with positive evidence of tractive
     // motion. Not proof of rest -- a locomotive can coast at PWM 0 -- but the
     // error cases are asymmetric: refusing to adapt while secretly moving
@@ -699,6 +740,7 @@ static void hallTask(void*){
       if (!v.isMagnet) publishWaveformSlot(0, 1);
       Judged j{ myEpoch,p.openedAtMs,p.closedAtMs,p.peakCounts,p.polarity,
                 (uint8_t)v.outcome,(uint8_t)v.isMagnet,
+                (uint8_t)v.postStopSuccessor,
                 v.amplitudeRatio,v.gapMs,v.gain };
       if (judgedQ) xQueueSend(judgedQ,&j,0);
     }
@@ -815,7 +857,7 @@ static void handleCommand(const CmdMsg& c){
     estopped = want;
     estopAsserted = want;
     if (estopped) {
-      autoRunning = false; requestPwm(0,0,1);
+      autoRunning = false; requestPwm(0,0,1,StopCause::Safety);
       warn(understood ? "ESTOP" : "ESTOP: unreadable payload, assumed STOP");
     } else {
       warnClear();
@@ -926,7 +968,7 @@ static void serviceIna(){
   if (!lowVoltage && lowVoltCount >= VOLTAGE_COUNTER_LIMIT) {
     lowVoltage = true;
     autoRunning = false;
-    requestPwm(0,0,AUTO_STEP_DOWN_MS);     // steep, informative, NOT instant
+    requestPwm(0,0,AUTO_STEP_DOWN_MS,StopCause::Safety); // steep, informative, NOT instant
     char w[96]; snprintf(w,sizeof(w),"LOW VOLTAGE %.2f V — stopping",(double)busV);
     warnStick(w);
   } else if (lowVoltage && busV >= RECOVERY_VOLTAGE) {
@@ -1086,7 +1128,8 @@ void setup(){
     "{\"sketch\":\"%s\",\"subtitle\":\"%s\",\"build_class\":\"%s\",\"field_accepted\":%d,"
     "\"loco\":\"%s\",\"entry\":%d,\"exit\":%d,\"floor_ms\":%d,"
     "\"amp_floor\":%.2f,\"guard_ms\":%lu,\"seq_n\":%d,"
-    "\"offsets\":0,\"quorum\":0,\"velocity_model\":0,\"baseline_adapt_pwm\":%d,\"ir_votes\":0}",
+    "\"offsets\":0,\"quorum\":0,\"velocity_model\":0,\"post_stop_successor\":1,"
+    "\"baseline_adapt_pwm\":%d,\"ir_votes\":0}",
     SKETCH_NAME,BUILD_SUBTITLE,BUILD_CLASS,(int)FIELD_ACCEPTED,
     LOCO_NAME,(int)captureCfg.entryMargin,(int)captureCfg.exitMargin,
     (int)captureCfg.floorMs,(double)recCfg.amplitudeFloor,
@@ -1141,6 +1184,7 @@ void loop(){
     Passage p; p.openedAtMs=j.openedAtMs; p.closedAtMs=j.closedAtMs;
     p.peakCounts=j.peak; p.polarity=j.polarity;
     Verdict v; v.outcome=(Outcome)j.outcome; v.isMagnet=j.isMagnet;
+    v.postStopSuccessor=j.postStopSuccessor;
     v.amplitudeRatio=j.ratio; v.gapMs=j.gapMs; v.gain=j.gain;
     Ruling r = navigator.judge(p,v);
     switch (r) {

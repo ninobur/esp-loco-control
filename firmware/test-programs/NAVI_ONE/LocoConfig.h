@@ -14,7 +14,7 @@ struct PwmSpeedEntry {
 //
 // VERIFY AFTER FLASHING. The boot serial line must read
 //
-//     [BOOT] NAVI_ONE_1_0X14_FIELDTEST "Operator-ruling corrective" — 9950011
+//     [BOOT] NAVI_ONE_1_0X15_FIELDTEST "Operator-ruling corrective" — 9950011
 //     [BOOT] CORRECTIVE FIELD-TEST BUILD — not field-accepted NAVI_ONE 1.0.
 //     [BOOT] Morphology is diagnostic only; pause/resume/stitch authority removed.
 //
@@ -52,6 +52,8 @@ struct PwmSpeedEntry {
 //   target but initially wrote the friendly name "Otto" where the firmware
 //   actually prints the numeric LOCO_NAME, 9950011. The verification text now
 //   quotes the compiled serial output exactly.
+// 2026-09-10: X15 adds the operator-approved post-stop successor exception;
+//   the active locomotive remains Otto and no profile constants changed.
 //
 // ONE LINE PER LOCOMOTIVE. EVERY LINE POINTS AT A FILE THAT EXISTS.
 // ============================================================================

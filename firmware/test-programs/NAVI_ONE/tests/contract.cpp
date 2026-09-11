@@ -31,6 +31,7 @@ struct Rig {
   void declare(uint8_t mm,int8_t dir){ nav.declare(mm,dir); carry(); }
   void setDirection(int8_t d){ nav.setDirection(d); carry(); }
   void carry(){ if(nav.takeResetRequest()) rec.reset(); }
+  void controlledStopReached(){ rec.armPostStop(); }
   Ruling feed(uint8_t pol,int peak,uint32_t gapMs,uint16_t dur=180){
     t += gapMs;
     buf = gauss(peak,140,12);
@@ -120,6 +121,68 @@ int main(){
     ckEq(q.nav.status().navMm,at2,"A did not advance");
     Ruling b1=q.feed(q.expected(),200,360,20);     // 530 ms from acceptance
     ck(b1==Ruling::Advanced,"a refused event did not re-anchor the guard"); }
+
+  printf("\nT5c post-stop successor: scoped, polarity-aware, still amplitude-gated\n");
+  { Rig ordinary; ordinary.declare(159,+1);
+    ordinary.feed(ordinary.expected(),200,900);
+    ck(ordinary.feed(ordinary.expected(),200,136)==Ruling::NotAMagnet,
+       "ordinary opposite-polarity candidate inside 500 ms is refused");
+
+    // Bamboo field sequence, 2026-09-10. X14 refused genuine MM161 only
+    // 136 ms after the long MM160 departure passage closed, then struck on
+    // MM162. The explicitly armed X15 rule handles this one narrow case.
+    Rig r; r.declare(159,+1); r.controlledStopReached();
+    ck(r.feed(r.expected(),84,900)==Ruling::Advanced,"departure anchor MM160 accepted");
+    ckEq(r.nav.status().navMm,160,"at MM160");
+    ck(r.feed(r.expected(),239,136)==Ruling::Advanced,"opposite MM161 bypasses guard");
+    ckEq(r.nav.status().navMm,161,"at MM161");
+    ck(r.feed(r.expected(),155,900)==Ruling::Advanced,"MM162 follows ordinary rule");
+    ckEq(r.nav.status().navMm,162,"at MM162 without a strike");
+
+    Rig same; same.declare(159,+1); same.controlledStopReached();
+    same.feed(same.expected(),200,900);
+    const uint8_t anchorPol = polarityAt(same.nav.status().navMm);
+    ck(same.feed(anchorPol,200,136,20)==Ruling::NotAMagnet,
+       "same-polarity post-stop re-read remains TOO_SOON");
+    ck(same.feed(same.expected(),20,50,20)==Ruling::NotAMagnet,
+       "opposite-polarity bypass still fails weak amplitude");
+    ck(same.feed(same.expected(),200,50,20)==Ruling::Advanced,
+       "weak refusal does not consume the valid successor opportunity"); }
+
+  printf("\nT5d post-stop exception consumption, expiry, anchoring and cancellation\n");
+  { Rig consumed; consumed.declare(159,+1); consumed.controlledStopReached();
+    consumed.feed(consumed.expected(),200,900,20);
+    ck(consumed.feed(consumed.expected(),200,100,20)==Ruling::Advanced,
+       "first opposite successor advances");
+    ck(consumed.feed(consumed.expected(),200,100,20)==Ruling::NotAMagnet,
+       "accepted successor consumed the exception");
+
+    Rig boundary; boundary.declare(159,+1); boundary.controlledStopReached();
+    boundary.feed(boundary.expected(),200,900,20);
+    ck(boundary.feed(boundary.expected(),200,499,20)==Ruling::Advanced,
+       "499 ms uses the post-stop exception");
+    Rig atFloor; atFloor.declare(159,+1); atFloor.controlledStopReached();
+    atFloor.feed(atFloor.expected(),200,900,20);
+    ck(atFloor.feed(atFloor.expected(),200,500,20)==Ruling::Advanced,
+       "500 ms uses the ordinary guard path");
+
+    Rig noWeakAnchor; noWeakAnchor.declare(159,+1); noWeakAnchor.controlledStopReached();
+    ck(noWeakAnchor.feed(noWeakAnchor.expected(),20,900,20)==Ruling::NotAMagnet,
+       "a weak first passage is not the departure anchor");
+    ck(noWeakAnchor.feed(noWeakAnchor.expected(),200,900,20)==Ruling::Advanced,
+       "first accepted passage becomes the anchor");
+    ck(noWeakAnchor.feed(noWeakAnchor.expected(),200,100,20)==Ruling::Advanced,
+       "its opposite successor receives the exception");
+
+    Rig cancelled; cancelled.declare(159,+1); cancelled.controlledStopReached();
+    cancelled.rec.cancelPostStop();
+    cancelled.feed(cancelled.expected(),200,900,20);
+    ck(cancelled.feed(cancelled.expected(),200,100,20)==Ruling::NotAMagnet,
+       "cancellation clears a waiting exception");
+    Rig reset; reset.declare(159,+1); reset.controlledStopReached(); reset.rec.reset();
+    reset.feed(reset.expected(),200,900,20);
+    ck(reset.feed(reset.expected(),200,100,20)==Ruling::NotAMagnet,
+       "reset clears a waiting exception"); }
 
   printf("\nT6  no event of any kind advances navMm by more than one\n");
   { Rig r; r.declare(0,+1);

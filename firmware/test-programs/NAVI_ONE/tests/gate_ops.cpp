@@ -112,6 +112,23 @@ int main(){
     d.commandedPwm=0; d.enrolled=true;
     ck(admitMotorDirection(d)!=nullptr,"refused while enlisted"); }
 
+  printf("\nP7  the complete ramp remembers why it is stopping\n");
+  { StopArmingPolicy p;
+    p.requested(0,StopCause::Controlled);
+    ck(p.reachedZero(1,0,true),"station/operator stop with valid position arms");
+    ck(!p.reachedZero(1,0,false),"controlled stop without position does not arm");
+    p.requested(0,StopCause::Safety);
+    ck(!p.reachedZero(1,0,true),"safety stop never arms");
+    // A recovering battery changes the live voltage flag, not this latched
+    // cause: it remains a safety stop all the way to the final PWM step.
+    ck(p.cause()==StopCause::Safety,"low-voltage cause remains latched through recovery");
+    p.requested(0,StopCause::Controlled);
+    ck(p.cause()==StopCause::Safety,"a later stop command cannot relabel the safety ramp");
+    ck(!p.reachedZero(1,0,true),"relabel attempt still cannot arm");
+    p.requested(90);
+    ck(p.cause()==StopCause::None,"a later upward command starts a fresh movement");
+    ck(!p.reachedZero(1,0,true),"ordinary running cannot arm without a stop request"); }
+
   // ---- capture -----------------------------------------------------------
   // Drive HallCapture the way the Hall task does: one sample per millisecond.
   struct Rig {

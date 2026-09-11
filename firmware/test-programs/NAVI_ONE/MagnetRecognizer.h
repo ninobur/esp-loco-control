@@ -10,8 +10,9 @@
 //
 // MORPHOLOGY IS NOT COMPILED INTO THE PRODUCTION PATH (decisions 0080/0082).
 // Gaussian analysis belongs to an optional read-only diagnostic observer. This
-// recognizer admits on time and amplitude; polarity and route sequence remain
-// the Navigator's responsibility.
+// recognizer admits on time and amplitude. It may compare a passage's polarity
+// with the previous accepted passage only for decision 0083's post-stop timing
+// exception; marker polarity and route sequence remain Navigator's authority.
 //
 // TWO PRODUCTION TESTS, each catching a population the other structurally
 // cannot. Thresholds come from the measured 2026-08-28 circuit survey:
@@ -129,7 +130,7 @@ struct Passage {
   uint32_t      openedAtMs   = 0;
   uint32_t      closedAtMs   = 0;
   uint16_t      peakCounts   = 0;
-  uint8_t       polarity     = 0;       // 1 = N, 0 = S -- passed through, not tested
+  uint8_t       polarity     = 0;       // 1=N, 0=S; relative comparison only in 0083
   const int16_t* oriented    = nullptr;   // THE RECORDING. Never filtered.
   // The JUDGEMENT COPY: `oriented` passed through a median of three, built
   // once at capture close. Peak and shape are read from this; the recording
@@ -173,6 +174,7 @@ struct Verdict {
   bool     guardTested    = false;      // false = abstained (no previous accept)
   uint32_t gapMs          = 0;
   uint16_t gain           = 0;
+  bool     postStopSuccessor = false;
 };
 
 class MagnetRecognizer {
@@ -181,7 +183,21 @@ class MagnetRecognizer {
 
   // Called on a declaration or a direction change: the gain history and the
   // guard anchor describe a frame that no longer applies.
-  void reset() { gainLen_ = 0; gainHead_ = 0; haveAccepted_ = false; }
+  void reset() {
+    gainLen_ = 0; gainHead_ = 0; haveAccepted_ = false;
+    postStopWaitingAnchor_ = false; postStopAnchorActive_ = false;
+  }
+
+  // Called only after a controlled stop reaches zero with valid navigation.
+  // The first subsequently accepted passage is the departure anchor.
+  void armPostStop() {
+    postStopWaitingAnchor_ = true;
+    postStopAnchorActive_ = false;
+  }
+  void cancelPostStop() {
+    postStopWaitingAnchor_ = false;
+    postStopAnchorActive_ = false;
+  }
 
   uint16_t gain() const {
     if (gainLen_ < 8) return cfg_.bootstrapGain;
@@ -205,7 +221,15 @@ class MagnetRecognizer {
     if (haveAccepted_) {
       v.guardTested = true;
       v.gapMs = p.openedAtMs - lastAcceptedCloseMs_;
-      if (v.gapMs < cfg_.guardMs) { v.outcome = Outcome::TooSoon; return v; }
+      if (v.gapMs >= cfg_.guardMs) {
+        postStopAnchorActive_ = false;
+      } else if (postStopAnchorActive_ && p.polarity != lastAcceptedPolarity_) {
+        // This only bypasses TIME. Amplitude and Navigator must still agree.
+        v.postStopSuccessor = true;
+      } else {
+        v.outcome = Outcome::TooSoon;
+        return v;
+      }
     }
 
     // AMPLITUDE. Always has evidence.
@@ -216,7 +240,15 @@ class MagnetRecognizer {
     // are the Navigator's. Nothing below may change these two lines.
     v.outcome = Outcome::Magnet;
     v.isMagnet = true;
+    const bool becomesPostStopAnchor = postStopWaitingAnchor_;
+    const bool consumesPostStopSuccessor = v.postStopSuccessor;
     accept(p);
+    if (becomesPostStopAnchor) {
+      postStopWaitingAnchor_ = false;
+      postStopAnchorActive_ = true;
+    } else if (consumesPostStopSuccessor) {
+      postStopAnchorActive_ = false;
+    }
 
     return v;
   }
@@ -226,6 +258,7 @@ class MagnetRecognizer {
   void accept(const Passage& p) {
     haveAccepted_ = true;
     lastAcceptedCloseMs_ = p.closedAtMs;
+    lastAcceptedPolarity_ = p.polarity;
     gains_[gainHead_] = p.peakCounts;
     gainHead_ = (uint8_t)((gainHead_ + 1) % kGain);
     if (gainLen_ < kGain) ++gainLen_;
@@ -233,6 +266,9 @@ class MagnetRecognizer {
   RecognizerConfig cfg_;
   bool     haveAccepted_ = false;
   uint32_t lastAcceptedCloseMs_ = 0;
+  uint8_t  lastAcceptedPolarity_ = 0;
+  bool     postStopWaitingAnchor_ = false;
+  bool     postStopAnchorActive_ = false;
   uint16_t gains_[kGain] = {};
   uint8_t  gainLen_ = 0, gainHead_ = 0;
 };

@@ -29,6 +29,26 @@
 
 namespace navi_one {
 
+// Why a target of zero was requested. This is latched for the whole ramp so a
+// recovering battery cannot turn the last 1 -> 0 step into a controlled stop.
+enum class StopCause : uint8_t { None = 0, Controlled, Safety };
+
+class StopArmingPolicy {
+ public:
+  void requested(int target, StopCause cause = StopCause::Controlled) {
+    if (target > 0) cause_ = StopCause::None;
+    else if (cause == StopCause::Safety || cause_ != StopCause::Safety)
+      cause_ = cause;  // safety remains dominant until a later upward command
+  }
+  bool reachedZero(int before, int after, bool positionKnown) const {
+    return before > 0 && after == 0 && positionKnown
+        && cause_ == StopCause::Controlled;
+  }
+  StopCause cause() const { return cause_; }
+ private:
+  StopCause cause_ = StopCause::None;
+};
+
 // --- parsing ---------------------------------------------------------------
 
 // Fully numeric, optionally signed, no trailing rubbish, non-empty.

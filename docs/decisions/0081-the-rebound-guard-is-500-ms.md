@@ -4,6 +4,7 @@
 **Status:** **Accepted, 2026-09-10**
 **Decided by:** operator
 **Supersedes:** the later 200 ms value in 0079; reaffirms 0057
+**Amended by:** 0083, for one opposite-polarity successor after a controlled stop
 
 ## Decision
 
@@ -19,6 +20,13 @@ is no PWM-dependent or adaptive extension. The operator considered that option
 on 2026-09-10 and deferred it: 500 ms should be adequate. Revisit adaptive
 timing only if field evidence shows problems at low speed, including starts or
 stops, and present the design and replay evidence before changing firmware.
+
+Field evidence later that day did show one specific post-stop failure. Decision
+0083 adds a narrow exception without changing this 500 ms value: after a
+controlled stop, the opposite-polarity successor to the first accepted
+departure passage may proceed to the amplitude and Navigator tests inside the
+guard. Same-polarity candidates and all ordinary running remain subject to the
+500 ms floor.
 
 ## Context
 
