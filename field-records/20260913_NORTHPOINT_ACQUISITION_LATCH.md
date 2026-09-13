@@ -139,3 +139,104 @@ sensor was realigned 2026-08-20 and the board and pin lineage changed
 
 The offline replay of the proposed bounded acquisition reset is in
 `docs/NAVI_CRUISE_CEILING_REPLAY_20260913.md`. No firmware was changed.
+
+---
+
+# Addendum, same day: the second stop, and the measured root cause
+
+**Second stop:** 11:51:37 PDT, `WRONG MAGNET at MM061: expected S at MM060,
+read N`, during the Grillers stop ramp at PWM 27. Operator confirms the
+locomotive is physically between MM062 and MM061, which matches navigation's
+reported position — so position was correct at the strike.
+
+The operator re-declared position after the first stop without power cycling.
+`uptime_ms` confirms it: 10,441,953 ms unbroken, no reboot. `declare()` calls
+`capture.reset()`, which clears a jammed-open passage and re-anchors the
+measurement reference but deliberately preserves the baseline. It ran 210 clean
+advances over about eight minutes and four station stops, then failed again.
+
+## The second failure ran navigation one marker AHEAD
+
+Polarity here is 63:N, 62:S, 61:N, 60:S.
+
+```
+11:51:31  MM063 Grillers   N ok   clean arc, peak 191, pwm 61, reference 1975
+11:51:33  MM062            S ok   clean arc, peak 157, pwm 49, reference 1988
+11:51:35  refused  1558 ms  N     three humps, never returns to zero, pwm 41
+11:51:35  MM061            N      637 ms, lumpy, pwm 37, reference 1991
+11:51:37  refused   871 ms  N     plateau 60-90, never returns, pwm 31
+11:51:37  STRIKE    277 ms  N     expected S at MM060, pwm 27, reference 2009
+11:51:39  (stopped)                                    pwm  0, reference 2021
+```
+
+The locomotive had not yet reached MM061 when navigation counted it, so one of
+the lumpy merged events was accepted as MM061. The real MM061 — an N magnet —
+then arrived where navigation expected MM060, an S. The strike is correct.
+
+At Northpoint navigation fell three to four markers BEHIND; here it ran one
+marker AHEAD. Opposite errors, one cause.
+
+## Root cause: the resting level steps, and it is mechanical
+
+Two discriminating tests over 3,194 samples taken while moving:
+
+```
+resting level vs motor current   r = -0.023
+resting level vs PWM             r = -0.002
+resting level vs time            r = +0.625
+```
+
+Mean level by current band is flat — 1956, 1953, 1955, 1955, 1953, 1951 from
+0.15 A to over 0.40 A. A shared-ground or supply-sag fault would appear here and
+does not.
+
+The level does not drift. It sits on plateaus and steps between them:
+
+```
+10:19-10:38   ~1955
+10:39-10:45   ~1936      step down
+10:46-11:06   ~1950      step up
+11:07-11:09   ~1965      step up
+11:10-11:19   ~1955      step down
+11:20-11:21   1947 -> 1981 -> 1920     first stop
+11:40-11:50   ~1975
+11:51         -> 2021                  second stop
+```
+
+Of 3,150 one-second changes while running, 20 are 10 counts or more, 9 are 20 or
+more, and 3 are 30 or more. The largest single-second moves are -60, +60, +31,
+-28, -27, +26 — about one jump every two and a half minutes, each holding its
+new level afterwards. Thermal drift is smooth and monotonic; this is not.
+
+It also happens with the machine switched off. Parked between MM062 and MM061,
+motor off, Otto produced four passages in eighty minutes — one of them 73
+minutes long — with excursions of 63 to 103 counts, plus two sub-floor
+rejections of 24 ms and 55 ms at peaks 90 and 74. Nothing on the track can
+produce that.
+
+**Conclusion: a mechanical instability in the Hall sensor's physical path — its
+mounting, a connector, or a solder joint — that changes state when disturbed and
+holds the new state.** Running supplies the disturbance through vibration, which
+is why the steps cluster during runs and why the level continues settling for an
+hour after stopping. Otto's board and pin wiring changed on 2026-09-10.
+
+Most steps are survivable: they are 10-30 counts against a 70-count detection
+threshold. Two of today's twenty were not.
+
+## The check
+
+With the locomotive left where it is, powered and publishing:
+
+1. Watch `baseline` on the 1 Hz status line and gently flex the sensor cable and
+   tap the mount. A step while doing so locates the fault.
+2. If tapping does nothing, meter the sensor's supply and output at the SENSOR
+   end. Output moving while supply holds means the sensor or its mount; both
+   moving means the feed.
+
+## What this does to the cruise passage ceiling
+
+`docs/NAVI_CRUISE_CEILING_REPLAY_20260913.md` would have contained both of
+today's stops. It contains MERGED magnets. It does nothing about a resting level
+that keeps moving, and if a future step goes the other way the failure becomes
+MISSED magnets, which no timing rule can catch. It is containment for a
+mechanical fault and should not be treated as a repair.
