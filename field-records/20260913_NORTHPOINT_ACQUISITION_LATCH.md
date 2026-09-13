@@ -208,27 +208,51 @@ more, and 3 are 30 or more. The largest single-second moves are -60, +60, +31,
 -28, -27, +26 — about one jump every two and a half minutes, each holding its
 new level afterwards. Thermal drift is smooth and monotonic; this is not.
 
-It also happens with the machine switched off. Parked between MM062 and MM061,
-motor off, Otto produced four passages in eighty minutes — one of them 73
-minutes long — with excursions of 63 to 103 counts, plus two sub-floor
-rejections of 24 ms and 55 ms at peaks 90 and 74. Nothing on the track can
-produce that.
+### Correction: the at-rest records are NOT evidence of a live fault
 
-**Conclusion: a mechanical instability in the Hall sensor's physical path — its
-mounting, a connector, or a solder joint — that changes state when disturbed and
-holds the new state.** Running supplies the disturbance through vibration, which
-is why the steps cluster during runs and why the level continues settling for an
-hour after stopping. Otto's board and pin wiring changed on 2026-09-10.
+They were presented that way and they should not have been. The reference is
+frozen whenever throttle is below the tractive floor (`if (!mayAdapt) return;`
+in `updateBaseline()`, floor `NAVI_BASELINE_ADAPT_PWM` = 24). Otto's froze at
+**2021**, captured on the last tick before the throttle reached zero — the worst
+moment of the failure — and has read exactly 2021 every second since 11:52.
 
-Most steps are survivable: they are 10-30 counts against a 70-count detection
-threshold. Two of today's twenty were not.
+The true resting line is around 1920-1960, where it has been all day. So the
+reference is 60-100 counts from the line permanently, and a passage that opens
+and will not close is the correct response to that. It requires no movement.
+The four open/close cycles over eighty minutes need only a few tens of counts of
+ordinary slow settling to cross a threshold that is already in the wrong place.
+
+### And the step count is weaker than stated
+
+20 jumps of 10+ counts out of **3,150** one-second samples is 0.6%, not a
+steady rhythm, and several come in pairs that cancel within seconds
+(10:53:00 -10 then 10:53:04 +10; 10:19:33 +31 then 10:19:44 -28). A rolling
+median does that when its window straddles a disturbance. There is no control
+here separating "the line stepped" from "the median wobbled".
+
+**The mechanical conclusion is therefore NOT established and is withdrawn to a
+hypothesis.**
+
+### What does still stand
+
+The Northpoint waveforms are measured against each passage's FROZEN entry
+reference, not against the rolling median, so no median behaviour can produce
+them. They show the line flat at 50-70 counts from the reference for 1.2 and
+2.4 seconds, with a genuine magnet arc riding on top of one. The line really did
+move, that once. What is not supported is that it does so routinely, or why.
 
 ## The check
 
 With the locomotive left where it is, powered and publishing:
 
-1. Watch `baseline` on the 1 Hz status line and gently flex the sensor cable and
-   tap the mount. A step while doing so locates the fault.
+0. FIRST, and it takes ten seconds: nudge Otto above PWM 25 for two or three
+   seconds. The reference should re-learn the true line and `baseline` should
+   fall from 2021 to somewhere near 1940, closing the phantom passage. If it
+   does, nothing is wrong at rest and the question is confined to what happens
+   to the reference while running.
+1. If the baseline settles and then walks off again within a minute or two of
+   ordinary running: watch `baseline` while gently flexing the sensor cable and
+   tapping the mount. A step while doing so locates a physical fault.
 2. If tapping does nothing, meter the sensor's supply and output at the SENSOR
    end. Output moving while supply holds means the sensor or its mount; both
    moving means the feed.
