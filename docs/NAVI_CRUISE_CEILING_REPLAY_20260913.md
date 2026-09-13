@@ -96,10 +96,18 @@ the reset would fire on 4 of 4018 (0.10%):
 at PWM < 70: 72 records, longest 33762 ms — all untouched, the reset is disarmed
 ```
 
-Every record it fires on is truncated, and three of the four are clipped. **Not
-one clean crossing is touched.** The three clipped ones are the 2026-09-09
-episode in which the marker stream jumps `mm 45 → 42`: they are the same fault,
-and firing on them is the intended behaviour, not a regression.
+Every record it fires on is truncated. **Not one clean crossing is touched** —
+none of the four is a magnet arc; all four are flat lines held open by a
+reference that was in the wrong place.
+
+The three from 2026-09-09, however, are **not** the Northpoint fault and should
+not be counted as independent support for it. They decode to a flat −33 to −36
+count line with no magnet in them, follow about a minute at a standstill, and
+are finding 10 / decision 0074 — a reference learned while parked — on QUORUM
+1.13X, which predates the `NAVI_BASELINE_ADAPT_PWM` motion gate NAVI_ONE now
+has. Their `clip=1` is the base64 encoding saturating on one entry sample, not
+the ADC railing. The ceiling would still have cut them, but the evidence for it
+rests mainly on the single Northpoint episode.
 
 ### F. the arming threshold against 2026-09-13
 
@@ -180,10 +188,12 @@ inside that window gets a passage of its own instead of being swallowed.
    the measured baseline. Levels and durations are the field's; the millisecond
    detail between decimated samples is not recoverable (decision 0070). The
    recorded 2,446 ms latch replays as 2,492 ms.
-3. **The three 2026-09-09 records are clipped, and their base64 encoding
-   saturates at ±381.** The amplitude a forced close would carry on those three
-   cannot be computed from the published data. Only the Northpoint record, which
-   is binary `int16`, yields a real number (0.443).
+3. **Three of the four records are from a retired firmware and a failure mode
+   already guarded against** (see D/E). The corpus therefore supports the
+   ceiling on one live episode, not four. Their base64 encoding also saturates
+   at ±384, so the amplitude a forced close would carry on them is not
+   computable from the published data; only the Northpoint record, which is
+   binary `int16`, yields a real number (0.443).
 4. **PWM is a proxy for speed, not speed.** It is not in the operator's excluded
    list and `mayAdapt` already depends on it, but it is the one input here that
    can be wrong about the world. Section I measures what happens when it is.

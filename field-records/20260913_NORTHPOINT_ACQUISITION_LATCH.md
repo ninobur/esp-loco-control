@@ -91,12 +91,30 @@ Of the 22 passages of 400 ms or more recorded on 2026-09-13, nineteen were slow
 crossings at stations (PWM 22–47, `base_open == base_close`). The only three at
 cruise PWM 90 are the three in this incident.
 
-The same fault is present, undiagnosed, in **Otto's 2026-09-09 CCW survey**, at
-21:29:51–21:29:58 between MM050 and MM041: passages of 1,358, 4,944 and 2,261 ms
-at PWM 80–90, all truncated and clipped. The marker stream there runs
-`mm 47 → 46 → 45 → 42` — three markers lost in one step — with
-`dt_conserve_ratio` climbing to 5.34 and 4.31. That is the signature
-`LL_LocoConfig_9950011.h:170-176` names for silently lagging position.
+A superficially similar episode exists in **Otto's 2026-09-09 CCW survey** at
+21:29:51–58, and on examination it is **a different fault**. Those three long
+records (1,358 / 4,944 / 2,261 ms) decode to a flat line at −33 to −36 counts
+with no magnet in them at all, and the clean arcs either side end at exactly
+−35: the reference was about 33 counts off the true idle line, which is more
+than the 25-count exit margin and less than the 70-count entry margin, so a
+passage opened once and could never close. It was preceded by two standstills
+totalling about a minute. That is finding 10 / decision 0074 — a reference
+learned while parked — on QUORUM 1.13X, which predates the motion gate
+(`NAVI_BASELINE_ADAPT_PWM`) that NAVI_ONE now uses against exactly this.
+
+Two corrections to an earlier reading of that survey, recorded so they are not
+repeated. Its `clip=1` flag and the saturated samples are the **base64
+encoding** clipping at ±384 on one entry-crossing sample, not the ADC reaching a
+supply rail; and its `mm` jump from 45 to 42 across 151 ms of device time is
+QUORUM adopting a −3 offset, not three magnets physically passing. The real
+measure of what was lost there is the device-time gaps between clean magnets —
+1,391 / 4,967 / 2,288 ms against a ~1,200 ms cadence, roughly four intervals
+unaccounted for.
+
+The Northpoint event shares only the symptom. Its offset is 86 counts peak to
+peak rather than 33 and static; it moves while the throttle is constant; it
+reaches the entry margin rather than staying below it; one of its plateaus
+carries a genuine magnet arc on top; and no standstill precedes it.
 
 ## Not determined
 
