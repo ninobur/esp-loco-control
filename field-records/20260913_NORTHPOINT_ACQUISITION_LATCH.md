@@ -467,3 +467,77 @@ Inspect the track between MM088 and MM094:
 The second stop at Grillers occurred at stop-ramp throttle, where slow crossings
 and the reference freeze already account for most of it. The two should not be
 treated as one fault until MM088-094 has been looked at.
+
+## Correction to the third addendum: the magnets at MM089-093 are healthy
+
+The operator asked for Otto's own numbers on the stretch. They settle it.
+
+```
+mm    | TOBY 2026-08-28              | OTTO 2026-09-13
+      | durations     peaks          | durations     peaks
+84    | 154-198       201-232        | 149-168       186-206
+85    | 118-189       187-215        | 146-161       180-196
+86    | 166-183       184-198        | 152-169       163-176
+87    | 127-187       190-221        | 149-167       182-197
+88    | 155-176       212-231        | 155-170       193-201
+89    | 128-182       183-239        | 153-195       184-209  <<<
+90    | 141-191       184-220        | 156-196       167-199  <<<
+91    | 127-178       175-193        | 164-192       160-174  <<<
+92    | 148-178       180-220        | 155-170       187-202  <<<
+93    | 125-163       191-212        | 129-155       178-193  <<<
+94    | 154-164       183-216        | 133-153       165-178
+95    | 152-176       190-274        | 129-142       174-188
+96    | 153-163       194-213        | 133-157       179-184
+97    | 131-175       194-247        | 144-165       184-189
+98    | 152-170       194-198        | 138-164       176-183
+```
+
+Otto, 10-12 cruise passes per marker. Two values excluded because they ARE the
+fault: MM092 1569 ms / peak 251, MM091 96 ms / peak 117, both inside the six
+seconds of the episode.
+
+MM089-093 are ordinary for Otto. They sit inside his own range for MM084-088 and
+MM094-098 and track Toby's, allowing for Otto's weaker sensor giving peaks 20-30
+counts lower throughout. Marker by marker, every pass:
+
+```
+mm 89 : 195 186 172 166 165 170 153 162 166 159
+mm 90 : 196 189 176 171 174 168 176 175 160 156 188 175
+mm 91 : 192 187 165 177 172 173 164 173 [96] 178 171
+mm 92 : 170 164 163 159 155 158 158 156 [1569] 163 155
+mm 93 : 150 150 155 142 140 150 147 151 129 143 146
+```
+
+MM093 read 129 ms two seconds before the fault began; MM090 read 160 and 156 ms
+during the strike. Normal.
+
+**A displaced magnet or a ferrous object at MM089-093 would move these numbers.
+Nothing moves. The "inspect MM088-094 for a displaced magnet or debris" action
+in the third addendum is WITHDRAWN.**
+
+## What survives, stated at its actual strength
+
+Excluding station-departure positions (MM105, MM154-155 — the reference catching
+up after a dwell freeze), today's cruise-speed baseline steps were:
+
+```
+mm  35   -28
+mm  89   -22
+mm  89   +20
+mm  90   -60    the fault
+mm  93   +26    the fault
+```
+
+Four of five in a five-marker stretch containing no station. That is suggestive
+and it is four events. Two earlier conclusions in this record were built on
+counts of this size and both had to be withdrawn.
+
+The table does sharpen what the disturbance can be: it moves the level BETWEEN
+the magnets and leaves the magnets themselves alone. The baseline is a median of
+samples taken between markers; the peaks are measured at them. A source sitting
+between MM089 and MM093, offset from the marker positions, produces exactly
+that. A source on a marker does not, and the table rules that out.
+
+That is a much smaller claim than the third addendum made, and on four events it
+does not justify a track search. It wants another session's passes through that
+stretch before it is worth acting on.
