@@ -264,3 +264,83 @@ today's stops. It contains MERGED magnets. It does nothing about a resting level
 that keeps moving, and if a future step goes the other way the failure becomes
 MISSED magnets, which no timing rule can catch. It is containment for a
 mechanical fault and should not be treated as a repair.
+
+---
+
+# Second addendum: Otto was sitting in the sun
+
+Operator, 2026-09-13. This is the missing variable and it reorganises
+everything above.
+
+## The level is uniform in SPACE and variable in TIME
+
+Baseline by nav position, one column per lap of the continuous 10:19-11:21 run:
+
+```
+nav mm   10:21  10:28  10:35  10:42  10:49  10:56  11:03  11:10  11:17  11:47
+  170     1948   1955   1959   1937   1949   1952   1949   1958   1955   1977
+  120     1953   1955   1958   1936   1945   1949   1946   1955   1954   1982
+   70     1963   1957   1936   1949   1952   1953   1969   1957   1974   1971
+   20     1957   1961   1938   1951   1954   1951   1963   1957   1975      -
+```
+
+Down a column: flat around all 171 markers. **No stretch of track is special**,
+which rules out a fixed trackside object, a magnet, or a place-specific cause.
+
+Across a row: the whole level moves bodily between laps by up to 40 counts, and
+it falls as well as rises — 1953, 1957, 1937, 1949, 1950, 1968, 1955, 1975. Not
+a monotonic warming curve. Consistent with sun and cloud.
+
+## The night control already exists
+
+`field-records/logs/20260909_survey/` was collected **21:04-21:30**, after dark:
+4,090 waveforms, both directions, PWM 90. None of today's behaviour appears in
+it. Its only long passages are the separate parked-baseline event (see the first
+addendum). That is an unplanned but real control.
+
+`LL_LocoConfig_9950011.h` already carries the operator's own 2026-08-20 warning:
+"The 14-count margin rests on ONE session at one temperature (92 F). If Otto
+starts missing markers, this is the first thing to revisit."
+
+## The at-rest records are now fully explained
+
+Reference frozen at 2021 when throttle reached zero; Otto then sat in the sun
+and the line kept moving. A frozen reference plus a moving line produces exactly
+the observed phantom passages. No fault is required.
+
+## What is still open: heat or light
+
+They have different remedies and telemetry cannot separate them.
+
+- Heat moves over minutes. It accounts for the between-lap shifts and the
+  at-rest wander.
+- The one thing heat cannot account for is Northpoint: **+26 counts in 788 ms**,
+  then -60. At 265 mm/s a locomotive crosses a shadow edge in roughly half a
+  second to a second — the same timescale. The 2026-08-26 daylight tests include
+  a "rolling boundary" run, so a sun/shade edge on this layout is established.
+- Against the shade-edge reading: the mid-lap steps went -23, +21 and +15 on
+  different laps. A fixed edge crossed in one direction should give one sign.
+  Either the shadow geometry moved through the morning, or the fast steps are
+  something else.
+
+No Hall sensor part number is recorded anywhere in the repository, so whether
+the package is light-tight is not known from here.
+
+## Experiment, cheapest first
+
+1. Nudge above PWM 25 for two seconds. `baseline` should fall from 2021 to
+   ~1940 and the phantom passage should close. Confirms the at-rest picture.
+2. Shade the SENSOR — something opaque over it, not the whole locomotive — and
+   run the same route in the same sun. Failures stopping means light at the
+   sensor, and the fix is a shield.
+3. If shading the sensor changes nothing, run after dark or with the layout
+   shaded. Clean then means bulk temperature, and the answer is thresholds and
+   reference tracking rather than hardware.
+
+Step 2 before step 3: it is the one that distinguishes them and it takes a
+minute.
+
+This is most likely an environmental operating limit rather than a broken
+locomotive. The mechanical hypothesis in the first addendum is not needed to
+explain anything that survives examination, and should be treated as retired
+unless step 2 and step 3 both come back clean.
