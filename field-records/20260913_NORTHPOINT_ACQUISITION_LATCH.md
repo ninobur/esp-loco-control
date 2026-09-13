@@ -344,3 +344,38 @@ This is most likely an environmental operating limit rather than a broken
 locomotive. The mechanical hypothesis in the first addendum is not needed to
 explain anything that survives examination, and should be treated as retired
 unless step 2 and step 3 both come back clean.
+
+---
+
+# Provenance, and a boundary on the record
+
+Every number in this record comes from a live MQTT capture of
+`ngr/loco/9950011/#`, preserved verbatim at
+`field-records/logs/20260913_otto_x16_floor82_session.log.gz`
+(2026-09-12T11:20:52 to 2026-09-13T13:17:33 PDT). `pub_drop` is 0 throughout
+the periods analysed, so nothing is missing from them.
+
+**Everything after roughly 13:10 on 2026-09-13 is handling, not railway data.**
+The operator lifted Otto and carried him to the charger. Between 13:11 and
+13:15 the capture shows twenty-one passages of mixed polarity, peaks 41 to 184
+and gaps as short as 4 ms — that is a locomotive being moved past whatever
+magnetic environment lies between the track and the bench. None of it bears on
+the fault. Battery voltage also falls from 15.66 to 15.44 V across that
+boundary.
+
+The reference remains frozen at 2021 throughout, because throttle is zero.
+
+## What the charger period cannot tell us
+
+It is not a thermal experiment. Otto is in a different place, with a different
+magnetic and thermal environment, on a supply that is now charging. The three
+experiments above are deferred to the next run, not invalidated.
+
+## The single most valuable number on the next run
+
+Where the reference LANDS once Otto is driven above PWM 25 and it re-learns —
+which takes about two seconds. Today it sat near 1950 through the cool part of
+the morning and had reached 1975-2021 by 11:51 in the sun. If the next run is
+in shade or after dark and it settles near 1940, the environmental reading is
+confirmed without any further instrumentation. Record the weather and where the
+shadow line falls alongside it.
