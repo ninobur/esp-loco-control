@@ -379,3 +379,91 @@ the morning and had reached 1975-2021 by 11:51 in the sun. If the next run is
 in shade or after dark and it settles near 1940, the environmental reading is
 confirmed without any further instrumentation. Record the weather and where the
 shadow line falls alongside it.
+
+---
+
+# Third addendum: the fault is a PLACE — MM089 to MM093
+
+Everything above treats the disturbance as a condition of the locomotive. It is
+not. Plotting every 1 Hz baseline step of 10+ counts against the position it
+occurred at settles it.
+
+## Twenty steps, and where they happened
+
+```
+time      navmm   from     to   delta   pwm
+10:19:33     41   1937   1968     +31    38     first lap after priming
+10:19:44     35   1973   1945     -28    90       (pairs with the above, 11 s)
+10:22:47    154   1943   1954     +11    90     Bamboo ramp
+10:24:52    105   1951   1963     +12    90     Arches ramp
+10:37:12    154   1951   1961     +10    90     Bamboo ramp
+10:39:30     89   1965   1943     -22    90     ** CRUISE **
+10:51:05    157   1949   1937     -12    39     Bamboo ramp
+10:53:00    107   1950   1940     -10    42     Arches ramp
+10:53:04    105   1940   1950     +10    90     Arches ramp
+10:58:01    157   1952   1942     -10    45     Bamboo ramp
+11:05:01    155   1937   1948     +11    90     Bamboo ramp
+11:06:55    105   1940   1950     +10    90     Arches ramp
+11:07:16     89   1951   1971     +20    90     ** CRUISE **
+11:20:58     93   1954   1980     +26    90     ** CRUISE -- the fault begins **
+11:21:04     90   1981   1921     -60    90     ** CRUISE -- the fault **
+11:40:49     90   1927   1987     +60    33     (nav STRUCK, mm stale at 90 -- discard)
+11:41:38     90   1986   1959     -27    46     (nav STRUCK, mm stale at 90 -- discard)
+11:49:48    109   1985   1970     -15    60     Arches ramp
+11:51:33     63   1978   1988     +10    50     Grillers ramp
+11:51:38     61   1999   2021     +22    11     Grillers ramp
+```
+
+The station clusters at MM105-109, MM154-157 and MM61-63 are the reference
+freeze/resume: adaptation is suspended below `NAVI_BASELINE_ADAPT_PWM` and
+catches up on departure. Expected, not a fault.
+
+Two rows must be discarded: after the 11:21:05 strike navigation latched STRUCK
+and `mm` froze at 90, so the 11:40 and 11:41 entries report a stale position,
+not a physical one.
+
+**What remains: every full-cruise disturbance today occurred at MM089-MM093.**
+Four events on four separate laps out of ten passes through that stretch, and
+none anywhere else on 171 markers. The two smaller ones (-22 at 10:39, +20 at
+11:07) passed without incident. The fault was the same disturbance two to three
+times larger.
+
+## Toby exonerates the track as such
+
+2026-08-28 survey, MM084-MM098, 14-15 passes each: durations 118-198 ms, peaks
+175-274, every one admitted. Nothing anomalous. Either something arrived at
+MM089-093 in the intervening two weeks, or it only troubles Otto — whose Hall
+sensor has been documented weak since 2026-08-20 and has less margin to spare.
+
+## Two effects, not one
+
+- **Slow, whole-circuit, hours.** The level drifted 1950 -> 1975 -> 2021 across
+  the session, uniform around all 171 markers (see the second addendum). That is
+  environmental. It never caused a stop by itself. It ate margin.
+- **Fast, local, seconds.** 20-60 counts at MM089-093 on roughly half the
+  passes. That is the trigger.
+
+The stop happened when the second met the margin left by the first, which is why
+MM089 was survivable at 10:39 and 11:07 and not at 11:20.
+
+## Character of the local disturbance
+
+A clean, quiet DC offset. Sample-to-sample scatter on the 1200 ms plateau is
+1.7 counts, quieter than a magnet's own slope, and it adds to the reading
+without altering the magnet response: MM092 read peak 251 where that marker
+normally reads about 190 — 190 plus a 60-count pedestal. It rises at about
+0.3 counts/ms where a genuine magnet at cruise rises at about 2.2. That is an
+external field, or a ferrous object displacing one. It is not sensor noise and
+not a failing sensor.
+
+## Action
+
+Inspect the track between MM088 and MM094:
+
+- the marker magnets at MM089, 090, 091, 092, 093 — proud, tilted, loose, shifted
+- ferrous debris in or beside the rails: screw, washer, wire offcut, staple
+- any bracket, fixing or rail joint that has worked loose since August
+
+The second stop at Grillers occurred at stop-ramp throttle, where slow crossings
+and the reference freeze already account for most of it. The two should not be
+treated as one fault until MM088-094 has been looked at.
