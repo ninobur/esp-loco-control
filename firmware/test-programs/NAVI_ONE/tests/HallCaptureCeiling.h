@@ -102,6 +102,20 @@ struct CeilingConfig {
   // single crossing can reach the ceiling, so the reset is armed. Below it the
   // reset is disabled and a legitimately long crossing is left alone.
   uint8_t  ceilingPwm      = 0;
+
+  // ---- THE SECOND ADDITION: peak-relative close -------------------------
+  // Close the passage when the signal has spent peakCloseN consecutive
+  // milliseconds below its OWN running peak (by more than peakCloseHyst
+  // counts). Measured against entryBaseline_, frozen at open, so no live
+  // reference is involved and a drifting baseline cannot latch it.
+  // 0 disables it and the ordinary exit-margin test stands alone.
+  uint16_t peakCloseN    = 0;
+  int16_t  peakCloseHyst = 0;
+  // After a peak-relative close the signal is still well above the entry
+  // margin, so without this the very next sample opens another passage and one
+  // magnet becomes several. Require the signal to have actually gone away --
+  // below the entry margin once -- before acquisition re-arms.
+  bool     peakCloseLockout = false;
 };
 
 // One forced closure. Reported, never discarded.
@@ -138,6 +152,7 @@ class HallCaptureCeiling {
   const Passage& passage() const { return out_; }
   uint32_t floorRejects() const { return floorRejects_; }
   uint32_t forcedClosures() const { return forcedClosures_; }
+  uint32_t peakCloses()     const { return peakCloses_; }
 
   bool takeForcedClosure(ForcedClosure& f) {
     if (!forcedPending_) return false;
@@ -196,6 +211,7 @@ class HallCaptureCeiling {
       // it, and then pushed it again through the main path, so it appeared
       // twice at the pre/passage boundary of every waveform.
       if (mag < cfg_.entryMargin) {
+        lockedOut_ = false;          // the signal has gone: acquisition re-arms
         // RAW, not delta. The pre-roll is replayed at open against
         // entryBaseline_, so it must not carry a reference of its own.
         pre_[preHead_] = raw;
@@ -203,12 +219,14 @@ class HallCaptureCeiling {
         if (preLen_ < PRE) ++preLen_;
         return false;
       }
+      if (lockedOut_) return false;    // peak-closed already; wait for it to go
       open_ = true;
       openedAtMs_ = nowMs;
       // The reference this passage will be MEASURED against, fixed here and not
       // touched again until it closes.
       entryBaseline_ = baseline_;
       peak_ = 0; n_ = 0; quietSince_ = 0; truncated_ = false;
+      runMax_ = 0; belowRun_ = 0;
       // The pole is NOT decided here. 0.3 latched it from this one sample --
       // the entry crossing -- and on 2026-08-31 a single-sample artifact of
       // +41 (MM70) and -43 (MM119), each a few counts over entryMargin and
@@ -243,6 +261,22 @@ class HallCaptureCeiling {
       if (nowMs - quietSince_ >= cfg_.exitHoldMs) return close(nowMs);
     } else {
       quietSince_ = 0;
+    }
+
+    // ---- THE SECOND ADDITION: peak-relative close -----------------------
+    // rec is this sample measured against the FROZEN entry reference.
+    if (cfg_.peakCloseN) {
+      const int32_t m = rec < 0 ? -rec : rec;
+      if (m > runMax_) { runMax_ = m; belowRun_ = 0; }
+      else if (m < runMax_ - cfg_.peakCloseHyst) {
+        if (++belowRun_ >= cfg_.peakCloseN) {
+          ++peakCloses_;
+          if (cfg_.peakCloseLockout) lockedOut_ = true;
+          return close(nowMs);
+        }
+      } else {
+        belowRun_ = 0;
+      }
     }
 
     // ---- THE ADDITION ---------------------------------------------------
@@ -301,6 +335,7 @@ class HallCaptureCeiling {
     entryBaseline_ = baseline_;
     floorRejectPending_ = false;
     forcedPending_ = false;
+    lockedOut_ = false;
   }
 
  private:
@@ -484,6 +519,10 @@ class HallCaptureCeiling {
   uint32_t startMs_ = 0, lastBaseMs_ = 0, openedAtMs_ = 0, quietSince_ = 0;
   uint32_t floorRejects_ = 0;
   uint32_t forcedClosures_ = 0;
+  int32_t  runMax_ = 0;
+  bool     lockedOut_ = false;
+  uint16_t belowRun_ = 0;
+  uint32_t peakCloses_ = 0;
   ForcedClosure forced_;
   bool forcedPending_ = false;
   CeilFloorRejection floorReject_;
