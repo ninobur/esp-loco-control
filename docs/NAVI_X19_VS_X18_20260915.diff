@@ -1,0 +1,1021 @@
+# X19 vs X18 — complete diff, generated 2026-09-15T23:31Z
+# X18 = firmware/test-programs/NAVI_ONE      at commit 242109e
+# X19 = firmware/test-programs/NAVI_ONE_X19  at commit 227c330
+# Reproduce: diff -u firmware/test-programs/NAVI_ONE/<f> firmware/test-programs/NAVI_ONE_X19/<f>
+
+################ MagnetRecognizer.h ################
+--- NAVI_ONE/MagnetRecognizer.h	2026-09-12 11:07:25
++++ NAVI_ONE_X19/MagnetRecognizer.h	2026-09-15 16:16:17
+@@ -27,6 +27,17 @@
+ //
+ //   TIME        close-of-previous-accepted to open-of-this >= 500 ms.
+ //
++//               X19 NOTE. This recognizer is UNCHANGED from X18 and is shared
++//               verbatim. But X19 has no close: it presents each excursion
++//               with openedAtMs == closedAtMs == the DETECTION INSTANT, so the
++//               guard measures detect-to-detect. That is the same interval the
++//               detector's own 500 ms refractory already enforces, so under
++//               X19 this test can no longer refuse anything -- it abstains in
++//               practice while still reporting gapMs. In X19 the refractory,
++//               not this guard, is the duplicate-count protection. Do not read
++//               a TOO_SOON in X19 telemetry as evidence that the guard is
++//               working; read gapMs instead.
++//
+ //               OPERATOR RULING 2026-09-10, restoring his original value. Read
+ //               the correction before changing this number again.
+ //
+@@ -140,9 +151,11 @@
+   uint16_t      preSamples   = 0;
+   bool          truncated    = false;
+   bool          clipped      = false;
+-  uint16_t      decimation   = 1;       // samples per stored point (see HallCapture)
++  uint16_t      decimation   = 1;       // X18: samples per stored point. X19
++                                        // never decimates and always sets 1.
+   // Signed sum of every sample in the passage. Its sign IS the polarity
+-  // (HallCapture::close). Carried so a judgement's basis travels with it;
++  // (X18 HallCapture::close; X19 sums the excursion only). Carried so a
++  // judgement's basis travels with it;
+   // nothing thresholds on it. Decision 0064.
+   int64_t       signedSum    = 0;
+   // Diagnostic provenance only: the fixed reference against which this
+@@ -239,8 +252,11 @@
+     if (v.amplitudeRatio < cfg_.amplitudeFloor) { v.outcome = Outcome::TooWeak; return v; }
+ 
+     // THE PHYSICAL TESTS HAVE PASSED. From here the passage is a magnet.
+-    // The duration floor is HallCapture's (floorMs); polarity and sequence
+-    // are the Navigator's. Nothing below may change these two lines.
++    // In X18 the duration floor was HallCapture's (floorMs). X19 HAS NO
++    // DURATION FLOOR -- see NAVIFieldConfig.h -- so amplitude is the only
++    // physical screen left above the detector's 2-sample persistence test.
++    // Polarity and sequence are the Navigator's. Nothing below may change
++    // these two lines.
+     v.outcome = Outcome::Magnet;
+     v.isMagnet = true;
+     const bool becomesPostStopAnchor = postStopWaitingAnchor_;
+
+################ NAVIFieldConfig.h ################
+--- NAVI_ONE/NAVIFieldConfig.h	2026-09-12 17:02:25
++++ NAVI_ONE_X19/NAVIFieldConfig.h	2026-09-15 16:16:11
+@@ -1,7 +1,31 @@
+ #pragma once
+ #include <stdint.h>
+ 
+-// Operator-approved experimental field-test value, 2026-09-12.
+-// This is shared by the sketch and every acquisition gate so the test suite
+-// cannot silently exercise a different duration floor from the flashed image.
+-static constexpr uint16_t NAVI_PASSAGE_FLOOR_MS = 82;
++// ---------------------------------------------------------------------------
++// X19: THERE IS NO COMPLETED-PASSAGE DURATION FLOOR.
++//
++// Decision 0085's operator-approved 82 ms is the time between a 70-count entry
++// crossing and a 25-count exit crossing of a GLOBAL reference. X19 has neither
++// crossing: events are framed by departure from a local minimum and end when a
++// fixed window expires. The number therefore has no definition in this build
++// and is deliberately not carried across -- the 2026-09-15 replay measured
++// that transplanting it literally rejects genuine magnets, including Otto's
++// known ~83 ms borderline passage.
++//
++// What X19 does instead is MEASURE. Every candidate reports two widths on
++// diag/excursion -- w_caliper_ms (samples at or beyond 25 counts from the
++// excursion's local zero) and w_frac_ms (samples at or beyond 34% of its own
++// peak) -- so 0085 can be re-derived from this build's own field evidence
++// rather than assumed. Measured conversions from the replay, for reference
++// when that re-derivation happens: w_caliper / X18 duration ~ 0.93,
++// w_frac / X18 duration ~ 0.83.
++//
++// When a value is derived, it goes in DetectorConfig::widthFloorMs (default 0
++// = disabled) and nowhere else. Do not reintroduce a constant here.
++//
++// The X18 value is retained ONLY as a documented historical reference so that
++// a diff against X18 shows what was removed rather than what was renamed. It
++// is not referenced by any X19 code path; `grep NAVI_PASSAGE_FLOOR_MS` over
++// this sketch returns this file alone.
++// ---------------------------------------------------------------------------
++static constexpr uint16_t NAVI_X18_PASSAGE_FLOOR_MS = 82;   // historical, unused
+
+################ WaveformDump.h ################
+--- NAVI_ONE/WaveformDump.h	2026-08-30 23:37:27
++++ NAVI_ONE_X19/WaveformDump.h	2026-09-15 16:15:03
+@@ -1,95 +1,134 @@
+ #pragma once
+ // ---------------------------------------------------------------------------
+-// WaveformDump -- wire format for one chunk of one buffered passage from
+-// WaveformWindow, sized to fit inside one MQTT message (PubMsg.payload, 704
+-// bytes in NAVI_ONE.ino).
++// WaveformDump -- X19 wire format, one chunk of one buffered CANDIDATE RECORD
++// from WaveformWindow, sized to fit inside one MQTT message (PubMsg.payload,
++// 704 bytes in the sketch).
+ //
+-// A slot's samples are chunked, never truncated: "do not discard information
+-// the firmware processes to compute the value" (operator's ruling,
+-// 2026-08-31) rules out capping sampleCount to whatever fits in one message.
+-// Most real passages fit in a single chunk; HallCapture's own decimation only
+-// engages on passages long enough that this would matter, and even then the
+-// chunker just emits more messages.
++// VERSION 2. The X18 header (version-less, 40 bytes) described a closed
++// passage: openedAtMs/closedAtMs, decimation, a Gaussian residual. X19 has no
++// close, never decimates, and computes no morphology, so the header carries
++// what an excursion actually has: the detection instant, the local reference
++// the record is expressed against, the departure that triggered it, where the
++// pre-roll ends, and where the polarity-bearing excursion begins and ends.
+ //
+-// Pure encode/decode, no MQTT, no FreeRTOS -- host-testable like everything
+-// else this recognizer depends on.
++// `version` is the FIRST byte precisely so a host decoder can tell the two
++// apart without guessing: 40-byte X18 records begin with slotIndex, which is
++// 0..slotTotal-1 and therefore small; X19 records begin with the literal 2.
++// Decoders should branch on it rather than on message length.
++//
++// Samples are int16 counts relative to that record's own localRef, oriented so
++// the excursion's own pole is positive -- the same convention X18 used, with
++// the excursion's local zero in place of the frozen entry baseline.
++//
++// Pure encode/decode, no MQTT, no FreeRTOS -- host-testable.
++//
++// Host decoder (struct module, little-endian, 57 bytes):
++//   "<BBBBBBBBB" "HHHHHHHHHH" "hhhhhh" "f" "III"
++//   version slotIndex slotTotal chunkIndex chunkTotal polarity outcome
++//   isMagnet widthRejected
++//   sampleCount chunkSampleCount chunkOffset preSamples peakCounts gain
++//   excursionFirst excursionLast widthCaliperMs widthFracMs
++//   peakSigned rawAtDetect localRef reference shadowRef departAtDetect
++//   amplitudeRatio
++//   gapMs detectedAtMs windowEndMs
+ // ---------------------------------------------------------------------------
+ #include <stdint.h>
+ #include <string.h>
+ 
+ namespace navi_one {
+ 
++static constexpr uint8_t WAV_FORMAT_VERSION = 2;
++
+ #pragma pack(push, 1)
+ struct WavHeader {
+-  uint8_t  slotIndex;        // 0 = most recently pushed slot ... slotTotal-1 = oldest
+-  uint8_t  slotTotal;        // number of valid slots in this dump
+-  uint8_t  chunkIndex;       // 0-based chunk of THIS slot's samples
+-  uint8_t  chunkTotal;       // total chunks for this slot
+-  uint8_t  polarity;
+-  uint8_t  outcome;
++  uint8_t  version;           // WAV_FORMAT_VERSION
++  uint8_t  slotIndex;         // 0 = most recently pushed ... slotTotal-1 = oldest
++  uint8_t  slotTotal;
++  uint8_t  chunkIndex;        // 0-based chunk of THIS slot's samples
++  uint8_t  chunkTotal;
++  uint8_t  polarity;          // 1 = N, 0 = S
++  uint8_t  outcome;           // navi_one::Outcome
+   uint8_t  isMagnet;
+-  uint8_t  shapeTested;
+-  uint16_t sampleCount;      // TOTAL samples for the whole slot
+-  uint16_t chunkSampleCount; // samples carried in THIS chunk
+-  uint16_t chunkOffset;      // starting sample index of this chunk within the slot
+-  uint16_t decimation;
+-  uint16_t peakCounts;
++  uint8_t  widthRejected;     // 1 only if widthFloorMs was configured non-zero
++  uint16_t sampleCount;       // TOTAL samples in the record (pre-roll + window)
++  uint16_t chunkSampleCount;
++  uint16_t chunkOffset;
++  uint16_t preSamples;        // index of the DETECTION sample within the record
++  uint16_t peakCounts;        // |peak| over the window, judged copy
+   uint16_t gain;
++  uint16_t excursionFirst;    // first/last sample index used for POLARITY
++  uint16_t excursionLast;
++  uint16_t widthCaliperMs;    // samples at or beyond the 25-count caliper
++  uint16_t widthFracMs;       // samples at or beyond excursionFrac * peak
++  int16_t  peakSigned;
++  int16_t  rawAtDetect;
++  int16_t  localRef;          // L, raw counts: the record's zero
++  int16_t  reference;         // operative baseline at detection (telemetry)
++  int16_t  shadowRef;         // rolling median at detection (telemetry)
++  int16_t  departAtDetect;    // signed raw(detect) - L
+   float    amplitudeRatio;
+-  float    residual;
+   uint32_t gapMs;
+-  uint32_t openedAtMs;
+-  uint32_t closedAtMs;
++  uint32_t detectedAtMs;
++  uint32_t windowEndMs;
+ };
+ #pragma pack(pop)
+ 
+-// Maximum samples that fit in one message of the given capacity, alongside
+-// the header. Capacity is the full payload buffer size (e.g. PubMsg.payload,
+-// 704 on this build).
++// Maximum samples that fit in one message of the given capacity.
+ constexpr uint16_t wavChunkCapacity(uint16_t payloadCapacity) {
+   return (uint16_t)((payloadCapacity - sizeof(WavHeader)) / sizeof(int16_t));
+ }
+ 
+-// How many chunks a slot with `sampleCount` samples needs, given `perChunk`
+-// samples per chunk. At least 1, even for an empty passage.
++// How many chunks a record with `sampleCount` samples needs. At least 1.
+ inline uint8_t wavChunkCount(uint16_t sampleCount, uint16_t perChunk) {
+   if (perChunk == 0) return 1;
+   uint16_t n = (uint16_t)((sampleCount + perChunk - 1) / perChunk);
+   return n == 0 ? 1 : (uint8_t)n;
+ }
+ 
+-// Encodes one chunk into `out` (must hold at least sizeof(WavHeader) +
+-// chunkSampleCount*2 bytes). Returns the total bytes written.
++// Encodes one chunk into `out`. Returns the total bytes written, 0 if it
++// would not fit.
+ inline uint16_t wavEncodeChunk(
+     uint8_t* out, uint16_t outCapacity,
+     uint8_t slotIndex, uint8_t slotTotal,
+     uint8_t chunkIndex, uint8_t chunkTotal,
+-    uint8_t polarity, uint8_t outcome, uint8_t isMagnet, uint8_t shapeTested,
+-    uint16_t sampleCount, uint16_t decimation, uint16_t peakCounts,
+-    uint16_t gain, float amplitudeRatio, float residual, uint32_t gapMs,
+-    uint32_t openedAtMs, uint32_t closedAtMs,
++    uint8_t polarity, uint8_t outcome, uint8_t isMagnet, uint8_t widthRejected,
++    uint16_t sampleCount, uint16_t preSamples, uint16_t peakCounts,
++    uint16_t gain, uint16_t excursionFirst, uint16_t excursionLast,
++    uint16_t widthCaliperMs, uint16_t widthFracMs,
++    int16_t peakSigned, int16_t rawAtDetect, int16_t localRef,
++    int16_t reference, int16_t shadowRef, int16_t departAtDetect,
++    float amplitudeRatio, uint32_t gapMs,
++    uint32_t detectedAtMs, uint32_t windowEndMs,
+     const int16_t* samples, uint16_t chunkOffset, uint16_t chunkSampleCount) {
+   const uint16_t need = (uint16_t)(sizeof(WavHeader) + chunkSampleCount * sizeof(int16_t));
+   if (need > outCapacity) return 0;
+   WavHeader h{};
++  h.version = WAV_FORMAT_VERSION;
+   h.slotIndex = slotIndex; h.slotTotal = slotTotal;
+   h.chunkIndex = chunkIndex; h.chunkTotal = chunkTotal;
+   h.polarity = polarity; h.outcome = outcome;
+-  h.isMagnet = isMagnet; h.shapeTested = shapeTested;
++  h.isMagnet = isMagnet; h.widthRejected = widthRejected;
+   h.sampleCount = sampleCount; h.chunkSampleCount = chunkSampleCount;
+-  h.chunkOffset = chunkOffset; h.decimation = decimation;
++  h.chunkOffset = chunkOffset; h.preSamples = preSamples;
+   h.peakCounts = peakCounts; h.gain = gain;
+-  h.amplitudeRatio = amplitudeRatio; h.residual = residual;
+-  h.gapMs = gapMs; h.openedAtMs = openedAtMs; h.closedAtMs = closedAtMs;
++  h.excursionFirst = excursionFirst; h.excursionLast = excursionLast;
++  h.widthCaliperMs = widthCaliperMs; h.widthFracMs = widthFracMs;
++  h.peakSigned = peakSigned; h.rawAtDetect = rawAtDetect;
++  h.localRef = localRef; h.reference = reference; h.shadowRef = shadowRef;
++  h.departAtDetect = departAtDetect;
++  h.amplitudeRatio = amplitudeRatio; h.gapMs = gapMs;
++  h.detectedAtMs = detectedAtMs; h.windowEndMs = windowEndMs;
+   memcpy(out, &h, sizeof(WavHeader));
+   memcpy(out + sizeof(WavHeader), samples + chunkOffset,
+          chunkSampleCount * sizeof(int16_t));
+   return need;
+ }
+ 
+-// Decodes a header from a received message. Returns false if too short.
++// Decodes a header from a received message. Returns false if too short or if
++// it is not an X19 record.
+ inline bool wavDecodeHeader(const uint8_t* in, uint16_t inLen, WavHeader& out) {
+   if (inLen < sizeof(WavHeader)) return false;
++  if (in[0] != WAV_FORMAT_VERSION) return false;
+   memcpy(&out, in, sizeof(WavHeader));
+   return true;
+ }
+
+################ WaveformWindow.h ################
+--- NAVI_ONE/WaveformWindow.h	2026-08-30 23:37:03
++++ NAVI_ONE_X19/WaveformWindow.h	2026-09-15 16:14:43
+@@ -1,93 +1,98 @@
+ #pragma once
+ // ---------------------------------------------------------------------------
+-// WaveformWindow -- a short trailing memory of raw Hall passages, kept only so
+-// that when AUTO is withdrawn for a NAVIGATION reason (a strike or a
+-// contradiction), the samples the recognizer actually judged are still
+-// available to publish.
++// WaveformWindow -- X19. A short trailing memory of raw Hall candidate
++// records, kept so that when AUTO is withdrawn for a NAVIGATION reason, and
++// whenever a candidate is refused, the samples the recognizer actually judged
++// are still available to publish.
+ //
+-// Built on the operator's ruling, 2026-08-31, after two field events (MM110
+-// and MM147/145) in which a WRONG_SHAPE rejection produced a silent one-marker
+-// lag that only surfaced markers later as a WRONG_MAGNET strike -- with no way
+-// to see what had actually distorted the rejected waveform, because
+-// HallCapture's own buffer is a single passage, overwritten by the next one.
++// X18 stored one closed Passage per slot: pre-roll of 12 samples plus the
++// passage, decimated once it outgrew 512 points. X19 stores a CANDIDATE
++// RECORD: 512 ms of raw pre-roll plus the 400 ms acquisition window, at 1 kHz,
++// never decimated. That is the evidence 2026-09-15 did not have -- every dump
++// that day began at the entry crossing with 12 ms of history, which is why the
++// FIRST detection of an isolated magnet could not be replayed at all.
+ //
+-//   Window depth: 6.    Covers the measured worst-case lag (decision 0059).
+-//   Trigger:      whatever calls withdraw() in NAVI_ONE.ino -- i.e. any event
+-//                 that shuts AUTO down for a navigation reason (WrongMagnet,
+-//                 Contradicted). NOT manual auto-off, dispatcher_release,
+-//                 e-stop, or low voltage -- none of those go through
+-//                 withdraw() for a shape/polarity reason, and none of them
+-//                 benefit from a waveform dump.
+-//   Fidelity:     exactly what HallCapture handed to the recognizer -- the
+-//                 decimated oriented samples, verbatim. No further resampling.
+-//                 "Do not discard information the firmware processes to
+-//                 compute the value" (operator's ruling).
++// Fidelity is unchanged in principle: exactly what the detector handed to the
++// recognizer, verbatim, expressed against the excursion's own local reference
++// L rather than against a global baseline. "Do not discard information the
++// firmware processes to compute the value" (operator's ruling, 2026-08-31).
+ //
+-// Position-free and ruling-free, like MagnetRecognizer: it does not know what
+-// a WrongMagnet is, does not decide when to dump, and does not touch the
+-// network. It only remembers what it is pushed, and hands entries back on
+-// request. Owned and pushed to exclusively by the Hall task, same as
+-// HallCapture and MagnetRecognizer (review closeout finding 3) -- pushing
+-// happens at the one point (NAVI_ONE.ino hallTask()) where a just-closed
+-// Passage's samples are still valid, before the next capture.sample() begins
+-// overwriting HallCapture's own buffer.
++// Owned and pushed to exclusively by the Hall task, as in X18.
+ // ---------------------------------------------------------------------------
+ #include <stdint.h>
+ #include <string.h>
+ #include "MagnetRecognizer.h"
++#include "ExcursionDetector.h"
+ 
+ namespace navi_one {
+ 
+-template <uint8_t DEPTH = 6, uint16_t RING = 512>
++template <uint8_t DEPTH = 5, uint16_t RING = 960>
+ class WaveformWindow {
+  public:
+   struct Entry {
+     bool     valid          = false;
+-    uint32_t openedAtMs     = 0;
+-    uint32_t closedAtMs     = 0;
++    uint32_t detectedAtMs   = 0;
++    uint32_t windowEndMs    = 0;
+     uint16_t peakCounts     = 0;
++    int16_t  peakSigned     = 0;
+     uint8_t  polarity       = 0;
+-    uint16_t decimation     = 1;
+     uint8_t  outcome        = 0;
+     uint8_t  isMagnet       = 0;
+-    uint8_t  shapeTested    = 0;
++    uint8_t  widthRejected  = 0;
+     float    amplitudeRatio = 0.0f;
+-    float    residual       = 0.0f;
+     uint32_t gapMs          = 0;
+     uint16_t gain           = 0;
+-    uint16_t sampleCount    = 0;    // may exceed what fits in one MQTT message
++    uint16_t sampleCount    = 0;
++    uint16_t preSamples     = 0;
++    int16_t  rawAtDetect    = 0;
++    int16_t  localRef       = 0;
++    int16_t  reference      = 0;
++    int16_t  shadowRef      = 0;
++    int16_t  departAtDetect = 0;
++    uint16_t excursionFirst = 0;
++    uint16_t excursionLast  = 0;
++    uint16_t widthCaliperMs = 0;
++    uint16_t widthFracMs    = 0;
+     int16_t  samples[RING]  = {};
+   };
+ 
+-  // Copies now. Must be called before the Hall task's next capture.sample()
+-  // call overwrites the Passage's backing buffer -- i.e. right where the
+-  // passage and its Verdict are both still fresh in hallTask().
+-  void push(const Passage& p, const Verdict& v) {
+-    Entry& e = ring_[head_];
+-    e.valid          = true;
+-    e.openedAtMs     = p.openedAtMs;
+-    e.closedAtMs     = p.closedAtMs;
+-    e.peakCounts     = p.peakCounts;
+-    e.polarity       = p.polarity;
+-    e.decimation     = p.decimation;
+-    e.outcome        = (uint8_t)v.outcome;
+-    e.isMagnet       = v.isMagnet ? 1 : 0;
+-    e.shapeTested    = v.shapeTested ? 1 : 0;
+-    e.amplitudeRatio = v.amplitudeRatio;
+-    e.residual       = v.residual;
+-    e.gapMs          = v.gapMs;
+-    e.gain           = v.gain;
+-    uint16_t n = p.sampleCount > RING ? RING : p.sampleCount;
+-    e.sampleCount = n;
+-    if (p.oriented) memcpy(e.samples, p.oriented, n * sizeof(int16_t));
++  // Copies now. Must be called while the detector's backing buffer is still
++  // the one just judged -- i.e. right where the Excursion and its Verdict are
++  // both fresh in hallTask().
++  void push(const Excursion& e, const Verdict& v) {
++    Entry& s = ring_[head_];
++    s.valid          = true;
++    s.detectedAtMs   = e.detectedAtMs;
++    s.windowEndMs    = e.windowEndMs;
++    s.peakCounts     = e.peakCounts;
++    s.peakSigned     = e.peakSigned;
++    s.polarity       = e.polarity;
++    s.outcome        = (uint8_t)v.outcome;
++    s.isMagnet       = v.isMagnet ? 1 : 0;
++    s.widthRejected  = e.widthRejected ? 1 : 0;
++    s.amplitudeRatio = v.amplitudeRatio;
++    s.gapMs          = v.gapMs;
++    s.gain           = v.gain;
++    s.preSamples     = e.preSamples;
++    s.rawAtDetect    = e.rawAtDetect;
++    s.localRef       = (int16_t)e.localRef;
++    s.reference      = (int16_t)e.reference;
++    s.shadowRef      = (int16_t)e.shadowRef;
++    s.departAtDetect = (int16_t)e.departAtDetect;
++    s.excursionFirst = e.excursionFirst;
++    s.excursionLast  = e.excursionLast;
++    s.widthCaliperMs = e.widthCaliperMs;
++    s.widthFracMs    = e.widthFracMs;
++    uint16_t n = e.sampleCount > RING ? RING : e.sampleCount;
++    s.sampleCount = n;
++    if (e.oriented) memcpy(s.samples, e.oriented, n * sizeof(int16_t));
+     head_ = (uint8_t)((head_ + 1) % DEPTH);
+     if (filled_ < DEPTH) ++filled_;
+   }
+ 
+   uint8_t count() const { return filled_; }
+ 
+-  // 0 = most recently pushed (closest to whatever triggered the dump),
+-  // count()-1 = oldest still held.
++  // 0 = most recently pushed, count()-1 = oldest still held.
+   const Entry& at(uint8_t indexFromNewest) const {
+     uint8_t i = (uint8_t)((head_ + DEPTH - 1 - indexFromNewest) % DEPTH);
+     return ring_[i];
+
+################ NAVI_ONE.ino -> NAVI_ONE_X19.ino ################
+--- NAVI_ONE/NAVI_ONE.ino	2026-09-14 23:27:33
++++ NAVI_ONE_X19/NAVI_ONE_X19.ino	2026-09-15 16:20:43
+@@ -1,9 +1,37 @@
+ /*
+  * ============================================================================
+- * NAVI_ONE 1.0  —  Ninobur Garden Railway navigation, built from the ground up
++ * NAVI_ONE 1.0 X19  —  NO-CLOSURE FIELD TEST
+  * ============================================================================
+- * Development. NOT FIELD ACCEPTED.
++ * Development. NOT FIELD ACCEPTED. X18 is untouched and remains the build to
++ * fall back to.
+  *
++ * ONE EXPERIMENT: replace closure-dependent Hall event framing with
++ * local-excursion event detection. Nothing else is redesigned.
++ *
++ *   X18   a magnet event is a PASSAGE: it begins when |raw - reference| >= 70
++ *         and ends when |raw - reference| <= 25 for 8 ms. Both ends depend on
++ *         a global reference that was measured, on 2026-09-15, to move 20-30
++ *         counts in seconds and to be 112 counts wrong on one boot.
++ *   X19   a magnet event is an EXCURSION: it begins when the signal departs by
++ *         70 counts from the quietest sample of the last 300 ms, and it does
++ *         not end -- measurement simply stops after a fixed 400 ms window and
++ *         no further candidate is taken for 500 ms from detection. The
++ *         reference cancels out of the departure arithmetic.
++ *
++ * Evidence: docs/NAVI_NEXT_EVENT_WITHOUT_CLOSURE_20260915.md, which found the
++ * next magnet in 11 of 11 cases where X18 could not close, produced nothing
++ * from fields held up to 111 seconds, and recovered both advances that
++ * 2026-09-15's merges lost. It could NOT test first detection, slow running
++ * below PWM 40, or a magnet on an opposite-sign field. This build exists to
++ * get that evidence, and the 512 ms pre-roll is why.
++ *
++ * KNOWN RISKS, ACCEPTED ON PURPOSE (see ExcursionDetector.h):
++ *   * decision 0085's 82 ms floor is NOT implemented and NOT replaced;
++ *   * the 500 ms guard is now detect-to-detect and refuses nothing the
++ *     detector already admitted;
++ *   * the lap baseline estimate is published but never applied, so the
++ *     reference is free to drift and be observed drifting.
++ *
+  * One target. One advance. One strike.
+  *
+  * Built 2026-08-29 at the operator's direction: "Make the simplest and most
+@@ -14,7 +42,9 @@
+  * ----------------------------------------------------------------------------
+  * THE SHAPE OF IT
+  * ----------------------------------------------------------------------------
+- *   HallCapture       GPIO 33 at 1 kHz -> a Passage. Judges nothing.
++ *   ExcursionDetector GPIO 33 at 1 kHz -> an Excursion. Judges nothing.
++ *                     No closure, no exit margin, no duration floor, no
++ *                     decimation, and no PWM.
+  *   MagnetRecognizer  "Is this a magnet, and is it new?"  POSITION-FREE.
+  *   Navigator         "Is it the one the map says comes next?"  Owns navMm.
+  *   RouteMap          the surveyed truth. A declaration, per decision 0056.
+@@ -58,7 +88,7 @@
+ #include "RouteMap.h"
+ #include "MagnetRecognizer.h"
+ #include "Navigator.h"
+-#include "HallCapture.h"
++#include "ExcursionDetector.h"
+ #include "Ops.h"
+ #include "WaveformWindow.h"
+ #include "WaveformDump.h"
+@@ -74,11 +104,14 @@
+ // Published on state/bootid. It is the ONLY thing that tells telemetry which
+ // build is running, so it advances with every behavioural change.
+ //
+-// Corrective field-test build. Decisions 0080/0081: morphology is diagnostic
+-// only, passages are never paused or stitched, and the rebound guard is 500 ms.
+-#define SKETCH_NAME    "NAVI_ONE_1_0X18_LAP_BASELINE_FIELDTEST"
++// X19 NO-CLOSURE FIELD TEST. Hall events are framed by a local-excursion
++// detector, not by an entry/exit crossing of a global reference. There is no
++// closure test of any kind, and decision 0085's 82 ms completed-passage floor
++// is NOT implemented -- it is a property of a closed passage, which this build
++// does not have. See ExcursionDetector.h.
++#define SKETCH_NAME    "NAVI_ONE_1_0X19_NO_CLOSURE_FIELDTEST"
+ #define BUILD_CLASS    "EXPERIMENTAL_FIELD_TEST"
+-#define BUILD_SUBTITLE "X17 behavior; SET LOCATION lap baseline, maximum two counts per lap"
++#define BUILD_SUBTITLE "no Hall closure; local-excursion detection, 400 ms window, 500 ms refractory, NO duration floor"
+ #define FIELD_ACCEPTED 0
+ 
+ // Types used in function signatures must appear before the Arduino
+@@ -87,19 +120,24 @@
+ // types: the Arduino prototype generator inserts declarations just after the
+ // includes, so anything used in a function signature must be defined above it.
+ struct Judged {
+-  uint32_t epoch;                 // the declaration this passage was captured under
+-  uint32_t openedAtMs, closedAtMs;
+-  uint16_t peak; uint8_t polarity;
++  uint32_t epoch;                 // the declaration this candidate was captured under
++  uint32_t detectedAtMs, windowEndMs;
++  uint16_t peak; int16_t peakSigned; uint8_t polarity;
+   uint8_t  outcome; uint8_t isMagnet; uint8_t postStopSuccessor;
+   float    ratio; uint32_t gapMs; uint16_t gain;
+-  int32_t  entryBaseline, closeBaseline, shadowBaseline;
+-  int16_t  rawAtClose; uint8_t pwmAtClose; uint8_t mayAdaptAtClose;
++  // The excursion's own zero, and the two global references it is NOT
++  // measured against -- carried so a field record can show how far the
++  // reference had drifted while detection went on working.
++  int32_t  localRef, reference, shadowRef, departAtDetect;
++  int64_t  excursionSum; uint16_t excursionCount;
++  uint16_t widthCaliperMs, widthFracMs;
++  int16_t  rawAtDetect; uint8_t pwmAtDetect; uint8_t mayAdaptAtDetect;
+ };
+ struct HallDiag {
+   uint32_t t;
+   int16_t raw;
+-  int32_t baseline, shadowBaseline, entryBaseline;
+-  uint8_t pwm, passageOpen, mayAdapt;
++  int32_t baseline, shadowBaseline, localRef;
++  uint8_t pwm, acquiring, mayAdapt;
+ };
+ // len: 0 means "text, use strlen(payload) at send time" (every existing text
+ // pub() call). Non-zero means "exactly this many bytes, verbatim, including
+@@ -156,14 +194,25 @@
+ // ---------------------------------------------------------------------------
+ // LAYER 1/2 — acquisition and recognition. Both live on the Hall task.
+ // ---------------------------------------------------------------------------
+-static CaptureConfig captureCfg = {
+-  /*entryMargin*/ (int16_t)(HALL_DEADBAND_COUNTS + HALL_ENTRY_MARGIN_COUNTS),  // 70 on Otto
+-  /*exitMargin */ (int16_t)HALL_DEADBAND_COUNTS,                               // 25
+-  /*exitHoldMs */ 8, /*floorMs*/ NAVI_PASSAGE_FLOOR_MS,
+-  /*baselineMs*/ 25, /*primeMs*/ 2000,
+-  /*openMigrateMs*/ 2000, /*fixedAfterPrime*/ true
++// X19. Not optimised: the 2026-09-15 replay found plateaus at 50..80 counts,
++// 150..600 ms of trailing window and 300..1000 ms of refractory, and these are
++// the middle of them. 70 is the SAME 70 X18 used for entry -- re-anchored from
++// the global reference to the local one, so no new constant enters the system.
++static DetectorConfig detCfg = {
++  /*departCounts  */ (int16_t)(HALL_DEADBAND_COUNTS + HALL_ENTRY_MARGIN_COUNTS), // 70 on Otto
++  /*localWindowMs */ 300,
++  /*persistSamples*/ 2,
++  /*windowMs      */ 400,
++  /*refractoryMs  */ 500,
++  /*preRollMs     */ 512,
++  /*excursionFrac */ 0.34f,
++  /*widthCaliper  */ (int16_t)HALL_DEADBAND_COUNTS,   // 25: a CALIPER, not a closure test
++  /*widthFloorMs  */ 0,      // DISABLED ON PURPOSE -- see ExcursionDetector.h
++  /*baselineMs    */ 25,
++  /*primeMs       */ 2000,
++  /*fixedAfterPrime*/ true
+ };
+-static HallCapture<512> capture(captureCfg);
++static ExcursionDetector<> detector(detCfg);
+ static LapBaselineController lapBaseline;
+ static RecognizerConfig recCfg = {
+   /*guardMs*/        NAVI_GUARD_MS,
+@@ -177,7 +226,7 @@
+ // right alongside recognizer.examine() -- see WaveformWindow.h. It does not
+ // cross threads itself; only the dump IT triggers (see dumpWindowRequest
+ // below) does, and even then only as outgoing MQTT messages.
+-static WaveformWindow<6> waveformWindow;
++static WaveformWindow<5> waveformWindow;
+ 
+ // STATIONS (decision 0068). Pure machine in Stations.h; this is the only place
+ // it touches the locomotive. It is serviced on every loop pass, not only on an
+@@ -488,10 +537,15 @@
+ // Now the queue HOLDS while the broker is away, and every message that is
+ // genuinely lost is counted and published in the status line.
+ static uint32_t pubDropped = 0, cmdDropped = 0;
++// An excursion record that would not fit the transport. Must stay 0; it is
++// on the status line so a silent loss of the primary field-test instrument
++// is impossible.
++static uint32_t excursionDiagOversize = 0;
+ enum { T_ONLINE=0,T_NAV,T_MARKER,T_ALERT,T_IR,T_STAT,T_BOOT,T_WARN,
+        T_ST_AUTO,T_ST_ESTOP,T_ST_THR,T_ST_DIR,T_ST_SESSDIR,T_ST_STARTMM,
+        T_ST_NAVREADY,T_ST_LOWV,T_ST_STARTINT,T_BRAKE,T_V,T_A,T_W,T_SPEED,
+-       T_WAVEFORM,T_STATION,T_DEPART_DIAG,T_ACQ_DIAG,T_BASELINE_LAP,T_CNT };
++       T_WAVEFORM,T_STATION,T_DEPART_DIAG,T_ACQ_DIAG,T_BASELINE_LAP,
++       T_EXCURSION,T_CNT };
+ // Size follows the enum sentinel so adding a topic cannot silently create an
+ // out-of-bounds row (X16 audit B1).
+ static char T[T_CNT][72];
+@@ -518,8 +572,18 @@
+   topic(T_WAVEFORM,"diag/waveform");
+   topic(T_STATION,"state/station");
+   topic(T_DEPART_DIAG,"diag/departure");
++  // X19 has no duration floor and therefore no floor rejections. This topic
++  // now carries the REFERENCE-VALIDITY record instead: what the prime settled
++  // on and how far the line moved while it was settling. On 2026-09-15 boot 5
++  // primed about 112 counts wrong and X18 never said so -- "[CAL] 2 s baseline
++  // - keep clear of magnets" was a serial print, not a measurement.
+   topic(T_ACQ_DIAG,"diag/acquisition");
+   topic(T_BASELINE_LAP,"diag/baseline_lap");
++  // X19: one record per CANDIDATE, accepted or refused. This is the
++  // primary field-test instrument -- every number the detector used to
++  // frame the event, so the run can be replayed without inferring what
++  // the firmware thought happened.
++  topic(T_EXCURSION,"diag/excursion");
+ }
+ static void pub(int t,const char* payload,bool retain=false){
+   if(!pubQ) return;
+@@ -627,9 +691,10 @@
+       "{\"event\":\"%s\",\"state\":\"%s\",\"nav\":\"%s\",\"nav_state\":\"%s\",\"mm\":%u,\"tgt\":%u,"
+       "\"landmark\":\"%s\",\"dir\":\"%s\",\"ruling\":\"%s\",\"why\":\"%s\","
+       "\"obs\":\"%c\",\"expected\":\"%c\",\"peak\":%u,\"ratio\":%.3f,"
+-      "\"gap_ms\":%lu,\"dur_ms\":%lu,\"gain\":%u,\"post_stop_successor\":%u,"
+-      "\"base_open\":%ld,\"base_close\":%ld,\"raw_close\":%d,"
+-      "\"pwm_close\":%u,\"may_adapt_close\":%u,"
++      "\"gap_ms\":%lu,\"win_ms\":%lu,\"gain\":%u,\"post_stop_successor\":%u,"
++      "\"local_ref\":%ld,\"reference\":%ld,\"raw_detect\":%d,"
++      "\"depart\":%ld,\"w_caliper_ms\":%u,\"exc_n\":%u,"
++      "\"pwm_detect\":%u,\"may_adapt\":%u,"
+       "\"trust\":\"%s\",\"seq_at\":%u,\"adv\":%lu,\"ref\":%lu,\"notmag\":%lu}",
+       event, navigator.positionKnown()?"NORMAL":"UNSET",
+       navigator.positionKnown()?"NORMAL":"UNSET",
+@@ -640,10 +705,11 @@
+       poleChar(j->polarity),
+       poleChar(polarityAt(r==Ruling::Advanced ? s.navMm : s.target)),
+       j->peak, (double)j->ratio, (unsigned long)j->gapMs,
+-      (unsigned long)(j->closedAtMs-j->openedAtMs), j->gain,
++      (unsigned long)(j->windowEndMs-j->detectedAtMs), j->gain,
+       (unsigned)j->postStopSuccessor,
+-      (long)j->entryBaseline, (long)j->closeBaseline, (int)j->rawAtClose,
+-      (unsigned)j->pwmAtClose, (unsigned)j->mayAdaptAtClose,
++      (long)j->localRef, (long)j->reference, (int)j->rawAtDetect,
++      (long)j->departAtDetect, j->widthCaliperMs, j->excursionCount,
++      (unsigned)j->pwmAtDetect, (unsigned)j->mayAdaptAtDetect,
+       trustName(s.trust), s.seqAt,
+       (unsigned long)s.advances,(unsigned long)s.refusals,(unsigned long)s.notMagnets);
+     pub(T_MARKER,b,false);
+@@ -733,9 +799,12 @@
+     const uint16_t n = remain < perChunk ? remain : perChunk;
+     const uint16_t bytes = wavEncodeChunk(
+       buf, sizeof(buf), slot, total, c, chunks,
+-      e.polarity, e.outcome, e.isMagnet, e.shapeTested,
+-      e.sampleCount, e.decimation, e.peakCounts, e.gain,
+-      e.amplitudeRatio, e.residual, e.gapMs, e.openedAtMs, e.closedAtMs,
++      e.polarity, e.outcome, e.isMagnet, e.widthRejected,
++      e.sampleCount, e.preSamples, e.peakCounts, e.gain,
++      e.excursionFirst, e.excursionLast, e.widthCaliperMs, e.widthFracMs,
++      e.peakSigned, e.rawAtDetect, e.localRef, e.reference, e.shadowRef,
++      e.departAtDetect, e.amplitudeRatio, e.gapMs,
++      e.detectedAtMs, e.windowEndMs,
+       e.samples, offset, n);
+     if (bytes) pubBin(T_WAVEFORM, buf, bytes, false);
+   }
+@@ -749,71 +818,164 @@
+ // ---------------------------------------------------------------------------
+ // TASKS
+ // ---------------------------------------------------------------------------
++// X19 waveform policy. A candidate record is 912 samples (512 ms of pre-roll
++// plus the 400 ms window) at 1 kHz, about 1.8 kB, three MQTT chunks. Publishing
++// that for every magnet at cruise is ~2 kB/s and would be a bigger change to
++// the transport than to the navigator, so the ring buffer holds it and it is
++// dumped AROUND CANDIDATES that are worth having:
++//
++//   * every candidate the recognizer refuses          (always)
++//   * every candidate whose width screen fired        (always; disabled today)
++//   * one accepted candidate every X19_WAVEFORM_SAMPLE_MS, so ordinary cruise
++//     is represented and the pre-roll question of 2026-09-15 is answerable
++//   * the whole trailing window on withdraw(), as X18 did
++//   * on demand, cmd/dumpwindow
++static constexpr uint32_t X19_WAVEFORM_SAMPLE_MS = 15000;
++
+ static void hallTask(void*){
+   TickType_t wake = xTaskGetTickCount();
+   uint32_t tick = 0;
+   uint32_t myEpoch = 0;
+   uint32_t lastDepartureDiagMs = 0;
++  uint32_t lastWaveSampleMs = 0;
++  bool primeReported = false;
+   for(;;){
+     unsigned long now = millis();
+     const int8_t lapAdjust = takeLapBaselineAdjustment();
+-    if (lapAdjust && !capture.adjustBaseline(lapAdjust))
+-      requestLapBaselineAdjustment(lapAdjust); // passage open: retry next Hall tick
++    if (lapAdjust && !detector.adjustBaseline(lapAdjust))
++      requestLapBaselineAdjustment(lapAdjust); // mid-window: retry next Hall tick
+     if (recognizerResetRequest) {
+       recognizer.reset();
+-      capture.reset();               // a passage open under the sensor belongs
+-      myEpoch = navEpoch;            // to the frame that just ended
++      detector.reset();              // the in-flight window belongs to the frame
++      myEpoch = navEpoch;            // that just ended
+       recognizerResetRequest = false;
+     }
+     const uint8_t postStop = takePostStopRequest();
+     if (postStop == POST_STOP_CANCEL) recognizer.cancelPostStop();
+     else if (postStop == POST_STOP_ARM) recognizer.armPostStop();
+-    // The baseline may be maintained only with positive evidence of tractive
+-    // motion. Not proof of rest -- a locomotive can coast at PWM 0 -- but the
+-    // error cases are asymmetric: refusing to adapt while secretly moving
+-    // postpones adaptation by a second, while adapting while secretly parked
+-    // over a magnet makes the reference BE the magnet. Findings 09 and 10.
++    // PWM REACHES THE SHADOW MEDIAN AND NOTHING ELSE. It is not consulted by
++    // the departure test, the acquisition window, the peak, the polarity, the
++    // refractory, the recognizer or the navigator. A median taken while parked
++    // on a magnet becomes the magnet (finding 10, 2026-09-01), and under
++    // fixedAfterPrime that median is telemetry with no authority at all -- so
++    // this gate protects a number nothing decides on. It is kept because the
++    // shadow trace is the comparison the field test needs.
+     const bool mayAdapt = actualPwm > NAVI_BASELINE_ADAPT_PWM;
+     const int16_t raw = hallRead();
+-    const bool passageClosed = capture.sample(now, raw, mayAdapt);
+-    FloorRejection floorRej;
+-    if (capture.takeFloorRejection(floorRej)) {
+-      char b[420];
+-      snprintf(b,sizeof(b),
+-        "{\"reason\":\"DURATION_FLOOR\",\"opened_ms\":%lu,\"closed_ms\":%lu,"
+-        "\"dur_ms\":%u,\"floor_ms\":%u,\"raw_peak\":%u,\"samples\":%u,"
+-        "\"pre\":%u,\"dec\":%u,\"entry_baseline\":%ld,\"close_baseline\":%ld,"
+-        "\"raw_close\":%d,\"signed_sum\":%lld,\"truncated\":%u,\"clipped\":%u,"
+-        "\"pwm_close\":%u,\"may_adapt_close\":%u}",
+-        (unsigned long)floorRej.openedAtMs,(unsigned long)floorRej.closedAtMs,
+-        floorRej.durationMs,floorRej.floorMs,floorRej.rawPeakMagnitude,
+-        floorRej.sampleCount,floorRej.preSamples,floorRej.decimation,
+-        (long)floorRej.entryBaseline,(long)capture.baseline(),(int)raw,
+-        (long long)floorRej.signedSum,floorRej.truncated?1u:0u,
+-        floorRej.clipped?1u:0u,(unsigned)actualPwm,mayAdapt?1u:0u);
+-      pub(T_ACQ_DIAG,b,false);
+-    }
+-    if (passageClosed) {
+-      const Passage& p = capture.passage();
+-      // Production admission uses time and amplitude only (decisions 0080/0082).
++    const bool candidateReady = detector.sample(now, raw, mayAdapt);
++    if (!primeReported && detector.ready()) {
++      primeReported = true;
++      // Reported, NOT gated. X19 does not refuse to run on a suspect prime:
++      // the whole point of the build is that detection no longer depends on
++      // the reference being right, so a wrong one is evidence to collect, not
++      // a reason to stop. A large spread means the locomotive was primed on or
++      // near a magnet and the reference is suspect -- which should show up in
++      // ref_minus_local on diag/excursion and nowhere else.
++      char pb[288];
++      snprintf(pb,sizeof(pb),
++        "{\"reason\":\"PRIME\",\"t\":%lu,\"prime_value\":%ld,"
++        "\"prime_spread\":%ld,\"shadow\":%ld,\"raw\":%d,"
++        "\"fixed_after_prime\":1,\"gated\":0}",
++        (unsigned long)now,(long)detector.primeValue(),
++        (long)detector.primeSpread(),(long)detector.shadowBaseline(),(int)raw);
++      pub(T_ACQ_DIAG,pb,true);
++      Serial.printf("[CAL] primed at %ld, spread %ld counts over the 2 s window\n",
++                    (long)detector.primeValue(),(long)detector.primeSpread());
++    }
++    if (candidateReady) {
++      const Excursion& e = detector.excursion();
++      // The recognizer is UNCHANGED (decisions 0052/0057/0065/0080/0081/0083).
++      // It reads three scalars, so the excursion is presented as a Passage:
++      //
++      //   openedAtMs = closedAtMs = DETECTION INSTANT.
++      //
++      // Its TIME guard is close-to-open. With no close, the only honest
++      // mapping is detect-to-detect -- which is exactly the detector's own
++      // refractory, so the guard becomes redundant rather than wrong, and can
++      // no longer refuse anything the detector admitted. That is a real
++      // behavioural change and it is deliberate: in X19 the refractory IS the
++      // duplicate-count protection. gapMs is still reported, so the field run
++      // measures the true detect-to-detect population.
++      Passage p;
++      p.openedAtMs = e.detectedAtMs;
++      p.closedAtMs = e.detectedAtMs;
++      p.peakCounts = e.peakCounts;
++      p.polarity   = e.polarity;
++      p.signedSum  = e.excursionSum;
++      p.oriented   = e.oriented;
++      p.judged     = e.judged;
++      p.sampleCount= e.sampleCount;
++      p.preSamples = e.preSamples;
++      p.clipped    = e.clipped;
++      p.decimation = 1;
++      p.entryBaseline = e.localRef;
+       Verdict v = recognizer.examine(p);
+-        // Copied here, before the next capture.sample() call starts
+-        // overwriting HallCapture's own buffer with the following passage.
+-        waveformWindow.push(p, v);
+-      // Preserve the raw waveform behind every refusal for crash analysis.
++      // Copied before the detector's next window starts overwriting its buffer.
++      waveformWindow.push(e, v);
++
++      // NEVER ENQUEUE TRUNCATED JSON. snprintf truncates silently and the Pi's
++      // json.loads() then discards the WHOLE line -- the 2026-08-29 alert
++      // incident, where one field too many made every field disappear. The
++      // buffer is sized to the transport rather than guessed, and a record
++      // that would not fit is COUNTED, never sent in pieces.
++      char b[sizeof(PubMsg::payload)];
++      const int exLen = snprintf(b,sizeof(b),
++        "{\"detected_ms\":%lu,\"win_ms\":%lu,"
++        "\"raw_detect\":%d,\"local_ref\":%ld,\"depart\":%ld,"
++        "\"reference\":%ld,\"shadow_ref\":%ld,"
++        "\"peak\":%u,\"peak_signed\":%d,\"pol\":\"%c\","
++        "\"exc_sum\":%lld,\"exc_n\":%u,\"exc_first\":%u,\"exc_last\":%u,"
++        "\"w_caliper_ms\":%u,\"w_frac_ms\":%u,\"width_rejected\":%u,"
++        "\"pre\":%u,\"samples\":%u,\"clipped\":%u,"
++        "\"outcome\":\"%s\",\"is_magnet\":%u,\"ratio\":%.3f,\"gain\":%u,"
++        "\"gap_ms\":%lu,\"guard_tested\":%u,\"post_stop_successor\":%u,"
++        "\"suppressed_total\":%lu,"
++        "\"last_supp_ms\":%lu,\"last_supp_depart\":%ld,"
++        "\"pwm\":%u,\"may_adapt\":%u,"
++        "\"mm\":%u,\"dir\":\"%s\",\"station\":\"%s\"}",
++        (unsigned long)e.detectedAtMs,
++        (unsigned long)(e.windowEndMs-e.detectedAtMs),
++        (int)e.rawAtDetect,(long)e.localRef,(long)e.departAtDetect,
++        (long)e.reference,(long)e.shadowRef,
++        e.peakCounts,(int)e.peakSigned,e.polarity?'N':'S',
++        (long long)e.excursionSum,e.excursionCount,e.excursionFirst,e.excursionLast,
++        e.widthCaliperMs,e.widthFracMs,e.widthRejected?1u:0u,
++        e.preSamples,e.sampleCount,e.clipped?1u:0u,
++        outcomeName(v.outcome),v.isMagnet?1u:0u,(double)v.amplitudeRatio,v.gain,
++        (unsigned long)v.gapMs,v.guardTested?1u:0u,v.postStopSuccessor?1u:0u,
++        (unsigned long)detector.suppressed(),
++        (unsigned long)detector.lastSuppressedMs(),(long)detector.lastSuppressedDepart(),
++        (unsigned)actualPwm,mayAdapt?1u:0u,
++        (unsigned)navigator.status().navMm,
++        navigator.status().navDir>0?"CW":(navigator.status().navDir<0?"CCW":"UNSET"),
++        stPhaseName(stationMachine.phase()));
++      if (exLen < 0 || exLen >= (int)sizeof(b)) ++excursionDiagOversize;
++      else pub(T_EXCURSION,b,false);
++
++      // Every refusal keeps its raw evidence. Accepted candidates are sampled,
++      // so normal cruise is represented without flooding the transport.
+       if (!v.isMagnet) publishWaveformSlot(0, 1);
+-      Judged j{ myEpoch,p.openedAtMs,p.closedAtMs,p.peakCounts,p.polarity,
++      else if (now - lastWaveSampleMs >= X19_WAVEFORM_SAMPLE_MS) {
++        lastWaveSampleMs = now;
++        publishWaveformSlot(0, 1);
++      }
++
++      Judged j{ myEpoch,e.detectedAtMs,e.windowEndMs,
++                e.peakCounts,e.peakSigned,e.polarity,
+                 (uint8_t)v.outcome,(uint8_t)v.isMagnet,
+                 (uint8_t)v.postStopSuccessor,
+                 v.amplitudeRatio,v.gapMs,v.gain,
+-                p.entryBaseline,capture.baseline(),capture.shadowBaseline(),raw,
+-                (uint8_t)actualPwm,(uint8_t)(mayAdapt?1:0) };
++                e.localRef,e.reference,e.shadowRef,e.departAtDetect,
++                e.excursionSum,e.excursionCount,
++                e.widthCaliperMs,e.widthFracMs,
++                e.rawAtDetect,(uint8_t)actualPwm,(uint8_t)(mayAdapt?1:0) };
+       if (judgedQ) xQueueSend(judgedQ,&j,0);
+     }
+     if (departureDiagActive && now-lastDepartureDiagMs >= 100) {
+       lastDepartureDiagMs = now;
+-      HallDiag d{now,raw,capture.baseline(),capture.shadowBaseline(),capture.entryBaseline(),
+-                 (uint8_t)actualPwm,(uint8_t)(capture.open()?1:0),
++      HallDiag d{now,raw,detector.baseline(),detector.shadowBaseline(),
++                 detector.localRefNow(),
++                 (uint8_t)actualPwm,(uint8_t)(detector.acquiring()?1:0),
+                  (uint8_t)(mayAdapt?1:0)};
+       if (hallDiagQ && xQueueSend(hallDiagQ,&d,0) != pdTRUE)
+         ++departureDiagQueueDrops;
+@@ -1115,7 +1277,7 @@
+     // Ordinary acquisition discards no opening based on morphology.
+     "\"discards\":%lu,"
+     "\"nav_state\":\"%s\",\"seq_at\":%u,\"ina\":%u,"
+-    "\"pub_drop\":%lu,\"cmd_drop\":%lu,\"stale\":%lu,"
++    "\"pub_drop\":%lu,\"cmd_drop\":%lu,\"stale\":%lu,\"exc_oversize\":%lu,"
+     "\"ir_fitted\":%u,\"ir_probe_span\":%d}",
+     navigator.positionKnown()?"CLEAR":"UNSET", LOCO_NAME,(unsigned long)millis(),
+     navigator.positionKnown()?"NORMAL":"UNSET",
+@@ -1127,12 +1289,13 @@
+     actualPwm, autoEnrolled?1:0, autoRunning?1:0, estopped?1:0, lowVoltage?1:0,
+     (actualPwm>0)?1u:0u,
+     (unsigned long)s.advances,(unsigned long)s.refusals,(unsigned long)s.notMagnets,
+-    (long)capture.baseline(),(long)capture.shadowBaseline(),
+-    (long)(capture.shadowBaseline()-capture.baseline()),
+-    (unsigned long)capture.floorRejects(),
+-    0UL,
++    (long)detector.baseline(),(long)detector.shadowBaseline(),
++    (long)(detector.shadowBaseline()-detector.baseline()),
++    (unsigned long)detector.widthRejects(),
++    (unsigned long)detector.suppressed(),
+     navStateName(s.state), s.seqAt, inaReady?1u:0u,
+     (unsigned long)pubDropped,(unsigned long)cmdDropped,(unsigned long)staleJudged,
++    (unsigned long)excursionDiagOversize,
+     irFitted?1u:0u, irProbing ? -1 : (irProbeMax-irProbeMin));
+   // NEVER ENQUEUE TRUNCATED JSON. snprintf truncates silently, the Pi's
+   // json.loads() then throws, and the consumer discards the WHOLE alert --
+@@ -1182,9 +1345,13 @@
+   pubQ  =xQueueCreate(48,sizeof(PubMsg));    // holds ~5 s while the broker is away
+   cmdQ  =xQueueCreate(16,sizeof(CmdMsg));
+   Serial.printf("[BOOT] %s \"%s\" — %s\n",SKETCH_NAME,BUILD_SUBTITLE,LOCO_NAME);
+-  Serial.printf("[BOOT] X18 LAP-BASELINE FIELD TEST — not field-accepted NAVI_ONE 1.0.\n");
+-  Serial.printf("[BOOT] Startup baseline; SET LOCATION laps adjust at most two counts.\n");
+-  Serial.printf("[BOOT] Rolling median has lap-boundary authority only; no continuous adaptation.\n");
++  Serial.printf("[BOOT] X19 NO-CLOSURE FIELD TEST — not field-accepted NAVI_ONE 1.0.\n");
++  Serial.printf("[BOOT] Hall events are framed by local excursion, not by entry/exit closure.\n");
++  Serial.printf("[BOOT] RISK: decision 0085's 82 ms duration floor is NOT implemented.\n");
++  Serial.printf("[BOOT] RISK: short acquisition transients X18 refused will reach navigation.\n");
++  Serial.printf("[BOOT] RISK: the 500 ms guard is now detect-to-detect and refuses nothing extra.\n");
++  Serial.printf("[BOOT] Reference is fixed after prime; lap estimate is published, never applied.\n");
++  Serial.printf("[BOOT] PWM is telemetry only; it reaches no Hall decision.\n");
+   Serial.printf("[BOOT] Morphology is diagnostic only; pause/resume/stitch authority removed.\n");
+   Serial.printf("[CAL] 2 s baseline — keep clear of magnets\n");
+   if (!judgedQ || !hallDiagQ || !pubQ || !cmdQ) {
+@@ -1205,14 +1372,23 @@
+   char b[512];
+   const int bootLen = snprintf(b,sizeof(b),
+     "{\"sketch\":\"%s\",\"subtitle\":\"%s\",\"build_class\":\"%s\",\"field_accepted\":%d,"
+-    "\"loco\":\"%s\",\"entry\":%d,\"exit\":%d,\"floor_ms\":%d,"
+-    "\"amp_floor\":%.2f,\"guard_ms\":%lu,\"seq_n\":%d,"
++    "\"loco\":\"%s\",\"event_framing\":\"local_excursion_no_closure\","
++    "\"depart_counts\":%d,\"local_window_ms\":%u,\"persist_samples\":%u,"
++    "\"window_ms\":%u,\"refractory_ms\":%u,\"pre_roll_ms\":%u,"
++    "\"exit_margin\":0,\"closure\":\"none\",\"decimation\":\"none\","
++    "\"floor_ms\":%u,\"floor_status\":\"not_applicable_pending_rederivation\","
++    "\"width_caliper\":%d,\"polarity_aperture\":\"excursion\","
++    "\"amp_floor\":%.2f,\"guard_ms\":%lu,\"guard_basis\":\"detect_to_detect\","
++    "\"seq_n\":%d,"
+     "\"offsets\":0,\"quorum\":0,\"velocity_model\":0,\"post_stop_successor\":1,"
+-    "\"baseline_mode\":\"set_location_lap_cap2\",\"shadow_median_n\":41,"
++    "\"baseline_mode\":\"fixed_after_prime_lap_estimate_not_applied\","
++    "\"shadow_median_n\":41,\"pwm_in_hall_decisions\":0,"
+     "\"baseline_adapt_pwm\":%d,\"departure_diag_hz\":10,\"ir_votes\":0}",
+     SKETCH_NAME,BUILD_SUBTITLE,BUILD_CLASS,(int)FIELD_ACCEPTED,
+-    LOCO_NAME,(int)captureCfg.entryMargin,(int)captureCfg.exitMargin,
+-    (int)captureCfg.floorMs,(double)recCfg.amplitudeFloor,
++    LOCO_NAME,(int)detCfg.departCounts,detCfg.localWindowMs,detCfg.persistSamples,
++    detCfg.windowMs,detCfg.refractoryMs,detCfg.preRollMs,
++    detCfg.widthFloorMs,(int)detCfg.widthCaliper,
++    (double)recCfg.amplitudeFloor,
+     (unsigned long)recCfg.guardMs,(int)SEQ_N,(int)NAVI_BASELINE_ADAPT_PWM);
+   if (bootLen < 0 || bootLen >= (int)sizeof(b)) {
+     Serial.printf("[BOOT] FATAL: boot record oversize (%d bytes) — halting\n",bootLen);
+@@ -1263,7 +1439,7 @@
+     // Captured under a declaration that no longer stands. It is evidence about
+     // a frame that has ended and it may not advance this one.
+     if (j.epoch != navEpoch) { staleJudged++; continue; }
+-    Passage p; p.openedAtMs=j.openedAtMs; p.closedAtMs=j.closedAtMs;
++    Passage p; p.openedAtMs=j.detectedAtMs; p.closedAtMs=j.detectedAtMs;
+     p.peakCounts=j.peak; p.polarity=j.polarity;
+     Verdict v; v.outcome=(Outcome)j.outcome; v.isMagnet=j.isMagnet;
+     v.postStopSuccessor=j.postStopSuccessor;
+@@ -1275,20 +1451,31 @@
+         const NavStatus& ns = navigator.status();
+         uint8_t from = routeMod((int32_t)ns.navMm - ns.navDir);
+         if (lastAdvanceMs) {
+-          uint32_t dt = j.closedAtMs - lastAdvanceMs;
++          uint32_t dt = j.detectedAtMs - lastAdvanceMs;
+           if (dt > 0 && dt < 30000)
+             estMmPerS = (uint32_t)((uint32_t)spanMm(from, ns.navDir) * 1000UL / dt);
+         }
+-        lastAdvanceMs = j.closedAtMs;
++        lastAdvanceMs = j.detectedAtMs;
++        // X19: THE ESTIMATOR RUNS, THE CORRECTION DOES NOT.
++        //
++        // The central experiment is whether local-excursion detection makes
++        // global-reference drift irrelevant to event framing. That cannot be
++        // observed while something is quietly correcting the drift, so the
++        // reference stays where the prime put it and the lap estimate is
++        // published for comparison only. `applied` is reported and discarded.
++        //
++        // The per-marker sample is now the excursion's own local reference,
++        // which is a direct observation of the quiet line rather than the
++        // rolling median's opinion of it. That substitution is untested and
++        // is telemetry-only for exactly that reason.
+         const LapBaselineUpdate bu = lapBaseline.advance(
+-          ns.navMm, j.shadowBaseline, j.closeBaseline);
++          ns.navMm, j.localRef, j.reference);
+         if (bu.complete) {
+-          if (bu.valid && bu.applied) requestLapBaselineAdjustment(bu.applied);
+           char lb[320];
+           snprintf(lb,sizeof(lb),
+             "{\"origin\":%u,\"advances\":%u,\"coverage\":%u,\"valid\":%u,"
+             "\"estimate\":%ld,\"baseline_before\":%ld,\"baseline_after\":%ld,"
+-            "\"requested\":%d,\"applied\":%d}",
++            "\"requested\":%d,\"applied\":%d,\"applied_to_reference\":0}",
+             (unsigned)bu.origin,(unsigned)bu.advances,(unsigned)bu.coverage,
+             bu.valid?1u:0u,(long)bu.estimate,(long)bu.baselineBefore,
+             (long)(bu.baselineBefore + bu.applied),
+@@ -1335,12 +1522,14 @@
+     const int n = snprintf(b,sizeof(b),
+       "{\"t\":%lu,\"phase\":\"DEPART\",\"mm\":%u,\"dir\":\"%s\","
+       "\"raw\":%d,\"baseline\":%ld,\"delta\":%ld,"
+-      "\"shadow_baseline\":%ld,\"shadow_delta\":%ld,\"entry_baseline\":%ld,"
+-      "\"pwm\":%u,\"open\":%u,\"may_adapt\":%u,\"q_drop\":%lu,\"pub_skip\":%lu}",
++      "\"shadow_baseline\":%ld,\"shadow_delta\":%ld,\"local_ref\":%ld,"
++      "\"local_depart\":%ld,"
++      "\"pwm\":%u,\"acquiring\":%u,\"may_adapt\":%u,\"q_drop\":%lu,\"pub_skip\":%lu}",
+       (unsigned long)d.t,(unsigned)s.navMm,s.navDir>0?"CW":"CCW",
+       (int)d.raw,(long)d.baseline,(long)((int32_t)d.raw-d.baseline),
+       (long)d.shadowBaseline,(long)(d.shadowBaseline-d.baseline),
+-      (long)d.entryBaseline,(unsigned)d.pwm,(unsigned)d.passageOpen,
++      (long)d.localRef,(long)((int32_t)d.raw-d.localRef),
++      (unsigned)d.pwm,(unsigned)d.acquiring,
+       (unsigned)d.mayAdapt,(unsigned long)departureDiagQueueDrops,
+       (unsigned long)departureDiagPubSkips);
+     // Diagnostic traffic is expendable; marker/navigation traffic is not.
+
+################ REMOVED: HallCapture.h ################
+# 395 lines. Closure lived here. Replaced by ExcursionDetector.h (new, 492 lines).
+################ REMOVED: TwoSided.h ################
+# 510 lines. Already dead code in X18: not included by the sketch, and it
+# references Passage::stitchAt, a member that no longer exists.
