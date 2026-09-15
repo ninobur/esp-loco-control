@@ -63,6 +63,7 @@
 #include "WaveformWindow.h"
 #include "WaveformDump.h"
 #include "Stations.h"
+#include "LapBaselineController.h"
 
 #ifndef NAVI_BASELINE_ADAPT_PWM
 #error "This locomotive's profile has no NAVI_BASELINE_ADAPT_PWM. Measure the tractive floor from its own PWM/speed fit; do not copy another locomotive's."
@@ -75,9 +76,9 @@ using namespace navi_one;
 //
 // Corrective field-test build. Decisions 0080/0081: morphology is diagnostic
 // only, passages are never paused or stitched, and the rebound guard is 500 ms.
-#define SKETCH_NAME    "NAVI_ONE_1_0X15_FIELDTEST"
+#define SKETCH_NAME    "NAVI_ONE_1_0X18_LAP_BASELINE_FIELDTEST"
 #define BUILD_CLASS    "EXPERIMENTAL_FIELD_TEST"
-#define BUILD_SUBTITLE "Operator-ruling corrective"
+#define BUILD_SUBTITLE "X17 behavior; SET LOCATION lap baseline, maximum two counts per lap"
 #define FIELD_ACCEPTED 0
 
 // Types used in function signatures must appear before the Arduino
@@ -91,6 +92,14 @@ struct Judged {
   uint16_t peak; uint8_t polarity;
   uint8_t  outcome; uint8_t isMagnet; uint8_t postStopSuccessor;
   float    ratio; uint32_t gapMs; uint16_t gain;
+  int32_t  entryBaseline, closeBaseline, shadowBaseline;
+  int16_t  rawAtClose; uint8_t pwmAtClose; uint8_t mayAdaptAtClose;
+};
+struct HallDiag {
+  uint32_t t;
+  int16_t raw;
+  int32_t baseline, shadowBaseline, entryBaseline;
+  uint8_t pwm, passageOpen, mayAdapt;
 };
 // len: 0 means "text, use strlen(payload) at send time" (every existing text
 // pub() call). Non-zero means "exactly this many bytes, verbatim, including
@@ -148,11 +157,14 @@ static inline uint16_t brakeStepMs(){
 // LAYER 1/2 — acquisition and recognition. Both live on the Hall task.
 // ---------------------------------------------------------------------------
 static CaptureConfig captureCfg = {
-  /*entryMargin*/ (int16_t)(HALL_DEADBAND_COUNTS + HALL_ENTRY_MARGIN_COUNTS),  // 38
+  /*entryMargin*/ (int16_t)(HALL_DEADBAND_COUNTS + HALL_ENTRY_MARGIN_COUNTS),  // 70 on Otto
   /*exitMargin */ (int16_t)HALL_DEADBAND_COUNTS,                               // 25
-  /*exitHoldMs */ 8, /*floorMs*/ 40, /*baselineMs*/ 25, /*primeMs*/ 2000
+  /*exitHoldMs */ 8, /*floorMs*/ NAVI_PASSAGE_FLOOR_MS,
+  /*baselineMs*/ 25, /*primeMs*/ 2000,
+  /*openMigrateMs*/ 2000, /*fixedAfterPrime*/ true
 };
 static HallCapture<512> capture(captureCfg);
+static LapBaselineController lapBaseline;
 static RecognizerConfig recCfg = {
   /*guardMs*/        NAVI_GUARD_MS,
   /*amplitudeFloor*/ NAVI_AMPLITUDE_FLOOR,
@@ -178,6 +190,7 @@ static StationMachine stationMachine;
 // separately retained in waveformWindow, above, for the rare case AUTO gets
 // withdrawn and the operator wants to see it.)
 static QueueHandle_t judgedQ = nullptr;
+static QueueHandle_t hallDiagQ = nullptr;
 // Average speed over the last confirmed interval: surveyed distance divided by
 // measured time. A measurement, not a model -- nothing in the accept path uses
 // it, and no PWM value appears in it. Display only.
@@ -201,7 +214,22 @@ static uint32_t lastAdvanceMs = 0; static uint32_t estMmPerS = 0;
 // waveformWindow, same rule as the recognizer and capture buffer.
 static volatile bool     recognizerResetRequest = false;
 static volatile uint32_t navEpoch = 0;
+static volatile int8_t   lapBaselineRequest = 0;
+static portMUX_TYPE      lapBaselineMux = portMUX_INITIALIZER_UNLOCKED;
+static void requestLapBaselineAdjustment(int8_t d) {
+  portENTER_CRITICAL(&lapBaselineMux); lapBaselineRequest = d; portEXIT_CRITICAL(&lapBaselineMux);
+}
+static int8_t takeLapBaselineAdjustment() {
+  portENTER_CRITICAL(&lapBaselineMux); const int8_t d = lapBaselineRequest;
+  if (d) lapBaselineRequest = 0; portEXIT_CRITICAL(&lapBaselineMux); return d;
+}
 static volatile bool     dumpWindowRequest = false;
+// Measurement-only switch. The loop task raises it while the station machine
+// is in DEPART; the Hall task then samples its own state into hallDiagQ at
+// 10 Hz. It cannot alter capture, recognition, navigation, or propulsion.
+static volatile bool     departureDiagActive = false;
+static volatile uint32_t departureDiagQueueDrops = 0;
+static uint32_t          departureDiagPubSkips = 0;
 // A controlled ramp reached zero while navigation remained valid. The Hall
 // task consumes this request and arms decision 0083's one-shot successor rule.
 enum : uint8_t { POST_STOP_NONE=0, POST_STOP_ARM=1, POST_STOP_CANCEL=2 };
@@ -460,11 +488,13 @@ static WiFiClient wifiClient; static PubSubClient mqtt(wifiClient);
 // Now the queue HOLDS while the broker is away, and every message that is
 // genuinely lost is counted and published in the status line.
 static uint32_t pubDropped = 0, cmdDropped = 0;
-static char T[24][72];
 enum { T_ONLINE=0,T_NAV,T_MARKER,T_ALERT,T_IR,T_STAT,T_BOOT,T_WARN,
        T_ST_AUTO,T_ST_ESTOP,T_ST_THR,T_ST_DIR,T_ST_SESSDIR,T_ST_STARTMM,
        T_ST_NAVREADY,T_ST_LOWV,T_ST_STARTINT,T_BRAKE,T_V,T_A,T_W,T_SPEED,
-       T_WAVEFORM,T_STATION,T_CNT };
+       T_WAVEFORM,T_STATION,T_DEPART_DIAG,T_ACQ_DIAG,T_BASELINE_LAP,T_CNT };
+// Size follows the enum sentinel so adding a topic cannot silently create an
+// out-of-bounds row (X16 audit B1).
+static char T[T_CNT][72];
 
 static void topic(int i,const char* suffix){ snprintf(T[i],72,"ngr/loco/%s/%s",LOCO_NAME,suffix); }
 static void buildTopics(){
@@ -487,6 +517,9 @@ static void buildTopics(){
   // boot as if it had just been struck.
   topic(T_WAVEFORM,"diag/waveform");
   topic(T_STATION,"state/station");
+  topic(T_DEPART_DIAG,"diag/departure");
+  topic(T_ACQ_DIAG,"diag/acquisition");
+  topic(T_BASELINE_LAP,"diag/baseline_lap");
 }
 static void pub(int t,const char* payload,bool retain=false){
   if(!pubQ) return;
@@ -529,6 +562,7 @@ static void warnClear(){ if (warnSticky) return; pub(T_WARN,"",true); }
 // program itself does not believe is worse than no stop at all.
 // ---------------------------------------------------------------------------
 static void withdraw(const char* text){
+  lapBaseline.invalidate();
   warnStick(text);
   estMmPerS = 0; pub(T_SPEED,"0",true);
   autoRunning = false;
@@ -593,7 +627,9 @@ static void publishNav(const char* event,const Judged* j,Ruling r){
       "{\"event\":\"%s\",\"state\":\"%s\",\"nav\":\"%s\",\"nav_state\":\"%s\",\"mm\":%u,\"tgt\":%u,"
       "\"landmark\":\"%s\",\"dir\":\"%s\",\"ruling\":\"%s\",\"why\":\"%s\","
       "\"obs\":\"%c\",\"expected\":\"%c\",\"peak\":%u,\"ratio\":%.3f,"
-      "\"gap_ms\":%lu,\"gain\":%u,\"post_stop_successor\":%u,"
+      "\"gap_ms\":%lu,\"dur_ms\":%lu,\"gain\":%u,\"post_stop_successor\":%u,"
+      "\"base_open\":%ld,\"base_close\":%ld,\"raw_close\":%d,"
+      "\"pwm_close\":%u,\"may_adapt_close\":%u,"
       "\"trust\":\"%s\",\"seq_at\":%u,\"adv\":%lu,\"ref\":%lu,\"notmag\":%lu}",
       event, navigator.positionKnown()?"NORMAL":"UNSET",
       navigator.positionKnown()?"NORMAL":"UNSET",
@@ -603,8 +639,11 @@ static void publishNav(const char* event,const Judged* j,Ruling r){
       rulingName(r), whyName(r,(Outcome)j->outcome),
       poleChar(j->polarity),
       poleChar(polarityAt(r==Ruling::Advanced ? s.navMm : s.target)),
-      j->peak, (double)j->ratio, (unsigned long)j->gapMs, j->gain,
+      j->peak, (double)j->ratio, (unsigned long)j->gapMs,
+      (unsigned long)(j->closedAtMs-j->openedAtMs), j->gain,
       (unsigned)j->postStopSuccessor,
+      (long)j->entryBaseline, (long)j->closeBaseline, (int)j->rawAtClose,
+      (unsigned)j->pwmAtClose, (unsigned)j->mayAdaptAtClose,
       trustName(s.trust), s.seqAt,
       (unsigned long)s.advances,(unsigned long)s.refusals,(unsigned long)s.notMagnets);
     pub(T_MARKER,b,false);
@@ -637,6 +676,7 @@ static void applyTravelDirection(){
   int8_t d = travelDir();
   if (d != 0 && d != navigator.status().navDir) {
     navigator.setDirection(d);        // steps navMm back along the OLD heading
+    lapBaseline.directionChanged();   // partial lap ends; SET LOCATION origin survives
     carryResetRequest();
     publishNav("DIRECTION",nullptr,Ruling::NoPosition);
   }
@@ -644,6 +684,7 @@ static void applyTravelDirection(){
 
 static void declarePosition(uint8_t mm,int8_t dir,const char* interval){
   navigator.declare(mm,dir);
+  lapBaseline.declare(mm);             // location authority, never Hall authority
   carryResetRequest();
   warnSticky = false; pub(T_WARN,"",true);   // the declaration answers the strike
   lastAdvanceMs = 0; estMmPerS = 0;          // no speed estimate spans a declaration
@@ -712,8 +753,12 @@ static void hallTask(void*){
   TickType_t wake = xTaskGetTickCount();
   uint32_t tick = 0;
   uint32_t myEpoch = 0;
+  uint32_t lastDepartureDiagMs = 0;
   for(;;){
     unsigned long now = millis();
+    const int8_t lapAdjust = takeLapBaselineAdjustment();
+    if (lapAdjust && !capture.adjustBaseline(lapAdjust))
+      requestLapBaselineAdjustment(lapAdjust); // passage open: retry next Hall tick
     if (recognizerResetRequest) {
       recognizer.reset();
       capture.reset();               // a passage open under the sensor belongs
@@ -729,7 +774,26 @@ static void hallTask(void*){
     // postpones adaptation by a second, while adapting while secretly parked
     // over a magnet makes the reference BE the magnet. Findings 09 and 10.
     const bool mayAdapt = actualPwm > NAVI_BASELINE_ADAPT_PWM;
-    if (capture.sample(now, hallRead(), mayAdapt)) {
+    const int16_t raw = hallRead();
+    const bool passageClosed = capture.sample(now, raw, mayAdapt);
+    FloorRejection floorRej;
+    if (capture.takeFloorRejection(floorRej)) {
+      char b[420];
+      snprintf(b,sizeof(b),
+        "{\"reason\":\"DURATION_FLOOR\",\"opened_ms\":%lu,\"closed_ms\":%lu,"
+        "\"dur_ms\":%u,\"floor_ms\":%u,\"raw_peak\":%u,\"samples\":%u,"
+        "\"pre\":%u,\"dec\":%u,\"entry_baseline\":%ld,\"close_baseline\":%ld,"
+        "\"raw_close\":%d,\"signed_sum\":%lld,\"truncated\":%u,\"clipped\":%u,"
+        "\"pwm_close\":%u,\"may_adapt_close\":%u}",
+        (unsigned long)floorRej.openedAtMs,(unsigned long)floorRej.closedAtMs,
+        floorRej.durationMs,floorRej.floorMs,floorRej.rawPeakMagnitude,
+        floorRej.sampleCount,floorRej.preSamples,floorRej.decimation,
+        (long)floorRej.entryBaseline,(long)capture.baseline(),(int)raw,
+        (long long)floorRej.signedSum,floorRej.truncated?1u:0u,
+        floorRej.clipped?1u:0u,(unsigned)actualPwm,mayAdapt?1u:0u);
+      pub(T_ACQ_DIAG,b,false);
+    }
+    if (passageClosed) {
       const Passage& p = capture.passage();
       // Production admission uses time and amplitude only (decisions 0080/0082).
       Verdict v = recognizer.examine(p);
@@ -741,8 +805,18 @@ static void hallTask(void*){
       Judged j{ myEpoch,p.openedAtMs,p.closedAtMs,p.peakCounts,p.polarity,
                 (uint8_t)v.outcome,(uint8_t)v.isMagnet,
                 (uint8_t)v.postStopSuccessor,
-                v.amplitudeRatio,v.gapMs,v.gain };
+                v.amplitudeRatio,v.gapMs,v.gain,
+                p.entryBaseline,capture.baseline(),capture.shadowBaseline(),raw,
+                (uint8_t)actualPwm,(uint8_t)(mayAdapt?1:0) };
       if (judgedQ) xQueueSend(judgedQ,&j,0);
+    }
+    if (departureDiagActive && now-lastDepartureDiagMs >= 100) {
+      lastDepartureDiagMs = now;
+      HallDiag d{now,raw,capture.baseline(),capture.shadowBaseline(),capture.entryBaseline(),
+                 (uint8_t)actualPwm,(uint8_t)(capture.open()?1:0),
+                 (uint8_t)(mayAdapt?1:0)};
+      if (hallDiagQ && xQueueSend(hallDiagQ,&d,0) != pdTRUE)
+        ++departureDiagQueueDrops;
     }
     if (dumpWindowRequest) {
       dumpWindowRequest = false;
@@ -1036,7 +1110,7 @@ static void serviceStatus(){
     // than blanking, and so their absence is visible rather than implied.
     "\"candidate_mm\":-1,\"viable\":[],\"miss_streak\":0,"
     "\"agree\":%lu,\"disagree\":%lu,\"notmag\":%lu,"
-    "\"baseline\":%ld,\"floor_rej\":%lu,"
+    "\"baseline\":%ld,\"shadow_baseline\":%ld,\"shadow_delta\":%ld,\"floor_rej\":%lu,"
     // Retained protocol field from the superseded 0070 discard experiment.
     // Ordinary acquisition discards no opening based on morphology.
     "\"discards\":%lu,"
@@ -1053,7 +1127,9 @@ static void serviceStatus(){
     actualPwm, autoEnrolled?1:0, autoRunning?1:0, estopped?1:0, lowVoltage?1:0,
     (actualPwm>0)?1u:0u,
     (unsigned long)s.advances,(unsigned long)s.refusals,(unsigned long)s.notMagnets,
-    (long)capture.baseline(),(unsigned long)capture.floorRejects(),
+    (long)capture.baseline(),(long)capture.shadowBaseline(),
+    (long)(capture.shadowBaseline()-capture.baseline()),
+    (unsigned long)capture.floorRejects(),
     0UL,
     navStateName(s.state), s.seqAt, inaReady?1u:0u,
     (unsigned long)pubDropped,(unsigned long)cmdDropped,(unsigned long)staleJudged,
@@ -1102,13 +1178,16 @@ void setup(){
   if (!inaReady) Serial.println("[BATT] INA219 NOT FOUND — NO BATTERY PROTECTION THIS SESSION");
   buildTopics();
   judgedQ=xQueueCreate(16,sizeof(Judged));
+  hallDiagQ=xQueueCreate(32,sizeof(HallDiag));
   pubQ  =xQueueCreate(48,sizeof(PubMsg));    // holds ~5 s while the broker is away
   cmdQ  =xQueueCreate(16,sizeof(CmdMsg));
   Serial.printf("[BOOT] %s \"%s\" — %s\n",SKETCH_NAME,BUILD_SUBTITLE,LOCO_NAME);
-  Serial.printf("[BOOT] CORRECTIVE FIELD-TEST BUILD — not field-accepted NAVI_ONE 1.0.\n");
+  Serial.printf("[BOOT] X18 LAP-BASELINE FIELD TEST — not field-accepted NAVI_ONE 1.0.\n");
+  Serial.printf("[BOOT] Startup baseline; SET LOCATION laps adjust at most two counts.\n");
+  Serial.printf("[BOOT] Rolling median has lap-boundary authority only; no continuous adaptation.\n");
   Serial.printf("[BOOT] Morphology is diagnostic only; pause/resume/stitch authority removed.\n");
   Serial.printf("[CAL] 2 s baseline — keep clear of magnets\n");
-  if (!judgedQ || !pubQ || !cmdQ) {
+  if (!judgedQ || !hallDiagQ || !pubQ || !cmdQ) {
     Serial.println("[BOOT] FATAL: queue allocation failed — halting");
     writePwm(0); for(;;) delay(1000);
   }
@@ -1123,13 +1202,14 @@ void setup(){
   mqtt.setServer(MQTT_BROKER,MQTT_PORT); mqtt.setCallback(onMqtt); mqtt.setBufferSize(900);
   if (xTaskCreatePinnedToCore(networkTask,"net",8192,nullptr,1,nullptr,1) != pdPASS)
     Serial.println("[BOOT] WARNING: network task would not start — running blind");
-  char b[400];
+  char b[512];
   const int bootLen = snprintf(b,sizeof(b),
     "{\"sketch\":\"%s\",\"subtitle\":\"%s\",\"build_class\":\"%s\",\"field_accepted\":%d,"
     "\"loco\":\"%s\",\"entry\":%d,\"exit\":%d,\"floor_ms\":%d,"
     "\"amp_floor\":%.2f,\"guard_ms\":%lu,\"seq_n\":%d,"
     "\"offsets\":0,\"quorum\":0,\"velocity_model\":0,\"post_stop_successor\":1,"
-    "\"baseline_adapt_pwm\":%d,\"ir_votes\":0}",
+    "\"baseline_mode\":\"set_location_lap_cap2\",\"shadow_median_n\":41,"
+    "\"baseline_adapt_pwm\":%d,\"departure_diag_hz\":10,\"ir_votes\":0}",
     SKETCH_NAME,BUILD_SUBTITLE,BUILD_CLASS,(int)FIELD_ACCEPTED,
     LOCO_NAME,(int)captureCfg.entryMargin,(int)captureCfg.exitMargin,
     (int)captureCfg.floorMs,(double)recCfg.amplitudeFloor,
@@ -1153,12 +1233,14 @@ void setup(){
 static void stationService(uint32_t now){
   const NavStatus& s = navigator.status();
   if (!autoRunning || !navigator.positionKnown()) {
+    departureDiagActive = false;
     if (stationMachine.phase() != StPhase::Idle) stationMachine.reset();
     return;
   }
   const uint8_t cruise = cruisePwmAt(s.navMm, s.navDir, AUTO_CRUISE_PWM);
   StationOrder o = stationMachine.tick(s.navMm, s.navDir,
                                        (uint8_t)actualPwm, cruise, now);
+  departureDiagActive = stationMachine.phase() == StPhase::Depart;
 
   if (o.setThrottle) requestPwm((int)o.pwm, AUTO_STEP_UP_MS, o.stepMs);
   if (o.event) {
@@ -1198,6 +1280,21 @@ void loop(){
             estMmPerS = (uint32_t)((uint32_t)spanMm(from, ns.navDir) * 1000UL / dt);
         }
         lastAdvanceMs = j.closedAtMs;
+        const LapBaselineUpdate bu = lapBaseline.advance(
+          ns.navMm, j.shadowBaseline, j.closeBaseline);
+        if (bu.complete) {
+          if (bu.valid && bu.applied) requestLapBaselineAdjustment(bu.applied);
+          char lb[320];
+          snprintf(lb,sizeof(lb),
+            "{\"origin\":%u,\"advances\":%u,\"coverage\":%u,\"valid\":%u,"
+            "\"estimate\":%ld,\"baseline_before\":%ld,\"baseline_after\":%ld,"
+            "\"requested\":%d,\"applied\":%d}",
+            (unsigned)bu.origin,(unsigned)bu.advances,(unsigned)bu.coverage,
+            bu.valid?1u:0u,(long)bu.estimate,(long)bu.baselineBefore,
+            (long)(bu.baselineBefore + bu.applied),
+            (int)bu.requested,(int)bu.applied);
+          pub(T_BASELINE_LAP,lb,false);
+        }
         char sv[12]; snprintf(sv,sizeof(sv),"%lu",(unsigned long)estMmPerS);
         pub(T_SPEED,sv,true);
 
@@ -1229,6 +1326,32 @@ void loop(){
       case Ruling::Contradicted:publishNav("CONTRADICTED",&j,r); contradicted(); break;
       case Ruling::NotAMagnet: publishNav("NOT_A_MAGNET",&j,r); break;
       default:                 publishNav("NO_POSITION",&j,r); break;
+    }
+  }
+  HallDiag d;
+  while (hallDiagQ && xQueueReceive(hallDiagQ,&d,0)==pdTRUE) {
+    const NavStatus& s = navigator.status();
+    char b[384];
+    const int n = snprintf(b,sizeof(b),
+      "{\"t\":%lu,\"phase\":\"DEPART\",\"mm\":%u,\"dir\":\"%s\","
+      "\"raw\":%d,\"baseline\":%ld,\"delta\":%ld,"
+      "\"shadow_baseline\":%ld,\"shadow_delta\":%ld,\"entry_baseline\":%ld,"
+      "\"pwm\":%u,\"open\":%u,\"may_adapt\":%u,\"q_drop\":%lu,\"pub_skip\":%lu}",
+      (unsigned long)d.t,(unsigned)s.navMm,s.navDir>0?"CW":"CCW",
+      (int)d.raw,(long)d.baseline,(long)((int32_t)d.raw-d.baseline),
+      (long)d.shadowBaseline,(long)(d.shadowBaseline-d.baseline),
+      (long)d.entryBaseline,(unsigned)d.pwm,(unsigned)d.passageOpen,
+      (unsigned)d.mayAdapt,(unsigned long)departureDiagQueueDrops,
+      (unsigned long)departureDiagPubSkips);
+    // Diagnostic traffic is expendable; marker/navigation traffic is not.
+    // Leave queue headroom instead of letting a broker outage turn a 10 Hz
+    // trace into dropped operational evidence.
+    if (n < 0 || n >= (int)sizeof(b)) {
+      ++departureDiagPubSkips;
+    } else if (pubQ && uxQueueSpacesAvailable(pubQ) > 8) {
+      pub(T_DEPART_DIAG,b,false);
+    } else {
+      ++departureDiagPubSkips;
     }
   }
   serviceRamp(); serviceIna(); serviceIr(); serviceStatus();

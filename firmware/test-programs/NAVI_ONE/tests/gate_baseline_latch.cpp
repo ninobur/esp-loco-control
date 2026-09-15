@@ -41,8 +41,9 @@ struct Result { int crossed, closed, seen; int32_t baseline; };
 
 // 20 s of running: one 150 ms, 220-count magnet per second, on a DC offset.
 // moving says whether the locomotive is above its tractive floor throughout.
-static Result run(int offset, int magnetSign, bool moving) {
-  CaptureConfig cfg; HallCapture<> cap(cfg);
+static Result run(int offset, int magnetSign, bool moving,
+                  uint16_t floorMs=NAVI_PASSAGE_FLOOR_MS) {
+  CaptureConfig cfg; cfg.floorMs=floorMs; HallCapture<> cap(cfg);
   uint32_t t = 0;
   for (; t < 3000; ++t) cap.sample(t, BASE, moving);
   Result r{0, 0, 0, 0};
@@ -195,6 +196,34 @@ int main() {
     for (uint16_t i = p.preSamples; i < p.sampleCount; ++i)
       if (p.oriented[i] != -OFF) ++notFull;
     ok(notFull <= 1, "at most the one decimation boundary sample differs");
+  }
+
+  printf("\nH. diagnostic sweep: floor versus visibility in case B\n");
+  for (uint16_t floor : {40, 50, 60, 70, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90}) {
+    Result r = run(-50, +1, false, floor);
+    printf("   floor %2u ms -> crossed=%d closed=%d seen=%d\n",
+           (unsigned)floor, r.crossed, r.closed, r.seen);
+  }
+
+  printf("\nI. fixed-startup field policy leaves the rolling median in shadow only\n");
+  {
+    CaptureConfig cfg; cfg.fixedAfterPrime = true; HallCapture<> cap(cfg);
+    uint32_t t = 0;
+    for (; t < 3000; ++t) cap.sample(t, BASE, true);
+    ok(cap.baseline() == BASE, "startup baseline is established normally");
+    ok(cap.shadowBaseline() == BASE, "shadow begins at the startup baseline");
+
+    // A sustained, sub-entry shift is exactly the quantity this field build
+    // must measure. It moves the old adaptive reference, now shadow-only,
+    // without moving the reference used by passage acquisition.
+    for (int i = 0; i < 3000; ++i, ++t) cap.sample(t, BASE + 30, true);
+    ok(cap.shadowBaseline() == BASE + 30, "shadow median follows the shifted line");
+    ok(cap.baseline() == BASE, "authoritative baseline remains fixed");
+    ok(!cap.open(), "a sub-entry shift does not invent a passage");
+
+    for (int i = 0; i < 3000; ++i, ++t) cap.sample(t, BASE, true);
+    ok(cap.shadowBaseline() == BASE, "shadow median follows the line home");
+    ok(cap.baseline() == BASE, "authoritative baseline remains fixed after return");
   }
 
   printf("\n%d checks, %d failures\n", checks, failures);

@@ -10,8 +10,8 @@
 //   ENTRY MARGIN 38 counts   below this is indistinguishable from noise on
 //                            this sensor. Verified in the field 2026-08-29:
 //                            baseline 1834, thresholds 1872 / 1796.
-//   FLOOR 40 ms              shorter than any magnet passage at any speed the
-//                            railway reaches; an electrical transient.
+//   FLOOR cfg_.floorMs       completed passages shorter than the configured
+//                            field-test boundary; an acquisition transient.
 //
 // Nothing else screens. In particular there is no amplitude floor above the
 // entry margin and no duration ceiling: real magnets on this railway run down
@@ -21,10 +21,12 @@
 // EXIT hysteresis at 25 counts, held for 8 ms, so a magnet whose signal
 // wobbles near the threshold produces one passage rather than several.
 //
-// The baseline is a rolling median, not a mean: a median is unmoved by the
-// passage itself, so a magnet cannot drag its own reference.
+// The baseline is established by a median during startup. A field-test policy
+// may then hold that baseline fixed for the run while the same rolling median
+// continues in shadow, where it can be observed but cannot affect capture.
 // ---------------------------------------------------------------------------
 #include <stdint.h>
+#include "NAVIFieldConfig.h"
 #include "MagnetRecognizer.h"
 
 namespace navi_one {
@@ -33,7 +35,7 @@ struct CaptureConfig {
   int16_t  entryMargin   = 38;
   int16_t  exitMargin    = 25;
   uint16_t exitHoldMs    = 8;
-  uint16_t floorMs       = 40;
+  uint16_t floorMs       = NAVI_PASSAGE_FLOOR_MS;
   uint16_t baselineMs    = 25;    // one baseline sample every 25 ms
   uint16_t primeMs       = 2000;  // 2 s before the baseline is trusted
   // How long a passage must have been open before the LIVE baseline is allowed
@@ -59,6 +61,23 @@ struct CaptureConfig {
   // means the locomotive is actually rolling, and clear, before the reference
   // is allowed to follow it.
   uint16_t openMigrateMs = 2000;
+  // Experimental field-test policy. When true, the baseline established by
+  // the prime window remains authoritative until reboot. The rolling median
+  // still runs as shadow telemetry under the normal motion/open gates.
+  bool fixedAfterPrime = false;
+};
+
+// One-shot evidence for an acquisition event rejected by the completed-
+// passage duration floor. It is deliberately not a Passage: callers may
+// report it, but cannot accidentally send it through recognition/navigation.
+struct FloorRejection {
+  uint32_t openedAtMs = 0, closedAtMs = 0;
+  uint16_t durationMs = 0, floorMs = 0;
+  uint16_t sampleCount = 0, preSamples = 0, decimation = 1;
+  uint16_t rawPeakMagnitude = 0;
+  int32_t entryBaseline = 0;
+  int64_t signedSum = 0;
+  bool truncated = false, clipped = false;
 };
 
 template <uint16_t RING = 512, uint8_t PRE = 12, uint8_t MED = 41>
@@ -67,9 +86,31 @@ class HallCapture {
   explicit HallCapture(const CaptureConfig& cfg) : cfg_(cfg) {}
 
   int32_t baseline() const { return baseline_; }
+  int32_t shadowBaseline() const { return shadowBaseline_; }
+  bool    open()     const { return open_; }
   bool    ready()    const { return primed_; }
   const Passage& passage() const { return out_; }
   uint32_t floorRejects() const { return floorRejects_; }
+
+  // Apply a completed-lap correction only between passages. The pre-roll is
+  // already expressed relative to the old baseline, so move it into the new
+  // reference frame as well. The raw rolling window remains shadow telemetry.
+  bool adjustBaseline(int8_t delta) {
+    if (open_) return false;
+    baseline_ += delta;
+    entryBaseline_ = baseline_;
+    for (uint8_t i = 0; i < preLen_; ++i) pre_[i] -= delta;
+    return true;
+  }
+
+  // Consume exactly once. A floor rejection remains outside the Passage path
+  // and therefore outside MagnetRecognizer and Navigator authority.
+  bool takeFloorRejection(FloorRejection& r) {
+    if (!floorRejectPending_) return false;
+    r = floorReject_;
+    floorRejectPending_ = false;
+    return true;
+  }
 
   int32_t entryBaseline() const { return entryBaseline_; }
 
@@ -200,6 +241,7 @@ class HallCapture {
     dec_ = 1; decPhase_ = 0;
     sum_ = 0;
     entryBaseline_ = baseline_;
+    floorRejectPending_ = false;
   }
 
  private:
@@ -207,7 +249,30 @@ class HallCapture {
   bool close(uint32_t nowMs) {
     open_ = false;
     const uint32_t dur = nowMs - openedAtMs_;
-    if (dur < cfg_.floorMs) { ++floorRejects_; return false; }
+    if (dur < cfg_.floorMs) {
+      uint32_t rawPeak = 0;
+      for (uint16_t i = 0; i < n_; ++i) {
+        const int32_t v = buf_[i];
+        const uint32_t mag = (uint32_t)(v < 0 ? -v : v);
+        if (mag > rawPeak) rawPeak = mag;
+      }
+      floorReject_ = FloorRejection{};
+      floorReject_.openedAtMs = openedAtMs_;
+      floorReject_.closedAtMs = nowMs;
+      floorReject_.durationMs = (uint16_t)(dur > 65535 ? 65535 : dur);
+      floorReject_.floorMs = cfg_.floorMs;
+      floorReject_.sampleCount = n_;
+      floorReject_.preSamples = preAt_;
+      floorReject_.decimation = dec_;
+      floorReject_.rawPeakMagnitude = (uint16_t)(rawPeak > 65535 ? 65535 : rawPeak);
+      floorReject_.entryBaseline = entryBaseline_;
+      floorReject_.signedSum = sum_;
+      floorReject_.truncated = truncated_;
+      floorReject_.clipped = clipped_;
+      floorRejectPending_ = true;
+      ++floorRejects_;
+      return false;
+    }
     // ------------------------------------------------------------------
     // THE POLE IS DECIDED HERE, and only here, from the completed passage.
     // Never from the entry sample. Never from RouteMap: the map may not be
@@ -240,6 +305,7 @@ class HallCapture {
     out_.truncated  = truncated_;
     out_.clipped    = clipped_;
     out_.decimation = dec_;
+    out_.entryBaseline = entryBaseline_;
     return true;
   }
 
@@ -302,7 +368,8 @@ class HallCapture {
       while (j >= 0 && c[j] > v) { c[j + 1] = c[j]; --j; }
       c[j + 1] = v;
     }
-    baseline_ = c[medLen_ / 2];
+    shadowBaseline_ = c[medLen_ / 2];
+    if (!primed_ || !cfg_.fixedAfterPrime) baseline_ = shadowBaseline_;
     if (!primed_ && (nowMs - startMs_) >= cfg_.primeMs && medLen_ >= MED / 2) primed_ = true;
   }
 
@@ -313,11 +380,13 @@ class HallCapture {
   int16_t  pre_[PRE] = {}; uint8_t preHead_ = 0, preLen_ = 0;
   int16_t  med_[MED] = {}; uint8_t medHead_ = 0, medLen_ = 0;
   uint16_t dec_ = 1, decPhase_ = 0;
-  int32_t  baseline_ = 0, entryBaseline_ = 0, peak_ = 0;
+  int32_t  baseline_ = 0, shadowBaseline_ = 0, entryBaseline_ = 0, peak_ = 0;
   uint32_t adaptSinceMs_ = 0;   // when motion permission last arrived; 0 = not permitted
   int64_t  sum_ = 0;
   uint32_t startMs_ = 0, lastBaseMs_ = 0, openedAtMs_ = 0, quietSince_ = 0;
   uint32_t floorRejects_ = 0;
+  FloorRejection floorReject_;
+  bool floorRejectPending_ = false;
   bool     primed_ = false, open_ = false, truncated_ = false, clipped_ = false;
   uint8_t  pol_ = 1;
   Passage  out_;

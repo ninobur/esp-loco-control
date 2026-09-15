@@ -55,3 +55,7 @@ $CXX "$here/gate_station_baseline.cpp" -o "$tmp/stbase"; "$tmp/stbase"
 echo ""
 echo "== gate 12: Grillers regression — no station/morphology withdrawal =="
 $CXX "$here/gate_grillers.cpp" -o "$tmp/grillers"; "$tmp/grillers"
+
+echo ""
+echo "== gate 13: SET LOCATION whole-lap baseline controller =="
+$CXX "$here/gate_lap_baseline.cpp" -o "$tmp/lapbase"; "$tmp/lapbase"

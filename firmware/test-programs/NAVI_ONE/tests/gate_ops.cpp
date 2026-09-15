@@ -133,7 +133,8 @@ int main(){
   // Drive HallCapture the way the Hall task does: one sample per millisecond.
   struct Rig {
     CaptureConfig cfg; HallCapture<512> cap; uint32_t t=0; int base=1834;
-    Rig():cap(cfg){}
+    static CaptureConfig withFloor(uint16_t floor){ CaptureConfig c; c.floorMs=floor; return c; }
+    explicit Rig(uint16_t floor=NAVI_PASSAGE_FLOOR_MS):cfg(withFloor(floor)),cap(cfg){}
     void prime(){ for(int i=0;i<3000;i++) cap.sample(t++, (int16_t)base, true); }
     // A Gaussian bump of the given peak and full duration, in milliseconds.
     bool bump(int peak,int durMs,int railAt=-1){
@@ -144,6 +145,18 @@ int main(){
         if(cap.sample(t++, (int16_t)v, true)) closed=true;
       }
       for(int i=0;i<60;i++) if(cap.sample(t++,(int16_t)base, true)) closed=true;
+      return closed;
+    }
+    // Hold above entry so openedAt->closedAt is exactly targetDurMs. The exit
+    // hold contributes the final 8 ms to the completed-passage duration.
+    bool flatForDuration(int peak,uint16_t targetDurMs){
+      bool closed=false;
+      const uint16_t highMs = targetDurMs>cfg.exitHoldMs
+                            ? (uint16_t)(targetDurMs-cfg.exitHoldMs) : 1;
+      for(uint16_t i=0;i<highMs;i++)
+        if(cap.sample(t++,(int16_t)(base+peak),true)) closed=true;
+      for(uint16_t i=0;i<60;i++)
+        if(cap.sample(t++,(int16_t)base,true)) closed=true;
       return closed;
     }
   };
@@ -202,10 +215,26 @@ int main(){
 
   printf("\nC5  the floor and the entry margin still hold\n");
   { Rig r; r.prime();
-    ck(!r.bump(200,20),"a 20 ms excursion is refused by the 40 ms floor");
+    ck(!r.bump(200,20),"a 20 ms excursion is refused by the active floor");
     ckEq((long)r.cap.floorRejects(),1,"and counted");
     ck(!r.bump(30,180),"a 30-count bump never reaches the 38-count entry margin");
     ck(r.bump(200,180),"a real passage still closes"); }
+
+  printf("\nC6  the active field-test boundary reports once and admits at equality\n");
+  { Rig r; r.prime();
+    ck(!r.flatForDuration(200,NAVI_PASSAGE_FLOOR_MS-1),
+       "an event one ms below the active floor does not become a Passage");
+    FloorRejection f;
+    ck(r.cap.takeFloorRejection(f),"the rejected event leaves one diagnostic record");
+    ckEq(f.durationMs,NAVI_PASSAGE_FLOOR_MS-1,
+         "the record carries the exact rejected duration");
+    ckEq(f.floorMs,NAVI_PASSAGE_FLOOR_MS,"the record carries the active floor");
+    ck(f.rawPeakMagnitude>=190,"the record carries the event magnitude");
+    ck(!r.cap.takeFloorRejection(f),"the record is one-shot, not repeated");
+    ckEq((long)r.cap.floorRejects(),1,"the aggregate count still advances");
+    ck(r.flatForDuration(200,NAVI_PASSAGE_FLOOR_MS),
+       "an event equal to the active floor follows the ordinary Passage path");
+    ck(!r.cap.takeFloorRejection(f),"an admitted Passage creates no rejection record"); }
 
   printf("\n%d checks, %d failures\n",checks,failures);
   return failures?1:0;

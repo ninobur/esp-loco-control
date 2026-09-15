@@ -14,8 +14,10 @@ struct PwmSpeedEntry {
 //
 // VERIFY AFTER FLASHING. The boot serial line must read
 //
-//     [BOOT] NAVI_ONE_1_0X15_FIELDTEST "Operator-ruling corrective" — 9950011
-//     [BOOT] CORRECTIVE FIELD-TEST BUILD — not field-accepted NAVI_ONE 1.0.
+//     [BOOT] NAVI_ONE_1_0X18_LAP_BASELINE_FIELDTEST "X17 behavior; SET LOCATION lap baseline, maximum two counts per lap" — 9950011
+//     [BOOT] X18 LAP-BASELINE FIELD TEST — not field-accepted NAVI_ONE 1.0.
+//     [BOOT] Startup baseline; SET LOCATION laps adjust at most two counts.
+//     [BOOT] Rolling median has lap-boundary authority only; no continuous adaptation.
 //     [BOOT] Morphology is diagnostic only; pause/resume/stitch authority removed.
 //
 // If it names the other locomotive, the wrong profile was compiled in and the
@@ -54,6 +56,17 @@ struct PwmSpeedEntry {
 //   quotes the compiled serial output exactly.
 // 2026-09-10: X15 adds the operator-approved post-stop successor exception;
 //   the active locomotive remains Otto and no profile constants changed.
+// 2026-09-12: departure diagnostic retains X15 behavior and adds telemetry
+//   only. The active locomotive remains Otto and no profile constants changed.
+// 2026-09-12: X16 experimentally raises the shared completed-passage floor to
+//   82 ms and publishes each floor rejection on diag/acquisition. This is not
+//   field-accepted production policy; the active locomotive remains Otto.
+// 2026-09-14: X17 preserves X16 and holds the startup baseline authoritative
+//   for the run. The former adaptive median is published as shadow telemetry
+//   only and has no effect on acquisition or navigation.
+// 2026-09-14: X18 preserves X17 acquisition/navigation and gives the shadow
+//   median bounded authority only after a complete SET LOCATION-anchored lap:
+//   one value per MM, route median, maximum two counts in either direction.
 //
 // ONE LINE PER LOCOMOTIVE. EVERY LINE POINTS AT A FILE THAT EXISTS.
 // ============================================================================

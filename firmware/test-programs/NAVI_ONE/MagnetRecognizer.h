@@ -145,6 +145,9 @@ struct Passage {
   // (HallCapture::close). Carried so a judgement's basis travels with it;
   // nothing thresholds on it. Decision 0064.
   int64_t       signedSum    = 0;
+  // Diagnostic provenance only: the fixed reference against which this
+  // passage's samples, polarity and peak were measured.
+  int32_t       entryBaseline = 0;
 };
 
 // Median of three, endpoints copied. Accepted decision 0065. The raw recording
