@@ -1,0 +1,462 @@
+# NAVI_ONE_X18_RECORDER vs X18 as flown (242109e)
+
+Generated 2026-09-16T22:44:16Z. Every operational change is in this file.
+
+```
+FILES BYTE-IDENTICAL TO 242109e:
+  HallCapture.h
+  LapBaselineController.h
+  MagnetRecognizer.h
+  Navigator.h
+  Ops.h
+  RouteMap.h
+  Stations.h
+  TwoSided.h
+  WaveformDump.h
+  WaveformWindow.h
+  NAVIFieldConfig.h
+  LocoConfig.h
+  LL_LocoConfig_9950011.h
+  LL_LocoConfig_9950012.h
+  Hall_Baseline_Laps.txt
+
+NEW FILES:
+  HallRecorder.h
+  tests/gate_recorder.cpp
+
+CHANGED:
+  NAVI_ONE.ino -> NAVI_ONE_X18_RECORDER.ino   (+279 / -5)
+  tests/run_tests.sh                          (gates 14 and 15 appended)
+```
+
+## NAVI_ONE.ino
+
+```diff
+--- /tmp/base.ino	2026-09-16 15:43:10
++++ firmware/test-programs/NAVI_ONE_X18_RECORDER/NAVI_ONE_X18_RECORDER.ino	2026-09-16 15:35:29
+@@ -49,6 +49,7 @@
+  */
+ #include <Arduino.h>
+ #include <WiFi.h>
++#include <WiFiUdp.h>
+ #include <PubSubClient.h>
+ #include <Wire.h>
+ #include <Adafruit_INA219.h>
+@@ -64,6 +65,15 @@
+ #include "WaveformDump.h"
+ #include "Stations.h"
+ #include "LapBaselineController.h"
++// The recorder's critical section. Declared here, above the include, because
++// HallRecorder.h is pure C++ and takes its lock from whoever hosts it -- on
++// the host test it compiles to nothing at all. A portMUX is the right lock:
++// hallTask runs on core 0 and networkTask on core 1, so a plain interrupt
++// disable would not serialise them.
++static portMUX_TYPE xhrMux = portMUX_INITIALIZER_UNLOCKED;
++#define XHR_ENTER_CRITICAL() portENTER_CRITICAL(&xhrMux)
++#define XHR_EXIT_CRITICAL()  portEXIT_CRITICAL(&xhrMux)
++#include "HallRecorder.h"
+ 
+ #ifndef NAVI_BASELINE_ADAPT_PWM
+ #error "This locomotive's profile has no NAVI_BASELINE_ADAPT_PWM. Measure the tractive floor from its own PWM/speed fit; do not copy another locomotive's."
+@@ -76,9 +86,9 @@
+ //
+ // Corrective field-test build. Decisions 0080/0081: morphology is diagnostic
+ // only, passages are never paused or stitched, and the rebound guard is 500 ms.
+-#define SKETCH_NAME    "NAVI_ONE_1_0X18_LAP_BASELINE_FIELDTEST"
++#define SKETCH_NAME    "NAVI_ONE_1_0X18_LOWLINE_HALL_RECORDER"
+ #define BUILD_CLASS    "EXPERIMENTAL_FIELD_TEST"
+-#define BUILD_SUBTITLE "X17 behavior; SET LOCATION lap baseline, maximum two counts per lap"
++#define BUILD_SUBTITLE "X18 as flown, plus a continuous 1 kHz Hall record to the Pi. Observation only."
+ #define FIELD_ACCEPTED 0
+ 
+ // Types used in function signatures must appear before the Arduino
+@@ -110,7 +120,53 @@
+ 
+ static const char*   MQTT_BROKER = "192.168.68.142";
+ static const uint16_t MQTT_PORT  = 1883;
++
++// ---------------------------------------------------------------------------
++// THE RECORDER. Where the continuous Hall trace is sent, and nothing else.
++//
++// UDP, not MQTT. One MQTT message per sample would be 1000 publishes/s through
++// a 48-deep queue and a broker round trip; the existing waveform dump is
++// event-triggered and only ever carries the passages, which is precisely the
++// part of the signal this build is NOT here to measure. UDP because a lost
++// datagram must cost its own 100 ms and nothing else -- TCP would stall the
++// stream to redeliver evidence that is already stale, and a locomotive that
++// pauses to retransmit is a locomotive whose Hall task is waiting on a radio.
++//
++// SEND-ONLY. No bind(), no listening port, no inbound parse: this build adds
++// no surface that can be commanded from the network.
++//
++// XHR_HOST may be overridden in credentials.h if the receiver runs elsewhere.
++// It defaults to the railway Pi, which is also the broker.
++#ifndef XHR_HOST
++#define XHR_HOST MQTT_BROKER
++#endif
++#ifndef XHR_PORT
++#define XHR_PORT 47610
++#endif
++static TaskHandle_t  hallTaskHandle = nullptr;
++static WiFiUDP       xhrUdp;
++static IPAddress     xhrDest;
++static bool          xhrDestValid = false;
++static XhrSampleRing xhrSamples;
++static XhrRulingRing xhrRulings;
++static uint32_t      xhrSessionId = 0;
++static uint32_t      xhrStatusSeq = 0;
++static uint32_t      xhrUdpFailures = 0;
++static uint32_t      xhrMaxTickBodyUs = 0;
++static volatile uint32_t xhrDatagramsSent = 0;
+ 
++// CONTEXT MIRRORS. Written by loop() (which owns the navigator and the station
++// machine), read by hallTask when it opens a batch. Each is single-writer,
++// naturally aligned and at most 16 bits, so a read is never torn; each is
++// deliberately a COPY, so nothing hallTask does can reach back into the
++// navigator through them. They travel in the batch header, not per sample --
++// see HallRecorder.h.
++static volatile int16_t xhrMirBaseline = 0;
++static volatile uint8_t xhrMirNavMm    = XHR_MM_NA;
++static volatile int8_t  xhrMirNavDir   = 0;
++static volatile uint8_t xhrMirStPhase  = 0;
++static volatile uint8_t xhrMirCtxFlags = 0;
++
+ static constexpr uint8_t HALL_PIN = 33;      // ADC1_CH5
+ static constexpr uint8_t IR_PIN   = 34;      // ADC1_CH6, input-only, no pull
+ static constexpr uint8_t I2C_SDA  = 21, I2C_SCL = 22;
+@@ -491,7 +547,8 @@
+ enum { T_ONLINE=0,T_NAV,T_MARKER,T_ALERT,T_IR,T_STAT,T_BOOT,T_WARN,
+        T_ST_AUTO,T_ST_ESTOP,T_ST_THR,T_ST_DIR,T_ST_SESSDIR,T_ST_STARTMM,
+        T_ST_NAVREADY,T_ST_LOWV,T_ST_STARTINT,T_BRAKE,T_V,T_A,T_W,T_SPEED,
+-       T_WAVEFORM,T_STATION,T_DEPART_DIAG,T_ACQ_DIAG,T_BASELINE_LAP,T_CNT };
++       T_WAVEFORM,T_STATION,T_DEPART_DIAG,T_ACQ_DIAG,T_BASELINE_LAP,
++       T_RECORDER,T_CNT };
+ // Size follows the enum sentinel so adding a topic cannot silently create an
+ // out-of-bounds row (X16 audit B1).
+ static char T[T_CNT][72];
+@@ -520,6 +577,7 @@
+   topic(T_DEPART_DIAG,"diag/departure");
+   topic(T_ACQ_DIAG,"diag/acquisition");
+   topic(T_BASELINE_LAP,"diag/baseline_lap");
++  topic(T_RECORDER,"diag/recorder");
+ }
+ static void pub(int t,const char* payload,bool retain=false){
+   if(!pubQ) return;
+@@ -744,6 +802,147 @@
+ static void publishWaveformWindow(){
+   const uint8_t total = waveformWindow.count();
+   for (uint8_t slot = 0; slot < total; ++slot) publishWaveformSlot(slot, total);
++}
++
++// ---------------------------------------------------------------------------
++// THE RECORDER -- everything below is a one-way tap. Nothing here is called by
++// acquisition, recognition, navigation, the station machine, the throttle or
++// the safety layer; every one of these functions is called BY them, and none
++// returns a value that any of them reads.
++// ---------------------------------------------------------------------------
++
++// Copies loop()'s view of the world into the mirrors hallTask stamps on each
++// batch. Called once per loop() pass, after stationService(), so the phase is
++// the one the station machine has just settled on.
++static void xhrRefreshMirrors(){
++  const NavStatus& s = navigator.status();
++  xhrMirBaseline = (int16_t)capture.baseline();
++  xhrMirNavMm    = navigator.positionKnown() ? (uint8_t)s.navMm : (uint8_t)XHR_MM_NA;
++  xhrMirNavDir   = (int8_t)s.navDir;
++  xhrMirStPhase  = (uint8_t)stationMachine.phase();
++  uint8_t cf = 0;
++  if (navigator.positionKnown())     cf |= XHR_CTX_POS_KNOWN;
++  if (autoRunning)                   cf |= XHR_CTX_AUTO;
++  if (estopped || estopAsserted)     cf |= XHR_CTX_ESTOP;
++  if (mqtt.connected())              cf |= XHR_CTX_MQTT_UP;
++  xhrMirCtxFlags = cf;
++}
++
++// One marker ruling, copied out of the decision X18 has already made.
++// `override` is XHR_RULING_STALE for a passage whose declaration had ended --
++// it never reached navigator.judge(), and the record says so rather than
++// leaving a magnet-shaped hole in the continuous trace with no explanation.
++static void xhrRecordRuling(const Judged& j, const Verdict& v, Ruling r,
++                            uint8_t override_ = 0){
++  XhrRulingRec rec;
++  memset(&rec, 0, sizeof(rec));
++  const NavStatus& s = navigator.status();
++  rec.tMs        = (uint32_t)millis();
++  rec.openedAtMs = j.openedAtMs;
++  rec.closedAtMs = j.closedAtMs;
++  rec.sampleSeq  = xhrSamples.lastCompletedSeq();
++  rec.peakCounts = j.peak;
++  rec.durationMs = (uint16_t)(j.closedAtMs >= j.openedAtMs
++                              ? (j.closedAtMs - j.openedAtMs > 65535u
++                                 ? 65535u : j.closedAtMs - j.openedAtMs)
++                              : 0);
++  rec.gapMs          = (uint16_t)(v.gapMs > 65535u ? 65535u : v.gapMs);
++  rec.entryBaseline  = (int16_t)j.entryBaseline;
++  rec.closeBaseline  = (int16_t)j.closeBaseline;
++  rec.shadowBaseline = (int16_t)j.shadowBaseline;
++  rec.amplitudeRatio = v.amplitudeRatio;
++  rec.polarity   = j.polarity;
++  if (override_) rec.ruling = override_;
++  else switch (r) {
++    case Ruling::Advanced:    rec.ruling = XHR_RULING_ADVANCED;    break;
++    case Ruling::WrongMagnet: rec.ruling = XHR_RULING_WRONG;       break;
++    case Ruling::Contradicted:rec.ruling = XHR_RULING_CONTRADICT;  break;
++    case Ruling::NotAMagnet:  rec.ruling = XHR_RULING_NOT_MAGNET;  break;
++    default:                  rec.ruling = XHR_RULING_NO_POSITION; break;
++  }
++  rec.outcome           = (uint8_t)v.outcome;
++  rec.isMagnet          = v.isMagnet ? 1 : 0;
++  // navMm AFTER the ruling is what the navigator now holds; BEFORE is one
++  // step back along the heading on an advance, and unchanged otherwise. Both
++  // are recorded so an analysis never has to infer which way the count moved.
++  rec.navMmAfter        = navigator.positionKnown() ? (uint8_t)s.navMm : (uint8_t)XHR_MM_NA;
++  rec.navMmBefore       = (!navigator.positionKnown()) ? (uint8_t)XHR_MM_NA
++                          : (r == Ruling::Advanced
++                             ? (uint8_t)routeMod((int32_t)s.navMm - s.navDir)
++                             : (uint8_t)s.navMm);
++  rec.navDir            = (int8_t)s.navDir;
++  rec.stPhase           = (uint8_t)stationMachine.phase();
++  rec.pwmActual         = j.pwmAtClose;
++  rec.postStopSuccessor = v.postStopSuccessor ? 1 : 0;
++  xhrRulings.push(rec);
++}
++
++// Drains both rings to the wire and emits STATUS once a second. Called from
++// networkTask ONLY: the radio, the CRC and the 844-byte stack buffer all live
++// on that task, never on the Hall task.
++static void xhrNetworkDrain(){
++  if (!xhrDestValid || WiFi.status() != WL_CONNECTED) return;
++  // One static buffer, one consumer. Deliberately NOT on the stack: X19 put a
++  // pair of 704-byte buffers on a 4 KB task stack and the overflow was real,
++  // latent and only found by accident.
++  static XhrSampleBatch out;
++  static uint8_t        small[sizeof(XhrHeader) + 64];
++  // Bounded per call so a backlog cannot monopolise networkTask and stall the
++  // MQTT loop: 12 datagrams is 1.2 s of trace, drained every 10 ms, which
++  // empties a full 4 s ring in well under a second.
++  for (int i = 0; i < 12; ++i) {
++    if (!xhrSamples.popBatch(&out)) break;
++    const uint32_t n = xhrSampleBatchWireLen(&out);
++    if (!xhrUdp.beginPacket(xhrDest, XHR_PORT) ||
++        xhrUdp.write((const uint8_t*)&out, n) != n ||
++        !xhrUdp.endPacket()) ++xhrUdpFailures;
++    else ++xhrDatagramsSent;
++  }
++  for (int i = 0; i < 4; ++i) {
++    const uint32_t n = xhrRulings.popSealed(small, sizeof(small));
++    if (!n) break;
++    if (!xhrUdp.beginPacket(xhrDest, XHR_PORT) ||
++        xhrUdp.write(small, n) != n || !xhrUdp.endPacket()) ++xhrUdpFailures;
++    else ++xhrDatagramsSent;
++  }
++  static uint32_t lastStatusMs = 0, lastStatusSamples = 0;
++  const uint32_t now = (uint32_t)millis();
++  if (now - lastStatusMs >= 1000) {
++    const uint32_t dtMs = lastStatusMs ? (now - lastStatusMs) : 1000;
++    const uint32_t cum = xhrSamples.cumSamples();
++    XhrStatusRec st;
++    memset(&st, 0, sizeof(st));
++    st.tMs      = now;
++    st.uptimeMs = now;
++    st.cumSamples          = cum;
++    st.cumSampleRingDrops  = xhrSamples.cumRingDrops();
++    st.cumRulingRingDrops  = xhrRulings.cumRingDrops();
++    st.cumUdpFailures      = xhrUdpFailures;
++    st.maxGapUs            = xhrSamples.maxGapUs();
++    st.maxTickBodyUs       = xhrMaxTickBodyUs;
++    st.freeHeap            = (uint32_t)ESP.getFreeHeap();
++    // BYTES, not words. uxTaskGetStackHighWaterMark returns bytes on ESP-IDF
++    // because portSTACK_TYPE is uint8_t. This was labelled "words" once and
++    // the mistake outlived the build that made it.
++    st.hallStackFreeBytes  = hallTaskHandle ? uxTaskGetStackHighWaterMark(hallTaskHandle) : 0;
++    st.netStackFreeBytes   = uxTaskGetStackHighWaterMark(nullptr);
++    st.measuredHzX10 = (uint16_t)(dtMs ? ((uint64_t)(cum - lastStatusSamples) * 10000ULL / dtMs) : 0);
++    st.ringHighWater = xhrSamples.highWater();
++    st.rssi          = (int8_t)WiFi.RSSI();
++    st.mqttConnected = mqtt.connected() ? 1 : 0;
++    st.wifiConnected = 1;
++    lastStatusMs = now; lastStatusSamples = cum;
++    const uint32_t n = xhrSealStatus(small, sizeof(small), (uint32_t)LOCO_ID,
++                                     xhrSessionId, ++xhrStatusSeq, st,
++                                     xhrMirBaseline, xhrMirNavMm, xhrMirNavDir,
++                                     xhrMirStPhase, xhrMirCtxFlags,
++                                     (uint16_t)(xhrSamples.cumRingDrops() & 0xFFFFu));
++    if (n) {
++      if (!xhrUdp.beginPacket(xhrDest, XHR_PORT) ||
++          xhrUdp.write(small, n) != n || !xhrUdp.endPacket()) ++xhrUdpFailures;
++      else ++xhrDatagramsSent;
++    }
++  }
+ }
+ 
+ // ---------------------------------------------------------------------------
+@@ -755,6 +954,7 @@
+   uint32_t myEpoch = 0;
+   uint32_t lastDepartureDiagMs = 0;
+   for(;;){
++    const uint32_t tickStartUs = (uint32_t)micros();
+     unsigned long now = millis();
+     const int8_t lapAdjust = takeLapBaselineAdjustment();
+     if (lapAdjust && !capture.adjustBaseline(lapAdjust))
+@@ -775,6 +975,31 @@
+     // over a magnet makes the reference BE the magnet. Findings 09 and 10.
+     const bool mayAdapt = actualPwm > NAVI_BASELINE_ADAPT_PWM;
+     const int16_t raw = hallRead();
++    // ------------------------------------------------------------------
++    // THE RECORDER TAP. `raw` is the median-of-five value X18 is about to
++    // hand to capture.sample() -- the identical number, on this tick, not a
++    // re-read. Everything below is a copy of state X18 has already settled.
++    //
++    // Cost on this path: one bounds check, an 8-byte store and two
++    // increments. No allocation, no lock (the lock is taken only on the
++    // 1-in-100 batch handoff), no snprintf, no float, and nothing that can
++    // block. capture.open() is read before sample() so the flag describes
++    // the tick as it began, which is how the trace lines up with the raw
++    // value beside it.
++    // ------------------------------------------------------------------
++    {
++      uint8_t f = 0;
++      if (motorDirection)               f |= XHR_F_DIR_FWD;
++      if (estopped || estopAsserted)    f |= XHR_F_ESTOP;
++      if (autoRunning)                  f |= XHR_F_AUTO;
++      if (mayAdapt)                     f |= XHR_F_MAY_ADAPT;
++      if (capture.open())               f |= XHR_F_PASSAGE;
++      if (lowVoltage)                   f |= XHR_F_LOW_VOLT;
++      xhrSamples.addSample((uint32_t)now, tickStartUs, raw,
++                           (uint8_t)actualPwm, (uint8_t)commandedPwm, f,
++                           xhrMirBaseline, xhrMirNavMm, xhrMirNavDir,
++                           xhrMirStPhase, xhrMirCtxFlags);
++    }
+     const bool passageClosed = capture.sample(now, raw, mayAdapt);
+     FloorRejection floorRej;
+     if (capture.takeFloorRejection(floorRej)) {
+@@ -823,6 +1048,13 @@
+       publishWaveformWindow();
+     }
+     irService(now, tick++);
++    // How much of the 1000 us tick this body actually consumed, recorder
++    // included. Reported in STATUS, so "diagnostic only" is a measurement
++    // here and not an assumption.
++    {
++      const uint32_t body = (uint32_t)micros() - tickStartUs;
++      if (body > xhrMaxTickBodyUs && body < 100000u) xhrMaxTickBodyUs = body;
++    }
+     vTaskDelayUntil(&wake,1);
+   }
+ }
+@@ -880,6 +1112,7 @@
+       }
+     }
+     mqtt.loop();
++    xhrNetworkDrain();
+     // ONLY DEQUEUE WHAT CAN ACTUALLY BE SENT. While the broker is away the
+     // queue holds, so a blink of a few seconds costs nothing at all; a longer
+     // outage overflows at the enqueue end, where pub() counts every loss.
+@@ -1186,12 +1419,34 @@
+   Serial.printf("[BOOT] Startup baseline; SET LOCATION laps adjust at most two counts.\n");
+   Serial.printf("[BOOT] Rolling median has lap-boundary authority only; no continuous adaptation.\n");
+   Serial.printf("[BOOT] Morphology is diagnostic only; pause/resume/stitch authority removed.\n");
++  Serial.printf("[BOOT] OBSERVATION BUILD: X18 behaviour unchanged; the Hall record has no authority.\n");
++  // THE RECORDER. Begun before hallTask exists, so the very first tick has a
++  // ring to write into and sample 0 is not lost to a race with setup().
++  //
++  // sessionId is random per boot and is the ONLY thing that makes two boots
++  // distinguishable in one capture file: sample sequence, batch sequence and
++  // millis() all restart at zero, so a decoder that joined across sessions
++  // would silently splice two different runs into one continuous-looking
++  // trace. Every tool here refuses to.
++  xhrSessionId = (uint32_t)esp_random();
++  if (!xhrSessionId) xhrSessionId = 1;          // 0 is the "unset" value
++  xhrSamples.begin((uint32_t)LOCO_ID, xhrSessionId);
++  xhrRulings.begin((uint32_t)LOCO_ID, xhrSessionId);
++  // XHR_HOST must be a dotted quad: this runs before WiFi is up and there is
++  // no resolver yet. A name here would silently never record.
++  xhrDestValid = xhrDest.fromString(XHR_HOST);
++  if (!xhrDestValid)
++    Serial.printf("[REC] XHR_HOST \"%s\" is not a dotted-quad address — NOT RECORDING\n", XHR_HOST);
++  else
++    Serial.printf("[REC] continuous Hall record -> %s:%d  session %08lX  "
++                  "(observation only; no navigation authority)\n",
++                  XHR_HOST, (int)XHR_PORT, (unsigned long)xhrSessionId);
+   Serial.printf("[CAL] 2 s baseline — keep clear of magnets\n");
+   if (!judgedQ || !hallDiagQ || !pubQ || !cmdQ) {
+     Serial.println("[BOOT] FATAL: queue allocation failed — halting");
+     writePwm(0); for(;;) delay(1000);
+   }
+-  if (xTaskCreatePinnedToCore(hallTask,"hall",4096,nullptr,3,nullptr,0) != pdPASS) {
++  if (xTaskCreatePinnedToCore(hallTask,"hall",4096,nullptr,3,&hallTaskHandle,0) != pdPASS) {
+     // QUORUM checked this and halted loudly. 0.1 ignored the return, so a
+     // failed Hall task would boot a locomotive that navigates by nothing and
+     // says nothing about it.
+@@ -1219,6 +1474,22 @@
+     writePwm(0); for(;;) delay(1000);
+   }
+   pub(T_BOOT,b,true);
++  {
++    char rb[320];
++    const int n = snprintf(rb,sizeof(rb),
++      "{\"recording\":%d,\"host\":\"%s\",\"port\":%d,\"session\":%lu,"
++      "\"rate_hz\":1000,\"batch\":%d,\"sample_bytes\":%d,\"datagram_bytes\":%d,"
++      "\"ring_batches\":%d,\"format\":\"XHR1\",\"authority\":\"none\"}",
++      xhrDestValid?1:0,XHR_HOST,(int)XHR_PORT,(unsigned long)xhrSessionId,
++      (int)XHR_SAMPLE_BATCH,(int)sizeof(XhrSample),
++      (int)(sizeof(XhrHeader)+XHR_SAMPLE_BATCH*sizeof(XhrSample)),
++      (int)XHR_SAMPLE_RING_BATCHES);
++    // Bounded like every other record on this build. A guard that halts earns
++    // nothing on a diagnostic topic, so this one reports and carries on --
++    // losing the recorder's description must never cost a run.
++    if (n < 0 || n >= (int)sizeof(rb)) Serial.println("[REC] record oversize — not published");
++    else pub(T_RECORDER,rb,true);
++  }
+   if (!inaReady) warn("INA219 NOT FOUND — no battery protection this session");
+   Serial.println("[BOOT] ready. session_direction, then start_mm, then auto, then GO.");
+ }
+@@ -1257,18 +1528,27 @@
+ void loop(){
+   CmdMsg c; while (cmdQ && xQueueReceive(cmdQ,&c,0)==pdTRUE) handleCommand(c);
+   stationService(millis());
++  xhrRefreshMirrors();
+ 
+   Judged j;
+   while (judgedQ && xQueueReceive(judgedQ,&j,0)==pdTRUE) {
+     // Captured under a declaration that no longer stands. It is evidence about
+     // a frame that has ended and it may not advance this one.
+-    if (j.epoch != navEpoch) { staleJudged++; continue; }
++    if (j.epoch != navEpoch) {
++      staleJudged++;
++      Verdict vs; vs.outcome=(Outcome)j.outcome; vs.isMagnet=j.isMagnet;
++      vs.postStopSuccessor=j.postStopSuccessor;
++      vs.amplitudeRatio=j.ratio; vs.gapMs=j.gapMs; vs.gain=j.gain;
++      xhrRecordRuling(j, vs, Ruling::NoPosition, XHR_RULING_STALE);
++      continue;
++    }
+     Passage p; p.openedAtMs=j.openedAtMs; p.closedAtMs=j.closedAtMs;
+     p.peakCounts=j.peak; p.polarity=j.polarity;
+     Verdict v; v.outcome=(Outcome)j.outcome; v.isMagnet=j.isMagnet;
+     v.postStopSuccessor=j.postStopSuccessor;
+     v.amplitudeRatio=j.ratio; v.gapMs=j.gapMs; v.gain=j.gain;
+     Ruling r = navigator.judge(p,v);
++    xhrRecordRuling(j, v, r);
+     switch (r) {
+       case Ruling::Advanced: {
+         // surveyed distance just covered / measured time. Display only.
+```
+
+## tests/run_tests.sh
+
+```diff
+--- -	2026-09-16 15:44:16
++++ firmware/test-programs/NAVI_ONE_X18_RECORDER/tests/run_tests.sh	2026-09-16 15:39:53
+@@ -59,3 +59,11 @@
+ echo ""
+ echo "== gate 13: SET LOCATION whole-lap baseline controller =="
+ $CXX "$here/gate_lap_baseline.cpp" -o "$tmp/lapbase"; "$tmp/lapbase"
++
++echo ""
++echo "== gate 14: the continuous Hall recorder — ring, batching, wire format =="
++$CXX "$here/gate_recorder.cpp" -o "$tmp/recorder"; "$tmp/recorder" "$tmp/gate_recorder.xhr"
++
++echo ""
++echo "== gate 15: the decoder, against the firmware's own bytes and damaged streams =="
++python3 "$repo/tools/tests/test_xhr_decoder.py" "$tmp/gate_recorder.xhr"
+```
