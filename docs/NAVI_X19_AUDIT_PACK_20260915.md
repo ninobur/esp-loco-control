@@ -43,6 +43,12 @@ arduino-cli compile --fqbn esp32:esp32:esp32 NAVI_ONE_X19    # X19: 966935 / 676
 ## 3. The five places I would look for my own mistakes
 
 **a. `localRef()` is the whole architecture, and it is nine lines.**
+**This is where the defect was.** The operator put a counterexample to exactly
+this paragraph and it failed — see
+`docs/NAVI_X19_LOCALREF_CORRECTION_20260915.md`. The text below describes the
+superseded implementation and is left standing, because the audit found what it
+said to look for: the selection, not the arithmetic.
+
 `ExcursionDetector.h`. It walks back over the trailing window and keeps the raw
 sample with the smallest `|raw − baseline_|`. Two things to satisfy yourself
 about: that it is a minimum of **distance from the reference** and not of signed

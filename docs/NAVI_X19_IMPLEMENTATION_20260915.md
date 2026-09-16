@@ -43,10 +43,24 @@ the header for that reason. Gate 3 in §6 checks both poles and, specifically, a
 South magnet arriving on a persistent 90-count North shelf.
 
 **The reference cancels.** `departure = raw(t) − raw(L)`, so a constant offset
-subtracts out. The reference survives only in choosing *which* trailing sample
-is quietest, and on a displaced but flat line every candidate for L is equally
-displaced. Gate 4 checks a 112-count offset — the size of Otto's bad prime on
-2026-09-15 — and finds the peak matches the un-offset case within 2 counts.
+subtracts out.
+
+> **CORRECTED 2026-09-15, after the operator's challenge.** This paragraph
+> originally went on to say the reference "survives only in choosing which
+> trailing sample is quietest, and on a displaced but flat line every candidate
+> for L is equally displaced." That reasoning was wrong, and the code built on
+> it was worse than wrong: on a resting level displaced 112 counts, a magnet
+> pulling back *toward* the erroneous reference was detected on its trailing
+> edge with **an inverted pole**, across most of the genuine amplitude range.
+> The selection has since been re-anchored on a resting level the detector
+> measures for itself, and `baseline_` now appears in no reachable detection
+> path. See `docs/NAVI_X19_LOCALREF_CORRECTION_20260915.md`; gate 11 makes the
+> counterexample permanent. Everything below describes the corrected detector.
+
+Gate 4 checks a 112-count offset — the size of Otto's bad prime on
+2026-09-15 — and finds the peak matches the un-offset case within 2 counts;
+gate 11 checks the far harder direction across the whole genuine amplitude
+range.
 
 ### Polarity from the excursion, not the window
 
