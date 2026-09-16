@@ -1356,16 +1356,18 @@ static void serviceStatus(){
   // HEALTH. state/loopstat was a dead topic inherited from X18; it now carries
   // the two numbers that would have made the first X19 flash diagnosable in
   // seconds instead of by inspection -- the Hall task's remaining stack and
-  // the free heap. hall_stack is WORDS of headroom never used; if it trends
+  // the free heap. hall_stack is BYTES of headroom never used -- ESP-IDF
+  // returns this in bytes, not the words the stock FreeRTOS documentation
+  // describes, because portSTACK_TYPE is uint8_t here. If it trends
   // toward zero the task is about to take the locomotive down with it.
   {
-    char h[224];
+    char h[256];   // the two _bytes key names cost 12; bounds test caught it
     const unsigned hallFree = hallTaskHandle
       ? (unsigned)uxTaskGetStackHighWaterMark(hallTaskHandle) : 0u;
     const unsigned netFree = netTaskHandle
       ? (unsigned)uxTaskGetStackHighWaterMark(netTaskHandle) : 0u;
     snprintf(h,sizeof(h),
-      "{\"hall_stack_free\":%u,\"net_stack_free\":%u,\"heap\":%lu,"
+      "{\"hall_stack_free_bytes\":%u,\"net_stack_free_bytes\":%u,\"heap\":%lu,"
       "\"heap_min\":%lu,\"pub_drop\":%lu,\"exc_oversize\":%lu,"
       "\"suppressed\":%lu,\"width_rejects\":%lu,\"nav_oversize\":%lu}",
       hallFree, netFree,
@@ -1377,7 +1379,7 @@ static void serviceStatus(){
     static uint32_t lastStackPrint = 0;
     if (millis() - lastStackPrint >= 10000) {
       lastStackPrint = millis();
-      Serial.printf("[HEALTH] hall stack free %u words, net %u, heap %lu (min %lu)\n",
+      Serial.printf("[HEALTH] hall stack free %u bytes, net %u, heap %lu (min %lu)\n",
                     hallFree, netFree, (unsigned long)ESP.getFreeHeap(),
                     (unsigned long)ESP.getMinFreeHeap());
     }
