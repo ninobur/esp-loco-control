@@ -1,11 +1,64 @@
 /*
  * ============================================================================
- * NAVI_ONE 1.0 X20  —  NO-CLOSURE + STATION DWELL FIELD TEST
+ * NAVI_ONE 1.0 X21  —  HALL-ONLY NAVIGATION FIELD TEST
+ * (the sketch directory keeps its X20 name; the build identity on
+ *  state/bootid is NAVI_ONE_1_0X21_HALL_ONLY_FIELDTEST)
  * ============================================================================
  * Development. NOT FIELD ACCEPTED. X18 is untouched and remains the build to
  * fall back to.
  *
- * X20 IS X19 PLUS THE STATION DWELL, AND NOTHING ELSE.
+ * ----------------------------------------------------------------------------
+ * X21 IS SUBTRACTIVE. NAVIGATION ASKS ONE QUESTION.
+ * ----------------------------------------------------------------------------
+ *
+ *   While moving and outside the 645 ms guard, did Hall depart >= 70 counts
+ *   for two consecutive 1 kHz samples, and WHAT WAS THE SIGN OF THAT OPENING?
+ *
+ * That is the whole of Hall navigation now. The opening establishes the
+ * magnetic observation; the MM map and the navigation state decide whether
+ * that observation is the expected next marker. LATER WAVEFORM SHAPE DOES NOT
+ * DETERMINE WHAT MAGNET WAS ENCOUNTERED.
+ *
+ * WHY. MM136, 2026-09-15, 20:19 (field-records/20260915_OTTO_X20_MM136_
+ * POLARITY_INVERSION.md). A real South magnet opened at -74 counts. The signal
+ * recovered, crossed zero, and settled on a +117 shelf that held for the rest
+ * of the 400 ms window. finish() searched the WHOLE window for its peak, found
+ * the shelf 297 ms after the magnet, took the excursion and therefore the pole
+ * from there, and published NORTH. The map expected South at MM137. One
+ * strike, AUTO withdrawn, Otto stopped between stations. The record
+ * contradicted itself in a single line: depart -74 -> polarity N.
+ *
+ * 263 of that run's 266 records took their pole from the magnet that declared
+ * them; three took it from something 163-240 ms later. X21 removes the
+ * mechanism rather than screening its output.
+ *
+ * WHAT X21 REMOVED FROM NAVIGATION
+ *   * the 400 ms wait. The navigation event is queued at the detection sample.
+ *   * the window-wide peak search, the 34%-of-peak excursion, the signed
+ *     integration, both widths, and the recognizer's amplitude screen. All of
+ *     them still RUN and are still published; none of them can delay, reverse,
+ *     reject or alter a navigation decision.
+ *   * the closure-referenced guard. 500 ms from EVENT_CLOSED became 645 ms
+ *     from DETECTION: 145 ms (median detect -> EVENT_CLOSED, Otto QUORUM,
+ *     PWM 90 exactly, n=1117, commit c4dd775) + the original 500.
+ *
+ * WHAT X21 KEPT
+ *   * X20's station dwell, widened: `stopped` is now simply ramped PWM == 0,
+ *     so no new navigation event can be created at a standstill however the
+ *     locomotive got there. Rest freezes, an in-flight persistence run is
+ *     discarded rather than stitched across the stop, and REST /
+ *     IN_OLD_FIELD / armed-departure handling is unchanged -- a magnet
+ *     identified before stopping stays identified across the stop.
+ *
+ * WHAT X21 DID NOT TRY TO SOLVE
+ *   The 645 ms guard is a TIME PROXY FOR SPATIAL SEPARATION and is imperfect
+ *   at low enough speed. No second threshold, no 50 ms rule, no morphology, no
+ *   width floor, no speed-dependent threshold, no PWM-derived distance, no new
+ *   baseline algorithm and no IR were added to cover that. The build exists to
+ *   measure how far the simplest empirically supported mechanism gets.
+ *
+ * ----------------------------------------------------------------------------
+ * X20 (INHERITED): THE STATION DWELL
  *
  * X19's first AUTO run, 2026-09-15: normal station stops, Grillers clean, and
  * at Arches THREE MAGNETS COUNTED WHILE THE LOCOMOTIVE STOOD STILL. Position
@@ -53,8 +106,13 @@
  *
  * KNOWN RISKS, ACCEPTED ON PURPOSE (see ExcursionDetector.h):
  *   * decision 0085's 82 ms floor is NOT implemented and NOT replaced;
- *   * the 500 ms guard is now detect-to-detect and refuses nothing the
- *     detector already admitted;
+ *   * X21: THE AMPLITUDE SCREEN NO LONGER REFUSES ANYTHING. It reads the
+ *     window-wide peak, which is the authority X21 removes from navigation.
+ *     A weak artifact that survives >=70 counts for two samples and happens to
+ *     match the expected polarity will now ADVANCE the map. The detector's
+ *     2-sample persistence and the 645 ms guard are the only screens left;
+ *   * the guard is 645 ms detect-to-detect and is a time proxy for spatial
+ *     separation, imperfect at low speed;
  *   * the lap baseline estimate is published but never applied, so the
  *     reference is free to drift and be observed drifting.
  *
@@ -68,11 +126,16 @@
  * ----------------------------------------------------------------------------
  * THE SHAPE OF IT
  * ----------------------------------------------------------------------------
- *   ExcursionDetector GPIO 33 at 1 kHz -> an Excursion. Judges nothing.
- *                     No closure, no exit margin, no duration floor, no
- *                     decimation, and no PWM.
- *   MagnetRecognizer  "Is this a magnet, and is it new?"  POSITION-FREE.
+ *   ExcursionDetector GPIO 33 at 1 kHz -> a Detection at the opening sample
+ *                     (timestamp + sign: THE navigation event), and 400 ms
+ *                     later an Excursion (telemetry). No closure, no exit
+ *                     margin, no duration floor, no decimation.
  *   Navigator         "Is it the one the map says comes next?"  Owns navMm.
+ *                     Reads the opening polarity and the map. Nothing else.
+ *   MagnetRecognizer  X21: AN OBSERVER. Still runs on every completed window,
+ *                     still publishes outcome/ratio/gain, and its "would have
+ *                     refused" is what triggers a raw waveform dump. It has no
+ *                     path to navMm.
  *   RouteMap          the surveyed truth. A declaration, per decision 0056.
  *
  * The recognizer never learns where the locomotive is, so corrupted position
@@ -130,14 +193,19 @@ using namespace navi_one;
 // Published on state/bootid. It is the ONLY thing that tells telemetry which
 // build is running, so it advances with every behavioural change.
 //
-// X19 NO-CLOSURE FIELD TEST. Hall events are framed by a local-excursion
-// detector, not by an entry/exit crossing of a global reference. There is no
-// closure test of any kind, and decision 0085's 82 ms completed-passage floor
-// is NOT implemented -- it is a property of a closed passage, which this build
-// does not have. See ExcursionDetector.h.
-#define SKETCH_NAME    "NAVI_ONE_1_0X20_DWELL_FIELDTEST"
+// X21 HALL-ONLY NAVIGATION FIELD TEST. Hall events are framed by a
+// local-excursion detector, not by an entry/exit crossing of a global
+// reference, and there is no closure test of any kind. NAVIGATION IS THE
+// OPENING: a >=70-count departure held for two consecutive 1 kHz samples while
+// moving, its polarity fixed at that sample from the sign of the departure,
+// guarded 645 ms from that sample. The 400 ms window, the window-wide peak,
+// the excursion, the signed sum and both widths are still measured and still
+// published, and none of them can alter a navigation decision. Decision 0085's
+// 82 ms completed-passage floor is NOT implemented -- it is a property of a
+// closed passage, which this build does not have. See ExcursionDetector.h.
+#define SKETCH_NAME    "NAVI_ONE_1_0X21_HALL_ONLY_FIELDTEST"
 #define BUILD_CLASS    "EXPERIMENTAL_FIELD_TEST"
-#define BUILD_SUBTITLE "no closure; excursion framing; no floor; station dwell"
+#define BUILD_SUBTITLE "nav = opening sign at detection; 645 ms guard; waveform observes only"
 #define FIELD_ACCEPTED 0
 
 // Types used in function signatures must appear before the Arduino
@@ -228,8 +296,11 @@ static DetectorConfig detCfg = {
   /*departCounts  */ (int16_t)(HALL_DEADBAND_COUNTS + HALL_ENTRY_MARGIN_COUNTS), // 70 on Otto
   /*localWindowMs */ 300,
   /*persistSamples*/ 2,
-  /*windowMs      */ 400,
-  /*refractoryMs  */ 500,
+  /*windowMs      */ 400,   // MEASUREMENT ONLY. Navigation does not wait for it.
+  /*refractoryMs  */ 645,   // 145 (median detect->EVENT_CLOSED, PWM 90, n=1117)
+                            // + 500 (the old closure-referenced guard). c4dd775.
+                            // Armed AT DETECTION, not at closure and not at the
+                            // end of the window.
   /*preRollMs     */ 512,
   /*excursionFrac */ 0.34f,
   /*widthCaliper  */ (int16_t)HALL_DEADBAND_COUNTS,   // 25: a CALIPER, not a closure test
@@ -303,18 +374,13 @@ static volatile bool     dumpWindowRequest = false;
 // is in DEPART; the Hall task then samples its own state into hallDiagQ at
 // 10 Hz. It cannot alter capture, recognition, navigation, or propulsion.
 static volatile bool     departureDiagActive = false;
-// THE STATION MACHINE IS HOLDING -- ZERO_RAMP or DWELL. Raised on the loop
-// thread by stationService(), read on the Hall task, where it is combined with
-// actualPwm to give the detector its one propulsion fact:
+// X21 removed stationHolding. The detector's one propulsion fact is now
 //
-//     stopped = stationHolding && actualPwm == 0
+//     stopped = actualPwm == 0
 //
-// Deriving it on the Hall task rather than publishing "in DWELL" from loop()
-// is deliberate: the PWM-0 edge is then seen on the sample it happens on,
-// instead of waiting for the next loop pass to notice it. Holding covers
-// ZERO_RAMP too, so there is no gap at the Ramp -> Dwell transition, and the
-// whole ramp still has actualPwm > 0 and full detection.
-static volatile bool     stationHolding = false;
+// read directly on the Hall task, so the PWM-0 edge is seen on the sample it
+// happens on rather than on the next loop pass. It no longer asks WHY the
+// locomotive is stationary, because the answer never changed what it does.
 static volatile uint32_t departureDiagQueueDrops = 0;
 static uint32_t          departureDiagPubSkips = 0;
 // A controlled ramp reached zero while navigation remained valid. The Hall
@@ -1011,6 +1077,7 @@ static void hallTask(void*){
   uint32_t myEpoch = 0;
   uint32_t lastDepartureDiagMs = 0;
   uint32_t lastWaveSampleMs = 0;
+  uint32_t lastDetectMs = 0;       // detect-to-detect gap, telemetry only
   bool primeReported = false;
   for(;;){
     unsigned long now = millis();
@@ -1034,11 +1101,16 @@ static void hallTask(void*){
     // this gate protects a number nothing decides on. It is kept because the
     // shadow trace is the comparison the field test needs.
     const bool mayAdapt = actualPwm > NAVI_BASELINE_ADAPT_PWM;
-    // X20. THE ONE PROPULSION FACT IN THE EVENT PATH, and it is a station fact
-    // rather than a speed: the machine is holding and the ramp has actually
-    // reached zero. MANUAL never sets stationHolding, so a hand-driven
-    // locomotive is exactly X19.
-    const bool stopped = stationHolding && actualPwm == 0;
+    // X21. THE ONE PROPULSION FACT IN THE EVENT PATH: the ramped PWM is
+    // EXACTLY ZERO. Not a speed, not a threshold, not a motion estimate.
+    //
+    // X20 qualified this with stationHolding, so only a station stop counted
+    // and a hand-parked locomotive kept the full X19 path. That distinction is
+    // gone: a stationary locomotive cannot be traversing a magnet whatever put
+    // it there, and no new navigation event may be created at PWM 0 by any
+    // route. The whole zero ramp still has actualPwm > 0 and therefore full
+    // detection -- deceleration is normal Hall operation, as it always was.
+    const bool stopped = actualPwm == 0;
     const int16_t raw = hallRead();
     const bool candidateReady = detector.sample(now, raw, mayAdapt, stopped);
     if (!primeReported && detector.ready()) {
@@ -1060,20 +1132,58 @@ static void hallTask(void*){
       Serial.printf("[CAL] primed at %ld, spread %ld counts over the 2 s window\n",
                     (long)detector.primeValue(),(long)detector.primeSpread());
     }
+    // -------------------------------------------------------------------
+    // X21. THE NAVIGATION EVENT, ON THE SAMPLE IT HAPPENS.
+    //
+    // A Hall encounter is a >=70-count departure held for two consecutive
+    // 1 kHz samples while the locomotive is moving and outside the guard. That
+    // is the whole question. Its answer carries a timestamp and a sign, both
+    // known at the second qualifying sample, and navigation is entitled to
+    // nothing else. This queues it immediately -- 400 ms before the window
+    // that used to decide it has even finished being measured.
+    //
+    // THE WINDOW-DERIVED FIELDS ARE ZERO HERE, DELIBERATELY. peak, ratio,
+    // gain, the widths and the excursion have not been measured yet, and a
+    // record that reported them would be reporting the previous candidate's.
+    // They are published in full on diag/excursion when the window closes,
+    // keyed by the same detected_ms.
+    //
+    // gap_ms is DETECT-TO-DETECT and is measured here, which is the only
+    // place it can be. It reports; it refuses nothing.
+    // -------------------------------------------------------------------
+    Detection d;
+    if (detector.takeDetection(d)) {
+      const uint32_t gap = lastDetectMs ? (uint32_t)(d.detectedAtMs - lastDetectMs) : 0;
+      lastDetectMs = d.detectedAtMs;
+      Judged j{ myEpoch, d.detectedAtMs, /*windowEndMs*/0,
+                /*peak*/0, /*peakSigned*/0, d.polarity,
+                (uint8_t)Outcome::Magnet, /*isMagnet*/1u,
+                /*postStopSuccessor*/0u,
+                /*ratio*/0.0f, gap, /*gain*/0,
+                d.localRef, d.reference, d.shadowRef, d.departAtDetect,
+                /*excursionSum*/0, /*excursionCount*/0,
+                /*widthCaliperMs*/0, /*widthFracMs*/0,
+                d.rawAtDetect,(uint8_t)actualPwm,(uint8_t)(mayAdapt?1:0) };
+      if (judgedQ) xQueueSend(judgedQ,&j,0);
+    }
+
+    // -------------------------------------------------------------------
+    // THE 400 ms WINDOW, DOWNSTREAM OF A DECISION ALREADY TAKEN.
+    //
+    // Everything below is MEASUREMENT AND TELEMETRY. The navigation event for
+    // this candidate was queued 400 ms ago and has very likely already been
+    // ruled on. Nothing here may delay, reverse, reject or alter it, and
+    // nothing here is queued to the loop thread.
+    //
+    // The recognizer still runs, UNCHANGED, and its verdict is now an
+    // OBSERVATION rather than a gate: `is_magnet 0` on diag/excursion means
+    // "the amplitude screen would have refused this one", and the raw record
+    // is dumped whenever it says so. That screen reads the window-wide peak,
+    // which is exactly the authority X21 removes from navigation -- so it is
+    // kept where it can be read and not where it can act.
+    // -------------------------------------------------------------------
     if (candidateReady) {
       const Excursion& e = detector.excursion();
-      // The recognizer is UNCHANGED (decisions 0052/0057/0065/0080/0081/0083).
-      // It reads three scalars, so the excursion is presented as a Passage:
-      //
-      //   openedAtMs = closedAtMs = DETECTION INSTANT.
-      //
-      // Its TIME guard is close-to-open. With no close, the only honest
-      // mapping is detect-to-detect -- which is exactly the detector's own
-      // refractory, so the guard becomes redundant rather than wrong, and can
-      // no longer refuse anything the detector admitted. That is a real
-      // behavioural change and it is deliberate: in X19 the refractory IS the
-      // duplicate-count protection. gapMs is still reported, so the field run
-      // measures the true detect-to-detect population.
       Passage p;
       p.openedAtMs = e.detectedAtMs;
       p.closedAtMs = e.detectedAtMs;
@@ -1093,24 +1203,13 @@ static void hallTask(void*){
 
       publishExcursion(e, v, (uint8_t)actualPwm, mayAdapt);
 
-      // Every refusal keeps its raw evidence. Accepted candidates are sampled,
-      // so normal cruise is represented without flooding the transport.
+      // Every would-be refusal keeps its raw evidence. Accepted candidates are
+      // sampled, so normal cruise is represented without flooding the transport.
       if (!v.isMagnet) publishWaveformSlot(0, 1);
       else if (now - lastWaveSampleMs >= X19_WAVEFORM_SAMPLE_MS) {
         lastWaveSampleMs = now;
         publishWaveformSlot(0, 1);
       }
-
-      Judged j{ myEpoch,e.detectedAtMs,e.windowEndMs,
-                e.peakCounts,e.peakSigned,e.polarity,
-                (uint8_t)v.outcome,(uint8_t)v.isMagnet,
-                (uint8_t)v.postStopSuccessor,
-                v.amplitudeRatio,v.gapMs,v.gain,
-                e.localRef,e.reference,e.shadowRef,e.departAtDetect,
-                e.excursionSum,e.excursionCount,
-                e.widthCaliperMs,e.widthFracMs,
-                e.rawAtDetect,(uint8_t)actualPwm,(uint8_t)(mayAdapt?1:0) };
-      if (judgedQ) xQueueSend(judgedQ,&j,0);
     }
     // X20 dwell transitions. One publish each, on the sample they happen.
     if (const DwellEvent de = detector.takeDwellEvent(); de != DwellEvent::None)
@@ -1125,7 +1224,11 @@ static void hallTask(void*){
       if (hallDiagQ && xQueueSend(hallDiagQ,&d,0) != pdTRUE)
         ++departureDiagQueueDrops;
     }
-    if (dumpWindowRequest) {
+    // X21. HELD UNTIL THE WINDOW CLOSES. withdraw() now fires at DETECTION,
+    // about 400 ms before the offending candidate reaches waveformWindow.
+    // Dumping on the spot would publish the five records BEFORE the one the
+    // operator was sent to look at.
+    if (dumpWindowRequest && !detector.acquiring()) {
       dumpWindowRequest = false;
       publishWaveformWindow();
     }
@@ -1624,7 +1727,6 @@ static void stationService(uint32_t now){
   const NavStatus& s = navigator.status();
   if (!autoRunning || !navigator.positionKnown()) {
     departureDiagActive = false;
-    stationHolding = false;
     if (stationMachine.phase() != StPhase::Idle) stationMachine.reset();
     return;
   }
@@ -1632,10 +1734,6 @@ static void stationService(uint32_t now){
   StationOrder o = stationMachine.tick(s.navMm, s.navDir,
                                        (uint8_t)actualPwm, cruise, now);
   departureDiagActive = stationMachine.phase() == StPhase::Depart;
-  // ZERO_RAMP or DWELL. See stationHolding's declaration for why the ramp is
-  // included and why the PWM-0 test is left to the Hall task.
-  stationHolding = stationMachine.holding();
-
   if (o.setThrottle) requestPwm((int)o.pwm, AUTO_STEP_UP_MS, o.stepMs);
   if (o.event) {
     char b[256];

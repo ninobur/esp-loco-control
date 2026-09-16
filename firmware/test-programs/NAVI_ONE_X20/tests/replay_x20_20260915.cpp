@@ -20,6 +20,14 @@
 //     zero-order hold, so the time base is right and the sub-sample structure
 //     is absent -- as it was in the original.
 //
+// X21 NOTE. This corpus is ORIENTED (every record's own passage was made
+// positive by X18 before it was dumped) and DECIMATED, so its "polarity"
+// column is relative to the record, not an absolute N/S, and its sub-4 ms
+// structure is gone. It can therefore show that the opening sign and the
+// window argmax sometimes disagree; it cannot arbitrate which is right. The
+// arbitration is MM136's raw 1 kHz record, in
+// field-records/20260915_OTTO_X20_MM136_POLARITY_INVERSION.md, and gate 6b.
+//
 // Build:  g++ -O2 -std=c++17 -o /tmp/x19rep replay_x19_20260915.cpp
 // Run:    /tmp/x19rep fixtures_otto_20260915.txt
 // ---------------------------------------------------------------------------
@@ -76,6 +84,12 @@ int main(int argc, char** argv) {
   int unmatchedFine = 0, unmatchedCoarse = 0;
   int normalOne = 0, normalTotal = 0, totalCand = 0;
   int persistentExtras = 0, wouldFailX18Floor = 0;
+  // X21. How often the 400 ms window's own argmax disagrees with the sign of
+  // the opening that declared the candidate. Under X19/X20 the window won
+  // every one of these; under X21 the opening does. REPORTED, NOT ASSERTED --
+  // the corpus is decimated and oriented, so it can show the mechanism but
+  // cannot say which answer was right.
+  int windowDisagrees = 0;
 
   // The Python replay, at the same operating point WITH ITS WIDTH SCREEN OFF
   // (WL=300 D=70 P=2 Wmin=0), found exactly these two candidates that are not
@@ -135,6 +149,19 @@ int main(int argc, char** argv) {
              c.second.widthFracMs, c.second.excursionCount);
     printf("\n");
 
+    // X21. peakSigned carries the sign the window MEASURED; polarity carries
+    // the sign of the opening. When they differ this is an MM136-class record.
+    for (auto& c : cands) {
+      const Excursion& e = c.second;
+      const uint8_t windowPol = e.peakSigned >= 0 ? 1 : 0;
+      if (windowPol == e.polarity) continue;
+      ++windowDisagrees;
+      printf("      WINDOW DISAGREES at %+ldms: opening depart %+ld -> %c, "
+             "window argmax %+d -> %c. X21 publishes the opening.\n",
+             c.first, (long)e.departAtDetect, e.polarity ? 'N' : 'S',
+             (int)e.peakSigned, windowPol ? 'N' : 'S');
+    }
+
     if (r.dur <= 500) { ++normalTotal; if (cands.size() == 1) ++normalOne; }
 
     for (auto& c : cands) {
@@ -193,6 +220,10 @@ int main(int argc, char** argv) {
   printf("candidates X18's 82 ms floor\n");
   printf("  would have refused          : %d   <-- THE NO-FLOOR EXPOSURE\n",
          wouldFailX18Floor);
+  printf("window argmax disagrees with\n");
+  printf("  the opening sign            : %d   (X19/X20 published the window's\n",
+         windowDisagrees);
+  printf("                                     answer; X21 publishes the opening)\n");
   for (int k = 0; k < NTARGET; ++k)
     if (!hits[k]) printf("MISSED: %s dur=%d at +%d\n", TARGETS[k].ts, TARGETS[k].dur, TARGETS[k].at);
 

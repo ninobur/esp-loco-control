@@ -173,6 +173,69 @@
 //
 // NO CONSTANT IS ADDED. departCounts and persistSamples do all of the above.
 // ---------------------------------------------------------------------------
+// ---------------------------------------------------------------------------
+// X21 SUBTRACTS. NAVIGATION IS THE OPENING AND NOTHING ELSE.
+//
+// X19 and X20 identified a magnet from the 400 ms window: argmax over the
+// whole window, excursion at 34% of that peak, signed sum, pole. MM136 on
+// 2026-09-15 is where that broke. A genuine South magnet opened at -74 counts;
+// the signal recovered, crossed zero, and settled on a +117 shelf that held
+// for the rest of the window. The shelf out-measured the magnet, won the
+// argmax 297 ms late, and the pole was published NORTH against a map expecting
+// South. One strike, AUTO withdrawn, Otto stopped between stations.
+//
+// 263 of that run's 266 records took their pole from the magnet that declared
+// them. Three took it from something 163-240 ms later, and two of those three
+// contradicted their own opening sign. The distribution is bimodal with
+// nothing between 20 and 160 ms: the opening is either the whole story or the
+// window is reading something else entirely.
+//
+// SO THE WINDOW LOSES ITS VOTE.
+//
+//   POLARITY comes from the sign of the departure that declared the candidate,
+//   at the sample that declared it. Detection and polarity are one act. No
+//   later peak, opposite lobe, integral, width or shape may revise it.
+//
+//   THE NAVIGATION EVENT is complete at that sample. takeDetection() drains
+//   it. finish() still runs -- the peak, the excursion, the sum, both widths
+//   and the whole 912-sample record are still measured and still published --
+//   but downstream of a decision already made and incapable of altering it.
+//
+//   THE GUARD is 645 ms FROM DETECTION, armed at the detection sample.
+//
+// WHERE 645 COMES FROM, AND WHY IT IS NOT A NEW NUMBER
+// ----------------------------------------------------
+// The protection being replaced was 500 ms measured from EVENT_CLOSED, the
+// closure-based detectors' own definition: return to within
+// HALL_DEADBAND_COUNTS (25) of the reference, held for EVENT_EXIT_HOLD_MS
+// (20). X19 deleted closure, so that guard had nothing left to start from.
+//
+// Otto's QUORUM corpus, 1117 passages at PWM 90 exactly, measures the offset
+// (docs/DETECTION_TO_CLOSURE_PWM90.md, commit c4dd775):
+//
+//     detection -> EVENT_CLOSED :  min 48   median 145   p95 180   p99 216 ms
+//
+// 145 + 500 = 645. The same protection, re-referenced to an instant that
+// actually exists in this architecture.
+//
+// DETECTION IS THE ORIGIN ON PURPOSE. Closure is unobservable if the
+// locomotive slows, stops, or comes to rest displaced inside the field --
+// exactly the conditions under which a guard matters most. Detection is known
+// the moment it happens, whatever happens afterwards. EVENT_CLOSED is NOT
+// reintroduced as a prerequisite merely because the old number was measured
+// from it.
+//
+// WHAT 645 ms IS NOT
+// ------------------
+// It is a TIME PROXY FOR SPATIAL SEPARATION and it is imperfect at low enough
+// speed: two magnets a metre apart at 100 mm/s are 10 s apart and fine, but a
+// single magnet re-read is refused only because 645 ms has not elapsed, not
+// because the locomotive has demonstrably left it. THIS REVISION DOES NOT
+// SOLVE THAT and does not pretend to. No second threshold, no 50 ms rule, no
+// morphology, no width floor, no speed-dependent threshold, no PWM-derived
+// distance, and no IR have been added to paper over it. The build exists to
+// measure how far the simplest empirically supported mechanism actually gets.
+// ---------------------------------------------------------------------------
 #include <stdint.h>
 #include "MagnetRecognizer.h"
 
@@ -192,8 +255,9 @@ struct DetectorConfig {
   // when it expires; nothing about the signal ends it.
   uint16_t windowMs       = 400;
   // No further candidate may be declared until this has elapsed FROM THE
-  // DETECTION INSTANT (not from the end of the window).
-  uint16_t refractoryMs   = 500;
+  // DETECTION INSTANT. X21: 645, and the timer is now STARTED at that instant
+  // rather than written when the window closes -- see THE GUARD below.
+  uint16_t refractoryMs   = 645;
   // Raw samples retained ahead of every detection.
   uint16_t preRollMs      = 512;
   // Fraction of the window peak that defines the EXCURSION. Polarity is summed
@@ -245,6 +309,35 @@ struct Excursion {
   const int16_t* judged   = nullptr; // median-of-three copy of the above
 };
 
+// ---------------------------------------------------------------------------
+// X21. THE NAVIGATION EVENT, COMPLETE AT THE DETECTION SAMPLE.
+//
+// Everything navigation is entitled to know is already known when the
+// persistence run completes: WHEN the field opened, and WHICH WAY. The 400 ms
+// window that follows is measurement, and measurement is not identification.
+//
+// MM136, 2026-09-15, is why this exists. A genuine South magnet opened at
+// -74 counts; 297 ms later a +117 shelf won the window-wide argmax, the
+// excursion was taken from the shelf, the signed sum came out positive and the
+// pole was published as NORTH. The map expected South. One strike, AUTO
+// withdrawn, Otto stopped between stations. The opening was right the whole
+// time and the firmware overruled it with something that happened a third of a
+// second afterwards.
+//
+// So the opening IS the observation. Nothing measured later may revise it.
+// ---------------------------------------------------------------------------
+struct Detection {
+  uint32_t detectedAtMs   = 0;   // the sample that completed the persistence run
+  int16_t  rawAtDetect    = 0;
+  int32_t  localRef       = 0;   // L, in RAW counts
+  int32_t  departAtDetect = 0;   // signed, raw(detect) - L.  >= departCounts.
+  int32_t  restRef        = 0;   // measured local resting level at detection
+  int32_t  reference      = 0;   // operative baseline, telemetry only
+  int32_t  shadowRef      = 0;   // rolling median, telemetry only
+  uint8_t  polarity       = 1;   // 1 = N, 0 = S. THE SIGN OF departAtDetect.
+  uint32_t guardUntilMs   = 0;   // detectedAtMs + refractoryMs, armed here
+};
+
 // One transition of the station-dwell state, drained by the Hall task and
 // published. Transitions are at least one sample apart by construction, so a
 // single pending slot cannot lose one.
@@ -267,6 +360,15 @@ class ExcursionDetector {
   int32_t  restRef()        const { return restValid_ ? restRef_ : baseline_; }
   bool     restValid()      const { return restValid_; }
   const Excursion& excursion() const { return out_; }
+  // X21. Drained by the Hall task on the sample the detection happens. True at
+  // most once per candidate, and the candidate's navigation event is complete
+  // when it returns -- there is nothing further to wait for.
+  bool takeDetection(Detection& d) {
+    if (!pendingDetection_) return false;
+    pendingDetection_ = false;
+    d = det_;
+    return true;
+  }
   uint32_t suppressed()     const { return suppressed_; }
   // X20 dwell state. Telemetry and the .ino's event publisher; nothing here
   // is read by the detection path.
@@ -321,6 +423,7 @@ class ExcursionDetector {
     acquiring_ = false;
     persistRun_ = 0;
     suppressedRun_ = 0;
+    pendingDetection_ = false;    // it belongs to the frame that just ended
     rearmPending_ = true;
     // The dwell belongs to the frame that just ended too. A declaration is
     // refused while AUTO runs and while the motor turns, so this is a
@@ -445,8 +548,27 @@ class ExcursionDetector {
     if (!over) { persistRun_ = 0; return false; }
     if (++persistRun_ < cfg_.persistSamples) return false;
 
-    // The detection instant is the sample that COMPLETED the run, matching the
-    // replay. The persistSamples-1 samples before it are inside the record.
+    // ---------------------------------------------------------------------
+    // THE DETECTION INSTANT. The sample that COMPLETED the persistence run,
+    // matching the replay. The persistSamples-1 samples before it are inside
+    // the record.
+    //
+    // X21. THREE THINGS NOW HAPPEN HERE THAT USED TO HAPPEN 400 ms LATER:
+    //
+    //   POLARITY. The sign of the departure that declared the candidate, and
+    //   it is final. |departure| >= departCounts, so the sign is never
+    //   ambiguous and never zero. finish() may not revise it and does not try.
+    //
+    //   THE GUARD. refractoryMs from THIS sample, written HERE rather than in
+    //   finish(). The old code wrote it at window close, so the guard did not
+    //   exist until the window completed; a locomotive that stopped mid-window
+    //   got its guard from truncation instead. The timer's origin is now the
+    //   one instant that is known whatever the locomotive does next.
+    //
+    //   THE EVENT. pendingDetection_ is the navigation event, whole. The
+    //   window that follows is measurement for telemetry and cannot delay,
+    //   reverse, reject or alter it.
+    // ---------------------------------------------------------------------
     persistRun_ = 0;
     suppressedRun_ = 0;
     sawQuietInWindow_ = false;
@@ -462,6 +584,20 @@ class ExcursionDetector {
     shadowAt_     = shadowBaseline_;
     clipAt_       = clipRing_;
     clipRing_     = false;
+    detPolarity_  = departure >= 0 ? 1 : 0;
+    refractoryUntil_ = nowMs + cfg_.refractoryMs;
+    if (refractoryUntil_ == 0) refractoryUntil_ = 1;       // 0 means "not set"
+    det_ = Detection{};
+    det_.detectedAtMs   = nowMs;
+    det_.rawAtDetect    = raw;
+    det_.localRef       = L;
+    det_.departAtDetect = departure;
+    det_.restRef        = restAt_;
+    det_.reference      = baseline_;
+    det_.shadowRef      = shadowBaseline_;
+    det_.polarity       = detPolarity_;
+    det_.guardUntilMs   = refractoryUntil_;
+    pendingDetection_   = true;
     return false;
   }
 
@@ -690,7 +826,16 @@ class ExcursionDetector {
     }
     int64_t sum = 0;
     for (uint16_t i = first; i <= last; ++i) sum += judge_[i];
-    const uint8_t pol = sum >= 0 ? 1 : 0;
+    // X21. THE SUM NO LONGER DECIDES THE POLE. It is measured, published, and
+    // ignored by navigation. The pole was fixed at the detection sample from
+    // the sign of the departure that declared the candidate, and this function
+    // has no authority to revise it -- which is precisely the authority that
+    // turned MM136's South opening into a North identification.
+    //
+    // sign(exc_sum) against sign(depart) on diag/excursion is now the direct
+    // measurement of how often the window disagrees with the opening. On
+    // 2026-09-15 that was 2 records in 266; both were the window being wrong.
+    const uint8_t pol = detPolarity_;
 
     // Widths, reported for the re-derivation of decision 0085. Neither gates
     // anything unless widthFloorMs has been set.
@@ -702,7 +847,10 @@ class ExcursionDetector {
     }
 
     // Orient. buf_ becomes THE RECORDING and is not touched again.
-    const int16_t peakSigned = (int16_t)(pol ? peak : -peak);
+    // peakSigned carries the sign the window ACTUALLY measured at its argmax,
+    // not the declared pole. When the two disagree the record says so, which
+    // is the whole point of keeping the measurement.
+    const int16_t peakSigned = (int16_t)(judge_[peakAt] < 0 ? -peak : peak);
     if (!pol) {
       for (uint16_t i = 0; i < n_; ++i) buf_[i] = (int16_t)(-buf_[i]);
       medianOfThree(buf_, n_, judge_);
@@ -734,10 +882,9 @@ class ExcursionDetector {
     out_.oriented       = buf_;
     out_.judged         = judge_;
 
-    // The refractory runs from the DETECTION instant, not from here, so a
-    // 400 ms window inside a 500 ms refractory leaves 100 ms of live search.
-    refractoryUntil_ = detectedAtMs_ + cfg_.refractoryMs;
-    if (refractoryUntil_ == 0) refractoryUntil_ = 1;      // 0 means "not set"
+    // X21. THE GUARD IS NOT ARMED HERE ANY MORE. It was started at the
+    // detection sample and is already running; a window that ends early
+    // (PWM 0) or late changes nothing about when it expires.
     suppressedRun_ = 0;
 
     if (cfg_.widthFloorMs && wCal < cfg_.widthFloorMs) {
@@ -890,6 +1037,9 @@ class ExcursionDetector {
   uint32_t detectedAtMs_ = 0, windowEndMs_ = 0, refractoryUntil_ = 0;
   uint16_t detectHead_ = 0;
   int32_t  localRefAt_ = 0, departAt_ = 0, refAt_ = 0, shadowAt_ = 0, restAt_ = 0;
+  uint8_t  detPolarity_ = 1;            // fixed at detection, never revised
+  bool     pendingDetection_ = false;
+  Detection det_;
   int16_t  rawAtDetect_ = 0;
   bool     clipRing_ = false, clipAt_ = false;
   uint32_t suppressed_ = 0, widthRejects_ = 0, lastSuppressedMs_ = 0;

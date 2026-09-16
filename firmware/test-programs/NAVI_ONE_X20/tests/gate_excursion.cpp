@@ -22,12 +22,17 @@ struct Rig {
   ExcursionDetector<> det;
   uint32_t t = 0;
   std::vector<Excursion> got;
+  // X21. The navigation events, drained on the sample they happen.
+  std::vector<Detection> dets;
   // X20. The station machine is holding AND the ramped PWM is 0. False for
   // every gate below 13, so gates 1..12 drive the identical X19 path.
   bool stopped = false;
   Rig() : det(cfg) { for (int i = 0; i < 2200; ++i) det.sample(t++, 1900, true); }
   void step(int16_t raw) {
-    if (det.sample(t, raw, true, stopped)) got.push_back(det.excursion());
+    const bool windowDone = det.sample(t, raw, true, stopped);
+    Detection d;
+    if (det.takeDetection(d)) dets.push_back(d);
+    if (windowDone) got.push_back(det.excursion());
     ++t;
   }
   void feed(int16_t raw, int ms) { for (int i = 0; i < ms; ++i) step(raw); }
@@ -36,7 +41,7 @@ struct Rig {
   // legitimate candidate -- that is how boot 5 of 2026-09-15 began, primed on
   // a magnet and then driven off it -- but it is setup, not the thing under
   // test.
-  void settle(int16_t level) { feed(level, 3000); got.clear(); }
+  void settle(int16_t level) { feed(level, 3000); got.clear(); dets.clear(); }
   // a half-sine arc of the given amplitude and width, on top of `base`
   void arc(int amp, int ms, int16_t base = 1900) {
     for (int i = 0; i < ms; ++i) {
@@ -116,22 +121,110 @@ int main() {
           abs((int)b.got[1].peakCounts - (int)a.got[0].peakCounts) <= 2,
           "and its measured peak matches the un-offset case within 2 counts"); }
 
-  printf("\n5. the refractory is 500 ms from DETECTION, and it is not a level test\n");
+  printf("\n5. the guard is 645 ms from DETECTION, and it is not a level test\n");
   { Rig r; r.feed(1900, 500); r.arc(180, 140); r.feed(1900, 200);
     r.arc(180, 140); r.feed(1900, 900);                // second arc starts at +340 ms
     check(r.got.size() == 1, "a second arc 340 ms after detection is suppressed");
     check(r.det.suppressed() >= 1, "and is counted on suppressed_total, not lost silently");
-    Rig s; s.feed(1900, 500); s.arc(180, 140); s.feed(1900, 500);
-    s.arc(180, 140); s.feed(1900, 900);                // second arc starts at +640 ms
-    check(s.got.size() == 2, "a second arc 640 ms after detection is a second candidate"); }
+    // The case the widening is FOR: a second arc that opens, peaks and closes
+    // entirely inside the new guard, at a detect-to-detect interval the old
+    // 500 ms guard admitted exactly.
+    Rig s; s.feed(1900, 500); s.arc(180, 140); s.feed(1900, 360);
+    s.arc(180, 140); s.feed(1900, 900);        // opens +500 ms, closed by +621
+    check(s.got.size() == 1,
+          "a second arc 500 ms after detection is refused (X19's guard took it)");
+    Rig u; u.feed(1900, 500); u.arc(180, 140); u.feed(1900, 700);
+    u.arc(180, 140); u.feed(1900, 900);                // second arc starts at +840 ms
+    check(u.got.size() == 2, "a second arc 840 ms after detection is a second candidate");
+    // A magnet that is STILL departed when the guard expires is taken on the
+    // sample after it expires. That is inherent to a time guard and is stated
+    // here rather than left to be discovered: 645 ms is a floor on the
+    // interval, not a window the magnet has to fit inside.
+    Rig w; w.feed(1900, 500); w.arc(180, 140); w.feed(1900, 500);
+    w.arc(180, 140); w.feed(1900, 900);        // opens +640, still departed at +645
+    check(w.got.size() == 2 &&
+          w.got[1].detectedAtMs - w.got[0].detectedAtMs >= 645,
+          "one still departed at expiry is taken at expiry, never before"); }
 
-  printf("\n6. polarity comes from the excursion, not from the whole window\n");
+  // -------------------------------------------------------------------------
+  // 5b. X21. THE GUARD'S ORIGIN AND EXPIRY, TO THE MILLISECOND, AND THE FACT
+  // THAT NOTHING ABOUT THE WINDOW MOVES IT.
+  // -------------------------------------------------------------------------
+  printf("\n5b. the guard begins AT detection and expires 645 ms later, exactly\n");
+  { Rig r; r.feed(1900, 500);
+    // walk the arc by hand so the detection sample can be caught as it happens
+    Detection d; bool have = false;
+    for (int i = 0; i < 140 && !have; ++i) {
+      const double f = sin(3.14159265 * (double)i / 140.0);
+      r.det.sample(r.t, (int16_t)(1900 + (int)(180 * f)), true, false);
+      if (r.det.takeDetection(d)) have = true;
+      ++r.t;
+    }
+    check(have, "a detection is available on the sample that declares it");
+    check(have && d.guardUntilMs == d.detectedAtMs + 645,
+          "guardUntilMs == detectedAtMs + 645");
+    check(have && r.det.refractoryUntil() == d.detectedAtMs + 645,
+          "and the detector is already guarding, 400 ms before the window closes");
+    // finish the window and confirm the expiry did not move
+    const uint32_t wanted = d.detectedAtMs + 645;
+    r.feed(1900, 900);
+    check(r.det.refractoryUntil() == 0 || r.det.refractoryUntil() == wanted,
+          "the 400 ms window closing does not move the expiry"); }
+
+  printf("\n5c. a window cut short at PWM 0 does not move the expiry either\n");
+  { Rig r; r.settle(1900);
+    Detection d; bool have = false;
+    for (int i = 0; i < 140 && !have; ++i) {
+      const double f = sin(3.14159265 * (double)i / 600.0);
+      r.det.sample(r.t, (int16_t)(1900 + (int)(200 * f)), true, false);
+      if (r.det.takeDetection(d)) have = true;
+      ++r.t;
+    }
+    check(have, "detected on the leading limb");
+    const uint32_t wanted = d.detectedAtMs + 645;
+    r.stopped = true;                       // PWM 0 twenty samples later
+    r.feed(1960, 40);
+    check(r.det.refractoryUntil() == wanted,
+          "the truncated window leaves the guard expiring at detection + 645"); }
+
+  // -------------------------------------------------------------------------
+  // 6. X21. POLARITY IS THE OPENING SIGN, FIXED AT DETECTION. This is MM136.
+  // -------------------------------------------------------------------------
+  printf("\n6. polarity is the sign of the opening, and the window cannot revise it\n");
   { // A 140 ms arc inside a 400 ms window: 260 samples of quiet tail follow it.
     Rig r; r.feed(1900, 500); r.arc(180, 140); r.feed(1900, 900);
     check(r.got[0].excursionCount > 20 && r.got[0].excursionCount < 200,
-          "the polarity aperture is the arc, not the 400-sample window");
+          "the excursion aperture is still measured, and is the arc");
     check(r.got[0].excursionFirst >= r.got[0].preSamples,
-          "and it never reaches back into the pre-roll"); }
+          "and it never reaches back into the pre-roll");
+    check(r.got[0].polarity == 1 && r.got[0].departAtDetect > 0,
+          "an N opening is N"); }
+
+  // MM136 ITSELF, reconstructed from the published record. A South magnet
+  // reaching -106, then a POSITIVE SHELF of +117 that outlasts and out-measures
+  // it and holds to the end of the 400 ms window. X19/X20 published N here.
+  printf("\n6b. MM136: a South opening under a larger, later North shelf\n");
+  { Rig r; r.settle(1900);
+    r.arc(-106, 90);                         // the magnet: opens South
+    for (int i = 0; i < 40; ++i)             // recover through zero
+      r.step((int16_t)(1900 - 40 + i * 3));
+    r.feed(2017, 400);                       // +117 shelf, to the window's end
+    r.feed(1900, 400);
+    check(r.got.size() >= 1, "the opening is a candidate");
+    if (r.got.size() >= 1) {
+      const Excursion& e = r.got[0];
+      check(e.departAtDetect < 0, "  the departure that declared it is negative");
+      check(e.polarity == 0, "  and the pole published is SOUTH");
+      check(e.peakSigned > 0,
+            "  while the window's own argmax is the +shelf, and says so");
+    } else fails += 3; }
+
+  printf("\n6c. and the same shelf with no magnet under it is North, correctly\n");
+  { Rig r; r.settle(1900);
+    r.feed(2017, 900);                       // the shelf alone: opens North
+    r.feed(1900, 400);
+    check(!r.got.empty() && r.got[0].polarity == 1 && r.got[0].departAtDetect > 0,
+          "a positive opening with no magnet before it is N"); }
 
   printf("\n7. the record carries 512 ms of pre-roll at 1 kHz, undecimated\n");
   { Rig r; r.feed(1900, 2000); r.arc(180, 140); r.feed(1900, 900);
@@ -348,6 +441,65 @@ int main() {
     bool inverted = false;
     for (size_t i = atStop; i < r.got.size(); ++i) if (!r.got[i].polarity) inverted = true;
     check(inverted, "and gives it the opposite pole -- the strike at Arches"); }
+
+  // =======================================================================
+  // X21 -- NAVIGATION IS THE OPENING. Gates 19..22.
+  // =======================================================================
+
+  printf("\n19. the navigation event exists at the detection sample, not 400 ms later\n");
+  { Rig r; r.settle(1900);
+    const uint32_t t0 = r.t;
+    r.arc(180, 140); r.feed(1900, 100);          // 240 ms: the window is still open
+    check(r.dets.size() == 1, "one navigation event within 240 ms of the arc starting");
+    check(r.got.empty(), "and the 400 ms window has not closed yet");
+    check(!r.dets.empty() && r.dets[0].detectedAtMs - t0 < 40,
+          "queued on the opening, not on the apex and not on the window");
+    r.feed(1900, 600);
+    check(r.got.size() == 1, "the window closes afterwards, for telemetry");
+    check(r.got.size() == 1 && r.dets.size() == 1 &&
+          r.got[0].detectedAtMs == r.dets[0].detectedAtMs &&
+          r.got[0].polarity == r.dets[0].polarity,
+          "and agrees with the event it can no longer change"); }
+
+  printf("\n20. at PWM 0 no navigation event is created, by any route\n");
+  { Rig r; r.settle(1900);
+    r.stopped = true;                             // ramped PWM == 0
+    r.arc(260, 140); r.feed(1900, 900);           // a full-size arc, at a standstill
+    check(r.dets.empty(), "a 260-count arc at PWM 0 creates no navigation event");
+    check(r.got.empty(), "and no candidate at all");
+    check(r.det.suppressed() >= 1, "it is counted, not lost silently");
+    // and the same arc with the motor turning is one event, so the gate is
+    // measuring the stop and not the waveform
+    Rig s; s.settle(1900); s.stopped = false;
+    s.arc(260, 140); s.feed(1900, 900);
+    check(s.dets.size() == 1, "the identical arc while moving IS one event"); }
+
+  printf("21. a persistence run straddling the stop is discarded, never stitched\n");
+  { Rig r; r.settle(1900);
+    // one sample over threshold, then PWM 0 on the next: the run is incomplete
+    r.step(1980);
+    check(r.dets.empty(), "one qualifying sample is not yet a detection");
+    r.stopped = true;
+    r.feed(1980, 5000);                           // held over threshold, stationary
+    check(r.dets.empty(), "and the stationary samples do not complete it");
+    check(r.got.empty(), "no candidate is manufactured across the transition"); }
+
+  printf("22. a magnet identified before stopping is not rediscovered after it\n");
+  { Rig r; r.settle(1900);
+    const int16_t held = r.rollInto(200, 600, 200);
+    check(r.dets.size() == 1, "one navigation event, while moving");
+    r.stopped = true; r.feed(held, 30000);        // parked inside that same field
+    check(r.dets.size() == 1, "nothing new across the 30 s stop");
+    r.stopped = false; r.step(held);              // depart
+    for (int i = 200; i < 600; ++i) {             // leaving the field
+      const double f = sin(3.14159265 * (double)i / 600.0);
+      r.step((int16_t)(1900 + (int)(200 * f)));
+    }
+    r.feed(1900, 200);
+    check(r.dets.size() == 1,
+          "leaving the field it stopped in is not a second identification");
+    r.arc(200, 300); r.feed(1900, 1200);
+    check(r.dets.size() == 2, "and the NEXT magnet is identified normally"); }
 
   printf("\n%s (%d failures)\n", fails ? "GATE FAILED" : "ALL GATES PASS", fails);
   return fails ? 1 : 0;
