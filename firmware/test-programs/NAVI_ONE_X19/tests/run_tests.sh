@@ -6,6 +6,10 @@
 set -e
 cd "$(dirname "$0")"
 CXX=${CXX:-g++}
+echo "=== payload bounds ==="
+python3 check_payload_bounds.py
+
+echo
 echo "=== gate_excursion ==="
 $CXX -O2 -std=c++17 -Wall -o /tmp/x19_gate gate_excursion.cpp
 /tmp/x19_gate

@@ -111,7 +111,7 @@ using namespace navi_one;
 // does not have. See ExcursionDetector.h.
 #define SKETCH_NAME    "NAVI_ONE_1_0X19_NO_CLOSURE_FIELDTEST"
 #define BUILD_CLASS    "EXPERIMENTAL_FIELD_TEST"
-#define BUILD_SUBTITLE "no Hall closure; local-excursion detection, 400 ms window, 500 ms refractory, NO duration floor"
+#define BUILD_SUBTITLE "no closure; excursion framing; no floor"
 #define FIELD_ACCEPTED 0
 
 // Types used in function signatures must appear before the Arduino
@@ -540,7 +540,7 @@ static uint32_t pubDropped = 0, cmdDropped = 0;
 // An excursion record that would not fit the transport. Must stay 0; it is
 // on the status line so a silent loss of the primary field-test instrument
 // is impossible.
-static uint32_t excursionDiagOversize = 0;
+static uint32_t excursionDiagOversize = 0, navDiagOversize = 0;
 // So a stack margin is never guessed at again. X19 nearly doubled what the
 // Hall task holds on its stack at once -- a 704-byte excursion record, a
 // 704-byte waveform chunk, and newlib's float formatter -- against the 4 kB
@@ -693,9 +693,17 @@ static void publishNav(const char* event,const Judged* j,Ruling r){
   // 640, not 500: the archaeology's reason adds up to ~60 bytes and the
   // longest event of 2026-09-02 was already 430. A truncated event is a lost
   // event -- the Pi's json.loads throws and the whole line is dropped.
-  char b[640];
+  // Sized to the transport. X19 added local_ref / reference / raw_detect /
+  // depart / w_caliper_ms / exc_n to this record and never re-measured it:
+  // worst case is 800 bytes against the 640 it inherited. A truncated
+  // navigation record is a LOST navigation event -- the Pi's json.loads()
+  // throws and discards the whole line -- and this is the one record in the
+  // system that must never be lost, so it is both sized and guarded, and a
+  // record that still will not fit falls back to a short one that carries
+  // the ruling rather than vanishing.
+  char b[sizeof(PubMsg::payload)];
   if (j) {
-    snprintf(b,sizeof(b),
+    const int navLen = snprintf(b,sizeof(b),
       "{\"event\":\"%s\",\"state\":\"%s\",\"nav\":\"%s\",\"nav_state\":\"%s\",\"mm\":%u,\"tgt\":%u,"
       "\"landmark\":\"%s\",\"dir\":\"%s\",\"ruling\":\"%s\",\"why\":\"%s\","
       "\"obs\":\"%c\",\"expected\":\"%c\",\"peak\":%u,\"ratio\":%.3f,"
@@ -720,6 +728,17 @@ static void publishNav(const char* event,const Judged* j,Ruling r){
       (unsigned)j->pwmAtDetect, (unsigned)j->mayAdaptAtDetect,
       trustName(s.trust), s.seqAt,
       (unsigned long)s.advances,(unsigned long)s.refusals,(unsigned long)s.notMagnets);
+    if (navLen < 0 || navLen >= (int)sizeof(b)) {
+      ++navDiagOversize;
+      snprintf(b,sizeof(b),
+        "{\"event\":\"%s\",\"truncated\":1,\"mm\":%u,\"tgt\":%u,"
+        "\"ruling\":\"%s\",\"why\":\"%s\",\"obs\":\"%c\",\"expected\":\"%c\","
+        "\"peak\":%u,\"adv\":%lu,\"ref\":%lu}",
+        event, s.navMm, s.target, rulingName(r), whyName(r,(Outcome)j->outcome),
+        poleChar(j->polarity),
+        poleChar(polarityAt(r==Ruling::Advanced ? s.navMm : s.target)),
+        j->peak, (unsigned long)s.advances, (unsigned long)s.refusals);
+    }
     pub(T_MARKER,b,false);
   } else {
     snprintf(b,sizeof(b),
@@ -1348,11 +1367,12 @@ static void serviceStatus(){
     snprintf(h,sizeof(h),
       "{\"hall_stack_free\":%u,\"net_stack_free\":%u,\"heap\":%lu,"
       "\"heap_min\":%lu,\"pub_drop\":%lu,\"exc_oversize\":%lu,"
-      "\"suppressed\":%lu,\"width_rejects\":%lu}",
+      "\"suppressed\":%lu,\"width_rejects\":%lu,\"nav_oversize\":%lu}",
       hallFree, netFree,
       (unsigned long)ESP.getFreeHeap(),(unsigned long)ESP.getMinFreeHeap(),
       (unsigned long)pubDropped,(unsigned long)excursionDiagOversize,
-      (unsigned long)detector.suppressed(),(unsigned long)detector.widthRejects());
+      (unsigned long)detector.suppressed(),(unsigned long)detector.widthRejects(),
+      (unsigned long)navDiagOversize);
     pub(T_STAT,h,false);
     static uint32_t lastStackPrint = 0;
     if (millis() - lastStackPrint >= 10000) {
@@ -1418,29 +1438,56 @@ void setup(){
   mqtt.setServer(MQTT_BROKER,MQTT_PORT); mqtt.setCallback(onMqtt); mqtt.setBufferSize(900);
   if (xTaskCreatePinnedToCore(networkTask,"net",8192,nullptr,1,&netTaskHandle,1) != pdPASS)
     Serial.println("[BOOT] WARNING: network task would not start — running blind");
-  char b[512];
+  // Sized to the transport, as every other record in this build now is.
+  // pub() strlcpy's into PubMsg::payload, so anything longer is truncated on
+  // the wire even if the local buffer swallows it.
+  char b[sizeof(PubMsg::payload)];
   const int bootLen = snprintf(b,sizeof(b),
-    "{\"sketch\":\"%s\",\"subtitle\":\"%s\",\"build_class\":\"%s\",\"field_accepted\":%d,"
-    "\"loco\":\"%s\",\"event_framing\":\"local_excursion_no_closure\","
-    "\"depart_counts\":%d,\"local_window_ms\":%u,\"persist_samples\":%u,"
-    "\"window_ms\":%u,\"refractory_ms\":%u,\"pre_roll_ms\":%u,"
-    "\"exit_margin\":0,\"closure\":\"none\",\"decimation\":\"none\","
-    "\"floor_ms\":%u,\"floor_status\":\"not_applicable_pending_rederivation\","
-    "\"width_caliper\":%d,\"polarity_aperture\":\"excursion\","
-    "\"amp_floor\":%.2f,\"guard_ms\":%lu,\"guard_basis\":\"detect_to_detect\","
-    "\"seq_n\":%d,"
+    "{\"sketch\":\"%s\",\"subtitle\":\"%s\",\"field_accepted\":%d,"
+    // FLAGS, NOT PROSE, AND MEASURED RATHER THAN ESTIMATED.
+    //
+    // The first X19 boot record spelled its policy out in English and came to
+    // 874 bytes against a 512-byte buffer, so the guard below halted setup()
+    // on the first flash -- after the tasks had started, so MQTT connected and
+    // the prime completed while loop() never ran. Online, then stale five
+    // seconds later. The first trim was still 776 against the 704-byte
+    // transport and would have halted again; it was caught by computing the
+    // rendered length instead of eyeballing it, which is now a test
+    // (tests/check_payload_bounds.py).
+    //
+    // What went: build_class, which field_accepted and the sketch name already
+    // carry between them, and every flag whose value is a constant of the
+    // build and is printed on Serial at boot anyway -- framing, closure,
+    // exit_margin, decimation, pwm_in_hall, floor_rederive, guard_d2d,
+    // pol_ap. A boot record is read by machines. The prose has a home.
+    //
+    // X18's own keys are kept spelled as X18 spelled them, because the Pi
+    // parses them and a shorter name here is a broken consumer there.
+    "\"loco\":\"%s\",\"depart\":%d,\"local_ms\":%u,\"persist\":%u,"
+    "\"window_ms\":%u,\"refract_ms\":%u,\"pre_roll_ms\":%u,\"caliper\":%d,"
+    "\"floor_ms\":%u,\"amp_floor\":%.2f,\"guard_ms\":%lu,\"seq_n\":%d,"
     "\"offsets\":0,\"quorum\":0,\"velocity_model\":0,\"post_stop_successor\":1,"
-    "\"baseline_mode\":\"fixed_after_prime_lap_estimate_not_applied\","
-    "\"shadow_median_n\":41,\"pwm_in_hall_decisions\":0,"
+    "\"baseline_mode\":\"fixed_no_lap\",\"shadow_median_n\":41,"
     "\"baseline_adapt_pwm\":%d,\"departure_diag_hz\":10,\"ir_votes\":0}",
-    SKETCH_NAME,BUILD_SUBTITLE,BUILD_CLASS,(int)FIELD_ACCEPTED,
+    SKETCH_NAME,BUILD_SUBTITLE,(int)FIELD_ACCEPTED,
     LOCO_NAME,(int)detCfg.departCounts,detCfg.localWindowMs,detCfg.persistSamples,
-    detCfg.windowMs,detCfg.refractoryMs,detCfg.preRollMs,
-    detCfg.widthFloorMs,(int)detCfg.widthCaliper,
-    (double)recCfg.amplitudeFloor,
+    detCfg.windowMs,detCfg.refractoryMs,detCfg.preRollMs,(int)detCfg.widthCaliper,
+    detCfg.widthFloorMs,(double)recCfg.amplitudeFloor,
     (unsigned long)recCfg.guardMs,(int)SEQ_N,(int)NAVI_BASELINE_ADAPT_PWM);
   if (bootLen < 0 || bootLen >= (int)sizeof(b)) {
+    // Halting is the right policy -- a locomotive whose telemetry cannot say
+    // which build it is running has no business moving -- but halting SILENTLY
+    // is not. The tasks are already up by this point, so MQTT connects and the
+    // prime completes while loop() never runs, and the only symptom anyone
+    // sees is a locomotive that goes online and then stale. Say it out loud.
     Serial.printf("[BOOT] FATAL: boot record oversize (%d bytes) — halting\n",bootLen);
+    char w[160];
+    snprintf(w,sizeof(w),
+      "{\"level\":\"FATAL\",\"reason\":\"BOOT_RECORD_OVERSIZE\",\"loco\":\"%s\","
+      "\"bytes\":%d,\"limit\":%u,\"halted\":1}",
+      LOCO_NAME, bootLen, (unsigned)sizeof(b));
+    pub(T_WARN,w,true);
+    pub(T_ALERT,w,false);
     writePwm(0); for(;;) delay(1000);
   }
   pub(T_BOOT,b,true);
@@ -1469,7 +1516,7 @@ static void stationService(uint32_t now){
 
   if (o.setThrottle) requestPwm((int)o.pwm, AUTO_STEP_UP_MS, o.stepMs);
   if (o.event) {
-    char b[192];
+    char b[256];
     snprintf(b,sizeof(b),
       "{\"event\":\"%s\",\"phase\":\"%s\",\"station\":\"%s\",\"off\":%d,"
       "\"mm\":%u,\"dir\":\"%s\",\"pwm\":%u,\"step_ms\":%u}",
