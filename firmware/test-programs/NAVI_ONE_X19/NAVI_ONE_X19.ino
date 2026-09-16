@@ -920,9 +920,9 @@ static void hallTask(void*){
       // that would not fit is COUNTED, never sent in pieces.
       char b[sizeof(PubMsg::payload)];
       const int exLen = snprintf(b,sizeof(b),
-        "{\"detected_ms\":%lu,\"win_ms\":%lu,"
+        "{\"detected_ms\":%lu,"
         "\"raw_detect\":%d,\"local_ref\":%ld,\"depart\":%ld,"
-        "\"reference\":%ld,\"shadow_ref\":%ld,"
+        "\"rest_ref\":%ld,\"reference\":%ld,\"shadow_ref\":%ld,"
         "\"peak\":%u,\"peak_signed\":%d,\"pol\":\"%c\","
         "\"exc_sum\":%lld,\"exc_n\":%u,\"exc_first\":%u,\"exc_last\":%u,"
         "\"w_caliper_ms\":%u,\"w_frac_ms\":%u,\"width_rejected\":%u,"
@@ -934,9 +934,8 @@ static void hallTask(void*){
         "\"pwm\":%u,\"may_adapt\":%u,"
         "\"mm\":%u,\"dir\":\"%s\",\"station\":\"%s\"}",
         (unsigned long)e.detectedAtMs,
-        (unsigned long)(e.windowEndMs-e.detectedAtMs),
         (int)e.rawAtDetect,(long)e.localRef,(long)e.departAtDetect,
-        (long)e.reference,(long)e.shadowRef,
+        (long)e.restRef,(long)e.reference,(long)e.shadowRef,
         e.peakCounts,(int)e.peakSigned,e.polarity?'N':'S',
         (long long)e.excursionSum,e.excursionCount,e.excursionFirst,e.excursionLast,
         e.widthCaliperMs,e.widthFracMs,e.widthRejected?1u:0u,

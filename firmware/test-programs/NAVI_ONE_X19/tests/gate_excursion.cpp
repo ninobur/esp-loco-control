@@ -5,6 +5,7 @@
 // Build: g++ -O2 -std=c++17 -o /tmp/x19gate gate_excursion.cpp && /tmp/x19gate
 // ---------------------------------------------------------------------------
 #include <cstdio>
+#include <cstdlib>
 #include <cmath>
 #include <vector>
 #include "../ExcursionDetector.h"
@@ -28,6 +29,12 @@ struct Rig {
       ++t;
     }
   }
+  // Move to `level` and stay there until the detector has measured it as rest,
+  // then forget everything that happened on the way. The step itself is a
+  // legitimate candidate -- that is how boot 5 of 2026-09-15 began, primed on
+  // a magnet and then driven off it -- but it is setup, not the thing under
+  // test.
+  void settle(int16_t level) { feed(level, 3000); got.clear(); }
   // a half-sine arc of the given amplitude and width, on top of `base`
   void arc(int amp, int ms, int16_t base = 1900) {
     for (int i = 0; i < ms; ++i) {
@@ -43,9 +50,22 @@ int main() {
   printf("X19 ExcursionDetector -- synthetic gates\n\n");
 
   printf("1. a persistent displaced level does not manufacture events\n");
-  { Rig r; r.feed(1900, 500); r.feed(2010, 60000); r.feed(1900, 2000);
-    check(r.got.size() == 1, "a 110-count step held for 60 s yields exactly one candidate");
-    check(r.got[0].localRef == 1900, "that candidate's local reference is the pre-step line"); }
+  { Rig r; r.feed(1900, 500);
+    // 600, not 300: a candidate is emitted when its 400 ms window closes, not
+    // when it is detected, so a shorter feed measures nothing.
+    r.feed(2010, 600);  const size_t afterStep = r.got.size();
+    r.feed(2010, 60000); const size_t afterDwell = r.got.size();
+    r.feed(1900, 2000);
+    check(afterStep == 1, "a 110-count step is one candidate");
+    check(afterDwell == afterStep,
+          "and 60 SECONDS at that level add nothing -- persistence never repeats");
+    check(r.got[0].localRef == 1900, "the step's local reference is the pre-step line");
+    // The instantaneous return is a second candidate, and under a detector
+    // with no global reference it has to be: after 800 ms at 2010 the detector
+    // has MEASURED 2010 to be rest, and it has nothing that could tell it 1900
+    // is more entitled to be home. That is the price of taking the reference
+    // out of the event path, it is bounded, and gate 12 measures the bound.
+    check(r.got.size() == 2, "the instantaneous RETURN is a second candidate (see gate 12)"); }
 
   printf("\n2. a decaying tail is not a new arrival\n");
   { Rig r; r.feed(1900, 500);
@@ -94,7 +114,11 @@ int main() {
   { Rig r; r.feed(1900, 2000); r.arc(180, 140); r.feed(1900, 900);
     check(r.got[0].preSamples == 512, "preSamples == 512");
     check(r.got[0].sampleCount == 512 + 1 + 400, "sampleCount == pre + detect + window");
-    check(r.got[0].oriented[100] == 0, "pre-roll samples are the quiet line, L-relative"); }
+    // L is the trailing sample nearest the measured resting level, so on a
+    // quiet line the pre-roll reads zero to within the noise of that level,
+    // not exactly zero. One bin is the resolution the histogram works at.
+    check(r.got[0].oriented[100] > -8 && r.got[0].oriented[100] < 8,
+          "pre-roll samples are the quiet line, L-relative, to within one bin"); }
 
   printf("\n8. no duration floor: a short event IS a candidate\n");
   { Rig r; r.feed(1900, 500); r.arc(180, 30); r.feed(1900, 1000);
@@ -127,6 +151,93 @@ int main() {
     r.feed(1900, 1200);
     check(r.got.size() == before,
           "the rest of the arc yields no candidate under the new frame"); }
+
+  // -------------------------------------------------------------------------
+  // 11. THE COUNTEREXAMPLE. Operator's challenge, 2026-09-15.
+  //
+  // raw - L cancels the reference algebraically, but the first implementation
+  // used baseline_ to CHOOSE L, so the reference still held detection
+  // authority. Measured on that code, with the reference 112 counts off the
+  // resting level and a magnet pulling the signal back toward it:
+  //
+  //     amplitude   82   100   120   137   173
+  //     detected   +134  +127  +125  +127  +130     the arc ends at +140
+  //     peak        82   100   112   112   113      clamped at |E|, not A
+  //     polarity     N     N     N     N     N      every one of them is S
+  //
+  // Five of the seven amplitudes in the genuine range, detected on the wrong
+  // edge with an inverted pole. A wrong count is recoverable; an inverted pole
+  // strikes. This gate is permanent.
+  // -------------------------------------------------------------------------
+  printf("\n11. a magnet on a resting level displaced from the reference\n");
+  {
+    const int amps[] = {82, 100, 120, 137, 173, 220, 270};   // the genuine range
+    const int offs[] = {112, -112, 45, -45, 0};
+    int bad = 0, cells = 0;
+    for (int oi = 0; oi < 5; ++oi) {
+      const int E = offs[oi];
+      for (int ai = 0; ai < 7; ++ai) {
+        for (int toward = 0; toward < 2; ++toward) {
+          // `toward` pulls the signal back toward the erroneous reference
+          const int A = (E >= 0) ? (toward ? -amps[ai] : amps[ai])
+                                 : (toward ?  amps[ai] : -amps[ai]);
+          Rig r; r.settle((int16_t)(1900 + E));
+          const uint32_t arc0 = r.t;
+          r.arc(A, 140, (int16_t)(1900 + E));
+          r.feed((int16_t)(1900 + E), 1200);
+          ++cells;
+          const char* why = nullptr;
+          if (r.got.size() != 1) why = "candidate count";
+          else if ((long)r.got[0].detectedAtMs - (long)arc0 > 70) why = "detected after the apex";
+          else if (r.got[0].polarity != (A > 0 ? 1 : 0)) why = "POLARITY INVERTED";
+          else if (abs((int)r.got[0].peakCounts - abs(A)) > 12) why = "peak";
+          if (why) { ++bad; printf("      E=%+4d A=%+4d : %s (n=%zu pk=%u pol=%c)\n",
+                                   E, A, why, r.got.size(),
+                                   r.got.empty()?0:r.got[0].peakCounts,
+                                   r.got.empty()?'-':(r.got[0].polarity?'N':'S')); }
+        }
+      }
+    }
+    char msg[96];
+    snprintf(msg, sizeof(msg),
+             "%d cells: one candidate, before the apex, right pole, peak within 12", cells);
+    check(bad == 0, msg);
+  }
+
+  // -------------------------------------------------------------------------
+  // 12. THE BOUND on gate 1's second candidate. Measured, not asserted.
+  // A resting level that CHANGES produces a candidate only if it changes fast.
+  // -------------------------------------------------------------------------
+  printf("\n12. how fast a resting level must change before it reads as a magnet\n");
+  {
+    struct Case { int step, rampMs, want; } cases[] = {
+      // The largest resting-level excursion ever recorded is 51 counts
+      // (2026-09-15: high state 1964-1987, low state 1936-1959). Nothing that
+      // size can produce a candidate at any rate, which is what matters.
+      {  30,    1, 0 }, {  30,  100, 0 }, {  30, 1000, 0 },
+      {  51,    1, 0 }, {  51,  100, 0 }, {  51, 1000, 0 },
+      {  70,    1, 1 }, {  70,   50, 0 },
+      { 110,  150, 1 }, { 110,  400, 0 },
+      { 150,  400, 1 }, { 150,  600, 0 },
+    };
+    int bad = 0;
+    for (auto& c : cases) {
+      Rig r; r.feed((int16_t)(1900 + c.step), 30000);
+      const size_t before = r.got.size();
+      for (int i = 0; i < c.rampMs; ++i) {
+        const int16_t v = (int16_t)(1900 + c.step - (int)((long)c.step * i / c.rampMs));
+        if (r.det.sample(r.t, v, true)) r.got.push_back(r.det.excursion());
+        ++r.t;
+      }
+      r.feed(1900, 2000);
+      const int got = (int)(r.got.size() - before);
+      if (got != c.want) { ++bad;
+        printf("      step %d over %d ms: %d candidates, wanted %d\n",
+               c.step, c.rampMs, got, c.want); }
+    }
+    check(bad == 0,
+          "<=51 counts never fires; 110 needs <400 ms; 150 needs <600 ms");
+  }
 
   printf("\n%s (%d failures)\n", fails ? "GATE FAILED" : "ALL GATES PASS", fails);
   return fails ? 1 : 0;
