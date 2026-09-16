@@ -126,3 +126,62 @@ What can be said without proposing anything: **the fault is in what rest is
 allowed to become during a slow approach into a field, not in how a magnet is
 identified once it is.** X21's subtraction is not implicated, and neither is
 the 645 ms guard.
+
+---
+
+## 8. Stop 5, 11:58:28 — the same fault, now as a within-run control
+
+Predicted before it happened, from section 2, and it arrived unchanged.
+
+The 11:51:37 run stopped five times before Grillers and struck on the sixth.
+One run, one firmware, one locomotive, one 30-second dwell each. **The only
+variable is where the sensor came to rest.**
+
+```
+  11:51:37  mm=60             raw 1941 / rest 1949   dep  -8   -> clean departure
+  11:52:56  Patio             raw 1940 / rest 1946   dep  -6   -> clean departure
+  11:54:23  Bamboo            raw 1951 / rest 1948   dep  +3   -> clean departure
+  11:56:14  Arches            raw 1952 / rest 1949   dep  +3   -> clean departure
+  11:57:53  GRILLERS          raw 2149 / rest 2148   dep  +1   -> STRIKE
+```
+
+Four stops within 8 counts of the true line produce nothing. The one stop
+200 counts above it produces an extra count and a strike.
+
+The event pair is identical to stop 4, to within a few counts:
+
+```
+det=1984508  raw 2047  local_ref 2119  rest_ref 2120  depart -72 -> S
+             peak 183  peak_signed -183  exc_n 401  w_caliper_ms 401
+             (the whole window displaced -- the line coming home, not an arc)
+             -> matches map MM60 = S -> ADVANCE 61 -> 60
+
+det=1987227  raw 1875  local_ref 1948  rest_ref 1948  depart -73 -> S
+             peak 173  peak_signed -173  exc_n 156  w_caliper_ms 176
+             (a clean South arc -- the real MM60)
+             -> judged against MM59 = N -> STRIKE
+```
+
+1987227 − 1984508 = **2719 ms**, which is the strike record's own `gap_ms`.
+
+Three Grillers stops today, three displaced rests: **2176, 2138, 2148**. The
+quiet line is ~1950 on all of them. This is not drift and it is not variable —
+Grillers puts the sensor in the same field every single time.
+
+Once more, on both events the opening sign and the window argmax **agree**
+(−72/−183 and −73/−173). X20 reads South on both and makes the same extra
+count. Five stops today; four are this, and none of the four are X21's
+polarity rule.
+
+## 9. What this does to the X21 field test
+
+X21's own hypothesis — that the opening sign alone is enough to navigate — has
+had **437 advances** today and exactly **one** failure attributable to it
+(the MM117 burst, separate record). The other four stops are a pre-existing
+X20 fault that X21 neither caused nor could have prevented.
+
+The X21 question cannot be answered while every lap runs into Grillers. That
+is an operating matter, not a code change: a session that does not make a
+station stop at Grillers gets X21 the uninterrupted laps it needs. Recorded
+here as an observation about how to run the test, not as a proposal about the
+firmware.
