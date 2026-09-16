@@ -541,6 +541,14 @@ static uint32_t pubDropped = 0, cmdDropped = 0;
 // on the status line so a silent loss of the primary field-test instrument
 // is impossible.
 static uint32_t excursionDiagOversize = 0;
+// So a stack margin is never guessed at again. X19 nearly doubled what the
+// Hall task holds on its stack at once -- a 704-byte excursion record, a
+// 704-byte waveform chunk, and newlib's float formatter -- against the 4 kB
+// it inherited from X18. The record and the chunk have since been moved off
+// that stack and the stack raised to 8 kB, and the remaining headroom is now
+// measured and published rather than assumed.
+static TaskHandle_t hallTaskHandle = nullptr;
+static TaskHandle_t netTaskHandle  = nullptr;
 enum { T_ONLINE=0,T_NAV,T_MARKER,T_ALERT,T_IR,T_STAT,T_BOOT,T_WARN,
        T_ST_AUTO,T_ST_ESTOP,T_ST_THR,T_ST_DIR,T_ST_SESSDIR,T_ST_STARTMM,
        T_ST_NAVREADY,T_ST_LOWV,T_ST_STARTINT,T_BRAKE,T_V,T_A,T_W,T_SPEED,
@@ -791,7 +799,11 @@ static void publishWaveformSlot(uint8_t slot, uint8_t total){
   const auto& e = waveformWindow.at(slot);
   if (!e.valid) return;
   const uint16_t perChunk = wavChunkCapacity(sizeof(PubMsg::payload));
-  uint8_t buf[sizeof(PubMsg::payload)];
+  // Static, not automatic: this runs only on the Hall task (the sole thread
+  // allowed to read waveformWindow), and 704 bytes of chunk buffer on a task
+  // stack shared with a float formatter is exactly the kind of margin that
+  // does not survive contact with a locomotive.
+  static uint8_t buf[sizeof(PubMsg::payload)];
   const uint8_t chunks = wavChunkCount(e.sampleCount, perChunk);
   for (uint8_t c = 0; c < chunks; ++c) {
     const uint16_t offset = (uint16_t)(c * perChunk);
@@ -813,6 +825,52 @@ static void publishWaveformSlot(uint8_t slot, uint8_t total){
 static void publishWaveformWindow(){
   const uint8_t total = waveformWindow.count();
   for (uint8_t slot = 0; slot < total; ++slot) publishWaveformSlot(slot, total);
+}
+
+// STACK. This is called from hallTask, whose stack is shared with
+// publishWaveformSlot's chunk buffer and with newlib's float formatter.
+// Holding a 704-byte record AND a 704-byte chunk buffer live at once is
+// what a 4 kB task stack cannot do, so the record is built in ITS OWN
+// frame and released before any waveform is published.
+static void publishExcursion(const Excursion& e, const Verdict& v,
+                             uint8_t pwm, bool mayAdapt){
+  // NEVER ENQUEUE TRUNCATED JSON. snprintf truncates silently and the Pi's
+  // json.loads() then discards the WHOLE line -- the 2026-08-29 alert
+  // incident, where one field too many made every field disappear. The
+  // buffer is sized to the transport rather than guessed, and a record
+  // that would not fit is COUNTED, never sent in pieces.
+  char b[sizeof(PubMsg::payload)];
+  const int exLen = snprintf(b,sizeof(b),
+    "{\"detected_ms\":%lu,"
+    "\"raw_detect\":%d,\"local_ref\":%ld,\"depart\":%ld,"
+    "\"rest_ref\":%ld,\"reference\":%ld,\"shadow_ref\":%ld,"
+    "\"peak\":%u,\"peak_signed\":%d,\"pol\":\"%c\","
+    "\"exc_sum\":%lld,\"exc_n\":%u,\"exc_first\":%u,\"exc_last\":%u,"
+    "\"w_caliper_ms\":%u,\"w_frac_ms\":%u,\"width_rejected\":%u,"
+    "\"pre\":%u,\"samples\":%u,\"clipped\":%u,"
+    "\"outcome\":\"%s\",\"is_magnet\":%u,\"ratio\":%.3f,\"gain\":%u,"
+    "\"gap_ms\":%lu,\"guard_tested\":%u,\"post_stop_successor\":%u,"
+    "\"suppressed_total\":%lu,"
+    "\"last_supp_ms\":%lu,\"last_supp_depart\":%ld,"
+    "\"pwm\":%u,\"may_adapt\":%u,"
+    "\"mm\":%u,\"dir\":\"%s\",\"station\":\"%s\"}",
+    (unsigned long)e.detectedAtMs,
+    (int)e.rawAtDetect,(long)e.localRef,(long)e.departAtDetect,
+    (long)e.restRef,(long)e.reference,(long)e.shadowRef,
+    e.peakCounts,(int)e.peakSigned,e.polarity?'N':'S',
+    (long long)e.excursionSum,e.excursionCount,e.excursionFirst,e.excursionLast,
+    e.widthCaliperMs,e.widthFracMs,e.widthRejected?1u:0u,
+    e.preSamples,e.sampleCount,e.clipped?1u:0u,
+    outcomeName(v.outcome),v.isMagnet?1u:0u,(double)v.amplitudeRatio,v.gain,
+    (unsigned long)v.gapMs,v.guardTested?1u:0u,v.postStopSuccessor?1u:0u,
+    (unsigned long)detector.suppressed(),
+    (unsigned long)detector.lastSuppressedMs(),(long)detector.lastSuppressedDepart(),
+    (unsigned)pwm,mayAdapt?1u:0u,
+    (unsigned)navigator.status().navMm,
+    navigator.status().navDir>0?"CW":(navigator.status().navDir<0?"CCW":"UNSET"),
+    stPhaseName(stationMachine.phase()));
+  if (exLen < 0 || exLen >= (int)sizeof(b)) ++excursionDiagOversize;
+  else pub(T_EXCURSION,b,false);
 }
 
 // ---------------------------------------------------------------------------
@@ -913,43 +971,7 @@ static void hallTask(void*){
       // Copied before the detector's next window starts overwriting its buffer.
       waveformWindow.push(e, v);
 
-      // NEVER ENQUEUE TRUNCATED JSON. snprintf truncates silently and the Pi's
-      // json.loads() then discards the WHOLE line -- the 2026-08-29 alert
-      // incident, where one field too many made every field disappear. The
-      // buffer is sized to the transport rather than guessed, and a record
-      // that would not fit is COUNTED, never sent in pieces.
-      char b[sizeof(PubMsg::payload)];
-      const int exLen = snprintf(b,sizeof(b),
-        "{\"detected_ms\":%lu,"
-        "\"raw_detect\":%d,\"local_ref\":%ld,\"depart\":%ld,"
-        "\"rest_ref\":%ld,\"reference\":%ld,\"shadow_ref\":%ld,"
-        "\"peak\":%u,\"peak_signed\":%d,\"pol\":\"%c\","
-        "\"exc_sum\":%lld,\"exc_n\":%u,\"exc_first\":%u,\"exc_last\":%u,"
-        "\"w_caliper_ms\":%u,\"w_frac_ms\":%u,\"width_rejected\":%u,"
-        "\"pre\":%u,\"samples\":%u,\"clipped\":%u,"
-        "\"outcome\":\"%s\",\"is_magnet\":%u,\"ratio\":%.3f,\"gain\":%u,"
-        "\"gap_ms\":%lu,\"guard_tested\":%u,\"post_stop_successor\":%u,"
-        "\"suppressed_total\":%lu,"
-        "\"last_supp_ms\":%lu,\"last_supp_depart\":%ld,"
-        "\"pwm\":%u,\"may_adapt\":%u,"
-        "\"mm\":%u,\"dir\":\"%s\",\"station\":\"%s\"}",
-        (unsigned long)e.detectedAtMs,
-        (int)e.rawAtDetect,(long)e.localRef,(long)e.departAtDetect,
-        (long)e.restRef,(long)e.reference,(long)e.shadowRef,
-        e.peakCounts,(int)e.peakSigned,e.polarity?'N':'S',
-        (long long)e.excursionSum,e.excursionCount,e.excursionFirst,e.excursionLast,
-        e.widthCaliperMs,e.widthFracMs,e.widthRejected?1u:0u,
-        e.preSamples,e.sampleCount,e.clipped?1u:0u,
-        outcomeName(v.outcome),v.isMagnet?1u:0u,(double)v.amplitudeRatio,v.gain,
-        (unsigned long)v.gapMs,v.guardTested?1u:0u,v.postStopSuccessor?1u:0u,
-        (unsigned long)detector.suppressed(),
-        (unsigned long)detector.lastSuppressedMs(),(long)detector.lastSuppressedDepart(),
-        (unsigned)actualPwm,mayAdapt?1u:0u,
-        (unsigned)navigator.status().navMm,
-        navigator.status().navDir>0?"CW":(navigator.status().navDir<0?"CCW":"UNSET"),
-        stPhaseName(stationMachine.phase()));
-      if (exLen < 0 || exLen >= (int)sizeof(b)) ++excursionDiagOversize;
-      else pub(T_EXCURSION,b,false);
+      publishExcursion(e, v, (uint8_t)actualPwm, mayAdapt);
 
       // Every refusal keeps its raw evidence. Accepted candidates are sampled,
       // so normal cruise is represented without flooding the transport.
@@ -1312,6 +1334,34 @@ static void serviceStatus(){
   } else {
     pub(T_ALERT,b,false);
   }
+  // HEALTH. state/loopstat was a dead topic inherited from X18; it now carries
+  // the two numbers that would have made the first X19 flash diagnosable in
+  // seconds instead of by inspection -- the Hall task's remaining stack and
+  // the free heap. hall_stack is WORDS of headroom never used; if it trends
+  // toward zero the task is about to take the locomotive down with it.
+  {
+    char h[224];
+    const unsigned hallFree = hallTaskHandle
+      ? (unsigned)uxTaskGetStackHighWaterMark(hallTaskHandle) : 0u;
+    const unsigned netFree = netTaskHandle
+      ? (unsigned)uxTaskGetStackHighWaterMark(netTaskHandle) : 0u;
+    snprintf(h,sizeof(h),
+      "{\"hall_stack_free\":%u,\"net_stack_free\":%u,\"heap\":%lu,"
+      "\"heap_min\":%lu,\"pub_drop\":%lu,\"exc_oversize\":%lu,"
+      "\"suppressed\":%lu,\"width_rejects\":%lu}",
+      hallFree, netFree,
+      (unsigned long)ESP.getFreeHeap(),(unsigned long)ESP.getMinFreeHeap(),
+      (unsigned long)pubDropped,(unsigned long)excursionDiagOversize,
+      (unsigned long)detector.suppressed(),(unsigned long)detector.widthRejects());
+    pub(T_STAT,h,false);
+    static uint32_t lastStackPrint = 0;
+    if (millis() - lastStackPrint >= 10000) {
+      lastStackPrint = millis();
+      Serial.printf("[HEALTH] hall stack free %u words, net %u, heap %lu (min %lu)\n",
+                    hallFree, netFree, (unsigned long)ESP.getFreeHeap(),
+                    (unsigned long)ESP.getMinFreeHeap());
+    }
+  }
   char v[8];
   snprintf(v,sizeof(v),"%d",actualPwm); pub(T_ST_THR,v,true);
   snprintf(v,sizeof(v),"%u",motorDirection?2:0); pub(T_ST_DIR,v,true);
@@ -1357,7 +1407,7 @@ void setup(){
     Serial.println("[BOOT] FATAL: queue allocation failed — halting");
     writePwm(0); for(;;) delay(1000);
   }
-  if (xTaskCreatePinnedToCore(hallTask,"hall",4096,nullptr,3,nullptr,0) != pdPASS) {
+  if (xTaskCreatePinnedToCore(hallTask,"hall",8192,nullptr,3,&hallTaskHandle,0) != pdPASS) {
     // QUORUM checked this and halted loudly. 0.1 ignored the return, so a
     // failed Hall task would boot a locomotive that navigates by nothing and
     // says nothing about it.
@@ -1366,7 +1416,7 @@ void setup(){
   }
   WiFi.mode(WIFI_STA); WiFi.begin(WIFI_SSID,WIFI_PASS);
   mqtt.setServer(MQTT_BROKER,MQTT_PORT); mqtt.setCallback(onMqtt); mqtt.setBufferSize(900);
-  if (xTaskCreatePinnedToCore(networkTask,"net",8192,nullptr,1,nullptr,1) != pdPASS)
+  if (xTaskCreatePinnedToCore(networkTask,"net",8192,nullptr,1,&netTaskHandle,1) != pdPASS)
     Serial.println("[BOOT] WARNING: network task would not start — running blind");
   char b[512];
   const int bootLen = snprintf(b,sizeof(b),
