@@ -8,6 +8,15 @@ Otto (loco 9950011), evening of 2026-09-16. Analysed session **`C3B93D0B`**
 only. md5 `6f78f5de8cb9116a26e62362baf1e09e`, 39,339,450 bytes, on the Pi at
 `/home/david/NGR/hall_records/`.
 
+> **Superseded in part.** The locks below are scored against a rolling median
+> that follows the locomotive down when it stands still on a magnet, which
+> scores the rule's own blind spot as zero error. Re-scored against a line held
+> across stops, the worst lock in §6 is **41 counts, not 12**. See
+> [NAVI_BASELINE_DRIFT_20260916_C3B93D0B.md](NAVI_BASELINE_DRIFT_20260916_C3B93D0B.md)
+> §0, which also revises the guard to 80 ms, the spread limit to 32, and adds a
+> motion requirement. The conclusions about *where in the interval the window
+> belongs* and *why the magnet's own ≥70 span is the right anchor* are unaffected.
+
 **Reproduce.**
 
 ```bash
