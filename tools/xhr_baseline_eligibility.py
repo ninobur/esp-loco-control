@@ -59,9 +59,9 @@ PHN = {0: "steady running", 1: "approach", 2: "zone", 3: "zero ramp",
 
 class Rule(object):
     def __init__(self, name, cadence_gate=False, pwm_gate=False, clearing=False,
-                 cadence_ms=3000, pwm_min=30, thresh=THRESH, need=NEED,
-                 close_ms=CLOSE_MS, guard_ms=GUARD_MS, n_samples=N_SAMPLES,
-                 spread_max=SPREAD_MAX, prime_ms=2000):
+                 pwm_at_close=True, cadence_ms=3000, pwm_min=30, thresh=THRESH,
+                 need=NEED, close_ms=CLOSE_MS, guard_ms=GUARD_MS,
+                 n_samples=N_SAMPLES, spread_max=SPREAD_MAX, prime_ms=2000):
         for k, v in locals().items():
             if k != "self":
                 setattr(self, k, v)
@@ -134,7 +134,8 @@ def replay(raw, pwm, dirf, R):
                         why = "no qualifying interval yet"
                     elif prior_iv > R.cadence_ms:
                         why = "prior interval %d ms" % prior_iv
-                if why is None and R.pwm_gate and pwm[last_over] <= R.pwm_min:
+                if why is None and R.pwm_gate and R.pwm_at_close \
+                        and pwm[last_over] <= R.pwm_min:
                     why = "pwm %d at close" % pwm[last_over]
                 if why is not None:
                     rejects.append((last_over, why))
@@ -183,6 +184,11 @@ RULES = [
     ("R3 cadence + clearing",          Rule("R3", cadence_gate=True, clearing=True)),
     ("R4 combined",                    Rule("R4", cadence_gate=True, pwm_gate=True,
                                              clearing=True)),
+    # The PWM SAMPLING GATE: R1 plus a PWM>30 requirement that applies to the
+    # collection and nothing else. Marker history and cadence qualification are
+    # never cleared, and the close is not gated.
+    ("R5 cadence + PWM sampling gate",  Rule("R5", cadence_gate=True, pwm_gate=True,
+                                             clearing=False, pwm_at_close=False)),
 ]
 
 
