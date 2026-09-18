@@ -107,13 +107,17 @@ comparison between intervals.
 **Gating.** Only `timing_gate == ACTIVE` marker records were used, which excludes
 `QUARANTINED`, `RAMP`, `LOW_PWM` and `NO_POSITION`.
 
-**Re-openings collapsed.** 327 records repeat the previous `mm` within the same
-run — the same physical magnet opening twice, admitted as ACTIVE. Each one splits
-one true interval into a short pair. Their `dt` was carried into the following
-interval rather than treated as a separate arrival. This is not cosmetic: before
-the collapse the apparent maximum was **801.6 mm/s** (Otto, MM71→70, 295 mm /
-368 ms, peak 46) — an artefact entirely, and exactly the kind of number that would
-have justified a wrong Vmax.
+**Repeated-`mm` records handled.** 327 records repeat the previous `mm` within
+the same run. They are NOT one phenomenon — see the correction below. Each one
+was excluded from the interval arithmetic rather than counted as a fresh arrival.
+This is not cosmetic: uncorrected, the apparent maximum was **801.6 mm/s** (Otto,
+MM71→70, 295 mm / 368 ms, peak 46 counts) — an artefact entirely, and exactly the
+kind of number that would have justified a wrong Vmax.
+
+**Robustness.** Only **10 of 2,972** windowed steady-90 intervals touch a
+repeated-`mm` record at all. Dropping all ten outright, with no repair, leaves
+every maximum in the table above unchanged to 0.1 mm/s, and the medians within
+0.3 mm/s. The headline does not depend on how these records are treated.
 
 ### QA gates
 
@@ -158,3 +162,61 @@ Extraction and analysis scripts are in the session scratchpad; the two log files
 named above are the only inputs. Method: parse `ngr/loco/+/mm/marker`, keep
 `ACTIVE`, collapse repeated `mm`, require PWM 90 across four consecutive markers,
 divide `ROUTE_SPACING_MM` by locomotive-clock `dt`.
+
+
+---
+
+# CORRECTION — 2026-09-18, same day
+
+The paragraph above originally described all 327 repeated-`mm` records as "the
+same physical magnet opening twice." That was wrong, and it was asserted from one
+examined case (the peak-46 artefact) generalised to the whole population without
+checking. Classifying all 327:
+
+| n | what it is |
+|---:|---|
+| 147 | two full-strength detections, same polarity |
+| 127 | two full-strength detections, **opposite polarity** |
+| 40 | weak first (<70 counts), full-strength second |
+| 30 | full-strength first, weak second — a genuine re-opening |
+| 5 | boot / declaration discontinuity |
+
+Only **30** are re-openings of the same magnet in the sense originally claimed.
+**274 are two full-strength detections reported at the same `mm`** — median peak
+176 counts, median separation 1,518 ms. At the speeds involved that separation is
+roughly one marker spacing, and in 127 cases the two polarities disagree. Those
+are not one magnet read twice. They are a second, real magnet on which the
+navigator **did not advance** — position silently lagging, which is the failure
+Otto's own profile already documents:
+
+> "A rejected event never reaches telemetry, so the next accepted marker still
+> reads mm+1 and the step stays 1 while the position silently lags."
+> — `firmware/QUORUM/LL_LocoConfig_9950011.h`
+
+The design consequence differs from what the original text implied. An amplitude
+threshold does not address the bulk of this population:
+
+- QUORUM's **only** amplitude gate is entry = `HALL_DEADBAND_COUNTS` +
+  `HALL_ENTRY_MARGIN_COUNTS`. `HALL_MIN_PEAK_DELTA` (35) appears solely in the
+  boot telemetry string and gates nothing — the profile says so explicitly.
+- Both locomotives ran `entry_margin` **13** through both sessions analysed here,
+  i.e. an entry threshold of **38 counts**. That is why a 46-count event was
+  admitted. Otto's profile has since moved to `entry_margin` 45 → **70 counts**
+  (2026-08-20 evening, after 65 → 90 counts proved too aggressive and cost four
+  markers around mm 100–125). **Toby's profile is still 13 → 38 counts.**
+- A 70-count entry would have rejected **40 of 327** (12%) of these records, and
+  would have cost **82 of 54,502** real arrivals (0.15%).
+
+So the ≥70-count detector of NAVI_SIMPLIFIED §5.1 does dispose of the specific
+record that produced the 801.6 mm/s artefact, and of about an eighth of the
+population. It does not touch the other 274. Those are full-strength, correctly
+detected magnets that the navigator declined to count — a §11 judgment question,
+not a §5.1 detection one, and the distinction matters because an amplitude
+threshold raised far enough to catch them would start missing real markers long
+before it caught them.
+
+Not analysed here: why the navigator declined. The records cluster (MM101 hosts
+55 of 327, MM35 hosts 24), which suggests specific locations rather than a
+general rate, but that is a separate question from vMAX and was not pursued.
+
+The vMAX figures in this report are unaffected — see **Robustness** above.
