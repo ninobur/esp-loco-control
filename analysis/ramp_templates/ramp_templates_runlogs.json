@@ -1,0 +1,1208 @@
+{
+  "Arches_CCW_Otto": {
+    "station": "Arches",
+    "direction": "CCW",
+    "loco": "Otto",
+    "n_ramps": 89,
+    "sketches": [
+      "QUORUM_1_14A",
+      "QUORUM_1_16R",
+      "QUORUM_1_16R_IR_TEST_A"
+    ],
+    "dates": [
+      "2026-08-14",
+      "2026-08-16",
+      "2026-08-17",
+      "2026-08-18",
+      "2026-08-19"
+    ],
+    "stop_offset": 0,
+    "entry_pwm": 60,
+    "ramp_step_ms": 200,
+    "distance_anchor": "last OBSERVED marker crossing before the ZERO_RAMP message",
+    "entry_speed_mm_s": {
+      "mean": 131.9,
+      "sd": 13.7,
+      "p5": 111.7,
+      "p95": 156.4
+    },
+    "measured_travel_mm": {
+      "p5": 300.0,
+      "p50": 300.0,
+      "p95": 300.0
+    },
+    "total_travel_bounds_mm": {
+      "low": 300.0,
+      "high": 600.0
+    },
+    "entry_speed_r2": 0.05,
+    "legs": [
+      {
+        "from_mm": 0,
+        "to_mm": 300,
+        "t_start_s": 0.0,
+        "t_end_s": 2.98,
+        "n": 89,
+        "measured": true,
+        "speed_mm_s": {
+          "mean": 102.5,
+          "p5": 84.7,
+          "p95": 124.2
+        },
+        "window_200ms_mm": {
+          "p5": 16.9,
+          "mean": 20.5
+        }
+      }
+    ]
+  },
+  "Arches_CCW_Toby": {
+    "station": "Arches",
+    "direction": "CCW",
+    "loco": "Toby",
+    "n_ramps": 67,
+    "sketches": [
+      "QUORUM_1_14A",
+      "QUORUM_1_16R",
+      "QUORUM_1_16R_IR_TEST_A",
+      "TEMPLATES_0_2"
+    ],
+    "dates": [
+      "2026-08-14",
+      "2026-08-15",
+      "2026-08-16",
+      "2026-08-17",
+      "2026-08-19",
+      "2026-08-26",
+      "2026-08-27"
+    ],
+    "stop_offset": 0,
+    "entry_pwm": 60,
+    "ramp_step_ms": 200,
+    "distance_anchor": "last OBSERVED marker crossing before the ZERO_RAMP message",
+    "entry_speed_mm_s": {
+      "mean": 149.4,
+      "sd": 21.1,
+      "p5": 118.6,
+      "p95": 178.4
+    },
+    "measured_travel_mm": {
+      "p5": 300.0,
+      "p50": 600.0,
+      "p95": 600.0
+    },
+    "total_travel_bounds_mm": {
+      "low": 300.0,
+      "high": 900.0
+    },
+    "entry_speed_r2": 0.779,
+    "legs": [
+      {
+        "from_mm": 0,
+        "to_mm": 300,
+        "t_start_s": 0.0,
+        "t_end_s": 2.35,
+        "n": 67,
+        "measured": true,
+        "speed_mm_s": {
+          "mean": 120.3,
+          "p5": 87.2,
+          "p95": 148.8
+        },
+        "window_200ms_mm": {
+          "p5": 17.4,
+          "mean": 24.1
+        }
+      },
+      {
+        "from_mm": 300,
+        "to_mm": 600,
+        "t_start_s": 2.21,
+        "t_end_s": 5.88,
+        "n": 35,
+        "measured": true,
+        "speed_mm_s": {
+          "mean": 83.6,
+          "p5": 68.7,
+          "p95": 98.4
+        },
+        "window_200ms_mm": {
+          "p5": 13.7,
+          "mean": 16.7
+        }
+      }
+    ]
+  },
+  "Arches_CW_Otto": {
+    "station": "Arches",
+    "direction": "CW",
+    "loco": "Otto",
+    "n_ramps": 89,
+    "sketches": [
+      "QUORUM_1_12C",
+      "QUORUM_1_13",
+      "QUORUM_1_14",
+      "QUORUM_1_16R",
+      "QUORUM_1_16R_IR_TEST_A"
+    ],
+    "dates": [
+      "2026-08-10",
+      "2026-08-11",
+      "2026-08-13",
+      "2026-08-15",
+      "2026-08-19",
+      "2026-08-20",
+      "2026-08-21",
+      "2026-08-24"
+    ],
+    "stop_offset": 1,
+    "entry_pwm": 60,
+    "ramp_step_ms": 200,
+    "distance_anchor": "last OBSERVED marker crossing before the ZERO_RAMP message",
+    "entry_speed_mm_s": {
+      "mean": 132.1,
+      "sd": 7.3,
+      "p5": 121.8,
+      "p95": 144.5
+    },
+    "measured_travel_mm": {
+      "p5": 305.0,
+      "p50": 305.0,
+      "p95": 305.0
+    },
+    "total_travel_bounds_mm": {
+      "low": 305.0,
+      "high": 605.0
+    },
+    "entry_speed_r2": 0.21,
+    "legs": [
+      {
+        "from_mm": 0,
+        "to_mm": 305,
+        "t_start_s": 0.0,
+        "t_end_s": 3.09,
+        "n": 89,
+        "measured": true,
+        "speed_mm_s": {
+          "mean": 97.5,
+          "p5": 83.2,
+          "p95": 113.3
+        },
+        "window_200ms_mm": {
+          "p5": 16.6,
+          "mean": 19.5
+        }
+      }
+    ]
+  },
+  "Arches_CW_Toby": {
+    "station": "Arches",
+    "direction": "CW",
+    "loco": "Toby",
+    "n_ramps": 76,
+    "sketches": [
+      "QUORUM_1_12C",
+      "QUORUM_1_14",
+      "QUORUM_1_16R",
+      "QUORUM_1_16R_IR_TEST_A",
+      "TEMPLATES_0_2",
+      "TEMPLATES_0_3A",
+      "TEMPLATES_0_3B"
+    ],
+    "dates": [
+      "2026-08-13",
+      "2026-08-15",
+      "2026-08-18",
+      "2026-08-19",
+      "2026-08-20",
+      "2026-08-21",
+      "2026-08-24",
+      "2026-08-26",
+      "2026-08-27"
+    ],
+    "stop_offset": 1,
+    "entry_pwm": 60,
+    "ramp_step_ms": 200,
+    "distance_anchor": "last OBSERVED marker crossing before the ZERO_RAMP message",
+    "entry_speed_mm_s": {
+      "mean": 149.5,
+      "sd": 10.5,
+      "p5": 125.4,
+      "p95": 162.9
+    },
+    "measured_travel_mm": {
+      "p5": 305.0,
+      "p50": 305.0,
+      "p95": 605.0
+    },
+    "total_travel_bounds_mm": {
+      "low": 305.0,
+      "high": 905.0
+    },
+    "entry_speed_r2": 0.002,
+    "legs": [
+      {
+        "from_mm": 0,
+        "to_mm": 305,
+        "t_start_s": 0.0,
+        "t_end_s": 2.51,
+        "n": 76,
+        "measured": true,
+        "speed_mm_s": {
+          "mean": 123.1,
+          "p5": 103.9,
+          "p95": 144.2
+        },
+        "window_200ms_mm": {
+          "p5": 20.8,
+          "mean": 24.6
+        }
+      },
+      {
+        "from_mm": 305,
+        "to_mm": 605,
+        "t_start_s": 2.33,
+        "t_end_s": 6.39,
+        "n": 28,
+        "measured": true,
+        "speed_mm_s": {
+          "mean": 86.2,
+          "p5": 58.1,
+          "p95": 129.5
+        },
+        "window_200ms_mm": {
+          "p5": 11.6,
+          "mean": 17.2
+        }
+      }
+    ]
+  },
+  "Bamboo_CCW_Otto": {
+    "station": "Bamboo",
+    "direction": "CCW",
+    "loco": "Otto",
+    "n_ramps": 101,
+    "sketches": [
+      "QUORUM_1_14A",
+      "QUORUM_1_16R",
+      "QUORUM_1_16R_IR_TEST_A"
+    ],
+    "dates": [
+      "2026-08-14",
+      "2026-08-15",
+      "2026-08-16",
+      "2026-08-17",
+      "2026-08-18",
+      "2026-08-19"
+    ],
+    "stop_offset": -1,
+    "entry_pwm": 60,
+    "ramp_step_ms": 200,
+    "distance_anchor": "last OBSERVED marker crossing before the ZERO_RAMP message",
+    "entry_speed_mm_s": {
+      "mean": 124.0,
+      "sd": 19.6,
+      "p5": 93.3,
+      "p95": 152.7
+    },
+    "measured_travel_mm": {
+      "p5": 290.0,
+      "p50": 290.0,
+      "p95": 610.0
+    },
+    "total_travel_bounds_mm": {
+      "low": 290.0,
+      "high": 915.0
+    },
+    "entry_speed_r2": 0.366,
+    "legs": [
+      {
+        "from_mm": 0,
+        "to_mm": 290,
+        "t_start_s": 0.0,
+        "t_end_s": 2.55,
+        "n": 101,
+        "measured": true,
+        "speed_mm_s": {
+          "mean": 148.8,
+          "p5": 69.6,
+          "p95": 147.3
+        },
+        "window_200ms_mm": {
+          "p5": 13.9,
+          "mean": 29.8
+        }
+      },
+      {
+        "from_mm": 290,
+        "to_mm": 610,
+        "t_start_s": 2.06,
+        "t_end_s": 6.37,
+        "n": 26,
+        "measured": true,
+        "speed_mm_s": {
+          "mean": 78.1,
+          "p5": 58.1,
+          "p95": 111.2
+        },
+        "window_200ms_mm": {
+          "p5": 11.6,
+          "mean": 15.6
+        }
+      }
+    ]
+  },
+  "Bamboo_CCW_Toby": {
+    "station": "Bamboo",
+    "direction": "CCW",
+    "loco": "Toby",
+    "n_ramps": 69,
+    "sketches": [
+      "QUORUM_1_14A",
+      "QUORUM_1_16R",
+      "QUORUM_1_16R_IR_TEST_A",
+      "TEMPLATES_0_2"
+    ],
+    "dates": [
+      "2026-08-14",
+      "2026-08-15",
+      "2026-08-16",
+      "2026-08-17",
+      "2026-08-19",
+      "2026-08-26",
+      "2026-08-27"
+    ],
+    "stop_offset": -1,
+    "entry_pwm": 60,
+    "ramp_step_ms": 200,
+    "distance_anchor": "last OBSERVED marker crossing before the ZERO_RAMP message",
+    "entry_speed_mm_s": {
+      "mean": 141.1,
+      "sd": 25.0,
+      "p5": 102.8,
+      "p95": 176.6
+    },
+    "measured_travel_mm": {
+      "p5": 290.0,
+      "p50": 610.0,
+      "p95": 610.0
+    },
+    "total_travel_bounds_mm": {
+      "low": 290.0,
+      "high": 915.0
+    },
+    "entry_speed_r2": 0.543,
+    "legs": [
+      {
+        "from_mm": 0,
+        "to_mm": 290,
+        "t_start_s": 0.0,
+        "t_end_s": 1.95,
+        "n": 69,
+        "measured": true,
+        "speed_mm_s": {
+          "mean": 142.6,
+          "p5": 102.3,
+          "p95": 170.2
+        },
+        "window_200ms_mm": {
+          "p5": 20.5,
+          "mean": 28.5
+        }
+      },
+      {
+        "from_mm": 290,
+        "to_mm": 610,
+        "t_start_s": 1.83,
+        "t_end_s": 5.02,
+        "n": 53,
+        "measured": true,
+        "speed_mm_s": {
+          "mean": 93.8,
+          "p5": 63.2,
+          "p95": 111.6
+        },
+        "window_200ms_mm": {
+          "p5": 12.6,
+          "mean": 18.8
+        }
+      }
+    ]
+  },
+  "Bamboo_CW_Otto": {
+    "station": "Bamboo",
+    "direction": "CW",
+    "loco": "Otto",
+    "n_ramps": 84,
+    "sketches": [
+      "QUORUM_1_12C",
+      "QUORUM_1_13",
+      "QUORUM_1_14",
+      "QUORUM_1_16R",
+      "QUORUM_1_16R_IR_TEST_A"
+    ],
+    "dates": [
+      "2026-08-10",
+      "2026-08-11",
+      "2026-08-13",
+      "2026-08-15",
+      "2026-08-19",
+      "2026-08-20",
+      "2026-08-21"
+    ],
+    "stop_offset": 0,
+    "entry_pwm": 60,
+    "ramp_step_ms": 200,
+    "distance_anchor": "last OBSERVED marker crossing before the ZERO_RAMP message",
+    "entry_speed_mm_s": {
+      "mean": 122.9,
+      "sd": 8.9,
+      "p5": 105.4,
+      "p95": 133.9
+    },
+    "measured_travel_mm": {
+      "p5": 290.0,
+      "p50": 610.0,
+      "p95": 610.0
+    },
+    "total_travel_bounds_mm": {
+      "low": 290.0,
+      "high": 910.0
+    },
+    "entry_speed_r2": 0.502,
+    "legs": [
+      {
+        "from_mm": 0,
+        "to_mm": 290,
+        "t_start_s": 0.0,
+        "t_end_s": 2.43,
+        "n": 84,
+        "measured": true,
+        "speed_mm_s": {
+          "mean": 118.3,
+          "p5": 91.7,
+          "p95": 138.5
+        },
+        "window_200ms_mm": {
+          "p5": 18.3,
+          "mean": 23.7
+        }
+      },
+      {
+        "from_mm": 290,
+        "to_mm": 610,
+        "t_start_s": 2.36,
+        "t_end_s": 6.7,
+        "n": 44,
+        "measured": true,
+        "speed_mm_s": {
+          "mean": 80.4,
+          "p5": 61.3,
+          "p95": 107.4
+        },
+        "window_200ms_mm": {
+          "p5": 12.3,
+          "mean": 16.1
+        }
+      }
+    ]
+  },
+  "Bamboo_CW_Toby": {
+    "station": "Bamboo",
+    "direction": "CW",
+    "loco": "Toby",
+    "n_ramps": 76,
+    "sketches": [
+      "QUORUM_1_12C",
+      "QUORUM_1_16R",
+      "QUORUM_1_16R_IR_TEST_A",
+      "TEMPLATES_0_2"
+    ],
+    "dates": [
+      "2026-08-15",
+      "2026-08-18",
+      "2026-08-19",
+      "2026-08-20",
+      "2026-08-21",
+      "2026-08-24",
+      "2026-08-26",
+      "2026-08-27"
+    ],
+    "stop_offset": 0,
+    "entry_pwm": 60,
+    "ramp_step_ms": 200,
+    "distance_anchor": "last OBSERVED marker crossing before the ZERO_RAMP message",
+    "entry_speed_mm_s": {
+      "mean": 147.1,
+      "sd": 16.3,
+      "p5": 124.0,
+      "p95": 183.8
+    },
+    "measured_travel_mm": {
+      "p5": 610.0,
+      "p50": 610.0,
+      "p95": 910.0
+    },
+    "total_travel_bounds_mm": {
+      "low": 610.0,
+      "high": 1210.0
+    },
+    "entry_speed_r2": 0.443,
+    "legs": [
+      {
+        "from_mm": 0,
+        "to_mm": 290,
+        "t_start_s": 0.0,
+        "t_end_s": 1.91,
+        "n": 76,
+        "measured": true,
+        "speed_mm_s": {
+          "mean": 161.7,
+          "p5": 132.9,
+          "p95": 313.0
+        },
+        "window_200ms_mm": {
+          "p5": 26.6,
+          "mean": 32.3
+        }
+      },
+      {
+        "from_mm": 290,
+        "to_mm": 610,
+        "t_start_s": 1.91,
+        "t_end_s": 4.64,
+        "n": 70,
+        "measured": true,
+        "speed_mm_s": {
+          "mean": 115.9,
+          "p5": 95.3,
+          "p95": 136.1
+        },
+        "window_200ms_mm": {
+          "p5": 19.1,
+          "mean": 23.2
+        }
+      },
+      {
+        "from_mm": 610,
+        "to_mm": 910,
+        "t_start_s": 1.94,
+        "t_end_s": 4.4,
+        "n": 8,
+        "measured": true,
+        "speed_mm_s": {
+          "mean": 103.5,
+          "p5": 61.7,
+          "p95": 131.2
+        },
+        "window_200ms_mm": {
+          "p5": 12.3,
+          "mean": 20.7
+        }
+      }
+    ]
+  },
+  "Grillers_CCW_Otto": {
+    "station": "Grillers",
+    "direction": "CCW",
+    "loco": "Otto",
+    "n_ramps": 91,
+    "sketches": [
+      "QUORUM_1_14A",
+      "QUORUM_1_16R",
+      "QUORUM_1_16R_IR_TEST_A"
+    ],
+    "dates": [
+      "2026-08-14",
+      "2026-08-15",
+      "2026-08-16",
+      "2026-08-17",
+      "2026-08-18",
+      "2026-08-19"
+    ],
+    "stop_offset": -1,
+    "entry_pwm": 72,
+    "ramp_step_ms": 200,
+    "distance_anchor": "last OBSERVED marker crossing before the ZERO_RAMP message",
+    "entry_speed_mm_s": {
+      "mean": 178.7,
+      "sd": 9.5,
+      "p5": 165.0,
+      "p95": 195.6
+    },
+    "measured_travel_mm": {
+      "p5": 640.0,
+      "p50": 640.0,
+      "p95": 960.0
+    },
+    "total_travel_bounds_mm": {
+      "low": 640.0,
+      "high": 1275.0
+    },
+    "entry_speed_r2": 0.151,
+    "legs": [
+      {
+        "from_mm": 0,
+        "to_mm": 325,
+        "t_start_s": 0.0,
+        "t_end_s": 1.98,
+        "n": 91,
+        "measured": true,
+        "speed_mm_s": {
+          "mean": 164.4,
+          "p5": 142.0,
+          "p95": 186.3
+        },
+        "window_200ms_mm": {
+          "p5": 28.4,
+          "mean": 32.9
+        }
+      },
+      {
+        "from_mm": 325,
+        "to_mm": 640,
+        "t_start_s": 1.98,
+        "t_end_s": 4.23,
+        "n": 91,
+        "measured": true,
+        "speed_mm_s": {
+          "mean": 140.6,
+          "p5": 119.4,
+          "p95": 162.5
+        },
+        "window_200ms_mm": {
+          "p5": 23.9,
+          "mean": 28.1
+        }
+      },
+      {
+        "from_mm": 640,
+        "to_mm": 960,
+        "t_start_s": 3.87,
+        "t_end_s": 8.09,
+        "n": 22,
+        "measured": true,
+        "speed_mm_s": {
+          "mean": 71.1,
+          "p5": 56.4,
+          "p95": 83.7
+        },
+        "window_200ms_mm": {
+          "p5": 11.3,
+          "mean": 14.2
+        }
+      }
+    ]
+  },
+  "Grillers_CCW_Toby": {
+    "station": "Grillers",
+    "direction": "CCW",
+    "loco": "Toby",
+    "n_ramps": 58,
+    "sketches": [
+      "QUORUM_1_14A",
+      "QUORUM_1_16R",
+      "QUORUM_1_16R_IR_TEST_A",
+      "TEMPLATES_0_2"
+    ],
+    "dates": [
+      "2026-08-14",
+      "2026-08-16",
+      "2026-08-17",
+      "2026-08-19",
+      "2026-08-26",
+      "2026-08-27"
+    ],
+    "stop_offset": -1,
+    "entry_pwm": 72,
+    "ramp_step_ms": 200,
+    "distance_anchor": "last OBSERVED marker crossing before the ZERO_RAMP message",
+    "entry_speed_mm_s": {
+      "mean": 192.8,
+      "sd": 15.3,
+      "p5": 170.5,
+      "p95": 213.2
+    },
+    "measured_travel_mm": {
+      "p5": 640.0,
+      "p50": 960.0,
+      "p95": 960.0
+    },
+    "total_travel_bounds_mm": {
+      "low": 640.0,
+      "high": 1275.0
+    },
+    "entry_speed_r2": 0.495,
+    "legs": [
+      {
+        "from_mm": 0,
+        "to_mm": 325,
+        "t_start_s": 0.0,
+        "t_end_s": 1.92,
+        "n": 58,
+        "measured": true,
+        "speed_mm_s": {
+          "mean": 173.6,
+          "p5": 150.8,
+          "p95": 196.9
+        },
+        "window_200ms_mm": {
+          "p5": 30.2,
+          "mean": 34.7
+        }
+      },
+      {
+        "from_mm": 325,
+        "to_mm": 640,
+        "t_start_s": 1.92,
+        "t_end_s": 3.92,
+        "n": 58,
+        "measured": true,
+        "speed_mm_s": {
+          "mean": 165.7,
+          "p5": 133.1,
+          "p95": 198.4
+        },
+        "window_200ms_mm": {
+          "p5": 26.6,
+          "mean": 33.1
+        }
+      },
+      {
+        "from_mm": 640,
+        "to_mm": 960,
+        "t_start_s": 3.43,
+        "t_end_s": 5.9,
+        "n": 39,
+        "measured": true,
+        "speed_mm_s": {
+          "mean": 118.3,
+          "p5": 80.9,
+          "p95": 138.2
+        },
+        "window_200ms_mm": {
+          "p5": 16.2,
+          "mean": 23.7
+        }
+      }
+    ]
+  },
+  "Grillers_CW_Otto": {
+    "station": "Grillers",
+    "direction": "CW",
+    "loco": "Otto",
+    "n_ramps": 78,
+    "sketches": [
+      "QUORUM_1_12C",
+      "QUORUM_1_13",
+      "QUORUM_1_14",
+      "QUORUM_1_16R",
+      "QUORUM_1_16R_IR_TEST_A"
+    ],
+    "dates": [
+      "2026-08-10",
+      "2026-08-11",
+      "2026-08-13",
+      "2026-08-15",
+      "2026-08-19",
+      "2026-08-20",
+      "2026-08-21"
+    ],
+    "stop_offset": 0,
+    "entry_pwm": 72,
+    "ramp_step_ms": 200,
+    "distance_anchor": "last OBSERVED marker crossing before the ZERO_RAMP message",
+    "entry_speed_mm_s": {
+      "mean": 146.2,
+      "sd": 18.0,
+      "p5": 110.5,
+      "p95": 167.9
+    },
+    "measured_travel_mm": {
+      "p5": 325.0,
+      "p50": 325.0,
+      "p95": 640.0
+    },
+    "total_travel_bounds_mm": {
+      "low": 325.0,
+      "high": 945.0
+    },
+    "entry_speed_r2": 0.06,
+    "legs": [
+      {
+        "from_mm": 0,
+        "to_mm": 325,
+        "t_start_s": 0.0,
+        "t_end_s": 2.61,
+        "n": 78,
+        "measured": true,
+        "speed_mm_s": {
+          "mean": 128.3,
+          "p5": 87.3,
+          "p95": 148.5
+        },
+        "window_200ms_mm": {
+          "p5": 17.5,
+          "mean": 25.7
+        }
+      },
+      {
+        "from_mm": 325,
+        "to_mm": 640,
+        "t_start_s": 2.28,
+        "t_end_s": 6.82,
+        "n": 15,
+        "measured": true,
+        "speed_mm_s": {
+          "mean": 69.4,
+          "p5": 62.6,
+          "p95": 76.4
+        },
+        "window_200ms_mm": {
+          "p5": 12.5,
+          "mean": 13.9
+        }
+      }
+    ]
+  },
+  "Grillers_CW_Toby": {
+    "station": "Grillers",
+    "direction": "CW",
+    "loco": "Toby",
+    "n_ramps": 76,
+    "sketches": [
+      "QUORUM_1_12C",
+      "QUORUM_1_14",
+      "QUORUM_1_16R",
+      "QUORUM_1_16R_IR_TEST_A",
+      "TEMPLATES_0_2",
+      "TEMPLATES_0_3B"
+    ],
+    "dates": [
+      "2026-08-13",
+      "2026-08-15",
+      "2026-08-18",
+      "2026-08-19",
+      "2026-08-20",
+      "2026-08-21",
+      "2026-08-24",
+      "2026-08-26",
+      "2026-08-27"
+    ],
+    "stop_offset": 0,
+    "entry_pwm": 72,
+    "ramp_step_ms": 200,
+    "distance_anchor": "last OBSERVED marker crossing before the ZERO_RAMP message",
+    "entry_speed_mm_s": {
+      "mean": 160.7,
+      "sd": 16.4,
+      "p5": 134.5,
+      "p95": 188.7
+    },
+    "measured_travel_mm": {
+      "p5": 325.0,
+      "p50": 640.0,
+      "p95": 640.0
+    },
+    "total_travel_bounds_mm": {
+      "low": 325.0,
+      "high": 945.0
+    },
+    "entry_speed_r2": 0.292,
+    "legs": [
+      {
+        "from_mm": 0,
+        "to_mm": 325,
+        "t_start_s": 0.0,
+        "t_end_s": 2.27,
+        "n": 76,
+        "measured": true,
+        "speed_mm_s": {
+          "mean": 153.8,
+          "p5": 113.9,
+          "p95": 170.9
+        },
+        "window_200ms_mm": {
+          "p5": 22.8,
+          "mean": 30.8
+        }
+      },
+      {
+        "from_mm": 325,
+        "to_mm": 640,
+        "t_start_s": 2.26,
+        "t_end_s": 6.19,
+        "n": 64,
+        "measured": true,
+        "speed_mm_s": {
+          "mean": 89.2,
+          "p5": 61.3,
+          "p95": 119.0
+        },
+        "window_200ms_mm": {
+          "p5": 12.3,
+          "mean": 17.8
+        }
+      }
+    ]
+  },
+  "Patio_CCW_Otto": {
+    "station": "Patio",
+    "direction": "CCW",
+    "loco": "Otto",
+    "n_ramps": 92,
+    "sketches": [
+      "QUORUM_1_14A",
+      "QUORUM_1_16R",
+      "QUORUM_1_16R_IR_TEST_A"
+    ],
+    "dates": [
+      "2026-08-14",
+      "2026-08-15",
+      "2026-08-16",
+      "2026-08-17",
+      "2026-08-18",
+      "2026-08-19"
+    ],
+    "stop_offset": 0,
+    "entry_pwm": 60,
+    "ramp_step_ms": 200,
+    "distance_anchor": "last OBSERVED marker crossing before the ZERO_RAMP message",
+    "entry_speed_mm_s": {
+      "mean": 122.7,
+      "sd": 14.0,
+      "p5": 93.4,
+      "p95": 141.1
+    },
+    "measured_travel_mm": {
+      "p5": 315.0,
+      "p50": 315.0,
+      "p95": 315.0
+    },
+    "total_travel_bounds_mm": {
+      "low": 315.0,
+      "high": 630.0
+    },
+    "entry_speed_r2": null,
+    "legs": [
+      {
+        "from_mm": 0,
+        "to_mm": 315,
+        "t_start_s": 0.0,
+        "t_end_s": 3.68,
+        "n": 92,
+        "measured": true,
+        "speed_mm_s": {
+          "mean": 84.3,
+          "p5": 63.8,
+          "p95": 97.6
+        },
+        "window_200ms_mm": {
+          "p5": 12.8,
+          "mean": 16.9
+        }
+      }
+    ]
+  },
+  "Patio_CCW_Toby": {
+    "station": "Patio",
+    "direction": "CCW",
+    "loco": "Toby",
+    "n_ramps": 68,
+    "sketches": [
+      "QUORUM_1_14A",
+      "QUORUM_1_16R",
+      "QUORUM_1_16R_IR_TEST_A",
+      "TEMPLATES_0_2"
+    ],
+    "dates": [
+      "2026-08-14",
+      "2026-08-15",
+      "2026-08-16",
+      "2026-08-17",
+      "2026-08-19",
+      "2026-08-26",
+      "2026-08-27"
+    ],
+    "stop_offset": 0,
+    "entry_pwm": 60,
+    "ramp_step_ms": 200,
+    "distance_anchor": "last OBSERVED marker crossing before the ZERO_RAMP message",
+    "entry_speed_mm_s": {
+      "mean": 131.2,
+      "sd": 16.8,
+      "p5": 101.9,
+      "p95": 153.1
+    },
+    "measured_travel_mm": {
+      "p5": 315.0,
+      "p50": 315.0,
+      "p95": 315.0
+    },
+    "total_travel_bounds_mm": {
+      "low": 315.0,
+      "high": 630.0
+    },
+    "entry_speed_r2": 0.031,
+    "legs": [
+      {
+        "from_mm": 0,
+        "to_mm": 315,
+        "t_start_s": 0.0,
+        "t_end_s": 3.26,
+        "n": 68,
+        "measured": true,
+        "speed_mm_s": {
+          "mean": 90.9,
+          "p5": 59.5,
+          "p95": 115.2
+        },
+        "window_200ms_mm": {
+          "p5": 11.9,
+          "mean": 18.2
+        }
+      }
+    ]
+  },
+  "Patio_CW_Otto": {
+    "station": "Patio",
+    "direction": "CW",
+    "loco": "Otto",
+    "n_ramps": 81,
+    "sketches": [
+      "QUORUM_1_12C",
+      "QUORUM_1_13",
+      "QUORUM_1_14",
+      "QUORUM_1_16R",
+      "QUORUM_1_16R_IR_TEST_A"
+    ],
+    "dates": [
+      "2026-08-10",
+      "2026-08-11",
+      "2026-08-13",
+      "2026-08-15",
+      "2026-08-19",
+      "2026-08-20",
+      "2026-08-21"
+    ],
+    "stop_offset": 1,
+    "entry_pwm": 60,
+    "ramp_step_ms": 200,
+    "distance_anchor": "last OBSERVED marker crossing before the ZERO_RAMP message",
+    "entry_speed_mm_s": {
+      "mean": 112.2,
+      "sd": 13.3,
+      "p5": 97.3,
+      "p95": 124.4
+    },
+    "measured_travel_mm": {
+      "p5": 310.0,
+      "p50": 310.0,
+      "p95": 310.0
+    },
+    "total_travel_bounds_mm": {
+      "low": 310.0,
+      "high": 610.0
+    },
+    "entry_speed_r2": 0.547,
+    "legs": [
+      {
+        "from_mm": 0,
+        "to_mm": 310,
+        "t_start_s": 0.0,
+        "t_end_s": 3.4,
+        "n": 81,
+        "measured": true,
+        "speed_mm_s": {
+          "mean": 93.0,
+          "p5": 73.2,
+          "p95": 117.0
+        },
+        "window_200ms_mm": {
+          "p5": 14.6,
+          "mean": 18.6
+        }
+      }
+    ]
+  },
+  "Patio_CW_Toby": {
+    "station": "Patio",
+    "direction": "CW",
+    "loco": "Toby",
+    "n_ramps": 84,
+    "sketches": [
+      "QUORUM_1_12C",
+      "QUORUM_1_14",
+      "QUORUM_1_16R",
+      "QUORUM_1_16R_IR_TEST_A",
+      "TEMPLATES_0_2"
+    ],
+    "dates": [
+      "2026-08-13",
+      "2026-08-15",
+      "2026-08-18",
+      "2026-08-19",
+      "2026-08-20",
+      "2026-08-21",
+      "2026-08-24",
+      "2026-08-26",
+      "2026-08-27"
+    ],
+    "stop_offset": 1,
+    "entry_pwm": 60,
+    "ramp_step_ms": 200,
+    "distance_anchor": "last OBSERVED marker crossing before the ZERO_RAMP message",
+    "entry_speed_mm_s": {
+      "mean": 136.2,
+      "sd": 8.2,
+      "p5": 125.3,
+      "p95": 151.1
+    },
+    "measured_travel_mm": {
+      "p5": 310.0,
+      "p50": 310.0,
+      "p95": 610.0
+    },
+    "total_travel_bounds_mm": {
+      "low": 310.0,
+      "high": 910.0
+    },
+    "entry_speed_r2": 0.427,
+    "legs": [
+      {
+        "from_mm": 0,
+        "to_mm": 310,
+        "t_start_s": 0.0,
+        "t_end_s": 2.5,
+        "n": 84,
+        "measured": true,
+        "speed_mm_s": {
+          "mean": 126.6,
+          "p5": 107.0,
+          "p95": 151.4
+        },
+        "window_200ms_mm": {
+          "p5": 21.4,
+          "mean": 25.3
+        }
+      },
+      {
+        "from_mm": 310,
+        "to_mm": 610,
+        "t_start_s": 2.21,
+        "t_end_s": 6.46,
+        "n": 40,
+        "measured": true,
+        "speed_mm_s": {
+          "mean": 77.0,
+          "p5": 57.3,
+          "p95": 100.8
+        },
+        "window_200ms_mm": {
+          "p5": 11.5,
+          "mean": 15.4
+        }
+      }
+    ]
+  }
+}
