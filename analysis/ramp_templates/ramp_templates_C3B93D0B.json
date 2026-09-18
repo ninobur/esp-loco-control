@@ -1,0 +1,339 @@
+{
+  "Arches_CCW": {
+    "station": "Arches",
+    "direction": "CCW",
+    "runs": 1,
+    "insufficient": true,
+    "entry_speed_mm_s": {
+      "mean": 119.6,
+      "min": 119.6,
+      "max": 119.6,
+      "n": 1
+    },
+    "ramp_pwm_at_signal": 59,
+    "ramp_step_ms": 200,
+    "ramp_to_zero_ms": 11800,
+    "observed_crossings": [
+      {
+        "marker": 1,
+        "n_runs_observed": 1,
+        "t_mean_s": 2.391,
+        "t_min_s": 2.391,
+        "t_max_s": 2.391,
+        "cumulative_mm": 300,
+        "observed": true
+      }
+    ],
+    "final_leg": {
+      "basis": "ESTIMATED: no further marker was crossed, so the remaining travel is bounded above by the next surveyed spacing (300 mm)",
+      "next_spacing_mm": 300,
+      "rest_inside_a_field_runs": 0
+    },
+    "total_travel_mm": {
+      "low": 300,
+      "high": 600
+    },
+    "run_times_s": [
+      11.8
+    ],
+    "source": "xhr_20260916_191904.xhr session C3B93D0B"
+  },
+  "Arches_CW": {
+    "station": "Arches",
+    "direction": "CW",
+    "runs": 3,
+    "insufficient": false,
+    "entry_speed_mm_s": {
+      "mean": 131.2,
+      "min": 126.2,
+      "max": 135.2,
+      "n": 3
+    },
+    "ramp_pwm_at_signal": 59,
+    "ramp_step_ms": 200,
+    "ramp_to_zero_ms": 11833,
+    "observed_crossings": [
+      {
+        "marker": 1,
+        "n_runs_observed": 3,
+        "t_mean_s": 2.539,
+        "t_min_s": 2.377,
+        "t_max_s": 2.763,
+        "cumulative_mm": 305,
+        "observed": true
+      }
+    ],
+    "final_leg": {
+      "basis": "ESTIMATED: no further marker was crossed, so the remaining travel is bounded above by the next surveyed spacing (300 mm)",
+      "next_spacing_mm": 300,
+      "rest_inside_a_field_runs": 0
+    },
+    "total_travel_mm": {
+      "low": 305,
+      "high": 605
+    },
+    "run_times_s": [
+      11.8,
+      11.8,
+      11.9
+    ],
+    "source": "xhr_20260916_191904.xhr session C3B93D0B"
+  },
+  "Bamboo_CCW": {
+    "station": "Bamboo",
+    "direction": "CCW",
+    "runs": 1,
+    "insufficient": true,
+    "entry_speed_mm_s": {
+      "mean": 125.8,
+      "min": 125.8,
+      "max": 125.8,
+      "n": 1
+    },
+    "ramp_pwm_at_signal": 59,
+    "ramp_step_ms": 200,
+    "ramp_to_zero_ms": 11800,
+    "observed_crossings": [
+      {
+        "marker": 1,
+        "n_runs_observed": 1,
+        "t_mean_s": 1.993,
+        "t_min_s": 1.993,
+        "t_max_s": 1.993,
+        "cumulative_mm": 290,
+        "observed": true
+      }
+    ],
+    "final_leg": {
+      "basis": "ESTIMATED: no further marker was crossed, so the remaining travel is bounded above by the next surveyed spacing (320 mm)",
+      "next_spacing_mm": 320,
+      "rest_inside_a_field_runs": 0
+    },
+    "total_travel_mm": {
+      "low": 290,
+      "high": 610
+    },
+    "run_times_s": [
+      11.8
+    ],
+    "source": "xhr_20260916_191904.xhr session C3B93D0B"
+  },
+  "Bamboo_CW": {
+    "station": "Bamboo",
+    "direction": "CW",
+    "runs": 3,
+    "insufficient": false,
+    "entry_speed_mm_s": {
+      "mean": 158.7,
+      "min": 156.2,
+      "max": 162.1,
+      "n": 3
+    },
+    "ramp_pwm_at_signal": 59,
+    "ramp_step_ms": 200,
+    "ramp_to_zero_ms": 11833,
+    "observed_crossings": [
+      {
+        "marker": 1,
+        "n_runs_observed": 3,
+        "t_mean_s": 2.084,
+        "t_min_s": 2.007,
+        "t_max_s": 2.166,
+        "cumulative_mm": 320,
+        "observed": true
+      },
+      {
+        "marker": 2,
+        "n_runs_observed": 2,
+        "t_mean_s": 5.596,
+        "t_min_s": 5.464,
+        "t_max_s": 5.727,
+        "cumulative_mm": 620,
+        "observed": true
+      }
+    ],
+    "final_leg": {
+      "basis": "MIXED: 1 of 3 runs rest inside a marker's field",
+      "next_spacing_mm": 300,
+      "rest_inside_a_field_runs": 1
+    },
+    "total_travel_mm": {
+      "low": 620,
+      "high": 945
+    },
+    "run_times_s": [
+      11.8,
+      11.9,
+      11.8
+    ],
+    "source": "xhr_20260916_191904.xhr session C3B93D0B"
+  },
+  "Grillers_CCW": {
+    "station": "Grillers",
+    "direction": "CCW",
+    "runs": 1,
+    "insufficient": true,
+    "entry_speed_mm_s": {
+      "mean": 169.9,
+      "min": 169.9,
+      "max": 169.9,
+      "n": 1
+    },
+    "ramp_pwm_at_signal": 71,
+    "ramp_step_ms": 200,
+    "ramp_to_zero_ms": 14200,
+    "observed_crossings": [
+      {
+        "marker": 1,
+        "n_runs_observed": 1,
+        "t_mean_s": 1.558,
+        "t_min_s": 1.558,
+        "t_max_s": 1.558,
+        "cumulative_mm": 325,
+        "observed": true
+      },
+      {
+        "marker": 2,
+        "n_runs_observed": 1,
+        "t_mean_s": 3.741,
+        "t_min_s": 3.741,
+        "t_max_s": 3.741,
+        "cumulative_mm": 640,
+        "observed": true
+      }
+    ],
+    "final_leg": {
+      "basis": "ESTIMATED: no further marker was crossed, so the remaining travel is bounded above by the next surveyed spacing (320 mm)",
+      "next_spacing_mm": 320,
+      "rest_inside_a_field_runs": 0
+    },
+    "total_travel_mm": {
+      "low": 640,
+      "high": 960
+    },
+    "run_times_s": [
+      14.2
+    ],
+    "source": "xhr_20260916_191904.xhr session C3B93D0B"
+  },
+  "Grillers_CW": {
+    "station": "Grillers",
+    "direction": "CW",
+    "runs": 3,
+    "insufficient": false,
+    "entry_speed_mm_s": {
+      "mean": 91.4,
+      "min": 89.8,
+      "max": 92.3,
+      "n": 3
+    },
+    "ramp_pwm_at_signal": 59,
+    "ramp_step_ms": 200,
+    "ramp_to_zero_ms": 11833,
+    "observed_crossings": [
+      {
+        "marker": 1,
+        "n_runs_observed": 1,
+        "t_mean_s": 3.941,
+        "t_min_s": 3.941,
+        "t_max_s": 3.941,
+        "cumulative_mm": 315,
+        "observed": true
+      }
+    ],
+    "final_leg": {
+      "basis": "MIXED: 3 of 3 runs rest inside a marker's field",
+      "next_spacing_mm": 325,
+      "rest_inside_a_field_runs": 3
+    },
+    "total_travel_mm": {
+      "low": 315,
+      "high": 665
+    },
+    "run_times_s": [
+      11.8,
+      11.9,
+      11.8
+    ],
+    "source": "xhr_20260916_191904.xhr session C3B93D0B"
+  },
+  "Patio_CCW": {
+    "station": "Patio",
+    "direction": "CCW",
+    "runs": 1,
+    "insufficient": true,
+    "entry_speed_mm_s": {
+      "mean": 116.7,
+      "min": 116.7,
+      "max": 116.7,
+      "n": 1
+    },
+    "ramp_pwm_at_signal": 59,
+    "ramp_step_ms": 200,
+    "ramp_to_zero_ms": 11800,
+    "observed_crossings": [
+      {
+        "marker": 1,
+        "n_runs_observed": 1,
+        "t_mean_s": 2.596,
+        "t_min_s": 2.596,
+        "t_max_s": 2.596,
+        "cumulative_mm": 315,
+        "observed": true
+      }
+    ],
+    "final_leg": {
+      "basis": "ESTIMATED: no further marker was crossed, so the remaining travel is bounded above by the next surveyed spacing (315 mm)",
+      "next_spacing_mm": 315,
+      "rest_inside_a_field_runs": 0
+    },
+    "total_travel_mm": {
+      "low": 315,
+      "high": 630
+    },
+    "run_times_s": [
+      11.8
+    ],
+    "source": "xhr_20260916_191904.xhr session C3B93D0B"
+  },
+  "Patio_CW": {
+    "station": "Patio",
+    "direction": "CW",
+    "runs": 2,
+    "insufficient": false,
+    "entry_speed_mm_s": {
+      "mean": 113.4,
+      "min": 112.7,
+      "max": 114.0,
+      "n": 2
+    },
+    "ramp_pwm_at_signal": 59,
+    "ramp_step_ms": 200,
+    "ramp_to_zero_ms": 11850,
+    "observed_crossings": [
+      {
+        "marker": 1,
+        "n_runs_observed": 2,
+        "t_mean_s": 2.497,
+        "t_min_s": 2.446,
+        "t_max_s": 2.547,
+        "cumulative_mm": 310,
+        "observed": true
+      }
+    ],
+    "final_leg": {
+      "basis": "ESTIMATED: no further marker was crossed, so the remaining travel is bounded above by the next surveyed spacing (300 mm)",
+      "next_spacing_mm": 300,
+      "rest_inside_a_field_runs": 0
+    },
+    "total_travel_mm": {
+      "low": 310,
+      "high": 610
+    },
+    "run_times_s": [
+      11.8,
+      11.9
+    ],
+    "source": "xhr_20260916_191904.xhr session C3B93D0B"
+  }
+}
