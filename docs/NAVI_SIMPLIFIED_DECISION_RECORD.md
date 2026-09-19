@@ -41,3 +41,13 @@ Boundary: This defines NAVI_SIMPLIFIED detection only. It does not determine rea
 Terminology: A magnet detection does not “open” anything and has nothing to “close.”
 
 Verification: This decision remains provisional until verified by NAVI_SIMPLIFIED field testing. Contrary field evidence requires explicit amendment or supersession rather than silent alteration.
+
+---
+
+## NAVI_SIMPLIFIED NS-D002 — Sensor Reporting and NAVI Authority
+
+Status: PROVISIONALLY APPROVED — SUBJECT TO FIELD VERIFICATION
+
+Date: 2026-09-18
+
+For NAVI_SIMPLIFIED, the Hall detector reports qualifying magnet-detection events to NAVI with their associated sensor information. The detector does not decide whether a detection represents the next mapped magnet. NAVI receives the available evidence and determines the event’s navigation significance. Sensor detection and navigation validation are separate functions.
