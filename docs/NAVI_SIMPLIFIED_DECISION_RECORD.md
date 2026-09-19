@@ -61,3 +61,13 @@ Status: PROVISIONALLY APPROVED — SUBJECT TO FIELD VERIFICATION
 Date: 2026-09-18
 
 For NAVI_SIMPLIFIED, a magnet-detection report contains facts produced by the Hall detection itself: event identity, detection timestamp, Hall departure value, baseline, and polarity. Navigation state and motion context are maintained by NAVI and are not duplicated into the sensor report merely to support NAVI judgment.
+
+---
+
+## NAVI_SIMPLIFIED NS-D004 — Distinct Sensor Event
+
+Status: PROVISIONALLY APPROVED — SUBJECT TO FIELD VERIFICATION
+
+Date: 2026-09-18
+
+For NAVI_SIMPLIFIED, after reporting a magnet detection, the Hall detector must observe the signature of a distinct new magnet encounter before reporting another detection. This is sensor-event separation only. It does not determine whether the locomotive has physically reached another mapped magnet and does not provide navigation authority.
