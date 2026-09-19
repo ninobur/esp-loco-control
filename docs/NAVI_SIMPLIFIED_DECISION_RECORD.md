@@ -51,3 +51,13 @@ Status: PROVISIONALLY APPROVED — SUBJECT TO FIELD VERIFICATION
 Date: 2026-09-18
 
 For NAVI_SIMPLIFIED, the Hall detector reports qualifying magnet-detection events to NAVI with their associated sensor information. The detector does not decide whether a detection represents the next mapped magnet. NAVI receives the available evidence and determines the event’s navigation significance. Sensor detection and navigation validation are separate functions.
+
+---
+
+## NAVI_SIMPLIFIED NS-D003 — Sensor Report Content
+
+Status: PROVISIONALLY APPROVED — SUBJECT TO FIELD VERIFICATION
+
+Date: 2026-09-18
+
+For NAVI_SIMPLIFIED, a magnet-detection report contains facts produced by the Hall detection itself: event identity, detection timestamp, Hall departure value, baseline, and polarity. Navigation state and motion context are maintained by NAVI and are not duplicated into the sensor report merely to support NAVI judgment.
