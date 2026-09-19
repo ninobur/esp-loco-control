@@ -71,3 +71,19 @@ Status: PROVISIONALLY APPROVED — SUBJECT TO FIELD VERIFICATION
 Date: 2026-09-18
 
 For NAVI_SIMPLIFIED, after reporting a magnet detection, the Hall detector must observe the signature of a distinct new magnet encounter before reporting another detection. This is sensor-event separation only. It does not determine whether the locomotive has physically reached another mapped magnet and does not provide navigation authority.
+
+---
+
+## NAVI_SIMPLIFIED NS-D005 — Baseline Establishment: Governing Technical Requirements
+
+Status: PROVISIONALLY APPROVED — SUBJECT TO FIELD VERIFICATION
+
+The baseline measurement must represent ordinary track and therefore must be centered within the region between the magnetic fields of adjacent MM magnets and sample an adequate section of track.
+
+Baseline acquisition is spatial, while the Hall sensor measures that space as a time series. Locomotive speed determines the relationship between distance and sampling time. Speed therefore affects the time from the preceding magnet detection to the usable baseline region, the duration of that region, the track distance represented by a sampling interval, and the time at which the next magnet’s field is approached.
+
+Fixed elapsed times therefore cannot be assumed to identify or sample the same physical section of track at different locomotive speeds.
+
+NAVI_SIMPLIFIED baseline acquisition must account for these relationships when determining the sampling start point, sampling end point, sample duration, and required track coverage.
+
+Quantitative requirements shall be specified in NS-D005A and subsequent subsections.
