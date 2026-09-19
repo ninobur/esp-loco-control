@@ -12,7 +12,7 @@ Important work was split among Codex tasks, a ChatGPT/Sam conversation, Claude a
 ## Evidence recovered
 
 - Governing prospectus: `docs/NGR NAVI_SIMPLIFIED.md`, current name established by commit `c16553e`.
-- Original Codex implementation reconciliation, recovered verbatim from Codex task `01a0b3ff-f9f6-7951-b8a1-cb2b3c2edf9a`.
+- Original Codex implementation reconciliation, recovered from the saved response in Codex task `01a0b3ff-f9f6-7951-b8a1-cb2b3c2edf9a` and summarized in the companion recovered-reports document.
 - Codex post-reconciliation report and pre-implementation contract, recovered from the same task.
 - Sam's 22-point decision summary, recovered from ChatGPT conversation `6aad0f72-ba6c-83ea-80f1-1ecdc8f9ed2a`.
 - Experimental lineage and `NAVI_ONE_SIMPLE` provenance, recovered from Codex task `01a0abd7-8c1f-7ca3-83dd-c982a5824e95`.
