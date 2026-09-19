@@ -30,4 +30,3 @@ The failed implementation used a universal 1000 mm/s physical ceiling and gated 
 ## Review gate
 
 All 18 findings require an explicit code change, explicit no-change rationale, or superseding operator ruling and a corresponding test before another field build is described as flashable.
-

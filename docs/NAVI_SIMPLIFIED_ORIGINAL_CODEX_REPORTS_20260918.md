@@ -57,4 +57,3 @@ The following later operator rulings and railway evidence supersede those parts 
 4. Station dwell is five seconds.
 5. The first SIMPLIFIED implementation was built, flashed, and failed after one physical magnet; statements that implementation had not begun are historical and no longer current.
 6. The build must remain quarantined until all required tests and review dispositions are complete.
-

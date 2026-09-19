@@ -1,7 +1,8 @@
 # NAVI_SIMPLIFIED — reconstructed project record
 
-**Date reconstructed:** 2026-09-18  
-**Status:** Controlling continuation record; firmware work paused  
+**Date reconstructed:** 2026-09-18
+
+**Status:** Controlling continuation record; firmware work paused
 **Authority:** Operator rulings override chat summaries. The prospectus remains the governing architecture unless a later operator ruling expressly adds specificity.
 
 ## Why this record exists
@@ -148,4 +149,3 @@ Key SHA-256 values:
 ## Pause condition
 
 Do not change or flash NAVI_SIMPLIFIED until the interval-specific Hard Protection design is recovered and reviewed, the station cancellation semantics are explicit, Claude's findings have dispositions and tests, and the candidate is version controlled.
-
