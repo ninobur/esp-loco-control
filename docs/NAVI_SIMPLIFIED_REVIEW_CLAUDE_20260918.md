@@ -182,6 +182,42 @@ The test pins the current value (`assert(STATION_DWELL_MS==5000UL)`), so it is d
 - **No `atoi()`.** Every payload parser refuses what it cannot read, and the emergency topic asserts on ambiguity.
 - **The ten-marker word is verified against the real route**, both directions, rather than asserted.
 
+---
+
+## 18. SIMPLIFIED's alert is near-indistinguishable from X18's — demonstrated, 2026-09-18
+
+Added after the fact, because it caught the reviewer within an hour of writing the above.
+
+Otto was running `NAVI_ONE_1_0X18_LOWLINE_HALL_RECORDER` and the session looked excellent
+(41 min, AUTO, mm 105 CW, `agree` 236, `disagree` 0, `pub_drop` 0). Read cold, its 1 Hz
+alert is field-for-field, in order, the alert `serviceStatus()` in SIMPLIFIED emits —
+including the literals that look like a SIMPLIFIED signature: `candidate_mm:-1`,
+`viable:[]`, `miss_streak:0`, `discards:0`, `floor_rej:0`, and even `ir_probe_span:-4095`
+(which SIMPLIFIED produces exactly, `irProbeMax(0) - irProbeMin(4095)`, whenever IR is
+declared absent).
+
+That is not an accident — `serviceStatus()` was deliberately written to the existing
+console contract, and the comments say so. The cost is that **the alert does not identify
+the build**. Only three things separate them:
+
+| tell | X18 | SIMPLIFIED |
+|---|---|---|
+| `trust` | `PROVEN` | `DECLARED` / `SEQUENCE` — `Trust` has no third value |
+| `shadow_baseline` vs `baseline` | differ; `shadow_delta` moves | identical; `shadow_delta` hardcoded `0L` |
+| `state/bootid` `sketch` | the authoritative answer | the authoritative answer |
+
+`trust` is the accidental one and could be removed by a later edit without anyone noticing
+it was load-bearing. The shadow fields are a coincidence of X18 having a real shadow
+tracker. That leaves `state/bootid` genuinely carrying the whole weight, exactly as its
+comment claims — which raises the cost of finding 7 (`seq_n:0`, `baseline_adapt_pwm:30`)
+and finding 3 (`guard_ms` meaning the rebound guard in X18 and the baseline settling guard
+here, under one name).
+
+**Before any SIMPLIFIED field run:** check `state/bootid`, not the alert, and do not trust a
+retained alert at all. A stale retained alert from an older build was sitting on
+`ngr/loco/9950011/alert` throughout, frozen at `uptime_ms` 121 s, interleaved with the live
+1 Hz stream on the same topic.
+
 ## Suggested order of work
 
 1. Finding 1 — one-line fix, and it is the one the locomotive can feel.
@@ -189,4 +225,5 @@ The test pins the current value (`assert(STATION_DWELL_MS==5000UL)`), so it is d
 3. Finding 4 — one spurious withdrawal, at the worst moment.
 4. Finding 5 — decide: wire it or delete it.
 5. Findings 6, 8 — reconcile prose and constants; say which is authoritative.
-6. **Put the directory under version control.** None of the above is reviewable over time while the subject is untracked.
+6. Finding 18 — give SIMPLIFIED an unambiguous tell in the alert itself.
+7. **Put the directory under version control.** None of the above is reviewable over time while the subject is untracked.
