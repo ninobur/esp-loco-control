@@ -78,6 +78,8 @@ For NAVI_SIMPLIFIED, after reporting a magnet detection, the Hall detector must 
 
 Status: PROVISIONALLY APPROVED — SUBJECT TO FIELD VERIFICATION
 
+Date: 2026-09-18
+
 The baseline measurement must represent ordinary track and therefore must be centered within the region between the magnetic fields of adjacent MM magnets and sample an adequate section of track.
 
 Baseline acquisition is spatial, while the Hall sensor measures that space as a time series. Locomotive speed determines the relationship between distance and sampling time. Speed therefore affects the time from the preceding magnet detection to the usable baseline region, the duration of that region, the track distance represented by a sampling interval, and the time at which the next magnet’s field is approached.
