@@ -20,18 +20,25 @@ Viewer dependencies: pyserial and matplotlib. macOS uses its native plotting
 backend. `--demo` exercises display/logging with synthetic data, never hardware
 evidence. `--window` sets a 1-30 second view (default 10). CSV logs default to
 `~/NGR/ir_usb_bench_logs`. Freeze affects the display only; recording and counting
-continue. Closing the window stops recording. A disconnect is shown as an error;
-restart the viewer after reconnecting. Opening the port may reset some ESP boards.
+continue. Closing the window stops recording. A separate process owns USB and CSV
+logging; display stalls cannot block it. A silent connection is reopened after
+three seconds, and reconnects are counted. Opening a port may reset some boards.
 
 ## Instrument contract
 
 - GPIO34, 12-bit ADC, explicit 11 dB attenuation, nominal 1 kHz sampling.
 - Actual microsecond timestamps; missed scheduler slots are counted, not filled.
-- 512-record queue; sampling never waits for serial. Overflow increments dropped.
-- USB UART 460800 baud, 32-byte records (32 kB/s at nominal sample rate).
-- Little-endian layout: magic `BIR1` (4), boot ID (4), sequence (4), actual
-  timestamp us (8), raw ADC (2), cumulative missed slots (4), cumulative queue
-  drops (4), CRC16-CCITT (2; initial 0xffff, polynomial 0x1021, first 30 bytes).
+- 32-batch queue (up to 512 samples); sampling never waits for serial. Overflow
+  increments dropped by the number of samples lost.
+- Version 1.1 uses USB UART 115200 baud: normally 16 samples per 128-byte batch,
+  8 kB/s rather than version 1.0's 32 kB/s at 460800 baud.
+- Little-endian BIR2 header: magic (4), boot ID (4), first sequence (4), first
+  actual timestamp us (8), cumulative missed slots at first sample (4), dropped
+  sample total (4), valid count 1..16 (2). Six bytes per sample: timestamp offset
+  us (2), raw ADC (2), missed-slot delta (2). Pad unused samples with zeros.
+  Final CRC16-CCITT (2; initial 0xffff, polynomial 0x1021) covers first 126 bytes.
+  Flush a short batch before timestamp/delta overflow; never truncate time.
+- The parser also decodes BIR1 recordings; live baud is now 115200.
 - Sequence increments for every acquired sample, including queue drops. It does
   not increment for missed acquisition slots; the missed counter covers those.
 - Parser resynchronizes after boot text/corruption. Sequence gaps, missed slots,
@@ -59,6 +66,11 @@ queue-drop or CRC counters, and explicitly measured acquisition gaps. Then evalu
 count repeatability and stationary false counts. Compilation or a synthetic demo
 does not prove optical performance, field reliability, or NAVI integration.
 
-Status: built and bench exercised; not field accepted. Initial USB capture showed
-occasional wire loss followed by NO DATA; sustained acquisition is not yet accepted.
-See `docs/IR_USB_BENCH_BUILD_20260919.md`. No production promotion.
+Audit a capture with `python3 tools/ir_usb_audit.py PATH_TO_CSV`. Counts alone
+cannot establish physical revolutions. A display skip is distinct from wire loss:
+the recorder continues saving samples when its bounded display queue fills.
+
+Status: built and bench exercised; not field accepted. The initial version had
+wire loss and a stopped reader. Version 1.1 isolates recording from the GUI and
+reduces transport bandwidth. See the dated bench build/reliability reports in
+`docs/`. No production promotion.

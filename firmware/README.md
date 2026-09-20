@@ -41,7 +41,8 @@ or a successful build.
 
 USB-only bench instrument: `test-programs/IR_USB_BENCH/IR_USB_BENCH.ino`.
 Role: diagnostic, GPIO34 raw waveform capture; evidence status: built and bench
-exercised, not field accepted. See `../docs/IR_USB_BENCH_BUILD_20260919.md`.
+exercised, not field accepted. Current USB version 1.1 and recorder isolation:
+`../docs/IR_USB_BENCH_RELIABILITY_20260920.md` (initial build: 20260919 report).
 Contract and bench acceptance protocol are in its README.
 Companion viewer: `tools/ir_usb_bench.py`. No promotion into QUORUM.
 
