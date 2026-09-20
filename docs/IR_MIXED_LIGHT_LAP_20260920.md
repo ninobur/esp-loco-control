@@ -29,6 +29,24 @@ lap completion, so subsequent records must not be labelled stationary.
 
 ## Evidence limits
 
+## Route and final stop annotations
+
+The operator subsequently specified the run started between MM040 and MM041,
+clockwise. Mile-marker landmarks should be comparable between runs. The
+operator planned to stop on returning to MM040-041, reported slower running
+at the end, then confirmed DONE. The latest RX record checked after the first
+completion message was RX 859.775 s, Pi epoch 1789932202.051559. This is an
+approximate final-stop annotation, not a sample-exact stop time.
+
+Distinguish the earlier complete-lap message (RX 635.318 s) from this final
+run-stop message. Do not infer an exact lap count from the messages alone.
+Account for deliberate slowing when comparing waveform periods; longer
+periods near the end are not automatically missed pulses. The MM040-041
+start/finish location is operator-reported, not independently verified from
+locomotive telemetry here.
+
+## Analysis status
+
 Fresh IR packets were present at each checked annotation, including sunny
 and shady sections. This does not establish uninterrupted delivery or
 correct wheel counting. No complete waveform, CRC, loss, saturation, or
