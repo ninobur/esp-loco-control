@@ -39,6 +39,12 @@ or a successful build.
 
 ## Current catalog
 
+USB-only bench instrument: `test-programs/IR_USB_BENCH/IR_USB_BENCH.ino`.
+Role: diagnostic, GPIO34 raw waveform capture; evidence status: built and bench
+exercised, not field accepted. See `../docs/IR_USB_BENCH_BUILD_20260919.md`.
+Contract and bench acceptance protocol are in its README.
+Companion viewer: `tools/ir_usb_bench.py`. No promotion into QUORUM.
+
 | Artifact | Role | Target and purpose | Evidence status | Controlling record |
 |---|---|---|---|---|
 | `QUORUM/QUORUM.ino` — 1.8 | Production control | Otto/Toby; Hall baseline adapts only in motion | **Field accepted operating baseline** | decision 0017; QUORUM 1.8 field verdict |
