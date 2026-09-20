@@ -39,6 +39,11 @@ or a successful build.
 
 ## Current catalog
 
+ESP-NOW receiver diagnostic: `test-programs/IR_SCOPE_ESPNOW_RX/IR_SCOPE_ESPNOW_RX.ino`.
+Version 1.2: built for ESP32 Dev Module; deployment and reception validation pending.
+Adds checked radio startup, without changing packets or ACKs. See
+`../docs/IR_RX_STARTUP_CHECKS_20260920.md`.
+
 USB-only bench instrument: `test-programs/IR_USB_BENCH/IR_USB_BENCH.ino`.
 Role: diagnostic, GPIO34 raw waveform capture; evidence status: built and bench
 exercised, not field accepted. Current USB version 1.1 and recorder isolation:
