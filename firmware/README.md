@@ -40,7 +40,7 @@ or a successful build.
 ## Current catalog
 
 ESP-NOW receiver diagnostic: `test-programs/IR_SCOPE_ESPNOW_RX/IR_SCOPE_ESPNOW_RX.ino`.
-Version 1.2: built for ESP32 Dev Module; deployment and reception validation pending.
+Version 1.2: built and flashed to RX; hardware startup checks pass, reception validation pending.
 Adds checked radio startup, without changing packets or ACKs. See
 `../docs/IR_RX_STARTUP_CHECKS_20260920.md`.
 

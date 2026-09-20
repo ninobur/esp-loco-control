@@ -86,7 +86,7 @@ void setup() {
   if (!stationStarted) startupFatal("WiFi.mode");
   // An already-disconnected station may return false; verify radio state below.
   Serial.printf("RADIO step=WiFi.disconnect ok=%u\n", (unsigned)WiFi.disconnect(false, true));
-  wifi_mode_t mode;
+  wifi_mode_t mode = WIFI_MODE_NULL;
   checkRadio("get_mode", esp_wifi_get_mode(&mode));
   Serial.printf("RADIO actual_mode=%u\n", (unsigned)mode);
   if (mode != WIFI_MODE_STA) startupFatal("station_mode_mismatch");
@@ -99,7 +99,7 @@ void setup() {
   if (allZero || (mac[0] & 1)) startupFatal("invalid_mac");
   checkRadio("set_channel", esp_wifi_set_channel(CHANNEL, WIFI_SECOND_CHAN_NONE));
   uint8_t actualChannel = 0;
-  wifi_second_chan_t secondary;
+  wifi_second_chan_t secondary = WIFI_SECOND_CHAN_NONE;
   checkRadio("get_channel", esp_wifi_get_channel(&actualChannel, &secondary));
   Serial.printf("RADIO actual_channel=%u secondary=%u\n", actualChannel, (unsigned)secondary);
   if (actualChannel != CHANNEL || secondary != WIFI_SECOND_CHAN_NONE) startupFatal("channel_mismatch");

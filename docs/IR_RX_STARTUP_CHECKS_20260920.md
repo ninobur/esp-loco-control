@@ -40,3 +40,21 @@ nonzero station MAC, actual channel 11, successful ESP-NOW and callback setup,
 then fresh RX records from the car. Successful startup alone is not reception.
 If a check fails, preserve its exact step and error before making further
 changes. Do not substitute the RX sketch for the car's TX sketch.
+
+## USB deployment result
+
+Uploaded and hash-verified on the operator-connected RX at
+/dev/cu.usbserial-0001 (ESP32-D0WD-V3 revision 3.1).
+The initial diagnostic build left the secondary-channel output uninitialized;
+readback displayed 1073422592 and falsely failed the channel check. Both enum
+outputs are now explicitly initialized. The corrected build uses 885160 bytes
+program and 45472 bytes RAM and was reflashed with hash verification.
+
+Corrected startup reported MAC B0:CB:D8:D0:84:90, station mode 1,
+channel 11 and secondary 0. get_mode, get_mac, set_channel, get_channel,
+esp_now_init and register_recv_cb all returned ESP_OK. WiFi.disconnect
+returned false, but subsequent checks passed. READY was reached.
+The 12-second USB capture received zero frames. Transmitter presence/power
+during this capture was not independently verified. Radio reception remains
+unconfirmed; do not attribute the previous failure to channel or MAC based
+on the earlier unchecked output.
