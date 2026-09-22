@@ -1,5 +1,6 @@
 # 0091 - IR trust is earned over 10 magnets, kept through stops, and revoked only by introspection
 
+**Superseded in part by 0092** (2026-09-22): see 0092 for the NAVI / IR decision model the operator adopted with Sam.
 Status: Proposed (2026-09-22). These are the operator's rulings from a chat
 review of the day's field runs. They are not authoritative until the operator
 ratifies this record. Mechanisms are **not chosen here**: they are for Sam,

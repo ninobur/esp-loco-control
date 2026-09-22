@@ -1,5 +1,6 @@
 # 0090 - A 10-magnet sequence overrules a bad declaration; IR window 15%; AUTO enabled
 
+**Superseded in part by 0092** (2026-09-22): see 0092 for the NAVI / IR decision model the operator adopted with Sam.
 Status: Proposed. Operator rulings given in chat 2026-09-22; mechanisms
 implemented in NAVI_COHERENCE_0_5_AUTO_ENABLED; not flashed. Not
 authoritative until the operator reviews and ratifies this record.
