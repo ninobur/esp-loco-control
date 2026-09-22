@@ -234,6 +234,28 @@ class StationMachine {
       lastOff_==other.lastOff_ && phaseAtMs_==other.phaseAtMs_ && dwellFromMs_==other.dwellFromMs_;
   }
   int8_t  stationIdx() const { return idx_; }
+  // 0.5: after a sequence correction the working model is the corrected MM.
+  // An Idle machine arms only when the offset lands exactly on APPROACH_START;
+  // a correction of 2-3 magnets can jump past it and would run through the
+  // station. If the corrected position is already inside an approach, arm it
+  // there; the next tick issues the approach order for the real offset.
+  // Deliberately not applied to ordinary advances or timeouts.
+  bool armAfterCorrection(uint8_t mm, int8_t dir, uint8_t actualPwm,
+                          uint8_t cruisePwm, uint32_t nowMs) {
+    if (phase_ != StPhase::Idle || dir == 0) return false;
+    for (uint8_t i = 0; i < STATION_COUNT; ++i) {
+      const int16_t off = offsetToCentre(mm, dir, STATIONS[i].centre);
+      if (off > APPROACH_START && off < ZONE_START) {
+        idx_ = (int8_t)i;
+        entryPwm_ = cruisePwm > actualPwm ? cruisePwm : actualPwm;
+        const uint8_t sp = stationPwm(STATIONS[i], dir);
+        if (entryPwm_ < sp) entryPwm_ = sp;
+        setPhase(StPhase::Approach, nowMs);
+        return true;
+      }
+    }
+    return false;
+  }
   bool    holding()    const { return phase_ == StPhase::Ramp || phase_ == StPhase::Dwell; }
 
   // Called on every advance AND periodically, so the dwell clock and the ramp

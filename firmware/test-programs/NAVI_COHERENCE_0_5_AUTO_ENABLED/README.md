@@ -23,7 +23,9 @@ That record is proposed until the operator ratifies it.
      `state/nav {"event":"SEQUENCE_CORRECTED",...}`, sets the sticky warning
      `POSITION CORRECTED by 10-magnet sequence: MMaaa -> MMbbb`, sets trust to
      `SEQUENCE_RECOVERED`, and resets the station machine.
-   - During an AUTO station approach, a correction causes a controlled stop.
+   - Corrections apply at any time. Station logic relies on the corrected
+     position: no stop and no reset. An approach the correction jumped into is
+     armed where it lands.
 4. **Direction before declaration is not a position.** 0.4 reported
    `TRACKING mm 0` when a session direction arrived before a declaration.
    `admitAuto()` would have accepted that as a known position.
@@ -45,8 +47,11 @@ and stop/reversal rules are unchanged.
     truth at the 10th magnet (2,052 cases).
   - Single-misread holds: every start × both directions × any one flip in 20
     magnets (6,840 cases).
+- `tests/test_station_correction.cpp` (same flags): arming after a correction
+  at every station and direction, offsets −9..−6 (32 cases). Ordinary running
+  still arms only at −10.
 - ESP32: `arduino-cli compile --fqbn esp32:esp32:esp32 --warnings all --clean`.
-  Zero sketch warnings, 1,002,259 B (76%).
+  Zero sketch warnings, 1,002,391 B (76%).
 
 ## First AUTO run — suggested
 

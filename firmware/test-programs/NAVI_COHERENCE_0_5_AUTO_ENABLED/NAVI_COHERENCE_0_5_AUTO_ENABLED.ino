@@ -364,26 +364,30 @@ static void publishNav(const char* event,const Judged* j,Ruling r){
 }
 
 // The 10-magnet sequence overruled the position (operator ruling 2026-09-22).
-// The correction itself is the navigator's; what the loco does about it is
-// here. Mid-station, the machine was measuring its approach from a point that
-// no longer exists, so AUTO stops under control (engineering choice). Between
-// stations AUTO continues on the corrected position.
+// Corrections apply at any time: a bad declaration, a derailment or handling,
+// or a misplaced magnet can all alter the true count. Station logic "should
+// just rely on the working model" (operator, 2026-09-22): nothing stops or
+// resets; the station machine recomputes its offset from the corrected MM on
+// its next tick. The one addition is arming an approach the correction jumped
+// into, which the exact-offset arming would otherwise miss.
 static void applySequenceCorrection(const SequenceCorrection& f){
   char w[140];
   snprintf(w,sizeof(w),"POSITION CORRECTED by 10-magnet sequence: MM%03u -> MM%03u (offset %+d, %u/10 agreed before)",
            f.fromMm,f.toMm,(int)f.offset,(unsigned)f.matchesBefore);
   warnStick(w);
-  char b[220];
+  bool armed=false;
+  if(autoRunning){
+    const auto& s=navigator.status();
+    armed=stationMachine.armAfterCorrection(s.navMm,s.navDir,actualPwm,
+            cruisePwmAt(s.navMm,s.navDir,AUTO_CRUISE_PWM),millis());
+  }
+  char b[240];
   snprintf(b,sizeof(b),"{\"event\":\"SEQUENCE_CORRECTED\",\"from_mm\":%u,\"to_mm\":%u,\"offset\":%d,"
-           "\"matches_before\":%u,\"auto_running\":%u,\"station_phase\":\"%s\"}",
+           "\"matches_before\":%u,\"auto_running\":%u,\"station_phase\":\"%s\",\"armed_after\":%u}",
            f.fromMm,f.toMm,(int)f.offset,(unsigned)f.matchesBefore,autoRunning?1:0,
-           stPhaseName(stationMachine.phase()));
+           stPhaseName(stationMachine.phase()),armed?1:0);
   pub(T_NAV,b,true);
   Serial.printf("[NAV] %s\n",b);
-  if(autoRunning && stationMachine.phase()!=StPhase::Idle){
-    withdraw("Sequence correction during station approach: controlled stop");
-  }
-  stationMachine.reset();
   lastAdvanceMs=0;                 // no speed estimate spans a correction
 }
 

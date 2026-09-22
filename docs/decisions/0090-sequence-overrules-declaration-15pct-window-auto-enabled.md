@@ -25,6 +25,18 @@ Verbatim, 2026-09-22, after two NAVI_COHERENCE 0.4 field runs:
    more descriptive than `_FIELDTEST`. These builds are field tests intended to
    become production.
 
+Follow-up rulings, same day:
+
+> The correction should work at any time. That is much more powerful. It also
+> helps if a derailment or handling or a misplaced magnet alter the true count.
+> 2. Correction during station stops should just rely on the working model.
+> 3. Thanks for killing the bug.
+
+5. **Corrections apply at any time.**
+6. **During station stops, rely on the working model:** no stop and no reset
+   on a correction.
+7. **The direction-before-declaration fix is accepted.**
+
 ## Evidence behind the rulings
 
 - Lap 1 (`docs/NAVI_COHERENCE_0_4_FIRST_LAP_20260922.md`): declared 041–042,
@@ -53,10 +65,13 @@ Verbatim, 2026-09-22, after two NAVI_COHERENCE 0.4 field runs:
 - Host test: every start × both directions × offsets ±1..3 is corrected
   (2,052 cases). Every single misread in 20 magnets holds (6,840 cases).
 - On correction: trust becomes `SEQUENCE_RECOVERED`; the sketch publishes a
-  retained `SEQUENCE_CORRECTED` nav event and a sticky warning; the station
-  machine resets. If AUTO is running and a station approach is in progress,
-  AUTO withdraws with a controlled stop. Between stations, AUTO continues on
-  the corrected position.
+  retained `SEQUENCE_CORRECTED` nav event and a sticky warning. Nothing stops
+  and nothing resets. The station machine recomputes its offset from the
+  corrected MM on its next tick. An Idle machine arms only when the offset
+  lands exactly on −10, so if a correction lands inside an approach (−9..−6)
+  the machine is armed there (`armAfterCorrection`). Without that, a
+  correction of 2–3 magnets could jump past the arming point and run through
+  the station.
 - `seq_matches` now reports agreement at the current position (it was always
   0 in 0.4). `seq_len` is the observed window length.
 
@@ -81,11 +96,15 @@ direction only.
   magnets whose result exactly matches one other window. Neither run today
   misread a polarity (258 events). A degraded Hall sensor would change that.
   The correction is loud, and the operator can see it and re-declare.
-- **The mechanism applies at any time, not only right after declaration.** It
-  will also correct a slip in continuity: an undetected magnet under the
-  timing fallback, for example. That is broader than the words "bad initial
-  declaration". Narrowing it to the first correction after a declaration is a
-  one-line change if the operator wants it.
+- **The mechanism applies at any time.** Operator, 2026-09-22: "The
+  correction should work at any time. That is much more powerful. It also
+  helps if a derailment or handling or a misplaced magnet alter the true
+  count." The risk is the same false-correction path as above, now open for
+  the whole run rather than just after declaration.
+- **A correction during a station stop moves the stop.** A correction of −1
+  seen in Zone moves the ramp one magnet later; a +1 correction can trigger
+  the zero-ramp at once, or put the train past the overshoot limit, which
+  reports MISSED and resumes cruise.
 - **In the first 10 magnets after a declaration, the position is still the
   declaration.** A wrong declaration can drive station logic for up to 10
   magnets in AUTO before it is corrected.
