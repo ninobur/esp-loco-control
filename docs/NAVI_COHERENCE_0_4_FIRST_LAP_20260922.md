@@ -101,8 +101,8 @@ diagnostic. It needs the operator's ruling, not an engineering default.
   ramped PWM 100→0 over about 30 s, and the train passed 18 more magnets.
 - The last advancing Hall was serial 183 at 13:44:59.5, **true MM52**, which the
   navigator published as MM53. No further landmark crossings occurred.
-- The operator estimated ~MM055, and later corrected this: **the last magnet
-  crossed was MM53** (field observation). See the correction below.
+- The operator estimated ~MM055 and later confirmed the train stopped
+  **between MM52 and MM53**, which matches the Hall record. See the section below.
 
 ### 7. Smaller defects seen in the telemetry
 
@@ -122,35 +122,22 @@ diagnostic. It needs the operator's ruling, not an engineering default.
 - The loco went offline 13:35:42 → 13:36:48 and came back at 15.46 V.
 - The lap ran on boot `B072C1297E3C6F1E` with no resets.
 
-## Correction after operator report: the last magnet crossed was MM53
+## Operator confirmation of the stop position
 
-The operator reports that the train crossed MM53 before coming to rest. The
-navigator published MM53 at rest. That does **not** confirm the navigator's
-count, for three reasons:
+The operator first reported "the last magnet crossed was MM53", then clarified:
+**the train stopped between MM52 and MM53.** The last magnet crossed was MM52.
 
-- In earlier runs, observed polarity matched `ROUTE_POLARITY[mm]` at offset 0:
-  09-16 Otto 2373/2390, 09-18 Otto 1030/1030, 09-19 Toby 1988/2097, 09-20 Toby
-  513/513. Magnets and table agree. In this run, the observed polarity matches
-  `ROUTE_POLARITY[mm-1]` 184/184, with no break anywhere in the lap. That fits
-  only one reading: the first detected magnet was MM41, which is also the
-  operator's stated start of 040–041.
-- A constant alignment from first to last event means no magnet went
-  undetected mid-lap. Detected magnets were MM41 → 170 → 0 → MM52.
-- The train kept moving after the last Hall event (serial 183, 13:44:59.5).
-  IR pulses rose 3722 → 3737 until 13:45:04, then stopped. In the MM51→52 span
-  just before, 17 pulses covered 300 mm, so 15 pulses is about 265 mm of creep.
-  The MM52→53 span is 300 mm. That estimate is rough given the detector's
-  state, but it puts the train at, or within a few cm of, MM53 without a Hall
-  opening.
+That settles the lap:
 
-If MM53 was crossed, 184 magnets were passed and 183 were detected. The
-undetected one is MM53 itself, at crawl speed and at the very end. The
-navigator's MM53 at rest is then a coincidence of two errors: +1 from the
-041–042 declaration and −1 from the undetected final magnet.
-
-Still open: did the train stop on top of MM53, or clearly past it? If it was
-clearly past, a Hall opening at crawl speed was missed. That is a new
-acquisition finding, and it has a findable cause.
+- The Hall record ends at true MM52: the polarity match is 184/184 at offset −1.
+  After it the train crept on about 265 mm (IR, 15 pulses at the local 17.6 mm/pulse
+  rate), stopping short of MM53 at 300 mm. There was no undetected magnet.
+- The navigator published MM53 at rest while the train sat in the 052–053
+  interval. That is the +1 declaration offset, confirmed by field observation
+  at the end of the lap.
+- Earlier runs matched the polarity table at offset 0 (09-16 Otto 2373/2390,
+  09-18 Otto 1030/1030, 09-19 Toby 1988/2097, 09-20 Toby 513/513). The magnets
+  and table are sound. The offset in this run belongs to the declaration alone.
 
 ## Summary table
 
@@ -159,6 +146,6 @@ acquisition finding, and it has a findable cause.
 | Stability (resets, drops) | Clean |
 | Hall acquisition / 500 ms gate | Clean, 1 correct refusal |
 | Stop/restart continuity | Held |
-| Position correctness | **Off by +1 all lap** (declaration); final MM53 matches only because MM53 went undetected |
+| Position correctness | **Off by +1 all lap** (declaration); confirmed at rest: published MM53, train between 52 and 53 |
 | Self-detection of offset | **None** (seq_matches never computed) |
 | IR distance evidence | **Absent** (INADEQUATE_CONTRAST ~98%) |
