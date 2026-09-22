@@ -1,5 +1,30 @@
 # NAVI_IR 0.4 — independent review
 
+**Correction (added 2026-09-21, after the NAVI_COHERENCE 0.2/0.3 reviews):**
+the "no non-library warnings" claim in Build status below is **wrong**, and
+"Two concrete bugs" #1 understates its own bug. Both were checked with
+`arduino-cli compile` at default verbosity, which — as the NAVI_COHERENCE
+reviews the same day discovered — can serve a cached result for unchanged
+files and silently skip re-emitting diagnostics. A `--clean --warnings all`
+rebuild shows 8 real `-Wformat`/`-Wformat-extra-args` warnings in
+`compareMovement()`, all one underlying defect: the `nav/ir_compare`
+`snprintf` passes one more argument (`hardVerdict`) than its format string
+has specifiers, which doesn't just leave `ir_hard_verdict` stuck at
+`CANNOT_ASSESS` (as originally reported) — it shifts every field after it
+(`timing_ms`, `legacy_guard_500`, `physical_timing`, `opening_matches`) onto
+the wrong specifier, and lands `physical_timing`'s `%s` on
+`elapsed<500?1:0` — an `int`, not a string pointer. Reproduced standalone on
+the host: with `elapsed>=500` this particular value is `0`, which macOS's
+libc happens to special-case for `%s` and prints `"(null)"` rather than
+faulting; every other shifted field still comes out corrupted
+(`"timing_ms":4301000416`, `"opening_matches":6033152`, both garbage, in one
+concrete run). Whether ESP32/newlib's `printf` tolerates a bad `%s` pointer
+the same lenient way is untested and shouldn't be assumed either way — see
+the corrected "Two concrete bugs" section below for the full analysis. This
+does not change Findings 1 or 2, the host test results, or the MAX_FAULTS
+note, all of which are unaffected by this build-check gap and stand as
+originally written.
+
 Reviewed the patch supplied as `NAVI_IR_0_4_patch.zip` plus
 `README_0_4_DELTA.md` (from `~/Library/Mobile Documents/.../NGR-Files/NAVI_IR/`).
 Applied it to the repo tree, then independently ran the real host suite and
@@ -13,7 +38,10 @@ Copying the three patched files (`NAVI_IR.ino`, `Navigator.h`,
 `HypothesisNavigator.h`) into `firmware/test-programs/NAVI_IR/` alongside the
 repo's existing `MovementEvidence.h`/`firmware/common/IrMovementWire.h`
 resolves the missing-dependency issue the delta doc flagged. Both ESP32
-builds compile clean, no non-library warnings:
+builds compile and link successfully, to the sizes below — but **not** with
+zero warnings; see the correction at the top of this document and "Two
+concrete bugs" below for what a `--clean --warnings all` rebuild actually
+shows:
 
 | Build | Flash | RAM |
 |---|---:|---:|
@@ -118,21 +146,53 @@ higher bar than what currently earns it. I'd suggest either gating
 splitting the telemetry so "resolved via reseed" and "ten-observation-
 verified" aren't the same word.
 
-## Two concrete bugs (telemetry-only; no navigation-decision effect)
+## Two concrete bugs (telemetry-only; no navigation-decision effect) — corrected 2026-09-21
 
-Both are in `compareMovement()`'s `nav/ir_compare` publish in `NAVI_IR.ino`,
-not in the decision path itself.
+Both are in `compareMovement()`'s `nav/ir_compare` publish in `NAVI_IR.ino`
+(line 415), not in the decision path itself. **Bug 1 is more than originally
+reported** — the first pass diagnosed the symptom (`ir_hard_verdict` stuck)
+and one contributing cause, but missed that it's a genuine argument-count
+mismatch, not just one harmless unused vararg, because the build check that
+would have shown this was silently reading a stale cached result (see the
+correction at the top of this document).
 
-1. **`ir_hard_verdict` never actually changes.** A `hardVerdict` local is
-   computed (`TIMING_TOO_EARLY` / `IR_TOO_EARLY` / `IR_POSSIBLE` /
-   `CANNOT_ASSESS`) and passed to `snprintf`, but the format string still has
-   `\"ir_hard_verdict\":\"CANNOT_ASSESS\"` as a **literal string**, not a
-   `%s`. `hardVerdict` is passed as an unused trailing vararg — harmless per
-   the C standard, but the field always reads `CANNOT_ASSESS` regardless of
-   what actually happened. (I did wonder if `-Wformat-extra-args` would
-   catch this; it doesn't fire for this compiler/case, and it wouldn't be
-   `-Werror`-blocking either way since extra varargs aren't a format-string/
-   argument-type mismatch.)
+1. **The format string has 15 specifiers; the call passes 16 arguments.**
+   `\"ir_hard_verdict\":\"CANNOT_ASSESS\"` is a literal, not a `%s`, so the
+   computed `hardVerdict` local has nowhere to go — that part of the original
+   report is correct. But `hardVerdict` doesn't just sit unused: because it's
+   consumed positionally by whatever specifier comes *next*, every field
+   after it inherits the wrong value, one position early, all the way to the
+   end of the call:
+   - `\"timing_ms\":%lu` receives `hardVerdict` itself (a `const char*` read
+     as `%lu`).
+   - `\"legacy_guard_500\":%u` receives `elapsed` (a `uint32_t` timing value,
+     read as `%u` — usually survives as a plausible-looking but wrong
+     number).
+   - `\"physical_timing\":\"%s\"` receives `elapsed<500?1:0` — an `int` (0 or
+     1) read as a string pointer. This is undefined behavior, not merely a
+     wrong value: `%s` on a non-pointer will call `strlen`/copy starting at
+     whatever address that small integer names.
+   - `\"opening_matches\":%u` receives the `physical_timing` ternary's
+     `const char*`, read as `%u`.
+   - `\"window_matches\":%u` receives `opening_matches`' intended `int`,
+     which happens to still be roughly type-compatible.
+   - The real `window_matches` value is left over as an unconsumed 16th
+     argument (`-Wformat-extra-args`).
+
+   Reproduced standalone on the host with the exact specifier string and
+   argument types: with `elapsed>=500` (`legacy_guard_500` value `0`),
+   macOS's `snprintf` special-cases the null `%s` argument and prints
+   `"(null)"` instead of faulting, but every other shifted field still comes
+   out corrupted in that same run (`"timing_ms":4301000416`,
+   `"opening_matches":6033152` — both garbage). I did not manage to force a
+   host crash from this specific call (unlike the analogous NAVI_COHERENCE
+   bug, where a large, non-null value in a `%s` slot did SEGV under ASan) —
+   but that is a property of which small integers happen to land in the
+   `%s` slot here (0 or 1) and of this specific host libc's tolerance for
+   them, not a property that makes the underlying bug safe. ESP32/newlib's
+   `vsnprintf` has not been checked and should not be assumed to behave
+   either way. At minimum, every `nav/ir_compare` message this function
+   publishes carries several corrupted fields, not just one.
 2. **Even once fixed, the priority is wrong.** The three conditions are
    written as `if(...)TIMING_TOO_EARLY; if(...)IR_TOO_EARLY; else if(...)
    IR_POSSIBLE;` — the second `if/else if` pair isn't chained off the first,
@@ -140,8 +200,13 @@ not in the decision path itself.
    pair unconditionally overwrites `TIMING_TOO_EARLY` with `IR_POSSIBLE`,
    silently dropping the timing-gate's verdict from this field.
 
-Fixing bug 1 without also fixing bug 2 would make bug 2 start actually
-manifesting in telemetry, so they should be fixed together.
+Fixing bug 1 requires adding one `%s` specifier (for `ir_hard_verdict`) to
+the format string, which also happens to fix the argument-count mismatch
+entirely — there's no separate second fix needed for the shift, just for
+bug 2's independent priority-logic issue. Both should be fixed together and
+reverified with a **clean, uncached** build plus a host reproduction of the
+corrected format string, not just a rebuild that might again be served from
+cache.
 
 ## Minor: `MAX_FAULTS` is now dead
 
@@ -198,11 +263,17 @@ directory alongside the stale main README.
 ## Bottom line
 
 The named blocker — "couldn't compile because `IrMovementWire.h` wasn't in
-the upload" — is resolved; 0.4 builds clean for both ESP32 variants once
-placed in the repo tree, and the host suite (now updated) passes 46/46 plus
-a clean noon replay. I did not find anything that looks like a build defect
-or a sanitizer-detectable memory/logic error. What I found instead are two
-small, real telemetry bugs (easy fixes, zero navigation impact) and two
+the upload" — is resolved; 0.4 builds and links for both ESP32 variants once
+placed in the repo tree, to the sizes reported above, and the host suite
+(now updated) passes 46/46 plus a clean noon replay. **It does not build
+warning-free** — see the correction at the top of this document — and one
+of those warnings is a real argument-count mismatch with undefined-behavior
+`%s`-on-non-pointer characteristics, confirmed by host reproduction, in a
+diagnostics-only publish function with no path back into the navigation
+decision. I did not find a sanitizer-detectable memory/logic error in the
+decision path itself (`tests/test_navi_ir.cpp` runs clean under ASan/UBSan).
+What I found are two real telemetry bugs (one more serious than first
+reported; see above) and two
 behavioral properties — silent Hall-only fallback under sustained IR outage,
 and eager, over-confident movement-reseed on ordinary ambiguity — that
 correctly implement the rules as literally stated but have bigger practical
@@ -216,8 +287,10 @@ and the four updated test files are sitting in the working tree.
 ## Reproduction
 
 ```sh
-arduino-cli compile --fqbn esp32:esp32:esp32 firmware/test-programs/NAVI_IR
-arduino-cli compile --fqbn esp32:esp32:esp32 \
+# --clean --warnings all matters: without --clean, arduino-cli can silently
+# serve a cached result for unchanged files and report zero warnings.
+arduino-cli compile --fqbn esp32:esp32:esp32 --clean --warnings all firmware/test-programs/NAVI_IR
+arduino-cli compile --fqbn esp32:esp32:esp32 --clean --warnings all \
   --build-property "compiler.cpp.extra_flags=-DNGR_ENABLE_EXPERIMENTAL_AUTO=1" \
   firmware/test-programs/NAVI_IR
 c++ -std=c++17 -Wall -Wextra -Werror -fsanitize=address,undefined -fno-omit-frame-pointer \
