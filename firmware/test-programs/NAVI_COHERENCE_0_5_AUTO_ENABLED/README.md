@@ -21,8 +21,8 @@ That record is proposed until the operator ratifies it.
      advance.
    - On correction the sketch publishes a retained
      `state/nav {"event":"SEQUENCE_CORRECTED",...}`, sets the sticky warning
-     `POSITION CORRECTED by 10-magnet sequence: MMaaa -> MMbbb`, sets trust to
-     `SEQUENCE_RECOVERED`, and resets the station machine.
+     `POSITION CORRECTED by 10-magnet sequence: MMaaa -> MMbbb`, and sets trust to
+     `SEQUENCE_RECOVERED`.
    - Corrections apply at any time. Station logic relies on the corrected
      position: no stop and no reset. An approach the correction jumped into is
      armed where it lands.
