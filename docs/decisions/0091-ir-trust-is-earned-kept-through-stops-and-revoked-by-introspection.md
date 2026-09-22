@@ -146,6 +146,8 @@ changing light.
 - **For the first 10 magnets after startup, and after each recalibration, IR
   is not counted.** A case-A departure error can happen in that stretch. The
   0090 sequence rule is the net, and today it caught one within four magnets.
+  **Operator's assessment (2026-09-22): "I think that first 10 magnets is low
+  risk."** Sam: no extra mitigation is requested for this window.
 - **Trusting IR through stops depends on the car's count being honest at
   crawl.** A count that misses pulses reads short and could refuse the first
   real magnet after departure. The window then recovers it with a two-step
