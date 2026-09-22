@@ -1,5 +1,18 @@
 # NAVI_COHERENCE 0.2 — independent review of the extracted patch
 
+**Correction (added during the 0.3 review, same day):** the "0 warnings"
+result in the Build verification table below is **wrong**. `arduino-cli`'s
+build cache served a prior compile's result for this unchanged source, so
+`--warnings all` silently checked nothing. A `--clean` rebuild shows 15 real
+`-Wformat` warnings, two of them a genuine argument-count mismatch in
+`publishDecision()` that reproduces as an immediate SEGV on a host
+`snprintf` with the same argument list/types (see
+[the 0.3 review](NAVI_COHERENCE_0_3_INDEPENDENT_REVIEW_20260921.md) for the
+full analysis and reproduction). This bug is **not** something 0.2
+introduced relative to 0.3 or vice versa; it is present, unchanged, in both,
+and this document's Build verification section should be read with that
+correction in mind rather than trusted as originally written.
+
 Independent review of `firmware/NAVI_COHERENCE/NAVI_COHERENCE_0_2_patch.zip`,
 found sitting untracked in the working tree (appeared 2026-09-21 17:52, after
 this session's own noon-run spatial-variability analysis was delivered — see
