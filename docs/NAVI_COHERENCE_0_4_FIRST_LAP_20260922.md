@@ -5,7 +5,7 @@ power issue near Grillers, restarted, ran the lap, coasted to a stop at ~MM055.
 
 Source: `field-records/logs/20260922_navi_coherence_0_4_lap.log` (all Pi traffic
 13:28:59–13:54:42) and `field-records/logs/20260922_navi_coherence_0_4_runs/`
-(Pi run `9950012_20260922_133918` is the lap). The logs were not committed.
+(Pi run `9950012_20260922_133918` is the lap).
 
 ## Verdict
 

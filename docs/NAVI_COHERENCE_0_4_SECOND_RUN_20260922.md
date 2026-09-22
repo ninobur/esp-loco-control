@@ -4,7 +4,7 @@ Toby (9950012), Manual, CW, boot `B1167E20B61E6365`. Declared 143–144; the
 operator reports it **stopped just past MM050**.
 
 Source: `field-records/logs/20260922_navi_coherence_0_4_run2.log` (all Pi
-traffic from 14:15:00 to 14:23:30). The log is not committed. Companion to
+traffic from 14:15:00 to 14:23:30). Companion to
 `NAVI_COHERENCE_0_4_FIRST_LAP_20260922.md`.
 
 ## Verdict

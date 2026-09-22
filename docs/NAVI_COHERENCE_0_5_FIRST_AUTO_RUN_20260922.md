@@ -11,7 +11,7 @@ Toby (9950012), boot `F37B52F0930A43B6`, 14:53–15:21. The sequence was:
 The operator reports the train **physically stopped in 041–042**.
 
 Source: `field-records/logs/20260922_navi_coherence_0_5_auto_run.log`
-(14:48:50–15:21:43). The log is not committed. Governing record:
+(14:48:50–15:21:43). Governing record:
 `docs/decisions/0090-…` (proposed).
 
 ## Verdict

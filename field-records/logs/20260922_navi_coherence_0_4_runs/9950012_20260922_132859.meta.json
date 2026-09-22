@@ -1,0 +1,19 @@
+{
+  "node": "9950012",
+  "namespace": "loco",
+  "loco": "9950012",
+  "started": "2026-09-22T13:28:59.927",
+  "ended": "2026-09-22T13:39:18.311",
+  "duration_s": 618.385,
+  "markers": 0,
+  "declared_mm": null,
+  "session_dir": "CW",
+  "sketch": "NAVI_COHERENCE_0_4",
+  "floor_rejects_delta": null,
+  "queue_drops_delta": null,
+  "max_loop_gap_ms": null,
+  "mqtt_attempts_delta": null,
+  "peak_median": null,
+  "peak_p05": null,
+  "dt_median": null
+}
