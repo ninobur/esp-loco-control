@@ -82,19 +82,40 @@ the 0.3 repro now prints as `"ir_alignment_us":123456789`, an ordinary
 integer field, because it lands on the `%lld` specifier it was always meant
 for.
 
-### A build-size observation, not attributable to 0.4
+### Correction (2026-09-22): the build-size gap, now root-caused
 
-The 0.3 review reported `1,000,539 B` (76%) flash for its clean build.
-Rebuilding 0.4 the same way here gives `1,215,216 B` (92%) — a large enough
-gap to be worth chasing before trusting it. Rebuilding 0.3 itself, same
-session, same assembled dependencies, same command: `1,215,184 B` (92%),
-i.e. 0.3 and 0.4 are size-identical modulo the 32 bytes the two added
-`"evidence":"%s",` string literals account for. So the size delta versus the
-historical 0.3 report is a build-environment difference between that
-session and this one (library or core patch drift over the same day is the
-likely candidate, not confirmed), not something 0.4 introduces. Flagging it
-rather than dropping it, per this file's own precedent of correcting cached
-build claims — not mine to root-cause further here.
+The 0.3 review reported `1,000,539 B` (76%) flash for its clean build. This
+review originally rebuilt 0.4 to `1,215,216 B` (92%) and, having also
+rebuilt 0.3 itself to the same ~92% figure under identical conditions,
+guessed the ~215 KB gap from 0.3's own historical number was unconfirmed
+"build-environment drift." That guess was wrong, and it's worth correcting
+precisely rather than leaving it stand.
+
+The actual cause: that verification build had `test_coherence.cpp` sitting
+flat in the sketch folder next to the `.ino` — exactly as the patch zip
+ships it. Arduino's build system compiles every `.cpp` file it finds
+directly in a sketch folder as part of that sketch, not just the `.ino`.
+`test_coherence.cpp` does `#include <iostream>` and defines its own
+`int main()`; all of that was being compiled into, and linked into, the
+ESP32 binary alongside the real firmware. That's where the missing ~215 KB
+went.
+
+This was caught when placing the sketch for real at
+`../firmware/test-programs/NAVI_COHERENCE_0_4/` (see below) with the host
+test moved into a `tests/` subdirectory — matching `NAVI_IR`'s own
+convention, which keeps its test file out of the sketch folder for exactly
+this reason. That rebuild lands at `1,000,571 B` (76%), 32 bytes off the 0.3
+review's original number — exactly the two added string literals, nothing
+more. So 0.3's number was right all along; the anomaly was self-inflicted by
+this review's own verification-tree layout, not anything in the 0.4 diff.
+
+**Consequence for anyone building the patch zip as-shipped**: compiling
+`NAVI_COHERENCE_0_4_patch.zip`'s contents directly, without moving
+`test_coherence.cpp` out of the sketch folder first, silently bloats the
+flashed binary by ~215 KB (16% of the partition) with unreachable host-test
+and `iostream` code. Not a correctness bug — nothing in `test_coherence.cpp`
+executes on the ESP32 — but worth knowing before treating flash-size as a
+signal, and worth fixing in how future patches are packaged.
 
 ## Part 3 — items not touched by this patch, carried forward
 
@@ -102,17 +123,33 @@ build claims — not mine to root-cause further here.
   file is byte-identical to 0.3's (confirmed above), so this isn't a new gap
   from 0.4, and the test doesn't assert on `SKETCH_NAME` — it's a cosmetic
   label mismatch a future patch could clean up, not a correctness issue.
-- **`firmware/README.md` still has no NAVI_COHERENCE catalog entry.** Same
-  open item both the 0.2 and 0.3 reviews flagged; 0.4 doesn't add or resolve
-  it. `firmware/NAVI_COHERENCE/` remains untracked in git.
-- **The build-placement question** (`firmware/NAVI_COHERENCE/` vs
-  `firmware/test-programs/NAVI_COHERENCE_0_4/`, needed for the vendored
-  headers' relative includes to resolve for a real flash, as opposed to this
-  review's temporary assembled copy) is still explicitly deferred by the
-  README rather than resolved. Not new to 0.4; not mine to decide.
 - **"Manual only for the first field run"** is a verification-checklist item
   aimed at whoever conducts the flash/field test, not a property of the
   code. Nothing in this review substitutes for it.
+
+## Update (2026-09-22) — placed for real, ready to flash
+
+The build-placement question this review originally deferred is resolved:
+0.4 is now placed at
+[`../firmware/test-programs/NAVI_COHERENCE_0_4/`](../firmware/test-programs/NAVI_COHERENCE_0_4/),
+alongside `NAVI_IR`, `NAVI_SIMPLIFIED`, and `NAVI_ONE_X22` — the same real
+siblings its shared-dependency includes already pointed at. Two differences
+from a plain copy of the patch zip:
+
+1. `RouteMap.h`, `MovementEvidence.h`, `Ops.h`, `Stations.h`, `HallObserver.h`,
+   `LocoConfig.h` are vendored in from `test-programs/NAVI_IR/` (the patch's
+   own README says these are shared and not to duplicate them; this is that
+   placement, not a new copy of NAVI_COHERENCE's own files).
+2. `test_coherence.cpp` moved into a `tests/` subdirectory, for the reason
+   in the correction above — compiled and passing there with
+   `g++ -I.. tests/test_coherence.cpp`, unchanged in content.
+
+Compiled in place — no assembled verification copy, no template
+substitution — using the real `../../QUORUM/credentials.h` that already
+exists on disk: clean, 0 warnings from NAVI_COHERENCE, `1,000,571 B` (76%)
+flash. This is the artifact to flash, not a review copy of it.
+`firmware/README.md`'s catalog now carries this row; the open item about a
+missing catalog entry is closed.
 
 ## Bottom line
 
@@ -127,7 +164,7 @@ for the clean-build-plus-Manual-field-test path its own README lays out.
 
 ## References
 
-- [Reproducible build tree used for this review's verification](NAVI_COHERENCE_0_4_BUILD_TREE_20260921.zip) (credentials template only, not the real `credentials.h`; see its own README)
+- [Ready-to-flash sketch](../firmware/test-programs/NAVI_COHERENCE_0_4/) (placed 2026-09-22; see the update above)
 - [Patch README](../firmware/NAVI_COHERENCE/README_0_4.md)
 - [0.3 independent review (the bug this patch fixes)](NAVI_COHERENCE_0_3_INDEPENDENT_REVIEW_20260921.md)
 - [0.2 independent review](NAVI_COHERENCE_0_2_INDEPENDENT_REVIEW_20260921.md)
