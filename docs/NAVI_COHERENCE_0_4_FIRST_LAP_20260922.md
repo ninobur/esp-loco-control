@@ -27,8 +27,10 @@ disagreement as a local diagnostic.
   every other offset scores 85–92. Every 10-marker window on the route is
   unique, so a 183-marker match has only one placement.
 - The operator's start (040–041) and the Hall data therefore agree. The declared
-  interval (041–042) is the outlier. **Open question:** was 041–042 chosen by
-  the operator, or produced by the console? This log cannot say.
+  interval (041–042) is the outlier.
+- **Resolved (operator, 2026-09-22):** the operator selected 041–042. Physical
+  start was 040–041. The console transmitted the selection faithfully, so this
+  is not a console defect.
 
 Consequence: every MM the navigator published was true MM + 1.
 
