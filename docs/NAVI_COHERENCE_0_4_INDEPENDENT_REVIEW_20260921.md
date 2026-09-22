@@ -127,6 +127,7 @@ for the clean-build-plus-Manual-field-test path its own README lays out.
 
 ## References
 
+- [Reproducible build tree used for this review's verification](NAVI_COHERENCE_0_4_BUILD_TREE_20260921.zip) (credentials template only, not the real `credentials.h`; see its own README)
 - [Patch README](../firmware/NAVI_COHERENCE/README_0_4.md)
 - [0.3 independent review (the bug this patch fixes)](NAVI_COHERENCE_0_3_INDEPENDENT_REVIEW_20260921.md)
 - [0.2 independent review](NAVI_COHERENCE_0_2_INDEPENDENT_REVIEW_20260921.md)
