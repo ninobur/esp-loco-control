@@ -1,6 +1,6 @@
 # NAVI_ONE operator-ruling implementation audit — 2026-09-10
 
-**Scope:** the active `firmware/test-programs/NAVI_ONE/` tree at commit
+**Scope:** the active `firmware/programs/NAVI_ONE/variants/NAVI_ONE/` tree at commit
 `15b4ae7`, including its profiles and host gates. The comparison baseline is
 `1b8b828` (NAVI_ONE 0.9, the last build before the 0070 field-test lineage).
 

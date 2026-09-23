@@ -3,7 +3,7 @@
 **Date:** 2026-08-11
 **Trigger:** NO_QUORUM / HARD_BOUND, 2026-08-10, loco 9950011, towing the IR test car, wet rail.
 **Capture:** `ngr-pi:/home/david/NGR/telemetry/runs/20260810_IR_SPEED_LOCAL_1_2_otto.log` (29 825 lines)
-**Source:** `firmware/QUORUM/QUORUM.ino` @ `31d877a`
+**Source:** `firmware/programs/QUORUM/QUORUM.ino` @ `31d877a`
 **Status:** investigation only. No code changed, no field behaviour changed.
 
 ---

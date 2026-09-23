@@ -19,10 +19,10 @@
 #include <string>
 #include <algorithm>
 #define main gate12_main_unused
-#include "../../firmware/test-programs/NAVI_ONE/tests/gate_interrupted.cpp"
+#include "../../firmware/programs/NAVI_ONE/variants/NAVI_ONE/tests/gate_interrupted.cpp"
 #undef main
-#include "../../firmware/test-programs/NAVI_ONE/TwoSided.h"
-#include "../../firmware/test-programs/NAVI_ONE/tests/fixtures_arches.h"
+#include "../../firmware/programs/NAVI_ONE/variants/NAVI_ONE/TwoSided.h"
+#include "../../firmware/programs/NAVI_ONE/variants/NAVI_ONE/tests/fixtures_arches.h"
 
 struct Split {
   const char* what; bool wantMagnet;

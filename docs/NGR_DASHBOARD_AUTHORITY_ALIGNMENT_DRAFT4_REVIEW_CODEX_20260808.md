@@ -29,7 +29,7 @@ restoring the prior direction. The minimal coherent design is to leave DIRECTION
 unchanged on both E-STOP set and clear while `estopped` continuously clamps PWM
 to zero.
 
-Relevant source: `firmware/QUORUM/QUORUM.ino`, E-STOP handler near lines
+Relevant source: `firmware/programs/QUORUM/QUORUM.ino`, E-STOP handler near lines
 2619-2633 at `8c338c6`; Draft 4 P14.
 
 ## C2 — R14's response guarantee is broader than P13
@@ -79,4 +79,4 @@ and field-test contracts are unambiguous.
 - `docs/NGR_DASHBOARD_AUTHORITY_ALIGNMENT_SPEC.md`, Draft 4
 - `docs/CTO3/AUTHORITY_MODEL.md`
 - decision 0013
-- `firmware/QUORUM/QUORUM.ino` at `8c338c6`
+- `firmware/programs/QUORUM/QUORUM.ino` at `8c338c6`

@@ -5,7 +5,8 @@
 # against the tree -- it compares the WORKING TREE against the last accepted
 # firmware commit, so the equivalence claim keeps its meaning after the fact:
 #
-#   base/      firmware/test-programs/NAVI_ONE at $NAVI_ONE_BASE (NAVI_ONE 0.9,
+#   base/      the historical firmware/programs/NAVI_ONE path at $NAVI_ONE_BASE
+#              (NAVI_ONE 0.9,
 #              the last accepted build), extracted from git, never the checkout
 #   fieldtest/ the working tree as it stands now
 #
@@ -20,14 +21,17 @@
 set -eu
 here=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 repo=$(CDPATH= cd -- "$here/../.." && pwd)
-src="$repo/firmware/test-programs/NAVI_ONE"
-rel="firmware/test-programs/NAVI_ONE"
+# The current sketch is grouped with the other NAVI_ONE variants.  The base
+# commit predates that grouping, so its historical archive path is retained
+# for the comparison fixture.
+src="$repo/firmware/programs/NAVI_ONE/variants/NAVI_ONE"
+rel="firmware/programs/NAVI_ONE"
 # NAVI_ONE 0.9 -- the last firmware commit before decision 0070, and the build
 # Toby last ran. Override to compare against something else.
 base=${NAVI_ONE_BASE:-1b8b828}
 tmp=$(mktemp -d); trap 'rm -rf "$tmp"' EXIT
 
-mkdir -p "$tmp/base/firmware/test-programs" "$tmp/fieldtest/firmware/test-programs"
+mkdir -p "$tmp/base/firmware/programs" "$tmp/fieldtest/firmware/programs"
 git -C "$repo" archive "$base" "$rel" | tar -x -C "$tmp/base"
 cp -R "$src" "$tmp/fieldtest/$rel"
 for tree in base fieldtest; do ln -s "$repo/field-records" "$tmp/$tree/field-records"; done

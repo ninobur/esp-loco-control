@@ -114,5 +114,5 @@ Not field-tested. Not ratified.
 ## References
 
 - `docs/decisions/0066-the-grillers-climb-runs-at-110-and-backs-off-one-count-at-a-time.md`
-- `firmware/test-programs/NAVI_ONE/RouteMap.h` — `cruisePwmAt()`, retirement note
-- `firmware/test-programs/NAVI_ONE/tests/gate_section_cruise.cpp`
+- `firmware/programs/NAVI_ONE/variants/NAVI_ONE/RouteMap.h` — `cruisePwmAt()`, retirement note
+- `firmware/programs/NAVI_ONE/variants/NAVI_ONE/tests/gate_section_cruise.cpp`

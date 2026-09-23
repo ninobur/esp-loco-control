@@ -1,7 +1,7 @@
 # IR_SCOPE built — a virtual oscilloscope for the merged-pulse question
 
 **Date:** 2026-08-09
-**Files:** `firmware/test-programs/IR_SCOPE/` — `IR_SCOPE.ino`,
+**Files:** `firmware/programs/IR_SCOPE/` — `IR_SCOPE.ino`,
 `IR_SCOPE_Plotter.py`, `IR_SCOPE_Replay.py`, `README.md`
 **Status:** built, replay-verified on synthetic data, **not flashed** —
 CODEX reviews first.

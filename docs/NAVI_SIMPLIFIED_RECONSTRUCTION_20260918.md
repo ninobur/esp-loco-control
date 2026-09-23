@@ -19,7 +19,7 @@ Important work was split among Codex tasks, a ChatGPT/Sam conversation, Claude a
 - Claude's committed review: `docs/NAVI_SIMPLIFIED_REVIEW_CLAUDE_20260918.md` at commits `e5b586c` and `e658045`.
 - Committed Hall, baseline, ramp, and PWM analyses listed in the references below.
 - Dashboard screenshots supplied by the operator showing the failed first run.
-- The locally retained, untracked `firmware/test-programs/NAVI_SIMPLIFIED/` source and build artifacts.
+- The locally retained, untracked `firmware/programs/NAVI_SIMPLIFIED/` source and build artifacts.
 
 The duplicate Codex task `01a0b767-ef0e-71b1-87b8-06e240b34f8d` is a forked snapshot ending at the operator's “50 first dates” message. It contributes no unique later work.
 

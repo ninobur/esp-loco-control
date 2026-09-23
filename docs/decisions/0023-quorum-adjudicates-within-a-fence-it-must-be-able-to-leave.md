@@ -100,6 +100,6 @@ point of adopting +2 when the truth was +8.
   reproduction, and replay test suite
 - Capture: `ngr-pi:/home/david/NGR/telemetry/runs/20260810_IR_SPEED_LOCAL_1_2_otto.log`,
   incidents at lines 14945, 19608, 25092; the causal adoption at line 24800
-- `firmware/QUORUM/QUORUM.ino`: `QUORUM_OFFSETS` :792, `scoreEntry` :993, `decideEvaluation`
+- `firmware/programs/QUORUM/QUORUM.ino`: `QUORUM_OFFSETS` :792, `scoreEntry` :993, `decideEvaluation`
   :1168, `dnaMatch` :1363, `GATE_LOW_PWM_FLOOR` :795, velocity model :802
 - Supersedes nothing; constrains any future change to `scoreEntry()` or `QUORUM_OFFSETS`

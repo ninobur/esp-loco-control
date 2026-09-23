@@ -24,7 +24,7 @@ self-erases.
 ## What changed
 
 One functional line, three comment blocks, version bump. Diff: +61/−2,
-entirely in `firmware/QUORUM/QUORUM.ino`.
+entirely in `firmware/programs/QUORUM/QUORUM.ino`.
 
 1. **The gate** (in `updateBaseline()`):
 

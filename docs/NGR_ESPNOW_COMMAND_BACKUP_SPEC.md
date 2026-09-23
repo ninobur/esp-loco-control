@@ -131,7 +131,7 @@ Dispatcher console (Flask) ──USB serial──► TX-bridge ESP32 ──ESP-N
 
 ## Components and process
 
-1. **TX-bridge** — new `test-programs/ESPNOW_CMD_TX/` instrument
+1. **TX-bridge** — new `programs/ESPNOW_CMD_TX/` instrument
    (catalogued per 0018): serial line-protocol in, ESP-NOW frames out,
    channel + peer table fixed, prints every frame sent.
 2. **Locomotive RX** — QUORUM addition (rides the 1.12 line or its own

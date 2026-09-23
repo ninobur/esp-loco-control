@@ -64,7 +64,7 @@ for this reason.
 
 ## Prototype
 
-`firmware/test-programs/NAVI_HYPOTHESIS_SHADOW` implements the bounded core and
+`firmware/programs/NAVI_HYPOTHESIS_SHADOW` implements the bounded core and
 a serial replay sketch. It preserves opening/window evidence, applies only a
 hard maximum-speed reachability bound, prevents stationary advances, and
 retains one-fault alternatives until later route polarity removes them.

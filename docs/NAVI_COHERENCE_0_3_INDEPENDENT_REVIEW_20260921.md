@@ -1,6 +1,6 @@
 # NAVI_COHERENCE 0.3 — independent review, and a correction to the 0.2 review
 
-Independent review of `firmware/NAVI_COHERENCE/NAVI_COHERENCE_0_3_patch.zip`,
+Independent review of `firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_3_patch.zip`,
 found sitting untracked alongside 0.2 (appeared 2026-09-21 18:24, after the
 0.2 review below it in the timeline). Desk review plus independent build
 verification; nothing flashed, no hardware access.
@@ -72,7 +72,7 @@ for every navigation event) and `publishDecision()` (line 362, the
 `nav/discrepancy` topic — published on every single judged Hall event) each
 have **one more `snprintf` argument than the format string has
 specifiers.** Comparing against the corresponding functions in
-`firmware/test-programs/NAVI_IR/NAVI_IR.ino` (internally consistent —
+`firmware/programs/NAVI_IR/NAVI_IR.ino` (internally consistent —
 argument count matches specifier count in both) pins the exact origin: at
 some point NAVI_COHERENCE's author inserted
 `evidenceClassName(navigator.status().evidence)` into both argument lists
@@ -164,8 +164,8 @@ actually read.
 ## Documentation currency
 
 Same open items as the 0.2 review: no `firmware/README.md` catalog entry,
-and the placement question (`firmware/NAVI_COHERENCE/` vs
-`firmware/test-programs/NAVI_COHERENCE_0_3/`, needed for `LocoConfig.h`'s
+and the placement question (`firmware/reference/NAVI_COHERENCE/` vs
+`firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_3/`, needed for `LocoConfig.h`'s
 and `HallObserver.h`'s relative includes to resolve) is explicitly deferred
 by 0.3's own README ("must be placed where the existing shared dependencies
 resolve") rather than resolved. Neither is new to 0.3; neither is mine to
@@ -184,8 +184,8 @@ format string, before either 0.2 or 0.3 is flashed to Toby.
 
 ## References
 
-- [Patch README](../firmware/NAVI_COHERENCE/NAVI_COHERENCE_0_3/README.md)
+- [Patch README](../firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_3/README.md)
 - [0.2 independent review (corrected above)](NAVI_COHERENCE_0_2_INDEPENDENT_REVIEW_20260921.md)
 - [Development history and governing design](NAVI_COHERENCE_DEVELOPMENT_HISTORY_20260921.md)
-- `firmware/test-programs/NAVI_IR/NAVI_IR.ino` (the internally-consistent
+- `firmware/programs/NAVI_IR/NAVI_IR.ino` (the internally-consistent
   version these two functions were adapted from)

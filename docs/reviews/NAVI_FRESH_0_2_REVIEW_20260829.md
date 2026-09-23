@@ -148,7 +148,7 @@ reflect this sketch's state.
 
 ### 6. Relative include path to credentials
 
-`#include "../../../esp-loco-control/firmware/QUORUM/credentials.h"` couples the
+`#include "../../../esp-loco-control/firmware/programs/QUORUM/credentials.h"` couples the
 build to the two directories' relative placement. Correct in intent — no second
 plaintext copy — but it breaks if either tree moves. A build flag or a symlink
 would be more robust.

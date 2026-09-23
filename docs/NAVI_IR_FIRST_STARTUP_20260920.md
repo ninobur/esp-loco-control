@@ -79,7 +79,7 @@ snapshot is archived alongside this record in
 It is a snapshot through 13:34:24, not a completed-run archive.
 
 See the [implementation report](NAVI_IR_0_1_IMPLEMENTATION_REPORT.md) and
-[operating notes](../firmware/test-programs/NAVI_IR/README.md).
+[operating notes](../firmware/programs/NAVI_IR/README.md).
 
 ## Pairing confirmed at 13:35:57
 

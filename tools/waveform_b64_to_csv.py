@@ -19,7 +19,7 @@ produce a plausible-looking waveform that is not the one the loco saw.
 
 WIRE FORMAT
 -----------
-Mirrors WavHeader in firmware/test-programs/NAVI_ONE/WaveformDump.h, which is
+Mirrors WavHeader in firmware/programs/NAVI_ONE/variants/NAVI_ONE/WaveformDump.h, which is
 #pragma pack(1) on a little-endian target: 8 uint8, 6 uint16, 2 float,
 3 uint32 = 40 bytes, followed by chunkSampleCount int16 samples.
 

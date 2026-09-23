@@ -163,7 +163,7 @@ bytes flash (73%), 59,188 bytes globals (18%).
 
 - `docs/NAVI_ONE_0_3_FIELD_FINDING_07_ARTIFACT_IN_THE_TAIL_WRONG_SHAPE_MM169.md`
 - `docs/decisions/0064-polarity-is-the-sign-of-the-summed-passage.md`
-- `firmware/test-programs/NAVI_ONE/MagnetRecognizer.h` — `medianOfThree`, `fitResidual`
-- `firmware/test-programs/NAVI_ONE/HallCapture.h` — `close()`
-- `firmware/test-programs/NAVI_ONE/tests/gate_polarity.cpp` — part D
+- `firmware/programs/NAVI_ONE/variants/NAVI_ONE/MagnetRecognizer.h` — `medianOfThree`, `fitResidual`
+- `firmware/programs/NAVI_ONE/variants/NAVI_ONE/HallCapture.h` — `close()`
+- `firmware/programs/NAVI_ONE/variants/NAVI_ONE/tests/gate_polarity.cpp` — part D
 - `field-records/logs/20260831_navi_one_waveforms/captured_passages.tsv`

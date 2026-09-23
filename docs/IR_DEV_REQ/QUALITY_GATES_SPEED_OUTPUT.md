@@ -194,7 +194,7 @@ recomputed with stationary windows excluded before it is cited again.
 
 The firmware constants, the `speed_valid` code path, the span-floor comment,
 and the `DEBOUNCE_US` value were each read from source in
-`firmware/test-programs/` and are stated as verified.
+`firmware/programs/` and are stated as verified.
 
 The STATS and PULSE lines above are reproduced from the task record; the log
 `ir_daylight_20260806_124221.log` is not committed to this repository and was

@@ -330,7 +330,7 @@ ratification (and Sam's, if he weighs in) as its own record.
 python3 tools/mm_declaration_spatial_variability.py \
   field-records/logs/20260920_ir_noon_capture.log \
   field-records/logs/20260920_toby_noon_capture.log \
-  firmware/test-programs/NAVI_SIMPLIFIED/RouteMap.h \
+  firmware/programs/NAVI_SIMPLIFIED/RouteMap.h \
   --csv-out field-records/analysis/20260920_mm_declaration_spatial_variability.csv \
   --json-out field-records/analysis/20260920_mm_declaration_spatial_variability.json
 

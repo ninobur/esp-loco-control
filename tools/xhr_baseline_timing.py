@@ -53,7 +53,7 @@ N_SAMPLES = 200      # samples in one baseline collection
 SPREAD_MAX = 40      # counts; max-min inside the collection, else reject
 
 ROUTEMAP = os.path.join(os.path.dirname(os.path.abspath(__file__)), os.pardir,
-                        "firmware", "test-programs", "NAVI_ONE_X18_RECORDER",
+                        "firmware", "programs", "NAVI_ONE", "variants", "NAVI_ONE_X18_RECORDER",
                         "RouteMap.h")
 
 

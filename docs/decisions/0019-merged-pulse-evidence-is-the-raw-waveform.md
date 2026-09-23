@@ -41,5 +41,5 @@ event; the waveform between events is exactly what is missing. The
   pulses per revolution.
 
 ## References
-`firmware/test-programs/IR_SCOPE/` (sketch, plotter, replay, README);
+`firmware/programs/IR_SCOPE/` (sketch, plotter, replay, README);
 `docs/IR_DEV_REC/2026-08-09_IR_SCOPE_BUILD.md`; decisions 0009, 0010.

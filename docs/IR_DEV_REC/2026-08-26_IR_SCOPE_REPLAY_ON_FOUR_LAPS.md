@@ -4,7 +4,7 @@
 **Inputs:** the four lap captures from
 `2026-08-26_IR_FOUR_LAP_DISTANCE_TRUTH.md`, converted to IR_SCOPE CSV by the
 new `tools/ir_scope_espnow_to_csv.py`.
-**Tool:** `firmware/test-programs/IR_SCOPE/IR_SCOPE_Replay.py`, unmodified.
+**Tool:** `firmware/programs/IR_SCOPE/IR_SCOPE_Replay.py`, unmodified.
 
 ## Result: validation failed on all four captures
 

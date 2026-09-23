@@ -2,7 +2,7 @@
   "generated_from": "docs/AUTONOMOUS_ACQUISITION_ACCEPTANCE_TESTS.md",
   "spec": "docs/AUTONOMOUS_POSITION_ACQUISITION_SPEC.md",
   "decision": "docs/decisions/0042-*.md",
-  "map_source": "firmware/QUORUM/QUORUM.ino",
+  "map_source": "firmware/programs/QUORUM/QUORUM.ino",
   "computed_prerequisites": {
     "W_dir": 10,
     "W_both": 12

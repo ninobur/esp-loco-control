@@ -4,7 +4,7 @@
 **From:** `QUORUM_1_6`  →  **To:** `QUORUM_1_13`
 **Source tree:** `dashboard-redesign` @ `a3c312f`; `QUORUM.ino` last modified by
 `f084d9d`. Verified byte-identical to the tree Otto's 1.13 image was built from
-(`git diff agent/phantom-verdict-20260812 HEAD -- firmware/QUORUM/QUORUM.ino`
+(`git diff agent/phantom-verdict-20260812 HEAD -- firmware/programs/QUORUM/QUORUM.ino`
 empty), so both locomotives now run the same navigator.
 
 ## Pre-flight
@@ -20,7 +20,7 @@ empty), so both locomotives now run the same navigator.
 
 ### Defect found and corrected before building
 
-`firmware/QUORUM/LocoConfig.h` carried a header saying **`TARGET: Toby
+`firmware/programs/QUORUM/LocoConfig.h` carried a header saying **`TARGET: Toby
 (9950012)`** while the active include was **`LL_LocoConfig_9950011.h` (Otto)**.
 Building as found would have flashed Toby with Otto's identity, putting two
 locomotives on the same MQTT topics and Otto's calibration on Toby's hardware.

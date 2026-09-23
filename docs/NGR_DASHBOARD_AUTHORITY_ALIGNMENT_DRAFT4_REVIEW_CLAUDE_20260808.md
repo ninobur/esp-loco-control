@@ -11,7 +11,7 @@ This review was supplied by the operator after the reviewer examined the current
 repository state. It records review advice; it does not itself amend the
 controlling specification.
 
-Every claim below was checked against `firmware/QUORUM/QUORUM.ino` at `8c338c6`.
+Every claim below was checked against `firmware/programs/QUORUM/QUORUM.ino` at `8c338c6`.
 Line references are to that commit.
 
 ## Verdict
@@ -185,4 +185,4 @@ No new tests are required. Two existing tests gain preconditions:
 `NGR_DASHBOARD_AUTHORITY_ALIGNMENT_DRAFT2_REVIEW_20260808.md` ·
 `NGR_DASHBOARD_AUTHORITY_ALIGNMENT_DRAFT3_REVIEW_{CLAUDE,CODEX,SAM}_20260808.md` ·
 `docs/CTO3/AUTHORITY_MODEL.md` · decision 0013 · decision 0005 (motion witness) ·
-`firmware/QUORUM/QUORUM.ino` at `8c338c6`
+`firmware/programs/QUORUM/QUORUM.ino` at `8c338c6`

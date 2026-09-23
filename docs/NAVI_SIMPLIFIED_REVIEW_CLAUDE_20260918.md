@@ -1,7 +1,7 @@
 # NAVI_SIMPLIFIED — code review
 
 **Reviewer:** Claude (Opus 5) · **Date:** 2026-09-18 · **Branch:** `agent/toby-1-13-flash`
-**Subject:** `firmware/test-programs/NAVI_SIMPLIFIED/` @ `SKETCH_NAME = NAVI_SIMPLIFIED_DEV_20260918`
+**Subject:** `firmware/programs/NAVI_SIMPLIFIED/` @ `SKETCH_NAME = NAVI_SIMPLIFIED_DEV_20260918`
 **Status of the subject:** untracked in git. Nothing in this directory is under version control at the time of review.
 
 Nothing in this document is a ruling. It records what the code does against what the code says it does.

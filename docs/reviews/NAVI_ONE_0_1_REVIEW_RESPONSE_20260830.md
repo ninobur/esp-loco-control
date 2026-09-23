@@ -107,5 +107,5 @@ take them:
 ## References
 
 - decisions 0058, 0059
-- `firmware/test-programs/NAVI_ONE/` at `NAVI_ONE_0_2`
+- `firmware/programs/NAVI_ONE/variants/NAVI_ONE/` at `NAVI_ONE_0_2`
 - `docs/NAVI_ONE_NEXT.md`

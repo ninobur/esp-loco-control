@@ -27,7 +27,7 @@ reasons).
 **Known limitation, stated per the operator's 2026-08-30 ruling that a
 principle's risk must be recorded alongside its benefit:** this mechanism
 is enforced by manual code review, not by an automated test — no test in
-`firmware/QUORUM/tests/` checks chamber gating. It has already produced one
+`firmware/programs/QUORUM/tests/` checks chamber gating. It has already produced one
 documented near-miss caught only by a human reviewer reading the code, not
 a fixture (`QUORUM.ino:3454`, the CODEX 1.16 resume-interlock finding: "the
 harness never calls serviceStations(), which is why no fixture could catch
@@ -62,4 +62,4 @@ mechanically enforced one (see Mechanism, above).
 ## References
 Spec §0.2 and R21; `QUORUM_1_3_IMPLEMENTATION_REPORT.md` (17-site audit);
 amended in `1_4`. Revision 2026-08-30: operator decision-log audit;
-`firmware/QUORUM/QUORUM.ino:1846,3454,4058`.
+`firmware/programs/QUORUM/QUORUM.ino:1846,3454,4058`.

@@ -3,7 +3,7 @@
 ## Current candidate: TX 1.5
 
 Use the established sketch at
-`firmware/test-programs/IR_SCOPE_ESPNOW_TX/IR_SCOPE_ESPNOW_TX.ino` in
+`firmware/programs/IR_SCOPE_ESPNOW/variants/IR_SCOPE_ESPNOW_TX/IR_SCOPE_ESPNOW_TX.ino` in
 `/Users/davidbrown/esp-loco-control`. Reopen that sketch in Arduino IDE.
 TX 1.4 failed stationary acceptance and is superseded by candidate TX 1.5.
 The older sections below describe the initial setup and TX 1.4 experiment,

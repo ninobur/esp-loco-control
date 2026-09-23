@@ -31,9 +31,9 @@
 #include <algorithm>
 #include <sstream>
 #include <fstream>
-#include "../../firmware/test-programs/NAVI_ONE/MagnetRecognizer.h"
-#include "../../firmware/test-programs/NAVI_ONE/TwoSided.h"
-#include "../../firmware/test-programs/NAVI_ONE/tests/fixtures_arches.h"
+#include "../../firmware/programs/NAVI_ONE/variants/NAVI_ONE/MagnetRecognizer.h"
+#include "../../firmware/programs/NAVI_ONE/variants/NAVI_ONE/TwoSided.h"
+#include "../../firmware/programs/NAVI_ONE/variants/NAVI_ONE/tests/fixtures_arches.h"
 using namespace navi_one;
 
 static float pct(std::vector<float> v, double p) {

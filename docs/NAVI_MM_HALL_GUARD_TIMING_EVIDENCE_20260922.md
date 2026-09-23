@@ -93,9 +93,9 @@ Every claim in this section was checked directly against the firmware that
 produced the logs, not inferred from field behaviour alone; several of them
 overturned an initial assumption (marked below). Sources:
 
-- `firmware/NAVI_COHERENCE/NAVI_COHERENCE_0_4/NAVI_COHERENCE_0_4.ino`, `Navigator.h`
-- `firmware/test-programs/NAVI_COHERENCE_0_5_AUTO_ENABLED/{NAVI_COHERENCE_0_5_AUTO_ENABLED.ino,Navigator.h,Stations.h,RouteMap.h,HallObserver.h}`
-- `firmware/test-programs/NAVI_ONE_X22/ExcursionDetector.h`
+- `firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_4/NAVI_COHERENCE_0_4.ino`, `Navigator.h`
+- `firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_5_AUTO_ENABLED/{NAVI_COHERENCE_0_5_AUTO_ENABLED.ino,Navigator.h,Stations.h,RouteMap.h,HallObserver.h}`
+- `firmware/programs/NAVI_ONE/variants/NAVI_ONE_X22/ExcursionDetector.h`
 
 ### 2.1 What each field actually is
 
@@ -193,7 +193,7 @@ c.departCounts = departure; c.refractoryMs = 0; c.lostMs = 0;
 ```
 
 The shared acquisition library it wraps
-(`firmware/test-programs/NAVI_ONE_X22/ExcursionDetector.h`) defaults
+(`firmware/programs/NAVI_ONE/variants/NAVI_ONE_X22/ExcursionDetector.h`) defaults
 `refractoryMs` to **645** and `windowMs` to **400**. NAVI_COHERENCE
 explicitly overrides the refractory period to **zero** — every boot's
 `state/bootid` confirms `"window_ms":400` and this session never showed a

@@ -70,7 +70,7 @@ of the two errors, on this railway, on this evidence.
 
 ## References
 
-- `firmware/test-programs/NAVI_ONE/HallCapture.h`, `MagnetRecognizer.h`
-- `firmware/test-programs/NAVI_ONE/tests/gate_ops.cpp` — C2, C3
+- `firmware/programs/NAVI_ONE/variants/NAVI_ONE/HallCapture.h`, `MagnetRecognizer.h`
+- `firmware/programs/NAVI_ONE/variants/NAVI_ONE/tests/gate_ops.cpp` — C2, C3
 - `docs/reviews/NAVI_ONE_0_1_REVIEW_20260829.md` — Finding 5
 - decisions 0052, 0057, 0059

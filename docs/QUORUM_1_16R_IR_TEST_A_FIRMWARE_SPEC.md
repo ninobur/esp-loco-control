@@ -27,7 +27,7 @@ solo speed-control build. It is not that speed-control build.
 
 ## 2. Build and profile identity
 
-Implementation remains at `firmware/QUORUM/QUORUM.ino` under the repository's
+Implementation remains at `firmware/programs/QUORUM/QUORUM.ino` under the repository's
 one-control-sketch rule. The sketch identity changes to exactly:
 
 ```cpp

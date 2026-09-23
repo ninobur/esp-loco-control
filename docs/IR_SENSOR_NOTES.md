@@ -286,7 +286,7 @@ Established from analysis of `Spoke_pulse_timing_5wedge.ino`. None of these are
 optional; each corresponds to an observed failure.
 
 > **Status 2026-08-04.** All of the requirements below are implemented in
-> `firmware/test-programs/IR_TEST/`. The v1 sketch is retained
+> `firmware/programs/IR_TEST/`. The v1 sketch is retained
 > unchanged as the record of what was actually flown.
 >
 > Three of the requirements were themselves wrong and have been corrected in

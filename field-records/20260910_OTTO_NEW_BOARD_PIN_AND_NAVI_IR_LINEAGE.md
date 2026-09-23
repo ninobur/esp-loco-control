@@ -15,11 +15,11 @@ The fix reached **two** trees out of eleven that carry an Otto profile:
 
 | tree | `MOTOR_DIR_PIN` | |
 |---|---:|---|
-| `firmware/QUORUM/` | **16** | fixed |
-| `firmware/test-programs/QUORUM_1_13X/` | **16** | fixed — this is why tonight's survey drove correctly |
-| `firmware/test-programs/NAVI_ONE_STATION_CURVES/` | **2** | **the Stage 1 image** |
-| `firmware/test-programs/NAVI_ONE/` | 2 | |
-| `firmware/test-programs/NAVI_2/`, `NAVI_CL2/`, `NAVI/build/`, `MANUAL/`, `SENSORTEST/`, `QUORUM_1_13D/`, `firmware/config/` | 2 | |
+| `firmware/programs/QUORUM/` | **16** | fixed |
+| `firmware/programs/QUORUM/variants/QUORUM_1_13X/` | **16** | fixed — this is why tonight's survey drove correctly |
+| `firmware/programs/NAVI_ONE/variants/NAVI_ONE_STATION_CURVES/` | **2** | **the Stage 1 image** |
+| `firmware/programs/NAVI_ONE/variants/NAVI_ONE/` | 2 | |
+| `firmware/programs/NAVI_2/`, `NAVI_CL2/`, `NAVI/build/`, `MANUAL/`, `SENSORTEST/`, `QUORUM_1_13D/`, `firmware/config/` | 2 | |
 
 Toby is unaffected — his board did not change and 2 is correct for him
 everywhere.
@@ -48,7 +48,7 @@ the operator's call whether to sweep the rest.
 
 **Found: `NAVI_2_0`.** `docs/research/20260829_A_CLEAN_LAP.md` records
 *"Locomotive: Toby (9950012), `NAVI_2_0`"*, and
-`firmware/test-programs/NAVI_2/` includes `IRSpeedWire.h`, the frozen 72-byte
+`firmware/programs/NAVI_2/` includes `IRSpeedWire.h`, the frozen 72-byte
 `IrSpeedPacketV1` contract shared verbatim with the car's sender. The
 recollection is correct.
 
@@ -104,4 +104,4 @@ MAC is the one value that settles it, and it is printed at his boot banner.
 - `find firmware -name "LL_LocoConfig_9950011.h"` — eleven copies, two fixed.
 - `docs/research/20260829_A_CLEAN_LAP.md:4` — Toby on `NAVI_2_0`.
 - Navigator counts: `grep -c` over each sketch, table above.
-- `firmware/test-programs/NAVI_2/IRSpeedWire.h` — frozen 72-byte contract.
+- `firmware/programs/NAVI_2/IRSpeedWire.h` — frozen 72-byte contract.

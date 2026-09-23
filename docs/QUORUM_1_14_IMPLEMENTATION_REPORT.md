@@ -8,7 +8,7 @@ the harness cannot exercise it. Four review rounds, sixteen findings, all
 closed. Operator order 2026-08-13: "write the sketch."
 
 **Spec:** `docs/CTO3/BUBBLE_V1_SPEC.md`. **Contracts:** decision 0034
-(Proposed). **Source:** `firmware/QUORUM/QUORUM.ino`, `SKETCH_NAME
+(Proposed). **Source:** `firmware/programs/QUORUM/QUORUM.ino`, `SKETCH_NAME
 "QUORUM_1_14"`.
 
 ## What was built
@@ -217,4 +217,4 @@ not run unattended before M7's crossing test.
 
 - `docs/CTO3/BUBBLE_V1_SPEC.md`; decisions 0030–0034
 - `docs/CTO2_AUDIT_DISPOSITION.md` — what was ported, reviewed, rewritten
-- `firmware/QUORUM/tests/` — suite run 2026-08-13, all green on 1.14
+- `firmware/programs/QUORUM/tests/` — suite run 2026-08-13, all green on 1.14

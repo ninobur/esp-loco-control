@@ -186,8 +186,8 @@ limit.
 Replay the new capture through the harness:
 
 ```bash
-python3 firmware/QUORUM/tests/extract_fixture.py --capture <new.log>
-python3 firmware/QUORUM/tests/run_suite.py
+python3 firmware/programs/QUORUM/tests/extract_fixture.py --capture <new.log>
+python3 firmware/programs/QUORUM/tests/run_suite.py
 ```
 
 The fidelity check will state how faithfully the session replays. Anything the

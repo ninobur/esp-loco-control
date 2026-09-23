@@ -124,7 +124,7 @@ meant to be identical to 1.13.
 
 - **No track test run.** This record covers the flash only.
 - Otto was not touched and its state was not read.
-- `firmware/QUORUM/LocoConfig.h` carries an uncommitted modification (Otto →
+- `firmware/programs/QUORUM/LocoConfig.h` carries an uncommitted modification (Otto →
   Toby) that predates this job. It was **not** the source of the flashed image
   and is left as found.
 

@@ -52,5 +52,5 @@ but neither necessary nor trustworthy as part of speed acquisition.
 ## References
 
 - `docs/IR_DEV_REC/2026-08-09_SYNCHRONIZED_HALL_IR_LAP.md`
-- `firmware/test-programs/IR_SPEED_LOCAL/README.md`
+- `firmware/programs/IR_SPEED_LOCAL/README.md`
 - decision 0020

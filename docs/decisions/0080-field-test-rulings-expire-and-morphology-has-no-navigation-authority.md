@@ -70,6 +70,6 @@ And, concerning 0070's “a stop is the build working” language:
 - `docs/decisions/0070-a-passage-may-not-span-a-stop.md`
 - `docs/decisions/0074-shape-is-recorded-not-refused.md`
 - `field-records/20260910_GRILLERS_STITCH_SHUTDOWN.md`
-- `firmware/test-programs/NAVI_ONE/NAVI_ONE.ino`
-- `firmware/test-programs/NAVI_ONE/HallCapture.h`
-- `firmware/test-programs/NAVI_ONE/MagnetRecognizer.h`
+- `firmware/programs/NAVI_ONE/variants/NAVI_ONE/NAVI_ONE.ino`
+- `firmware/programs/NAVI_ONE/variants/NAVI_ONE/HallCapture.h`
+- `firmware/programs/NAVI_ONE/variants/NAVI_ONE/MagnetRecognizer.h`

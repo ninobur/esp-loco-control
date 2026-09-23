@@ -74,4 +74,4 @@ clear the obligation, which is the inference 0031 exists to forbid.
 
 - `docs/CTO3/BUBBLE_V1_SPEC.md` §§2.4, 4 — the obligations this discharges
 - Decisions 0031, 0032; `docs/CTO2_AUDIT_DISPOSITION.md`
-- `firmware/QUORUM/QUORUM.ino` LAYER 5 — the implementation
+- `firmware/programs/QUORUM/QUORUM.ino` LAYER 5 — the implementation

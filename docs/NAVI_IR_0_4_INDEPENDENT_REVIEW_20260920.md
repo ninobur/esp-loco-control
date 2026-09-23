@@ -35,7 +35,7 @@ operator findings below.
 ## Build status: the named blocker is resolved
 
 Copying the three patched files (`NAVI_IR.ino`, `Navigator.h`,
-`HypothesisNavigator.h`) into `firmware/test-programs/NAVI_IR/` alongside the
+`HypothesisNavigator.h`) into `firmware/programs/NAVI_IR/` alongside the
 repo's existing `MovementEvidence.h`/`firmware/common/IrMovementWire.h`
 resolves the missing-dependency issue the delta doc flagged. Both ESP32
 builds compile and link successfully, to the sizes below — but **not** with
@@ -289,20 +289,20 @@ and the four updated test files are sitting in the working tree.
 ```sh
 # --clean --warnings all matters: without --clean, arduino-cli can silently
 # serve a cached result for unchanged files and report zero warnings.
-arduino-cli compile --fqbn esp32:esp32:esp32 --clean --warnings all firmware/test-programs/NAVI_IR
+arduino-cli compile --fqbn esp32:esp32:esp32 --clean --warnings all firmware/programs/NAVI_IR
 arduino-cli compile --fqbn esp32:esp32:esp32 --clean --warnings all \
   --build-property "compiler.cpp.extra_flags=-DNGR_ENABLE_EXPERIMENTAL_AUTO=1" \
-  firmware/test-programs/NAVI_IR
+  firmware/programs/NAVI_IR
 c++ -std=c++17 -Wall -Wextra -Werror -fsanitize=address,undefined -fno-omit-frame-pointer \
-  -I firmware/test-programs/NAVI_IR firmware/test-programs/NAVI_IR/tests/test_navi_ir.cpp \
+  -I firmware/programs/NAVI_IR firmware/programs/NAVI_IR/tests/test_navi_ir.cpp \
   -o /tmp/test_navi_ir && /tmp/test_navi_ir
-c++ -std=c++17 -Wall -Wextra -I firmware/test-programs/NAVI_IR \
-  firmware/test-programs/NAVI_IR/tests/console_states.cpp -o /tmp/console_states
-python3 firmware/test-programs/NAVI_IR/tests/test_console_contract.py /tmp/console_states
+c++ -std=c++17 -Wall -Wextra -I firmware/programs/NAVI_IR \
+  firmware/programs/NAVI_IR/tests/console_states.cpp -o /tmp/console_states
+python3 firmware/programs/NAVI_IR/tests/test_console_contract.py /tmp/console_states
 c++ -std=c++17 -Wall -Wextra -Werror -fsanitize=address,undefined -fno-omit-frame-pointer \
-  -I firmware/test-programs/NAVI_IR firmware/test-programs/NAVI_IR/tests/replay_core.cpp \
+  -I firmware/programs/NAVI_IR firmware/programs/NAVI_IR/tests/replay_core.cpp \
   -o /tmp/replay_navi_ir
-python3 firmware/test-programs/NAVI_IR/tests/replay_noon.py /tmp/replay_navi_ir
+python3 firmware/programs/NAVI_IR/tests/replay_noon.py /tmp/replay_navi_ir
 ```
 
 ## References

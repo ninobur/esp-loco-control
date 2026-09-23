@@ -16,8 +16,8 @@ position and no collisions and no unnecessary shutdowns.
 
 **Where the project stands tonight.** Toby navigates on the NAVI_ONE lineage
 (recorder image `NAVI_ONE_STATION_CURVES_0_3`, source in
-`firmware/test-programs/NAVI_ONE_STATION_CURVES/`, same recognizer and
-capture as `firmware/test-programs/NAVI_ONE/` at 1.0X13). On 2026-09-04 it
+`firmware/programs/NAVI_ONE/variants/NAVI_ONE_STATION_CURVES/`, same recognizer and
+capture as `firmware/programs/NAVI_ONE/variants/NAVI_ONE/` at 1.0X13). On 2026-09-04 it
 ran two hours in both directions, 3,284 magnets, 76 station stops, zero
 false positions, zero shutdowns, zero transport loss
 (`docs/NAVI_ONE_X13_FIELD_VERDICT_20260904.md`). The recognizer and capture

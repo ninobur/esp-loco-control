@@ -4,7 +4,7 @@ marker, then stopped Toby on a delayed polarity mismatch
 **Date:** 2026-08-30
 **Found by:** the operator (first live field run of 0.3, on Toby), reconstructed
 from the retained MQTT log by Codex, cross-checked against
-`firmware/test-programs/NAVI_ONE/` source by Claude
+`firmware/programs/NAVI_ONE/variants/NAVI_ONE/` source by Claude
 **Severity:** stops the locomotive; recovery is declare + auto + GO, as designed.
 **Fixed:** not applicable — no defect confirmed in the strike/latch behaviour.
 One measurement (the shape residual spike) is unexplained and left open.
@@ -162,8 +162,8 @@ made without a decision record and the operator's explicit approval.
 
 ## References
 
-- `firmware/test-programs/NAVI_ONE/Navigator.h` — `judge()`, `Ruling::NotAMagnet`
-- `firmware/test-programs/NAVI_ONE/MagnetRecognizer.h` — `Outcome::WrongShape`
-- `firmware/test-programs/NAVI_ONE/RouteMap.h` — polarity map, MM105–117
+- `firmware/programs/NAVI_ONE/variants/NAVI_ONE/Navigator.h` — `judge()`, `Ruling::NotAMagnet`
+- `firmware/programs/NAVI_ONE/variants/NAVI_ONE/MagnetRecognizer.h` — `Outcome::WrongShape`
+- `firmware/programs/NAVI_ONE/variants/NAVI_ONE/RouteMap.h` — polarity map, MM105–117
 - decisions 0058, 0059, 0062
 - retained MQTT log, session of 2026-08-30, reconstructed by Codex

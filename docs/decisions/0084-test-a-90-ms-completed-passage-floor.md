@@ -66,6 +66,6 @@ at PWM 91.
 ## References
 
 - `docs/NAVI_BAMBOO_TRANSIENT_ANALYSIS_20260912.md`
-- `firmware/test-programs/NAVI_ONE/tests/fixtures_bamboo_20260912.h`
-- `firmware/test-programs/NAVI_ONE/tests/gate_bamboo_transient.cpp`
+- `firmware/programs/NAVI_ONE/variants/NAVI_ONE/tests/fixtures_bamboo_20260912.h`
+- `firmware/programs/NAVI_ONE/variants/NAVI_ONE/tests/gate_bamboo_transient.cpp`
 - Decision 0081 — unconditional 500 ms guard

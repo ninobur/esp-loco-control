@@ -71,7 +71,7 @@ is handling the locomotive.
 
 ## References
 
-- decision 0053; `firmware/test-programs/NAVI_2/NAVI_2.ino`
+- decision 0053; `firmware/programs/NAVI_2/NAVI_2.ino`
 - **Scope note:** this record describes `NAVI_2`, the sketch flashed to Toby on
   2026-08-29. Decision 0054 (`NAVI_CL2`) specifies a different navigator whose
   dt rule is wall-clock from the last accepted marker with no motion gate; the

@@ -48,7 +48,7 @@ python3 -m unittest tools.navlab.hostnav.test_hostnav
 
 | file | role |
 |---|---|
-| `route.py` | the committed map parsed read-only from `firmware/QUORUM/QUORUM.ino`; geometry; `W_dir`/`W_both` **computed** over the map (§3.3), and the unique-window lookups |
+| `route.py` | the committed map parsed read-only from `firmware/programs/QUORUM/QUORUM.ino`; geometry; `W_dir`/`W_both` **computed** over the map (§3.3), and the unique-window lookups |
 | `params.py` | engineering parameters (§10). Every one uncalibrated |
 | `envelopes.py` | robust timing-envelope interface and the PWM ring; the seam the calibrated §3.8 table plugs into |
 | `branches.py` | propagation (§3.5.1), branch-local elapsed time (§3.6), the branch list (§3.10) |

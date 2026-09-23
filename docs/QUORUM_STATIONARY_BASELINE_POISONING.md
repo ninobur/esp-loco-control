@@ -27,7 +27,7 @@ and **withdrawn**: the operator confirms the reversal happened *after*
 
 ## The mechanism (confirmed in source)
 
-`updateBaseline()`, [QUORUM.ino:468](../firmware/QUORUM/QUORUM.ino):
+`updateBaseline()`, [QUORUM.ino:468](../firmware/programs/QUORUM/QUORUM.ino):
 
 ```c
 static void updateBaseline(int raw,unsigned long now){

@@ -35,7 +35,7 @@ firmware have not been changed during this sweep.
 
 ## Actual route geometry
 
-`firmware/test-programs/NAVI_SIMPLIFIED/RouteMap.h` contains 171 surveyed
+`firmware/programs/NAVI_SIMPLIFIED/RouteMap.h` contains 171 surveyed
 CW spacings, documented min 280 mm and max 355 mm. `spanMm()` selects the
 proper segment for CW or CCW. Prior generic same/next/later tests did not
 exercise this map. With nominal 9.652 mm pitch, the minimum spacing is about

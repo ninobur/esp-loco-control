@@ -1,7 +1,7 @@
 # ESPNOW_REPEATER 1.0 — build and bench report
 
 Date: 2026-08-20
-Artifact: `firmware/test-programs/ESPNOW_REPEATER/ESPNOW_REPEATER.ino`
+Artifact: `firmware/programs/ESPNOW_REPEATER/ESPNOW_REPEATER.ino`
 Decision: 0039
 Status: **Built, flashed to the spare ESP32, bench-verified. Not deployed at a
 survey position; no field verdict.**
@@ -68,7 +68,7 @@ frame. That is the argument for the `fwd` verdict field staying in the record.
 ## Build
 
 `arduino-cli`, FQBN `esp32:esp32:esp32`, core 3.3.11, `--warnings all`,
-explicit `--build-path` (the stale `firmware/QUORUM/build/` IDE artifact has
+explicit `--build-path` (the stale `firmware/programs/QUORUM/build/` IDE artifact has
 reported the wrong locomotive before).
 
 - Clean: **zero warnings**.

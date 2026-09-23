@@ -8,7 +8,7 @@ operator's decision. **X18 is untouched.**
 
 ## 1. What was built
 
-A separate sketch, `firmware/test-programs/NAVI_ONE_X19/`. X18 keeps its own
+A separate sketch, `firmware/programs/NAVI_ONE/variants/NAVI_ONE_X19/`. X18 keeps its own
 directory, its own tests and its own binary; nothing in it was edited.
 
 One experiment: **replace closure-dependent Hall event framing with
@@ -301,7 +301,7 @@ including the two September 15 has no instance of:
 ALL GATES PASS (0 failures)
 ```
 
-Run both with `firmware/test-programs/NAVI_ONE_X19/tests/run_tests.sh`.
+Run both with `firmware/programs/NAVI_ONE/variants/NAVI_ONE_X19/tests/run_tests.sh`.
 
 ---
 
@@ -395,19 +395,19 @@ Against the brief's six, and what the corpus already cannot answer:
 ## 10. Files
 
 ```
-firmware/test-programs/NAVI_ONE_X19/ExcursionDetector.h        new
-firmware/test-programs/NAVI_ONE_X19/NAVI_ONE_X19.ino           from X18
-firmware/test-programs/NAVI_ONE_X19/WaveformDump.h             wire format v2
-firmware/test-programs/NAVI_ONE_X19/WaveformWindow.h           candidate records
-firmware/test-programs/NAVI_ONE_X19/NAVIFieldConfig.h          floor retired
-firmware/test-programs/NAVI_ONE_X19/MagnetRecognizer.h         comments only
-firmware/test-programs/NAVI_ONE_X19/tests/gate_excursion.cpp
-firmware/test-programs/NAVI_ONE_X19/tests/replay_x19_20260915.cpp
-firmware/test-programs/NAVI_ONE_X19/tests/fixtures_otto_20260915.txt
-firmware/test-programs/NAVI_ONE_X19/tests/run_tests.sh
+firmware/programs/NAVI_ONE/variants/NAVI_ONE_X19/ExcursionDetector.h        new
+firmware/programs/NAVI_ONE/variants/NAVI_ONE_X19/NAVI_ONE_X19.ino           from X18
+firmware/programs/NAVI_ONE/variants/NAVI_ONE_X19/WaveformDump.h             wire format v2
+firmware/programs/NAVI_ONE/variants/NAVI_ONE_X19/WaveformWindow.h           candidate records
+firmware/programs/NAVI_ONE/variants/NAVI_ONE_X19/NAVIFieldConfig.h          floor retired
+firmware/programs/NAVI_ONE/variants/NAVI_ONE_X19/MagnetRecognizer.h         comments only
+firmware/programs/NAVI_ONE/variants/NAVI_ONE_X19/tests/gate_excursion.cpp
+firmware/programs/NAVI_ONE/variants/NAVI_ONE_X19/tests/replay_x19_20260915.cpp
+firmware/programs/NAVI_ONE/variants/NAVI_ONE_X19/tests/fixtures_otto_20260915.txt
+firmware/programs/NAVI_ONE/variants/NAVI_ONE_X19/tests/run_tests.sh
 tools/x19_waveform_decode.py                                   host decoder
 ```
 
 Evidence this build implements: `docs/NAVI_NEXT_EVENT_WITHOUT_CLOSURE_20260915.md`.
-X18 remains at `firmware/test-programs/NAVI_ONE/`, unmodified, and is the build
+X18 remains at `firmware/programs/NAVI_ONE/variants/NAVI_ONE/`, unmodified, and is the build
 to fall back to.

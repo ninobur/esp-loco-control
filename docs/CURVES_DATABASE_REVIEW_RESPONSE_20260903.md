@@ -194,7 +194,7 @@ Mirror refreshed 2026-09-03 15:52 with the operator's read-only fetch script.
 Per `docs/CLAUDE.md`, role and evidence status stated separately, and the
 catalog checked.
 
-**Role:** diagnostic instrument, `test-programs/NAVI_ONE_STATION_CURVES/`. It
+**Role:** diagnostic instrument, `programs/NAVI_ONE/variants/NAVI_ONE_STATION_CURVES/`. It
 declares `BUILD_CLASS "DIAGNOSTIC_FIELD_TEST"` and its own README says not to
 treat it as an operational release. Correct placement under decision 0018; it
 is not a production-control artifact and nothing about it is promoted by

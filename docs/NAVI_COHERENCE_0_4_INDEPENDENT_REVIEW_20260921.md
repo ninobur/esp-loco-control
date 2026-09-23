@@ -1,6 +1,6 @@
 # NAVI_COHERENCE 0.4 — independent review
 
-Independent review of `firmware/NAVI_COHERENCE/NAVI_COHERENCE_0_4_patch.zip`,
+Independent review of `firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_4_patch.zip`,
 which packages the fix the
 [0.3 review](NAVI_COHERENCE_0_3_INDEPENDENT_REVIEW_20260921.md) found and
 deferred: the inherited `snprintf` argument/specifier mismatch in
@@ -67,7 +67,7 @@ Same assembled-dependency approach as the 0.2/0.3 reviews, replicating the
 actual relative-include layout (not flattened) so `LocoConfig.h` and
 `HallObserver.h` resolve their `../NAVI_SIMPLIFIED/` and `../NAVI_ONE_X22/`
 includes correctly: `common/`, `QUORUM/credentials.h`, and
-`test-programs/{NAVI_COHERENCE_0_4, NAVI_SIMPLIFIED, NAVI_ONE_X22}` assembled
+`programs/{NAVI_COHERENCE_0_4, NAVI_SIMPLIFIED, NAVI_ONE_X22}` assembled
 under one root, verification copy only, not part of the repo.
 
 | Check | Result |
@@ -101,7 +101,7 @@ ESP32 binary alongside the real firmware. That's where the missing ~215 KB
 went.
 
 This was caught when placing the sketch for real at
-`../firmware/test-programs/NAVI_COHERENCE_0_4/` (see below) with the host
+`../firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_4/` (see below) with the host
 test moved into a `tests/` subdirectory — matching `NAVI_IR`'s own
 convention, which keeps its test file out of the sketch folder for exactly
 this reason. That rebuild lands at `1,000,571 B` (76%), 32 bytes off the 0.3
@@ -131,13 +131,13 @@ signal, and worth fixing in how future patches are packaged.
 
 The build-placement question this review originally deferred is resolved:
 0.4 is now placed at
-[`../firmware/test-programs/NAVI_COHERENCE_0_4/`](../firmware/test-programs/NAVI_COHERENCE_0_4/),
+[`../firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_4/`](../firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_4/),
 alongside `NAVI_IR`, `NAVI_SIMPLIFIED`, and `NAVI_ONE_X22` — the same real
 siblings its shared-dependency includes already pointed at. Two differences
 from a plain copy of the patch zip:
 
 1. `RouteMap.h`, `MovementEvidence.h`, `Ops.h`, `Stations.h`, `HallObserver.h`,
-   `LocoConfig.h` are vendored in from `test-programs/NAVI_IR/` (the patch's
+   `LocoConfig.h` are vendored in from `programs/NAVI_IR/` (the patch's
    own README says these are shared and not to duplicate them; this is that
    placement, not a new copy of NAVI_COHERENCE's own files).
 2. `test_coherence.cpp` moved into a `tests/` subdirectory, for the reason
@@ -164,8 +164,8 @@ for the clean-build-plus-Manual-field-test path its own README lays out.
 
 ## References
 
-- [Ready-to-flash sketch](../firmware/test-programs/NAVI_COHERENCE_0_4/) (placed 2026-09-22; see the update above)
-- [Patch README](../firmware/NAVI_COHERENCE/README_0_4.md)
+- [Ready-to-flash sketch](../firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_4/) (placed 2026-09-22; see the update above)
+- [Patch README](../firmware/reference/NAVI_COHERENCE/README_0_4.md)
 - [0.3 independent review (the bug this patch fixes)](NAVI_COHERENCE_0_3_INDEPENDENT_REVIEW_20260921.md)
 - [0.2 independent review](NAVI_COHERENCE_0_2_INDEPENDENT_REVIEW_20260921.md)
 - [Development history and governing design](NAVI_COHERENCE_DEVELOPMENT_HISTORY_20260921.md)

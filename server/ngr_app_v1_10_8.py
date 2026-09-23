@@ -235,7 +235,7 @@
 #  * EXPLICIT RECOVERY PATH. Position lost mid-run: status says so and that
 #    manual control is retained; once Otto reports stopped, SET INTERVAL
 #    unlocks for re-declare without a page reload.
-#  * QUORUM 1.0 VOCABULARY (firmware/QUORUM/QUORUM.ino, spec R20). Nav
+#  * QUORUM 1.0 VOCABULARY (firmware/programs/QUORUM/QUORUM.ino, spec R20). Nav
 #    states UNSET/NORMAL/EVALUATING/NO_QUORUM (legacy TRACKING/LOST still
 #    understood — Toby runs SOLONAV_2_14); loopstat carries miss_streak, not
 #    conf; confidence is gone entirely; alert carries viable[] and a

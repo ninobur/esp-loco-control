@@ -14,7 +14,7 @@ flashed** — awaiting CODEX review per the README's handoff rule.
 **Yes — complete, reachable, and correct.** The full R21 phase chain is in
 the flashed 1.8: `ST_IDLE → ST_APPROACH → ST_FINAL → ST_RAMP → ST_DWELL →
 ST_DEPART → RESET` (`serviceStations()`,
-[QUORUM.ino:1716](../../../firmware/QUORUM/QUORUM.ino)), publishing every
+[QUORUM.ino:1716](../../../firmware/programs/QUORUM/QUORUM.ino)), publishing every
 event the README expects, in the README's order. Arches is defined centre
 107, zone 60, final 45, stop offset +2; dwell 15 000 ms; zero-ramp primary
 trigger is M+2 (`TRIGGER_M2_REACHED`) with the 5 s M+1 timeout as
@@ -51,7 +51,7 @@ smallest mission-layer mechanism, compile-time preferred.
 
 ## The change (QUORUM 1.9)
 
-Three pieces, +39/−2 lines, both files in `firmware/QUORUM/`:
+Three pieces, +39/−2 lines, both files in `firmware/programs/QUORUM/`:
 
 1. **Otto's profile** (`LL_LocoConfig_9950011.h`):
    `#define MISSION_ONLY_STATION "Arches"` with an explanatory block.

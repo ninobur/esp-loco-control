@@ -85,5 +85,5 @@ refusals, closed at MM040. Sketch compiles at 974,707 bytes.
 ## References
 
 - `docs/reviews/NAVI_ONE_0_1_REVIEW_20260829.md` — Finding 1
-- `firmware/test-programs/NAVI_ONE/Navigator.h`, `NAVI_ONE.ino` (`withdraw()`)
+- `firmware/programs/NAVI_ONE/variants/NAVI_ONE/Navigator.h`, `NAVI_ONE.ino` (`withdraw()`)
 - decisions 0053, 0055, 0056, 0057

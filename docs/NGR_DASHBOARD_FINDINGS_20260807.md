@@ -42,7 +42,7 @@ then ignore" path, not a blanket re-enable.
 ## Finding 2 — GO refusals are published but not surfaced
 
 Pressing AUTO alone never moves the locomotive: `cmd/auto` only sets
-`autoEnrolled` ([QUORUM.ino:2535](../firmware/QUORUM/QUORUM.ino)). Motion
+`autoEnrolled` ([QUORUM.ino:2535](../firmware/programs/QUORUM/QUORUM.ino)). Motion
 requires a separate `cmd/go`, which enforces seven gates and **publishes a
 reason for every refusal**:
 

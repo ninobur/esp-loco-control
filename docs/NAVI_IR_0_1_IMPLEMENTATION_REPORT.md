@@ -5,7 +5,7 @@
 David requested a Toby NAV sketch coordinating independent IR wheel movement
 with mapped Hall landmarks, transparent decisions and an opportunity to recover
 from ambiguity. He named it **NAVI_IR 0.1**. Implementation is at
-`firmware/test-programs/NAVI_IR/NAVI_IR.ino`.
+`firmware/programs/NAVI_IR/NAVI_IR.ino`.
 
 Build-completion status, before the operator's subsequent flash: **Built and
 host tested; awaiting independent review and hardware validation. Default build
@@ -137,7 +137,7 @@ anchor. The first observed Hall event provides that anchor.
   why good running-speed evidence does not establish crawl/stop reliability.
 - [Repeater check](IR_REPEATER_CHECK_20260920.md):
   why an active REP2 is not an IR relay.
-- [Sketch README](../firmware/test-programs/NAVI_IR/README.md):
+- [Sketch README](../firmware/programs/NAVI_IR/README.md):
   pairing, operation, telemetry, test commands and acceptance gates.
 - [Firmware catalog](../firmware/README.md):
   classification as a built experiment, not field-accepted production control.

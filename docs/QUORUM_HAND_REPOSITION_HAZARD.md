@@ -24,7 +24,7 @@ went nowhere.
 ## Why QUORUM cannot fix it
 
 The candidate offsets are deliberately asymmetric
-([QUORUM.ino:693](../firmware/QUORUM/QUORUM.ino)):
+([QUORUM.ino:693](../firmware/programs/QUORUM/QUORUM.ino)):
 
 ```c
 static const int8_t QUORUM_OFFSETS[QUORUM_CANDIDATES] = { -1, 0, +1, +2, +3, +4 };

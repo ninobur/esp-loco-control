@@ -1,7 +1,7 @@
 # Review — NAVI_ONE 0.1: every fault and weakness found
 
 **Reviewer:** Claude (session `agent/toby-1-13-flash`, 2026-08-29 night)
-**Subject:** `firmware/test-programs/NAVI_ONE/` — `NAVI_ONE_0_1`, all headers, tests, and configs
+**Subject:** `firmware/programs/NAVI_ONE/variants/NAVI_ONE/` — `NAVI_ONE_0_1`, all headers, tests, and configs
 **Assignment:** operator — *"Critique it. Go step by step. Find every fault, every weakness."* Purpose of the sketch: enable 0-error magnet identification for navigation on the Lowline loop.
 **Constraint:** review only. No code was changed.
 
@@ -167,8 +167,8 @@ Fix Finding 1, rule on Finding 2, and the honest claim becomes: *no wrong positi
 
 ## References
 
-- `firmware/test-programs/NAVI_ONE/` — subject, at this session's state (uncommitted-at-review content identical to tracked)
+- `firmware/programs/NAVI_ONE/variants/NAVI_ONE/` — subject, at this session's state (uncommitted-at-review content identical to tracked)
 - decisions 0052–0057; `docs/NAVI_ONE_NEXT.md`; `docs/reviews/NAVI_FRESH_0_2_REVIEW_20260829.md`
 - `docs/CLAUDE.md` — per-loco config rule, selector-file history
 - gates run this session: `tests/run_tests.sh` (all three PASS)
-- route-table verification: element-wise comparison against `firmware/QUORUM/QUORUM.ino` `NGR_DNA1`/`spacingMm`; window-uniqueness and run-length computation over `ROUTE_POLARITY`
+- route-table verification: element-wise comparison against `firmware/programs/QUORUM/QUORUM.ino` `NGR_DNA1`/`spacingMm`; window-uniqueness and run-length computation over `ROUTE_POLARITY`

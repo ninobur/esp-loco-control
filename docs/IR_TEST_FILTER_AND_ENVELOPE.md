@@ -13,7 +13,7 @@
 > the record of the first pass and its field test.
 
 **Date:** 2026-08-05
-**Sketch:** `firmware/test-programs/IR_TEST/IR_TEST.ino` (formerly `Spoke_IR_RSSI_survey_v2`)
+**Sketch:** `firmware/programs/IR_TEST/IR_TEST.ino` (formerly `Spoke_IR_RSSI_survey_v2`)
 **Node:** `IR_SPEED_SENSOR` — unchanged
 **Commits:** `24a55e3` (Change A), `dcbada0` (Change B), `73e93d5` (rename)
 **Status:** superseded same day — see banner above.

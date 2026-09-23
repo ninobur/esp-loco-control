@@ -104,9 +104,9 @@ between a transient, a speed effect, and a sensor artifact.
 
 ## References
 
-- `firmware/test-programs/NAVI_ONE/Navigator.h` — `judge()`, `Ruling::NotAMagnet`
-- `firmware/test-programs/NAVI_ONE/MagnetRecognizer.h` — `Outcome::WrongShape`
-- `firmware/test-programs/NAVI_ONE/RouteMap.h` — polarity map, MM143–147
+- `firmware/programs/NAVI_ONE/variants/NAVI_ONE/Navigator.h` — `judge()`, `Ruling::NotAMagnet`
+- `firmware/programs/NAVI_ONE/variants/NAVI_ONE/MagnetRecognizer.h` — `Outcome::WrongShape`
+- `firmware/programs/NAVI_ONE/variants/NAVI_ONE/RouteMap.h` — polarity map, MM143–147
 - `docs/NAVI_ONE_0_3_FIELD_FINDING_02_SHAPE_REJECTION_LAG_STOP.md` — the first occurrence, MM110
 - decisions 0058, 0059, 0062, 0063
 - `/home/david/NGR/telemetry/all_20260830.log` on the Pi (`ngr-runlog`), and

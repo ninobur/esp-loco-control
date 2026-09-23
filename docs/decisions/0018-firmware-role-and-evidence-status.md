@@ -36,9 +36,9 @@ for operation.
 
 ## Consequences
 
-The stable production path remains `firmware/QUORUM/QUORUM.ino`. Git commits,
+The stable production path remains `firmware/programs/QUORUM/QUORUM.ino`. Git commits,
 tags, reports, and the published `SKETCH_NAME` identify its versions. Diagnostic
-programs live under `firmware/test-programs/`, state their purpose and limits,
+programs live under `firmware/programs/`, state their purpose and limits,
 and require an explicit promotion step before their findings alter QUORUM.
 
 Repository reviews include a librarian check: classification, evidence status,

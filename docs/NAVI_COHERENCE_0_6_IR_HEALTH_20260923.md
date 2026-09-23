@@ -6,7 +6,7 @@ Sam's Epoch design and Claude's ordinary-outage recovery review.
 
 ## Scope and choices
 
-Delivered `firmware/test-programs/NAVI_COHERENCE_0_6_IR_HEALTH/`, based on the
+Delivered `firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_HEALTH/`, based on the
 complete 0.5 AUTO_ENABLED build. The original 0.5 and common TX are unchanged.
 This is observation-only integration, not replacement of navigation's existing
 IR adapter. AUTO remains enabled under its existing rules.

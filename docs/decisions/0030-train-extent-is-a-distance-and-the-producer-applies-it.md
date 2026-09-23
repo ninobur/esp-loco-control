@@ -118,4 +118,4 @@ makes the bound impossible to validate against offline-aligned truth.
   consists, not point locations or Hall sensors; the values must be
   configuration, not assumptions scattered through routine logic
 - `docs/CTO3/resources/CTO2_BUBBLE_PRINCIPLE.txt` — the bubble envelope
-- `firmware/QUORUM/QUORUM.ino` — `rear`/`front`/`env` as published today
+- `firmware/programs/QUORUM/QUORUM.ino` — `rear`/`front`/`env` as published today

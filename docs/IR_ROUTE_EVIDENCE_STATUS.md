@@ -13,7 +13,7 @@ extent leave all candidates UNKNOWN. These numerical bounds are test inputs,
 NOT measured physical error claims.
 
 Build with C++11 and include paths `firmware/common` and
-`firmware/test-programs/NAVI_SIMPLIFIED`.
+`firmware/programs/NAVI_SIMPLIFIED`.
 
 The helper assumes travel progressed in the supplied direction. Wheel IR does
 not independently determine direction; the caller must establish monotonic

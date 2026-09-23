@@ -42,6 +42,6 @@ gates, not hidden promises. No promotion into QUORUM and no flashing occurred.
 ## References
 
 - `docs/NAVI_IR_0_1_IMPLEMENTATION_REPORT.md`
-- `firmware/test-programs/NAVI_IR/README.md`
+- `firmware/programs/NAVI_IR/README.md`
 - `docs/IR_NOON_RUN_ANALYSIS_20260920.md`
 - Operator instructions in this task, 2026-09-20.

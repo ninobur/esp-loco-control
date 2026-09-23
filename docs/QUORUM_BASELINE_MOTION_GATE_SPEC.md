@@ -16,7 +16,7 @@ mapped positions by design, four stations a lap.
 
 ## §1 The problem, in one paragraph
 
-`updateBaseline()` ([QUORUM.ino:468](../firmware/QUORUM/QUORUM.ino)) pushes a
+`updateBaseline()` ([QUORUM.ino:468](../firmware/programs/QUORUM/QUORUM.ino)) pushes a
 raw Hall sample into a 128-slot median every 500 ms **unconditionally** —
 `detectorSample()`'s own comment says "every sample, in or out of an event."
 The median is robust to magnets only because a *moving* locomotive sweeps
@@ -256,7 +256,7 @@ the dwell and the departure, and this also explains months of
 "sporadic" losses-on-restart.
 
 **R5 — verified, no change.** `actualPwm` is `volatile`
-([QUORUM.ino:315](../firmware/QUORUM/QUORUM.ino)) and already read on the
+([QUORUM.ino:315](../firmware/programs/QUORUM/QUORUM.ino)) and already read on the
 hall task for §3's PWM-at-detect — the gate adds no new threading
 exposure. Threshold arithmetic cross-checked against the boot print
 (2027 + 38 = 2065 = `Nent` ✓). Gate placement after the `medPrimed` check

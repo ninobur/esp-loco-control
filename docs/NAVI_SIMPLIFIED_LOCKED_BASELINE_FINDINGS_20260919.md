@@ -1,9 +1,9 @@
 # NAVI_SIMPLIFIED — two findings against the locked per-interval baseline
 
 **Date:** 2026-09-19
-**Subject:** `firmware/test-programs/NAVI_SIMPLIFIED/SimpleHall.h` (untracked at
+**Subject:** `firmware/programs/NAVI_SIMPLIFIED/SimpleHall.h` (untracked at
 the time of writing) and the identical mechanism in
-`firmware/test-programs/NAVI_ONE_SIMPLE/SimpleHall.h`
+`firmware/programs/NAVI_ONE/variants/NAVI_ONE_SIMPLE/SimpleHall.h`
 **Status:** Findings. Not a ruling, not a decision, not a proposal to change
 the file. No source was modified by this analysis.
 

@@ -113,5 +113,5 @@ one showing a greyed column with UNKNOWN in it.
 - `docs/dashboard-redesign/README.md` — the full layout design record.
 - Decision 0012 — INA219 restored; v1.10.11 carried a stale comment claiming
   no firmware published `telem/voltage`, which was wrong and is now deleted.
-- `firmware/QUORUM/QUORUM.ino` `acceptEvent()` — why markers pass without a
+- `firmware/programs/QUORUM/QUORUM.ino` `acceptEvent()` — why markers pass without a
   verdict, which is what the "N silent" gaps in the agreement row report.

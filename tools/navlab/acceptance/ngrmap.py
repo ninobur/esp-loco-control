@@ -1,6 +1,6 @@
 """The real committed NGR map: 171 markers, polarity DNA and spacing.
 
-Read-only. The map is parsed from firmware/QUORUM/QUORUM.ino, which is the
+Read-only. The map is parsed from firmware/programs/QUORUM/QUORUM.ino, which is the
 single committed source of both tables; nothing here writes, patches or
 "corrects" it. If a prerequisite test fails against this map, the map stands
 and the test records the failure (acceptance plan P0).

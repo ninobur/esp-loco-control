@@ -93,8 +93,8 @@ movement; above it there may be none. Nothing depends on the unsafe half.
 
 ## References
 
-- `firmware/test-programs/NAVI_2/NAVI_2.ino` (NAVI_2_0)
-- `firmware/test-programs/NAVI_2/tests/harness_navi2.cpp` — 758 checks
+- `firmware/programs/NAVI_2/NAVI_2.ino` (NAVI_2_0)
+- `firmware/programs/NAVI_2/tests/harness_navi2.cpp` — 758 checks
 - `docs/research/20260828_WHAT_THE_HALL_SENSOR_SEES.md`
 - decisions 0021, 0022, 0024, 0043
 - `docs/IR_DEV_REC/2026-08-26_IR_FOUR_LAP_DISTANCE_TRUTH.md`

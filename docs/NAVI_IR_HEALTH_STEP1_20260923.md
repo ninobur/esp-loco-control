@@ -6,7 +6,7 @@ cyclometer/rider instruction. No new navigation policy was introduced.
 
 ## Delivered
 
-`firmware/NAVI_COHERENCE/IR_ARCHITECTURE_0_4/` contains:
+`firmware/reference/NAVI_COHERENCE/IR_ARCHITECTURE_0_4/` contains:
 
 - `IrInstrument.h`: health/readiness classification, explicit diagnostic names,
   fixed wire-reason type handling, and nonzero calibration/boot/pitch checks.
@@ -23,7 +23,7 @@ cyclometer/rider instruction. No new navigation policy was introduced.
   reproduction commands, provenance and remaining limits.
 
 The preserved input ZIP is
-`firmware/NAVI_COHERENCE/NAVI_IR_ARCHITECTURE_0_3.zip`, SHA-256
+`firmware/reference/NAVI_COHERENCE/NAVI_IR_ARCHITECTURE_0_3.zip`, SHA-256
 `16a8ee0b4195f1e42913b6ff19174772ba115e8296d0e3d093c1f35e6290dc0b`.
 Architecture-package 0.4 is not NAVI_COHERENCE locomotive version 0.4.
 
@@ -73,7 +73,7 @@ ESP32 core 3.3.11, `esp32:esp32:esp32`, `--warnings all` compile-only fixture:
 **PASS**, no reported warnings, 270,412 bytes flash and 22,316 bytes static RAM.
 Those sizes describe the minimal fixture, not locomotive firmware.
 
-`git diff --exit-code -- firmware/test-programs/NAVI_COHERENCE_0_5_AUTO_ENABLED firmware/common`
+`git diff --exit-code -- firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_5_AUTO_ENABLED firmware/common`
 returned success: the running-code baseline and shared detector were unchanged.
 No hardware access, source pairing, motor commands or flashing occurred.
 

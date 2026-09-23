@@ -1,7 +1,7 @@
 # TX 1.5 integration and build record
 
 Authoritative sketch:
-`firmware/test-programs/IR_SCOPE_ESPNOW_TX/IR_SCOPE_ESPNOW_TX.ino`.
+`firmware/programs/IR_SCOPE_ESPNOW/variants/IR_SCOPE_ESPNOW_TX/IR_SCOPE_ESPNOW_TX.ino`.
 
 TX 1.5 now runs the common completed-pulse detector on the ESP32 sampler.
 It publishes a coherent 110-byte type-5 movement snapshot every 100 ms using

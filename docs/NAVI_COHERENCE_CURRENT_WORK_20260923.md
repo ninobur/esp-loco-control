@@ -6,7 +6,7 @@ housekeeping. No navigation implementation, firmware flash or hardware control.
 
 **Later update, 2026-09-23:** David requested the first implementation step.
 The independent IR classes and executable tests now exist in
-`firmware/NAVI_COHERENCE/IR_ARCHITECTURE_0_4/`. Host tests and an ESP32 compile
+`firmware/reference/NAVI_COHERENCE/IR_ARCHITECTURE_0_4/`. Host tests and an ESP32 compile
 fixture pass; NAVI_COHERENCE 0.5 and the shared detector are unchanged. See
 [the step-one report](NAVI_IR_HEALTH_STEP1_20260923.md). The original catch-up
 findings below remain the record of the pre-implementation inspection.
@@ -71,11 +71,11 @@ No firmware behavior was changed by recording it here.
 
 | Artifact | Role and status |
 |---|---|
-| `firmware/test-programs/NAVI_COHERENCE_0_5_AUTO_ENABLED/` | Tracked, complete build tree; field-exercised Toby baseline; AUTO enabled |
-| `firmware/test-programs/NAVI_COHERENCE_0_4/` | Tracked predecessor with two Manual run reports |
-| `firmware/NAVI_COHERENCE/` | David's incoming Sam packages and extracted patch copies; untracked at inspection; not the complete 0.5 build tree |
-| `firmware/NAVI_COHERENCE/NAVI_IR_ARCHITECTURE_0_3.zip` | Latest supplied IR architecture proposal; five files, no executable test harness; not integrated |
-| `firmware/NAVI_COHERENCE/NAVI COHERENCE IR HEALTH/` | Earlier intermediate health patch; still checks `unreliableSamples`, so not the final Epoch design |
+| `firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_5_AUTO_ENABLED/` | Tracked, complete build tree; field-exercised Toby baseline; AUTO enabled |
+| `firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_4/` | Tracked predecessor with two Manual run reports |
+| `firmware/reference/NAVI_COHERENCE/` | David's incoming Sam packages and extracted patch copies; untracked at inspection; not the complete 0.5 build tree |
+| `firmware/reference/NAVI_COHERENCE/NAVI_IR_ARCHITECTURE_0_3.zip` | Latest supplied IR architecture proposal; five files, no executable test harness; not integrated |
+| `firmware/reference/NAVI_COHERENCE/NAVI COHERENCE IR HEALTH/` | Earlier intermediate health patch; still checks `unreliableSamples`, so not the final Epoch design |
 | `docs/decisions/0092-...`, `0093-...`, `0094-...` | Decision trail for proximal correction, provisional 650 ms fallback, and continuous instrument health |
 | `docs/NAVI_COHERENCE_0_5_FIRST_AUTO_RUN_20260922.md` | Field findings, including remaining failures and limits |
 | `field-records/logs/20260922_navi_coherence_*` | Preserved field evidence |

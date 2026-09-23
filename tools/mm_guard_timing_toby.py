@@ -19,7 +19,7 @@ full source-verified event-definition writeup. Key points:
     reject and an IR-distance reject publish ruling=NON_LANDMARK_HALL
     (indistinguishable without joining nav/discrepancy's distance_assessable
     field, which this script does, by (boot segment, event_serial)).
-  - `firmware/test-programs/NAVI_ONE_X22/ExcursionDetector.h` shows the
+  - `firmware/programs/NAVI_ONE/variants/NAVI_ONE_X22/ExcursionDetector.h` shows the
     shared acquisition library's DEFAULT refractoryMs is 645 (the number
     decision 0087 fixed the old detection-to-closure guard at). NAVI_COHERENCE's
     hallConfig() (HallObserver.h) explicitly overrides this to refractoryMs=0.

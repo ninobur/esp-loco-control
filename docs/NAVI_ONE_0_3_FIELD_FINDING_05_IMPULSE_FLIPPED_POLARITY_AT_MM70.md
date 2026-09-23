@@ -271,9 +271,9 @@ Recognition thresholds remain untouched.
 
 ## References
 
-- `firmware/test-programs/NAVI_ONE/HallCapture.h:33,60-90` — `entryMargin`, the
+- `firmware/programs/NAVI_ONE/variants/NAVI_ONE/HallCapture.h:33,60-90` — `entryMargin`, the
   pole latch, and the oriented-peak update
-- `firmware/test-programs/NAVI_ONE/RouteMap.h` — MM69 N, MM70 S, MM71 N
+- `firmware/programs/NAVI_ONE/variants/NAVI_ONE/RouteMap.h` — MM69 N, MM70 S, MM71 N
 - `docs/NAVI_ONE_0_3_FIELD_FINDING_04_WAVEFORM_CAPTURE_VERIFIED.md` — the
   capture path this depends on
 - `~/ngr-telemetry/waveforms/waveform_20260831T104622_662_slot*.csv`

@@ -61,7 +61,7 @@ def compute():
         if w_both is None and both_max == 1:
             w_both = w
     return dict(
-        map_source='firmware/QUORUM/QUORUM.ino',
+        map_source='firmware/programs/QUORUM/QUORUM.ino',
         dna_n=M.DNA_N,
         circuit_mm=M.CIRCUIT_MM,
         w_max_searched=W_MAX,

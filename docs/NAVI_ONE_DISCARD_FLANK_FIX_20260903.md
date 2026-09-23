@@ -173,10 +173,10 @@ stands: stop adding rescue layers and reconsider the capture architecture.
 
 ## Files
 
-- `firmware/test-programs/NAVI_ONE/HallCapture.h` and
-  `firmware/test-programs/NAVI_ONE_STATION_CURVES/HallCapture.h`: the condition.
-- `firmware/test-programs/NAVI_ONE/tests/gate_flank_discard.cpp`: gate 14.
-- `firmware/test-programs/NAVI_ONE/tests/fixtures_arches_departures.h`: the six
+- `firmware/programs/NAVI_ONE/variants/NAVI_ONE/HallCapture.h` and
+  `firmware/programs/NAVI_ONE/variants/NAVI_ONE_STATION_CURVES/HallCapture.h`: the condition.
+- `firmware/programs/NAVI_ONE/variants/NAVI_ONE/tests/gate_flank_discard.cpp`: gate 14.
+- `firmware/programs/NAVI_ONE/variants/NAVI_ONE/tests/fixtures_arches_departures.h`: the six
   records, verbatim from the mirror.
-- `firmware/test-programs/NAVI_ONE/tests/run_tests.sh`: gate 14 added.
+- `firmware/programs/NAVI_ONE/variants/NAVI_ONE/tests/run_tests.sh`: gate 14 added.
 - Build names bumped in both `.ino` files.

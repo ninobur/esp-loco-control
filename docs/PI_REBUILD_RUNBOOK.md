@@ -107,7 +107,7 @@ this path — it is the one step that decides whether this is actually fixed.
 ## The host must come up on 192.168.68.142
 
 This is not cosmetic. The broker address is **compiled into the locomotive
-firmware** — `firmware/QUORUM/QUORUM.ino:370`:
+firmware** — `firmware/programs/QUORUM/QUORUM.ino:370`:
 
 ```c
 #define MQTT_BROKER "192.168.68.142"

@@ -68,9 +68,9 @@ Two channels: GPIO 33 (the installed sensor) and GPIO 35 (a second channel).
 branch `claude/quorum-hall-waveform-diagnostic-plutez`:
 
 ```
-firmware/test-programs/HALL_WAVEFORM_TEST/   the sketch, HallCapture.h,
+firmware/programs/HALL_WAVEFORM_TEST/   the sketch, HallCapture.h,
                                              CAPTURE_FORMAT.md, tests
-firmware/QUORUM/QuorumTrace.h                the QT wire format
+firmware/programs/QUORUM/QuorumTrace.h                the QT wire format
 tools/hwt_format.py  hwt_decode.py  hwt_plot.py  hwt_receiver.py
 tools/hwt_excursions.py  hwt_gate_replay.py  hwt_adc_delta_diagnostics.py
 tools/hwt_continuity_population_report.py

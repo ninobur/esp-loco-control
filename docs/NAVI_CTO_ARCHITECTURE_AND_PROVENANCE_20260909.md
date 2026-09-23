@@ -46,7 +46,7 @@ full in §3. Stated here because they change the shape of the plan:
 *"firmware: shape is recorded, not refused (decision 0074, proposed) —
 NAVI_ONE 1.0X13, recorder 0.3"* — verified present, reachable from this branch.
 
-**Base tree** `firmware/test-programs/NAVI_ONE/`, firmware identity
+**Base tree** `firmware/programs/NAVI_ONE/variants/NAVI_ONE/`, firmware identity
 `NAVI_ONE_1_0X13_FIELDTEST` (`NAVI_ONE.ino:95`).
 
 | file | lines | role in NAVI_CTO |
@@ -63,7 +63,7 @@ NAVI_ONE 1.0X13, recorder 0.3"* — verified present, reachable from this branch
 | `NAVI_ONE.ino` | 1386 | main sketch → becomes `NAVI_CTO.ino`. |
 | `tests/` | 19 files | inherited whole and must keep passing (§12). |
 
-**Behavioural reference, not lineage:** `firmware/test-programs/NAVI_ONE_STATION_CURVES/`
+**Behavioural reference, not lineage:** `firmware/programs/NAVI_ONE/variants/NAVI_ONE_STATION_CURVES/`
 (`NAVI_ONE_STATION_CURVES_0_3`) — the image that actually flew on 2026-09-04.
 Same acquisition, recognition, navigation, station and motor behaviour as X13,
 plus unconditional per-passage diagnostic publication
@@ -93,7 +93,7 @@ Donors, all verified present:
 | `ca27f1c` | CE: end the mission on re-pairing, not on a gap number (P1, CODEX) | completion rule |
 | `86e3539` | CE: show EXPRESS/LOCAL in the CTO row instead of "unpaired" | status telemetry |
 
-Source presently at `firmware/QUORUM/QUORUM.ino` (5,783 lines,
+Source presently at `firmware/programs/QUORUM/QUORUM.ino` (5,783 lines,
 `SKETCH_NAME "QUORUM_1_16R_IR_TEST_A"`).
 
 **Donor functions and state, by line, all adapted rather than copied wholesale:**
@@ -1021,10 +1021,10 @@ contains two files numbered **0075**. Flagged, not resolved.
 
 ## Evidence
 
-- NAVI base: commit `7d163fa`, verified reachable; `firmware/test-programs/NAVI_ONE/`.
-- Behavioural reference: `firmware/test-programs/NAVI_ONE_STATION_CURVES/`, `SKETCH_NAME "NAVI_ONE_STATION_CURVES_0_3"`.
+- NAVI base: commit `7d163fa`, verified reachable; `firmware/programs/NAVI_ONE/variants/NAVI_ONE/`.
+- Behavioural reference: `firmware/programs/NAVI_ONE/variants/NAVI_ONE_STATION_CURVES/`, `SKETCH_NAME "NAVI_ONE_STATION_CURVES_0_3"`.
 - Donor commits: all nine verified by `git log`.
-- Wire structs: `firmware/QUORUM/QUORUM.ino:556-587`; cap pattern `:2860-2880`.
+- Wire structs: `firmware/programs/QUORUM/QUORUM.ino:556-587`; cap pattern `:2860-2880`.
 - NAVI throttle path: `NAVI_ONE.ino:447` `writePwm`, `:453` `requestPwm`, `:458` `serviceRamp`, `:1269` `stationService`, `:1349` section cruise.
 - NAVI enums: `Navigator.h:74,110`; `Stations.h:184`.
 - Otto dataset: `field-records/logs/20260909_survey/`, every README figure independently reproduced (§3.1).

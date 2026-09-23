@@ -1,7 +1,7 @@
 # X19 vs X18 — complete diff, generated 2026-09-15T23:31Z
-# X18 = firmware/test-programs/NAVI_ONE      at commit 242109e
-# X19 = firmware/test-programs/NAVI_ONE_X19  at commit 227c330
-# Reproduce: diff -u firmware/test-programs/NAVI_ONE/<f> firmware/test-programs/NAVI_ONE_X19/<f>
+# X18 = firmware/programs/NAVI_ONE/variants/NAVI_ONE      at commit 242109e
+# X19 = firmware/programs/NAVI_ONE/variants/NAVI_ONE_X19  at commit 227c330
+# Reproduce: diff -u firmware/programs/NAVI_ONE/variants/NAVI_ONE/<f> firmware/programs/NAVI_ONE/variants/NAVI_ONE_X19/<f>
 
 ################ MagnetRecognizer.h ################
 --- NAVI_ONE/MagnetRecognizer.h	2026-09-12 11:07:25

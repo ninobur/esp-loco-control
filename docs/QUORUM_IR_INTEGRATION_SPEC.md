@@ -664,7 +664,7 @@ revision or implementation report.
 ## 14. Implementation deliverables
 
 1. A separate sender sketch, initially under
-   `firmware/test-programs/IR_ESPNOW_SENDER/`, carrying no secrets and no MQTT,
+   `firmware/programs/IR_ESPNOW_SENDER/`, carrying no secrets and no MQTT,
    implemented against
    `docs/IR_TEST_CAR_ESPNOW_FIRMWARE_SPEC.md`.
 2. Per-locomotive sensor identity/MAC/channel configuration without changing
@@ -692,8 +692,8 @@ revision or implementation report.
 - `docs/decisions/0022-plastic-ten-spoke-wheel-is-the-ir-target.md`
 - `docs/IR_DEV_REQ/QUALITY_GATES_SPEED_OUTPUT.md`
 - `docs/IR_DEV_REC/2026-08-09_SYNCHRONIZED_HALL_IR_LAP.md`
-- `firmware/test-programs/IR_SPEED_LOCAL/README.md`
-- `firmware/test-programs/IR_SPEED_LOCAL/IR_SPEED_LOCAL.ino`
+- `firmware/programs/IR_SPEED_LOCAL/README.md`
+- `firmware/programs/IR_SPEED_LOCAL/IR_SPEED_LOCAL.ino`
 - `archive/NGR_LL_DNA_CTO2_r12_CONTINUITY_FIRST.ino`
 
 ## 16. Acceptance summary

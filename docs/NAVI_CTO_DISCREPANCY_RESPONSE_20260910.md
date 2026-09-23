@@ -230,7 +230,7 @@ audit's list.
 
 - Audit under response: `docs/NAVI_ONE_OPERATOR_RULING_AUDIT_20260910.md`.
 - Plan under response: `docs/NAVI_CTO_ARCHITECTURE_AND_PROVENANCE_20260909.md` §1, §6.2, §7, §10, §11, §12, §14.
-- Active tree: `firmware/test-programs/NAVI_ONE/` at `15b4ae7`.
-- Fallback image examined: `firmware/test-programs/NAVI_ONE_STATION_CURVES/` (`SKETCH_NAME "NAVI_ONE_STATION_CURVES_0_3"`).
+- Active tree: `firmware/programs/NAVI_ONE/variants/NAVI_ONE/` at `15b4ae7`.
+- Fallback image examined: `firmware/programs/NAVI_ONE/variants/NAVI_ONE_STATION_CURVES/` (`SKETCH_NAME "NAVI_ONE_STATION_CURVES_0_3"`).
 - Gate 1 executed against `field-records/logs/20260828_survey/toby_1_13X_survey_waveforms.log.gz`; result quoted verbatim in §1.
 - Governing decisions read: 0053, 0057, 0058, 0064, 0065, 0070, 0074, 0076, 0077, 0078, 0079, 0080, 0081.

@@ -7,7 +7,7 @@ reports damage.
 
 Single source of truth for the binary layout, shared by xhr_receiver.py,
 xhr_decode.py and the tests. It must stay in step with
-firmware/test-programs/NAVI_ONE_X18_RECORDER/HallRecorder.h, and
+firmware/programs/NAVI_ONE/variants/NAVI_ONE_X18_RECORDER/HallRecorder.h, and
 tests/gate_recorder.cpp exists so that "must" is checked by machine: that gate
 emits real datagrams from the firmware's own structs and this module parses
 them, so a layout drift fails a test instead of quietly corrupting a capture.

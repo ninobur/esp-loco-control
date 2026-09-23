@@ -8,8 +8,8 @@ authorizes an agent to act.
 guessed), 0039 (the repeater decodes these structures today), 0077 (the CTO
 authority boundary).
 **Evidence:** `docs/NAVI_CTO_ARCHITECTURE_AND_PROVENANCE_20260909.md` §8. Wire
-structs at `firmware/QUORUM/QUORUM.ino:556-587`. NAVI enums at
-`firmware/test-programs/NAVI_ONE/Stations.h:184` and `Navigator.h:74,110,158`.
+structs at `firmware/programs/QUORUM/QUORUM.ino:556-587`. NAVI enums at
+`firmware/programs/NAVI_ONE/variants/NAVI_ONE/Stations.h:184` and `Navigator.h:74,110,158`.
 **Builds:** none.
 
 ---
@@ -65,8 +65,8 @@ every consumer keeps working and reports something subtly wrong.
 ## References
 
 - `docs/NAVI_CTO_ARCHITECTURE_AND_PROVENANCE_20260909.md` §8
-- `firmware/QUORUM/QUORUM.ino:556-587`
-- `firmware/test-programs/NAVI_ONE/Stations.h:184`, `Navigator.h:74,110,158`
+- `firmware/programs/QUORUM/QUORUM.ino:556-587`
+- `firmware/programs/NAVI_ONE/variants/NAVI_ONE/Stations.h:184`, `Navigator.h:74,110,158`
 
 ## Review
 

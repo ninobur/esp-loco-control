@@ -124,9 +124,9 @@ current state.
 Decision 0018 and `firmware/README.md` govern sketch organization. Treat role
 and evidence status as separate facts:
 
-- `firmware/QUORUM/QUORUM.ino` is the only production-control lineage, including
+- `firmware/programs/QUORUM/QUORUM.ino` is the only production-control lineage, including
   narrow capabilities that are still awaiting field validation.
-- `firmware/test-programs/` contains diagnostic instruments, prototypes, and
+- `firmware/programs/` contains diagnostic instruments, prototypes, and
   explicit references. A diagnostic result may justify a new scoped QUORUM
   implementation; the test sketch itself is never promoted implicitly.
 - `archive/` is historical evidence, not an implementation starting point.

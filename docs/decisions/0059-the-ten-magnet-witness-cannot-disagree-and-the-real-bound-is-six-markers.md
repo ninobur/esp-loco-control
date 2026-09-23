@@ -93,6 +93,6 @@ be argued there or not at all. It must never be closed by a mechanism that
 
 ## References
 
-- `firmware/test-programs/NAVI_ONE/tests/contract.cpp` — gate T9
+- `firmware/programs/NAVI_ONE/variants/NAVI_ONE/tests/contract.cpp` — gate T9
 - `docs/reviews/NAVI_ONE_0_1_REVIEW_20260829.md` — Finding 2, and its premise
 - decisions 0053, 0056, 0057, 0058

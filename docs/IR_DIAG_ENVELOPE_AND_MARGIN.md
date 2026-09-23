@@ -10,7 +10,7 @@
 > Retained as the record of the envelope replacement and its replay.
 
 **Date:** 2026-08-05
-**Sketch:** `firmware/test-programs/IR_DIAG/IR_DIAG.ino`, `SKETCH_NAME` still `IR_DIAG_1_0`
+**Sketch:** `firmware/programs/IR_DIAG/IR_DIAG.ino`, `SKETCH_NAME` still `IR_DIAG_1_0`
 **Commit:** `8c78297` (single commit, three changes, per task)
 **Evidence:** finescale-steel-wheel run in
 *"Original data, purple, then repainted purple, the finescale steel wheel..txt"*

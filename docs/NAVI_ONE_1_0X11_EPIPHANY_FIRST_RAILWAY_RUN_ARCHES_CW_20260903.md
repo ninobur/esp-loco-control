@@ -89,9 +89,9 @@ maximum 0.1046, none at or above 0.11. First magnets after 36 station departures
 ## The discards
 
 `discards` counts `HallCapture::discard()`: a passage "un-opened" because the field plateaued below the
-entry margin with the stop machinery armed ([HallCapture.h:862](../firmware/test-programs/NAVI_ONE/HallCapture.h)).
+entry margin with the stop machinery armed ([HallCapture.h:862](../firmware/programs/NAVI_ONE/variants/NAVI_ONE/HallCapture.h)).
 Departing arms it too ("for the locomotive that stalls halfway out of a magnet",
-[HallCapture.h:331](../firmware/test-programs/NAVI_ONE/HallCapture.h)). `discard()` resets the record
+[HallCapture.h:331](../firmware/programs/NAVI_ONE/variants/NAVI_ONE/HallCapture.h)). `discard()` resets the record
 pointer but does not refill the pre-roll ring, which is only fed while no passage is open.
 
 Today: 20 discards inside the Grillers departure, 55 inside the two seconds that held MM110's tail and the
@@ -105,11 +105,11 @@ code trace was asked to settle; it is not established here.
 
 ## The strike routing
 
-`stopEpisode_` is cleared when a passage opens ([HallCapture.h:292](../firmware/test-programs/NAVI_ONE/HallCapture.h))
+`stopEpisode_` is cleared when a passage opens ([HallCapture.h:292](../firmware/programs/NAVI_ONE/variants/NAVI_ONE/HallCapture.h))
 and set on every sample of that passage while the stop arming is anything but `None`
-([HallCapture.h:334](../firmware/test-programs/NAVI_ONE/HallCapture.h)); it reaches the judgement as
+([HallCapture.h:334](../firmware/programs/NAVI_ONE/variants/NAVI_ONE/HallCapture.h)); it reaches the judgement as
 `j.stopEpisode`. In the NotAMagnet case,
-`if (j.kind == 1 || j.stopEpisode) refusedStitched(j);` ([NAVI_ONE.ino:1367](../firmware/test-programs/NAVI_ONE/NAVI_ONE.ino)),
+`if (j.kind == 1 || j.stopEpisode) refusedStitched(j);` ([NAVI_ONE.ino:1367](../firmware/programs/NAVI_ONE/variants/NAVI_ONE/NAVI_ONE.ino)),
 with the comment that a refusal "AROUND A STOP" stops the locomotive because conditioning on the stitched
 kind alone "is what let Bamboo run on" (2026-09-02 12:29:07). Arches had not reached DEPARTED when the
 MM111 passage opened, so the passage carried the flag, and the refusal stopped Toby as that comment intends.
@@ -122,7 +122,7 @@ false. The routing and the wording are two different things.
 
 This is a code reading, not yet independently verified; the trace in the last section is checking it.
 
-The discard branch ([HallCapture.h:363](../firmware/test-programs/NAVI_ONE/HallCapture.h)) fires on a
+The discard branch ([HallCapture.h:363](../firmware/programs/NAVI_ONE/variants/NAVI_ONE/HallCapture.h)) fires on a
 sample when the stop machinery is armed, `plateau_` is true, the passage has not yet seen progress
 (`sawProgress_` false) and the settled level is below the entry margin. Its own comment records the
 first form of this fault, Arches CCW 2026-09-02 14:14:40: discard on every sample, reopen on the next,
@@ -130,7 +130,7 @@ first form of this fault, Arches CCW 2026-09-02 14:14:40: discard on every sampl
 residual 0.2706. The guard added then, "only if there is no field there", tests the *settled* level.
 
 `plateau_` is not computed per sample. `updateProgress()`
-([HallCapture.h:513](../firmware/test-programs/NAVI_ONE/HallCapture.h)) takes one raw sample every
+([HallCapture.h:513](../firmware/programs/NAVI_ONE/variants/NAVI_ONE/HallCapture.h)) takes one raw sample every
 25 ms into a 16-sample window (400 ms), sorts it, drops the single highest and single lowest, and calls
 the field flat when the remaining span is 20 counts or less. Between updates the flag holds.
 
@@ -165,7 +165,7 @@ flat verdict is not established and is left to the trace.
 ## Side finding: the boot line is truncated
 
 The `state/bootid` payload arrives as exactly 399 characters ending in `"resume`, cut inside a key. The
-buffer is `char b[400]` ([NAVI_ONE.ino:1186](../firmware/test-programs/NAVI_ONE/NAVI_ONE.ino)) and the
+buffer is `char b[400]` ([NAVI_ONE.ino:1186](../firmware/programs/NAVI_ONE/variants/NAVI_ONE/NAVI_ONE.ino)) and the
 X-series fields outgrew it. Any consumer that parses the boot JSON discards it.
 
 ## What this run does not settle

@@ -140,8 +140,8 @@ fragment has no navigation authority and cannot stop the locomotive.
 
 ## Files
 
-- `firmware/test-programs/NAVI_ONE/tests/replay_peak_close.cpp` — the replay.
-- `firmware/test-programs/NAVI_ONE/tests/HallCaptureCeiling.h` — `peakCloseN`,
+- `firmware/programs/NAVI_ONE/variants/NAVI_ONE/tests/replay_peak_close.cpp` — the replay.
+- `firmware/programs/NAVI_ONE/variants/NAVI_ONE/tests/HallCaptureCeiling.h` — `peakCloseN`,
   `peakCloseHyst`, `peakCloseLockout`, all defaulting to disabled. Test-only;
   not included by the sketch and not in `run_tests.sh`.
 

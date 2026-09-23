@@ -1,9 +1,9 @@
 # X19 audit pack — what to check, and where I would look for my own mistakes
 
 **For:** the operator's audit of X19 against X18, before any flash.
-**X18:** `firmware/test-programs/NAVI_ONE` at **242109e** — the build as flown
+**X18:** `firmware/programs/NAVI_ONE/variants/NAVI_ONE` at **242109e** — the build as flown
 2026-09-15, now committed unchanged, defects and all.
-**X19:** `firmware/test-programs/NAVI_ONE_X19` at **227c330**.
+**X19:** `firmware/programs/NAVI_ONE/variants/NAVI_ONE_X19` at **227c330**.
 **Complete diff:** `docs/NAVI_X19_VS_X18_20260915.diff` (1,021 lines, +480/−207).
 
 This is not a summary of `docs/NAVI_X19_IMPLEMENTATION_20260915.md`. It is the
@@ -15,7 +15,7 @@ I think are most likely to be wrong.
 ## 1. Reproduce everything
 
 ```bash
-cd firmware/test-programs
+cd firmware/programs
 arduino-cli compile --fqbn esp32:esp32:esp32 NAVI_ONE        # X18: 970571 / 60044
 arduino-cli compile --fqbn esp32:esp32:esp32 NAVI_ONE_X19    # X19: 966935 / 67692
 ./NAVI_ONE/tests/run_tests.sh          # 13 gates, 1,118 checks, 0 failures
@@ -147,9 +147,9 @@ Not done, and not possible from here right now: no `/dev/cu.usbserial-*` is
 present, so Otto is not connected to this machine. When he is:
 
 ```bash
-arduino-cli compile --fqbn esp32:esp32:esp32 firmware/test-programs/NAVI_ONE_X19
+arduino-cli compile --fqbn esp32:esp32:esp32 firmware/programs/NAVI_ONE/variants/NAVI_ONE_X19
 arduino-cli upload -p /dev/cu.usbserial-0001 --fqbn esp32:esp32:esp32 \
-  firmware/test-programs/NAVI_ONE_X19
+  firmware/programs/NAVI_ONE/variants/NAVI_ONE_X19
 ```
 
 Confirm on the serial banner before the run starts:

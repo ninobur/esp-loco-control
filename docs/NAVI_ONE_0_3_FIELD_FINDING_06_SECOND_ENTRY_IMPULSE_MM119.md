@@ -132,7 +132,7 @@ or control was changed. Recognition thresholds remain untouched.
 ## References
 
 - `docs/NAVI_ONE_0_3_FIELD_FINDING_05_IMPULSE_FLIPPED_POLARITY_AT_MM70.md`
-- `firmware/test-programs/NAVI_ONE/HallCapture.h:33,60-90` — `entryMargin`, the
+- `firmware/programs/NAVI_ONE/variants/NAVI_ONE/HallCapture.h:33,60-90` — `entryMargin`, the
   pole latch, the pre-roll replay and the oriented-peak update
-- `firmware/test-programs/NAVI_ONE/RouteMap.h` — MM117 S, MM118 N, MM119 N, MM120 N
+- `firmware/programs/NAVI_ONE/variants/NAVI_ONE/RouteMap.h` — MM117 S, MM118 N, MM119 N, MM120 N
 - `~/ngr-telemetry/waveforms/waveform_20260831T110115_224_slot*.csv`

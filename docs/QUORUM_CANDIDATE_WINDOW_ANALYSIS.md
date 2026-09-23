@@ -51,4 +51,4 @@ This record stands as evidence for any future revisit; the margin
 structure measured here, not intuition, is what should decide then.
 
 Analysis script inline in the 2026-08-09 session; reproducible from the
-DNA table at [QUORUM.ino:397](../firmware/QUORUM/QUORUM.ino).
+DNA table at [QUORUM.ino:397](../firmware/programs/QUORUM/QUORUM.ino).

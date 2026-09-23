@@ -17,7 +17,7 @@ incident lasted 95–2,446 ms. The floor rejected nothing and is not implicated.
 ## The episode, in device time
 
 The six passages below were published on `diag/waveform` and are preserved
-verbatim in `firmware/test-programs/NAVI_ONE/tests/fixtures_northpoint_20260913.h`.
+verbatim in `firmware/programs/NAVI_ONE/variants/NAVI_ONE/tests/fixtures_northpoint_20260913.h`.
 The first line is reconstructed from its `mm/marker` record: it was accepted, and
 this build dumps a waveform only for a refusal or a strike.
 

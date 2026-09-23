@@ -92,8 +92,8 @@ evidence this decision rests on. Summary of what it found:
 
 - `docs/NAVI_MM_HALL_GUARD_TIMING_EVIDENCE_20260922.md`
 - `tools/mm_guard_timing_toby.py`, `tools/mm_guard_timing_otto_x15.py`
-- `firmware/NAVI_COHERENCE/NAVI_COHERENCE_0_4/Navigator.h`,
-  `firmware/test-programs/NAVI_COHERENCE_0_5_AUTO_ENABLED/Navigator.h`
+- `firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_4/Navigator.h`,
+  `firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_5_AUTO_ENABLED/Navigator.h`
 - `docs/decisions/0081-the-rebound-guard-is-500-ms.md`
 - `docs/decisions/0087-hall-navigation-is-the-opening-and-a-645-ms-guard.md`
   (related but separate: a different, never-ratified derivation, for a

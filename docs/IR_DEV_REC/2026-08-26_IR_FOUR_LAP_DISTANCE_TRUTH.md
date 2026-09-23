@@ -11,7 +11,7 @@ of its premises was wrong — see *Correction* below.
 
 ## Ground truth exists in the firmware
 
-`firmware/QUORUM/QUORUM.ino:522` carries `spacingMm[DNA_N]` — the surveyed
+`firmware/programs/QUORUM/QUORUM.ino:522` carries `spacingMm[DNA_N]` — the surveyed
 physical spacing, in real millimetres, between every adjacent pair of the 171
 mile markers. Summed:
 

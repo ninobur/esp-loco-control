@@ -85,7 +85,7 @@ detection that cannot be attributed must be refused, not counted.
 
 ## The instrument for the next step
 
-`firmware/test-programs/IR_SCOPE_ESPNOW_RX` prints every channel-11 frame as
+`firmware/programs/IR_SCOPE_ESPNOW/variants/IR_SCOPE_ESPNOW_RX` prints every channel-11 frame as
 `RX <millis> <rssi> <len> <crc16> <hex>` at 921600 baud. Compiled clean this
 session: 884,380 bytes flash (67%), 45,472 bytes RAM (13%). It decodes through
 the operator's own `tools/ir_scope_espnow_to_csv.py` and

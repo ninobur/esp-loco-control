@@ -1,7 +1,7 @@
 # IR_TEST — honest state classification and reliable reacquisition
 
 **Date:** 2026-08-06 (original implementation record: 2026-08-05)
-**Sketch:** `firmware/test-programs/IR_TEST/IR_TEST.ino`, node `IR_SPEED_SENSOR` (unchanged)
+**Sketch:** `firmware/programs/IR_TEST/IR_TEST.ino`, node `IR_SPEED_SENSOR` (unchanged)
 **Commits:** `e0f7903` (1: interval median) · `58f0b0f` (2: sensor state) ·
 `eaae130` (3: latch timeout) · `e1ddd53` (4: decay/quality/NVS) ·
 `61abaf3` (raw ring)

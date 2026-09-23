@@ -83,8 +83,8 @@ remains green because production firmware has not been modified.
 
 ## Files in this experiment
 
-- `firmware/test-programs/NAVI_ONE/tests/post_stop_resolver_model.h`
-- `firmware/test-programs/NAVI_ONE/tests/gate_post_stop_resolver.cpp`
-- `firmware/test-programs/NAVI_ONE/tests/run_tests.sh`
+- `firmware/programs/NAVI_ONE/variants/NAVI_ONE/tests/post_stop_resolver_model.h`
+- `firmware/programs/NAVI_ONE/variants/NAVI_ONE/tests/gate_post_stop_resolver.cpp`
+- `firmware/programs/NAVI_ONE/variants/NAVI_ONE/tests/run_tests.sh`
 
 No production header or sketch is changed by this experiment.

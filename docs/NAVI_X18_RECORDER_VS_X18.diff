@@ -33,7 +33,7 @@ CHANGED:
 
 ```diff
 --- /tmp/base.ino	2026-09-16 15:43:10
-+++ firmware/test-programs/NAVI_ONE_X18_RECORDER/NAVI_ONE_X18_RECORDER.ino	2026-09-16 15:35:29
++++ firmware/programs/NAVI_ONE/variants/NAVI_ONE_X18_RECORDER/NAVI_ONE_X18_RECORDER.ino	2026-09-16 15:35:29
 @@ -49,6 +49,7 @@
   */
  #include <Arduino.h>
@@ -446,7 +446,7 @@ CHANGED:
 
 ```diff
 --- -	2026-09-16 15:44:16
-+++ firmware/test-programs/NAVI_ONE_X18_RECORDER/tests/run_tests.sh	2026-09-16 15:39:53
++++ firmware/programs/NAVI_ONE/variants/NAVI_ONE_X18_RECORDER/tests/run_tests.sh	2026-09-16 15:39:53
 @@ -59,3 +59,11 @@
  echo ""
  echo "== gate 13: SET LOCATION whole-lap baseline controller =="

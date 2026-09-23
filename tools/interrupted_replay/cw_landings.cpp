@@ -16,7 +16,7 @@
 // 390 mm, more than the 300 mm between markers, so every resting place is
 // visited and the answer does not depend on the coast being exact.
 #define main gate12_main_unused
-#include "../../firmware/test-programs/NAVI_ONE/tests/gate_interrupted.cpp"
+#include "../../firmware/programs/NAVI_ONE/variants/NAVI_ONE/tests/gate_interrupted.cpp"
 #undef main
 
 struct Row { int pct; double nearest, field; int pauses, resumes, stitched, refused, adv;

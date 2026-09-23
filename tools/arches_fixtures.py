@@ -6,7 +6,7 @@ own published samples, verbatim, not synthetic Gaussian halves. Run against a
 fetched telemetry mirror:
 
     python3 tools/arches_fixtures.py <all_YYYYMMDD.log> \
-        > firmware/test-programs/NAVI_ONE/tests/fixtures_arches.h
+        > firmware/programs/NAVI_ONE/variants/NAVI_ONE/tests/fixtures_arches.h
 
 The accepted stitched passage of 11:03:54 (residual 0.1223) is NOT here and
 cannot be: the build dumps a waveform only when the recognizer refuses one, so

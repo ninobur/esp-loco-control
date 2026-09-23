@@ -102,7 +102,7 @@ say "Done"
 cat <<'EOF'
 Remaining, by hand:
   - Confirm the address is still 192.168.68.142. The loco firmware has it
-    compiled in (firmware/QUORUM/QUORUM.ino:370) and cannot find the broker
+    compiled in (firmware/programs/QUORUM/QUORUM.ino:370) and cannot find the broker
     anywhere else.
   - If get_throttled above was nonzero, replace the power supply. That is the
     likely root cause, and a new card will not survive it.

@@ -99,7 +99,7 @@ onboard. Broker receive timestamps were used only to order records and to pair
 topics; no interval is derived from them.
 
 **Distance is surveyed map spacing** from `ROUTE_SPACING_MM` in
-`firmware/test-programs/NAVI_ONE_X18_RECORDER/RouteMap.h` (171 markers, 52,150 mm,
+`firmware/programs/NAVI_ONE/variants/NAVI_ONE_X18_RECORDER/RouteMap.h` (171 markers, 52,150 mm,
 mean 305.0). Both windows are almost uniformly 300 mm, which is why the operator's
 choice of windows is a good one: distance error cannot differentially bias the
 comparison between intervals.
@@ -191,7 +191,7 @@ Otto's own profile already documents:
 
 > "A rejected event never reaches telemetry, so the next accepted marker still
 > reads mm+1 and the step stays 1 while the position silently lags."
-> — `firmware/QUORUM/LL_LocoConfig_9950011.h`
+> — `firmware/programs/QUORUM/LL_LocoConfig_9950011.h`
 
 The design consequence differs from what the original text implied. An amplitude
 threshold does not address the bulk of this population:

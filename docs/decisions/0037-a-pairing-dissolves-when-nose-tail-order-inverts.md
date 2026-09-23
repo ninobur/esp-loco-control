@@ -149,6 +149,6 @@ the same grounds: at `gap_ahead ≈ gap_behind` the comparison is noise.
 ## References
 
 - `field-records/20260816_QUORUM_1_16R_SECOND_SESSION.md` — the observation
-- `firmware/QUORUM/tests/test_cto_roles.py` — the pinned behaviour
+- `firmware/programs/QUORUM/tests/test_cto_roles.py` — the pinned behaviour
 - Decisions 0031 (fleet stop by absence), 0032 (roles latched and echoed),
   0033 (separation is the bubble plus six)

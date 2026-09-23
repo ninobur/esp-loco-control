@@ -52,4 +52,4 @@ twenty-question answers or decision 0094's instrument model.
 - `docs/NAVI_IR_HEALTH_STEP1_20260923.md`: changes, tests, limits and handoff.
 - `docs/NAVI_COHERENCE_CURRENT_WORK_20260923.md`: lineage and implementation map.
 - `docs/NAVI_COHERENCE_TWENTY_QUESTIONS_HANDOFF_20260923.txt`: supplied handoff.
-- `firmware/NAVI_COHERENCE/IR_ARCHITECTURE_0_4/README.md`: API and test commands.
+- `firmware/reference/NAVI_COHERENCE/IR_ARCHITECTURE_0_4/README.md`: API and test commands.

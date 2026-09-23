@@ -6,7 +6,7 @@ OBSERVATION TOOLING. Diagnostic only.
 Two halves:
 
   PART 1  reads the capture written by the firmware gate
-          (firmware/test-programs/NAVI_ONE_X18_RECORDER/tests/gate_recorder.cpp),
+          (firmware/programs/NAVI_ONE/variants/NAVI_ONE_X18_RECORDER/tests/gate_recorder.cpp),
           which emits REAL datagrams from the firmware's own structs. This is
           the only check that the C++ and the Python agree about the wire --
           everything else here is Python talking to itself.

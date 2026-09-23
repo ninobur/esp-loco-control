@@ -198,7 +198,7 @@ inappropriate conceptual model of what IR is."*
 - **The doc this record ratifies**
   (`docs/NAVI_IR_HEALTH_AND_MM_REFERENCE_20260922.md`) and its paired,
   still-uncommitted firmware package
-  (`firmware/NAVI_COHERENCE/NAVI COHERENCE IR HEALTH/`) were written
+  (`firmware/reference/NAVI_COHERENCE/NAVI COHERENCE IR HEALTH/`) were written
   *before* this record existed, on the strength of the chat conversation
   above. This record is what makes them official — they were correct in
   substance but previously unattributed and apparently in conflict with
@@ -227,7 +227,7 @@ inappropriate conceptual model of what IR is."*
 ## References
 
 - `docs/NAVI_IR_HEALTH_AND_MM_REFERENCE_20260922.md`
-- `firmware/NAVI_COHERENCE/NAVI COHERENCE IR HEALTH/README_IR_HEALTH_CHANGE.txt`,
+- `firmware/reference/NAVI_COHERENCE/NAVI COHERENCE IR HEALTH/README_IR_HEALTH_CHANGE.txt`,
   `IrHealth.h`, `MovementEvidence.h` (uncommitted as of this record)
 - `docs/decisions/0092-navi-ir-decision-model-physically-possible-positions-first.md`
   (point 2, superseded in part; point 15, explicitly preserved)

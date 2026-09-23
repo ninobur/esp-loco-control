@@ -91,7 +91,7 @@ committed.
 
 - `field-records/logs/20260909_survey/`
 - `docs/NAVI_CTO_ARCHITECTURE_AND_PROVENANCE_20260909.md` §3, §3.9
-- `firmware/test-programs/NAVI_ONE/LL_LocoConfig_9950011.h`
+- `firmware/programs/NAVI_ONE/variants/NAVI_ONE/LL_LocoConfig_9950011.h`
 - Commit `4f6e0b0` (board swap), `c479c2d` (Otto's block), `0f552d2` (pin sweep)
 
 ## Review

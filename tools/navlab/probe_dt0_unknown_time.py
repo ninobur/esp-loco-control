@@ -20,7 +20,7 @@ from reachability_nav import Navigator, Envelopes, DNA_N
 
 def real_map():
     src = open(pathlib.Path(__file__).resolve().parents[2]
-               / 'firmware/QUORUM/QUORUM.ino').read()
+               / 'firmware/programs/QUORUM/QUORUM.ino').read()
     dna = [int(x) for x in re.findall(r'\d+',
         src.split('const uint8_t NGR_DNA1[DNA_N] PROGMEM = {')[1].split('};')[0])]
     spc = [int(x) for x in re.findall(r'\d+',

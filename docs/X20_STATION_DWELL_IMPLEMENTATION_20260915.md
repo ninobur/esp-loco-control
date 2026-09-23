@@ -13,7 +13,7 @@ locomotive that goes online and immediately goes stale. X20 is X19 at HEAD.
 
 ## 1. What changed
 
-X19 is copied to `firmware/test-programs/NAVI_ONE_X20/` so X19 stays flashable
+X19 is copied to `firmware/programs/NAVI_ONE/variants/NAVI_ONE_X20/` so X19 stays flashable
 as the build that produced the field record, exactly as X19 left X18 in
 `NAVI_ONE/`. The diff against X19 is:
 

@@ -79,4 +79,4 @@ No new operator ruling or additional design cycle is required.
 - `docs/NGR_DASHBOARD_AUTHORITY_ALIGNMENT_DRAFT4_REVIEW_CODEX_20260808.md`
 - `docs/NGR_DASHBOARD_AUTHORITY_ALIGNMENT_DRAFT4_REVIEW_CLAUDE_20260808.md`
 - `docs/QUORUM_CANDIDATE_WINDOW_ANALYSIS.md`
-- `firmware/QUORUM/QUORUM.ino`
+- `firmware/programs/QUORUM/QUORUM.ino`

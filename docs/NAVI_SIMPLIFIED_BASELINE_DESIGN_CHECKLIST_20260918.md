@@ -11,7 +11,7 @@ filled in with a guess.
 
 Two designs appear in the sources and are kept distinct throughout:
 
-- **Shipped (NAVI_ONE)**: `firmware/test-programs/NAVI_ONE/HallCapture.h` —
+- **Shipped (NAVI_ONE)**: `firmware/programs/NAVI_ONE/variants/NAVI_ONE/HallCapture.h` —
   a continuously-adapting rolling median, motion-gated on `actualPwm` (decision 0017).
 - **Candidate (analysed for NAVI_SIMPLIFIED, not implemented)**: the
   per-interval collect-after-close state machine developed across

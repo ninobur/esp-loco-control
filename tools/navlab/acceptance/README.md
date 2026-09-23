@@ -82,7 +82,7 @@ use 10 observations, orientation-unknown needs 12. The firmware's existing
 ## Design rules the harness enforces on itself
 
 - The DNA map and spacing table are parsed read-only from
-  `firmware/QUORUM/QUORUM.ino`. The harness never writes, patches or
+  `firmware/programs/QUORUM/QUORUM.ino`. The harness never writes, patches or
   "corrects" the map. A prerequisite failure is recorded; the map stands.
 - Every stream is generated from a named integer seed and is byte-reproducible.
 - Every detection carries explicit ground truth: the true marker, the true

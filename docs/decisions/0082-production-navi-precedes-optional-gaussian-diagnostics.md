@@ -56,5 +56,5 @@ The operator's ruling is:
 
 - `docs/decisions/0080-field-test-rulings-expire-and-morphology-has-no-navigation-authority.md`
 - `docs/NAVI_ONE_OPERATOR_RULING_AUDIT_20260910.md`
-- `firmware/test-programs/NAVI_ONE/MagnetRecognizer.h`
-- `firmware/test-programs/NAVI_ONE/TwoSided.h`
+- `firmware/programs/NAVI_ONE/variants/NAVI_ONE/MagnetRecognizer.h`
+- `firmware/programs/NAVI_ONE/variants/NAVI_ONE/TwoSided.h`

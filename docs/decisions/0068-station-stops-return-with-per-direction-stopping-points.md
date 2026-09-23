@@ -125,8 +125,8 @@ Not field-tested. Not ratified.
 
 ## References
 
-- `firmware/test-programs/NAVI_ONE/Stations.h`
-- `firmware/test-programs/NAVI_ONE/LL_LocoConfig_9950012.h` — `NAVI_APPROACH_MARKER_MS`
-- `firmware/test-programs/NAVI_ONE/tests/gate_station.cpp`
+- `firmware/programs/NAVI_ONE/variants/NAVI_ONE/Stations.h`
+- `firmware/programs/NAVI_ONE/variants/NAVI_ONE/LL_LocoConfig_9950012.h` — `NAVI_APPROACH_MARKER_MS`
+- `firmware/programs/NAVI_ONE/variants/NAVI_ONE/tests/gate_station.cpp`
 - `docs/decisions/0066`, `0067` — the section cruises the approach hands over from
 - `docs/NAVI_ONE_FIELD_FINDING_08_BASELINE_LATCH_SWALLOWS_MARKERS.md`

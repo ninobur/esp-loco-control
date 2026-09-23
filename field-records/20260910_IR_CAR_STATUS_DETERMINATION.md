@@ -9,7 +9,7 @@ flashed, published, or changed on the Pi or any locomotive.
 
 ## Blocker 1 — the car is unicast-addressed to a locomotive that no longer exists
 
-`firmware/test-programs/IR_ESPNOW_SENDER/ir_espnow_config.h:23`
+`firmware/programs/IR_ESPNOW_SENDER/ir_espnow_config.h:23`
 
 ```c
 static const uint8_t TOBY_STA_MAC[6] = { 0xB0,0xCB,0xD8,0xD0,0xFF,0x4C };  // Otto, bench-paired 2026-08-18
@@ -169,7 +169,7 @@ a bench test that does not matter, because the raw recorder can.
 
 ### The instrument for the next step
 
-`firmware/test-programs/IR_SCOPE_ESPNOW_RX` is the raw channel-11 recorder: it
+`firmware/programs/IR_SCOPE_ESPNOW/variants/IR_SCOPE_ESPNOW_RX` is the raw channel-11 recorder: it
 prints every frame as `RX <millis> <rssi> <len> <crc16> <hex>` at 921600 baud,
 and ACKs type-3 fusion reports. Compiled clean this session against
 esp32:esp32:esp32 — 884,380 bytes flash (67%), 45,472 bytes RAM (13%). The

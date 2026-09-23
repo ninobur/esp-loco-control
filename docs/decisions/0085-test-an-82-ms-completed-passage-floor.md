@@ -58,6 +58,6 @@ The two measurements bound the supported interval from opposite sides:
 
 - `docs/decisions/0084-test-a-90-ms-completed-passage-floor.md`
 - `docs/NAVI_BAMBOO_TRANSIENT_ANALYSIS_20260912.md`
-- `firmware/test-programs/NAVI_ONE/NAVIFieldConfig.h`
-- `firmware/test-programs/NAVI_ONE/tests/gate_baseline_latch.cpp`
+- `firmware/programs/NAVI_ONE/variants/NAVI_ONE/NAVIFieldConfig.h`
+- `firmware/programs/NAVI_ONE/variants/NAVI_ONE/tests/gate_baseline_latch.cpp`
 - Decision 0081 — unconditional 500 ms guard

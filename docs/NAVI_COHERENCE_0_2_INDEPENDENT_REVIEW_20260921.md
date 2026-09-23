@@ -13,13 +13,13 @@ introduced relative to 0.3 or vice versa; it is present, unchanged, in both,
 and this document's Build verification section should be read with that
 correction in mind rather than trusted as originally written.
 
-Independent review of `firmware/NAVI_COHERENCE/NAVI_COHERENCE_0_2_patch.zip`,
+Independent review of `firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_2_patch.zip`,
 found sitting untracked in the working tree (appeared 2026-09-21 17:52, after
 this session's own noon-run spatial-variability analysis was delivered — see
 [MM_DECLARATION_SPATIAL_VARIABILITY_20260921.md](MM_DECLARATION_SPATIAL_VARIABILITY_20260921.md)).
 Desk review plus independent build verification: no hardware access, no
 locomotive commands sent, nothing flashed. The patch was extracted to
-`firmware/NAVI_COHERENCE/NAVI_COHERENCE_0_2/`; the sketch itself was **not**
+`firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_2/`; the sketch itself was **not**
 modified by this review.
 
 ## Scope
@@ -29,11 +29,11 @@ Read: `README.md` (the patch's own design/status doc), `NAVI_COHERENCE.ino`
 `RecoveryControl.h` (10 lines), `test_coherence.cpp` (23 lines), and
 `docs/NAVI_COHERENCE_DEVELOPMENT_HISTORY_20260921.md` for the governing
 design and the 0.1 review's prior findings. Diffed `RecoveryControl.h`
-against `firmware/test-programs/NAVI_IR/RecoveryControl.h` to see exactly
+against `firmware/programs/NAVI_IR/RecoveryControl.h` to see exactly
 what changed from the multi-hypothesis architecture. Not reviewed
 line-by-line: `HallObserver.h`, `Ops.h`, `RouteMap.h`, `Stations.h`,
 `MovementEvidence.h`, `LocoConfig.h` — none of these ship in the patch; all
-five are borrowed unmodified from `firmware/test-programs/NAVI_IR/` to make
+five are borrowed unmodified from `firmware/programs/NAVI_IR/` to make
 the sketch buildable (see Build verification).
 
 ## What 0.2 actually changed, checked against the 0.1 review's findings
@@ -173,21 +173,21 @@ The patch does not ship `RouteMap.h`, `MovementEvidence.h`, `Ops.h`,
 tracing `#include` chains, the sketch needs, unmodified, from
 **three different sibling sketch directories**:
 
-- `firmware/test-programs/NAVI_IR/{RouteMap.h, MovementEvidence.h, Ops.h, Stations.h, HallObserver.h, LocoConfig.h}`
-- `firmware/test-programs/NAVI_SIMPLIFIED/{LL_LocoConfig_9950011.h, LL_LocoConfig_9950012.h}` (reached via NAVI_IR's `LocoConfig.h`)
-- `firmware/test-programs/NAVI_ONE_X22/{ExcursionDetector.h, MagnetRecognizer.h}` (reached via NAVI_IR's `HallObserver.h`)
-- `firmware/common/*.h` and `firmware/QUORUM/credentials.h`
+- `firmware/programs/NAVI_IR/{RouteMap.h, MovementEvidence.h, Ops.h, Stations.h, HallObserver.h, LocoConfig.h}`
+- `firmware/programs/NAVI_SIMPLIFIED/{LL_LocoConfig_9950011.h, LL_LocoConfig_9950012.h}` (reached via NAVI_IR's `LocoConfig.h`)
+- `firmware/programs/NAVI_ONE/variants/NAVI_ONE_X22/{ExcursionDetector.h, MagnetRecognizer.h}` (reached via NAVI_IR's `HallObserver.h`)
+- `firmware/common/*.h` and `firmware/programs/QUORUM/credentials.h`
 
 Also: **the patch's own folder name (`NAVI_COHERENCE_0_2`) doesn't match its
 `.ino`'s basename (`NAVI_COHERENCE`)**, which the Arduino toolchain requires
 to match — as delivered, neither Arduino IDE nor `arduino-cli` will treat it
 as a valid sketch until the folder is renamed. And its current location,
-`firmware/NAVI_COHERENCE/`, sits one level shallower than
-`firmware/test-programs/NAVI_SIMPLIFIED/`, so `LocoConfig.h`'s
+`firmware/reference/NAVI_COHERENCE/`, sits one level shallower than
+`firmware/programs/NAVI_SIMPLIFIED/`, so `LocoConfig.h`'s
 `../NAVI_SIMPLIFIED/...` relative include won't resolve there — it needs to
-live inside `firmware/test-programs/` alongside its dependencies (which also
+live inside `firmware/programs/` alongside its dependencies (which also
 matches `CLAUDE.md`'s own artifact-classification rule that unaccepted
-prototypes belong in `test-programs/`, not a new top-level `firmware/`
+prototypes belong in `programs/`, not a new top-level `firmware/`
 directory). `firmware/README.md`'s catalog has no NAVI_COHERENCE entry at
 all yet, so this artifact is currently uncataloged as well as
 un-relocated — a "librarian check" gap independent of the code itself.
@@ -238,8 +238,8 @@ README's prose.
 
 ## References
 
-- [Patch README](../firmware/NAVI_COHERENCE/NAVI_COHERENCE_0_2/README.md)
+- [Patch README](../firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_2/README.md)
 - [Development history and governing design](NAVI_COHERENCE_DEVELOPMENT_HISTORY_20260921.md)
 - [MM declaration spatial variability (this session's noon-run analysis, cited by the patch's own README)](MM_DECLARATION_SPATIAL_VARIABILITY_20260921.md)
 - [NAVI_IR 0.2 independent review (house style and the sketch this patch is built alongside)](NAVI_IR_0_2_INDEPENDENT_REVIEW_20260920.md)
-- `firmware/test-programs/NAVI_IR/` (source of every borrowed header)
+- `firmware/programs/NAVI_IR/` (source of every borrowed header)

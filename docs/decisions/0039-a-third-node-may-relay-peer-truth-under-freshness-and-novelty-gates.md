@@ -25,7 +25,7 @@ from inside the two failing endpoints, and to instrument instead.
 ## Decision
 
 A **third ESP32** joins the railway as an independent observer, and may relay.
-It is a diagnostic instrument (`firmware/test-programs/ESPNOW_REPEATER/`), not
+It is a diagnostic instrument (`firmware/programs/ESPNOW_REPEATER/`), not
 a QUORUM capability, and it holds **no authority**: it originates no packet of
 its own, subscribes to no locomotive command topic, and cannot command, stop,
 or steer anything.
@@ -60,7 +60,7 @@ rather than *new* claims.
 
 This is stated as a constraint on the relay because fixing it in QUORUM would
 be a wire-and-acceptance change to a frozen contract, which this decision does
-not make. If relaying is ever promoted out of `test-programs/`, a
+not make. If relaying is ever promoted out of `programs/`, a
 monotonicity test in `ctoAcceptPeer()` should be reconsidered on its own merits.
 
 ## What the relay must prove before it is trusted

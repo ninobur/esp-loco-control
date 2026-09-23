@@ -42,7 +42,7 @@ def mk_capture(path, loco, t0, events, pwm=90, boot_marker=True, throttle=88):
 
 def run_norm(caps, out):
     cmd = [sys.executable, str(HERE/'normalize_log.py'), '--out', out,
-           '--map-source', str(REPO/'firmware/QUORUM/QUORUM.ino')]
+           '--map-source', str(REPO/'firmware/programs/QUORUM/QUORUM.ino')]
     for c in caps: cmd += ['--capture', c]
     r = subprocess.run(cmd, capture_output=True, text=True)
     assert r.returncode == 0, r.stderr
@@ -51,7 +51,7 @@ def run_norm(caps, out):
 def main():
     from_mm = 100   # map poles read from the real map by the normalizer
     import re
-    src = open(REPO/'firmware/QUORUM/QUORUM.ino').read()
+    src = open(REPO/'firmware/programs/QUORUM/QUORUM.ino').read()
     dna = [int(x) for x in re.findall(r'\d+',
         src.split('const uint8_t NGR_DNA1[DNA_N] PROGMEM = {')[1].split('};')[0])]
     pole = {1: 'N', 0: 'S'}

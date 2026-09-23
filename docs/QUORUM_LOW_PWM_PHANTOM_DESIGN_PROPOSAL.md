@@ -15,7 +15,7 @@ Original status: proposal only. Nothing implemented, nothing flashed.
 **Observed failure:** two phantom marker events accepted during the Bamboo
 departure of 2026-08-10, capture lines **24662** and **24669**.
 **Evidence:** `field-records/logs/20260810_IR_SPEED_LOCAL_1_2_otto.log`
-**Replay:** `firmware/QUORUM/tests/` (real firmware, host-compiled)
+**Replay:** `firmware/programs/QUORUM/tests/` (real firmware, host-compiled)
 
 **Recommendation: specify now, implement after a targeted sample.** The need is
 demonstrated beyond argument. The discriminator separates cleanly but rests on
@@ -269,7 +269,7 @@ to justify but does not fix the odometer error, and is not proposed here.
 
 ## 8. How the replay proves it
 
-The suite in `firmware/QUORUM/tests/` compiles QUORUM.ino for the host and
+The suite in `firmware/programs/QUORUM/tests/` compiles QUORUM.ino for the host and
 already reproduces the run exactly: 1890/1890 odometer values, 40/40
 adjudication decisions. Acceptance for this change:
 

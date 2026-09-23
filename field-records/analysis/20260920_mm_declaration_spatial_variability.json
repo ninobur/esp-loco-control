@@ -2,7 +2,7 @@
   "sources": {
     "ir": "field-records/logs/20260920_ir_noon_capture.log",
     "hall": "field-records/logs/20260920_toby_noon_capture.log",
-    "route_header": "firmware/test-programs/NAVI_SIMPLIFIED/RouteMap.h",
+    "route_header": "firmware/programs/NAVI_SIMPLIFIED/RouteMap.h",
     "csv_out": "field-records/analysis/20260920_mm_declaration_spatial_variability.csv",
     "json_out": "field-records/analysis/20260920_mm_declaration_spatial_variability.json"
   },

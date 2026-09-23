@@ -46,4 +46,4 @@ diameter and assumed compression factors.
 - decision 0008 (superseded)
 - `docs/IR_DEV_REC/2026-08-09_SYNCHRONIZED_HALL_IR_LAP.md`
 - `docs/IR_SPEED_LOCAL_QC_REVIEW.md`
-- `firmware/test-programs/IR_SPEED_LOCAL/README.md`
+- `firmware/programs/IR_SPEED_LOCAL/README.md`

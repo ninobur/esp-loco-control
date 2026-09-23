@@ -132,7 +132,7 @@ inter-arrival gaps and consecutive-miss run lengths first.
 ## 3. Skipped platforms are run at full cruise
 
 Confirmed by telemetry: Toby held PWM 110 and 357–392 mm/s straight through
-Grillers without a flicker. The skip at [QUORUM.ino:2897](../firmware/QUORUM/QUORUM.ino)
+Grillers without a flicker. The skip at [QUORUM.ino:2897](../firmware/programs/QUORUM/QUORUM.ino)
 `continue`s before the station arms, so the entire approach ladder —
 `approachTargetForOffset`, zone hold, all of it — is bypassed.
 
@@ -161,7 +161,7 @@ artefact. `servicePwmRamp()` moves ±1 per `pwmStepMs`, so that is 56 discrete
 steps at ~12 ms each — against the ~140 ms/step it had been using one second
 earlier.
 
-**Cause:** [QUORUM.ino:2914](../firmware/QUORUM/QUORUM.ino) —
+**Cause:** [QUORUM.ino:2914](../firmware/programs/QUORUM/QUORUM.ino) —
 `if(ctoDesiredPwm != want) requestPwmOver(want, APPROACH_RAMP_MS)` with
 `APPROACH_RAMP_MS = 700`. `requestPwmOver` derives its step rate as
 `durationMs / delta`, so **any** cruise change is compressed into 700 ms
@@ -219,7 +219,7 @@ Needs both a flash and a Pi deploy; the console field does nothing until the
 firmware sends it.
 
 **A verification failure worth not repeating.** Checking the compiled identity
-with `strings firmware/QUORUM/build/...` is not a check: `arduino-cli` builds
+with `strings firmware/programs/QUORUM/build/...` is not a check: `arduino-cli` builds
 to a temp directory unless given `--build-path`, so that folder is a stale
 Arduino IDE artefact. It reported the wrong locomotive while the selector was
 correct — indistinguishable from the wrong-profile bug the boot banner exists

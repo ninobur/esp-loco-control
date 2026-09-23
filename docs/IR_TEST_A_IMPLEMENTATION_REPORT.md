@@ -12,8 +12,8 @@ Specs implemented: `docs/IR_TEST_CAR_ESPNOW_FIRMWARE_SPEC.md` (Draft 1) and
 | artifact | identity | size |
 |---|---|---|
 | `firmware/common/IRSpeedWire.h` | `IrSpeedPacketV1`, magic 0xC6 v1 | 72 bytes, every offset static_asserted |
-| `firmware/test-programs/IR_ESPNOW_SENDER/` | `IR_TEST_CAR_ESPNOW_1_0` | 895,956 bytes (68%) |
-| `firmware/QUORUM/QUORUM.ino` | `QUORUM_1_16R_IR_TEST_A` | Toby (IR on) 1,006,451; Otto (IR inert) 1,000,491 |
+| `firmware/programs/IR_ESPNOW_SENDER/` | `IR_TEST_CAR_ESPNOW_1_0` | 895,956 bytes (68%) |
+| `firmware/programs/QUORUM/QUORUM.ino` | `QUORUM_1_16R_IR_TEST_A` | Toby (IR on) 1,006,451; Otto (IR inert) 1,000,491 |
 
 The sender is IR_SPEED_LOCAL_1_2's acquisition **unchanged** — same pin,
 envelope, hysteresis, five-interval median, spans, timeouts, validity

@@ -1,7 +1,7 @@
 """Route substrate: the committed map, geometry, and the 342-bit space.
 
 Read-only. The DNA polarity table, the per-interval spacing table and the
-station table are parsed from `firmware/QUORUM/QUORUM.ino`, which is the single
+station table are parsed from `firmware/programs/QUORUM/QUORUM.ino`, which is the single
 committed source. Nothing here writes, patches or "corrects" the map.
 
 The uniqueness lengths `W_DIR` and `W_BOTH` are **computed here from the

@@ -2,7 +2,7 @@
 
 **Date:** August 10, 2026
 **Reviewed:** `f034ecb` on `agent/ir-speed-local` —
-`firmware/test-programs/IR_SPEED_LOCAL/` (sketch 447 lines, README, decision 0021)
+`firmware/programs/IR_SPEED_LOCAL/` (sketch 447 lines, README, decision 0021)
 **Reviewer:** Claude
 **Verdict:** One blocking defect before the daylight field gate. Everything
 else is minor or governance. The architecture is sound and the discipline is

@@ -3,7 +3,7 @@
 **Status:** Draft 1 — implementation specification  
 **Date:** 2026-08-15  
 **Firmware identity:** `IR_TEST_CAR_ESPNOW_1_0`  
-**Target path:** `firmware/test-programs/IR_ESPNOW_SENDER/IR_ESPNOW_SENDER.ino`  
+**Target path:** `firmware/programs/IR_ESPNOW_SENDER/IR_ESPNOW_SENDER.ino`
 **Paired receiver:** Toby, locomotive 9950012, running `QUORUM_1_16R_IR_TEST_A`  
 **Parent specification:** `docs/QUORUM_IR_INTEGRATION_SPEC.md`
 
@@ -23,7 +23,7 @@ It is not, by itself, approval for IR to control Toby.
 ## 2. Lineage that must be preserved
 
 The sensor and speed code is derived from
-`firmware/test-programs/IR_SPEED_LOCAL/IR_SPEED_LOCAL.ino`, identity
+`firmware/programs/IR_SPEED_LOCAL/IR_SPEED_LOCAL.ino`, identity
 `IR_SPEED_LOCAL_1_2`. The following behavior and constants are copied without
 retuning:
 

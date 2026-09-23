@@ -2,7 +2,7 @@
 
 **Date:** 2026-09-15
 **Build under analysis:** `NAVI_ONE_1_0X18_LAP_BASELINE_FIELDTEST` (working tree,
-`firmware/test-programs/NAVI_ONE/`), Otto 9950011, entry 70 / exit 25 / floor 82,
+`firmware/programs/NAVI_ONE/variants/NAVI_ONE/`), Otto 9950011, entry 70 / exit 25 / floor 82,
 `fixedAfterPrime = true`.
 **Corpus:** `OTTO_X18_ALL_20260915.tar.gz` — 15 logger segments, 83,915 messages,
 8 boots (one X17, seven X18), 10:54 to 13:48.

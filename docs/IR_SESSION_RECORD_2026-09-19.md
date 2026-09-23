@@ -173,7 +173,7 @@ Files are saved locally; no commit or push was made.
 
 After the user reported reflashing and opening Serial Monitor, direct Arduino
 IDE inspection showed the open sketch was the external-tree copy:
-`/Users/davidbrown/esp-loco-control/firmware/test-programs/IR_SCOPE_ESPNOW_TX/IR_SCOPE_ESPNOW_TX.ino`.
+`/Users/davidbrown/esp-loco-control/firmware/programs/IR_SCOPE_ESPNOW/variants/IR_SCOPE_ESPNOW_TX/IR_SCOPE_ESPNOW_TX.ino`.
 Its visible header identified `IR_SCOPE_ESPNOW_FUSION_TX_1_2`, not active TX 1.4.
 The monitor was on `/dev/cu.wchusbserial110` at 115200 baud. Visible cumulative
 pulse counts rose 915 -> 1069 -> 1212 at approximately five-second intervals;
@@ -188,7 +188,7 @@ NGR-Files sketch and verify its banner before treating this as TX 1.4 testing.
 
 Following the user's clarification, TX 1.4 was copied into the established
 repository sketch path:
-`/Users/davidbrown/esp-loco-control/firmware/test-programs/IR_SCOPE_ESPNOW_TX/IR_SCOPE_ESPNOW_TX.ino`.
+`/Users/davidbrown/esp-loco-control/firmware/programs/IR_SCOPE_ESPNOW/variants/IR_SCOPE_ESPNOW_TX/IR_SCOPE_ESPNOW_TX.ino`.
 The destination was compared before replacement; differences were the active
 version banner, envelope settings, diagnostic banner fields, and CTO target
 selection (old copy targeted Otto 9950011; TX 1.4 targets Toby 9950012 for this

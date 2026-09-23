@@ -1,6 +1,6 @@
 # X22 — the locked per-interval baseline. Implementation report
 
-**2026-09-19.** Sketch directory `firmware/test-programs/NAVI_ONE_X22/`.
+**2026-09-19.** Sketch directory `firmware/programs/NAVI_ONE/variants/NAVI_ONE_X22/`.
 Build identity on `state/bootid`: `NAVI_ONE_1_0X22_LOCKED_BASELINE_FIELDTEST`.
 Base: `NAVI_ONE_X20/` at commit `c255700`, the X21 image.
 

@@ -59,7 +59,7 @@ floor that no longer exists.
 blocker: the offline alignment against the map was never run, so "zero position
 assertions inconsistent with the odometer by more than 2 markers" is inferred
 from firmware self-report rather than independently verified. The replay harness
-in `firmware/QUORUM/tests/` can do this from existing captures at any time, with
+in `firmware/programs/QUORUM/tests/` can do this from existing captures at any time, with
 no track time, if it is ever wanted.
 
 <details>
@@ -118,7 +118,7 @@ exactly the failure M1's crossing test exists to exclude, and its cause is
 
 ### M2 — IR independent speed
 
-`firmware/test-programs/IR_SPEED_LOCAL` flew 2026-08-10. Decisions 0021 (speed
+`firmware/programs/IR_SPEED_LOCAL` flew 2026-08-10. Decisions 0021 (speed
 is computed locally, telemetry reports summaries) and 0022 (the LGB plastic
 10-spoke wheel is the target) are settled. The spoke publishes live — 1753
 messages on 2026-08-13. **The crossing test has not been run:** agreement within
@@ -247,11 +247,11 @@ read-only root, `throttled != 0x0`, or an inactive runlog. Check with
 `tail ~/ngr-telemetry/fetch.log`.
 
 **Locomotives:** Otto 9950011 and Toby 9950012, both `QUORUM_1_13`.
-`firmware/QUORUM/LocoConfig.h` is a live per-flash selector — **read the active
+`firmware/programs/QUORUM/LocoConfig.h` is a live per-flash selector — **read the active
 `#include`, never its comments**; on 2026-08-12 the header said Toby while the
 active include was Otto.
 
-**Host replay harness:** `firmware/QUORUM/tests/` compiles the real firmware and
+**Host replay harness:** `firmware/programs/QUORUM/tests/` compiles the real firmware and
 replays captures. It achieved 1890/1890 odometer and 40/40 decision fidelity on
 the incident fixtures. **This is the tool for M1's offline alignment** and is
 already built.

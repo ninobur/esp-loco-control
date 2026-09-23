@@ -73,7 +73,7 @@ disconnected case are arithmetic over the profile's own constants.
 
 ## References
 
-- `firmware/test-programs/NAVI_ONE/NAVI_ONE.ino` — `serviceIna()`, `serviceRamp()`
-- `firmware/test-programs/NAVI_ONE/LL_LocoConfig_9950012.h`
+- `firmware/programs/NAVI_ONE/variants/NAVI_ONE/NAVI_ONE.ino` — `serviceIna()`, `serviceRamp()`
+- `firmware/programs/NAVI_ONE/variants/NAVI_ONE/LL_LocoConfig_9950012.h`
 - `docs/reviews/NAVI_ONE_0_1_REVIEW_20260829.md` — Finding 10
 - `docs/NAVI_ONE_NEXT.md` — the operator's ruling on stop ramps

@@ -163,8 +163,8 @@ be planned as a measurement, not as a candidate for adoption.
 
 ## 7. References
 
-- `firmware/test-programs/NAVI_ONE/HallCapture.h` — `fixedAfterPrime`, `:361`
-- `firmware/test-programs/NAVI_ONE/tests/gate_baseline_latch.cpp:198–226`
+- `firmware/programs/NAVI_ONE/variants/NAVI_ONE/HallCapture.h` — `fixedAfterPrime`, `:361`
+- `firmware/programs/NAVI_ONE/variants/NAVI_ONE/tests/gate_baseline_latch.cpp:198–226`
 - `docs/NAVI_OTTO_20260913_INVESTIGATION_SUMMARY.md`
 - `docs/NAVI_PEAK_CLOSE_REPLAY_20260913.md`
 - `field-records/20260913_NORTHPOINT_ACQUISITION_LATCH.md`

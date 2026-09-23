@@ -1,11 +1,12 @@
 #!/bin/sh
 # Regenerate 0070.diff: everything the field-test build changes in firmware/,
 # against the last accepted firmware commit. Run after editing anything under
-# firmware/test-programs/NAVI_ONE/.
+# firmware/programs/NAVI_ONE/variants/NAVI_ONE/.
 set -eu
 here=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 repo=$(CDPATH= cd -- "$here/../.." && pwd)
-rel="firmware/test-programs/NAVI_ONE"
+current_rel="firmware/programs/NAVI_ONE/variants/NAVI_ONE"
+base_rel="firmware/programs/NAVI_ONE"
 base=${NAVI_ONE_BASE:-1b8b828}
 cd "$repo"
 {
@@ -19,10 +20,10 @@ cd "$repo"
   echo "# MagnetRecognizer.h and WaveformWindow.h do not appear below: this"
   echo "# design does not touch them, and no threshold was moved."
   echo "#"
-  git diff "$base" -- "$rel"
+  git diff "$base" -- "$current_rel"
   for f in tests/gate_interrupted.cpp tests/fixtures_captures.h; do
-    if ! git ls-files --error-unmatch "$rel/$f" >/dev/null 2>&1; then
-      echo "# NEW FILE, not yet tracked: $rel/$f"
+    if ! git ls-files --error-unmatch "$current_rel/$f" >/dev/null 2>&1; then
+      echo "# NEW FILE, not yet tracked: $current_rel/$f"
     fi
   done
 } > "$here/0070.diff"

@@ -8,7 +8,7 @@ timing source
 and evidence-ring fields (§3.6 branch-local elapsed time), the occupancy
 publication, and the separation of navigation state from speed state.
 Authorises no firmware change. Line references are to
-`firmware/QUORUM/QUORUM.ino` at `QUORUM_1_16R_IR_TEST_A`, and to
+`firmware/programs/QUORUM/QUORUM.ino` at `QUORUM_1_16R_IR_TEST_A`, and to
 `tools/navlab/reachability_nav.py` at 75fa0ee.
 
 Three dispositions: **RETAIN** (unchanged, or extended additively),

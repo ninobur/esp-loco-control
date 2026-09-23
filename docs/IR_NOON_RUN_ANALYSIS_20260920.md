@@ -165,7 +165,7 @@ Sources are archived as `field-records/logs/20260920_ir_noon_capture.log` and
 From the repository root:
 
 ```sh
-python3 tools/ir_noon_analysis.py field-records/logs/20260920_ir_noon_capture.log field-records/logs/20260920_toby_noon_capture.log firmware/test-programs/NAVI_SIMPLIFIED/RouteMap.h
+python3 tools/ir_noon_analysis.py field-records/logs/20260920_ir_noon_capture.log field-records/logs/20260920_toby_noon_capture.log firmware/programs/NAVI_SIMPLIFIED/RouteMap.h
 python3 -m unittest discover -s tools -p test_ir_noon_analysis.py
 ```
 

@@ -3,7 +3,7 @@
 Otto (9950011). Curated off the Pi; the originals live in
 `~/NGR/telemetry/all_20260909.log` on 192.168.68.142.
 
-Collected on `firmware/test-programs/QUORUM_1_13X`, PWM 90, manual drive,
+Collected on `firmware/programs/QUORUM/variants/QUORUM_1_13X`, PWM 90, manual drive,
 new ESP32 with external antenna. See [docs/OTTO_SURVEY_BUILD_20260905.md](../../../docs/OTTO_SURVEY_BUILD_20260905.md)
 for why this sketch and not an IR/ESP-NOW build.
 

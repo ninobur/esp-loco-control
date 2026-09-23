@@ -117,7 +117,7 @@ input, verified. But the locomotive never hears it:
 | broker | message arrives → **verified** at `ngr/loco/9950011/cmd/brake` |
 | **firmware** | **no `cmd/brake` channel exists** |
 
-In `firmware/QUORUM/QUORUM.ino`:
+In `firmware/programs/QUORUM/QUORUM.ino`:
 
 - `T_ST_BRAKE` exists — a **state** topic, published once per connect as a
   retained inert `"0"`, commented *"no brake channel in SOLONAV"*.

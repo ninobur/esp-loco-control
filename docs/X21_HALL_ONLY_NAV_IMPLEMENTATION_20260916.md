@@ -1,7 +1,7 @@
 # X21 — Hall-only navigation. Implementation report
 
 **2026-09-16.** Subtractive redesign of the X20 Hall navigation path.
-Sketch directory `firmware/test-programs/NAVI_ONE_X20/` (name retained; the
+Sketch directory `firmware/programs/NAVI_ONE/variants/NAVI_ONE_X20/` (name retained; the
 build identity on `state/bootid` is now `NAVI_ONE_1_0X21_HALL_ONLY_FIELDTEST`).
 Base: commit `75cb888`, the only commit that directory has ever had.
 

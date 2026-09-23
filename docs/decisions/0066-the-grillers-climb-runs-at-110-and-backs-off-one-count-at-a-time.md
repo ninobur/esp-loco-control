@@ -104,9 +104,9 @@ Not field-tested. Not ratified.
 
 ## References
 
-- `firmware/test-programs/NAVI_ONE/RouteMap.h` — `cruisePwmAt()`
-- `firmware/test-programs/NAVI_ONE/NAVI_ONE.ino` — the advance handler
-- `firmware/test-programs/NAVI_ONE/tests/gate_section_cruise.cpp`
+- `firmware/programs/NAVI_ONE/variants/NAVI_ONE/RouteMap.h` — `cruisePwmAt()`
+- `firmware/programs/NAVI_ONE/variants/NAVI_ONE/NAVI_ONE.ino` — the advance handler
+- `firmware/programs/NAVI_ONE/variants/NAVI_ONE/tests/gate_section_cruise.cpp`
 - `NGR-Files/Calibration Data OTTO with two 2 axle passenger cars/` — the
   measured PWM/speed data behind the rejected pacing table
 - `docs/NAVI_ONE_FIELD_FINDING_08_BASELINE_LATCH_SWALLOWS_MARKERS.md`

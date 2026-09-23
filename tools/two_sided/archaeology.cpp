@@ -18,10 +18,10 @@
 #include <sstream>
 #include <fstream>
 #define main gate12_main_unused
-#include "../../firmware/test-programs/NAVI_ONE/tests/gate_interrupted.cpp"
+#include "../../firmware/programs/NAVI_ONE/variants/NAVI_ONE/tests/gate_interrupted.cpp"
 #undef main
-#include "../../firmware/test-programs/NAVI_ONE/TwoSided.h"
-#include "../../firmware/test-programs/NAVI_ONE/tests/fixtures_arches.h"
+#include "../../firmware/programs/NAVI_ONE/variants/NAVI_ONE/TwoSided.h"
+#include "../../firmware/programs/NAVI_ONE/variants/NAVI_ONE/tests/fixtures_arches.h"
 
 static ArchVerdict judge(const std::vector<int16_t>& j, int pre, int join, int16_t peak) {
   Passage p; p.judged = j.data(); p.oriented = j.data();

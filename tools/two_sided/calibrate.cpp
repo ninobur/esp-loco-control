@@ -22,8 +22,8 @@
 #include <algorithm>
 #include <sstream>
 #include <fstream>
-#include "../../firmware/test-programs/NAVI_ONE/MagnetRecognizer.h"
-#include "../../firmware/test-programs/NAVI_ONE/TwoSided.h"
+#include "../../firmware/programs/NAVI_ONE/variants/NAVI_ONE/MagnetRecognizer.h"
+#include "../../firmware/programs/NAVI_ONE/variants/NAVI_ONE/TwoSided.h"
 using namespace navi_one;
 
 struct Row {

@@ -39,7 +39,7 @@ accumulation while rolling.
 **Flash RX 1.1 on the Pi receiver.** The 08-27 capture ran RX **1.0**, which
 sends no type-4 acknowledgment, so TX 1.2 retried every retained fusion report
 until eviction — **7,687 lines carrying 168 unique reports, 45.8x**. That storm
-competes with the raw waveform stream. `firmware/test-programs/IR_SCOPE_ESPNOW_RX/`
+competes with the raw waveform stream. `firmware/programs/IR_SCOPE_ESPNOW/variants/IR_SCOPE_ESPNOW_RX/`
 is 1.1 and fixes it.
 
 **`docs/IR_PACKET_FORMAT.md` §3 is wrong.** It documents `MIN_SPAN = 120` for

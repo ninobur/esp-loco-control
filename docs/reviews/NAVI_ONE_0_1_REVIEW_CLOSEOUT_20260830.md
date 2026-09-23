@@ -198,4 +198,4 @@ mine. Flagged, not built.
 - `docs/reviews/NAVI_ONE_0_1_REVIEW_20260829.md` — the review
 - `docs/reviews/NAVI_ONE_0_1_REVIEW_RESPONSE_20260830.md` — findings 1 and 2
 - decisions 0058, 0059, 0060, 0061, 0062
-- `firmware/test-programs/NAVI_ONE/` at `NAVI_ONE_0_3`
+- `firmware/programs/NAVI_ONE/variants/NAVI_ONE/` at `NAVI_ONE_0_3`

@@ -45,7 +45,7 @@ service.
    Manual/AUTO model back before editing. The station routine may write PWM only
    while AUTO is enrolled and running. The dashboard's current inability to
    enroll AUTO must not be bypassed in firmware.
-2. **One control sketch.** Work branches from `firmware/QUORUM/QUORUM.ino`.
+2. **One control sketch.** Work branches from `firmware/programs/QUORUM/QUORUM.ino`.
    Do not create a separate station sketch.
 3. **Bicameral authority remains constitutional.** Station code may command PWM
    only while `autoRunning`. Manual remains sovereign. E-STOP remains immediate.
@@ -193,7 +193,7 @@ separate change.
 > Read `docs/CTO3/station-stop-v1/README.md`,
 > `docs/CTO3/AUTHORITY_MODEL.md`,
 > `docs/CTO3/CTO3_SPEC.md` §§2, 6, and 12, QUORUM R21 §0.2, and the
-> current `firmware/QUORUM/QUORUM.ino`. First report whether the approved Station
+> current `firmware/programs/QUORUM/QUORUM.ino`. First report whether the approved Station
 > Stop v1 behavior already exists in the current source. Trace the Arches path
 > from arming through `RESET/DEPARTED`, including every PWM write and every exit.
 >

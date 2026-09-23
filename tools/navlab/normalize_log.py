@@ -29,7 +29,7 @@ matching tests/extract_session.py.
 
 Usage:
   python3 tools/navlab/normalize_log.py --capture <log> [--capture <log2> ...]
-      --out <records.jsonl> [--map-source firmware/QUORUM/QUORUM.ino]
+      --out <records.jsonl> [--map-source firmware/programs/QUORUM/QUORUM.ino]
 """
 import argparse, datetime, json, pathlib, re, sys
 
@@ -67,7 +67,7 @@ def main():
     ap.add_argument('--capture', action='append', required=True)
     ap.add_argument('--out', required=True)
     ap.add_argument('--map-source', default=str(pathlib.Path(__file__).resolve()
-                    .parents[2] / 'firmware/QUORUM/QUORUM.ino'))
+                    .parents[2] / 'firmware/programs/QUORUM/QUORUM.ino'))
     args = ap.parse_args()
     dna, spc = load_map(args.map_source)
     pole = {1: 'N', 0: 'S'}

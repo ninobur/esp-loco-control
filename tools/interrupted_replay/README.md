@@ -1,6 +1,6 @@
 # `tools/interrupted_replay` — decision 0070's harness
 
-**The change has landed in `firmware/test-programs/NAVI_ONE/`.** It is an
+**The change has landed in `firmware/programs/NAVI_ONE/variants/NAVI_ONE/`.** It is an
 **experimental field-test build**, not field-accepted NAVI_ONE 1.0, and it
 boots saying so. This directory no longer holds a copy of the firmware — the
 duplicate `proposed/` tree was deleted the moment it became a second copy of
@@ -17,7 +17,7 @@ make_fixtures.py     regenerate fixtures_captures.h from ~/ngr-telemetry/wavefor
 ```
 
 The gate itself and its fixtures now live with the code they test, in
-`firmware/test-programs/NAVI_ONE/tests/`.
+`firmware/programs/NAVI_ONE/variants/NAVI_ONE/tests/`.
 
 ## Running it
 
@@ -25,7 +25,8 @@ The gate itself and its fixtures now live with the code they test, in
 sh tools/interrupted_replay/build_and_run.sh
 ```
 
-It extracts `firmware/test-programs/NAVI_ONE` **at commit `1b8b828`** — the last
+It extracts the historical `firmware/programs/NAVI_ONE` path **at commit
+`1b8b828`** — the last
 accepted firmware, the build Toby last ran — into a temporary tree, copies the
 working tree into another, runs the eleven pre-existing gates against **both**
 with the base commit's own unmodified runner, diffs the two outputs byte for

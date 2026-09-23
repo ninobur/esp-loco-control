@@ -96,5 +96,5 @@ behaviour after a missed magnet. Those remain proven only in the host suite.
 
 ## References
 
-- decision 0053; `firmware/test-programs/NAVI_2/NAVI_2.ino`
+- decision 0053; `firmware/programs/NAVI_2/NAVI_2.ino`
 - `docs/research/20260828_WHAT_THE_HALL_SENSOR_SEES.md`

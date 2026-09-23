@@ -242,7 +242,7 @@ knowing that a station dwell and this latch may be the same signal.
 
 ## References
 
-- `firmware/test-programs/NAVI_ONE/HallCapture.h` — `updateBaseline()`,
+- `firmware/programs/NAVI_ONE/variants/NAVI_ONE/HallCapture.h` — `updateBaseline()`,
   `entryMargin` 38, `exitMargin` 25, `MED` 41, `baselineMs` 25
 - `docs/decisions/0057-*` — the removal of the duration ceiling
 - `docs/decisions/0065-*` — withdrawn; this finding is what the field showed

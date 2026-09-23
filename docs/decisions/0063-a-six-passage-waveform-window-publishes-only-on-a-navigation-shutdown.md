@@ -72,7 +72,7 @@ in advance which passage will turn out to matter.
 - A future review of any navigation-caused strike now has the option of
   asking for its own waveform, if the operator or an analyst chooses to parse
   it — the format is documented and host-tested in
-  `firmware/test-programs/NAVI_ONE/WaveformDump.h`, but nothing on the Pi or
+  `firmware/programs/NAVI_ONE/variants/NAVI_ONE/WaveformDump.h`, but nothing on the Pi or
   the console decodes it yet. That is future work, not part of this decision.
 - This is a genuine capability addition to a build that had already cleared
   four gates. A fifth gate (`gate_waveform.cpp`, 16 checks) now covers the
@@ -85,9 +85,9 @@ in advance which passage will turn out to matter.
 
 ## References
 
-- `firmware/test-programs/NAVI_ONE/WaveformWindow.h`
-- `firmware/test-programs/NAVI_ONE/WaveformDump.h`
-- `firmware/test-programs/NAVI_ONE/tests/gate_waveform.cpp`
+- `firmware/programs/NAVI_ONE/variants/NAVI_ONE/WaveformWindow.h`
+- `firmware/programs/NAVI_ONE/variants/NAVI_ONE/WaveformDump.h`
+- `firmware/programs/NAVI_ONE/variants/NAVI_ONE/tests/gate_waveform.cpp`
 - `docs/NAVI_ONE_0_3_FIELD_FINDING_02_SHAPE_REJECTION_LAG_STOP.md` (MM110)
 - `docs/NAVI_ONE_0_3_FIELD_FINDING_03_SECOND_SHAPE_REJECTION_MM146.md` (MM147/145, second occurrence)
 - decisions 0058, 0059 (the strike latch; the six-marker bound this window's depth matches)

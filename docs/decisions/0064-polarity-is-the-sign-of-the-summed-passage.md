@@ -116,8 +116,8 @@ All seven host gates pass, and the sketch compiles against Toby's exact core
 
 - `docs/NAVI_ONE_0_3_FIELD_FINDING_05_IMPULSE_FLIPPED_POLARITY_AT_MM70.md`
 - `docs/NAVI_ONE_0_3_FIELD_FINDING_06_SECOND_ENTRY_IMPULSE_MM119.md`
-- `firmware/test-programs/NAVI_ONE/HallCapture.h` — `tally()`, `close()`
-- `firmware/test-programs/NAVI_ONE/tests/gate_polarity.cpp`
-- `firmware/test-programs/NAVI_ONE/tests/replay_polarity_survey.cpp`
+- `firmware/programs/NAVI_ONE/variants/NAVI_ONE/HallCapture.h` — `tally()`, `close()`
+- `firmware/programs/NAVI_ONE/variants/NAVI_ONE/tests/gate_polarity.cpp`
+- `firmware/programs/NAVI_ONE/variants/NAVI_ONE/tests/replay_polarity_survey.cpp`
 - `field-records/logs/20260831_navi_one_waveforms/captured_passages.tsv`
 - decision 0063 — the waveform window that made this diagnosable

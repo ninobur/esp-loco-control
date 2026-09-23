@@ -80,7 +80,7 @@ at ≈ 14:30 in the 12:50 session.
 - `field-records/logs/20260820_morning_session.log` — the `env` field spans
   **182 hours** (a broker log, not a morning) with excursions to 16275 counts.
   It is not a clean Hall line; injecting it would inject nonsense.
-- `firmware/test-programs/NAVI_ONE_X18_RECORDER/Hall_Baseline_Laps.txt` — one
+- `firmware/programs/NAVI_ONE/variants/NAVI_ONE_X18_RECORDER/Hall_Baseline_Laps.txt` — one
   session, 14:35–15:16, parked at MM40 with PWM 0, `fixed` 1949 and `shadow`
   1936 unchanged for the whole 41 minutes. No motion, so no drift rate.
 

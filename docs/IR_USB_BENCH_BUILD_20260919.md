@@ -7,7 +7,7 @@ missing-data regions. This is a raw measuring instrument for the non-powered
 wheel on the IR car, not a replacement navigation system or detector fix.
 No QUORUM, locomotive profile, motor control, or production protocol was changed.
 
-Artifacts: `firmware/test-programs/IR_USB_BENCH/` and `tools/ir_usb_bench.py`.
+Artifacts: `firmware/programs/IR_USB_BENCH/` and `tools/ir_usb_bench.py`.
 The README beside the sketch specifies the wire format and test procedure.
 
 ## Prior observations preserved

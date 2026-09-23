@@ -1,8 +1,8 @@
 # IR_DIAG readied for the finescale-wheel daylight run (+ IR_TEST P1 fix)
 
 **Date:** 2026-08-06
-**Files:** `firmware/test-programs/IR_DIAG/IR_DIAG.ino` (changes 2–6),
-`firmware/test-programs/IR_TEST/IR_TEST.ino` (change 1)
+**Files:** `firmware/programs/IR_DIAG/IR_DIAG.ino` (changes 2–6),
+`firmware/programs/IR_TEST/IR_TEST.ino` (change 1)
 **Status:** built, replayed, **not flashed** — Sam reviews first.
 
 | commit | change |

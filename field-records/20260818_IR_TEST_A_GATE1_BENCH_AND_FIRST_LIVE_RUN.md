@@ -74,9 +74,9 @@ E-stop was observed or expected.
 
 Three files carry this session's work and were not committed:
 
-- `firmware/QUORUM/LL_LocoConfig_9950012.h` — `IR_SENSOR_MAC_BYTES`
+- `firmware/programs/QUORUM/LL_LocoConfig_9950012.h` — `IR_SENSOR_MAC_BYTES`
   bench-paired to the IR Test Car.
-- `firmware/test-programs/IR_ESPNOW_SENDER/ir_espnow_config.h` —
+- `firmware/programs/IR_ESPNOW_SENDER/ir_espnow_config.h` —
   `TOBY_STA_MAC` bench-paired to Toby.
 - `server/ngr_app_v1_11_2.py` v1.11.3 — the console IR row. Already
   deployed to the Pi (`ngr-app` restarted, confirmed active) independent

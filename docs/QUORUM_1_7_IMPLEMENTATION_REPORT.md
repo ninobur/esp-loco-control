@@ -11,7 +11,7 @@ Status: **built, not flashed.** Awaiting Sam/CODEX review per standing practice.
 
 ## What changed
 
-`firmware/QUORUM/QUORUM.ino`, `SKETCH_NAME` `QUORUM_1_6` → `QUORUM_1_7`.
+`firmware/programs/QUORUM/QUORUM.ino`, `SKETCH_NAME` `QUORUM_1_6` → `QUORUM_1_7`.
 Filename unchanged (no version in filenames; SKETCH_NAME + git carry the
 version). One commit, revertible on its own.
 

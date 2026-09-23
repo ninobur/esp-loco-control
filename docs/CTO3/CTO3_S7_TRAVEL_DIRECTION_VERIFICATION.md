@@ -2,7 +2,7 @@
 
 Date: 2026-08-06
 Auditor: Claude (source verification, per CTO3_SPEC §12 step 1)
-Subject: firmware/QUORUM/QUORUM.ino (QUORUM_1_6, commit tree as of f057e1a)
+Subject: firmware/programs/QUORUM/QUORUM.ino (QUORUM_1_6, commit tree as of f057e1a)
 Question (CTO3_SPEC §7): does current QUORUM derive travel direction as
 `travel_direction = session_direction XOR motor_reverse`, or does it score
 against session direction alone?

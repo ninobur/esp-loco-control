@@ -1,6 +1,6 @@
 {
   "map": {
-    "map_source": "firmware/QUORUM/QUORUM.ino",
+    "map_source": "firmware/programs/QUORUM/QUORUM.ino",
     "dna_n": 171,
     "circuit_mm": 52150,
     "w_max_searched": 24,

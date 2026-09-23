@@ -18,7 +18,7 @@ not authorize implementation.
 Every claim below was checked against source at `9459e36` rather than against
 recollection or against the spec's own account of the source:
 
-- `firmware/QUORUM/QUORUM.ino`
+- `firmware/programs/QUORUM/QUORUM.ino`
 - `server/ngr_app_v1_10_9.py` (the live console)
 - `server/ngr_app_v1_10_0.py` (subscription set)
 
@@ -274,5 +274,5 @@ failure modes introduced by this iteration rather than fixed by it:
 - `docs/NGR_DASHBOARD_FINDINGS_20260807.md` — findings this spec answers
 - `docs/CTO3/AUTHORITY_MODEL.md` — model of record
 - `docs/decisions/0013-bicameral-four-door-authority.md`
-- `firmware/QUORUM/QUORUM.ino` at `9459e36`
+- `firmware/programs/QUORUM/QUORUM.ino` at `9459e36`
 - `server/ngr_app_v1_10_9.py` at `9459e36` — live console

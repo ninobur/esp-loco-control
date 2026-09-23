@@ -8,7 +8,7 @@ authorizes an agent to act. See the README's rule that matters most.
 third node may relay peer truth under freshness and novelty gates), 0076
 (navigation recovers from one wrong observation).
 **Evidence:** `docs/NAVI_CTO_ARCHITECTURE_AND_PROVENANCE_20260909.md` §1, §5,
-§6, §9. Donor behaviour read from `firmware/QUORUM/QUORUM.ino:2860-2880`
+§6, §9. Donor behaviour read from `firmware/programs/QUORUM/QUORUM.ino:2860-2880`
 (`ctoDesiredPwm` continuous cap) and `NAVI_ONE.ino:453-458`
 (`requestPwm`/`serviceRamp`).
 **Builds:** none. This record sets direction. Stage 1 (Otto alone on NAVI_ONE,
@@ -76,8 +76,8 @@ navigation logic re-entering through the traffic layer.
 ## References
 
 - `docs/NAVI_CTO_ARCHITECTURE_AND_PROVENANCE_20260909.md` §1, §5, §6, §9
-- `firmware/QUORUM/QUORUM.ino:2860-2880`
-- `firmware/test-programs/NAVI_ONE/NAVI_ONE.ino:447-458`
+- `firmware/programs/QUORUM/QUORUM.ino:2860-2880`
+- `firmware/programs/NAVI_ONE/variants/NAVI_ONE/NAVI_ONE.ino:447-458`
 
 ## Review
 

@@ -63,6 +63,6 @@ done. That is also the intent.
 
 ## References
 
-- `firmware/test-programs/NAVI_ONE/LocoConfig.h`, `LL_LocoConfig_9950012.h`
+- `firmware/programs/NAVI_ONE/variants/NAVI_ONE/LocoConfig.h`, `LL_LocoConfig_9950012.h`
 - `docs/reviews/NAVI_ONE_0_1_REVIEW_20260829.md` — Findings 8, 9
 - decision 0056 (the declaration is truth), 0060

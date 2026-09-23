@@ -4,7 +4,7 @@
 
 Implementation of `docs/QUORUM_v3_0_implementation_spec.md` Revision 20 on the
 v2.22 baseline. Originally shipped as `SOLONAV_3_0` (fa59756), renamed to
-`firmware/QUORUM/QUORUM.ino`, `SKETCH_NAME "QUORUM_1_0"` (4c80c3a, no code
+`firmware/programs/QUORUM/QUORUM.ino`, `SKETCH_NAME "QUORUM_1_0"` (4c80c3a, no code
 changes). The CODEX implementation review of this commit is in
 `docs/QUORUM_1_0_CODEX_FINDINGS.md`; its four High findings are fixed in
 QUORUM 1.1.

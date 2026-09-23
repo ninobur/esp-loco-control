@@ -8,8 +8,8 @@ The active diagnostic sketches are stored in this repository:
 
 | Role | File | Version string |
 |---|---|---|
-| Transmitter (test car, GPIO34) | `firmware/test-programs/IR_SCOPE_ESPNOW_TX/IR_SCOPE_ESPNOW_TX.ino` | `IR_SCOPE_ESPNOW_FUSION_TX_1_2` |
-| Receiver (Pi, `/dev/ttyUSB0`) | `firmware/test-programs/IR_SCOPE_ESPNOW_RX/IR_SCOPE_ESPNOW_RX.ino` | `IR_SCOPE_ESPNOW_RX_1_1` |
+| Transmitter (test car, GPIO34) | `firmware/programs/IR_SCOPE_ESPNOW/variants/IR_SCOPE_ESPNOW_TX/IR_SCOPE_ESPNOW_TX.ino` | `IR_SCOPE_ESPNOW_FUSION_TX_1_2` |
+| Receiver (Pi, `/dev/ttyUSB0`) | `firmware/programs/IR_SCOPE_ESPNOW/variants/IR_SCOPE_ESPNOW_RX/IR_SCOPE_ESPNOW_RX.ino` | `IR_SCOPE_ESPNOW_RX_1_1` |
 
 The original type-1 raw-waveform layout documented below remains wire-compatible.
 TX 1.2 additionally receives Toby's frozen 45-byte CTO v3 packet and emits
@@ -25,7 +25,7 @@ verified against 4,817 real packets, not just read off the struct — see
 
 **`tools/IR_SCOPE_Replay.py` does not exist, and nothing parses this format
 as its native input.** The replay is at
-`firmware/test-programs/IR_SCOPE/IR_SCOPE_Replay.py` and reads the *IR_SCOPE
+`firmware/programs/IR_SCOPE/IR_SCOPE_Replay.py` and reads the *IR_SCOPE
 CSV* produced by `IR_SCOPE_Plotter.py` over MQTT — a different, older
 instrument. So this document is the authoritative definition, not a restatement
 of parsing code. What does exist in this repo:
@@ -34,7 +34,7 @@ of parsing code. What does exist in this repo:
 |---|---|---|
 | `tools/ir_scope_espnow_analyze.py` | this format, natively | packet parser + per-capture summary; `parse_file()` is the reference decoder |
 | `tools/ir_scope_espnow_to_csv.py` | this format → IR_SCOPE CSV | bridge to the replay; lossy, see §6 |
-| `firmware/test-programs/IR_SCOPE/IR_SCOPE_Replay.py` | IR_SCOPE CSV only | falling-threshold replay |
+| `firmware/programs/IR_SCOPE/IR_SCOPE_Replay.py` | IR_SCOPE CSV only | falling-threshold replay |
 
 `IR_SCOPE_Replay.py`'s CLI and output are documented in §6 anyway, since the
 question was asked — but note `2026-08-26_IR_SCOPE_REPLAY_ON_FOUR_LAPS.md`:
@@ -275,7 +275,7 @@ Reads **IR_SCOPE CSV**, not this format. Bridge with
 `tools/ir_scope_espnow_to_csv.py capture.log out.csv [--start EPOCH] [--end EPOCH]`.
 
 ```
-python3 firmware/test-programs/IR_SCOPE/IR_SCOPE_Replay.py capture.csv
+python3 firmware/programs/IR_SCOPE/IR_SCOPE_Replay.py capture.csv
                                     [--frac 0.45] [--plot 0.50] [--start S]
                                     [--duration S] [--save overlay.png]
                                     [--prom 0.25] [--rev-marker rev]

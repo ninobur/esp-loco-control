@@ -2,7 +2,7 @@
   "sources": {
     "ir": "field-records/logs/20260920_ir_noon_capture.log",
     "hall": "field-records/logs/20260920_toby_noon_capture.log",
-    "route_header": "firmware/test-programs/NAVI_SIMPLIFIED/RouteMap.h"
+    "route_header": "firmware/programs/NAVI_SIMPLIFIED/RouteMap.h"
   },
   "corrupt_packets": {},
   "clock_offset_spread_p05_p95_s": 0.11668515205383301,

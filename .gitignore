@@ -1,6 +1,7 @@
 # Secrets — never committed. credentials_template.h is the pattern to copy.
 credentials.h
 firmware/*/credentials.h
+firmware/programs/**/credentials.h
 
 # Run captures: evidence, not source. Large and constantly changing.
 logs/
@@ -43,7 +44,8 @@ __pycache__/
 venv/
 firmware/libraries
 firmware/libraries
-firmware/test-programs/ESPNOW_CMD_TX/espnow_keys.h
+firmware/programs/ESPNOW_CMD_TX/espnow_keys.h
 
 # host-test build output
-firmware/test-programs/*/tests/gen/
+firmware/programs/*/tests/gen/
+firmware/programs/**/tests/gen/

@@ -4,7 +4,7 @@ Status: Accepted  (operator ruling 2026-08-05; recorded 2026-08-06)
 
 ## Decision
 QUORUM is the only control firmware. The separate MANUAL sketch moved to
-`firmware/test-programs/`, restated as reference-only, never to be flashed.
+`firmware/programs/`, restated as reference-only, never to be flashed.
 
 ## Context
 During development it made sense to test automatic functions from a manual

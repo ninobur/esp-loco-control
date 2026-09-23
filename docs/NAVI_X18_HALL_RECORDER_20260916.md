@@ -489,7 +489,7 @@ the ADC, the Hall task or the ESP32, and says so in its own `--help`.
 
 | | |
 |---|---|
-| `firmware/test-programs/NAVI_ONE_X18_RECORDER/` | the sketch, X18 as flown plus the tap |
+| `firmware/programs/NAVI_ONE/variants/NAVI_ONE_X18_RECORDER/` | the sketch, X18 as flown plus the tap |
 | `…/HallRecorder.h` | the whole recorder: wire format, rings, batching |
 | `…/tests/gate_recorder.cpp` | gate 14 |
 | `tools/xhr_format.py` | the format, single source of truth |

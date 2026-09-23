@@ -79,5 +79,5 @@ command path considerably and did not look at what it retains.
 
 ## References
 
-- `firmware/test-programs/NAVI_ONE/NAVI_ONE.ino` — `serviceStatus()`, `handleCommand()`
+- `firmware/programs/NAVI_ONE/variants/NAVI_ONE/NAVI_ONE.ino` — `serviceStatus()`, `handleCommand()`
 - decision 0011

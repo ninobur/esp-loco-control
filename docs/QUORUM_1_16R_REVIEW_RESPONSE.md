@@ -87,7 +87,7 @@ physically fixed on the railway since.
 hard-bound fixtures never had a cleanly-fitting suffix.
 
 **Coverage built, all sweep-found rather than hand-picked — and every sweep
-script is committed under `firmware/QUORUM/tests/sweeps/` with its headline
+script is committed under `firmware/programs/QUORUM/tests/sweeps/` with its headline
 count, so each number below is re-runnable rather than testimonial:**
 
 - `syn_adv_rescue_straddle` — the positive. A missed marker opens an

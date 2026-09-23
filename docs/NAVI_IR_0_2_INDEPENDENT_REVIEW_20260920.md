@@ -191,7 +191,7 @@ change.
 
 ## References
 
-- [Sketch README](../firmware/test-programs/NAVI_IR/README.md)
+- [Sketch README](../firmware/programs/NAVI_IR/README.md)
 - [0.1 implementation report](NAVI_IR_0_1_IMPLEMENTATION_REPORT.md)
 - [0.1 first-startup field record](NAVI_IR_FIRST_STARTUP_20260920.md)
 - [Decision 0089](decisions/0089-navi-ir-joint-evidence.md)

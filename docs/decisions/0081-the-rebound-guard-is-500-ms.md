@@ -59,9 +59,9 @@ corrects the decision log, including the stale 200 ms block in 0079.
 
 ## References
 
-- `firmware/test-programs/NAVI_ONE/LL_LocoConfig_9950011.h`
-- `firmware/test-programs/NAVI_ONE/LL_LocoConfig_9950012.h`
-- `firmware/test-programs/NAVI_ONE/MagnetRecognizer.h`
+- `firmware/programs/NAVI_ONE/variants/NAVI_ONE/LL_LocoConfig_9950011.h`
+- `firmware/programs/NAVI_ONE/variants/NAVI_ONE/LL_LocoConfig_9950012.h`
+- `firmware/programs/NAVI_ONE/variants/NAVI_ONE/MagnetRecognizer.h`
 - `docs/decisions/0057-the-rebound-guard-is-measured-close-to-open-and-there-is-no-motion-gate.md`
 - `docs/decisions/0079-ottos-recognizer-constants-are-measured-on-otto.md`
 - Commit `4e72ff1`

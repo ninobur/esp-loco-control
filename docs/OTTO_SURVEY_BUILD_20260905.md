@@ -59,7 +59,7 @@ exactly as it did in August — say so and I will treat it as its own build.
 
 ## 1. The exact sketch
 
-**`firmware/test-programs/QUORUM_1_13X/QUORUM_1_13X.ino`**, `SKETCH_NAME
+**`firmware/programs/QUORUM/variants/QUORUM_1_13X/QUORUM_1_13X.ino`**, `SKETCH_NAME
 "QUORUM_1_13X"` (line 367). Tracked, committed, with its own README, profiles
 and test suite.
 
@@ -113,7 +113,7 @@ Otto's profile in that tree is already complete and already correct for a survey
 
 **The 38-count aperture the instruction asks for is already there.** This tree
 predates the 2026-08-20 phantom gate, which was applied only to
-`firmware/QUORUM/` and inherited by the NAVI_ONE trees. Otto's entry margin is
+`firmware/programs/QUORUM/` and inherited by the NAVI_ONE trees. Otto's entry margin is
 13 here and 45 there.
 
 Verified by building it:
@@ -193,6 +193,6 @@ which is the point of running the proven collector.
 
 Otto's profile is duplicated across eleven trees carrying **two different entry
 margins** — 13 in `SENSORTEST`, `MANUAL`, `QUORUM_1_13D`, `QUORUM_1_13X`; 45 in
-`firmware/config`, `firmware/QUORUM`, `NAVI_CL2`, `NAVI_2`, `NAVI_ONE`,
+`firmware/config`, `firmware/programs/QUORUM`, `NAVI_CL2`, `NAVI_2`, `NAVI_ONE`,
 `NAVI_ONE_STATION_CURVES`. Whichever tree gets compiled decides which Otto is
 flashed. Flagged; not touched.
