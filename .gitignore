@@ -14,6 +14,17 @@ logs/
 !field-records/logs/navlab-inputs/
 !field-records/logs/navlab-inputs/*.log
 
+# Very large local captures retained for analysis but not versioned. The
+# accompanying reports identify these paths when the raw source is needed.
+field-records/logs/20260813_otto_1_13_noquorum_watch.log
+field-records/logs/20260813_otto_1_13_noquorum_watch.log.gz
+field-records/logs/20260820_morning_session.log
+field-records/logs/20260919_ir_*.log
+field-records/logs/20260920_ir_*.log
+
+# Reproducible replay output; source logs and reports are versioned instead.
+tools/baseline_laps/out/
+
 # Arduino build artefacts
 build/
 *.elf
