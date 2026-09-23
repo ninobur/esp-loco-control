@@ -1,0 +1,402 @@
+Here is the summary I would give CODEX. The important point is that the “20 questions” exercise was not an attempt to create twenty special-case rules. It was how we forced ourselves to expose the physical relationships NAVI had previously been glossing over.
+
+Purpose
+
+The extended “twenty questions” discussion was a design exercise intended to make NAVI’s decision process explicit before changing firmware.
+
+The central lesson was:
+
+Do not solve individual anomalous Hall/IR events with additional symptom-specific rules. Define what each source actually measures, establish the physical constraints, and let NAVI apply explicit rules to the evidence.
+
+The architecture remains:
+
+DETECTION → HARD/PHYSICAL CONSTRAINTS → NAVI JUDGMENT
+
+The discussion substantially clarified what “NAVI judgment” means.
+
+⸻
+
+1. NAVI maintains a world view
+
+NAVI has a current believed position supported by:
+
+* the operator’s starting declaration;
+* accepted MM history;
+* direction;
+* surveyed MM map;
+* measured travel;
+* recent observations.
+
+That existing position has decisional inertia.
+
+One missed magnet, one wrong polarity, or one contradictory observation does not erase the accumulated evidence and create global ambiguity.
+
+NAVI is where NAVI believes NAVI is until a preponderance of evidence supports a better physically possible explanation.
+
+⸻
+
+2. Possible before probable
+
+When NAVI investigates an apparent positional discrepancy, it must first determine which alternative positions are physically possible.
+
+Only then should it ask which possible position best matches the MM polarity evidence.
+
+A mathematically excellent DNA/polarity match at an unreachable location is not a candidate.
+
+This is why the present whole-route 171-position pattern search is conceptually wrong.
+
+The absolute correction-search boundary is ±10 MM from NAVI’s incumbent position, but NAVI should not mechanically search all twenty alternatives. IR travel, direction, route history, PWM/motion evidence and other physical constraints should remove impossible candidates first.
+
+±10 is an outer boundary, not a candidate list.
+
+⸻
+
+3. Rolling physical history
+
+NAVI should retain approximately:
+
+10 MM positions / approximately 3,000 mm of recent physical travel history.
+
+This is not necessarily ten successful Hall observations.
+
+Within that physical history:
+
+* observed polarity remains evidence;
+* wrong polarity remains evidence;
+* a genuinely missed magnet is UNKNOWN/inconclusive;
+* correction does not erase the observations;
+* reversal should not unnecessarily destroy useful history.
+
+Autonomous position reassignment should not occur before approximately this amount of history exists after session startup.
+
+⸻
+
+4. Position correction
+
+After impossible alternatives have been eliminated, compare the incumbent and remaining physically viable candidates against the actual available evidence.
+
+For polarity matching:
+
+* missed MM = no polarity evidence;
+* observed N/S = evidence, even if it disagrees with expectation;
+* compare against however many actual polarity observations exist in the ~3 m history.
+
+Decision rule:
+
+* incumbent best → retain incumbent;
+* one physically possible alternative uniquely better than incumbent → reposition;
+* equal best alternatives → non-decisional; retain incumbent.
+
+No arbitrary additional scoring margin was approved.
+
+After a correction, retain the history. If the correction proves wrong, later evidence can correct it again.
+
+⸻
+
+5. IR’s role was fundamentally clarified
+
+IR is an instrument, not an agent and not a navigator.
+
+The useful analogy is a bicycle cyclometer.
+
+IR answers:
+
+“We have moved this much.”
+
+NAVI, using MM landmarks and its map, answers:
+
+“This is where we are.”
+
+Do not give IR authority to identify MMs or diagnose locomotive behavior.
+
+Likewise, lack of new IR pulses does not mean IR stopped providing data.
+
+Fresh valid packets + unchanged wheel count means:
+
+movement = 0.
+
+That is valid data.
+
+NAVI determines what zero means from locomotive state, PWM, Hall progression, station state and history.
+
+⸻
+
+6. IR health, readiness, odometry and MM synchronization are separate concepts
+
+The emerging C++ architecture deliberately separates four facts:
+
+Instrument health
+
+Is the IR apparatus/data path functioning?
+
+Checks include packet integrity/freshness, optical contrast, saturation, sampling continuity, counter/order integrity, calibration/pitch, etc.
+
+Measurement readiness
+
+Can wheel movement actually be observed at this instant?
+
+For example, the current detector’s PRIMING and REACQUIRING states return before normal pulse processing. The instrument can be healthy while measurement is temporarily not ready.
+
+IR odometry
+
+How much wheel movement has actually been measured?
+
+This exists independently of the MM map.
+
+MM synchronization
+
+Which known MM is the odometry referenced to?
+
+At an accepted MM detection, NAVI associates:
+
+MM identity + Hall detection timestamp + corresponding IR count
+
+Only then can NAVI say “X mm from MMnnn.”
+
+⸻
+
+7. IR Epoch
+
+We adopted the term IR Epoch:
+
+An uninterrupted interval of valid IR odometry during which IR can account for all wheel movement continuously.
+
+A normal stop, zero movement or station dwell does not end an IR Epoch.
+
+Anything capable of permitting unmeasured/corrupted wheel movement ends the epoch.
+
+Examples include genuine measurement loss, sampling failure, inadequate contrast while movement could occur, reboot, etc.
+
+Critical invariant:
+
+AN ENDED IR EPOCH NEVER REOPENS.
+
+When measurement becomes ready again, a new IR Epoch begins immediately.
+
+IR can therefore immediately resume saying:
+
+“We have moved this much from this new origin.”
+
+But it cannot reconstruct distance across the blind interval.
+
+An MM distance reference is bound to the IR Epoch in which it was established. It cannot cross an epoch boundary.
+
+The next independently established MM provides a new synchronization point.
+
+⸻
+
+8. IR through stops
+
+The previous NAVI_COHERENCE behavior treated non-TRACKING IR around stops as invalid distance. That is contrary to the clarified model.
+
+Normal sequence:
+
+movement → deceleration → zero movement → dwell → restart → movement
+
+is one continuous IR measurement interval if the measuring system remained functional.
+
+During the dwell, distance increment is simply zero.
+
+Do not throw away IR because the locomotive stopped.
+
+⸻
+
+9. IR failure and recovery
+
+If IR itself becomes unavailable:
+
+* notify;
+* NAVI continues using its non-IR resources where permitted;
+* do not pretend the lost IR distance is known.
+
+When IR recovers:
+
+* movement/distance/speed measurement resumes immediately in a new IR Epoch;
+* MM-referenced distance remains unavailable until a new MM synchronization is established.
+
+Do not require an arbitrary ten-magnet “trust earning” period.
+
+The earlier earn-trust model was superseded because it treated IR too much like an autonomous agent rather than a measuring instrument.
+
+⸻
+
+10. IR-defined MM window
+
+When a valid MM distance reference exists, IR supplies the physical distance from the last accepted MM.
+
+Current provisional landmark window remains:
+
+mapped cumulative distance ±15%.
+
+For expected mapped distance D:
+
+0.85D–1.15D
+
+defines the region in which a Hall observation can represent that expected MM.
+
+Important distinction:
+
+Too early
+
+Hall event before the IR-defined window.
+
+It cannot be the expected MM.
+
+Reject the event; keep the expected MM unchanged.
+
+Inside window
+
+Hall observation is physically eligible to be the expected landmark and proceeds through the applicable Hall/polarity rules.
+
+After the window
+
+A Hall event after the window cannot be that expected MM.
+
+If the entire valid window was traversed without a valid observation of the expected MM, the MM itself is missed.
+
+“Missed” is therefore a property of the expected landmark, not a label applied to a late Hall signal.
+
+⸻
+
+11. Hall detection
+
+For the next experimental build, Hall detection is:
+
+absolute departure ≥70 counts from the locked baseline for two consecutive 1-kHz samples.
+
+Detection occurs on the second qualifying sample.
+
+The 70-count value is provisional but now has field support. The previous Toby-specific 38-count value came from older sensor/mount conditions and admits magnetic fringe/rebound transients.
+
+Do not confuse this with a return to closure-based navigation. The Hall event exists at opening/detection.
+
+⸻
+
+12. Locked per-interval Hall baseline
+
+This question has already been resolved and implemented in X22.
+
+The baseline cycle is:
+
+recognize MM N → get clear of N’s field → establish ordinary-track level for N→N+1 → LOCK → detect N+1 against it → repeat
+
+If a new baseline cannot validly be established, retain the previous locked baseline.
+
+Do not reopen the old adaptive-baseline architecture.
+
+NAVI_COHERENCE’s successful AUTO operation supplied field evidence for this X22 architecture.
+
+⸻
+
+13. Hall-only timing when IR distance is unavailable
+
+The historical 500-ms guard had an older reference frame involving closure. Detection became the new anchor without re-deriving the number.
+
+Current provisional decision 0093 is:
+
+650 ms detection-to-detection.
+
+It is a Hall-only fallback when usable IR/MM-referenced distance is unavailable.
+
+Evidence from the current Toby architecture showed:
+
+* known false events clustered at ~402 ms;
+* closest genuine next-MM event ~894 ms;
+* 650 ms sits approximately midway between those populations.
+
+A proposed PWM-dependent 700→1000-ms ramp added complexity without demonstrated benefit in the current evidence and was rejected for now.
+
+If the 650-ms guard occasionally suppresses a genuine MM, NAVI is designed to tolerate a missed magnet.
+
+⸻
+
+14. Wrong polarity
+
+If a Hall event:
+
+* passes the Hall detector;
+* lies inside the valid IR MM-distance window;
+* but has the wrong polarity,
+
+the polarity observation is retained as contradictory evidence.
+
+One wrong polarity does not relocate NAVI.
+
+Repeated contradictions trigger investigation of physically possible proximal alternatives using route history, IR progression, PWM/motion evidence and the MM map.
+
+⸻
+
+15. Failure-mode reasoning belongs in NAVI
+
+IR reports measurement. NAVI knows locomotive state.
+
+Examples:
+
+Intended stop + IR 0
+→ coherent.
+
+Movement commanded + IR 0 + no Hall progression
+→ locomotive is not progressing; established shutdown/notification rule applies.
+
+Healthy IR movement + Hall progression
+→ coherent.
+
+Healthy IR 0 + successive Hall landmarks
+→ presently unexplained physical contradiction. Record/notify; do not make IR invent a diagnosis. NAVI can operate without IR input.
+
+Healthy IR movement but expected Hall progression absent
+→ automatic landmark navigation is unavailable. During AUTO, use normal End Auto Operations, which stops the locomotive; manual remains available.
+
+⸻
+
+16. Implementation strategy
+
+Do not rewrite NAVI all at once.
+
+Preserve the parts of NAVI_COHERENCE 0.5 that worked well:
+
+* X22 locked Hall baseline;
+* Hall task/event architecture;
+* RouteMap;
+* station machine;
+* AUTO integration;
+* IR transport;
+* telemetry;
+* mapped-distance infrastructure;
+* existing missed/multi-step recovery infrastructure where compatible.
+
+Implement the clarified concepts in bounded layers.
+
+Recommended order:
+
+1. Finish and test IR health/readiness/IR Epoch/MM-reference classes independently.
+2. Wire those into the existing IR transport and telemetry without changing NAVI decisions.
+3. Verify zero movement, stop/dwell continuity, genuine failure, recovery and MM re-synchronization.
+4. Apply the approved 70-count Hall detector.
+5. Apply the approved provisional 650-ms detection-to-detection Hall-only fallback.
+6. Implement exact early / in-window / missed ±15% behavior.
+7. Only after those pieces are stable, replace the existing whole-route 10/10 sequence correction with the decisional-inertia / physically-possible / ±10 outer bound / rolling ~3 m history correction model.
+
+Do not let implementation invent new policy.
+
+Where the approved design does not specify behavior, stop and report the unresolved choice rather than filling it in.
+
+⸻
+
+Governing engineering principle
+
+The twenty-questions exercise exposed the principle we want CODEX to preserve:
+
+Measurements report what they physically measure. NAVI owns interpretation.
+
+Hall reports a magnetic observation.
+
+IR reports wheel travel.
+
+PWM reports commanded propulsion state.
+
+The MM map reports surveyed railway geometry and polarity.
+
+NAVI combines those facts with its existing world view and changes that world view only when the physically possible evidence justifies doing so.
+
+That should give CODEX both the decisions and, importantly, the reasoning architecture behind them.
