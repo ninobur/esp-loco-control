@@ -13,6 +13,13 @@ findings below remain the record of the pre-implementation inspection.
 
 ## Lineage and present priority
 
+**Subsequent integration, 2026-09-23:** David requested sketch health indicators
+before field laps. NAVI_COHERENCE 0.6 IR_HEALTH now adds observation-only
+instrument/readiness/epoch/MM-reference telemetry alongside unchanged 0.5
+navigation. Host tests and the full ESP32 build pass. Not flashed or field
+accepted. TX stationary contrast remains unresolved. See the
+[0.6 implementation and field handoff](NAVI_COHERENCE_0_6_IR_HEALTH_20260923.md).
+
 David clarified: "Actually, your NAVI_IR work was seminal. We just carried it
 forward." NAVI_COHERENCE continues that work; it does not discard its provenance.
 Sam led the subsequent design iterations, David supplied decisions and field
