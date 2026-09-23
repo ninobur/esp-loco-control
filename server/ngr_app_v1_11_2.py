@@ -325,7 +325,7 @@ dispatch_log = deque(maxlen=200)
 AGE_FIELDS = ("heard", "voltage", "current", "power", "lowvolt", "pwm", "pkph",
               "mm", "nav", "moving", "session_dir", "nav_ready", "start_interval",
               "marker", "throttle", "direction", "estop", "auto", "warning",
-              "cto")
+              "cto", "speed_view")
 
 # state/<x> payloads copied verbatim into loco_state. The firmware publishes
 # these on change (retained), so a live arrival is a confirmation event.
@@ -1321,11 +1321,11 @@ input[type=range]:disabled { opacity:0.35; }
 input.interval-slider { width:100%; height:34px; border-radius:17px;
   background:linear-gradient(to right,#4a2a8a 0%,#7050c0 100%); }
 
-.num-row { display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; }
+.num-row { display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:6px; }
 .num-cell { text-align:center; }
-.big-num { font-size:46px; font-weight:bold; font-family:monospace; line-height:1; }
+.big-num { font-size:38px; font-weight:bold; font-family:monospace; line-height:1; }
 .big-num.stale { color:#777 !important; }
-.num-lbl { font-size:19px; font-weight:bold; letter-spacing:2px; margin-top:4px; }
+.num-lbl { font-size:15px; font-weight:bold; letter-spacing:1px; margin-top:4px; }
 .age-chip { font-size:11px; color:#999; min-height:13px; font-weight:bold; text-align:center; }
 .mm-landmark { text-align:center; font-size:15px; color:#9fd6ff; font-weight:bold;
   letter-spacing:1px; margin-top:8px; min-height:18px; }
@@ -1491,6 +1491,11 @@ input.interval-slider { width:100%; height:34px; border-radius:17px;
         <div class="age-chip" id="pwm-display-age"></div>
         <div class="num-lbl" style="color:#7fff9f;">PWM</div>
       </div>
+      <div class="num-cell">
+        <div class="big-num stale" id="irkph-display" style="color:#c9a0ff;">&mdash;</div>
+        <div class="age-chip" id="irkph-display-age"></div>
+        <div class="num-lbl" style="color:#c9a0ff;">IR KPH</div>
+      </div>
     </div>
     <div class="mm-landmark" id="mm-landmark"></div>
     <div class="mm-countdown" id="mm-countdown"></div>
@@ -1630,6 +1635,10 @@ function pollFail(where, e){
 var SLUG = '{{ slug }}';
 var LOCO = '{{ name }}'.toUpperCase();
 var STALE_S = 5;
+// Same conversion the server applies to est_mm_s for the KPH tile (mm/s ->
+// prototype km/h at scale). Injected from PKPH_PER_MM_S so the IR KPH tile
+// can never drift from what KPH means on this page.
+var PKPH_PER_MM_S = {{ pkph_per_mm_s }};
 var isCto = false;
 var lastEpoch = null;
 // v1.10.4 (BUG 2): the last direction the OPERATOR commanded. Display memory
@@ -2227,11 +2236,27 @@ function pollState(){
     document.getElementById('block-display').textContent =
       (s.block && s.block !== '--') ? LOCO + ': ' + s.block : '';
 
-    // ---- MM / KPH / PWM ----
+    // ---- MM / KPH / PWM / IR KPH ----
     setTile('mm-display',  s.mm, ageOf(s,'mm'));
     setTile('kph-display', s.pkph !== '--' ? String(Math.round(parseFloat(s.pkph))) : '--',
             ageOf(s,'pkph'));
     setTile('pwm-display', s.pwm, ageOf(s,'pwm'));
+
+    // IR Test A's own mm/s (speed_view.ir_mmps), through the SAME
+    // mm/s -> pKPH conversion as the KPH tile above — not speed_view's own
+    // ir_pkph, which the firmware scales differently. '--' whenever the
+    // sensor has no current reading (ir_valid false), even if the 1 Hz
+    // heartbeat carrying that "false" is itself fresh.
+    var irPkph = '--';
+    if (s.speed_view) {
+      try {
+        var sv = JSON.parse(s.speed_view);
+        if (sv.ir_valid && sv.ir_mmps !== null && sv.ir_mmps !== undefined) {
+          irPkph = String(Math.round(parseFloat(sv.ir_mmps) * PKPH_PER_MM_S));
+        }
+      } catch (e) {}
+    }
+    setTile('irkph-display', irPkph, ageOf(s,'speed_view'));
     var mmLive = isFresh(s,'mm') && s.mm !== '--';
     document.getElementById('mm-landmark').textContent = mmLive ? (s.landmark || '') : '';
     document.getElementById('mm-countdown').textContent = mmLive ? mmCountdown(s.mm) : '';
@@ -2333,6 +2358,7 @@ def render_loco(lid):
         LOCO_HTML,
         name=loco_name(lid), lid=lid, slug=loco_slug(lid),
         nav_html=nav(lid), nav_style=NAV_STYLE, shared_css=SHARED_CSS,
+        pkph_per_mm_s=PKPH_PER_MM_S,
     )
 
 
