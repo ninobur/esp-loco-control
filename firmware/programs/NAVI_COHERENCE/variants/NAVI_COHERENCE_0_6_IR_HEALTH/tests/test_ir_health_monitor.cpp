@@ -20,6 +20,37 @@ static void dump(IrHealthMonitor& m,uint64_t now) {
   assert(n>0 && n<int(sizeof(json)));std::cout<<json<<'\n';
 }
 int main() {
+  // Exact Pi serial capture: do not re-encode or reseal this wire fixture.
+  const char* hex="5249010509310000b894e7bf324232888759e64a000000007d00000000000000770000000000000000000000000000000000000000000000700613000000000000000000000000000100000000000000000000000000000000000000b4250000ac8611000000000001000f001e96";
+  uint8_t raw[110];assert(strlen(hex)==sizeof(raw)*2);
+  for(size_t i=0;i<sizeof(raw);++i) {
+    unsigned byte=0;assert(sscanf(hex+2*i,"%2x",&byte)==1);raw[i]=uint8_t(byte);
+  }
+  WireSnapshot captured;memcpy(&captured,raw,sizeof(captured));
+  assert(captured.calibrationId==0 && captured.completedPulses==119);
+  IrHealthMonitor field;field.pair(MAC,0);
+  uint64_t at=captured.capturedUs+1000000;
+  field.receive(MAC,raw,sizeof(raw),at);
+  assert(field.accepted()==1 && field.rejected()==0);
+  assert(field.health().fault==IrHealthFault::InadequateContrast);
+  assert(!field.odometry().epochActive());dump(field,at);
+  auto next=captured;next.sequence++;next.capturedUs+=100000;
+  next.opticalReason=ir_movement::TRACKING;at+=100000;send(field,next,at);
+  assert(field.health().measurementReady() && field.odometry().epochId()==1);
+  assert(field.acceptedMm(41,0,at,1,at));dump(field,at);
+  next.sequence++;next.capturedUs+=100000;next.opticalReason=ir_movement::SIGNAL_STALE;
+  at+=100000;send(field,next,at);
+  assert(field.reference().validFor(field.odometry()));
+  assert(field.reference().distanceFromMm(field.odometry()).mm==0);
+  next.sequence++;next.capturedUs+=100000;next.opticalReason=ir_movement::INADEQUATE_CONTRAST;
+  at+=100000;send(field,next,at);assert(!field.reference().validFor(field.odometry()));
+  next.sequence++;next.capturedUs+=100000;next.opticalReason=ir_movement::TRACKING;
+  at+=100000;send(field,next,at);assert(field.odometry().epochId()==2);
+  assert(!field.reference().validFor(field.odometry()));
+  next.sequence++;next.capturedUs+=100000;next.calibrationId=1;
+  at+=100000;send(field,next,at);assert(field.odometry().epochId()==3);
+  next.sequence++;next.capturedUs+=100000;next.calibrationId=0;
+  at+=100000;send(field,next,at);assert(field.odometry().epochId()==4);
   IrHealthMonitor m;m.pair(MAC,0);dump(m,1);
   send(m,packet(1,100000,10,ir_movement::PRIMING),1100000);
   assert(m.health().healthy && !m.odometry().haveMeasurement());dump(m,1100000);

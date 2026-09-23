@@ -38,7 +38,7 @@ static void classification() {
   w=sample(1000,0);w.bootId=0;
   assert(classifyIrInstrument(w).fault==IrHealthFault::CalibrationFault);
   w=sample(1000,0);w.calibrationId=0;
-  assert(!classifyIrInstrument(w).healthy);
+  assert(classifyIrInstrument(w).measurementReady());
   w=sample(1000,0);w.pitchUm=0;
   assert(!classifyIrInstrument(w).healthy);
 }

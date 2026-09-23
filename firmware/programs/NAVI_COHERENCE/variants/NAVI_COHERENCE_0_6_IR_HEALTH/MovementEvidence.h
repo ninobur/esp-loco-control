@@ -3,7 +3,7 @@
 #include <stddef.h>
 #include <string.h>
 #include <limits.h>
-#include "../../../common/IrMovementWire.h"
+#include "../../../../common/IrMovementWire.h"
 
 namespace ngr_nav {
 using ir_movement::WireSnapshot;

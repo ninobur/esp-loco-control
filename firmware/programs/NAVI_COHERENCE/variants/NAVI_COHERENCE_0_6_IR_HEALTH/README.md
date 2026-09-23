@@ -1,6 +1,11 @@
 # NAVI_COHERENCE 0.6 IR_HEALTH
 
 Toby field-test build, 2026-09-23. **Not field accepted.**
+Updated with `CAL0_FIX1`: accepts the deployed TX's zero calibration ID
+without claiming validated distance. Health JSON identifies this revision,
+reports `calibration_id`, and explicitly states `distance_bounds: UNVALIDATED`.
+Repeat the stationary check before authorizing motion. Optical contrast faults
+remain faults; this update only removes the incorrect packet rejection.
 Derived from the complete 0.5 AUTO_ENABLED tree. AUTO remains enabled; all
 navigation, Hall, station, recovery and legacy movement decisions remain 0.5.
 The new IR health consumer observes alongside them and cannot command movement
@@ -11,7 +16,7 @@ claim of zero runtime overhead.
 
 Open `NAVI_COHERENCE_0_6_IR_HEALTH.ino` in this directory. Use ESP32 Dev Module,
 upload speed **115200**, Serial Monitor **115200**. Keep the repository layout:
-the sketch includes the shared IR architecture from `../../NAVI_COHERENCE/`.
+the sketch includes shared IR architecture from `../../../../reference/NAVI_COHERENCE/`.
 Do not copy only the INO elsewhere. The familiar NGR-Files shortcut points here.
 
 1. Flash Toby only. Keep clear of magnets during the two-second Hall baseline.
@@ -75,7 +80,7 @@ The twenty-question changes to Hall threshold, fallback timing, mapped window
 semantics and proximal correction are intentionally not implemented here.
 Existing values remain 38 counts, 500 ms fallback and the 0.5 correction logic.
 
-Verification: ESP32 core 3.3.11 compile PASS (1,012,715 bytes flash, 72,204 static
+Original pre-fix verification: ESP32 core 3.3.11 compile PASS (1,012,715 bytes flash, 72,204 static
 RAM). Only three existing Adafruit_INA219 enum warnings; no sketch warnings.
 ASan/UBSan host monitor tests PASS; 11 actual JSON payloads parsed, maximum
 546 bytes against a 960-byte buffer. Existing navigator tests PASS (2,052

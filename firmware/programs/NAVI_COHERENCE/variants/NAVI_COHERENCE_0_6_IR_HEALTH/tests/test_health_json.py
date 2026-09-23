@@ -6,7 +6,14 @@ import sys
 
 result = subprocess.run([sys.argv[1]], check=True, text=True, capture_output=True)
 rows = [json.loads(line) for line in result.stdout.splitlines()]
-assert len(rows) == 11
+assert len(rows) == 13
+assert all(row["distance_bounds"] == "UNVALIDATED" and row["health_revision"] == "CAL0_FIX1" for row in rows)
+assert rows[0]["health"] == "INADEQUATE_CONTRAST" and rows[0]["accepted"] == 1
+assert rows[0]["calibration_id"] == 0 and rows[0]["pulses"] == 119
+assert rows[0]["fresh"] == 1 and rows[0]["epoch_active"] == 0
+assert rows[1]["health"] == "HEALTHY" and rows[1]["calibration_id"] == 0
+payload_count = len(rows)
+rows = rows[2:]
 assert all(row["shadow"] == 1 and row["ref_basis"] == "NAV05_ACCEPTED" for row in rows)
 assert rows[0]["health"] == "NO_SOURCE" and rows[0]["epoch_mm"] is None
 assert rows[1]["health"] == "HEALTHY" and rows[1]["readiness"] == "PRIMING"
@@ -23,4 +30,4 @@ assert rows[8]["health"] == "PACKET_INVALID" and rows[8]["readiness"] == "UNAVAI
 assert rows[9]["epoch"] == 6 and rows[9]["ref_valid"] == 0
 assert rows[10]["pulses"] == 2**64 - 1
 print(result.stderr.strip())
-print(f"PASS {len(rows)} real health JSON payloads; maximum {max(map(len, result.stdout.splitlines()))} bytes")
+print(f"PASS {payload_count} real health JSON payloads; maximum {max(map(len, result.stdout.splitlines()))} bytes")

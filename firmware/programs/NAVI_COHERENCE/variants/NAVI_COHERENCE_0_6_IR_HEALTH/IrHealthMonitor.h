@@ -1,7 +1,7 @@
 #pragma once
 #include <stdio.h>
 #include "MovementEvidence.h"
-#include "../../../reference/NAVI_COHERENCE/IR_ARCHITECTURE_0_4/MmDistanceReference.h"
+#include "../../../../reference/NAVI_COHERENCE/IR_ARCHITECTURE_0_4/MmDistanceReference.h"
 
 namespace ngr_nav {
 // Diagnostic-only consumer. Never returns evidence to Navigator or motor code.
@@ -31,7 +31,7 @@ class IrHealthMonitor {
     WireSnapshot w;memcpy(&w,bytes,sizeof(w));
     if(arrival>uint64_t(INT64_MAX/4) || w.capturedUs>uint64_t(INT64_MAX/4) ||
        w.magic!=0x4952 || w.version!=1 || w.type!=5 || !w.bootId ||
-       !w.pitchUm || !w.calibrationId || w.distanceValidated ||
+       !w.pitchUm || w.distanceValidated ||
        w.opticalReason>ir_movement::TRACKING || w.completedPulses>w.observedRises ||
        w.completedPulses>UINT64_MAX/w.pitchUm || w.nominalUm!=w.completedPulses*w.pitchUm ||
        movementCrc(bytes,offsetof(WireSnapshot,crc))!=w.crc) {reject();return;}
@@ -106,14 +106,14 @@ class IrHealthMonitor {
       snprintf(dt,sizeof(dt),"%llu",(unsigned long long)deltaUs_);
     }
     return snprintf(out,size,
-      "{\"shadow\":1,\"loco_boot\":\"%016llX\",\"health\":\"%s\",\"readiness\":\"%s\","
+      "{\"shadow\":1,\"health_revision\":\"CAL0_FIX1\",\"calibration_id\":%lu,\"distance_bounds\":\"UNVALIDATED\",\"loco_boot\":\"%016llX\",\"health\":\"%s\",\"readiness\":\"%s\","
       "\"fresh\":%u,\"age_ms\":%s,\"detector_reason\":%u,\"epoch\":%llu,\"epoch_active\":%u,"
       "\"epoch_starts\":%lu,\"epoch_ends\":%lu,\"epoch_reason\":\"%s\","
       "\"ir_boot\":\"%016llX\",\"seq\":%lu,\"pulses\":%llu,\"epoch_mm\":%s,"
       "\"delta_pulses\":%s,\"delta_us\":%s,\"ref_valid\":%u,\"ref_mm\":%s,\"ref_ms\":%s,"
       "\"ref_event\":%lu,\"ref_alignment_us\":%lld,\"ref_basis\":\"NAV05_ACCEPTED\",\"distance_mm\":%s,"
       "\"accepted\":%lu,\"rejected\":%lu,\"duplicate\":%lu,\"old\":%lu,\"queue_gaps\":%lu,\"changes\":%lu}",
-      (unsigned long long)locoBoot,irHealthName(health_.fault),irReadinessName(health_.readiness),
+      (unsigned long)last_.calibrationId,(unsigned long long)locoBoot,irHealthName(health_.fault),irReadinessName(health_.readiness),
       fresh?1u:0u,age,unsigned(health_.detectorReason),(unsigned long long)odo_.epochId(),odo_.epochActive()?1u:0u,
       (unsigned long)starts_,(unsigned long)ends_,irEpochBreakName(lastBreak_),
       (unsigned long long)last_.bootId,(unsigned long)last_.sequence,(unsigned long long)last_.completedPulses,travel,

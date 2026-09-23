@@ -1,6 +1,6 @@
 #pragma once
 #include <stdint.h>
-#include "../../common/IrMovementWire.h"
+#include "../../../common/IrMovementWire.h"
 
 namespace ngr_nav {
 enum class IrHealthFault : uint8_t {
@@ -44,7 +44,9 @@ struct IrInstrumentState {
 inline IrInstrumentState classifyIrInstrument(const ir_movement::WireSnapshot& w) {
   IrInstrumentState s;
   s.detectorReason = w.opticalReason;
-  if (!w.bootId || !w.pitchUm || !w.calibrationId) {
+  // Zero calibration ID is the deployed TX's nominal, unvalidated scale.
+  // It does not determine optical health or measurement continuity.
+  if (!w.bootId || !w.pitchUm) {
     s.fault = IrHealthFault::CalibrationFault;
     return s;
   }
