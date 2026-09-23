@@ -132,3 +132,17 @@ publish `peak 0` (not measured) and are excluded.
 
 With MM012 restored, the gap between non-magnet openings (up to about 63) and
 the weakest true magnet (Otto 96, Toby 125) is wide.
+
+## MM012 explained and restored (operator, 2026-09-22)
+
+> 012 is a bar magnet, on concrete, under a throwout. It had slid (or the
+> track had slid) out of place. It is restored. Not something we should base
+> our model on.
+
+MM012's 70–73 readings on 2026-09-22 (four reads; the other two were 86 and
+99) came from a displaced magnet. They are **excluded from threshold
+analysis**. Without MM012, today's weakest genuine peaks were:
+- 101 at MM110, departing Arches at PWM 30;
+- 125 at MM140 in steady running.
+
+Refused (false) openings peaked at 63 or below.
