@@ -163,6 +163,18 @@ record existed, are downstream of this same correction, not independent
 choices — which is also why that document and 0094 agree without either
 having been written to match the other.
 
+The analogy was pushed one step further the same evening (the operator
+extending it to a rider who can tell wheel-sensor readings apart from
+actual progress; Codex generalizing that into "whenever we're tempted to
+put some inference inside IR, ask whether we'd expect the cyclometer to
+know that — or the rider") and then into an explicit criterion for writing
+the actual C++, which is the form worth keeping because it is directly
+checkable against a diff:
+
+> If a proposed method requires IR to know something the cyclometer
+> couldn't know, it belongs in NAVI instead.
+> — Codex, reflecting on the IR health package's implementation
+
 In Codex's own closing words on why this belongs in this record rather than
 staying a chat aside: *"0094 wasn't an arbitrary reversal of the earlier
 'earn trust' decision; we discovered that the earlier rule arose from an
