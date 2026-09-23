@@ -100,3 +100,35 @@ the Arches false-advance stretch was excluded.
    - with MM012 at the route's typical floor: 63 against about 125.
 
 No threshold change is proposed here. 0.5 continues at 38.
+
+## Addendum: the past week, both locomotives (current hardware)
+
+The operator ruled out June as not representing current hardware. A
+representative sample of this week's Pi telemetry (`~/ngr-telemetry/pi`)
+follows.
+
+A "true magnet" is taken to be an `mm/marker` with `ruling ADVANCED`, `why
+MAGNET`, and observed polarity equal to expected. Otto's 9/16 X18/X21 rows
+publish `peak 0` (not measured) and are excluded.
+
+| Loco | Day | Sketch | True magnets | Weakest peaks (magnet) | Median |
+|---|---|---|---|---|---|
+| Otto | 9/14 | NAVI_ONE X17 | 6,811 | **96**, 97 (MM140); 100 (MM106, MM141) | 170 |
+| Otto | 9/18 | NAVI_ONE X18 recorder | 1,030 | **116**, 119 (MM140); 120 (MM012) | 177 |
+| Toby | 9/19 | STATION_CURVES 0.3 | 1,867 | **129** (MM007, MM140); 138 (MM108); 139 (MM012) | 208 |
+| Toby | 9/20 | STATION_CURVES 0.3 | 513 | **130** (MM140); 134 (MM012); 138 (MM108) | 202 |
+| Toby | 9/22 | NAVI_COHERENCE 0.4/0.5 | 967 | **70–72 (MM012)**; then 125 (MM140) | — |
+
+- **The weakest true magnet this week:** Otto 96 and Toby 129. It is MM140 on
+  both locomotives, which is consistently the route's weakest magnet.
+- **MM012 changed between 9/20 and 9/22.** Toby read it at 134–139 on 9/19–20
+  (13 reads) and at 70–72 today (all three runs). The measures agree
+  elsewhere: MM140 read 129–134 then, and 125–133 today; MM108 read 138 then,
+  and 137–143 today. So the drop is at MM012 itself, not in the measurement.
+  Something happened to that magnet or its placement in the last two days.
+- **Non-magnet openings this week** (TOO_SOON, NO_POSITION and refused rows)
+  had their lowest peaks at 28–49 (Otto) and 30–49 (Toby). Today's were
+  38–63.
+
+With MM012 restored, the gap between non-magnet openings (up to about 63) and
+the weakest true magnet (Otto 96, Toby 125) is wide.
