@@ -1,5 +1,9 @@
 # 0092 - NAVI / IR decision model: physically possible positions first, pattern matching second
 
+**Point 2 (the first-10-magnet IR startup calibration) superseded by 0094**
+(2026-09-22): the ten-magnet IR trust-earning period is removed; see 0094.
+Point 15 (the ~10-MM / ~3,000-mm position-correction history) is unaffected
+and explicitly preserved by 0094. Nothing else here changes.
 Status: Proposed (2026-09-22). These are the operator's decisions, reached in a
 thorough review with Sam. They are not authoritative until the operator
 ratifies this record.
