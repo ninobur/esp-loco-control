@@ -76,13 +76,97 @@ governing principle of this record:
 > It is always on. If it malfunctions, NAVI needs to recognize that and
 > compensate. Otherwise, it is always used.
 
-What changed between pass 1 and pass 2 was not a new argument so much as
-field evidence: today's runs (0091's field evidence, decisions 0090/0092)
-showed IR correctly distinguishing genuine movement from false Hall events,
-and its one dramatic failure (the test car physically left behind at Patio)
-is a rigging problem that disappears once IR is mounted on the locomotive
-itself, not a measurement-quality problem the ten-magnet period would have
-caught anyway.
+Today's field evidence mattered (IR correctly distinguishing genuine
+movement from false Hall events; the one dramatic failure — the test car
+physically left behind at Patio — being a rigging problem that disappears
+once IR is mounted on the locomotive itself, not a measurement-quality
+problem the ten-magnet period would have caught anyway). But the operator
+and Codex went back afterward and located something underneath the field
+evidence: pass 1 and pass 2 used different mental models of what IR *is*,
+and that, not the field data alone, is what actually moved the decision.
+The exchange below — supplied by the operator afterward, at Codex's
+suggestion, specifically so this record would carry the reasoning and not
+just the outcome — is that discovery.
+
+### The mental model that was steering the architecture
+
+The aside happened while discussing the existing detector state
+`SIGNAL_STALE`, verbatim:
+
+> **David:** "Why do you need STALE or NO RECENT MOVEMENT at all. Why not
+> just '0' or STILL?"
+>
+> **Codex:** "I don't think we do need it. The detector was designed around
+> pulse acquisition, so after 2.5 seconds without a pulse it created a
+> special state. But from NAVI's perspective, that is unnecessarily
+> categorical. If the IR system is healthy and the pulse counter has not
+> advanced: movement = 0. That's the measurement. NAVI already knows
+> elapsed time, PWM, station state, Hall progression, etc. It can decide
+> what zero movement means in context."
+>
+> **David:** "I was thinking of other things that could cause data to stop,
+> but they don't mean that the sensor is not working."
+>
+> **Codex:** "Exactly. No new pulse is not the same thing as no new IR
+> data. Several perfectly normal conditions can produce no pulse-count
+> increase: Toby is physically stopped, Toby is moving extremely slowly,
+> Toby has traveled less than one pulse distance, or the wheel is
+> positioned between optical transitions. Meanwhile the IR unit can still
+> be transmitting fresh packets with good contrast, uninterrupted sampling,
+> and an unchanged pulse counter. That is a healthy instrument reporting no
+> measured incremental movement, not stale data."
+>
+> **David:** "My cyclometer works on a similar principle, but with a magnet
+> and a sensor. When I stop the bike, the signal has ceased, it says 0. If
+> the magnet falls off, it also says 0. But that is better than having the
+> cyclometer say STALE when I stop."
+>
+> **Codex:** "Yes. The cyclometer analogy exposes the right abstraction.
+> The IR system should behave like an odometer/speed sensor, not like a
+> communications system that expects periodic movement events. If fresh IR
+> packets continue arriving and the pulse count does not change: IR is
+> working, movement = 0. Whether that zero means intentionally stopped,
+> stalled, wheel not turning, or the optical disk/magnet equivalent fell
+> off is not for the IR sensor to decide — NAVI has Hall, PWM, operating
+> state, and history to interpret it."
+>
+> **David:** "Have you noticed how our mental models pull us off track. I
+> think that this STALE concept is a holdover from IR as agent mentality."
+>
+> **Codex:** "Yes. I think you've identified exactly what happened.
+> `SIGNAL_STALE` makes sense if we unconsciously treat IR as an agent that
+> is supposed to keep reporting 'I'm moving.' When it stops producing
+> pulses, the agent appears to have stopped talking. But IR isn't an
+> agent. It's an instrument. Its pulse counter is a measurement. The
+> cyclometer analogy fixes the mental model: the IR unit keeps reporting.
+> The number simply isn't changing. That is entirely valid data."
+
+Codex generalized the pattern across the project, not just IR:
+
+> This same conceptual shift has appeared several times in this project:
+> Hall detector reports a magnetic observation; it doesn't decide which MM
+> it is. IR reports wheel movement; it doesn't decide whether the
+> locomotive is moving correctly. The baseline system supplies the
+> reference against which Hall is measured; it doesn't decide whether
+> something is a landmark. NAVI possesses the world model and applies the
+> rules.
+
+**The architectural consequence** is what actually generalizes past IR: an
+instrument's job is (1) determine whether its own measuring apparatus is
+functioning, and (2) report its measurement, including zero. Interpreting
+that measurement in context — locomotive state, other sensors, route
+history, the map — belongs to NAVI alone, never to the instrument. Section
+2's "IR is not an agent" and Section 6's "IR odometry vs. MM reference"
+distinction, both already written into
+`docs/NAVI_IR_HEALTH_AND_MM_REFERENCE_20260922.md` before this decision
+record existed, are downstream of this same correction, not independent
+choices — which is also why that document and 0094 agree without either
+having been written to match the other.
+
+In Codex's own closing words on why this belongs in this record rather than
+staying a chat aside: *"0094 wasn't an arbitrary reversal of the earlier
+'earn trust' decision; we discovered that the earlier rule arose from an
+inappropriate conceptual model of what IR is."*
 
 ## Failure modes, restated cleanly (Codex's formulation, operator-endorsed)
 
