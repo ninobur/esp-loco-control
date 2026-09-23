@@ -1,0 +1,262 @@
+Reality-check (guard_fn=500 flat) mismatches vs logged rulings: 0 (expect 0 -- confirms the replay model matches firmware behaviour)
+
+Clean consecutive-MM genuine advances (ALL evidentiary paths, primary physical population): 958
+  of which Hall-only path (distance_assessable=0, guard-relevant subset): 342
+  of which IR-distance path (distance_assessable=1, no time floor governs these): 616
+Hall-only-path false events (NON_LANDMARK_HALL, dist_assessable=0): 4
+
+Dwell/pause-spanning genuine intervals excluded from moving-transit tables: 26 of 958 total (22 of them Hall-only-path)
+(A stop can only lengthen an interval, never shorten it, so excluding these cannot hide a suppression risk -- it only removes median/percentile distortion.)
+
+=== MOVING-TRANSIT genuine consecutive-MM advances (dwell/pause-spanning excluded) (n=932) by PWM bin ===
+bin    n    min    p1     p5     p25    median  mapped_mm range
+>=90    655    894    936    990   1070    1139  0-635
+80       68   1047   1056   1101   1224    1292  295-330
+70       55   1290   1292   1321   1396    1576  290-330
+60      112   1450   1468   1632   1852    2056  290-330
+50       21   1832   1858   1963   2019    2324  290-320
+40       13   1358   1502   2079   2630    2831  300-330
+<=30      8   3487   3496   3533   3704    4208  300-320
+
+=== MOVING-TRANSIT Hall-only-path genuine advances ONLY (guard-relevant subset) (n=320) by PWM bin ===
+bin    n    min    p1     p5     p25    median  mapped_mm range
+>=90    239    894    927    973   1068    1139  280-355
+80       18   1060   1065   1087   1203    1260  295-325
+70       15   1307   1313   1338   1387    1533  290-330
+60       37   1584   1639   1781   1979    2131  295-330
+50        5   1963   1965   1971   2003    2019  290-300
+40        4   1358   1401   1571   2425    2818  300-320
+<=30      2   3618   3619   3624   3647    3676  300-320
+
+=== Dwell/pause-spanning intervals, by PWM bin (excluded above; shown for completeness) ===
+  60     n=  2  interval range 15056-50119 ms
+  50     n=  6  interval range 12185-84392 ms
+  40     n= 10  interval range 19404-23149 ms
+  <=30   n=  8  interval range 7611-39407 ms
+
+=== exact-PWM spikes (n>=15) among ALL genuine, for context ===
+  pwm=  60 n=  77 min=1671 p1=1679 p5=1777 median=2086
+  pwm=  90 n= 371 min=939 p1=986 p5=1014 median=1137
+  pwm=  92 n=  51 min=973 p1=983 p5=1056 median=1227
+  pwm=  97 n=  29 min=1046 p1=1053 p5=1089 median=1464
+  pwm= 100 n= 112 min=894 p1=901 p5=938 median=1116
+  pwm= 105 n=  16 min=941 p1=943 p5=953 median=1161
+
+=== Hall-only false events (guard-relevant false population), full detail ===
+  9950012_20260922_133918.log line 6226 boot_seg -1 pwm_open 29 elapsed_since_last_accept 402ms dir CW prev_magnet_polarity=S
+  20260922_navi_coherence_0_5_auto_run.log line 10884 boot_seg 1 pwm_open 32 elapsed_since_last_accept 402ms dir CW prev_magnet_polarity=N
+  20260922_navi_coherence_0_5_auto_run.log line 19099 boot_seg 1 pwm_open 35 elapsed_since_last_accept 402ms dir CCW prev_magnet_polarity=S
+  20260922_navi_coherence_0_5_auto_run.log line 19317 boot_seg 1 pwm_open 42 elapsed_since_last_accept 402ms dir CCW prev_magnet_polarity=S
+
+=== Bottom 20 Hall-only genuine intervals (closest calls to any candidate guard) ===
+  9950012_20260922_133918.log line 3403 ruling ADVANCED pwm_open 100 interval_ms 894 mapped_mm 300 steps 1 mm 122->123 dir CW
+  9950012_20260922_133918.log line 5430 ruling ADVANCED pwm_open 100 interval_ms 898 mapped_mm 300 steps 1 mm 26->27 dir CW
+  9950012_20260922_133918.log line 5401 ruling ADVANCED_WITH_DISCREPANCY pwm_open 100 interval_ms 921 mapped_mm 300 steps 1 mm 25->26 dir CW
+  9950012_20260922_133918.log line 2888 ruling ADVANCED_WITH_DISCREPANCY pwm_open 100 interval_ms 936 mapped_mm 300 steps 1 mm 103->104 dir CW
+  9950012_20260922_133918.log line 3432 ruling ADVANCED_WITH_DISCREPANCY pwm_open 100 interval_ms 936 mapped_mm 300 steps 1 mm 123->124 dir CW
+  9950012_20260922_133918.log line 3715 ruling ADVANCED_WITH_DISCREPANCY pwm_open 100 interval_ms 936 mapped_mm 300 steps 1 mm 134->135 dir CW
+  9950012_20260922_133918.log line 3765 ruling ADVANCED_WITH_DISCREPANCY pwm_open 100 interval_ms 940 mapped_mm 300 steps 1 mm 136->137 dir CW
+  9950012_20260922_133918.log line 5359 ruling ADVANCED pwm_open 100 interval_ms 946 mapped_mm 300 steps 1 mm 23->24 dir CW
+  9950012_20260922_133918.log line 3740 ruling ADVANCED pwm_open 100 interval_ms 962 mapped_mm 300 steps 1 mm 135->136 dir CW
+  9950012_20260922_133918.log line 3457 ruling ADVANCED_WITH_DISCREPANCY pwm_open 100 interval_ms 966 mapped_mm 300 steps 1 mm 124->125 dir CW
+  9950012_20260922_133918.log line 3532 ruling ADVANCED_WITH_DISCREPANCY pwm_open 100 interval_ms 969 mapped_mm 300 steps 1 mm 127->128 dir CW
+  9950012_20260922_133918.log line 3661 ruling ADVANCED_WITH_DISCREPANCY pwm_open 100 interval_ms 972 mapped_mm 300 steps 1 mm 132->133 dir CW
+  9950012_20260922_133918.log line 3690 ruling ADVANCED pwm_open 100 interval_ms 973 mapped_mm 300 steps 1 mm 133->134 dir CW
+  9950012_20260922_133918.log line 3586 ruling ADVANCED_WITH_DISCREPANCY pwm_open 100 interval_ms 978 mapped_mm 290 steps 1 mm 129->130 dir CW
+  9950012_20260922_133918.log line 2913 ruling ADVANCED pwm_open 100 interval_ms 981 mapped_mm 300 steps 1 mm 104->105 dir CW
+  9950012_20260922_133918.log line 5376 ruling ADVANCED pwm_open 100 interval_ms 983 mapped_mm 295 steps 1 mm 24->25 dir CW
+  9950012_20260922_133918.log line 3790 ruling ADVANCED pwm_open 100 interval_ms 988 mapped_mm 300 steps 1 mm 137->138 dir CW
+  9950012_20260922_133918.log line 4214 ruling ADVANCED_WITH_DISCREPANCY pwm_open 100 interval_ms 988 mapped_mm 300 steps 1 mm 153->154 dir CW
+  9950012_20260922_133918.log line 5280 ruling ADVANCED_WITH_DISCREPANCY pwm_open 100 interval_ms 990 mapped_mm 315 steps 1 mm 20->21 dir CW
+  20260922_navi_coherence_0_5_auto_run.log line 20180 ruling ADVANCED pwm_open 90 interval_ms 990 mapped_mm 300 steps 1 mm 75->74 dir CCW
+
+=== Regime tagging (station/grade proximity) among MOVING-TRANSIT Hall-only genuine advances (dwell/pause-spanning excluded -- see dwell table above) ===
+  ORDINARY             n=161 pwm_range=40-102 interval_min=894 interval_median=1138
+  STATION:Arches       n= 40 pwm_range=37-100 interval_min=936 interval_median=1217
+  STATION:Grillers     n= 39 pwm_range=30-97 interval_min=1052 interval_median=1792
+  STATION:Bamboo       n= 39 pwm_range=34-100 interval_min=988 interval_median=1340
+  STATION:Patio        n= 27 pwm_range=63-100 interval_min=946 interval_median=1202
+  GRILLERS_GRADE_CW    n= 22 pwm_range=97-97 interval_min=1346 interval_median=1513
+
+=== STATION/GRADE/CURVE-tagged MOVING-TRANSIT Hall-only genuine events (station deceleration & departure check: does the guard bite here even though pwm_open is low at journey's end?) ===
+  9950012_20260922_133918.log line 787 regimes=['STATION:Grillers'] pwm_open(now)=60 interval_ms=2131 mapped_mm=300 mm 52->53
+  9950012_20260922_133918.log line 820 regimes=['STATION:Grillers'] pwm_open(now)=60 interval_ms=2210 mapped_mm=300 mm 53->54
+  9950012_20260922_133918.log line 857 regimes=['STATION:Grillers'] pwm_open(now)=60 interval_ms=2238 mapped_mm=300 mm 54->55
+  9950012_20260922_133918.log line 890 regimes=['STATION:Grillers'] pwm_open(now)=60 interval_ms=2238 mapped_mm=300 mm 55->56
+  9950012_20260922_133918.log line 935 regimes=['STATION:Grillers'] pwm_open(now)=60 interval_ms=2232 mapped_mm=300 mm 56->57
+  9950012_20260922_133918.log line 968 regimes=['STATION:Grillers'] pwm_open(now)=60 interval_ms=2398 mapped_mm=295 mm 57->58
+  9950012_20260922_133918.log line 1013 regimes=['STATION:Grillers'] pwm_open(now)=60 interval_ms=2538 mapped_mm=320 mm 58->59
+  9950012_20260922_133918.log line 1046 regimes=['STATION:Grillers'] pwm_open(now)=60 interval_ms=2643 mapped_mm=300 mm 59->60
+  9950012_20260922_133918.log line 1099 regimes=['STATION:Grillers'] pwm_open(now)=60 interval_ms=3546 mapped_mm=315 mm 60->61
+  9950012_20260922_133918.log line 1682 regimes=['STATION:Grillers'] pwm_open(now)=77 interval_ms=2982 mapped_mm=315 mm 62->63
+  9950012_20260922_133918.log line 1715 regimes=['STATION:Grillers'] pwm_open(now)=91 interval_ms=2095 mapped_mm=325 mm 63->64
+  9950012_20260922_133918.log line 1748 regimes=['GRILLERS_GRADE_CW', 'STATION:Grillers'] pwm_open(now)=97 interval_ms=1865 mapped_mm=315 mm 64->65
+  9950012_20260922_133918.log line 1785 regimes=['GRILLERS_GRADE_CW', 'STATION:Grillers'] pwm_open(now)=97 interval_ms=1904 mapped_mm=305 mm 65->66
+  9950012_20260922_133918.log line 1818 regimes=['GRILLERS_GRADE_CW', 'STATION:Grillers'] pwm_open(now)=97 interval_ms=1840 mapped_mm=300 mm 66->67
+  9950012_20260922_133918.log line 1843 regimes=['GRILLERS_GRADE_CW', 'STATION:Grillers'] pwm_open(now)=97 interval_ms=1507 mapped_mm=305 mm 67->68
+  9950012_20260922_133918.log line 1880 regimes=['GRILLERS_GRADE_CW', 'STATION:Grillers'] pwm_open(now)=97 interval_ms=1570 mapped_mm=300 mm 68->69
+  9950012_20260922_133918.log line 1905 regimes=['GRILLERS_GRADE_CW', 'STATION:Grillers'] pwm_open(now)=97 interval_ms=1519 mapped_mm=300 mm 69->70
+  9950012_20260922_133918.log line 1938 regimes=['GRILLERS_GRADE_CW', 'STATION:Grillers'] pwm_open(now)=97 interval_ms=1437 mapped_mm=295 mm 70->71
+  9950012_20260922_133918.log line 1967 regimes=['GRILLERS_GRADE_CW', 'STATION:Grillers'] pwm_open(now)=97 interval_ms=1365 mapped_mm=295 mm 71->72
+  9950012_20260922_133918.log line 1992 regimes=['GRILLERS_GRADE_CW'] pwm_open(now)=97 interval_ms=1346 mapped_mm=300 mm 72->73
+  9950012_20260922_133918.log line 2025 regimes=['GRILLERS_GRADE_CW'] pwm_open(now)=97 interval_ms=1454 mapped_mm=300 mm 73->74
+  9950012_20260922_133918.log line 2054 regimes=['GRILLERS_GRADE_CW'] pwm_open(now)=97 interval_ms=1605 mapped_mm=300 mm 74->75
+  9950012_20260922_133918.log line 2087 regimes=['GRILLERS_GRADE_CW'] pwm_open(now)=97 interval_ms=1941 mapped_mm=300 mm 75->76
+  9950012_20260922_133918.log line 2120 regimes=['GRILLERS_GRADE_CW'] pwm_open(now)=97 interval_ms=1961 mapped_mm=300 mm 76->77
+  9950012_20260922_133918.log line 2157 regimes=['GRILLERS_GRADE_CW'] pwm_open(now)=97 interval_ms=1786 mapped_mm=300 mm 77->78
+  9950012_20260922_133918.log line 2190 regimes=['GRILLERS_GRADE_CW'] pwm_open(now)=97 interval_ms=1694 mapped_mm=300 mm 78->79
+  9950012_20260922_133918.log line 2215 regimes=['GRILLERS_GRADE_CW'] pwm_open(now)=97 interval_ms=1464 mapped_mm=305 mm 79->80
+  9950012_20260922_133918.log line 2252 regimes=['GRILLERS_GRADE_CW'] pwm_open(now)=97 interval_ms=1471 mapped_mm=300 mm 80->81
+  9950012_20260922_133918.log line 2277 regimes=['GRILLERS_GRADE_CW'] pwm_open(now)=97 interval_ms=1416 mapped_mm=300 mm 81->82
+  9950012_20260922_133918.log line 2310 regimes=['GRILLERS_GRADE_CW'] pwm_open(now)=97 interval_ms=1478 mapped_mm=305 mm 82->83
+  9950012_20260922_133918.log line 2335 regimes=['GRILLERS_GRADE_CW'] pwm_open(now)=97 interval_ms=1529 mapped_mm=300 mm 83->84
+  9950012_20260922_133918.log line 2364 regimes=['GRILLERS_GRADE_CW'] pwm_open(now)=97 interval_ms=1385 mapped_mm=300 mm 84->85
+  9950012_20260922_133918.log line 2397 regimes=['GRILLERS_GRADE_CW'] pwm_open(now)=97 interval_ms=1393 mapped_mm=330 mm 85->86
+  9950012_20260922_133918.log line 2734 regimes=['STATION:Arches'] pwm_open(now)=100 interval_ms=1173 mapped_mm=300 mm 97->98
+  9950012_20260922_133918.log line 2759 regimes=['STATION:Arches'] pwm_open(now)=100 interval_ms=1130 mapped_mm=300 mm 98->99
+  9950012_20260922_133918.log line 2784 regimes=['STATION:Arches'] pwm_open(now)=100 interval_ms=1180 mapped_mm=300 mm 99->100
+  9950012_20260922_133918.log line 2809 regimes=['STATION:Arches'] pwm_open(now)=100 interval_ms=1126 mapped_mm=300 mm 100->101
+  9950012_20260922_133918.log line 2838 regimes=['STATION:Arches'] pwm_open(now)=100 interval_ms=1097 mapped_mm=300 mm 101->102
+  9950012_20260922_133918.log line 2863 regimes=['STATION:Arches'] pwm_open(now)=100 interval_ms=1047 mapped_mm=295 mm 102->103
+  9950012_20260922_133918.log line 2888 regimes=['STATION:Arches'] pwm_open(now)=100 interval_ms=936 mapped_mm=300 mm 103->104
+  9950012_20260922_133918.log line 2913 regimes=['STATION:Arches'] pwm_open(now)=100 interval_ms=981 mapped_mm=300 mm 104->105
+  9950012_20260922_133918.log line 2942 regimes=['STATION:Arches'] pwm_open(now)=100 interval_ms=998 mapped_mm=300 mm 105->106
+  9950012_20260922_133918.log line 2967 regimes=['STATION:Arches'] pwm_open(now)=100 interval_ms=1097 mapped_mm=300 mm 106->107
+  9950012_20260922_133918.log line 3000 regimes=['STATION:Arches'] pwm_open(now)=100 interval_ms=1147 mapped_mm=300 mm 107->108
+  9950012_20260922_133918.log line 3025 regimes=['STATION:Arches'] pwm_open(now)=100 interval_ms=1124 mapped_mm=305 mm 108->109
+  9950012_20260922_133918.log line 3050 regimes=['STATION:Arches'] pwm_open(now)=100 interval_ms=1197 mapped_mm=300 mm 109->110
+  9950012_20260922_133918.log line 3079 regimes=['STATION:Arches'] pwm_open(now)=100 interval_ms=1258 mapped_mm=300 mm 110->111
+  9950012_20260922_133918.log line 3112 regimes=['STATION:Arches'] pwm_open(now)=100 interval_ms=1449 mapped_mm=320 mm 111->112
+  9950012_20260922_133918.log line 3137 regimes=['STATION:Arches'] pwm_open(now)=100 interval_ms=1325 mapped_mm=320 mm 112->113
+  9950012_20260922_133918.log line 3162 regimes=['STATION:Arches'] pwm_open(now)=100 interval_ms=1299 mapped_mm=300 mm 113->114
+  9950012_20260922_133918.log line 3191 regimes=['STATION:Arches'] pwm_open(now)=100 interval_ms=1138 mapped_mm=300 mm 114->115
+  9950012_20260922_133918.log line 3216 regimes=['STATION:Arches'] pwm_open(now)=100 interval_ms=1080 mapped_mm=300 mm 115->116
+  9950012_20260922_133918.log line 3249 regimes=['STATION:Arches'] pwm_open(now)=100 interval_ms=1117 mapped_mm=300 mm 116->117
+  9950012_20260922_133918.log line 4023 regimes=['STATION:Bamboo'] pwm_open(now)=100 interval_ms=1114 mapped_mm=305 mm 146->147
+  9950012_20260922_133918.log line 4052 regimes=['STATION:Bamboo'] pwm_open(now)=100 interval_ms=1139 mapped_mm=300 mm 147->148
+  9950012_20260922_133918.log line 4085 regimes=['STATION:Bamboo'] pwm_open(now)=100 interval_ms=1115 mapped_mm=295 mm 148->149
+  9950012_20260922_133918.log line 4110 regimes=['STATION:Bamboo'] pwm_open(now)=100 interval_ms=1058 mapped_mm=300 mm 149->150
+  9950012_20260922_133918.log line 4135 regimes=['STATION:Bamboo'] pwm_open(now)=100 interval_ms=1043 mapped_mm=300 mm 150->151
+  9950012_20260922_133918.log line 4160 regimes=['STATION:Bamboo'] pwm_open(now)=100 interval_ms=1022 mapped_mm=300 mm 151->152
+  9950012_20260922_133918.log line 4189 regimes=['STATION:Bamboo'] pwm_open(now)=100 interval_ms=1194 mapped_mm=305 mm 152->153
+  9950012_20260922_133918.log line 4214 regimes=['STATION:Bamboo'] pwm_open(now)=100 interval_ms=988 mapped_mm=300 mm 153->154
+  9950012_20260922_133918.log line 4239 regimes=['STATION:Bamboo'] pwm_open(now)=100 interval_ms=1038 mapped_mm=300 mm 154->155
+  9950012_20260922_133918.log line 4264 regimes=['STATION:Bamboo'] pwm_open(now)=100 interval_ms=1083 mapped_mm=305 mm 155->156
+  9950012_20260922_133918.log line 4289 regimes=['STATION:Bamboo'] pwm_open(now)=100 interval_ms=1215 mapped_mm=320 mm 156->157
+  9950012_20260922_133918.log line 4318 regimes=['STATION:Bamboo'] pwm_open(now)=100 interval_ms=1232 mapped_mm=290 mm 157->158
+  9950012_20260922_133918.log line 4351 regimes=['STATION:Bamboo'] pwm_open(now)=100 interval_ms=1067 mapped_mm=320 mm 158->159
+  9950012_20260922_133918.log line 4376 regimes=['STATION:Bamboo'] pwm_open(now)=100 interval_ms=1168 mapped_mm=300 mm 159->160
+  9950012_20260922_133918.log line 4401 regimes=['STATION:Bamboo'] pwm_open(now)=100 interval_ms=1047 mapped_mm=300 mm 160->161
+  9950012_20260922_133918.log line 4430 regimes=['STATION:Bamboo'] pwm_open(now)=100 interval_ms=1220 mapped_mm=305 mm 161->162
+  9950012_20260922_133918.log line 4455 regimes=['STATION:Bamboo'] pwm_open(now)=100 interval_ms=1121 mapped_mm=330 mm 162->163
+  9950012_20260922_133918.log line 4480 regimes=['STATION:Bamboo'] pwm_open(now)=100 interval_ms=1353 mapped_mm=330 mm 163->164
+  9950012_20260922_133918.log line 4513 regimes=['STATION:Bamboo'] pwm_open(now)=100 interval_ms=1497 mapped_mm=320 mm 164->165
+  9950012_20260922_133918.log line 4542 regimes=['STATION:Bamboo'] pwm_open(now)=100 interval_ms=1401 mapped_mm=325 mm 165->166
+  9950012_20260922_133918.log line 4832 regimes=['STATION:Patio'] pwm_open(now)=100 interval_ms=1435 mapped_mm=325 mm 4->5
+  9950012_20260922_133918.log line 4869 regimes=['STATION:Patio'] pwm_open(now)=100 interval_ms=1484 mapped_mm=330 mm 5->6
+  9950012_20260922_133918.log line 4894 regimes=['STATION:Patio'] pwm_open(now)=100 interval_ms=1379 mapped_mm=315 mm 6->7
+  9950012_20260922_133918.log line 4919 regimes=['STATION:Patio'] pwm_open(now)=100 interval_ms=1354 mapped_mm=300 mm 7->8
+  9950012_20260922_133918.log line 4956 regimes=['STATION:Patio'] pwm_open(now)=100 interval_ms=1372 mapped_mm=300 mm 8->9
+  9950012_20260922_133918.log line 4981 regimes=['STATION:Patio'] pwm_open(now)=100 interval_ms=1271 mapped_mm=295 mm 9->10
+  9950012_20260922_133918.log line 5006 regimes=['STATION:Patio'] pwm_open(now)=100 interval_ms=1228 mapped_mm=300 mm 10->11
+  9950012_20260922_133918.log line 5031 regimes=['STATION:Patio'] pwm_open(now)=100 interval_ms=1200 mapped_mm=290 mm 11->12
+  9950012_20260922_133918.log line 5068 regimes=['STATION:Patio'] pwm_open(now)=100 interval_ms=1202 mapped_mm=300 mm 12->13
+  9950012_20260922_133918.log line 5093 regimes=['STATION:Patio'] pwm_open(now)=100 interval_ms=1069 mapped_mm=315 mm 13->14
+  9950012_20260922_133918.log line 5118 regimes=['STATION:Patio'] pwm_open(now)=100 interval_ms=1151 mapped_mm=315 mm 14->15
+  9950012_20260922_133918.log line 5143 regimes=['STATION:Patio'] pwm_open(now)=100 interval_ms=1165 mapped_mm=325 mm 15->16
+  9950012_20260922_133918.log line 5168 regimes=['STATION:Patio'] pwm_open(now)=100 interval_ms=1203 mapped_mm=310 mm 16->17
+  9950012_20260922_133918.log line 5197 regimes=['STATION:Patio'] pwm_open(now)=100 interval_ms=1191 mapped_mm=300 mm 17->18
+  9950012_20260922_133918.log line 5222 regimes=['STATION:Patio'] pwm_open(now)=100 interval_ms=1097 mapped_mm=300 mm 18->19
+  9950012_20260922_133918.log line 5255 regimes=['STATION:Patio'] pwm_open(now)=100 interval_ms=1038 mapped_mm=320 mm 19->20
+  9950012_20260922_133918.log line 5280 regimes=['STATION:Patio'] pwm_open(now)=100 interval_ms=990 mapped_mm=315 mm 20->21
+  9950012_20260922_133918.log line 5309 regimes=['STATION:Patio'] pwm_open(now)=100 interval_ms=1052 mapped_mm=315 mm 21->22
+  9950012_20260922_133918.log line 5334 regimes=['STATION:Patio'] pwm_open(now)=100 interval_ms=1015 mapped_mm=305 mm 22->23
+  9950012_20260922_133918.log line 5359 regimes=['STATION:Patio'] pwm_open(now)=100 interval_ms=946 mapped_mm=300 mm 23->24
+  9950012_20260922_133918.log line 6210 regimes=['STATION:Grillers'] pwm_open(now)=30 interval_ms=3733 mapped_mm=300 mm 52->53
+  20260922_navi_coherence_0_5_auto_run.log line 10902 regimes=['STATION:Arches'] pwm_open(now)=37 interval_ms=1358 mapped_mm=300 mm 110->111
+  20260922_navi_coherence_0_5_auto_run.log line 16618 regimes=['STATION:Patio'] pwm_open(now)=63 interval_ms=1996 mapped_mm=300 mm 13->12
+  20260922_navi_coherence_0_5_auto_run.log line 16652 regimes=['STATION:Patio'] pwm_open(now)=70 interval_ms=1533 mapped_mm=290 mm 12->11
+  20260922_navi_coherence_0_5_auto_run.log line 16681 regimes=['STATION:Patio'] pwm_open(now)=77 interval_ms=1389 mapped_mm=300 mm 11->10
+  20260922_navi_coherence_0_5_auto_run.log line 16706 regimes=['STATION:Patio'] pwm_open(now)=83 interval_ms=1223 mapped_mm=295 mm 10->9
+  20260922_navi_coherence_0_5_auto_run.log line 16733 regimes=['STATION:Patio'] pwm_open(now)=89 interval_ms=1141 mapped_mm=300 mm 9->8
+  20260922_navi_coherence_0_5_auto_run.log line 16764 regimes=['STATION:Patio'] pwm_open(now)=90 interval_ms=1194 mapped_mm=300 mm 8->7
+  20260922_navi_coherence_0_5_auto_run.log line 16789 regimes=['STATION:Patio'] pwm_open(now)=90 interval_ms=1265 mapped_mm=315 mm 7->6
+  20260922_navi_coherence_0_5_auto_run.log line 17069 regimes=['STATION:Bamboo'] pwm_open(now)=90 interval_ms=1378 mapped_mm=355 mm 168->167
+  20260922_navi_coherence_0_5_auto_run.log line 17101 regimes=['STATION:Bamboo'] pwm_open(now)=86 interval_ms=1360 mapped_mm=315 mm 167->166
+  20260922_navi_coherence_0_5_auto_run.log line 17131 regimes=['STATION:Bamboo'] pwm_open(now)=80 interval_ms=1473 mapped_mm=325 mm 166->165
+  20260922_navi_coherence_0_5_auto_run.log line 17165 regimes=['STATION:Bamboo'] pwm_open(now)=74 interval_ms=1592 mapped_mm=320 mm 165->164
+  20260922_navi_coherence_0_5_auto_run.log line 17199 regimes=['STATION:Bamboo'] pwm_open(now)=69 interval_ms=1763 mapped_mm=330 mm 164->163
+  20260922_navi_coherence_0_5_auto_run.log line 17237 regimes=['STATION:Bamboo'] pwm_open(now)=63 interval_ms=2075 mapped_mm=330 mm 163->162
+  20260922_navi_coherence_0_5_auto_run.log line 17271 regimes=['STATION:Bamboo'] pwm_open(now)=60 interval_ms=1968 mapped_mm=305 mm 162->161
+  20260922_navi_coherence_0_5_auto_run.log line 17304 regimes=['STATION:Bamboo'] pwm_open(now)=60 interval_ms=2144 mapped_mm=300 mm 161->160
+  20260922_navi_coherence_0_5_auto_run.log line 17341 regimes=['STATION:Bamboo'] pwm_open(now)=60 interval_ms=1851 mapped_mm=300 mm 160->159
+  20260922_navi_coherence_0_5_auto_run.log line 17374 regimes=['STATION:Bamboo'] pwm_open(now)=60 interval_ms=2019 mapped_mm=320 mm 159->158
+  20260922_navi_coherence_0_5_auto_run.log line 17412 regimes=['STATION:Bamboo'] pwm_open(now)=52 interval_ms=1963 mapped_mm=290 mm 158->157
+  20260922_navi_coherence_0_5_auto_run.log line 17453 regimes=['STATION:Bamboo'] pwm_open(now)=34 interval_ms=3618 mapped_mm=320 mm 157->156
+  20260922_navi_coherence_0_5_auto_run.log line 17686 regimes=['STATION:Bamboo'] pwm_open(now)=52 interval_ms=2532 mapped_mm=300 mm 155->154
+  20260922_navi_coherence_0_5_auto_run.log line 17719 regimes=['STATION:Bamboo'] pwm_open(now)=61 interval_ms=1908 mapped_mm=300 mm 154->153
+  20260922_navi_coherence_0_5_auto_run.log line 17752 regimes=['STATION:Bamboo'] pwm_open(now)=69 interval_ms=1576 mapped_mm=305 mm 153->152
+  20260922_navi_coherence_0_5_auto_run.log line 17781 regimes=['STATION:Bamboo'] pwm_open(now)=78 interval_ms=1722 mapped_mm=300 mm 152->151
+  20260922_navi_coherence_0_5_auto_run.log line 17814 regimes=['STATION:Bamboo'] pwm_open(now)=84 interval_ms=1340 mapped_mm=300 mm 151->150
+  20260922_navi_coherence_0_5_auto_run.log line 17839 regimes=['STATION:Bamboo'] pwm_open(now)=90 interval_ms=1220 mapped_mm=300 mm 150->149
+  20260922_navi_coherence_0_5_auto_run.log line 17868 regimes=['STATION:Bamboo'] pwm_open(now)=90 interval_ms=1131 mapped_mm=295 mm 149->148
+  20260922_navi_coherence_0_5_auto_run.log line 18682 regimes=['STATION:Arches'] pwm_open(now)=90 interval_ms=1091 mapped_mm=300 mm 119->118
+  20260922_navi_coherence_0_5_auto_run.log line 18712 regimes=['STATION:Arches'] pwm_open(now)=87 interval_ms=1121 mapped_mm=300 mm 118->117
+  20260922_navi_coherence_0_5_auto_run.log line 18738 regimes=['STATION:Arches'] pwm_open(now)=82 interval_ms=1196 mapped_mm=300 mm 117->116
+  20260922_navi_coherence_0_5_auto_run.log line 18764 regimes=['STATION:Arches'] pwm_open(now)=77 interval_ms=1303 mapped_mm=300 mm 116->115
+  20260922_navi_coherence_0_5_auto_run.log line 18798 regimes=['STATION:Arches'] pwm_open(now)=73 interval_ms=1362 mapped_mm=300 mm 115->114
+  20260922_navi_coherence_0_5_auto_run.log line 18828 regimes=['STATION:Arches'] pwm_open(now)=69 interval_ms=1469 mapped_mm=300 mm 114->113
+  20260922_navi_coherence_0_5_auto_run.log line 18862 regimes=['STATION:Arches'] pwm_open(now)=60 interval_ms=1847 mapped_mm=320 mm 113->112
+  20260922_navi_coherence_0_5_auto_run.log line 18899 regimes=['STATION:Arches'] pwm_open(now)=60 interval_ms=2086 mapped_mm=320 mm 112->111
+  20260922_navi_coherence_0_5_auto_run.log line 18932 regimes=['STATION:Arches'] pwm_open(now)=60 interval_ms=2370 mapped_mm=300 mm 111->110
+  20260922_navi_coherence_0_5_auto_run.log line 18965 regimes=['STATION:Arches'] pwm_open(now)=60 interval_ms=1979 mapped_mm=300 mm 110->109
+  20260922_navi_coherence_0_5_auto_run.log line 19002 regimes=['STATION:Arches'] pwm_open(now)=60 interval_ms=1938 mapped_mm=305 mm 109->108
+  20260922_navi_coherence_0_5_auto_run.log line 19036 regimes=['STATION:Arches'] pwm_open(now)=52 interval_ms=2019 mapped_mm=300 mm 108->107
+  20260922_navi_coherence_0_5_auto_run.log line 19081 regimes=['STATION:Arches'] pwm_open(now)=37 interval_ms=2854 mapped_mm=300 mm 107->106
+  20260922_navi_coherence_0_5_auto_run.log line 19350 regimes=['STATION:Arches'] pwm_open(now)=55 interval_ms=2993 mapped_mm=300 mm 105->104
+  20260922_navi_coherence_0_5_auto_run.log line 19395 regimes=['STATION:Arches'] pwm_open(now)=66 interval_ms=2175 mapped_mm=300 mm 104->103
+  20260922_navi_coherence_0_5_auto_run.log line 19420 regimes=['STATION:Arches'] pwm_open(now)=74 interval_ms=1670 mapped_mm=295 mm 103->102
+  20260922_navi_coherence_0_5_auto_run.log line 19453 regimes=['STATION:Arches'] pwm_open(now)=81 interval_ms=1437 mapped_mm=300 mm 102->101
+  20260922_navi_coherence_0_5_auto_run.log line 19482 regimes=['STATION:Arches'] pwm_open(now)=87 interval_ms=1237 mapped_mm=300 mm 101->100
+  20260922_navi_coherence_0_5_auto_run.log line 19507 regimes=['STATION:Arches'] pwm_open(now)=90 interval_ms=1143 mapped_mm=300 mm 100->99
+  20260922_navi_coherence_0_5_auto_run.log line 20205 regimes=['STATION:Grillers'] pwm_open(now)=90 interval_ms=1057 mapped_mm=300 mm 74->73
+  20260922_navi_coherence_0_5_auto_run.log line 20231 regimes=['STATION:Grillers'] pwm_open(now)=88 interval_ms=1092 mapped_mm=300 mm 73->72
+  20260922_navi_coherence_0_5_auto_run.log line 20257 regimes=['STATION:Grillers'] pwm_open(now)=86 interval_ms=1052 mapped_mm=295 mm 72->71
+  20260922_navi_coherence_0_5_auto_run.log line 20283 regimes=['STATION:Grillers'] pwm_open(now)=84 interval_ms=1060 mapped_mm=295 mm 71->70
+  20260922_navi_coherence_0_5_auto_run.log line 20313 regimes=['STATION:Grillers'] pwm_open(now)=82 interval_ms=1092 mapped_mm=300 mm 70->69
+  20260922_navi_coherence_0_5_auto_run.log line 20339 regimes=['STATION:Grillers'] pwm_open(now)=81 interval_ms=1181 mapped_mm=300 mm 69->68
+  20260922_navi_coherence_0_5_auto_run.log line 20373 regimes=['STATION:Grillers'] pwm_open(now)=75 interval_ms=1239 mapped_mm=305 mm 68->67
+  20260922_navi_coherence_0_5_auto_run.log line 20398 regimes=['STATION:Grillers'] pwm_open(now)=72 interval_ms=1351 mapped_mm=300 mm 67->66
+  20260922_navi_coherence_0_5_auto_run.log line 20427 regimes=['STATION:Grillers'] pwm_open(now)=72 interval_ms=1379 mapped_mm=305 mm 66->65
+  20260922_navi_coherence_0_5_auto_run.log line 20460 regimes=['STATION:Grillers'] pwm_open(now)=72 interval_ms=1790 mapped_mm=315 mm 65->64
+  20260922_navi_coherence_0_5_auto_run.log line 20494 regimes=['STATION:Grillers'] pwm_open(now)=64 interval_ms=1949 mapped_mm=325 mm 64->63
+  20260922_navi_coherence_0_5_auto_run.log line 20531 regimes=['STATION:Grillers'] pwm_open(now)=55 interval_ms=1792 mapped_mm=315 mm 63->62
+  20260922_navi_coherence_0_5_auto_run.log line 20572 regimes=['STATION:Grillers'] pwm_open(now)=41 interval_ms=2781 mapped_mm=320 mm 62->61
+  20260922_navi_coherence_0_5_auto_run.log line 20821 regimes=['STATION:Grillers'] pwm_open(now)=59 interval_ms=2709 mapped_mm=300 mm 60->59
+  20260922_navi_coherence_0_5_auto_run.log line 20858 regimes=['STATION:Grillers'] pwm_open(now)=69 interval_ms=1944 mapped_mm=320 mm 59->58
+  20260922_navi_coherence_0_5_auto_run.log line 20891 regimes=['STATION:Grillers'] pwm_open(now)=76 interval_ms=1494 mapped_mm=295 mm 58->57
+  20260922_navi_coherence_0_5_auto_run.log line 20916 regimes=['STATION:Grillers'] pwm_open(now)=82 interval_ms=1251 mapped_mm=300 mm 57->56
+  20260922_navi_coherence_0_5_auto_run.log line 20941 regimes=['STATION:Grillers'] pwm_open(now)=88 interval_ms=1172 mapped_mm=300 mm 56->55
+  20260922_navi_coherence_0_5_auto_run.log line 20970 regimes=['STATION:Grillers'] pwm_open(now)=90 interval_ms=1100 mapped_mm=300 mm 55->54
+
+=== Guard comparison across the SAME Hall-only-path event stream ===
+
+-- current (500 flat) --
+  genuine admitted:   342
+  genuine SUPPRESSED: 0
+  false admitted (slips through): 0
+  false rejected:     4
+
+-- fixed 700 --
+  genuine admitted:   342
+  genuine SUPPRESSED: 0
+  false admitted (slips through): 0
+  false rejected:     4
+
+-- proposed ramp 700-1000 (1150-5*pwm) --
+  genuine admitted:   342
+  genuine SUPPRESSED: 0
+  false admitted (slips through): 0
+  false rejected:     4
+
+wrote /Users/davidbrown/esp-loco-control/field-records/analysis/20260922_mm_guard_timing_toby_genuine.json, /Users/davidbrown/esp-loco-control/field-records/analysis/20260922_mm_guard_timing_toby_hall_only_false.json

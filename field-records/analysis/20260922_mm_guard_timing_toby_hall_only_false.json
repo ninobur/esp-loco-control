@@ -1,0 +1,62 @@
+[
+ {
+  "line": 6226,
+  "boot_seg": -1,
+  "event_serial": 184,
+  "real_ruling": "NON_LANDMARK_HALL",
+  "pwm_open": 29,
+  "opened_ms": 492824,
+  "dist_assessable": 0,
+  "dir": "CW",
+  "elapsed_since_last_accept": 402,
+  "counterfactual_accept": false,
+  "real_accept": false,
+  "mm_before": 53,
+  "src": "/Users/davidbrown/esp-loco-control/field-records/logs/20260922_navi_coherence_0_4_runs/9950012_20260922_133918.log"
+ },
+ {
+  "line": 10884,
+  "boot_seg": 1,
+  "event_serial": 244,
+  "real_ruling": "NON_LANDMARK_HALL",
+  "pwm_open": 32,
+  "opened_ms": 503091,
+  "dist_assessable": 0,
+  "dir": "CW",
+  "elapsed_since_last_accept": 402,
+  "counterfactual_accept": false,
+  "real_accept": false,
+  "mm_before": 110,
+  "src": "/Users/davidbrown/esp-loco-control/field-records/logs/20260922_navi_coherence_0_5_auto_run.log"
+ },
+ {
+  "line": 19099,
+  "boot_seg": 1,
+  "event_serial": 476,
+  "real_ruling": "NON_LANDMARK_HALL",
+  "pwm_open": 35,
+  "opened_ms": 981400,
+  "dist_assessable": 0,
+  "dir": "CCW",
+  "elapsed_since_last_accept": 402,
+  "counterfactual_accept": false,
+  "real_accept": false,
+  "mm_before": 106,
+  "src": "/Users/davidbrown/esp-loco-control/field-records/logs/20260922_navi_coherence_0_5_auto_run.log"
+ },
+ {
+  "line": 19317,
+  "boot_seg": 1,
+  "event_serial": 478,
+  "real_ruling": "NON_LANDMARK_HALL",
+  "pwm_open": 42,
+  "opened_ms": 1001787,
+  "dist_assessable": 0,
+  "dir": "CCW",
+  "elapsed_since_last_accept": 402,
+  "counterfactual_accept": false,
+  "real_accept": false,
+  "mm_before": 105,
+  "src": "/Users/davidbrown/esp-loco-control/field-records/logs/20260922_navi_coherence_0_5_auto_run.log"
+ }
+]

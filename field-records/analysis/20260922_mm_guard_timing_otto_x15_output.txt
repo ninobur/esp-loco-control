@@ -1,0 +1,43 @@
+Total state/nav events: 2077, boot segments: 62
+ADVANCED (genuine): 1735  TOO_SOON (false, time-gated): 5  WRONG_MAGNET (false, polarity -- different mechanism): 3
+
+=== Otto ADVANCED gap_ms (PREVIOUS CLOSE -> THIS OPEN; native units, NOT open-to-open) by pwm_close bin ===
+  >=90   n=1283 min=   788 p1=   895 p5=   961 median=   1116
+  80     n= 115 min=     0 p1=   998 p5=  1008 median=   1149
+  70     n= 104 min=     0 p1=  1264 p5=  1274 median=   1637
+  60     n= 192 min=  1626 p1=  1645 p5=  1848 median=   2237
+  50     n=  27 min=  2050 p1=  2053 p5=  2073 median=   2283
+  40     n=  14 min=  1811 p1=  1917 p5=  2341 median=   3178
+  <=30   n=0
+
+=== Otto dur_ms (own open->close duration) distribution, for reconstruction error context ===
+  n=1735 min=96 p5=129 median=152 p95=299 max=1569
+
+=== Otto TOO_SOON (false, time-gated) events -- full ground truth ===
+  line 64503 boot_seg 61 mm 92->tgt 91 dir CCW pwm_close=90 gap_ms(close->open)=52 own_dur_ms=95 prev_ruling=ADVANCED prev_dur_ms=1569 RECONSTRUCTED_open_to_open=1621
+  line 64513 boot_seg 61 mm 92->tgt 91 dir CCW pwm_close=90 gap_ms(close->open)=215 own_dur_ms=1200 prev_ruling=NOT_A_MAGNET prev_dur_ms=95 RECONSTRUCTED_open_to_open=310
+  line 64542 boot_seg 61 mm 91->tgt 90 dir CCW pwm_close=90 gap_ms(close->open)=62 own_dur_ms=2446 prev_ruling=ADVANCED prev_dur_ms=96 RECONSTRUCTED_open_to_open=158
+  line 77975 boot_seg 61 mm 62->tgt 61 dir CCW pwm_close=41 gap_ms(close->open)=122 own_dur_ms=1558 prev_ruling=ADVANCED prev_dur_ms=306 RECONSTRUCTED_open_to_open=428
+  line 78000 boot_seg 61 mm 61->tgt 60 dir CCW pwm_close=31 gap_ms(close->open)=370 own_dur_ms=871 prev_ruling=ADVANCED prev_dur_ms=637 RECONSTRUCTED_open_to_open=1007
+
+=== Otto WRONG_MAGNET (polarity mismatch -- different mechanism, NOT time-gated; excluded from the guard-relevant false population) ===
+  line 1091 boot_seg 0 mm 151->tgt 150 dir CCW pwm_close=90 gap_ms=558 obs=N expected=S
+  line 64559 boot_seg 61 mm 90->tgt 89 dir CCW pwm_close=90 gap_ms=1107 obs=N expected=S
+  line 78008 boot_seg 61 mm 61->tgt 60 dir CCW pwm_close=27 gap_ms=1606 obs=N expected=S
+
+=== Otto: closest genuine ADVANCED gap_ms values (bottom 15), for separation check ===
+  line 32668 pwm_close=78 gap_ms=0 dur_ms=292 mm 40
+  line 73928 pwm_close=67 gap_ms=0 dur_ms=304 mm 99
+  line 64497 pwm_close=90 gap_ms=788 dur_ms=1569 mm 92
+  line 50351 pwm_close=90 gap_ms=846 dur_ms=110 mm 74
+  line 46749 pwm_close=90 gap_ms=851 dur_ms=106 mm 74
+  line 74213 pwm_close=90 gap_ms=851 dur_ms=107 mm 74
+  line 53942 pwm_close=90 gap_ms=854 dur_ms=109 mm 74
+  line 57534 pwm_close=90 gap_ms=854 dur_ms=110 mm 74
+  line 61126 pwm_close=90 gap_ms=854 dur_ms=106 mm 74
+  line 77797 pwm_close=90 gap_ms=854 dur_ms=108 mm 74
+  line 43132 pwm_close=90 gap_ms=856 dur_ms=106 mm 74
+  line 35767 pwm_close=90 gap_ms=879 dur_ms=113 mm 74
+  line 39472 pwm_close=90 gap_ms=881 dur_ms=114 mm 74
+  line 46740 pwm_close=90 gap_ms=883 dur_ms=115 mm 75
+  line 53933 pwm_close=90 gap_ms=893 dur_ms=109 mm 75
