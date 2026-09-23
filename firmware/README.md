@@ -44,8 +44,10 @@ or a successful build.
 **2026-09-23 recovery revision:**
 `programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_HEALTH/` now identifies
 as **NAVI_COHERENCE_0_6_PROXIMAL_R1**, same Arduino filename/shortcut. Development
-control experiment; built and host-tested, awaiting independent review; not
-flashed or field accepted. Replaces full-route matching with physical filtering,
+control experiment; built and host-tested, awaiting independent review;
+flashed to Toby at operator request approximately16:14 PDT on2026-09-23, not
+field accepted. Startup confirmed; IR source absent at first check. See
+`docs/NAVI_PROXIMAL_R1_FLASH_20260923.md`. Replaces full-route matching with physical filtering,
 proximal unique-better recovery and retained UNKNOWN history. No longer
 observation-only. Prior CAL0_FIX1 field evidence remains at git89dc369.
 Controlling record: decision0098 and `docs/NAVI_PROXIMAL_R1_IMPLEMENTATION_20260923.md`.
