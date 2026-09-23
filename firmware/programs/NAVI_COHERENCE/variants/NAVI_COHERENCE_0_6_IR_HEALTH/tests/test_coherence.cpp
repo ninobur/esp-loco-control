@@ -20,9 +20,9 @@ int main(){
  // Missed-and-advance must not drop the final Hall polarity discrepancy.
  Navigator n2;n2.declare(55,1,1000);NavObservation f{};f.openedAtMs=1700;f.polarity=polarityAt(56);f.movement=mp(200,1700000);assert(n2.judge(f)==Ruling::Advanced);uint32_t twob=spanMm(56,1)+spanMm(57,1);uint64_t pb=(twob+5)/10;NavObservation g{};g.openedAtMs=3200;g.polarity=!polarityAt(58);g.movement=mp(200+pb,3200000);assert(n2.judge(g)==Ruling::MissedAndAdvanced);assert(n2.status().navMm==58);assert(n2.status().evidence==EvidenceClass::MissedWithPolarityDiscrepancy);
  // Reversal preserves location authority and expects the point just passed.
- // 0.5: the observed-sequence window restarts, because the first point after a
- // reversal repeats the one just passed.
- n.setDirection(-1,6000);assert(n.positionKnown());assert(n.status().target==59);assert(n.status().sequenceLength==0);
+ // Recovery retains observations but cannot reuse unsigned travel across reversal.
+ const auto historyBefore=n.recovery().count();
+ n.setDirection(-1,6000);assert(n.positionKnown());assert(n.status().target==59);assert(n.recovery().count()==historyBefore);
  // ---- 0.5: IR window is +/-15% --------------------------------------------
  {Navigator w;w.declare(100,1,0);NavObservation a0{};a0.openedAtMs=1000;a0.polarity=polarityAt(101);a0.movement=mp(1000,1000000);assert(w.judge(a0)==Ruling::Advanced);
   const double span=spanMm(101,1);
@@ -56,9 +56,10 @@ int main(){
  for(int dir=-1;dir<=1;dir+=2)for(int start=0;start<ROUTE_N;++start)for(int flip=0;flip<20;++flip){
    Navigator n;uint32_t ms=0;n.declare(routeMod(start-dir),int8_t(dir),ms);uint8_t phys=run(n,uint8_t(start),int8_t(dir),20,flip,ms);
    assert(n.status().corrections==0);assert(n.status().navMm==routeMod(int32_t(phys)-dir));++held;}
- // A multi-step advance restarts the window: skipped points were not observed.
+ // A multi-step advance retains history: skipped points are UNKNOWN.
  {Navigator n;n.declare(55,1,1000);NavObservation f{};f.openedAtMs=1700;f.polarity=polarityAt(56);f.movement=mp(200,1700000);n.judge(f);
   uint32_t twob=spanMm(56,1)+spanMm(57,1);NavObservation g{};g.openedAtMs=3200;g.polarity=polarityAt(58);g.movement=mp(200+(twob+5)/10,3200000);
-  assert(n.judge(g)==Ruling::MissedAndAdvanced);assert(n.status().sequenceLength==1);}
- std::cout<<"NAVI_COHERENCE_0_5 focused checks passed ("<<corrected<<" offset corrections, "<<held<<" single-misread holds)\n";
+  assert(n.judge(g)==Ruling::MissedAndAdvanced);assert(n.status().sequenceLength==2);
+  assert(n.recovery().count()==3 && !n.recovery().entry(1).observed);}
+ std::cout<<"PROXIMAL_R1 navigator checks passed ("<<corrected<<" offset corrections, "<<held<<" single-misread holds)\n";
 }

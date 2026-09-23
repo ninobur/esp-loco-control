@@ -33,10 +33,12 @@ int main() {
   field.receive(MAC,raw,sizeof(raw),at);
   assert(field.accepted()==1 && field.rejected()==0);
   assert(field.health().fault==IrHealthFault::InadequateContrast);
+  assert(!field.at(at,at).owner);
   assert(!field.odometry().epochActive());dump(field,at);
   auto next=captured;next.sequence++;next.capturedUs+=100000;
   next.opticalReason=ir_movement::TRACKING;at+=100000;send(field,next,at);
   assert(field.health().measurementReady() && field.odometry().epochId()==1);
+  assert(field.at(at,at).epoch==1);
   assert(field.acceptedMm(41,0,at,1,at));dump(field,at);
   next.sequence++;next.capturedUs+=100000;next.opticalReason=ir_movement::SIGNAL_STALE;
   at+=100000;send(field,next,at);
@@ -87,6 +89,9 @@ int main() {
   send(aligned,packet(5,500000,30,ir_movement::INADEQUATE_CONTRAST),1500000);
   send(aligned,packet(6,600000,31),1600000);
   assert(aligned.odometry().epochId()==2);
+  assert(!aligned.at(1500000,1600000).owner); // nearest point was unhealthy.
+  assert(!aligned.at(1400000,1600000).owner); // earlier epoch cannot be reused.
+  assert(aligned.at(1600000,1600000).epoch==2);
   assert(!aligned.acceptedMm(43,1500,1500000,5,1600000)); // nearest snapshot was invalid.
   assert(!aligned.acceptedMm(42,1400,1400000,6,1600000)); // old epoch.
   assert(aligned.acceptedMm(43,1600,1600000,7,1600000));

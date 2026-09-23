@@ -4,7 +4,8 @@
 #include "../../../../reference/NAVI_COHERENCE/IR_ARCHITECTURE_0_4/MmDistanceReference.h"
 
 namespace ngr_nav {
-// Diagnostic-only consumer. Never returns evidence to Navigator or motor code.
+// Measurement consumer. Supplies epoch-tagged points to NAVI recovery, never
+// a position decision or motor command. The MM reference remains NAVI-owned.
 // Uses the same 1 s freshness / 150 ms alignment gates as the existing adapter.
 class IrHealthMonitor {
  public:
@@ -79,6 +80,18 @@ class IrHealthMonitor {
     return entry && best<=ALIGN_US && reference_.synchronize(mm,hallMs,entry->point,odo_);
   }
   const IrOdometryEpoch& odometry() const {return odo_;}
+  // Measurement-only API. NAVI owns all route interpretation of this point.
+  IrOdometryPoint at(uint64_t eventUs,uint64_t now) {
+    tick(now);
+    if(!have_ || !odo_.haveMeasurement() || eventUs>uint64_t(INT64_MAX/4))return {};
+    uint64_t best=UINT64_MAX;const Entry* entry=nullptr;
+    for(uint8_t i=0;i<used_;++i) {
+      const int64_t d=int64_t(history_[i].capturedUs)+offset_-int64_t(eventUs);
+      const uint64_t distance=d<0?uint64_t(-d):uint64_t(d);
+      if(distance<best){best=distance;entry=&history_[i];}
+    }
+    return entry && best<=ALIGN_US && odo_.contains(entry->point)?entry->point:IrOdometryPoint{};
+  }
   const MmDistanceReference& reference() const {return reference_;}
   const IrInstrumentState& health() const {return health_;}
   uint32_t revision() const {return revision_;}
@@ -106,7 +119,7 @@ class IrHealthMonitor {
       snprintf(dt,sizeof(dt),"%llu",(unsigned long long)deltaUs_);
     }
     return snprintf(out,size,
-      "{\"shadow\":1,\"health_revision\":\"CAL0_FIX1\",\"calibration_id\":%lu,\"distance_bounds\":\"UNVALIDATED\",\"loco_boot\":\"%016llX\",\"health\":\"%s\",\"readiness\":\"%s\","
+      "{\"shadow\":0,\"health_revision\":\"PROXIMAL_R1\",\"calibration_id\":%lu,\"distance_bounds\":\"UNVALIDATED\",\"loco_boot\":\"%016llX\",\"health\":\"%s\",\"readiness\":\"%s\","
       "\"fresh\":%u,\"age_ms\":%s,\"detector_reason\":%u,\"epoch\":%llu,\"epoch_active\":%u,"
       "\"epoch_starts\":%lu,\"epoch_ends\":%lu,\"epoch_reason\":\"%s\","
       "\"ir_boot\":\"%016llX\",\"seq\":%lu,\"pulses\":%llu,\"epoch_mm\":%s,"

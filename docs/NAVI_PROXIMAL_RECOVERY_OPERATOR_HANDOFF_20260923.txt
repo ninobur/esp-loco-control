@@ -1,0 +1,163 @@
+Yes. What you are describing—Toby physically at MM029–030 while NAVI reports MM163—is exactly the kind of impossible solution our discussion rejected.
+
+Here is the concise handoff for CODEX:
+
+NAVI position recovery: do not search the whole 171-MM route
+
+The current behavior that can relocate NAVI to a distant polarity-pattern match is contrary to the decisions reached in the NAVI design review.
+
+1. Decisional inertia
+
+NAVI’s current believed position is its working world view.
+
+One missed magnet, one wrong-polarity observation, or one contradictory datum does not make NAVI globally lost.
+
+NAVI remains where its accumulated route history says it is unless a preponderance of evidence supports a better physically possible position.
+
+A single inaccurate observation does not create ambiguity, much less justify relocation across the railway.
+
+2. Possible before probable
+
+Before comparing polarity-pattern matches, NAVI must eliminate positions that are physically impossible.
+
+A candidate MM is not legitimate merely because its polarity sequence matches recent observations.
+
+The question is first:
+
+Could Toby physically be there, given where NAVI previously knew him to be and the measured travel since then?
+
+Only physically possible positions may enter pattern comparison.
+
+A perfect polarity match at MM163 is irrelevant if Toby’s established history and travel place him near MM029.
+
+3. Never search all 171 positions for ordinary recovery
+
+The whole-route 171-position search is conceptually wrong because it permits mathematically valid but physically impossible solutions.
+
+The absolute outer recovery boundary is:
+
+±10 MM from NAVI’s incumbent believed position.
+
+That is only an outer limit. NAVI should not automatically examine all twenty alternatives.
+
+IR travel, route history, direction and applicable movement/PWM evidence should reduce the candidate set to positions Toby could actually have reached.
+
+4. IR provides a physical bound
+
+When IR is available and MM-referenced distance is valid, IR is the strongest direct measurement of how much wheel travel occurred.
+
+IR should therefore eliminate candidate positions requiring travel that did not occur.
+
+Example:
+
+If polarity could mathematically match offsets +1, +4 and +7, but IR measured travel compatible only with +1, the +4 and +7 hypotheses are not competing alternatives. They are physically impossible and are removed before scoring.
+
+5. Route history remains evidence
+
+The operator’s starting declaration and subsequent accepted MM history ground Toby to a particular region of the Lowline.
+
+That history is not discarded merely because observations become contradictory.
+
+The operator declaration is evidence, not an infinitely precise absolute truth, but recovery remains proximal to the established position.
+
+This is why an incorrect declaration can be corrected without allowing NAVI to teleport to an unrelated matching pattern elsewhere on the railway.
+
+6. Maintain approximately 10 MM / 3,000 mm of rolling physical history
+
+Position recovery uses approximately:
+
+10 MM positions / ~3,000 mm of recent travel history.
+
+This is a physical history, not necessarily ten successful Hall detections.
+
+Within it:
+
+* observed polarity remains evidence;
+* a wrong polarity remains evidence;
+* a missed MM is UNKNOWN/inconclusive;
+* missed magnets do not count for or against a polarity match;
+* history is retained after a correction.
+
+After session startup, autonomous repositioning should not occur until approximately this history exists.
+
+7. Compare only the remaining physically possible candidates
+
+After impossible candidates have been eliminated, compare the incumbent and remaining candidates against the available polarity observations in the rolling history.
+
+The denominator is the number of actual polarity observations available, not automatically ten.
+
+For example, if the physical 10-position history contains 8 observed polarities and 2 missed MMs, compare candidates against the 8 observations.
+
+8. Unique better explanation required
+
+The incumbent position retains decisional inertia.
+
+Decision rule:
+
+* incumbent remains best → keep incumbent;
+* one physically possible alternative uniquely explains the evidence better → reposition;
+* two or more alternatives tie for best → non-decisional; keep incumbent;
+* no alternative improves on incumbent → keep incumbent.
+
+No arbitrary additional score margin was approved.
+
+9. A missed magnet is not positional ambiguity
+
+If an expected MM passes without a valid Hall observation, record it as:
+
+MISSED / UNKNOWN
+
+That is absence of polarity evidence at that position.
+
+It does not mean NAVI is suddenly somewhere else.
+
+NAVI continues from its existing world view and evaluates subsequent landmarks.
+
+10. Wrong polarity is evidence, not an immediate relocation
+
+A real Hall observation with wrong polarity remains in history as the polarity actually observed.
+
+One wrong pole does not relocate NAVI.
+
+If contradictory observations accumulate, NAVI then investigates physically possible proximal alternatives using:
+
+* established position/history;
+* IR progression;
+* direction;
+* PWM/motion evidence where useful;
+* MM map;
+* observed polarity history.
+
+11. Correction does not erase history
+
+If NAVI reassigns position, retain the observations that led to the correction.
+
+The correction changes NAVI’s interpretation of the history. It does not make the physical observations disappear.
+
+If a correction proves wrong, subsequent evidence can cause the process to repeat and correct NAVI again.
+
+12. Governing rule
+
+The recovery process is:
+
+INCUMBENT WORLD VIEW
+→ PHYSICALLY POSSIBLE PROXIMAL POSITIONS
+→ ELIMINATE WITH IR/TRAVEL/DIRECTION EVIDENCE
+→ COMPARE AVAILABLE MM POLARITY HISTORY
+→ UNIQUE BETTER EXPLANATION REQUIRED
+→ OTHERWISE RETAIN INCUMBENT
+
+Not:
+
+POLARITY DISAGREEMENT
+→ SEARCH ALL 171 MMs
+→ FIND UNIQUE PATTERN
+→ TELEPORT NAVI THERE
+
+Today’s MM163 observation
+
+If inspection confirms that NAVI selected MM163 because its recent polarity sequence uniquely matched a whole-route pattern while Toby’s established travel placed him near MM029–030, that is precisely the failure mode this design is intended to eliminate.
+
+MM163 should never have been a candidate unless NAVI possessed physical travel evidence showing that Toby could actually have reached MM163.
+
+One nuance for CODEX: 029–030 versus 163 is evidence of this failure mode, but the log should confirm the cause before changing code on that assumption. The design decision itself is already settled regardless.

@@ -41,6 +41,15 @@ or a successful build.
 
 ## Current catalog
 
+**2026-09-23 recovery revision:**
+`programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_HEALTH/` now identifies
+as **NAVI_COHERENCE_0_6_PROXIMAL_R1**, same Arduino filename/shortcut. Development
+control experiment; built and host-tested, awaiting independent review; not
+flashed or field accepted. Replaces full-route matching with physical filtering,
+proximal unique-better recovery and retained UNKNOWN history. No longer
+observation-only. Prior CAL0_FIX1 field evidence remains at git89dc369.
+Controlling record: decision0098 and `docs/NAVI_PROXIMAL_R1_IMPLEMENTATION_20260923.md`.
+
 ESP-NOW receiver diagnostic: `programs/IR_SCOPE_ESPNOW/variants/IR_SCOPE_ESPNOW_RX/IR_SCOPE_ESPNOW_RX.ino`.
 Version 1.2: built and flashed to RX; hardware startup checks pass, reception validation pending.
 Adds checked radio startup, without changing packets or ACKs. See

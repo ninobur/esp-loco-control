@@ -7,14 +7,14 @@ import sys
 result = subprocess.run([sys.argv[1]], check=True, text=True, capture_output=True)
 rows = [json.loads(line) for line in result.stdout.splitlines()]
 assert len(rows) == 13
-assert all(row["distance_bounds"] == "UNVALIDATED" and row["health_revision"] == "CAL0_FIX1" for row in rows)
+assert all(row["distance_bounds"] == "UNVALIDATED" and row["health_revision"] == "PROXIMAL_R1" for row in rows)
 assert rows[0]["health"] == "INADEQUATE_CONTRAST" and rows[0]["accepted"] == 1
 assert rows[0]["calibration_id"] == 0 and rows[0]["pulses"] == 119
 assert rows[0]["fresh"] == 1 and rows[0]["epoch_active"] == 0
 assert rows[1]["health"] == "HEALTHY" and rows[1]["calibration_id"] == 0
 payload_count = len(rows)
 rows = rows[2:]
-assert all(row["shadow"] == 1 and row["ref_basis"] == "NAV05_ACCEPTED" for row in rows)
+assert all(row["shadow"] == 0 and row["ref_basis"] == "NAV05_ACCEPTED" for row in rows)
 assert rows[0]["health"] == "NO_SOURCE" and rows[0]["epoch_mm"] is None
 assert rows[1]["health"] == "HEALTHY" and rows[1]["readiness"] == "PRIMING"
 assert rows[2]["delta_pulses"] == 0 and rows[2]["distance_mm"] == 0

@@ -1,5 +1,9 @@
 # 0090 - A 10-magnet sequence overrules a bad declaration; IR window 15%; AUTO enabled
 
+**Whole-route recovery implementation superseded by0098** (2026-09-23).
+The historical AUTO/15% rulings below are retained; global matching is removed
+from the PROXIMAL_R1 candidate after the documented MM65->166 failure.
+
 **Superseded in part by 0092** (2026-09-22): see 0092 for the NAVI / IR decision model the operator adopted with Sam.
 Status: Proposed. Operator rulings given in chat 2026-09-22; mechanisms
 implemented in NAVI_COHERENCE_0_5_AUTO_ENABLED; not flashed. Not

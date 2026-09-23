@@ -1,5 +1,7 @@
 /*
- * NAVI_COHERENCE 0.6 IR_HEALTH - Toby. Observation-only IR health indicators.
+ * NAVI_COHERENCE 0.6 PROXIMAL_R1 - Toby. 2026-09-23 recovery revision.
+ * Replaces global matching with physical filtering and proximal recovery.
+ * Previous CAL0_FIX1 revision added observation-only IR health indicators.
  * Navigation, station and motor logic remain the 0.5 baseline.
  * 0.5 AUTO_ENABLED - Toby. Operator rulings 2026-09-22:
  *   AUTO enabled; IR eligibility window +/-15% (was 10%); a 10-magnet observed
@@ -47,7 +49,7 @@ using namespace navi_one;
 // Published on state/bootid. It is the ONLY thing that tells telemetry which
 // build is running, so it advances with every behavioural change.
 // This experiment has no time-based refractory exclusion.
-#define SKETCH_NAME    "NAVI_COHERENCE_0_6_IR_HEALTH"
+#define SKETCH_NAME    "NAVI_COHERENCE_0_6_PROXIMAL_R1"
 #define BUILD_CLASS    "AUTO_ENABLED_FIELD_TEST"
 #define BUILD_SUBTITLE "0.5 navigation + observation-only IR health/epoch indicators"
 #define FIELD_ACCEPTED 0
@@ -275,7 +277,7 @@ static uint32_t pubDropped = 0, cmdDropped = 0;
 enum { T_ONLINE=0,T_NAV,T_MARKER,T_ALERT,T_IR,T_STAT,T_BOOT,T_WARN,
        T_ST_AUTO,T_ST_ESTOP,T_ST_THR,T_ST_DIR,T_ST_SESSDIR,T_ST_STARTMM,
        T_ST_NAVREADY,T_ST_LOWV,T_ST_STARTINT,T_BRAKE,T_V,T_A,T_W,T_SPEED,
-       T_STATION,T_ACQ_DIAG,T_DISCREPANCY,T_SUPPRESSION,T_IR_LINK,T_IR_COMPARE,T_HYPOTHESIS,T_IR_HEALTH,T_CNT };
+       T_STATION,T_ACQ_DIAG,T_DISCREPANCY,T_SUPPRESSION,T_IR_LINK,T_IR_COMPARE,T_HYPOTHESIS,T_IR_HEALTH,T_RECOVERY,T_CNT };
 // Size follows the enum sentinel so adding a topic cannot silently create an
 // out-of-bounds row (X16 audit B1).
 static char T[T_CNT][72];
@@ -285,6 +287,7 @@ static void buildTopics(){
   topic(T_ONLINE,"online");            topic(T_NAV,"state/nav");
   topic(T_MARKER,"mm/marker");         topic(T_ALERT,"alert");
   topic(T_IR_HEALTH,"diag/ir_health");
+  topic(T_RECOVERY,"diag/recovery");
   topic(T_IR,"telem/ir");              topic(T_STAT,"state/loopstat");
   topic(T_BOOT,"state/bootid");        topic(T_WARN,"state/warning");
   topic(T_ST_AUTO,"state/auto");       topic(T_ST_ESTOP,"state/estop");
@@ -369,17 +372,14 @@ static void publishNav(const char* event,const Judged* j,Ruling r){
   Serial.printf("[NAV] %s\n",b);
 }
 
-// The 10-magnet sequence overruled the position (operator ruling 2026-09-22).
-// Corrections apply at any time: a bad declaration, a derailment or handling,
-// or a misplaced magnet can all alter the true count. Station logic "should
-// just rely on the working model" (operator, 2026-09-22): nothing stops or
-// resets; the station machine recomputes its offset from the corrected MM on
-// its next tick. The one addition is arming an approach the correction jumped
-// into, which the exact-offset arming would otherwise miss.
+// A physically feasible proximal alternative uniquely improved the history.
+// Recovery is bounded by ProximalRecovery, not a whole-route pattern search.
+// Existing station logic follows the working model and recomputes its offset
+// on the next tick; its overshoot/timeout withdrawal remains unchanged.
 static void applySequenceCorrection(const SequenceCorrection& f){
   char w[140];
-  snprintf(w,sizeof(w),"POSITION CORRECTED by 10-magnet sequence: MM%03u -> MM%03u (offset %+d, %u/10 agreed before)",
-           f.fromMm,f.toMm,(int)f.offset,(unsigned)f.matchesBefore);
+  snprintf(w,sizeof(w),"POSITION CORRECTED by proximal evidence: MM%03u -> MM%03u (offset %+d, %u/%u agreed before)",
+           f.fromMm,f.toMm,(int)f.offset,(unsigned)f.matchesBefore,(unsigned)navigator.status().sequenceLength);
   warnStick(w);
   bool armed=false;
   if(autoRunning){
@@ -836,7 +836,7 @@ static void serviceIrHealth(){
   revision=irHealth.revision();
   if(n>0 && n<(int)sizeof(payload))pub(T_IR_HEALTH,payload);
   else ++pubDropped;
-  Serial.printf("[IR HEALTH] %s / %s epoch=%llu active=%u MMref=%s (SHADOW ONLY)\n",
+  Serial.printf("[IR HEALTH] %s / %s epoch=%llu active=%u MMref=%s (MEASUREMENT SOURCE)\n",
     ngr_nav::irHealthName(irHealth.health().fault),
     ngr_nav::irReadinessName(irHealth.health().readiness),
     (unsigned long long)irHealth.odometry().epochId(),irHealth.odometry().epochActive()?1u:0u,
@@ -941,7 +941,7 @@ void setup(){
   pubQ  =xQueueCreate(48,sizeof(PubMsg));    // holds ~5 s while the broker is away
   cmdQ  =xQueueCreate(16,sizeof(CmdMsg));
   Serial.printf("[BOOT] %s \"%s\" — %s\n",SKETCH_NAME,BUILD_SUBTITLE,LOCO_NAME);
-  Serial.printf("[BOOT] %s %s — IR health SHADOW ONLY; AUTO baseline unchanged; not field accepted.\n",SKETCH_NAME,BUILD_CLASS);
+  Serial.printf("[BOOT] %s %s — PROXIMAL recovery active; not field accepted.\n",SKETCH_NAME,BUILD_CLASS);
   Serial.printf("[CAL] 2 s baseline — keep clear of magnets\n");
   if (!judgedQ || !hallDecisionQ || !pubQ || !cmdQ || !irQ) {
     Serial.println("[BOOT] FATAL: queue allocation failed — halting");
@@ -969,7 +969,7 @@ void setup(){
     "\"ir_source\":\"ESPNOW_TYPE5\",\"ir_bounds\":\"UNVALIDATED\","
     "\"ir_authority\":\"PHYSICAL_PROGRESS_GATE\","
     "\"normal_model\":\"EXPECT_CONFIRM_ADVANCE\",\"recovery_word\":10,\"traffic_coordination\":0,"
-    "\"ir_health_mode\":\"SHADOW_ONLY\",\"ir_window_pct\":15,\"sequence_authority\":\"UNIQUE_10_OF_10_MIN_2_DISAGREE\"}",
+    "\"ir_health_mode\":\"RECOVERY_MEASUREMENT\",\"ir_window_pct\":15,\"sequence_authority\":\"PROXIMAL_UNIQUE_BETTER\"}",
     SKETCH_NAME,LOCO_NAME,(unsigned long long)bootId,
     (unsigned)NGR_ENABLE_EXPERIMENTAL_AUTO,hallSettings.departCounts,
     hallSettings.windowMs,hallSettings.refractoryMs);
@@ -1030,8 +1030,14 @@ void loop(){
     NavObservation p;p.openedAtMs=j.openedAtMs;p.polarity=j.polarity;
     p.windowPolarity=j.windowPolarity;p.windowValid=j.windowValid;
     p.directionConflict=before.navDir!=travelDir() || !travelDir();p.movement=point;
+    p.odometry=irHealth.at(j.capturedUs,esp_timer_get_time());
     const Ruling result=navigator.judge(p);
     publishDecision(j,before,result,point);publishNav(rulingName(result),&j,result);
+    if(result==Ruling::Advanced || result==Ruling::AdvancedWithDiscrepancy || result==Ruling::MissedAndAdvanced) {
+      char recoveryJson[512];
+      const int n=navigator.recovery().format(recoveryJson,sizeof(recoveryJson),j.serial);
+      if(n>0 && n<int(sizeof(recoveryJson)))pub(T_RECOVERY,recoveryJson);else ++pubDropped;
+    }
     SequenceCorrection fix;
     if(navigator.takeCorrection(fix))applySequenceCorrection(fix);
     if(result==Ruling::Advanced || result==Ruling::AdvancedWithDiscrepancy || result==Ruling::MissedAndAdvanced)

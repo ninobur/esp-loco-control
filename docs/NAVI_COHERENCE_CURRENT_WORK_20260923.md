@@ -1,6 +1,13 @@
 # NAVI_COHERENCE: current work and catch-up
 
 Date: 2026-09-23. Author: Codex.
+
+**Latest: PROXIMAL_R1 recovery revision.** David authorized implementation of the
+twelve-point pasted recovery rules after the confirmed MM65->166 global jump.
+The existing0.6 sketch location now contains a behavior-changing recovery build,
+not flashed or field accepted. See [implementation](NAVI_PROXIMAL_R1_IMPLEMENTATION_20260923.md)
+and [failure timeline](NAVI_AUTO_CORRECTION_FAILURE_20260923.md). Earlier
+observation-only descriptions below refer to the prior CAL0_FIX1 stage.
 Scope: read-only firmware review, baseline verification, and documentation
 housekeeping. No navigation implementation, firmware flash or hardware control.
 

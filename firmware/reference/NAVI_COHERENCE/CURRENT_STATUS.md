@@ -1,6 +1,12 @@
 # NAVI_COHERENCE package directory
 
-Current orientation: [2026-09-23 work index](../../docs/NAVI_COHERENCE_CURRENT_WORK_20260923.md).
+Current orientation: [2026-09-23 work index](../../../docs/NAVI_COHERENCE_CURRENT_WORK_20260923.md).
+
+Latest revision: PROXIMAL_R1 in the existing0.6 sketch folder. Physical/proximal
+recovery now consumes epoch-tagged measurements; it is no longer observation-only.
+Built/host-tested, not flashed, awaiting independent review. See
+[implementation](../../../docs/NAVI_PROXIMAL_R1_IMPLEMENTATION_20260923.md).
+The integration notes below describe the earlier observation-only stage.
 
 This directory holds Sam's incoming packages and extracted historical patches.
 It is not the complete, field-exercised 0.5 build tree. That is

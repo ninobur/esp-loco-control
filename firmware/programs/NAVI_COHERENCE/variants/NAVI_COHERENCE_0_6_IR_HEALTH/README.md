@@ -1,4 +1,36 @@
-# NAVI_COHERENCE 0.6 IR_HEALTH
+# NAVI COHERENCE 0.6 PROXIMAL_R1
+
+**Current: behavior-changing recovery revision, not flashed or field accepted.**
+Same Arduino filename and NGR-Files shortcut. The boot sketch name identifies
+PROXIMAL_R1. The previous CAL0_FIX1 observation-only build is preserved at89dc369.
+
+Recovery now uses epoch-tagged measurements: no whole-route search, absolute
++/-10-MM outer boundary, physical filtering before scoring, ten physical-position
+history slots including UNKNOWNs, actual-observation denominator, unique strictly
+better candidate only, retained history after correction. Single wrong poles and
+tied alternatives retain the incumbent. Established recovery without continuous
+IR travel holds its position. Starting declarations remain locally provisional.
+
+`diag/recovery` exposes reason, scores, actual observation count, reference MM,
+travel and candidate masks. Bit0 means-10, bit10 means0, bit20 means+10.
+reference_mm=-1 / travel_mm=null mean unavailable. `diag/ir_health` now reports
+shadow:0 and health_revision:PROXIMAL_R1. IR remains a measurement source, not a
+position decider. The existing ref_basis:NAV05_ACCEPTED identifies inherited
+MM-reference plumbing, not the replaced recovery algorithm.
+
+See docs/NAVI_PROXIMAL_R1_IMPLEMENTATION_20260923.md and decision0098 for choices,
+tests and limits. This does not implement the other Twenty Questions changes
+(70-count Hall, 650ms fallback, background missed-marker inference). UNKNOWNs
+are materialized when a later Hall observation supports a multi-marker advance.
+The existing15% nominal screen is not a certified distance error bound.
+
+Independent review and a manual field check precede any operating-baseline
+claim. Upload Toby only at115200, Serial115200; keep Hall clear during the2s
+baseline, confirm PROXIMAL_R1 and record30-60s stationary. First moving check
+manual only, declared physical interval/direction. Stop for unexpected behavior.
+No TX/RX/Pi update is required. No flash performed during preparation.
+
+## Historical CAL0_FIX1 Handoff (Superseded Below)
 
 Toby field-test build, 2026-09-23. **Not field accepted.**
 Updated with `CAL0_FIX1`: accepts the deployed TX's zero calibration ID
