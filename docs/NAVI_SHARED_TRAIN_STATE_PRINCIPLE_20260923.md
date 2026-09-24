@@ -24,6 +24,37 @@ Use the preponderance of evidence and decisional inertia, while stating real
 uncertainty honestly. A shared assessment is not infallible: preserve its basis
 and contrary evidence so a mistaken conclusion can be identified and corrected.
 
+## SAM's refinement, supplied by the operator
+
+The architecture is Detection -> Hard Protection -> Transparent Judgment.
+Hall, IR, PWM, commands, map position, history, direction and later wayside
+observations are evidence. No individual input is the train's state.
+Hard protections remain enforceable; judgment does not override them.
+
+"Stopped / moving / uncertain" describes only the motion dimension, not the
+whole train-state model. NAVI must retain what it knows and why, independently
+for each relevant dimension: motion, speed, direction and route/MM position.
+The supporting evidence, freshness, confidence and any disagreement should
+remain inspectable. This does not prescribe numerical confidence scores or
+a new implementation framework.
+
+Uncertainty in one dimension must not unnecessarily destroy certainty in
+another. Toby can be moving at a well-supported speed while its precise MM
+identity is uncertain. Toby can be known stopped while the IR instrument
+truthfully reports INADEQUATE_CONTRAST. Neither situation requires discarding
+the rest of the established trajectory or inventing a sensor measurement.
+
+The eventual shared NAVI model must serve both operator reporting and control.
+They may use different portions of that judgment, but must not maintain
+contradictory private versions of the train's state. Otherwise a dashboard
+could report a known stop while control behaves as though that knowledge
+does not exist. Commit 427c68b is an initial implementation of this direction,
+not a completed shared-state architecture.
+
+Attribution: this refinement was supplied as SAM's commentary in the task
+after the operator requested that the principle be saved. Recorded here as
+design guidance, not as an already implemented capability.
+
 ## What exists and what remains
 
 R3's IR speed display is a first step, not completion of this architecture.
