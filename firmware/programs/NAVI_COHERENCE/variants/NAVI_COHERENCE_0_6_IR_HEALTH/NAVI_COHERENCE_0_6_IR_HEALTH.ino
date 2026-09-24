@@ -1,9 +1,11 @@
 /*
  * NAVI_COHERENCE 0.6 PROXIMAL_R1 - Toby. 2026-09-23 recovery revision.
  * IR_SPEED_R3: NAVI interprets settled stops for the display; raw IR unchanged.
+ * POSITION_STATIONS_R1: current position governs station targets, including
+ * pause/resume inside the approach or zone. Independent review/field test pending.
  * Replaces global matching with physical filtering and proximal recovery.
  * Previous CAL0_FIX1 revision added observation-only IR health indicators.
- * Navigation, station and motor logic remain the 0.5 baseline.
+ * The earlier observation-only health change preserved the 0.5 control baseline.
  * 0.5 AUTO_ENABLED - Toby. Operator rulings 2026-09-22:
  *   AUTO enabled; IR eligibility window +/-15% (was 10%); a 10-magnet observed
  *   sequence overrules a bad declaration ("Operator declaration is the truth, but
@@ -51,9 +53,9 @@ using namespace navi_one;
 // Published on state/bootid. It is the ONLY thing that tells telemetry which
 // build is running, so it advances with every behavioural change.
 // This experiment has no time-based refractory exclusion.
-#define SKETCH_NAME    "NAVI_COHERENCE_0_6_PROXIMAL_R1_IR_SPEED_R3"
+#define SKETCH_NAME    "NAVI_COHERENCE_0_6_POSITION_STATIONS_R1"
 #define BUILD_CLASS    "AUTO_ENABLED_FIELD_TEST"
-#define BUILD_SUBTITLE "0.5 navigation + observation-only IR health/epoch indicators"
+#define BUILD_SUBTITLE "Proximal NAVI + system-level speed + position-aware station targets"
 #define FIELD_ACCEPTED 0
 
 // Types used in function signatures must appear before the Arduino
@@ -390,17 +392,13 @@ static void applySequenceCorrection(const SequenceCorrection& f){
   snprintf(w,sizeof(w),"POSITION CORRECTED by proximal evidence: MM%03u -> MM%03u (offset %+d, %u/%u agreed before)",
            f.fromMm,f.toMm,(int)f.offset,(unsigned)f.matchesBefore,(unsigned)navigator.status().sequenceLength);
   warnStick(w);
-  bool armed=false;
-  if(autoRunning){
-    const auto& s=navigator.status();
-    armed=stationMachine.armAfterCorrection(s.navMm,s.navDir,actualPwm,
-            cruisePwmAt(s.navMm,s.navDir,AUTO_CRUISE_PWM),millis());
-  }
+  // No correction-only station trigger. stationService evaluates the current MM.
+  // Keep the legacy armed_after diagnostic field; no separate arming occurs here.
   char b[240];
   snprintf(b,sizeof(b),"{\"event\":\"SEQUENCE_CORRECTED\",\"from_mm\":%u,\"to_mm\":%u,\"offset\":%d,"
            "\"matches_before\":%u,\"auto_running\":%u,\"station_phase\":\"%s\",\"armed_after\":%u}",
            f.fromMm,f.toMm,(int)f.offset,(unsigned)f.matchesBefore,autoRunning?1:0,
-           stPhaseName(stationMachine.phase()),armed?1:0);
+           stPhaseName(stationMachine.phase()),0u);
   pub(T_NAV,b,true);
   Serial.printf("[NAV] %s\n",b);
   lastAdvanceMs=0;                 // no speed estimate spans a correction
@@ -784,7 +782,7 @@ static void handleCommand(const CmdMsg& c){
     if (!NGR_ENABLE_EXPERIMENTAL_AUTO || !hallReady) {warn("GO disabled pending supervised NAVI_COHERENCE acceptance");return;}
     if (Refusal r = admitGo(o)) { refuse(r); return; }
     autoRunning=true;
-    requestPwm(AUTO_CRUISE_PWM,AUTO_STEP_UP_MS,AUTO_STEP_DOWN_MS);
+    // stationService selects the current position's target before serviceRamp.
     warnClear();
 
   } else if (!strcmp(leaf,"stop") || (dispatcher && strstr(c.topic,"/stop/"))) {
@@ -1021,6 +1019,7 @@ void setup(){
 // climb or the Patio curve ramps down from the speed actually being run rather
 // than from the flat base (decisions 0066, 0067).
 static void stationService(uint32_t now){
+  stationMachine.setRunning(autoRunning,now);
   if(!autoRunning)return;
   if(!navigator.positionKnown()){
     withdraw("NAV location unresolved: position-dependent AUTO withdrawn");return;

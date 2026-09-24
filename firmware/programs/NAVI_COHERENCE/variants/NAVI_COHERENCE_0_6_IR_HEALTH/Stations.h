@@ -145,7 +145,7 @@ static const StationDefinition STATIONS[] = {
 };
 static const uint8_t STATION_COUNT = (uint8_t)(sizeof(STATIONS)/sizeof(STATIONS[0]));
 
-static const int8_t   APPROACH_START     = -10;  // arm here
+static const int8_t   APPROACH_START     = -10;  // beginning of the approach region
 static const int8_t   ZONE_START         = -5;   // at station speed by here
 static const int8_t   OVERSHOOT_ABANDON  = 5;    // past centre -> give up, stay honest
 static const uint32_t STATION_DWELL_MS   = 5000UL;
@@ -227,35 +227,26 @@ struct StationOrder {
 
 class StationMachine {
  public:
-  void reset() { phase_ = StPhase::Idle; idx_ = -1; entryPwm_ = 0; }
+  void reset() {
+    phase_ = StPhase::Idle; idx_ = -1; entryPwm_ = 0; completedIdx_ = -1;
+    lastOff_ = 127; phaseAtMs_ = dwellFromMs_ = 0;
+  }
+  // A deliberate AUTO pause suspends the phase watchdog, not the station visit.
+  // A dwell already begun still counts elapsed stopped time, as before.
+  void setRunning(bool running, uint32_t nowMs) {
+    if (!running && !paused_) { paused_ = true; pausedAtMs_ = nowMs; }
+    if (running && paused_) {
+      phaseAtMs_ += nowMs - pausedAtMs_;
+      paused_ = false;
+    }
+  }
   StPhase phase()      const { return phase_; }
   bool sameState(const StationMachine& other) const {
     return phase_==other.phase_ && idx_==other.idx_ && entryPwm_==other.entryPwm_ &&
-      lastOff_==other.lastOff_ && phaseAtMs_==other.phaseAtMs_ && dwellFromMs_==other.dwellFromMs_;
+      lastOff_==other.lastOff_ && phaseAtMs_==other.phaseAtMs_ && dwellFromMs_==other.dwellFromMs_ &&
+      completedIdx_==other.completedIdx_ && paused_==other.paused_ && pausedAtMs_==other.pausedAtMs_;
   }
   int8_t  stationIdx() const { return idx_; }
-  // 0.5: after a sequence correction the working model is the corrected MM.
-  // An Idle machine arms only when the offset lands exactly on APPROACH_START;
-  // a correction of 2-3 magnets can jump past it and would run through the
-  // station. If the corrected position is already inside an approach, arm it
-  // there; the next tick issues the approach order for the real offset.
-  // Deliberately not applied to ordinary advances or timeouts.
-  bool armAfterCorrection(uint8_t mm, int8_t dir, uint8_t actualPwm,
-                          uint8_t cruisePwm, uint32_t nowMs) {
-    if (phase_ != StPhase::Idle || dir == 0) return false;
-    for (uint8_t i = 0; i < STATION_COUNT; ++i) {
-      const int16_t off = offsetToCentre(mm, dir, STATIONS[i].centre);
-      if (off > APPROACH_START && off < ZONE_START) {
-        idx_ = (int8_t)i;
-        entryPwm_ = cruisePwm > actualPwm ? cruisePwm : actualPwm;
-        const uint8_t sp = stationPwm(STATIONS[i], dir);
-        if (entryPwm_ < sp) entryPwm_ = sp;
-        setPhase(StPhase::Approach, nowMs);
-        return true;
-      }
-    }
-    return false;
-  }
   bool    holding()    const { return phase_ == StPhase::Ramp || phase_ == StPhase::Dwell; }
 
   // Called on every advance AND periodically, so the dwell clock and the ramp
@@ -270,9 +261,13 @@ class StationMachine {
     if (dir == 0) { reset(); return o; }
 
     if (phase_ == StPhase::Idle) {
+      if (completedIdx_ >= 0) {
+        const int16_t off = offsetToCentre(mm, dir, STATIONS[completedIdx_].centre);
+        if (off < APPROACH_START || off > OVERSHOOT_ABANDON) completedIdx_ = -1;
+      }
       for (uint8_t i = 0; i < STATION_COUNT; ++i) {
         const int16_t off = offsetToCentre(mm, dir, STATIONS[i].centre);
-        if (off == APPROACH_START) {
+        if (i != completedIdx_ && off >= APPROACH_START && off <= OVERSHOOT_ABANDON) {
           idx_ = (int8_t)i;
           // The approach ramps down from WHAT THE LOCOMOTIVE IS ACTUALLY DOING,
           // not from a hardcoded cruise. Patio CCW arrives at 105 off the curve
@@ -281,8 +276,13 @@ class StationMachine {
           entryPwm_ = cruisePwm > actualPwm ? cruisePwm : actualPwm;
           const uint8_t sp = stationPwm(STATIONS[i], dir);
           if (entryPwm_ < sp) entryPwm_ = sp;
+          if (off >= stopOffsetFor(STATIONS[i], dir)) return startRamp(o, dir, off, nowMs);
+          if (off >= ZONE_START) {
+            setPhase(StPhase::Zone, nowMs);
+            return order(o, dir, off, sp, STATION_STOP_STEP_MS, "ZONE");
+          }
           setPhase(StPhase::Approach, nowMs);
-          lastOff_ = off;   // or the next tick, before a marker passes, re-issues this
+          lastOff_ = off;
           return order(o, dir, off, targetForApproach(off, dir), pacing(off, dir), "ARMED");
         }
       }
@@ -292,6 +292,15 @@ class StationMachine {
     const StationDefinition& st = STATIONS[idx_];
     const int16_t off = offsetToCentre(mm, dir, st.centre);
     o.station = st.name; o.offset = off;
+
+    // A corrected upstream position may leave this approach altogether. Look
+    // up its requirement again; do not carry the old station's target with it.
+    if ((phase_ == StPhase::Approach || phase_ == StPhase::Zone) && off < APPROACH_START) {
+      reset();
+      auto next = tick(mm, dir, actualPwm, cruisePwm, nowMs);
+      if (!next.event) { next.event = "POSITION_REEVALUATED"; next.pwm = cruisePwm; }
+      return next;
+    }
 
     // Overshoot: say so and stand down rather than chase it.
     if (off > OVERSHOOT_ABANDON && phase_ != StPhase::Dwell && phase_ != StPhase::Depart) {
@@ -321,18 +330,24 @@ class StationMachine {
           lastOff_ = off;
           return order(o, dir, off, targetForApproach(off, dir), pacing(off, dir), "APPROACH");
         }
-        return o;
+        return order(o, dir, off, targetForApproach(off, dir), pacing(off, dir), nullptr);
 
       case StPhase::Zone:
         if (off >= stopAt) return startRamp(o, dir, off, nowMs);
-        return o;
+        if (off < ZONE_START) {
+          // A corrected position can put us back in the approach. Its local
+          // target applies now; having entered the zone is not authority to ignore it.
+          setPhase(StPhase::Approach, nowMs); lastOff_ = off;
+          return order(o, dir, off, targetForApproach(off, dir), pacing(off, dir), "APPROACH");
+        }
+        return order(o, dir, off, stationPwm(st, dir), STATION_STOP_STEP_MS, nullptr);
 
       case StPhase::Ramp:
         if (actualPwm == 0) {
           setPhase(StPhase::Dwell, nowMs); dwellFromMs_ = nowMs;
           o.event = "DWELL_BEGIN";
         }
-        return o;
+        return order(o, dir, off, 0, STATION_STOP_STEP_MS, o.event);
 
       case StPhase::Dwell:
         if (nowMs - dwellFromMs_ >= STATION_DWELL_MS) {
@@ -340,11 +355,16 @@ class StationMachine {
           return order(o, dir, off, departPwmFor(st, dir, cruisePwm),
                        STATION_DEPART_STEP_MS, "DEPART");
         }
-        return o;
+        return order(o, dir, off, 0, STATION_STOP_STEP_MS, nullptr);
 
       case StPhase::Depart:
-        if (off >= stopAt + 3) { reset(); o.event = "DEPARTED"; }
-        return o;
+        if (off >= stopAt + 3) {
+          const int8_t completed = idx_;
+          reset(); completedIdx_ = completed; o.event = "DEPARTED";
+          return o;
+        }
+        return order(o, dir, off, departPwmFor(st, dir, cruisePwm),
+                     STATION_DEPART_STEP_MS, nullptr);
 
       default: return o;
     }
@@ -353,9 +373,12 @@ class StationMachine {
  private:
   StPhase  phase_ = StPhase::Idle;
   int8_t   idx_ = -1;
+  int8_t   completedIdx_ = -1;
   uint8_t  entryPwm_ = 0;
   int16_t  lastOff_ = 127;
   uint32_t phaseAtMs_ = 0, dwellFromMs_ = 0;
+  bool paused_ = false;
+  uint32_t pausedAtMs_ = 0;
 
   void setPhase(StPhase p, uint32_t nowMs) {
     phase_ = p; phaseAtMs_ = nowMs;

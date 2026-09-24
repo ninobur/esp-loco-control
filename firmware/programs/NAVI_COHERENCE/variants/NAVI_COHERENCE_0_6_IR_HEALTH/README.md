@@ -1,4 +1,22 @@
-# NAVI COHERENCE 0.6 PROXIMAL_R1 + IR_SPEED_R1
+# NAVI COHERENCE 0.6 POSITION_STATIONS_R1
+
+## Current Candidate
+
+Prepared, not flashed; independent review and field acceptance pending.
+Current MM and direction determine station/section PWM requirements. Restart
+inside a station zone uses its target, without needing the approach-entry
+marker. GO does not request generic cruise first. Visit history prevents repeat
+stops after a completed dwell; deliberate pauses suspend the phase watchdog.
+Existing station PWM, stop offsets, ramps, dwell and protections are retained.
+
+Boot name: `NAVI_COHERENCE_0_6_POSITION_STATIONS_R1`. Same Arduino filename and
+NGR-Files shortcut. Toby's last verified installed build is IR_SPEED_R3, which
+includes the full manual range and NAVI stopped-speed display. This candidate
+does not change IR firmware or the dashboard.
+
+See `docs/NAVI_POSITION_STATIONS_R1_20260923.md` and decision0101 for the mapped
+requirements, tests, compatibility details and review gate. The older revision
+sections below are historical, not current deployment status.
 
 ## Manual Throttle Correction (IR_SPEED_R2)
 
