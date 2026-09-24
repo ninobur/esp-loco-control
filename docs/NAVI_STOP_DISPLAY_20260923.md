@@ -1,5 +1,11 @@
 # NAVI stopped-state display, 2026-09-23
 
+Deployment update: independently cleared by the review supplied by the operator,
+dashboard deployed and Toby flashed at 115200 baud on 2026-09-23. Live R3
+boot and new telemetry confirmed. Physical roll/stop check remains pending.
+See `NAVI_STOP_DISPLAY_CLEARANCE_AND_DEPLOYMENT_20260923.md`. The implementation
+notes below preserve the pre-deployment status at commit 427c68b.
+
 ## Request and implementation
 
 The operator requested NAVI's interpretation on the dashboard, rather than a

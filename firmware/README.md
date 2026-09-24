@@ -62,9 +62,12 @@ not been replaced.
 as **NAVI_COHERENCE_0_6_PROXIMAL_R1_IR_SPEED_R3**. Development control sketch;
 new change is display-only: NAVI reports STOPPED after settled commanded/applied
 zero and fresh quiet observations, while preserving raw IR diagnostics and
-odometry. Repository build, not flashed/deployed or field accepted. Includes
+odometry. Independently cleared via operator-supplied review; Toby flashed and
+dashboard deployed 2026-09-23, live R3 boot/telemetry verified. Physical roll/stop
+check pending; not field accepted. Includes
 the previously prepared manual-range R2 changes; no additional control changes.
 Controlling record: `../docs/NAVI_STOP_DISPLAY_20260923.md`, decision0100.
+Deployment: `../docs/NAVI_STOP_DISPLAY_CLEARANCE_AND_DEPLOYMENT_20260923.md`.
 No promotion and no IR TX/RX change.
 
 **2026-09-23 recovery revision:**
