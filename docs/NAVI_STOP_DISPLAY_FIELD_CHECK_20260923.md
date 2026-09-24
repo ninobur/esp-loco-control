@@ -1,5 +1,11 @@
 # NAVI stop-display field check, 2026-09-23
 
+Correction after full-log recovery: the motion below was in AUTO, not manual.
+The earlier characterization relied on startup state rather than the full
+command/mode history. The authoritative log records cmd/auto=1 before motion.
+See `NAVI_FINAL_RUN_ANALYSIS_20260923.md`; the observed speed transition remains
+valid, but its original mode characterization below is superseded.
+
 ## Observed result
 
 The operator announced the final run after the cleared R3 deployment. A bounded

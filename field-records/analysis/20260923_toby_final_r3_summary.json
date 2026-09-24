@@ -1,0 +1,1491 @@
+{
+  "start": "2026-09-23T21:58:48.578",
+  "end": "2026-09-23T22:40:59.079",
+  "rows": 47477,
+  "topics": {
+    "state/bootid": 1,
+    "diag/ir_health": 3185,
+    "diag/ir_link": 2506,
+    "telem/ir": 2506,
+    "alert": 2506,
+    "state/throttle": 2506,
+    "state/direction": 2506,
+    "state/estop": 2506,
+    "state/nav_ready": 2507,
+    "state/loopstat": 2506,
+    "state/lowvolt": 501,
+    "telem/voltage": 501,
+    "telem/current": 501,
+    "telem/power": 501,
+    "cmd/session_direction": 1,
+    "state/session_direction": 1,
+    "state/nav": 1224,
+    "cmd/start_interval": 1,
+    "state/warning": 4,
+    "telem/speed": 1222,
+    "state/start_mm": 1,
+    "state/start_interval": 1,
+    "cmd/auto": 1,
+    "state/auto": 2,
+    "cmd/ir_coupled": 3,
+    "ngr/dispatcher/cmd/go/9950012": 2,
+    "nav/ir_compare": 13431,
+    "nav/discrepancy": 1221,
+    "nav/hypotheses": 1221,
+    "mm/marker": 1221,
+    "diag/recovery": 1199,
+    "diag/hall_decision": 1206,
+    "state/station": 270,
+    "ngr/dispatcher/cmd/stop/9950012": 2,
+    "cmd/dispatcher_release": 1,
+    "ngr/dispatcher/cmd/stop/9950011": 1,
+    "ngr/dispatcher/cmd/stop/2095111": 1,
+    "online": 1
+  },
+  "boot": [
+    [
+      "2026-09-23T21:58:48.578",
+      {
+        "sketch": "NAVI_COHERENCE_0_6_PROXIMAL_R1_IR_SPEED_R3",
+        "loco": "9950012",
+        "boot_id": "2C074C69CDA60A10",
+        "field_accepted": 0,
+        "auto_enabled": 1,
+        "hall_entry": 38,
+        "window_ms": 400,
+        "guard_ms": 0,
+        "baseline": "X22_LOCKED_NO_PWM_RECOVERY",
+        "ir_source": "ESPNOW_TYPE5",
+        "ir_bounds": "UNVALIDATED",
+        "ir_authority": "PHYSICAL_PROGRESS_GATE",
+        "normal_model": "EXPECT_CONFIRM_ADVANCE",
+        "recovery_word": 10,
+        "traffic_coordination": 0,
+        "ir_health_mode": "RECOVERY_MEASUREMENT",
+        "ir_window_pct": 15,
+        "sequence_authority": "PROXIMAL_UNIQUE_BETTER"
+      }
+    ]
+  ],
+  "nav_count": 1224,
+  "nav_first": [
+    [
+      "2026-09-23T21:59:02.102",
+      {
+        "event": "DIRECTION",
+        "state": "UNSET",
+        "nav": "UNSET",
+        "nav_state": "UNSET",
+        "mm": 0,
+        "tgt": 0,
+        "dir": "CCW",
+        "adv": 0,
+        "ref": 0
+      }
+    ],
+    [
+      "2026-09-23T21:59:07.541",
+      {
+        "event": "DECLARED",
+        "state": "NORMAL",
+        "nav": "NORMAL",
+        "nav_state": "TRACKING",
+        "mm": 51,
+        "tgt": 50,
+        "dir": "CCW",
+        "adv": 0,
+        "ref": 0
+      }
+    ],
+    [
+      "2026-09-23T21:59:28.562",
+      {
+        "event": "ADVANCED",
+        "boot_id": "2C074C69CDA60A10",
+        "event_serial": 1,
+        "state": "NORMAL",
+        "nav": "NORMAL",
+        "nav_state": "TRACKING",
+        "mm": 50,
+        "tgt": 49,
+        "dir": "CCW",
+        "ruling": "ADVANCED",
+        "evidence": "CONFIRMED",
+        "obs": "S",
+        "expected": "N",
+        "opened_ms": 41134,
+        "gap_ms": 0,
+        "raw_open": 1782,
+        "base_open": 1823,
+        "pwm_open": 62,
+        "unresolved_count": 0,
+        "seq_len": 1,
+        "seq_matches": 1,
+        "trust": "CONTINUITY",
+        "corrections": 0
+      }
+    ]
+  ],
+  "nav_last": [
+    [
+      "2026-09-23T22:37:18.984",
+      {
+        "event": "DISPATCHER_RELEASE",
+        "state": "NORMAL",
+        "nav": "NORMAL",
+        "nav_state": "TRACKING",
+        "mm": 44,
+        "tgt": 43,
+        "dir": "CCW",
+        "adv": 1204,
+        "ref": 22
+      }
+    ],
+    [
+      "2026-09-23T22:37:19.152",
+      {
+        "event": "ADVANCED",
+        "boot_id": "2C074C69CDA60A10",
+        "event_serial": 1220,
+        "state": "NORMAL",
+        "nav": "NORMAL",
+        "nav_state": "TRACKING",
+        "mm": 43,
+        "tgt": 42,
+        "dir": "CCW",
+        "ruling": "ADVANCED",
+        "evidence": "CONFIRMED",
+        "obs": "S",
+        "expected": "N",
+        "opened_ms": 2311701,
+        "gap_ms": 0,
+        "raw_open": 1782,
+        "base_open": 1823,
+        "pwm_open": 90,
+        "unresolved_count": 0,
+        "seq_len": 10,
+        "seq_matches": 10,
+        "trust": "CONTINUITY",
+        "corrections": 0
+      }
+    ],
+    [
+      "2026-09-23T22:37:20.417",
+      {
+        "event": "ADVANCED",
+        "boot_id": "2C074C69CDA60A10",
+        "event_serial": 1221,
+        "state": "NORMAL",
+        "nav": "NORMAL",
+        "nav_state": "TRACKING",
+        "mm": 42,
+        "tgt": 41,
+        "dir": "CCW",
+        "ruling": "ADVANCED",
+        "evidence": "CONFIRMED",
+        "obs": "N",
+        "expected": "S",
+        "opened_ms": 2312963,
+        "gap_ms": 0,
+        "raw_open": 1863,
+        "base_open": 1824,
+        "pwm_open": 59,
+        "unresolved_count": 0,
+        "seq_len": 10,
+        "seq_matches": 10,
+        "trust": "CONTINUITY",
+        "corrections": 0
+      }
+    ]
+  ],
+  "nav_rulings": {
+    "null": 3,
+    "ADVANCED": 1192,
+    "NON_LANDMARK_HALL": 22,
+    "MISSED_AND_ADVANCED": 7
+  },
+  "nav_evidence": {
+    "null": 3,
+    "CONFIRMED": 1192,
+    "NON_LANDMARK_HALL": 22,
+    "MISSED_OBSERVATION": 7
+  },
+  "nav_states": {
+    "UNSET": 1,
+    "TRACKING": 1223
+  },
+  "correction_changes": [
+    [
+      "2026-09-23T21:59:02.102",
+      null
+    ],
+    [
+      "2026-09-23T21:59:28.562",
+      0
+    ],
+    [
+      "2026-09-23T22:37:18.984",
+      null
+    ],
+    [
+      "2026-09-23T22:37:19.152",
+      0
+    ]
+  ],
+  "recovery_reasons": {
+    "WARMUP": 9,
+    "INCUMBENT_BEST": 1190
+  },
+  "recovery_exceptions": [],
+  "nav_exceptions": [
+    [
+      "2026-09-23T21:59:02.102",
+      {
+        "event": "DIRECTION",
+        "state": "UNSET",
+        "nav": "UNSET",
+        "nav_state": "UNSET",
+        "mm": 0,
+        "tgt": 0,
+        "dir": "CCW",
+        "adv": 0,
+        "ref": 0
+      }
+    ],
+    [
+      "2026-09-23T21:59:07.541",
+      {
+        "event": "DECLARED",
+        "state": "NORMAL",
+        "nav": "NORMAL",
+        "nav_state": "TRACKING",
+        "mm": 51,
+        "tgt": 50,
+        "dir": "CCW",
+        "adv": 0,
+        "ref": 0
+      }
+    ],
+    [
+      "2026-09-23T22:00:41.310",
+      {
+        "event": "NON_LANDMARK_HALL",
+        "boot_id": "2C074C69CDA60A10",
+        "event_serial": 39,
+        "state": "NORMAL",
+        "nav": "NORMAL",
+        "nav_state": "TRACKING",
+        "mm": 13,
+        "tgt": 12,
+        "dir": "CCW",
+        "ruling": "NON_LANDMARK_HALL",
+        "evidence": "NON_LANDMARK_HALL",
+        "obs": "N",
+        "expected": "N",
+        "opened_ms": 113884,
+        "gap_ms": 0,
+        "raw_open": 2012,
+        "base_open": 1829,
+        "pwm_open": 48,
+        "unresolved_count": 0,
+        "seq_len": 10,
+        "seq_matches": 10,
+        "trust": "CONTINUITY",
+        "corrections": 0
+      }
+    ],
+    [
+      "2026-09-23T22:02:28.871",
+      {
+        "event": "NON_LANDMARK_HALL",
+        "boot_id": "2C074C69CDA60A10",
+        "event_serial": 98,
+        "state": "NORMAL",
+        "nav": "NORMAL",
+        "nav_state": "TRACKING",
+        "mm": 126,
+        "tgt": 125,
+        "dir": "CCW",
+        "ruling": "NON_LANDMARK_HALL",
+        "evidence": "NON_LANDMARK_HALL",
+        "obs": "S",
+        "expected": "S",
+        "opened_ms": 221366,
+        "gap_ms": 0,
+        "raw_open": 1781,
+        "base_open": 1824,
+        "pwm_open": 90,
+        "unresolved_count": 0,
+        "seq_len": 10,
+        "seq_matches": 10,
+        "trust": "CONTINUITY",
+        "corrections": 0
+      }
+    ],
+    [
+      "2026-09-23T22:02:29.824",
+      {
+        "event": "MISSED_AND_ADVANCED",
+        "boot_id": "2C074C69CDA60A10",
+        "event_serial": 99,
+        "state": "NORMAL",
+        "nav": "NORMAL",
+        "nav_state": "TRACKING",
+        "mm": 124,
+        "tgt": 123,
+        "dir": "CCW",
+        "ruling": "MISSED_AND_ADVANCED",
+        "evidence": "MISSED_OBSERVATION",
+        "obs": "N",
+        "expected": "S",
+        "opened_ms": 222378,
+        "gap_ms": 0,
+        "raw_open": 1865,
+        "base_open": 1824,
+        "pwm_open": 90,
+        "unresolved_count": 0,
+        "seq_len": 9,
+        "seq_matches": 9,
+        "trust": "CONTINUITY",
+        "corrections": 0
+      }
+    ],
+    [
+      "2026-09-23T22:02:32.924",
+      {
+        "event": "NON_LANDMARK_HALL",
+        "boot_id": "2C074C69CDA60A10",
+        "event_serial": 102,
+        "state": "NORMAL",
+        "nav": "NORMAL",
+        "nav_state": "TRACKING",
+        "mm": 122,
+        "tgt": 121,
+        "dir": "CCW",
+        "ruling": "NON_LANDMARK_HALL",
+        "evidence": "NON_LANDMARK_HALL",
+        "obs": "S",
+        "expected": "S",
+        "opened_ms": 225462,
+        "gap_ms": 0,
+        "raw_open": 1783,
+        "base_open": 1825,
+        "pwm_open": 90,
+        "unresolved_count": 0,
+        "seq_len": 9,
+        "seq_matches": 9,
+        "trust": "CONTINUITY",
+        "corrections": 0
+      }
+    ],
+    [
+      "2026-09-23T22:02:34.055",
+      {
+        "event": "MISSED_AND_ADVANCED",
+        "boot_id": "2C074C69CDA60A10",
+        "event_serial": 103,
+        "state": "NORMAL",
+        "nav": "NORMAL",
+        "nav_state": "TRACKING",
+        "mm": 120,
+        "tgt": 119,
+        "dir": "CCW",
+        "ruling": "MISSED_AND_ADVANCED",
+        "evidence": "MISSED_OBSERVATION",
+        "obs": "N",
+        "expected": "N",
+        "opened_ms": 226614,
+        "gap_ms": 0,
+        "raw_open": 1865,
+        "base_open": 1824,
+        "pwm_open": 90,
+        "unresolved_count": 0,
+        "seq_len": 8,
+        "seq_matches": 8,
+        "trust": "CONTINUITY",
+        "corrections": 0
+      }
+    ],
+    [
+      "2026-09-23T22:04:19.510",
+      {
+        "event": "NON_LANDMARK_HALL",
+        "boot_id": "2C074C69CDA60A10",
+        "event_serial": 164,
+        "state": "NORMAL",
+        "nav": "NORMAL",
+        "nav_state": "TRACKING",
+        "mm": 60,
+        "tgt": 59,
+        "dir": "CCW",
+        "ruling": "NON_LANDMARK_HALL",
+        "evidence": "NON_LANDMARK_HALL",
+        "obs": "S",
+        "expected": "N",
+        "opened_ms": 332044,
+        "gap_ms": 0,
+        "raw_open": 1636,
+        "base_open": 1818,
+        "pwm_open": 23,
+        "unresolved_count": 0,
+        "seq_len": 10,
+        "seq_matches": 10,
+        "trust": "CONTINUITY",
+        "corrections": 0
+      }
+    ],
+    [
+      "2026-09-23T22:04:20.669",
+      {
+        "event": "NON_LANDMARK_HALL",
+        "boot_id": "2C074C69CDA60A10",
+        "event_serial": 165,
+        "state": "NORMAL",
+        "nav": "NORMAL",
+        "nav_state": "TRACKING",
+        "mm": 60,
+        "tgt": 59,
+        "dir": "CCW",
+        "ruling": "NON_LANDMARK_HALL",
+        "evidence": "NON_LANDMARK_HALL",
+        "obs": "S",
+        "expected": "N",
+        "opened_ms": 333234,
+        "gap_ms": 0,
+        "raw_open": 1779,
+        "base_open": 1818,
+        "pwm_open": 17,
+        "unresolved_count": 0,
+        "seq_len": 10,
+        "seq_matches": 10,
+        "trust": "CONTINUITY",
+        "corrections": 0
+      }
+    ],
+    [
+      "2026-09-23T22:06:04.817",
+      {
+        "event": "NON_LANDMARK_HALL",
+        "boot_id": "2C074C69CDA60A10",
+        "event_serial": 206,
+        "state": "NORMAL",
+        "nav": "NORMAL",
+        "nav_state": "TRACKING",
+        "mm": 20,
+        "tgt": 19,
+        "dir": "CCW",
+        "ruling": "NON_LANDMARK_HALL",
+        "evidence": "NON_LANDMARK_HALL",
+        "obs": "S",
+        "expected": "S",
+        "opened_ms": 437391,
+        "gap_ms": 0,
+        "raw_open": 1786,
+        "base_open": 1825,
+        "pwm_open": 90,
+        "unresolved_count": 0,
+        "seq_len": 10,
+        "seq_matches": 10,
+        "trust": "CONTINUITY",
+        "corrections": 0
+      }
+    ],
+    [
+      "2026-09-23T22:06:05.929",
+      {
+        "event": "MISSED_AND_ADVANCED",
+        "boot_id": "2C074C69CDA60A10",
+        "event_serial": 207,
+        "state": "NORMAL",
+        "nav": "NORMAL",
+        "nav_state": "TRACKING",
+        "mm": 18,
+        "tgt": 17,
+        "dir": "CCW",
+        "ruling": "MISSED_AND_ADVANCED",
+        "evidence": "MISSED_OBSERVATION",
+        "obs": "S",
+        "expected": "N",
+        "opened_ms": 438493,
+        "gap_ms": 0,
+        "raw_open": 1780,
+        "base_open": 1825,
+        "pwm_open": 90,
+        "unresolved_count": 0,
+        "seq_len": 9,
+        "seq_matches": 9,
+        "trust": "CONTINUITY",
+        "corrections": 0
+      }
+    ],
+    [
+      "2026-09-23T22:11:09.491",
+      {
+        "event": "NON_LANDMARK_HALL",
+        "boot_id": "2C074C69CDA60A10",
+        "event_serial": 383,
+        "state": "NORMAL",
+        "nav": "NORMAL",
+        "nav_state": "TRACKING",
+        "mm": 14,
+        "tgt": 13,
+        "dir": "CCW",
+        "ruling": "NON_LANDMARK_HALL",
+        "evidence": "NON_LANDMARK_HALL",
+        "obs": "N",
+        "expected": "N",
+        "opened_ms": 742040,
+        "gap_ms": 0,
+        "raw_open": 1866,
+        "base_open": 1827,
+        "pwm_open": 42,
+        "unresolved_count": 0,
+        "seq_len": 10,
+        "seq_matches": 10,
+        "trust": "CONTINUITY",
+        "corrections": 0
+      }
+    ],
+    [
+      "2026-09-23T22:16:32.621",
+      {
+        "event": "NON_LANDMARK_HALL",
+        "boot_id": "2C074C69CDA60A10",
+        "event_serial": 555,
+        "state": "NORMAL",
+        "nav": "NORMAL",
+        "nav_state": "TRACKING",
+        "mm": 14,
+        "tgt": 13,
+        "dir": "CCW",
+        "ruling": "NON_LANDMARK_HALL",
+        "evidence": "NON_LANDMARK_HALL",
+        "obs": "N",
+        "expected": "N",
+        "opened_ms": 1065159,
+        "gap_ms": 0,
+        "raw_open": 2001,
+        "base_open": 1827,
+        "pwm_open": 43,
+        "unresolved_count": 0,
+        "seq_len": 10,
+        "seq_matches": 10,
+        "trust": "CONTINUITY",
+        "corrections": 0
+      }
+    ],
+    [
+      "2026-09-23T22:18:48.424",
+      {
+        "event": "NON_LANDMARK_HALL",
+        "boot_id": "2C074C69CDA60A10",
+        "event_serial": 619,
+        "state": "NORMAL",
+        "nav": "NORMAL",
+        "nav_state": "TRACKING",
+        "mm": 122,
+        "tgt": 121,
+        "dir": "CCW",
+        "ruling": "NON_LANDMARK_HALL",
+        "evidence": "NON_LANDMARK_HALL",
+        "obs": "S",
+        "expected": "S",
+        "opened_ms": 1200987,
+        "gap_ms": 0,
+        "raw_open": 1785,
+        "base_open": 1824,
+        "pwm_open": 90,
+        "unresolved_count": 0,
+        "seq_len": 10,
+        "seq_matches": 10,
+        "trust": "CONTINUITY",
+        "corrections": 0
+      }
+    ],
+    [
+      "2026-09-23T22:18:49.635",
+      {
+        "event": "MISSED_AND_ADVANCED",
+        "boot_id": "2C074C69CDA60A10",
+        "event_serial": 620,
+        "state": "NORMAL",
+        "nav": "NORMAL",
+        "nav_state": "TRACKING",
+        "mm": 120,
+        "tgt": 119,
+        "dir": "CCW",
+        "ruling": "MISSED_AND_ADVANCED",
+        "evidence": "MISSED_OBSERVATION",
+        "obs": "N",
+        "expected": "N",
+        "opened_ms": 1202185,
+        "gap_ms": 0,
+        "raw_open": 1863,
+        "base_open": 1823,
+        "pwm_open": 90,
+        "unresolved_count": 0,
+        "seq_len": 9,
+        "seq_matches": 9,
+        "trust": "CONTINUITY",
+        "corrections": 0
+      }
+    ],
+    [
+      "2026-09-23T22:19:13.639",
+      {
+        "event": "NON_LANDMARK_HALL",
+        "boot_id": "2C074C69CDA60A10",
+        "event_serial": 635,
+        "state": "NORMAL",
+        "nav": "NORMAL",
+        "nav_state": "TRACKING",
+        "mm": 106,
+        "tgt": 105,
+        "dir": "CCW",
+        "ruling": "NON_LANDMARK_HALL",
+        "evidence": "NON_LANDMARK_HALL",
+        "obs": "S",
+        "expected": "S",
+        "opened_ms": 1226187,
+        "gap_ms": 0,
+        "raw_open": 1742,
+        "base_open": 1813,
+        "pwm_open": 34,
+        "unresolved_count": 0,
+        "seq_len": 10,
+        "seq_matches": 10,
+        "trust": "CONTINUITY",
+        "corrections": 0
+      }
+    ],
+    [
+      "2026-09-23T22:20:32.689",
+      {
+        "event": "NON_LANDMARK_HALL",
+        "boot_id": "2C074C69CDA60A10",
+        "event_serial": 682,
+        "state": "NORMAL",
+        "nav": "NORMAL",
+        "nav_state": "TRACKING",
+        "mm": 60,
+        "tgt": 59,
+        "dir": "CCW",
+        "ruling": "NON_LANDMARK_HALL",
+        "evidence": "NON_LANDMARK_HALL",
+        "obs": "S",
+        "expected": "N",
+        "opened_ms": 1305246,
+        "gap_ms": 0,
+        "raw_open": 1615,
+        "base_open": 1818,
+        "pwm_open": 28,
+        "unresolved_count": 0,
+        "seq_len": 10,
+        "seq_matches": 10,
+        "trust": "CONTINUITY",
+        "corrections": 0
+      }
+    ],
+    [
+      "2026-09-23T22:23:24.394",
+      {
+        "event": "NON_LANDMARK_HALL",
+        "boot_id": "2C074C69CDA60A10",
+        "event_serial": 759,
+        "state": "NORMAL",
+        "nav": "NORMAL",
+        "nav_state": "TRACKING",
+        "mm": 155,
+        "tgt": 154,
+        "dir": "CCW",
+        "ruling": "NON_LANDMARK_HALL",
+        "evidence": "NON_LANDMARK_HALL",
+        "obs": "N",
+        "expected": "S",
+        "opened_ms": 1476933,
+        "gap_ms": 0,
+        "raw_open": 1966,
+        "base_open": 1821,
+        "pwm_open": 43,
+        "unresolved_count": 0,
+        "seq_len": 10,
+        "seq_matches": 10,
+        "trust": "CONTINUITY",
+        "corrections": 0
+      }
+    ],
+    [
+      "2026-09-23T22:24:05.892",
+      {
+        "event": "NON_LANDMARK_HALL",
+        "boot_id": "2C074C69CDA60A10",
+        "event_serial": 789,
+        "state": "NORMAL",
+        "nav": "NORMAL",
+        "nav_state": "TRACKING",
+        "mm": 126,
+        "tgt": 125,
+        "dir": "CCW",
+        "ruling": "NON_LANDMARK_HALL",
+        "evidence": "NON_LANDMARK_HALL",
+        "obs": "S",
+        "expected": "S",
+        "opened_ms": 1518431,
+        "gap_ms": 0,
+        "raw_open": 1781,
+        "base_open": 1823,
+        "pwm_open": 90,
+        "unresolved_count": 0,
+        "seq_len": 10,
+        "seq_matches": 10,
+        "trust": "CONTINUITY",
+        "corrections": 0
+      }
+    ],
+    [
+      "2026-09-23T22:24:06.895",
+      {
+        "event": "MISSED_AND_ADVANCED",
+        "boot_id": "2C074C69CDA60A10",
+        "event_serial": 790,
+        "state": "NORMAL",
+        "nav": "NORMAL",
+        "nav_state": "TRACKING",
+        "mm": 124,
+        "tgt": 123,
+        "dir": "CCW",
+        "ruling": "MISSED_AND_ADVANCED",
+        "evidence": "MISSED_OBSERVATION",
+        "obs": "N",
+        "expected": "S",
+        "opened_ms": 1519447,
+        "gap_ms": 0,
+        "raw_open": 1865,
+        "base_open": 1824,
+        "pwm_open": 90,
+        "unresolved_count": 0,
+        "seq_len": 9,
+        "seq_matches": 9,
+        "trust": "CONTINUITY",
+        "corrections": 0
+      }
+    ],
+    [
+      "2026-09-23T22:24:09.973",
+      {
+        "event": "NON_LANDMARK_HALL",
+        "boot_id": "2C074C69CDA60A10",
+        "event_serial": 793,
+        "state": "NORMAL",
+        "nav": "NORMAL",
+        "nav_state": "TRACKING",
+        "mm": 122,
+        "tgt": 121,
+        "dir": "CCW",
+        "ruling": "NON_LANDMARK_HALL",
+        "evidence": "NON_LANDMARK_HALL",
+        "obs": "S",
+        "expected": "S",
+        "opened_ms": 1522533,
+        "gap_ms": 0,
+        "raw_open": 1782,
+        "base_open": 1824,
+        "pwm_open": 90,
+        "unresolved_count": 0,
+        "seq_len": 9,
+        "seq_matches": 9,
+        "trust": "CONTINUITY",
+        "corrections": 0
+      }
+    ],
+    [
+      "2026-09-23T22:24:11.162",
+      {
+        "event": "MISSED_AND_ADVANCED",
+        "boot_id": "2C074C69CDA60A10",
+        "event_serial": 794,
+        "state": "NORMAL",
+        "nav": "NORMAL",
+        "nav_state": "TRACKING",
+        "mm": 120,
+        "tgt": 119,
+        "dir": "CCW",
+        "ruling": "MISSED_AND_ADVANCED",
+        "evidence": "MISSED_OBSERVATION",
+        "obs": "N",
+        "expected": "N",
+        "opened_ms": 1523715,
+        "gap_ms": 0,
+        "raw_open": 1866,
+        "base_open": 1823,
+        "pwm_open": 90,
+        "unresolved_count": 0,
+        "seq_len": 8,
+        "seq_matches": 8,
+        "trust": "CONTINUITY",
+        "corrections": 0
+      }
+    ],
+    [
+      "2026-09-23T22:24:34.934",
+      {
+        "event": "NON_LANDMARK_HALL",
+        "boot_id": "2C074C69CDA60A10",
+        "event_serial": 809,
+        "state": "NORMAL",
+        "nav": "NORMAL",
+        "nav_state": "TRACKING",
+        "mm": 106,
+        "tgt": 105,
+        "dir": "CCW",
+        "ruling": "NON_LANDMARK_HALL",
+        "evidence": "NON_LANDMARK_HALL",
+        "obs": "S",
+        "expected": "S",
+        "opened_ms": 1547473,
+        "gap_ms": 0,
+        "raw_open": 1762,
+        "base_open": 1814,
+        "pwm_open": 35,
+        "unresolved_count": 0,
+        "seq_len": 10,
+        "seq_matches": 10,
+        "trust": "CONTINUITY",
+        "corrections": 0
+      }
+    ],
+    [
+      "2026-09-23T22:25:54.963",
+      {
+        "event": "NON_LANDMARK_HALL",
+        "boot_id": "2C074C69CDA60A10",
+        "event_serial": 856,
+        "state": "NORMAL",
+        "nav": "NORMAL",
+        "nav_state": "TRACKING",
+        "mm": 60,
+        "tgt": 59,
+        "dir": "CCW",
+        "ruling": "NON_LANDMARK_HALL",
+        "evidence": "NON_LANDMARK_HALL",
+        "obs": "S",
+        "expected": "N",
+        "opened_ms": 1627520,
+        "gap_ms": 0,
+        "raw_open": 1621,
+        "base_open": 1818,
+        "pwm_open": 25,
+        "unresolved_count": 0,
+        "seq_len": 10,
+        "seq_matches": 10,
+        "trust": "CONTINUITY",
+        "corrections": 0
+      }
+    ],
+    [
+      "2026-09-23T22:25:55.647",
+      {
+        "event": "NON_LANDMARK_HALL",
+        "boot_id": "2C074C69CDA60A10",
+        "event_serial": 857,
+        "state": "NORMAL",
+        "nav": "NORMAL",
+        "nav_state": "TRACKING",
+        "mm": 60,
+        "tgt": 59,
+        "dir": "CCW",
+        "ruling": "NON_LANDMARK_HALL",
+        "evidence": "NON_LANDMARK_HALL",
+        "obs": "S",
+        "expected": "N",
+        "opened_ms": 1628208,
+        "gap_ms": 0,
+        "raw_open": 1779,
+        "base_open": 1818,
+        "pwm_open": 22,
+        "unresolved_count": 0,
+        "seq_len": 10,
+        "seq_matches": 10,
+        "trust": "CONTINUITY",
+        "corrections": 0
+      }
+    ],
+    [
+      "2026-09-23T22:29:57.831",
+      {
+        "event": "NON_LANDMARK_HALL",
+        "boot_id": "2C074C69CDA60A10",
+        "event_serial": 983,
+        "state": "NORMAL",
+        "nav": "NORMAL",
+        "nav_state": "TRACKING",
+        "mm": 106,
+        "tgt": 105,
+        "dir": "CCW",
+        "ruling": "NON_LANDMARK_HALL",
+        "evidence": "NON_LANDMARK_HALL",
+        "obs": "S",
+        "expected": "S",
+        "opened_ms": 1870332,
+        "gap_ms": 0,
+        "raw_open": 1753,
+        "base_open": 1813,
+        "pwm_open": 34,
+        "unresolved_count": 0,
+        "seq_len": 10,
+        "seq_matches": 10,
+        "trust": "CONTINUITY",
+        "corrections": 0
+      }
+    ],
+    [
+      "2026-09-23T22:31:17.194",
+      {
+        "event": "NON_LANDMARK_HALL",
+        "boot_id": "2C074C69CDA60A10",
+        "event_serial": 1030,
+        "state": "NORMAL",
+        "nav": "NORMAL",
+        "nav_state": "TRACKING",
+        "mm": 60,
+        "tgt": 59,
+        "dir": "CCW",
+        "ruling": "NON_LANDMARK_HALL",
+        "evidence": "NON_LANDMARK_HALL",
+        "obs": "S",
+        "expected": "N",
+        "opened_ms": 1949750,
+        "gap_ms": 0,
+        "raw_open": 1616,
+        "base_open": 1819,
+        "pwm_open": 28,
+        "unresolved_count": 0,
+        "seq_len": 10,
+        "seq_matches": 10,
+        "trust": "CONTINUITY",
+        "corrections": 0
+      }
+    ],
+    [
+      "2026-09-23T22:32:27.162",
+      {
+        "event": "NON_LANDMARK_HALL",
+        "boot_id": "2C074C69CDA60A10",
+        "event_serial": 1071,
+        "state": "NORMAL",
+        "nav": "NORMAL",
+        "nav_state": "TRACKING",
+        "mm": 20,
+        "tgt": 19,
+        "dir": "CCW",
+        "ruling": "NON_LANDMARK_HALL",
+        "evidence": "NON_LANDMARK_HALL",
+        "obs": "S",
+        "expected": "S",
+        "opened_ms": 2019685,
+        "gap_ms": 0,
+        "raw_open": 1785,
+        "base_open": 1825,
+        "pwm_open": 67,
+        "unresolved_count": 0,
+        "seq_len": 10,
+        "seq_matches": 10,
+        "trust": "CONTINUITY",
+        "corrections": 0
+      }
+    ],
+    [
+      "2026-09-23T22:32:28.927",
+      {
+        "event": "MISSED_AND_ADVANCED",
+        "boot_id": "2C074C69CDA60A10",
+        "event_serial": 1072,
+        "state": "NORMAL",
+        "nav": "NORMAL",
+        "nav_state": "TRACKING",
+        "mm": 18,
+        "tgt": 17,
+        "dir": "CCW",
+        "ruling": "MISSED_AND_ADVANCED",
+        "evidence": "MISSED_OBSERVATION",
+        "obs": "S",
+        "expected": "N",
+        "opened_ms": 2021468,
+        "gap_ms": 0,
+        "raw_open": 1786,
+        "base_open": 1825,
+        "pwm_open": 60,
+        "unresolved_count": 0,
+        "seq_len": 9,
+        "seq_matches": 9,
+        "trust": "CONTINUITY",
+        "corrections": 0
+      }
+    ],
+    [
+      "2026-09-23T22:35:19.703",
+      {
+        "event": "NON_LANDMARK_HALL",
+        "boot_id": "2C074C69CDA60A10",
+        "event_serial": 1156,
+        "state": "NORMAL",
+        "nav": "NORMAL",
+        "nav_state": "TRACKING",
+        "mm": 106,
+        "tgt": 105,
+        "dir": "CCW",
+        "ruling": "NON_LANDMARK_HALL",
+        "evidence": "NON_LANDMARK_HALL",
+        "obs": "S",
+        "expected": "S",
+        "opened_ms": 2192253,
+        "gap_ms": 0,
+        "raw_open": 1776,
+        "base_open": 1814,
+        "pwm_open": 34,
+        "unresolved_count": 0,
+        "seq_len": 10,
+        "seq_matches": 10,
+        "trust": "CONTINUITY",
+        "corrections": 0
+      }
+    ],
+    [
+      "2026-09-23T22:35:39.653",
+      {
+        "event": "NON_LANDMARK_HALL",
+        "boot_id": "2C074C69CDA60A10",
+        "event_serial": 1158,
+        "state": "NORMAL",
+        "nav": "NORMAL",
+        "nav_state": "TRACKING",
+        "mm": 105,
+        "tgt": 104,
+        "dir": "CCW",
+        "ruling": "NON_LANDMARK_HALL",
+        "evidence": "NON_LANDMARK_HALL",
+        "obs": "S",
+        "expected": "S",
+        "opened_ms": 2212159,
+        "gap_ms": 0,
+        "raw_open": 1707,
+        "base_open": 1834,
+        "pwm_open": 41,
+        "unresolved_count": 0,
+        "seq_len": 10,
+        "seq_matches": 10,
+        "trust": "CONTINUITY",
+        "corrections": 0
+      }
+    ],
+    [
+      "2026-09-23T22:37:18.984",
+      {
+        "event": "DISPATCHER_RELEASE",
+        "state": "NORMAL",
+        "nav": "NORMAL",
+        "nav_state": "TRACKING",
+        "mm": 44,
+        "tgt": 43,
+        "dir": "CCW",
+        "adv": 1204,
+        "ref": 22
+      }
+    ]
+  ],
+  "health_counts": {
+    "NO_SOURCE": 1,
+    "INADEQUATE_CONTRAST": 630,
+    "HEALTHY": 2554
+  },
+  "readiness_counts": {
+    "UNAVAILABLE": 631,
+    "REACQUIRING": 35,
+    "READY": 2519
+  },
+  "epoch_changes": [
+    [
+      "2026-09-23T21:58:48.582",
+      0
+    ],
+    [
+      "2026-09-23T21:59:26.922",
+      1
+    ],
+    [
+      "2026-09-23T22:00:36.930",
+      2
+    ],
+    [
+      "2026-09-23T22:01:43.060",
+      3
+    ],
+    [
+      "2026-09-23T22:03:14.483",
+      4
+    ],
+    [
+      "2026-09-23T22:04:33.868",
+      5
+    ],
+    [
+      "2026-09-23T22:05:57.767",
+      6
+    ],
+    [
+      "2026-09-23T22:07:11.695",
+      7
+    ],
+    [
+      "2026-09-23T22:08:42.413",
+      8
+    ],
+    [
+      "2026-09-23T22:10:02.330",
+      9
+    ],
+    [
+      "2026-09-23T22:11:28.129",
+      10
+    ],
+    [
+      "2026-09-23T22:12:35.066",
+      11
+    ],
+    [
+      "2026-09-23T22:14:06.775",
+      12
+    ],
+    [
+      "2026-09-23T22:15:25.473",
+      13
+    ],
+    [
+      "2026-09-23T22:16:51.593",
+      14
+    ],
+    [
+      "2026-09-23T22:17:58.293",
+      15
+    ],
+    [
+      "2026-09-23T22:19:29.508",
+      16
+    ],
+    [
+      "2026-09-23T22:20:47.429",
+      17
+    ],
+    [
+      "2026-09-23T22:22:14.421",
+      18
+    ],
+    [
+      "2026-09-23T22:23:20.337",
+      19
+    ],
+    [
+      "2026-09-23T22:24:51.840",
+      20
+    ],
+    [
+      "2026-09-23T22:26:09.662",
+      21
+    ],
+    [
+      "2026-09-23T22:27:36.377",
+      22
+    ],
+    [
+      "2026-09-23T22:28:42.581",
+      23
+    ],
+    [
+      "2026-09-23T22:30:14.183",
+      24
+    ],
+    [
+      "2026-09-23T22:31:32.596",
+      25
+    ],
+    [
+      "2026-09-23T22:32:58.523",
+      26
+    ],
+    [
+      "2026-09-23T22:34:05.108",
+      27
+    ],
+    [
+      "2026-09-23T22:35:35.815",
+      28
+    ],
+    [
+      "2026-09-23T22:36:54.754",
+      29
+    ]
+  ],
+  "health_last": [
+    [
+      "2026-09-23T22:40:36.165",
+      {
+        "shadow": 0,
+        "health_revision": "PROXIMAL_R1",
+        "calibration_id": 0,
+        "distance_bounds": "UNVALIDATED",
+        "loco_boot": "2C074C69CDA60A10",
+        "health": "HEALTHY",
+        "readiness": "REACQUIRING",
+        "fresh": 1,
+        "age_ms": 88,
+        "detector_reason": 5,
+        "epoch": 29,
+        "epoch_active": 0,
+        "epoch_starts": 29,
+        "epoch_ends": 29,
+        "epoch_reason": "INSTRUMENT_UNAVAILABLE",
+        "ir_boot": "D542D673B80110D9",
+        "seq": 29556,
+        "pulses": 37944,
+        "epoch_mm": null,
+        "delta_pulses": null,
+        "delta_us": null,
+        "ref_valid": 0,
+        "ref_mm": null,
+        "ref_ms": null,
+        "ref_event": 1221,
+        "ref_alignment_us": 15051,
+        "ref_basis": "NAV05_ACCEPTED",
+        "distance_mm": null,
+        "accepted": 25026,
+        "rejected": 0,
+        "duplicate": 0,
+        "old": 0,
+        "queue_gaps": 0,
+        "changes": 1356
+      }
+    ]
+  ],
+  "ir_reasons": {
+    "INADEQUATE_CONTRAST": 313,
+    "WARMUP": 29,
+    "COUPLING_UNCONFIRMED": 1,
+    "MEASURED": 1845,
+    "REACQUIRING": 18,
+    "STOPPED": 300
+  },
+  "raw_ir_reasons": {
+    "INADEQUATE_CONTRAST": 613,
+    "WARMUP": 29,
+    "COUPLING_UNCONFIRMED": 1,
+    "MEASURED": 1845,
+    "REACQUIRING": 18
+  },
+  "ir_first": [
+    [
+      "2026-09-23T21:58:48.586",
+      {
+        "paired": 1,
+        "channel": 11,
+        "channel_ok": 1,
+        "radio_ready": 1,
+        "seen_mac": "38:18:2B:30:8C:2C",
+        "seen": 6,
+        "accepted": 6,
+        "rejected": 0,
+        "duplicate": 0,
+        "reboot": 0,
+        "queue_drop": 0,
+        "fresh": 1,
+        "age_ms": 21,
+        "reason": 1,
+        "boot": "D542D673B80110D9",
+        "seq": 4479,
+        "pulses": 110,
+        "span": 15,
+        "distance_bounds": "UNVALIDATED",
+        "authority": "NOMINAL_HYPOTHESIS_EVIDENCE",
+        "ir_valid": 0,
+        "ir_mmps": null,
+        "ir_pkph": null,
+        "ir_speed_reason": "INADEQUATE_CONTRAST",
+        "ir_coupled": 0,
+        "ir_window_us": 0,
+        "ir_delta_pulses": 0,
+        "ir_pitch_um": 0,
+        "ir_speed_authority": "OBSERVE_ONLY",
+        "navi_speed_valid": 0,
+        "navi_speed_mmps": null,
+        "navi_speed_reason": "INADEQUATE_CONTRAST"
+      }
+    ]
+  ],
+  "ir_last": [
+    [
+      "2026-09-23T22:40:35.681",
+      {
+        "paired": 1,
+        "channel": 11,
+        "channel_ok": 1,
+        "radio_ready": 1,
+        "seen_mac": "38:18:2B:30:8C:2C",
+        "seen": 25021,
+        "accepted": 25021,
+        "rejected": 0,
+        "duplicate": 0,
+        "reboot": 0,
+        "queue_drop": 0,
+        "fresh": 1,
+        "age_ms": 95,
+        "reason": 5,
+        "boot": "D542D673B80110D9",
+        "seq": 29551,
+        "pulses": 37944,
+        "span": 863,
+        "distance_bounds": "UNVALIDATED",
+        "authority": "NOMINAL_HYPOTHESIS_EVIDENCE",
+        "ir_valid": 0,
+        "ir_mmps": null,
+        "ir_pkph": null,
+        "ir_speed_reason": "REACQUIRING",
+        "ir_coupled": 1,
+        "ir_window_us": 0,
+        "ir_delta_pulses": 0,
+        "ir_pitch_um": 0,
+        "ir_speed_authority": "OBSERVE_ONLY",
+        "navi_speed_valid": 0,
+        "navi_speed_mmps": null,
+        "navi_speed_reason": "REACQUIRING"
+      }
+    ]
+  ],
+  "auto_changes": [
+    [
+      "2026-09-23T21:59:09.196",
+      1
+    ],
+    [
+      "2026-09-23T22:37:18.981",
+      0
+    ]
+  ],
+  "warning_changes": [
+    [
+      "2026-09-23T21:59:07.497",
+      ""
+    ],
+    [
+      "2026-09-23T22:37:18.984",
+      "RELEASED by dispatcher"
+    ]
+  ],
+  "alerts_last": [
+    [
+      "2026-09-23T22:40:35.681",
+      {
+        "level": "CLEAR",
+        "reason": "STATUS",
+        "loco": "9950012",
+        "uptime_ms": 2508636,
+        "state": "NORMAL",
+        "nav": "NORMAL",
+        "nav_state": "TRACKING",
+        "mm": 42,
+        "dead_reckoned_mm": 42,
+        "tgt": 41,
+        "dir": "CCW",
+        "session_dir": "CCW",
+        "trust": "CONTINUITY",
+        "powered": 0,
+        "moving": null,
+        "motion_source": "IR",
+        "pwm": 0,
+        "auto": 0,
+        "running": 0,
+        "estop": 0,
+        "lowvolt": 0,
+        "ina": 1,
+        "est_mm_s": 237,
+        "baseline": 1821,
+        "base_age_ms": 194961,
+        "distance_confirmed": 1,
+        "distance_assessable": 1,
+        "ir_interval": "NOMINAL_ONLY",
+        "ir_waits": 28,
+        "ir_bounds": "UNVALIDATED",
+        "ir_fitted": 1,
+        "agree": 1206,
+        "disagree": 22,
+        "pub_drop": 0,
+        "cmd_drop": 0
+      }
+    ]
+  ],
+  "commands": [
+    [
+      "2026-09-23T21:59:02.083",
+      "ngr/loco/9950012/cmd/session_direction",
+      "CCW"
+    ],
+    [
+      "2026-09-23T21:59:07.478",
+      "ngr/loco/9950012/cmd/start_interval",
+      "050-051"
+    ],
+    [
+      "2026-09-23T21:59:09.174",
+      "ngr/loco/9950012/cmd/auto",
+      1
+    ],
+    [
+      "2026-09-23T21:59:14.278",
+      "ngr/loco/9950012/cmd/ir_coupled",
+      1
+    ],
+    [
+      "2026-09-23T21:59:15.937",
+      "ngr/loco/9950012/cmd/ir_coupled",
+      0
+    ],
+    [
+      "2026-09-23T21:59:24.335",
+      "ngr/dispatcher/cmd/go/9950012",
+      1
+    ],
+    [
+      "2026-09-23T21:59:28.576",
+      "ngr/loco/9950012/cmd/ir_coupled",
+      1
+    ],
+    [
+      "2026-09-23T22:05:20.379",
+      "ngr/dispatcher/cmd/stop/9950012",
+      1
+    ],
+    [
+      "2026-09-23T22:05:55.632",
+      "ngr/dispatcher/cmd/go/9950012",
+      1
+    ],
+    [
+      "2026-09-23T22:37:18.964",
+      "ngr/loco/9950012/cmd/dispatcher_release",
+      1
+    ],
+    [
+      "2026-09-23T22:37:18.966",
+      "ngr/dispatcher/cmd/stop/9950011",
+      1
+    ],
+    [
+      "2026-09-23T22:37:18.982",
+      "ngr/dispatcher/cmd/stop/9950012",
+      1
+    ],
+    [
+      "2026-09-23T22:37:18.982",
+      "ngr/dispatcher/cmd/stop/2095111",
+      1
+    ]
+  ]
+}
