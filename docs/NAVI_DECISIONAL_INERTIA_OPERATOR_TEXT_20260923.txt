@@ -1,0 +1,115 @@
+The key point CODEX needs is that decisional inertia is not reluctance to correct an error. It is the proper treatment of accumulated knowledge.
+
+Decisional Inertia
+
+NAVI should always maintain one preferred, physically coherent account of where the locomotive is and where it is going.
+
+Once that position has been established by a coherent sequence of observations, it acquires decisional inertia. A new observation does not erase everything NAVI already knows and restart localization from scratch.
+
+The governing principle is:
+
+Where Toby has been constrains where Toby can be now.
+
+If NAVI has good reason to believe Toby is at MM029, then the next Hall event is not an invitation to ask, “Which of the 171 magnets could this be?” The first question is:
+
+“Given that Toby was at MM029, his direction, his movement since then, elapsed time, IR distance, speed, and the track graph, what locations are physically coherent with that history?”
+
+Usually that set is extremely small. Often it is exactly one.
+
+New evidence must overcome the existing coherent explanation
+
+An established position is not merely another hypothesis with the same standing as 170 alternatives.
+
+Suppose NAVI has coherently tracked:
+
+027 → 028 → 029
+
+and then receives something odd at the expected location of 030.
+
+A polarity disagreement, strange Hall event, missing IR measurement, or unusual timing does not justify throwing away 027→028→029 and asking which magnet on the railroad best resembles the new observation.
+
+Instead:
+
+029 remains the starting fact.
+
+The observation must first be interpreted in the context of the maintained trajectory.
+
+This means:
+
+* ordinary confirming evidence strengthens the existing model;
+* unavailable evidence contributes nothing against it;
+* one contradictory observation is initially evidence that the observation may be wrong or incomplete;
+* a missed magnet does not mean position was lost;
+* an extra Hall signal does not automatically become a landmark;
+* wrong polarity is diagnostic evidence, not an automatic relocation command;
+* multiple independent contradictions can eventually overcome decisional inertia and force revision.
+
+That last point is essential. Decisional inertia is not decisional permanence.
+
+The asymmetry is intentional
+
+There should be an evidentiary asymmetry between:
+
+continuing a well-established coherent trajectory
+
+and
+
+abandoning that trajectory for another location.
+
+They are not equally expensive decisions.
+
+If Toby has been tracked coherently through ten magnets, one strange observation should not have enough authority to discard those ten observations. The proposed alternative must explain the new evidence and remain compatible with the physical history that preceded it.
+
+In other words:
+
+The burden of proof belongs to the evidence proposing a change in state.
+
+Ambiguity does not mean global uncertainty
+
+This is especially important for the failure you just saw.
+
+If Toby is physically at 029–030 but NAVI announces MM163, something has gone fundamentally wrong with the reasoning model if MM163 became plausible merely because its pattern matched some recent observations.
+
+Being uncertain whether Toby is at 029 or 030 does not make Toby’s position uncertain over the entire railroad.
+
+Local uncertainty must remain local.
+
+The history may support:
+
+029
+030
+perhaps, under unusual circumstances, 031
+
+It cannot suddenly support 163 unless there is a physically coherent explanation for how Toby got from the previously established location to 163.
+
+Pattern similarity does not create physical possibility.
+
+What CODEX should implement
+
+The decision process should therefore be conceptually:
+
+1. Maintain the current preferred trajectory.
+This is NAVI’s accumulated knowledge, not merely its latest sensor reading.
+
+2. Interpret each new observation relative to that trajectory.
+Ask what physically reachable successor states can explain it.
+
+3. Prefer coherent continuation when the evidence permits it.
+A missing or imperfect observation does not by itself destroy position knowledge.
+
+4. Record discrepancies without automatically promoting them to alternative locations.
+A discrepancy is evidence to be explained.
+
+5. Open competing hypotheses only when independent evidence genuinely supports more than one physically plausible location.
+
+6. Require accumulated contradictory evidence to overturn an established position.
+The stronger and longer the coherent history, the more evidence should be required to replace it.
+
+7. If certainty genuinely cannot be maintained, preserve the bounded uncertainty created by the actual evidence.
+Do not convert “I cannot distinguish 029 from 030” into “I could be anywhere from MM000 through MM170.”
+
+The shortest formulation for CODEX is:
+
+NAVI does not repeatedly solve “Where am I?” from scratch. It solves “Given where I already know I was, what does this new evidence tell me about where I am now?” Established coherent knowledge has decisional inertia. New evidence may reinforce it, weaken it, or eventually overturn it, but a single discrepancy does not reset localization. Uncertainty expands only as far as physical history and the evidence justify.
+
+That is, I think, the piece CODEX is missing.
