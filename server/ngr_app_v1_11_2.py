@@ -2242,16 +2242,26 @@ function pollState(){
             ageOf(s,'pkph'));
     setTile('pwm-display', s.pwm, ageOf(s,'pwm'));
 
-    // IR Test A's own mm/s (speed_view.ir_mmps), through the SAME
-    // mm/s -> pKPH conversion as the KPH tile above — not speed_view's own
-    // ir_pkph, which the firmware scales differently. '--' whenever the
-    // sensor has no current reading (ir_valid false), even if the 1 Hz
-    // heartbeat carrying that "false" is itself fresh.
+    // telem/speed, IR-sourced, through the SAME mm/s -> pKPH conversion as
+    // the KPH tile above. Two publishers exist on this one topic:
+    //   - NAVI_COHERENCE_0_6_IR_HEALTH (Toby's current flash) sends the IR
+    //     Test Car's mm/s as a BARE number, e.g. "59" — no valid flag,
+    //     because a fresh publish IS the reading (see serviceStatus()'s
+    //     motion_source:"IR" in that sketch).
+    //   - NAVI_CL2/QUORUM/NAVI_2 send the richer quorum-speed-view/1
+    //     object ({ir_valid, ir_mmps, ...}), which is NOT the same
+    //     conversion as its own ir_pkph field — the firmware scales that
+    //     one differently, so it's ignored in favour of recomputing from
+    //     ir_mmps here.
+    // '--' when speed_view is empty (nothing published this session) or
+    // the object form reports ir_valid false.
     var irPkph = '--';
     if (s.speed_view) {
       try {
         var sv = JSON.parse(s.speed_view);
-        if (sv.ir_valid && sv.ir_mmps !== null && sv.ir_mmps !== undefined) {
+        if (typeof sv === 'number' && isFinite(sv)) {
+          irPkph = String(Math.round(sv * PKPH_PER_MM_S));
+        } else if (sv && sv.ir_valid && sv.ir_mmps !== null && sv.ir_mmps !== undefined) {
           irPkph = String(Math.round(parseFloat(sv.ir_mmps) * PKPH_PER_MM_S));
         }
       } catch (e) {}
