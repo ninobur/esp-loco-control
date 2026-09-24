@@ -1,0 +1,20 @@
+ets Jul 29 2019 12:21:46
+
+rst:0x1 (POWERON_RESET),boot:0x13 (SPI_FAST_FLASH_BOOT)
+configsip: 0, SPIWP:0xee
+clk_drv:0x00,q_drv:0x00,d_drv:0x00,cs0_drv:0x00,hd_drv:0x00,wp_drv:0x00
+mode:DIO, clock div:1
+load:0x3fff0030,len:4876
+ho 0 tail 12 room 4
+load:0x40078000,len:16532
+load:0x40080400,len:3500
+entry 0x400805b4
+READY IR_SCOPE_ESPNOW_ACTIVE_TX_1_6_R2 sid=e9f8b7c4 pin=34 rate=1000 env=512 update=50 prime=128 mingate=120 channel=11 raw=250 cto=45 obs=72 fusion=86 retained=192 target=9950012 mac=00:00:00:00:00:00
+MOVE TX_1_6_R2 boot=8dc31ef4e9f8b7c4 t_us=4926177 rises=0 completed=0 nominal_um=0 reason=1 span=47 unreliable=4504 gaps=1 sat=0 distance_valid=0
+STAT samples=4592 rawsent=47 obssent=0 fsent=0 fack=0 fretry=0 fretained=0 fevict=0 qdrop=0 odrop=0 fdrop=0 senderr=0 missed=0 late=0 pulses=0 sat=0 cto=0 cmiss=0 reboot=0 crxdrop=0 echo=0 bad=0/0/0 q=0/0/0/0
+MOVE TX_1_6_R2 boot=8dc31ef4e9f8b7c4 t_us=9928178 rises=0 completed=0 nominal_um=0 reason=1 span=47 unreliable=9506 gaps=1 sat=0 distance_valid=0
+STAT samples=9594 rawsent=99 obssent=0 fsent=0 fack=0 fretry=0 fretained=0 fevict=0 qdrop=0 odrop=0 fdrop=0 senderr=0 missed=0 late=0 pulses=0 sat=0 cto=0 cmiss=0 reboot=0 crxdrop=0 echo=0 bad=0/0/0 q=0/0/0/0
+MOVE TX_1_6_R2 boot=8dc31ef4e9f8b7c4 t_us=14933177 rises=0 completed=0 nominal_um=0 reason=1 span=47 unreliable=14511 gaps=1 sat=0 distance_valid=0
+STAT samples=14596 rawsent=152 obssent=0 fsent=0 fack=0 fretry=0 fretained=0 fevict=0 qdrop=0 odrop=0 fdrop=0 senderr=0 missed=0 late=0 pulses=0 sat=0 cto=0 cmiss=0 reboot=0 crxdrop=0 echo=0 bad=0/0/0 q=0/0/0/0
+MOVE TX_1_6_R2 boot=8dc31ef4e9f8b7c4 t_us=19934178 rises=0 completed=0 nominal_um=0 reason=1 span=47 unreliable=19512 gaps=1 sat=0 distance_valid=0
+STAT samples=19598 rawsent=204 obssent=0 fsent=0 fack=0 fretry=0 fretained=0 fevict=0 qdrop=0 odrop=0 fdrop=0 senderr=0 missed=0 late=0 pulses=0 sat=0 cto=0 cmiss=0 reboot=0 crxdrop=0 echo=0 bad=0/0/0 q=0/0/0/0
