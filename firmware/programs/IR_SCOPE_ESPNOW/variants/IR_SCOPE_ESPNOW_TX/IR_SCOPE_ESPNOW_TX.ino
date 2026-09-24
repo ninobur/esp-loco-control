@@ -1,5 +1,5 @@
 /*
- * IR_SCOPE_ESPNOW_ACTIVE_TX_1_5 — 1 kHz IR waveform transmitter plus
+ * IR_SCOPE_ESPNOW_ACTIVE_TX_1_6 — 1 kHz IR waveform transmitter plus
  * read-only QUORUM/TEMPLATES CtoPeerPacket v3 receiver and onboard interval
  * comparison. Diagnostic only: no navigation or motor authority.
  * Diagnostic only. Samples GPIO34; it contains no motor or locomotive control.
@@ -8,7 +8,7 @@
 #include <WiFi.h>
 #include <esp_now.h>
 #include <esp_wifi.h>
-#include "../../common/IrMovementWire.h"
+#include "../../../../common/IrMovementWire.h"
 
 static const uint8_t CHANNEL=11;
 static const int SENSOR_PIN=34;
@@ -146,7 +146,7 @@ static void onReceive(const esp_now_recv_info_t *info,const uint8_t *data,int le
 static void sampler(void*) {
   Packet p{}; p.magic=MAGIC;p.version=VERSION;p.type=1;p.sid=sid;
   // Calibration id stays zero until the installed wheel is confirmed.
-  ir_movement::Measurement measurement(movementBoot,0,9.652);
+  ir_movement::Measurement measurement(movementBoot,0,9.652,true);
   uint64_t nextReport=0; uint32_t movementSequence=0;
   ir_movement::Reason lastReason=ir_movement::PRIMING;
   TickType_t wake=xTaskGetTickCount(); uint64_t t0=esp_timer_get_time();
@@ -225,7 +225,7 @@ void setup(){
   WiFi.mode(WIFI_STA);WiFi.disconnect(false,true);esp_wifi_set_channel(CHANNEL,WIFI_SECOND_CHAN_NONE);
   if(esp_now_init()!=ESP_OK){Serial.println("FATAL esp_now_init");while(1)delay(1000);}esp_now_register_send_cb(onSent);esp_now_register_recv_cb(onReceive);
   esp_now_peer_info_t peer{};memcpy(peer.peer_addr,BROADCAST,6);peer.channel=CHANNEL;peer.encrypt=false;if(esp_now_add_peer(&peer)!=ESP_OK){Serial.println("FATAL add_peer");while(1)delay(1000);}
-  Serial.printf("READY IR_SCOPE_ESPNOW_ACTIVE_TX_1_5 sid=%08lx pin=%d rate=1000 env=%d update=%lu prime=%d mingate=%d channel=%u raw=%u cto=%u obs=%u fusion=%u retained=%u target=%lu mac=%s\n",(unsigned long)sid,SENSOR_PIN,ENV_N,(unsigned long)ENV_UPDATE_MS,PRIME_N,MIN_SPAN,CHANNEL,(unsigned)sizeof(Packet),(unsigned)sizeof(CtoPeerPacket),(unsigned)sizeof(CtoObservationPacket),(unsigned)sizeof(FusionIntervalPacket),(unsigned)RETAINED_INTERVALS,(unsigned long)TOBY_ID,WiFi.macAddress().c_str());
+  Serial.printf("READY IR_SCOPE_ESPNOW_ACTIVE_TX_1_6 sid=%08lx pin=%d rate=1000 env=%d update=%lu prime=%d mingate=%d channel=%u raw=%u cto=%u obs=%u fusion=%u retained=%u target=%lu mac=%s\n",(unsigned long)sid,SENSOR_PIN,ENV_N,(unsigned long)ENV_UPDATE_MS,PRIME_N,MIN_SPAN,CHANNEL,(unsigned)sizeof(Packet),(unsigned)sizeof(CtoPeerPacket),(unsigned)sizeof(CtoObservationPacket),(unsigned)sizeof(FusionIntervalPacket),(unsigned)RETAINED_INTERVALS,(unsigned long)TOBY_ID,WiFi.macAddress().c_str());
   xTaskCreatePinnedToCore(sampler,"sample",4096,nullptr,2,nullptr,0);xTaskCreatePinnedToCore(radio,"radio",4096,nullptr,1,nullptr,1);
 }
 static uint32_t statusAt = 0;

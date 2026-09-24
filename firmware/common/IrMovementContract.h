@@ -74,7 +74,8 @@ inline bool couldReach(const DistanceRange& r, double routeMinMm, double routeMa
 
 class Measurement {
  public:
-  Measurement(uint64_t boot, uint32_t calibration, double pitch) {
+  Measurement(uint64_t boot, uint32_t calibration, double pitch,bool retainStationary=false)
+    : detector_(false,retainStationary) {
     state_.bootId=boot; state_.calibrationId=calibration; state_.mmPerPulse=pitch;
   }
   void sample(uint64_t us, uint16_t raw) {
