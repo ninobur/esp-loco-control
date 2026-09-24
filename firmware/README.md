@@ -41,6 +41,17 @@ or a successful build.
 
 ## Current catalog
 
+**2026-09-23 IR stop-retention revision:**
+`programs/IR_SCOPE_ESPNOW/variants/IR_SCOPE_ESPNOW_TX/IR_SCOPE_ESPNOW_TX.ino`
+identifies as **IR_SCOPE_ESPNOW_ACTIVE_TX_1_6_R2**. Diagnostic movement source,
+consumed by NAVI (therefore not an observation-only change downstream).
+Original 1.6 candidate at `1de06ae` rejected by independent review `4de40df`.
+R2 is built and host-tested, **unflashed, awaiting independent re-review and
+supervised bench acceptance; not approved for NAV/AUTO field use**.
+Controlling record: `../docs/IR_TX_1_6_R2_REVIEW_RESPONSE_20260923.md`.
+No promotion or RX wire-format change. The older local Arduino TX copy has
+not been replaced.
+
 **2026-09-23 recovery revision:**
 `programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_HEALTH/` now identifies
 as **NAVI_COHERENCE_0_6_PROXIMAL_R1**, same Arduino filename/shortcut. Development

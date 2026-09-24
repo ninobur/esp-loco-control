@@ -1,8 +1,10 @@
 /*
- * IR_SCOPE_ESPNOW_ACTIVE_TX_1_6 — 1 kHz IR waveform transmitter plus
+ * IR_SCOPE_ESPNOW_ACTIVE_TX_1_6_R2 — 1 kHz IR waveform transmitter plus
  * read-only QUORUM/TEMPLATES CtoPeerPacket v3 receiver and onboard interval
- * comparison. Diagnostic only: no navigation or motor authority.
- * Diagnostic only. Samples GPIO34; it contains no motor or locomotive control.
+ * comparison. Samples GPIO34; no local navigation or motor authority.
+ * NAVI consumes its evidence, so detector changes can affect navigation.
+ * R2: quiet-only retention, agreeing-cycle reference, visible continuity loss.
+ * Independent review and supervised bench acceptance required before use.
  */
 #include <Arduino.h>
 #include <WiFi.h>
@@ -225,7 +227,7 @@ void setup(){
   WiFi.mode(WIFI_STA);WiFi.disconnect(false,true);esp_wifi_set_channel(CHANNEL,WIFI_SECOND_CHAN_NONE);
   if(esp_now_init()!=ESP_OK){Serial.println("FATAL esp_now_init");while(1)delay(1000);}esp_now_register_send_cb(onSent);esp_now_register_recv_cb(onReceive);
   esp_now_peer_info_t peer{};memcpy(peer.peer_addr,BROADCAST,6);peer.channel=CHANNEL;peer.encrypt=false;if(esp_now_add_peer(&peer)!=ESP_OK){Serial.println("FATAL add_peer");while(1)delay(1000);}
-  Serial.printf("READY IR_SCOPE_ESPNOW_ACTIVE_TX_1_6 sid=%08lx pin=%d rate=1000 env=%d update=%lu prime=%d mingate=%d channel=%u raw=%u cto=%u obs=%u fusion=%u retained=%u target=%lu mac=%s\n",(unsigned long)sid,SENSOR_PIN,ENV_N,(unsigned long)ENV_UPDATE_MS,PRIME_N,MIN_SPAN,CHANNEL,(unsigned)sizeof(Packet),(unsigned)sizeof(CtoPeerPacket),(unsigned)sizeof(CtoObservationPacket),(unsigned)sizeof(FusionIntervalPacket),(unsigned)RETAINED_INTERVALS,(unsigned long)TOBY_ID,WiFi.macAddress().c_str());
+  Serial.printf("READY IR_SCOPE_ESPNOW_ACTIVE_TX_1_6_R2 sid=%08lx pin=%d rate=1000 env=%d update=%lu prime=%d mingate=%d channel=%u raw=%u cto=%u obs=%u fusion=%u retained=%u target=%lu mac=%s\n",(unsigned long)sid,SENSOR_PIN,ENV_N,(unsigned long)ENV_UPDATE_MS,PRIME_N,MIN_SPAN,CHANNEL,(unsigned)sizeof(Packet),(unsigned)sizeof(CtoPeerPacket),(unsigned)sizeof(CtoObservationPacket),(unsigned)sizeof(FusionIntervalPacket),(unsigned)RETAINED_INTERVALS,(unsigned long)TOBY_ID,WiFi.macAddress().c_str());
   xTaskCreatePinnedToCore(sampler,"sample",4096,nullptr,2,nullptr,0);xTaskCreatePinnedToCore(radio,"radio",4096,nullptr,1,nullptr,1);
 }
 static uint32_t statusAt = 0;
@@ -234,7 +236,7 @@ void loop(){
   if(millis()-movementStatusAt>=5000){
     movementStatusAt=millis();ir_movement::WireSnapshot m;
     portENTER_CRITICAL(&movementMux);m=latestMovement;portEXIT_CRITICAL(&movementMux);
-    Serial.printf("MOVE TX_1_5 boot=%016llx t_us=%llu rises=%llu completed=%llu nominal_um=%llu reason=%u span=%u unreliable=%llu gaps=%llu sat=%llu distance_valid=0\n",
+    Serial.printf("MOVE TX_1_6_R2 boot=%016llx t_us=%llu rises=%llu completed=%llu nominal_um=%llu reason=%u span=%u unreliable=%llu gaps=%llu sat=%llu distance_valid=0\n",
       (unsigned long long)m.bootId,(unsigned long long)m.capturedUs,
       (unsigned long long)m.observedRises,(unsigned long long)m.completedPulses,
       (unsigned long long)m.nominalUm,m.opticalReason,m.span,

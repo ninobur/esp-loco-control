@@ -1,5 +1,10 @@
 # IR TX 1.6 Stop Retention: Review Handoff
 
+Historical handoff for `1de06ae`: subsequently rejected by independent review
+`4de40df`. Do not use the pass results below as bench approval. The revised,
+unflashed R2 response is `IR_TX_1_6_R2_REVIEW_RESPONSE_20260923.md`; the original
+design and results below are retained as history.
+
 Status: prepared; software tests pass; independent review and physical bench
 acceptance pending. Not flashed as of this record. Connected IR-car ESP32 MAC
 38:18:2b:30:8c:2c was read on /dev/cu.wchusbserial110. This is not Toby.

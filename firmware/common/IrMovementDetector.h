@@ -35,39 +35,48 @@ class Detector {
     }
     if (raw==0 || raw>=4095) { ++saturated; invalidate(); reason=SATURATION; return; }
     if (fill_<128) { invalidate(); reason=PRIMING; return; }
-    // A completed, high-contrast cycle is the only way to earn this reference.
-    // A quiet window cannot erase it; neither can quietness establish it.
-    if (retainStationary_ && proven_) {
+    const bool contrast=high-low>=120;
+    const bool holding=retainStationary_ && proven_ && !contrast;
+    // Retention bridges quiet plateaus only; moving contrast uses live thresholds.
+    if (holding) {
       const unsigned margin=(provenHigh_-provenLow_)/4;
-      if (raw+margin<provenLow_ || raw>provenHigh_+margin) {
-        invalidate();reason=INADEQUATE_CONTRAST;return;
-      }
-      // A flat signal parked between the learned levels is not a proven stop.
-      if (high-low<120 && raw>=thresholdLow_ && raw<=thresholdHigh_) {
+      const bool nearLow=raw+margin>=provenLow_ && raw<=provenLow_+margin;
+      const bool nearHigh=raw+margin>=provenHigh_ && raw<=provenHigh_+margin;
+      if (!nearLow && !nearHigh) {
         invalidate();reason=INADEQUATE_CONTRAST;return;
       }
     }
-    const bool holding=retainStationary_ && proven_;
-    const bool contrast=high-low>=120;
     if (!contrast && !holding && (!retainPhase_ || !armed_)) { invalidate(); reason=INADEQUATE_CONTRAST; return; }
-    if (contrast && !holding) {
+    if (contrast) {
       thresholdLow_=low+(high-low)/3;
       thresholdHigh_=low+2*(high-low)/3;
     }
     const unsigned tl=thresholdLow_, th=thresholdHigh_;
-    if (open_ && us-openAt_>=2500000 && !holding) { ++aborts; invalidate(); }
+    if (open_ && us-openAt_>=2500000 && !holding) {
+      if (!retainStationary_) ++aborts;
+      invalidate();
+    }
     // Rearming always requires an observed low, including after a timeout.
     if (!armed_) { if(raw<tl) armed_=true; reason=REACQUIRING; return; }
     if (!open_ && raw>th) { open_=true; openAt_=us; ++rises; rise=true; }
     else if (open_ && raw<tl) {
       open_=false; ++completed; lastCompleted_=us; haveCompleted_=true; fall=true;
       if(retainStationary_ && high-low>=300) {
-        provenLow_=low;provenHigh_=high;proven_=true;
-        thresholdLow_=low+(high-low)/3;thresholdHigh_=low+2*(high-low)/3;
+        if ((proven_ && compatible(provenLow_,provenHigh_)) ||
+            (candidate_ && compatible(candidateLow_,candidateHigh_))) {
+          provenLow_=low;provenHigh_=high;proven_=true;
+        }
+        candidateLow_=low;candidateHigh_=high;candidate_=true;
       }
     }
-    if (retainStationary_ && proven_ && high-low<300) reason=SIGNAL_STALE;
-    else if (high-low<300) reason=INADEQUATE_CONTRAST;
+    if (holding) reason=SIGNAL_STALE;
+    else if (high-low<300) {
+      // A short quality outage must remain visible even between radio reports.
+      if (retainStationary_ && haveCompleted_) {
+        ++aborts;haveCompleted_=false;proven_=false;candidate_=false;
+      }
+      reason=INADEQUATE_CONTRAST;
+    }
     else if (!haveCompleted_) reason=REACQUIRING;
     else reason=us-lastCompleted_>=2500000 ? SIGNAL_STALE : TRACKING;
   }
@@ -77,14 +86,24 @@ class Detector {
   Reason reason=PRIMING;
   bool inPulse() const { return open_; }
  private:
-  void invalidate() { if(open_) { open_=false; } armed_=false; haveCompleted_=false;proven_=false; }
+  bool compatible(unsigned lo,unsigned hi) const {
+    const unsigned margin=(hi-lo)/4;
+    return low+margin>=lo && low<=lo+margin &&
+           high+margin>=hi && high<=hi+margin;
+  }
+  void invalidate() {
+    // openAborts also records discarded continuity in stationary-retention mode.
+    if(retainStationary_ && (armed_||open_||proven_)) ++aborts;
+    open_=false;armed_=false;haveCompleted_=false;proven_=false;candidate_=false;
+  }
   uint8_t window_[Window]{};
   uint16_t hist_[256]{};
   unsigned fill_=0,index_=0;
   uint64_t lastSample_=0,lastEnvelope_=0,openAt_=0,lastCompleted_=0;
   bool haveSample_=false,haveEnvelope_=false,armed_=false,open_=false,haveCompleted_=false;
   bool retainPhase_=false;
-  bool retainStationary_=false,proven_=false;
+  bool retainStationary_=false,proven_=false,candidate_=false;
+  unsigned candidateLow_=0,candidateHigh_=0;
   unsigned provenLow_=0,provenHigh_=0;
   unsigned thresholdLow_=0, thresholdHigh_=0;
 };
