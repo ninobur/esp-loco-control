@@ -50,7 +50,7 @@ using namespace navi_one;
 // Published on state/bootid. It is the ONLY thing that tells telemetry which
 // build is running, so it advances with every behavioural change.
 // This experiment has no time-based refractory exclusion.
-#define SKETCH_NAME    "NAVI_COHERENCE_0_6_PROXIMAL_R1_IR_SPEED_R1"
+#define SKETCH_NAME    "NAVI_COHERENCE_0_6_PROXIMAL_R1_IR_SPEED_R2"
 #define BUILD_CLASS    "AUTO_ENABLED_FIELD_TEST"
 #define BUILD_SUBTITLE "0.5 navigation + observation-only IR health/epoch indicators"
 #define FIELD_ACCEPTED 0
@@ -227,8 +227,11 @@ static void writePwm(int v){
 // down=0 means "governed by the brake slider" (manual). A non-zero down is a
 // fixed rate the operator cannot slow down (auto).
 static void requestPwm(int target, uint16_t up, uint16_t down,
-                       StopCause stopCause = StopCause::Controlled){
-  if (target > NAVI_MAX_OPERATING_PWM) {
+                       StopCause stopCause = StopCause::Controlled,
+                       bool manualRequest = false){
+  // The experimental profile constrains AUTO, not the operator's throttle.
+  target = constrain(target,0,255);
+  if (!manualRequest && target > NAVI_MAX_OPERATING_PWM) {
     Serial.printf("[PWM] requested %d capped at %u for reachability contract\n",
                   target,(unsigned)NAVI_MAX_OPERATING_PWM);
     target = NAVI_MAX_OPERATING_PWM;
@@ -789,8 +792,7 @@ static void handleCommand(const CmdMsg& c){
     if (Refusal r = admitThrottle(o)) { refuse(r); return; }
     int n;
     if (!parseInt(c.payload,n)) { warn("THROTTLE REFUSED: not a number"); return; }
-    if (n > NAVI_MAX_OPERATING_PWM) warn("THROTTLE CAPPED at experimental profile ceiling");
-    requestPwm(constrain(n,0,NAVI_MAX_OPERATING_PWM), MANUAL_STEP_UP_MS, 0);
+    requestPwm(n, MANUAL_STEP_UP_MS, 0, StopCause::Controlled, true);
 
   } else if (!strcmp(leaf,"direction")) {
     bool fwd;

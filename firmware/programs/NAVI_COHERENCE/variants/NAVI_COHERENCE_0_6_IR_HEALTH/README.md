@@ -1,5 +1,13 @@
 # NAVI COHERENCE 0.6 PROXIMAL_R1 + IR_SPEED_R1
 
+## Manual Throttle Correction (IR_SPEED_R2)
+
+Prepared, not flashed: manual PWM uses the full 0..255 hardware range.
+The inherited 120 profile ceiling remains for AUTO only. Enrollment,
+emergency stop, low-voltage handling and ramp behavior are unchanged.
+See `docs/NAVI_MANUAL_THROTTLE_FULL_RANGE_20260923.md` and
+`tools/test_manual_pwm.py`. Boot identifier ends in `IR_SPEED_R2`.
+
 ## IR Speed Telemetry Revision (2026-09-23)
 
 Flashed to Toby and dashboard deployed 2026-09-23; not field accepted.
