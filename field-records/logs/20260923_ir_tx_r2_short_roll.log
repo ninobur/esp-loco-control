@@ -1,0 +1,26 @@
+MOVE TX_1_6_R2 boot=8dc31ef4e9f8b7c4 t_us=109992177 rises=53 completed=53 nominal_um=511556 reason=4 span=31 unreliable=103664 gaps=1 sat=0 distance_valid=0
+STAT samples=109634 rawsent=1141 obssent=0 fsent=0 fack=0 fretry=0 fretained=0 fevict=0 qdrop=0 odrop=0 fdrop=0 senderr=0 missed=0 late=0 pulses=53 sat=0 cto=0 cmiss=0 reboot=0 crxdrop=0 echo=0 bad=0/0/0 q=0/0/0/0
+MOVE TX_1_6_R2 boot=8dc31ef4e9f8b7c4 t_us=114994177 rises=53 completed=53 nominal_um=511556 reason=4 span=31 unreliable=108666 gaps=1 sat=0 distance_valid=0
+STAT samples=114636 rawsent=1194 obssent=0 fsent=0 fack=0 fretry=0 fretained=0 fevict=0 qdrop=0 odrop=0 fdrop=0 senderr=0 missed=0 late=0 pulses=53 sat=0 cto=0 cmiss=0 reboot=0 crxdrop=0 echo=0 bad=0/0/0 q=0/0/0/0
+MOVE TX_1_6_R2 boot=8dc31ef4e9f8b7c4 t_us=119998177 rises=69 completed=69 nominal_um=665988 reason=6 span=1103 unreliable=111504 gaps=1 sat=0 distance_valid=0
+STAT samples=119638 rawsent=1246 obssent=0 fsent=0 fack=0 fretry=0 fretained=0 fevict=0 qdrop=0 odrop=0 fdrop=0 senderr=0 missed=0 late=0 pulses=70 sat=0 cto=0 cmiss=0 reboot=0 crxdrop=0 echo=0 bad=0/0/0 q=0/0/0/0
+MOVE TX_1_6_R2 boot=8dc31ef4e9f8b7c4 t_us=125003177 rises=95 completed=94 nominal_um=907288 reason=6 span=1231 unreliable=111504 gaps=1 sat=0 distance_valid=0
+STAT samples=124640 rawsent=1298 obssent=0 fsent=0 fack=0 fretry=0 fretained=0 fevict=0 qdrop=0 odrop=0 fdrop=0 senderr=0 missed=0 late=0 pulses=95 sat=0 cto=0 cmiss=0 reboot=0 crxdrop=0 echo=0 bad=0/0/0 q=0/0/0/0
+MOVE TX_1_6_R2 boot=8dc31ef4e9f8b7c4 t_us=130006177 rises=99 completed=99 nominal_um=955548 reason=1 span=31 unreliable=115185 gaps=1 sat=0 distance_valid=0
+STAT samples=129642 rawsent=1350 obssent=0 fsent=0 fack=0 fretry=0 fretained=0 fevict=0 qdrop=0 odrop=0 fdrop=0 senderr=0 missed=0 late=0 pulses=99 sat=0 cto=0 cmiss=0 reboot=0 crxdrop=0 echo=0 bad=0/0/0 q=0/0/0/0
+MOVE TX_1_6_R2 boot=8dc31ef4e9f8b7c4 t_us=135008177 rises=99 completed=99 nominal_um=955548 reason=1 span=31 unreliable=120187 gaps=1 sat=0 distance_valid=0
+STAT samples=134644 rawsent=1402 obssent=0 fsent=0 fack=0 fretry=0 fretained=0 fevict=0 qdrop=0 odrop=0 fdrop=0 senderr=0 missed=0 late=0 pulses=99 sat=0 cto=0 cmiss=0 reboot=0 crxdrop=0 echo=0 bad=0/0/0 q=0/0/0/0
+MOVE TX_1_6_R2 boot=8dc31ef4e9f8b7c4 t_us=140011223 rises=99 completed=99 nominal_um=955548 reason=1 span=47 unreliable=125190 gaps=1 sat=0 distance_valid=0
+STAT samples=139646 rawsent=1454 obssent=0 fsent=0 fack=0 fretry=0 fretained=0 fevict=0 qdrop=0 odrop=0 fdrop=0 senderr=0 missed=0 late=0 pulses=99 sat=0 cto=0 cmiss=0 reboot=0 crxdrop=0 echo=0 bad=0/0/0 q=0/0/0/0
+MOVE TX_1_6_R2 boot=8dc31ef4e9f8b7c4 t_us=145016177 rises=99 completed=99 nominal_um=955548 reason=1 span=31 unreliable=130195 gaps=1 sat=0 distance_valid=0
+STAT samples=144648 rawsent=1506 obssent=0 fsent=0 fack=0 fretry=0 fretained=0 fevict=0 qdrop=0 odrop=0 fdrop=0 senderr=0 missed=0 late=0 pulses=99 sat=0 cto=0 cmiss=0 reboot=0 crxdrop=0 echo=0 bad=0/0/0 q=0/0/0/0
+MOVE TX_1_6_R2 boot=8dc31ef4e9f8b7c4 t_us=150018177 rises=99 completed=99 nominal_um=955548 reason=1 span=31 unreliable=135197 gaps=1 sat=0 distance_valid=0
+STAT samples=149650 rawsent=1558 obssent=0 fsent=0 fack=0 fretry=0 fretained=0 fevict=0 qdrop=0 odrop=0 fdrop=0 senderr=0 missed=0 late=0 pulses=99 sat=0 cto=0 cmiss=0 reboot=0 crxdrop=0 echo=0 bad=0/0/0 q=0/0/0/0
+MOVE TX_1_6_R2 boot=8dc31ef4e9f8b7c4 t_us=155022177 rises=99 completed=99 nominal_um=955548 reason=1 span=31 unreliable=140201 gaps=1 sat=0 distance_valid=0
+STAT samples=154652 rawsent=1610 obssent=0 fsent=0 fack=0 fretry=0 fretained=0 fevict=0 qdrop=0 odrop=0 fdrop=0 senderr=0 missed=0 late=0 pulses=99 sat=0 cto=0 cmiss=0 reboot=0 crxdrop=0 echo=0 bad=0/0/0 q=0/0/0/0
+MOVE TX_1_6_R2 boot=8dc31ef4e9f8b7c4 t_us=160026177 rises=99 completed=99 nominal_um=955548 reason=1 span=31 unreliable=145205 gaps=1 sat=0 distance_valid=0
+STAT samples=159654 rawsent=1663 obssent=0 fsent=0 fack=0 fretry=0 fretained=0 fevict=0 qdrop=0 odrop=0 fdrop=0 senderr=0 missed=0 late=0 pulses=99 sat=0 cto=0 cmiss=0 reboot=0 crxdrop=0 echo=0 bad=0/0/0 q=0/0/0/0
+MOVE TX_1_6_R2 boot=8dc31ef4e9f8b7c4 t_us=165031177 rises=99 completed=99 nominal_um=955548 reason=1 span=31 unreliable=150210 gaps=1 sat=0 distance_valid=0
+STAT samples=164656 rawsent=1715 obssent=0 fsent=0 fack=0 fretry=0 fretained=0 fevict=0 qdrop=0 odrop=0 fdrop=0 senderr=0 missed=0 late=0 pulses=99 sat=0 cto=0 cmiss=0 reboot=0 crxdrop=0 echo=0 bad=0/0/0 q=0/0/0/0
+MOVE TX_1_6_R2 boot=8dc31ef4e9f8b7c4 t_us=170034178 rises=99 completed=99 nominal_um=955548 reason=1 span=31 unreliable=155213 gaps=1 sat=0 distance_valid=0
+STAT samples=169658 rawsent=1767 obssent=0 fsent=0 fack=0 fretry=0 fretained=0 fevict=0 qdrop=0 odrop=0 fdrop=0 senderr=0 missed=0 late=0 pulses=99 sat=0 cto=0 cmiss=0 reboot=0 crxdrop=0 echo=0 bad=0/0/0 q=0/0/0/0
