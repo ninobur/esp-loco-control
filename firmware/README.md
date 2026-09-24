@@ -49,7 +49,9 @@ Original 1.6 candidate at `1de06ae` rejected by independent review `4de40df`.
 R2 at `3887f2a` is built and host-tested, **independent re-review passed for
 supervised IR-car-only bench evaluation; flashed to the verified IR car with
 operator authorization on 2026-09-23, physical bench acceptance pending,
-not approved for NAV/AUTO field use**. Cold stationary startup checked only.
+not approved for NAV/AUTO field use**. Subsequent three-roll bench test failed
+to retain a usable zero at all three stops; see
+`../docs/IR_TX_R2_THREE_STOPS_20260923.md`. Further design review needed.
 See `../docs/IR_TX_1_6_R2_FLASH_20260923.md` and
 `../docs/IR_TX_1_6_R2_INDEPENDENT_REREVIEW_20260923.md`.
 Controlling record: `../docs/IR_TX_1_6_R2_REVIEW_RESPONSE_20260923.md`.
