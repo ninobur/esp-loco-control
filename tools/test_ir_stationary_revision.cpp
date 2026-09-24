@@ -43,7 +43,10 @@ int main() {
     ngr_nav::MmDistanceReference ref;
     assert(ref.synchronize(41,0,r.rx.odometry().point(),r.rx.odometry()));
     const auto aborts=r.m.detector().aborts;
-    if(fault==0)r.hold(2600,1); // Quiet plateau amplitude fault.
+    // Sustained (3-sample) quiet-plateau amplitude fault. A 1-2 sample excursion
+    // is an ADC outlier under the R3 proposal (bench: 3,155 per million, runs
+    // of at most 2) and is covered in tools/test_ir_r3_proposal.cpp.
+    if(fault==0)r.hold(2600,3);
     if(fault==1)r.hold(1500,700); // Mid-edge stop.
     if(fault==2)r.wave(1400,1600,5); // Moving but inadequate live contrast.
     if(fault==3){r.hold(4095,1);} // Saturation, including existing counter.
