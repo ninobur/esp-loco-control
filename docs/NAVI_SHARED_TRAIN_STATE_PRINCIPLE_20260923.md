@@ -55,6 +55,38 @@ Attribution: this refinement was supplied as SAM's commentary in the task
 after the operator requested that the principle be saved. Recorded here as
 design guidance, not as an already implemented capability.
 
+## IR measures movement; NAVI supplies spatial meaning
+
+Operator clarification: "IR never measures location" and "sensors make
+observations; NAVI maintains knowledge."
+
+- Hall/MM observations can establish or constrain an absolute landmark
+  association. An observation is evidence, not automatically a unique MM identity.
+- IR supplies relative wheel travel and derived speed, not an MM number or
+  route position. Route direction is supplied by NAVI's other evidence.
+- Commands and PWM describe intended and applied propulsion state.
+- NAVI combines these observations with history, direction and the map to
+  maintain the train-state estimate and explain its basis.
+
+Illustrative example, not a field measurement: trustworthy MM029 plus 417 mm
+of subsequent IR travel in an established direction lets NAVI infer a position
+417 mm beyond MM029. That position belongs to NAVI, not to the IR instrument.
+
+If the MM association becomes uncertain, otherwise valid IR travel and speed
+remain useful. NAVI may know that Toby has travelled 630 mm since an observation,
+is moving at 18 pKPH and has not stopped, while retaining uncertainty about
+which absolute MM hypothesis is correct. A later credible MM observation can
+reconcile that relative trajectory with the map. Losing the spatial reference
+must not, by itself, reset valid movement history or the instrument's epoch.
+An actual measurement continuity break remains distinct: preserve known
+segments without inventing travel across a blind interval.
+
+This is central to NAVI_SIMPLIFIED ambiguity resolution: loss of absolute
+location does not imply loss of motion knowledge. Conversely, the stop-display
+work shows that loss of an IR speed measurement need not imply loss of
+motion-state knowledge when other evidence supports a stop. These are two
+directions of the same principle, not exceptions to it.
+
 ## What exists and what remains
 
 R3's IR speed display is a first step, not completion of this architecture.
