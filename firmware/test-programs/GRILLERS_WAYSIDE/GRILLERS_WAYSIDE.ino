@@ -1,5 +1,5 @@
 /*
-  GRILLERS_WAYSIDE_0_1
+  GRILLERS_WAYSIDE_0_2
   NGR trackside locomotive observer
   ESP32 Dev Module
 
@@ -32,17 +32,30 @@
     HALL_THRESHOLD_COUNTS is deliberately easy to change after the first
     stationary/pass tests.  Start at 70 counts, matching the current NGR
     detector convention, then tune only from observed data if necessary.
+
+  0.2 changes (from the 0.1 bench capture, 2026-09-24):
+    - release timer is cleared when an event opens; 0.1 kept the previous
+      close time, so the first sub-threshold sample closed the event at once
+      (1 ms events, one magnet split into several events)
+    - hysteresis: open at HALL_THRESHOLD_COUNTS, close below
+      HALL_RELEASE_COUNTS
+    - baseline adapts only when the reading is near baseline, and 16x slower;
+      0.1 chased the magnet's flanks and then read the return as the opposite
+      pole (phantom S -> false FRANZ)
+    - [RAW] line every RAW_REPORT_MS with both sensors' raw and baseline, so
+      a silent sensor can be told from a dead one on the bench
 */
 
 #include <Arduino.h>
 
-#define SKETCH_NAME "GRILLERS_WAYSIDE_0_1"
+#define SKETCH_NAME "GRILLERS_WAYSIDE_0_2"
 
 static constexpr uint8_t HALL_CW_PIN  = 32;
 static constexpr uint8_t HALL_CCW_PIN = 35;
 
 static constexpr uint16_t SAMPLE_MS = 1;
 static constexpr int16_t  HALL_THRESHOLD_COUNTS = 70;
+static constexpr int16_t  HALL_RELEASE_COUNTS   = 35;
 
 // A passage contains two identity magnets.  These limits are intentionally
 // broad for the first observational build.  They prevent one old event from
@@ -54,8 +67,13 @@ static constexpr uint32_t ID_PAIR_MAX_MS = 3000;
 // allowing another opening.  This is detector hygiene only; it has no NAV role.
 static constexpr uint32_t EVENT_RELEASE_MS = 20;
 
-// Baseline learns only while the sensor is quiet.
-static constexpr uint8_t BASELINE_SHIFT = 8;  // 1/256 adaptation
+// Baseline learns only while the sensor is quiet: within BASELINE_QUIET_COUNTS
+// of baseline and not inside an event.  1/4096 per 1 ms sample (~4 s).
+static constexpr uint8_t BASELINE_SHIFT = 12;
+static constexpr int16_t BASELINE_QUIET_COUNTS = 20;
+
+// Bench diagnostic: raw + baseline for both sensors.  0 disables.
+static constexpr uint32_t RAW_REPORT_MS = 1000;
 
 enum Polarity : uint8_t { SOUTH = 0, NORTH = 1 };
 
@@ -268,6 +286,7 @@ static void sampleSensor(SensorState& s, uint32_t now) {
         s.current.rawAtOpen = raw;
         s.current.baselineAtOpen = baseline;
         s.current.peakSigned = signedExcursion;
+        s.quietSinceMs = 0;
 
         // Current NGR convention: positive signed excursion = N.
         // If the bench test shows the physical sensor orientation is opposite,
@@ -286,8 +305,10 @@ static void sampleSensor(SensorState& s, uint32_t now) {
       s.consecutive = 0;
 
       // Quiet-field baseline adaptation.
-      s.baseline256 +=
-        ((((int32_t)raw << 8) - s.baseline256) >> BASELINE_SHIFT);
+      if (magnitude < BASELINE_QUIET_COUNTS) {
+        s.baseline256 +=
+          ((((int32_t)raw << 8) - s.baseline256) >> BASELINE_SHIFT);
+      }
     }
     return;
   }
@@ -296,8 +317,8 @@ static void sampleSensor(SensorState& s, uint32_t now) {
   if (abs(signedExcursion) > abs(s.current.peakSigned))
     s.current.peakSigned = signedExcursion;
 
-  // Close only after returning inside threshold.
-  if (magnitude < HALL_THRESHOLD_COUNTS) {
+  // Close only after returning inside the release band.
+  if (magnitude < HALL_RELEASE_COUNTS) {
     if (s.quietSinceMs == 0) s.quietSinceMs = now;
 
     if ((now - s.quietSinceMs) >= EVENT_RELEASE_MS) {
@@ -324,6 +345,8 @@ void setup() {
   Serial.println(" MODE: OBSERVATION ONLY");
   Serial.printf(" CW Hall : GPIO %u\n", HALL_CW_PIN);
   Serial.printf(" CCW Hall: GPIO %u\n", HALL_CCW_PIN);
+  Serial.printf(" Open %d / release %d counts\n",
+                HALL_THRESHOLD_COUNTS, HALL_RELEASE_COUNTS);
   Serial.println(" Identity: NN=OTTO SS=TOBY NS=HANS SN=FRANZ");
   Serial.println("================================================");
 
@@ -346,6 +369,14 @@ void loop() {
     nextSample = now + SAMPLE_MS;
     sampleSensor(cw, now);
     sampleSensor(ccw, now);
+  }
+
+  static uint32_t nextRaw = 0;
+  if (RAW_REPORT_MS && (int32_t)(now - nextRaw) >= 0) {
+    nextRaw = now + RAW_REPORT_MS;
+    Serial.printf("[RAW] CW raw=%d base=%d active=%d | CCW raw=%d base=%d active=%d\n",
+                  median5(cw.pin), (int)(cw.baseline256 >> 8), cw.active,
+                  median5(ccw.pin), (int)(ccw.baseline256 >> 8), ccw.active);
   }
 
   // Expire an orphaned first identity magnet cleanly.
