@@ -1302,8 +1302,8 @@ function calcMeasuredPkph() {
     totalTime += speedWindow[i].dtMs;
   }
   if (totalTime <= 0) return null;
-  // mm/ms → m/s → km/h × 22.5 (G scale)
-  return (totalDist / totalTime) * 3.6 * 45.0;
+  // mm/ms -> mm/s -> house pKPH (not physical km/h).
+  return (totalDist / totalTime) * 1000.0 / 5.37325;
 }
 
 function updatePkphBadge(s) {

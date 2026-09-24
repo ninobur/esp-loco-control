@@ -1,5 +1,11 @@
 # Dashboard — IR KPH tile — implementation report
 
+**Historical report, superseded for conversion and Toby's source attribution
+by decision 0099 and NAVI_IR_SPEED_TELEMETRY_20260923.md.** The old 0.162
+examples below document the prior display, not the current definition. Toby's
+bare `telem/speed` is Hall-derived, never independent IR speed. The new IR
+tile uses additive `telem/ir` speed fields; no bare-number IR fallback remains.
+
 **Describes commit d3daf91 (`server/ngr_app_v1_11_2.py`, loco page only).**
 Firmware untouched. No MQTT topic or payload format changed.
 

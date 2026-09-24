@@ -235,12 +235,11 @@ broken out to a GPIO.
 
 ## 8. Open decisions — for David
 
-1. **The pKPH scale disagreement.** Settled for firmware: the navigation
-   lineage uses `PKPH_MM_PER_SEC = 5.37325` (0.18611 per mm/s, ≈1:51.7 — a
-   house unit, not a geometric scale), and the IR sketch now matches it. **The
-   Pi dashboard still uses 0.162 (1:45)** and agrees with neither. Changing it
-   alters every KpH figure the console has displayed, so it needs a decision,
-   not a silent fix.
+1. **The pKPH scale disagreement is resolved (2026-09-23).** Operator selected
+   `mm/s / 5.37325` for firmware and dashboard, a prototype/house unit rather
+   than physical km/h. Decision 0099 and NAVI_IR_SPEED_TELEMETRY_20260923.md
+   document the implementation. Repository update is not a Pi deployment or
+   locomotive flash.
 2. **Confirm the shielded-cable install window** (§6) before the certification
    numbers are cited as the cable's payoff.
 3. **Is the QRE1113 emitter hard-tied to VCC on the breakout?** This gates the

@@ -11,7 +11,7 @@ import paho.mqtt.client as mqtt
 HALL_TOPIC = "ngr/loco/9950011/alert"
 IR_TOPIC = "ngr/spoke/IR_SPEED_SENSOR/telem/speed"
 FRESH_SECONDS = 5.0
-DASHBOARD_PKPH_PER_MM_S = 3.6 * 45.0 / 1000.0
+DASHBOARD_PKPH_PER_MM_S = 1.0 / 5.37325  # House pKPH, not physical km/h.
 DISPLAY_PERIOD_SECONDS = 0.1
 
 
@@ -23,7 +23,7 @@ def main():
         "--pkph-per-mm-s",
         type=float,
         default=DASHBOARD_PKPH_PER_MM_S,
-        help="display conversion; default 0.162 matches the current dashboard",
+        help="house pKPH per mm/s; default 1/5.37325 matches navigation firmware",
     )
     args = parser.parse_args()
 

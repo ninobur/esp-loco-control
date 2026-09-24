@@ -100,7 +100,7 @@
 #   CONSOLE — three commands across the top (E-STOP ALL, END AO, CIRCUIT
 #     EXPRESS), then one column per discovered locomotive. Each column:
 #     name and a tiny ONLINE/STALE link chip, the mode chip, BEGIN / PAUSE /
-#     E-STOP, then QUORUM, then % agreement, then MM / KPH / PWM / V.
+#     E-STOP, then QUORUM, then % agreement, then MM / pKPH / PWM / V.
 #
 #     LEAD / TRAIL chips were designed for the chip row and removed before
 #     first run: nothing publishes the roles, and deriving them from position
@@ -209,9 +209,15 @@ LOCO_NAMES = {
 # and loopstat both broadcast at 1 Hz, so 5 s means five missed heartbeats.
 FRESH_S = 5.0
 
-# alert.est_mm_s (layout mm/s) -> prototype km/h. Same convention as the old
-# measured-speed path: (mm/ms) * 3.6 * 45.
-PKPH_PER_MM_S = 3.6 * 45.0 / 1000.0
+# alert.est_mm_s (layout mm/s) -> pKPH, a house speed unit — NOT physical
+# km/h and not tied to any geometric scale ratio. Canonical since 2026-09-23
+# (decision 0099): the navigation-firmware constant, matched so the
+# dashboard's pKPH is comparable with what the firmware itself computes and
+# publishes (est_mm_s, ir_pkph). Verbatim from NGR_LL_DNA_CTO2_r12 (lines
+# 414/2100), SOLONAV 1.x, and firmware/programs/{NAVI_CL2,QUORUM,NAVI_2}.ino's
+# PKPH_PER_MMPS. Previously 3.6*45.0/1000.0 (0.162, an unrelated 1:45
+# geometric guess) — see docs/IR_SENSOR_NOTES.md and docs/decisions/0099.
+PKPH_PER_MM_S = 1.0 / 5.37325
 
 
 def _fresh_state():
@@ -232,6 +238,9 @@ def _fresh_state():
         # epoch (a fresh state IS the reset).
         "agree_n": 0, "disagree_n": 0, "verdicts": [],
         "sketch": "", "uptime_ms": None,
+        # v1.11.5: latest telem/ir link-activity payload, verbatim, same
+        # verbatim-parse-at-render pattern as cto/speed_view.
+        "ir_link": "",
         # v1.11.2: latest CTO_STATUS heartbeat from state/cto, verbatim. "" until
         # the locomotive speaks — a locomotive on pre-CTO firmware never will,
         # and the panel stays hidden rather than inventing a state for it.
@@ -325,7 +334,7 @@ dispatch_log = deque(maxlen=200)
 AGE_FIELDS = ("heard", "voltage", "current", "power", "lowvolt", "pwm", "pkph",
               "mm", "nav", "moving", "session_dir", "nav_ready", "start_interval",
               "marker", "throttle", "direction", "estop", "auto", "warning",
-              "cto", "speed_view")
+              "cto", "speed_view", "ir_link")
 
 # state/<x> payloads copied verbatim into loco_state. The firmware publishes
 # these on change (retained), so a live arrival is a confirmation event.
@@ -690,6 +699,13 @@ def on_mqtt_message(client, userdata, msg):
             # here, same as ctoRow() does for the cto payload.
             st["speed_view"] = payload
             _touch(lid, "speed_view")
+
+        elif sub == "telem/ir":
+            # v1.11.5: NAVI_COHERENCE-lineage IR link-activity heartbeat
+            # (paired/radio/freshness/pulse counters) — a different fact
+            # from telem/speed above. Verbatim, parsed at render time.
+            st["ir_link"] = payload
+            _touch(lid, "ir_link")
 
         elif sub == "mm/marker":
             _touch(lid, "marker")
@@ -1202,7 +1218,7 @@ function colHtml(l){
     '<div class="pill '+q[1]+'"><div class="pv">'+q[0]+'</div></div>'+
     '<div class="readout"><span class="rl">%</span><span class="rv'+st(l.agree_pct)+'">'+agr+'</span></div>'+
     '<div class="readout"><span class="rl">MM</span><span class="rv'+st(l.mm)+'">'+mm+'</span></div>'+
-    '<div class="readout"><span class="rl">KPH</span><span class="rv'+st(l.pkph)+'">'+kph+'</span></div>'+
+    '<div class="readout"><span class="rl">pKPH</span><span class="rv'+st(l.pkph)+'">'+kph+'</span></div>'+
     '<div class="readout"><span class="rl">PWM</span><span class="rv'+st(l.pwm)+'">'+val(l.pwm)+'</span></div>'+
     '<div class="readout"><span class="rl">V</span><span class="rv'+st(l.voltage)+'">'+val(l.voltage)+'</span></div>'+
     stn +
@@ -1327,6 +1343,10 @@ input.interval-slider { width:100%; height:34px; border-radius:17px;
 .big-num.stale { color:#777 !important; }
 .num-lbl { font-size:15px; font-weight:bold; letter-spacing:1px; margin-top:4px; }
 .age-chip { font-size:11px; color:#999; min-height:13px; font-weight:bold; text-align:center; }
+#ir-speed-reason { overflow-wrap:anywhere; min-height:39px; }
+#ir-coupling-control { color:#ddd; font-size:14px; margin-top:8px; }
+#ir-coupling-control:not([hidden]) { display:inline-flex; align-items:center; gap:6px; }
+@media (max-width:420px) { .num-row .big-num { font-size:24px; } }
 .mm-landmark { text-align:center; font-size:15px; color:#9fd6ff; font-weight:bold;
   letter-spacing:1px; margin-top:8px; min-height:18px; }
 .mm-countdown { text-align:center; font-size:13px; color:#8ec8f0; font-weight:bold;
@@ -1484,7 +1504,7 @@ input.interval-slider { width:100%; height:34px; border-radius:17px;
       <div class="num-cell">
         <div class="big-num stale" id="kph-display" style="color:#ffd080;">&mdash;</div>
         <div class="age-chip" id="kph-display-age"></div>
-        <div class="num-lbl" style="color:#ffd080;">KPH</div>
+        <div class="num-lbl" style="color:#ffd080;">pKPH</div>
       </div>
       <div class="num-cell">
         <div class="big-num stale" id="pwm-display" style="color:#7fff9f;">&mdash;</div>
@@ -1494,9 +1514,14 @@ input.interval-slider { width:100%; height:34px; border-radius:17px;
       <div class="num-cell">
         <div class="big-num stale" id="irkph-display" style="color:#c9a0ff;">&mdash;</div>
         <div class="age-chip" id="irkph-display-age"></div>
-        <div class="num-lbl" style="color:#c9a0ff;">IR KPH</div>
+        <div class="num-lbl" style="color:#c9a0ff;">IR pKPH</div>
+        <div class="age-chip" id="ir-speed-reason"></div>
       </div>
     </div>
+    <label id="ir-coupling-control" hidden>
+      <input type="checkbox" id="ir-coupled" onchange="setIrCoupled(this.checked)">
+      IR car coupled
+    </label>
     <div class="mm-landmark" id="mm-landmark"></div>
     <div class="mm-countdown" id="mm-countdown"></div>
   </div>
@@ -1635,10 +1660,38 @@ function pollFail(where, e){
 var SLUG = '{{ slug }}';
 var LOCO = '{{ name }}'.toUpperCase();
 var STALE_S = 5;
-// Same conversion the server applies to est_mm_s for the KPH tile (mm/s ->
-// prototype km/h at scale). Injected from PKPH_PER_MM_S so the IR KPH tile
-// can never drift from what KPH means on this page.
+// Same conversion the server applies to est_mm_s for the pKPH tile — a house
+// speed unit, NOT physical km/h (decision 0099). Injected from the server's
+// own PKPH_PER_MM_S so the IR pKPH tile can never drift from what pKPH means
+// on this page.
 var PKPH_PER_MM_S = {{ pkph_per_mm_s }};
+
+// Raw mm/s is canonical. Published ir_pkph is redundant cross-check telemetry.
+// Never reinterpret a bare telem/speed Hall estimate as an IR measurement.
+function irSpeedView(s) {
+  var link = null, v = null, age = null;
+  try { link = JSON.parse(s.ir_link || 'null'); } catch (e) {}
+  if (link && typeof link === 'object' && 'ir_valid' in link) {
+    v = link; age = ageOf(s, 'ir_link');
+  } else {
+    try { v = JSON.parse(s.speed_view || 'null'); } catch (e) {}
+    age = ageOf(s, 'speed_view');
+  }
+  var available = v && typeof v === 'object' && !Array.isArray(v);
+  var fresh = age !== null && age >= 0 && age <= STALE_S;
+  var valid = available && (v.ir_valid === true || v.ir_valid === 1) &&
+    typeof v.ir_mmps === 'number' && isFinite(v.ir_mmps) && v.ir_mmps >= 0;
+  return {value: fresh && valid ? (v.ir_mmps * PKPH_PER_MM_S).toFixed(1) : '--',
+    age: age, reason: !fresh ? 'TELEMETRY_STALE' : !available ? 'NO_IR_SPEED' :
+      (v.ir_speed_reason || (valid ? 'MEASURED' : 'UNAVAILABLE')),
+    couplingSupported: !!(link && typeof link.ir_coupled === 'number'),
+    coupled: !!(link && link.ir_coupled === 1), couplingFresh: fresh && v === link};
+}
+
+function setIrCoupled(value) {
+  fetch('/loco/'+SLUG+'/cmd/ir_coupled/'+(value ? '1' : '0'), {method:'POST'})
+    .catch(e=>console.error(e));
+}
 var isCto = false;
 var lastEpoch = null;
 // v1.10.4 (BUG 2): the last direction the OPERATOR commanded. Display memory
@@ -2236,37 +2289,19 @@ function pollState(){
     document.getElementById('block-display').textContent =
       (s.block && s.block !== '--') ? LOCO + ': ' + s.block : '';
 
-    // ---- MM / KPH / PWM / IR KPH ----
+    // ---- MM / pKPH / PWM / IR pKPH (house speed units) ----
     setTile('mm-display',  s.mm, ageOf(s,'mm'));
-    setTile('kph-display', s.pkph !== '--' ? String(Math.round(parseFloat(s.pkph))) : '--',
+    setTile('kph-display', s.pkph !== '--' ? parseFloat(s.pkph).toFixed(1) : '--',
             ageOf(s,'pkph'));
     setTile('pwm-display', s.pwm, ageOf(s,'pwm'));
 
-    // telem/speed, IR-sourced, through the SAME mm/s -> pKPH conversion as
-    // the KPH tile above. Two publishers exist on this one topic:
-    //   - NAVI_COHERENCE_0_6_IR_HEALTH (Toby's current flash) sends the IR
-    //     Test Car's mm/s as a BARE number, e.g. "59" — no valid flag,
-    //     because a fresh publish IS the reading (see serviceStatus()'s
-    //     motion_source:"IR" in that sketch).
-    //   - NAVI_CL2/QUORUM/NAVI_2 send the richer quorum-speed-view/1
-    //     object ({ir_valid, ir_mmps, ...}), which is NOT the same
-    //     conversion as its own ir_pkph field — the firmware scales that
-    //     one differently, so it's ignored in favour of recomputing from
-    //     ir_mmps here.
-    // '--' when speed_view is empty (nothing published this session) or
-    // the object form reports ir_valid false.
-    var irPkph = '--';
-    if (s.speed_view) {
-      try {
-        var sv = JSON.parse(s.speed_view);
-        if (typeof sv === 'number' && isFinite(sv)) {
-          irPkph = String(Math.round(sv * PKPH_PER_MM_S));
-        } else if (sv && sv.ir_valid && sv.ir_mmps !== null && sv.ir_mmps !== undefined) {
-          irPkph = String(Math.round(parseFloat(sv.ir_mmps) * PKPH_PER_MM_S));
-        }
-      } catch (e) {}
-    }
-    setTile('irkph-display', irPkph, ageOf(s,'speed_view'));
+    const ir = irSpeedView(s);
+    setTile('irkph-display', ir.value, ir.age);
+    document.getElementById('ir-speed-reason').textContent = ir.reason.replace(/_/g, ' ');
+    document.getElementById('ir-coupling-control').hidden = !ir.couplingSupported;
+    const coupling = document.getElementById('ir-coupled');
+    coupling.checked = ir.coupled;
+    coupling.disabled = !ir.couplingFresh;
     var mmLive = isFresh(s,'mm') && s.mm !== '--';
     document.getElementById('mm-landmark').textContent = mmLive ? (s.landmark || '') : '';
     document.getElementById('mm-countdown').textContent = mmLive ? mmCountdown(s.mm) : '';
@@ -2495,7 +2530,12 @@ def dispatcher_log():
 def _cmd(lid, subtopic, value):
     """E-STOP is NEVER gated: it publishes in every state — UNSET, LOST,
     stale, and AUTO (v1.9.5 returned 423 for estop in AUTO; that was wrong).
-    Everything else respects AUTO."""
+    Driving commands respect AUTO; IR coupling only qualifies telemetry."""
+    if subtopic == "ir_coupled":
+        if value not in {"0", "1"}:
+            return "Expected 0 or 1", 400
+        pub_loco(lid, subtopic, value)
+        return "", 204
     if subtopic == "estop":
         pub_loco(lid, "estop", value)
         return "", 204

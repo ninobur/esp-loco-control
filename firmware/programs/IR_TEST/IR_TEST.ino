@@ -382,11 +382,10 @@ const uint8_t  PUB_DRAIN_CAP   = 8;     // outbound publishes per network pass
 // empirically, NOT a geometric scale factor. That is fine, but it means the
 // other values in circulation are all wrong for cross-comparison:
 //     v1 of this sketch  0.21    (~1:58)   <- matched nothing
-//     Pi dashboard       0.162   (1:45)    <- separate lineage, still disagrees
+//     old Pi dashboard   0.162   (1:45)    <- historical, superseded by 0099
 //     geometric 1:22.5   0.081
 //     geometric 1:29     0.104
-// The dashboard discrepancy is real and is NOT fixed here — it is a dashboard
-// question, flagged in IR_SENSOR_NOTES.md for a separate decision.
+// Decision 0099 (2026-09-23) standardizes dashboard pKPH on this divisor too.
 //
 // speed_mmps is published alongside and remains the scale-free truth.
 const float PKPH_MM_PER_SEC = 5.37325f;   // navigation firmware constant, verbatim

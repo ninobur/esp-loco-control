@@ -73,9 +73,9 @@ LOCO_IDS = ("9950011", "9950012", "2095111")
 # and loopstat both broadcast at 1 Hz, so 5 s means five missed heartbeats.
 FRESH_S = 5.0
 
-# alert.est_mm_s (layout mm/s) -> prototype km/h. Same convention as the old
-# measured-speed path: (mm/ms) * 3.6 * 45.
-PKPH_PER_MM_S = 3.6 * 45.0 / 1000.0
+# alert.est_mm_s (layout mm/s) -> prototype/house pKPH, not physical km/h.
+# Canonical navigation conversion (decision 0099).
+PKPH_PER_MM_S = 1.0 / 5.37325
 
 
 def _fresh_state():

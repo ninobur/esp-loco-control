@@ -1,6 +1,35 @@
-# NAVI COHERENCE 0.6 PROXIMAL_R1
+# NAVI COHERENCE 0.6 PROXIMAL_R1 + IR_SPEED_R1
 
-**Current: behavior-changing recovery revision, not flashed or field accepted.**
+## IR Speed Telemetry Revision (2026-09-23)
+
+Flashed to Toby and dashboard deployed 2026-09-23; not field accepted.
+Boot name ends in `PROXIMAL_R1_IR_SPEED_R1`.
+Same Arduino sketch filename and NGR-Files shortcut. Navigation, stations,
+motor control and existing Hall-derived `telem/speed` are unchanged.
+
+Additive `telem/ir` (also `diag/ir_link`) fields: `ir_valid`, `ir_mmps`,
+`ir_pkph`, `ir_speed_reason`, `ir_coupled`, `ir_window_us`, `ir_delta_pulses`,
+`ir_pitch_um`, `ir_speed_authority:OBSERVE_ONLY`. Missing speed is null, not zero.
+Nominal speed uses successive 1 Hz samples of healthy same-epoch cumulative
+pulses, TX capture timestamps, and TX pitch (this car: 9652 um per pulse).
+pKPH = mm/s / 5.37325, a prototype/house unit, not physical km/h.
+
+Confirm **IR car coupled** on the dashboard after each Toby boot or pairing
+change. This sends new `cmd/ir_coupled` 0/1; it affects speed display only.
+Uncheck before uncoupling. Radio pairing is not physical coupling proof.
+Fresh stationary zero is valid only with coupling confirmed. Hall advance
+without IR pulses or three seconds of powered zero makes speed unavailable,
+with an explicit diagnostic, not an inferred locomotive stall or stop.
+
+First bench checks after review/flash: coupled stationary, hand roll, pause,
+restart, uncheck coupling, power off IR, restore IR. Expect zero, positive,
+zero, positive, unavailable, unavailable, warmup then measurement respectively,
+provided optical health remains READY. Do not run AUTO to test this display.
+No TX/RX update is needed. See `docs/NAVI_IR_SPEED_TELEMETRY_20260923.md`.
+
+## Prior Recovery Revision
+
+**PROXIMAL_R1 was flashed 2026-09-23; not field accepted.**
 Same Arduino filename and NGR-Files shortcut. The boot sketch name identifies
 PROXIMAL_R1. The previous CAL0_FIX1 observation-only build is preserved at89dc369.
 

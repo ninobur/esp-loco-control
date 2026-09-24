@@ -39,6 +39,7 @@
 #include "HallObserver.h"
 #include "RecoveryControl.h"
 #include "IrHealthMonitor.h"
+#include "IrSpeedTelemetry.h"
 
 #ifndef NAVI_BASELINE_ADAPT_PWM
 #error "This locomotive's profile has no NAVI_BASELINE_ADAPT_PWM. Measure the tractive floor from its own PWM/speed fit; do not copy another locomotive's."
@@ -49,7 +50,7 @@ using namespace navi_one;
 // Published on state/bootid. It is the ONLY thing that tells telemetry which
 // build is running, so it advances with every behavioural change.
 // This experiment has no time-based refractory exclusion.
-#define SKETCH_NAME    "NAVI_COHERENCE_0_6_PROXIMAL_R1"
+#define SKETCH_NAME    "NAVI_COHERENCE_0_6_PROXIMAL_R1_IR_SPEED_R1"
 #define BUILD_CLASS    "AUTO_ENABLED_FIELD_TEST"
 #define BUILD_SUBTITLE "0.5 navigation + observation-only IR health/epoch indicators"
 #define FIELD_ACCEPTED 0
@@ -123,6 +124,9 @@ static DetectorConfig hallSettings=ngr_nav::hallConfig(HALL_DEADBAND_COUNTS+HALL
 static ExcursionDetector<> hall(hallSettings);
 static ngr_nav::MovementSource movement;
 static ngr_nav::IrHealthMonitor irHealth;
+static ngr_nav::IrSpeedTelemetry irSpeed;
+static ngr_nav::IrSpeedQualification irSpeedQualification;
+static bool irCarCoupled=false; // Operator-confirmed, deliberately not persisted.
 static QueueHandle_t irQ=nullptr;
 static volatile uint32_t irQueueDrops=0;
 static uint32_t handledIrDrops=0;
@@ -624,7 +628,7 @@ static void networkTask(void*){
         // does not have.
         const char* cmds[]={"cmd/auto","cmd/estop","cmd/throttle","cmd/direction",
                             "cmd/session_direction","cmd/start_mm","cmd/start_interval",
-                            "cmd/dispatcher_release","cmd/brake","cmd/ir_pair"};
+                            "cmd/dispatcher_release","cmd/brake","cmd/ir_pair","cmd/ir_coupled"};
         for (auto c: cmds){ snprintf(sub,72,"ngr/loco/%s/%s",LOCO_NAME,c); mqtt.subscribe(sub); }
         snprintf(sub,72,"ngr/dispatcher/cmd/go/%s",LOCO_NAME);   mqtt.subscribe(sub);
         snprintf(sub,72,"ngr/dispatcher/cmd/stop/%s",LOCO_NAME); mqtt.subscribe(sub);
@@ -677,6 +681,12 @@ static void handleCommand(const CmdMsg& c){
   const bool dispatcher = strstr(c.topic,"/dispatcher/") != nullptr;
   const Ops o = opsNow();
 
+  if(!strcmp(leaf,"ir_coupled")) {
+    if(strcmp(c.payload,"0") && strcmp(c.payload,"1")){warn("IR COUPLED: expected 0 or 1");return;}
+    irCarCoupled=!strcmp(c.payload,"1");
+    return; // Display qualification only; no motor or navigation changes.
+  }
+
   if(!strcmp(leaf,"ir_pair")){
     if(Refusal r=admitDeclaration(o)){refuse(r);return;}
     unsigned a[6];char extra;
@@ -685,6 +695,7 @@ static void handleCommand(const CmdMsg& c){
     if(!ngr_nav::validMac(mac)){warn("IR PAIR: invalid unicast MAC");return;}
     movement.pair(mac);pairing.putBytes("ir_mac",mac,6);
     irHealth.pair(mac,esp_timer_get_time());
+    irCarCoupled=false;
     warn("IR source paired; new movement frame, no position change");return;
   }
 
@@ -845,23 +856,34 @@ static void serviceIrHealth(){
 
 static void serviceIr(){
   static uint32_t last=0;if(millis()-last<1000)return;last=millis();
+  static uint32_t previousAdvances=0;
+  const uint32_t advances=navigator.status().advances;
+  const uint64_t now=esp_timer_get_time();
+  const auto speed=irSpeedQualification.assess(
+    irSpeed.sample(irHealth,now,movement.paired(),radioReady),now,irCarCoupled,
+    actualPwm>0,advances!=previousAdvances);
+  previousAdvances=advances;
+  char speedFields[400];
+  const int speedSize=ngr_nav::formatIrSpeed(speedFields,sizeof(speedFields),speed,irCarCoupled);
+  if(speedSize<=0 || speedSize>=(int)sizeof(speedFields)){++pubDropped;return;}
   uint8_t channel=0;wifi_second_chan_t second;esp_wifi_get_channel(&channel,&second);
-  char b[650];const auto& w=movement.latest();
+  char b[960];const auto& w=movement.latest();
   const uint64_t age=movement.have()?(esp_timer_get_time()-movement.lastArrival())/1000:UINT64_MAX;
-  snprintf(b,sizeof(b),
+  const int n=snprintf(b,sizeof(b),
     "{\"paired\":%u,\"channel\":%u,\"channel_ok\":%u,\"radio_ready\":%u,"
     "\"seen_mac\":\"%02X:%02X:%02X:%02X:%02X:%02X\","
     "\"seen\":%lu,\"accepted\":%lu,\"rejected\":%lu,\"duplicate\":%lu,\"reboot\":%lu,"
     "\"queue_drop\":%lu,\"fresh\":%u,\"age_ms\":%llu,\"reason\":%u,"
     "\"boot\":\"%016llX\",\"seq\":%lu,\"pulses\":%llu,\"span\":%u,"
-    "\"distance_bounds\":\"UNVALIDATED\",\"authority\":\"NOMINAL_HYPOTHESIS_EVIDENCE\"}",
+    "\"distance_bounds\":\"UNVALIDATED\",\"authority\":\"NOMINAL_HYPOTHESIS_EVIDENCE\",%s}",
     movement.paired()?1:0,channel,channel==11?1:0,radioReady?1:0,
     lastSeenMac[0],lastSeenMac[1],lastSeenMac[2],lastSeenMac[3],lastSeenMac[4],lastSeenMac[5],
     (unsigned long)seenFrames,(unsigned long)movement.accepted,(unsigned long)movement.rejected,
     (unsigned long)movement.duplicates,(unsigned long)movement.reboots,(unsigned long)irQueueDrops,
     age<=1000?1:0,(unsigned long long)age,w.opticalReason,(unsigned long long)w.bootId,
-    (unsigned long)w.sequence,(unsigned long long)w.completedPulses,w.span);
-  pub(T_IR_LINK,b);pub(T_IR,b);
+    (unsigned long)w.sequence,(unsigned long long)w.completedPulses,w.span,speedFields);
+  if(n>0 && n<(int)sizeof(b)){pub(T_IR_LINK,b);pub(T_IR,b);}
+  else ++pubDropped;
 }
 
 static void serviceStatus(){

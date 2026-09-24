@@ -433,12 +433,11 @@ uses, or cross-validation between the two is meaningless.
 > the two to be comparable at all. `IR_TEST` now uses
 > `PKPH_MM_PER_SEC` verbatim; v1's 0.21 matched nothing.
 >
-> **Still open, and a dashboard question rather than a firmware one:** the Pi
-> dashboard converts measured speed with `3.6 × 45 / 1000` = 0.162 (1:45),
-> which agrees with neither the firmware constant nor any G standard. Three
-> numbers were in circulation; two are now reconciled. The dashboard is the
-> remaining one and needs an operator decision, since changing it alters every
-> KpH figure the console has ever displayed.
+> **Resolved by operator, 2026-09-23 (decision 0099):** dashboard pKPH uses
+> `mm/s / 5.37325`, including the independent IR tile. The old dashboard
+> factor 0.162 is historical, not an alternative current definition. pKPH
+> is a prototype/house unit, not physical km/h. Repository changes still
+> require deployment before the Pi uses them.
 >
 > Current QUORUM firmware publishes `est_mm_s` raw and does no conversion at
 > all, which is the better arrangement: convert once, at the point of display.
