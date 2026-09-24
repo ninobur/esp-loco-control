@@ -46,8 +46,10 @@ or a successful build.
 identifies as **IR_SCOPE_ESPNOW_ACTIVE_TX_1_6_R2**. Diagnostic movement source,
 consumed by NAVI (therefore not an observation-only change downstream).
 Original 1.6 candidate at `1de06ae` rejected by independent review `4de40df`.
-R2 is built and host-tested, **unflashed, awaiting independent re-review and
-supervised bench acceptance; not approved for NAV/AUTO field use**.
+R2 at `3887f2a` is built and host-tested, **independent re-review passed for
+supervised IR-car-only bench evaluation; unflashed, physical bench acceptance
+pending, not approved for NAV/AUTO field use**. The review does not authorize
+flashing. See `../docs/IR_TX_1_6_R2_INDEPENDENT_REREVIEW_20260923.md`.
 Controlling record: `../docs/IR_TX_1_6_R2_REVIEW_RESPONSE_20260923.md`.
 No promotion or RX wire-format change. The older local Arduino TX copy has
 not been replaced.

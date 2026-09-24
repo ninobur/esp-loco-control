@@ -1,9 +1,12 @@
 # IR TX 1.6 R2: Response to Independent Review
 
-Date: 2026-09-23. Author: Codex. Status: revised candidate, compiled and
-host-tested, NOT FLASHED. Independent re-review and physical bench acceptance
-pending. No USB, Pi, motor, dashboard deployment or AUTO operations performed
-for this revision. The operator's decision to wait for review remains in force.
+Date: 2026-09-23. Author: Codex. Status: compiled and host-tested, NOT FLASHED.
+Independent re-review of `3887f2a` passed for supervised IR-car-only bench
+evaluation; NOT approved for NAV/AUTO field operation. Physical bench acceptance
+and operator authorization to flash remain pending. See the operator-supplied
+review in `IR_TX_1_6_R2_INDEPENDENT_REREVIEW_20260923.md`.
+No USB, Pi, motor, dashboard deployment or AUTO operations performed for this
+revision or this documentation-only disposition update.
 
 ## Evidence and Disposition
 
@@ -135,11 +138,17 @@ waveforms. The inherited lighting-step undercount above remains open.
 
 ## Next Gate
 
-Ask Claude/SAM to review the actual R2 diff, particularly the added live-quality
-counter path, two-cycle learning, and remaining lighting-step undercount.
-Only after approval and operator authorization: supervised IR-car-only bench,
-following the ten checks in the independent review. Keep Toby motor power off;
-no NAV/AUTO field authorization follows from a compile or bench pass.
+The operator-supplied independent re-review of `3887f2a` passes the software
+review gate for supervised IR-car-only bench evaluation. It recommends no R3
+or envelope-change continuity fence before collecting physical evidence.
+The 23/25 synthetic illumination result remains unresolved; do not reinterpret
+no regression as established accuracy. The older/newer consumer discrepancy
+remains a separate NAVI_COHERENCE issue, not additional detector work here.
+
+Next, obtain explicit operator authorization before flashing the IR car.
+Then conduct the supervised IR-car-only bench, following the ten checks in
+the independent review. Keep Toby motor power off; no NAV/AUTO field
+authorization follows from this re-review, a compile, or a bench pass.
 
 Record counts, reason, epoch, reference, raw waveform/noise and speed during
 low/high stops, mid-edge stop, restart, slow roll, light changes and reboot.
