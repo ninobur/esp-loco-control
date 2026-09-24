@@ -1,5 +1,6 @@
 /*
  * NAVI_COHERENCE 0.6 PROXIMAL_R1 - Toby. 2026-09-23 recovery revision.
+ * IR_SPEED_R3: NAVI interprets settled stops for the display; raw IR unchanged.
  * Replaces global matching with physical filtering and proximal recovery.
  * Previous CAL0_FIX1 revision added observation-only IR health indicators.
  * Navigation, station and motor logic remain the 0.5 baseline.
@@ -50,7 +51,7 @@ using namespace navi_one;
 // Published on state/bootid. It is the ONLY thing that tells telemetry which
 // build is running, so it advances with every behavioural change.
 // This experiment has no time-based refractory exclusion.
-#define SKETCH_NAME    "NAVI_COHERENCE_0_6_PROXIMAL_R1_IR_SPEED_R2"
+#define SKETCH_NAME    "NAVI_COHERENCE_0_6_PROXIMAL_R1_IR_SPEED_R3"
 #define BUILD_CLASS    "AUTO_ENABLED_FIELD_TEST"
 #define BUILD_SUBTITLE "0.5 navigation + observation-only IR health/epoch indicators"
 #define FIELD_ACCEPTED 0
@@ -70,7 +71,7 @@ struct Judged {
 };
 struct HallDecisionMsg { BaselineOutcome d; uint32_t t; };
 struct IrRx { uint8_t mac[6]; uint64_t receivedUs; uint8_t bytes[110]; };
-struct PubMsg { char topic[72]; char payload[960]; uint16_t len; bool retain; };
+struct PubMsg { char topic[72]; char payload[1200]; uint16_t len; bool retain; };
 struct CmdMsg { char topic[72]; char payload[64]; };
 
 static const char*   MQTT_BROKER = "192.168.68.142";
@@ -126,6 +127,7 @@ static ngr_nav::MovementSource movement;
 static ngr_nav::IrHealthMonitor irHealth;
 static ngr_nav::IrSpeedTelemetry irSpeed;
 static ngr_nav::IrSpeedQualification irSpeedQualification;
+static ngr_nav::NaviSpeedInterpretation naviSpeedInterpretation;
 static bool irCarCoupled=false; // Operator-confirmed, deliberately not persisted.
 static QueueHandle_t irQ=nullptr;
 static volatile uint32_t irQueueDrops=0;
@@ -861,16 +863,21 @@ static void serviceIr(){
   static uint32_t previousAdvances=0;
   const uint32_t advances=navigator.status().advances;
   const uint64_t now=esp_timer_get_time();
+  const auto& w=movement.latest();
+  const uint64_t age=movement.have() && now>=movement.lastArrival()?
+    (now-movement.lastArrival())/1000:UINT64_MAX;
   const auto speed=irSpeedQualification.assess(
     irSpeed.sample(irHealth,now,movement.paired(),radioReady),now,irCarCoupled,
     actualPwm>0,advances!=previousAdvances);
+  const auto displaySpeed=naviSpeedInterpretation.assess(speed,now,irCarCoupled,
+    commandedPwm==0,actualPwm>0,advances!=previousAdvances,
+    movement.paired() && radioReady && age<=1000,w);
   previousAdvances=advances;
-  char speedFields[400];
-  const int speedSize=ngr_nav::formatIrSpeed(speedFields,sizeof(speedFields),speed,irCarCoupled);
+  char speedFields[560];
+  const int speedSize=ngr_nav::formatIrSpeed(speedFields,sizeof(speedFields),speed,irCarCoupled,&displaySpeed);
   if(speedSize<=0 || speedSize>=(int)sizeof(speedFields)){++pubDropped;return;}
   uint8_t channel=0;wifi_second_chan_t second;esp_wifi_get_channel(&channel,&second);
-  char b[960];const auto& w=movement.latest();
-  const uint64_t age=movement.have()?(esp_timer_get_time()-movement.lastArrival())/1000:UINT64_MAX;
+  char b[1200];
   const int n=snprintf(b,sizeof(b),
     "{\"paired\":%u,\"channel\":%u,\"channel_ok\":%u,\"radio_ready\":%u,"
     "\"seen_mac\":\"%02X:%02X:%02X:%02X:%02X:%02X\","
@@ -982,7 +989,7 @@ void setup(){
   radioReady=esp_now_init()==ESP_OK;
   if(radioReady)radioReady=esp_now_register_recv_cb(onIr)==ESP_OK;
   WiFi.begin(WIFI_SSID,WIFI_PASS);
-  mqtt.setServer(MQTT_BROKER,MQTT_PORT); mqtt.setCallback(onMqtt); mqtt.setBufferSize(1152);
+  mqtt.setServer(MQTT_BROKER,MQTT_PORT); mqtt.setCallback(onMqtt); mqtt.setBufferSize(1408);
   if (xTaskCreatePinnedToCore(networkTask,"net",8192,nullptr,1,nullptr,1) != pdPASS)
     Serial.println("[BOOT] WARNING: network task would not start — running blind");
   char b[700];

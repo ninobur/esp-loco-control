@@ -58,6 +58,15 @@ Controlling record: `../docs/IR_TX_1_6_R2_REVIEW_RESPONSE_20260923.md`.
 No promotion or RX wire-format change. The older local Arduino TX copy has
 not been replaced.
 
+**2026-09-23 NAVI speed interpretation:** same 0.6 sketch folder now identifies
+as **NAVI_COHERENCE_0_6_PROXIMAL_R1_IR_SPEED_R3**. Development control sketch;
+new change is display-only: NAVI reports STOPPED after settled commanded/applied
+zero and fresh quiet observations, while preserving raw IR diagnostics and
+odometry. Repository build, not flashed/deployed or field accepted. Includes
+the previously prepared manual-range R2 changes; no additional control changes.
+Controlling record: `../docs/NAVI_STOP_DISPLAY_20260923.md`, decision0100.
+No promotion and no IR TX/RX change.
+
 **2026-09-23 recovery revision:**
 `programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_HEALTH/` now identifies
 as **NAVI_COHERENCE_0_6_PROXIMAL_R1**, same Arduino filename/shortcut. Development

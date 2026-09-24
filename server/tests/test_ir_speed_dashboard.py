@@ -24,9 +24,14 @@ class SpeedTest(unittest.TestCase):
         quoted = source.split('const int n=snprintf(b,sizeof(b),', 1)[1].split('movement.paired()', 1)[0]
         fmt = ''.join(ast.literal_eval(s) for s in re.findall(r'"(?:[^"\\]|\\.)*"', quoted))
         # Conservative upper bound: even byte/bool %u fields receive 10 digits.
-        sizes = {'%u':10, '%lu':10, '%llu':20, '%02X':2, '%016llX':16, '%s':399}
+        sizes = {'%u':10, '%lu':10, '%llu':20, '%02X':2, '%016llX':16, '%s':559}
         worst = re.sub(r'%016llX|%02X|%llu|%lu|%u|%s', lambda m: '9' * sizes[m.group()], fmt)
-        self.assertLess(len(worst), 960)
+        self.assertLess(len(worst), 1200)
+        full = sketch.read_text()
+        queue_limit = int(re.search(r'struct PubMsg.*?payload\[(\d+)\]', full).group(1))
+        mqtt_limit = int(re.search(r'mqtt.setBufferSize\((\d+)\)', full).group(1))
+        self.assertLess(len(worst), queue_limit)
+        self.assertLess(len(worst) + 72 + 8, mqtt_limit)
 
     def test_canonical_constants(self):
         self.assertAlmostEqual(app.PKPH_PER_MM_S, 1 / 5.37325)
@@ -93,7 +98,14 @@ assert.equal(irSpeedView(state({paired:1})).value,'--'); // bare Hall number is 
 assert.equal(irSpeedView({...state({paired:1}),speed_view:JSON.stringify(good)}).value,'39.5');
 assert.equal(irSpeedView({...state({...good,ir_valid:0}),speed_view:JSON.stringify(good)}).value,'--');
 assert.equal(irSpeedView({...state(good),ir_link:'{bad',speed_view:'130'}).value,'--');
-console.log('IR display: 14 validity/conversion assertions passed');
+const stopped={...good,ir_valid:0,ir_mmps:null,ir_speed_reason:'INADEQUATE_CONTRAST',
+  navi_speed_valid:1,navi_speed_mmps:0,navi_speed_reason:'STOPPED'};
+assert.equal(irSpeedView(state(stopped)).value,'0.0');
+assert.equal(irSpeedView(state(stopped)).reason,'STOPPED');
+assert.equal(irSpeedView(state(stopped,6)).value,'--');
+assert.equal(irSpeedView(state({...good,navi_speed_valid:0,navi_speed_mmps:null})).value,'--');
+assert.equal(irSpeedView(state({...stopped,navi_speed_mmps:null})).value,'--');
+console.log('IR display: raw compatibility and NAVI interpretation assertions passed');
 """
         subprocess.run(["node", "-e", js], check=True)
 

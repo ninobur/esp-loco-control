@@ -1666,7 +1666,8 @@ var STALE_S = 5;
 // on this page.
 var PKPH_PER_MM_S = {{ pkph_per_mm_s }};
 
-// Raw mm/s is canonical. Published ir_pkph is redundant cross-check telemetry.
+// Prefer NAVI's judgment; older firmware retains the raw IR display fallback.
+// Published ir_pkph is redundant cross-check telemetry.
 // Never reinterpret a bare telem/speed Hall estimate as an IR measurement.
 function irSpeedView(s) {
   var link = null, v = null, age = null;
@@ -1679,11 +1680,15 @@ function irSpeedView(s) {
   }
   var available = v && typeof v === 'object' && !Array.isArray(v);
   var fresh = age !== null && age >= 0 && age <= STALE_S;
-  var valid = available && (v.ir_valid === true || v.ir_valid === 1) &&
-    typeof v.ir_mmps === 'number' && isFinite(v.ir_mmps) && v.ir_mmps >= 0;
-  return {value: fresh && valid ? (v.ir_mmps * PKPH_PER_MM_S).toFixed(1) : '--',
+  var interpreted = available && 'navi_speed_valid' in v;
+  var flag = available && (interpreted ? v.navi_speed_valid : v.ir_valid);
+  var mmps = available && (interpreted ? v.navi_speed_mmps : v.ir_mmps);
+  var reason = available && (interpreted ? v.navi_speed_reason : v.ir_speed_reason);
+  var valid = (flag === true || flag === 1) &&
+    typeof mmps === 'number' && isFinite(mmps) && mmps >= 0;
+  return {value: fresh && valid ? (mmps * PKPH_PER_MM_S).toFixed(1) : '--',
     age: age, reason: !fresh ? 'TELEMETRY_STALE' : !available ? 'NO_IR_SPEED' :
-      (v.ir_speed_reason || (valid ? 'MEASURED' : 'UNAVAILABLE')),
+      (reason || (valid ? 'MEASURED' : 'UNAVAILABLE')),
     couplingSupported: !!(link && typeof link.ir_coupled === 'number'),
     coupled: !!(link && link.ir_coupled === 1), couplingFresh: fresh && v === link};
 }
