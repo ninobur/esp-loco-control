@@ -1,8 +1,10 @@
 # Agent instructions
 
-The shared project context and working agreements for all agents live in
-[`CLAUDE.md`](./CLAUDE.md). Read that file first.
+The governing agent operating policy is the root [`/AGENTS.md`](../AGENTS.md).
+Read and follow it first; it takes precedence wherever there is any conflict.
+
+NGR project context and working agreements live in
+[`CLAUDE.md`](./CLAUDE.md) (`docs/CLAUDE.md`).
 
 This applies to every agent working in this repo (Codex, Claude Code, or any
-other). `CLAUDE.md` is the single source of truth; this file only points to
-it so there is nothing to keep in sync.
+other).
