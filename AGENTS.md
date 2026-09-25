@@ -43,6 +43,17 @@ Before modifying code, the agent must explain:
 
 The agent must then obtain explicit approval before implementation.
 
+**Scope control.** Approval to implement a specific change authorizes only that
+change. Discovery of an adjacent problem, improvement, cleanup opportunity, or
+additional required change does not expand the authorized scope. Report it
+separately and obtain explicit approval before acting on it.
+
+**Deployment authority.** Permission to modify code does not imply permission
+to deploy it. Flashing locomotives or other ESP32 devices, modifying running
+Raspberry Pi services, changing live MQTT or Blynk configuration, or otherwise
+deploying changes to operating NGR hardware or services requires separate
+explicit authorization.
+
 ## 3. Repository and branch discipline
 
 Before beginning any task that may modify the repository, establish which
@@ -64,6 +75,10 @@ consistently, leave unrelated history and structure alone.
 
 If an unexpected repository condition is encountered, report it and its
 practical consequences rather than autonomously fixing it.
+
+**Rollback.** Before implementing an approved change, identify the known-good
+starting commit/build and preserve a straightforward rollback path. Do not make
+an implementation unnecessarily difficult to reverse.
 
 ## 4. Resource discipline
 
@@ -91,6 +106,12 @@ context, a map, an existing algorithm, or an architectural expectation.
 
 Observation, expectation, interpretation, and decision should remain
 distinguishable.
+
+**Field evidence.** Do not alter algorithms, thresholds, tests, acceptance
+criteria, or interpretation merely to make observed results conform to expected
+behavior. Unexpected field evidence must be preserved and reported as evidence.
+A failed test is information, not authorization to change the design or the
+test.
 
 ## 6. Ask rather than assume
 
