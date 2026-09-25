@@ -1,2 +1,5 @@
 *.pdf binary
 *.docx binary
+*.log.gz filter=lfs diff=lfs merge=lfs -text
+*.qtcap filter=lfs diff=lfs merge=lfs -text
+*.hwt filter=lfs diff=lfs merge=lfs -text
