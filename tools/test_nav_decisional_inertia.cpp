@@ -21,8 +21,7 @@ struct Rig {
     ms+=1000;
     NavObservation o;o.openedAtMs=ms;o.polarity=polarityAt(actual)^wrongPole;
     if(available) {
-      o.movement.issue=ngr_nav::MotionIssue::None;o.movement.frame=1;
-      auto& w=o.movement.wire;w.bootId=7;w.pitchUm=1000;w.capturedUs=uint64_t(ms)*1000;
+      ir_movement::WireSnapshot w{};w.bootId=7;w.pitchUm=1000;w.capturedUs=uint64_t(ms)*1000;
       w.completedPulses=w.observedRises=distance;w.nominalUm=distance*1000;
       w.opticalReason=ir_movement::TRACKING;
       odo.ingest(w);o.odometry=odo.point();
@@ -55,8 +54,10 @@ int main() {
     assert(r.nav.recovery().count()==history);
     r.confirm(2); // Fresh IR begins a new epoch without relocating NAVI.
     auto missed=r.next(2);
-    assert(r.nav.judge(missed)==Ruling::MissedAndAdvanced);
+    // 20Q3: the traversed window is its own sans-MM advance; the opening confirms.
+    assert(r.nav.judge(missed)==Ruling::Advanced);
     assert(r.nav.status().navMm==r.actual && r.nav.status().missedSinceLast==1);
+    {SansMmAdvance s;assert(r.nav.takeSansAdvance(s)&&!r.nav.takeSansAdvance(s));}
     assert(!r.nav.status().corrections && r.nav.positionKnown());
     const auto n=r.nav.recovery().count();
     assert(!r.nav.recovery().entry(n-2).observed);

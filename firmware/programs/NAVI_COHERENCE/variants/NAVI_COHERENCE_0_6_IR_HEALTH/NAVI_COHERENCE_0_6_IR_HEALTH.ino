@@ -53,9 +53,9 @@ using namespace navi_one;
 // Published on state/bootid. It is the ONLY thing that tells telemetry which
 // build is running, so it advances with every behavioural change.
 // This experiment has no time-based refractory exclusion.
-#define SKETCH_NAME    "NAVI_COHERENCE_0_6_POSITION_STATIONS_R1"
+#define SKETCH_NAME    "NAVI_COHERENCE_0_6_POSITION_STATIONS_R1_20Q3"
 #define BUILD_CLASS    "AUTO_ENABLED_FIELD_TEST"
-#define BUILD_SUBTITLE "Proximal NAVI + system-level speed + position-aware station targets"
+#define BUILD_SUBTITLE "POSITION_STATIONS_R1 + 20Q3: Hall 70/2, Hall-only 650 ms, exact +/-15% epoch windows, opening polarity only"
 #define FIELD_ACCEPTED 0
 
 // Types used in function signatures must appear before the Arduino
@@ -70,6 +70,9 @@ struct Judged {
   bool restartUncertain, zeroDuringCandidate;
   uint8_t windowPolarity; bool windowValid;
   uint64_t capturedUs; uint32_t baselineAgeMs; int16_t peakSigned;
+  // 20Q3: a detection is queued at detection. The 400 ms window follows as a
+  // separate windowOnly record: diagnostic telemetry with no NAV authority.
+  bool windowOnly;
 };
 struct HallDecisionMsg { BaselineOutcome d; uint32_t t; };
 struct IrRx { uint8_t mac[6]; uint64_t receivedUs; uint8_t bytes[110]; };
@@ -123,7 +126,7 @@ static inline uint16_t brakeStepMs(){
 // ---------------------------------------------------------------------------
 // LAYER 1/2 — acquisition and recognition. Both live on the Hall task.
 // ---------------------------------------------------------------------------
-static DetectorConfig hallSettings=ngr_nav::hallConfig(HALL_DEADBAND_COUNTS+HALL_ENTRY_MARGIN_COUNTS);
+static DetectorConfig hallSettings=ngr_nav::hallConfig(NAVI_HALL_DEPART_COUNTS);
 static ExcursionDetector<> hall(hallSettings);
 static ngr_nav::MovementSource movement;
 static ngr_nav::IrHealthMonitor irHealth;
@@ -156,6 +159,11 @@ static QueueHandle_t hallDecisionQ = nullptr;
 static volatile uint32_t hallEventDrops = 0, hallDecisionDrops = 0;
 static uint64_t bootId = 0;
 static volatile uint32_t nextEventSerial = 0;
+// 20Q3 traversal ordering: the Hall task numbers a detection BEFORE it
+// timestamps it, so the loop can tell whether any detection at or before a
+// given instant is still unjudged. (A dropped detection already halts NAVI.)
+static volatile uint32_t hallWindowDrops = 0;
+static uint32_t handledEventSerial = 0;
 
 
 #if !defined(NAVI_MAX_OPERATING_PWM)
@@ -288,7 +296,7 @@ static uint32_t pubDropped = 0, cmdDropped = 0;
 enum { T_ONLINE=0,T_NAV,T_MARKER,T_ALERT,T_IR,T_STAT,T_BOOT,T_WARN,
        T_ST_AUTO,T_ST_ESTOP,T_ST_THR,T_ST_DIR,T_ST_SESSDIR,T_ST_STARTMM,
        T_ST_NAVREADY,T_ST_LOWV,T_ST_STARTINT,T_BRAKE,T_V,T_A,T_W,T_SPEED,
-       T_STATION,T_ACQ_DIAG,T_DISCREPANCY,T_SUPPRESSION,T_IR_LINK,T_IR_COMPARE,T_HYPOTHESIS,T_IR_HEALTH,T_RECOVERY,T_CNT };
+       T_STATION,T_ACQ_DIAG,T_DISCREPANCY,T_SUPPRESSION,T_IR_LINK,T_IR_COMPARE,T_HYPOTHESIS,T_IR_HEALTH,T_RECOVERY,T_HALL_WINDOW,T_SANS_MM,T_CNT };
 // Size follows the enum sentinel so adding a topic cannot silently create an
 // out-of-bounds row (X16 audit B1).
 static char T[T_CNT][72];
@@ -299,6 +307,8 @@ static void buildTopics(){
   topic(T_MARKER,"mm/marker");         topic(T_ALERT,"alert");
   topic(T_IR_HEALTH,"diag/ir_health");
   topic(T_RECOVERY,"diag/recovery");
+  topic(T_HALL_WINDOW,"nav/hall_window"); // 20Q3: window telemetry, no NAV authority
+  topic(T_SANS_MM,"nav/sans_mm");         // 20Q3: POSITION_ADVANCED_SANS_MM detail
   topic(T_IR,"telem/ir");              topic(T_STAT,"state/loopstat");
   topic(T_BOOT,"state/bootid");        topic(T_WARN,"state/warning");
   topic(T_ST_AUTO,"state/auto");       topic(T_ST_ESTOP,"state/estop");
@@ -409,17 +419,17 @@ static void publishDecision(const Judged& j,const NavStatus& before,Ruling resul
   char b[900];
   int n=snprintf(b,sizeof(b),
     "{\"event_serial\":%lu,\"captured_us\":%llu,\"opened_ms\":%lu,"
-    "\"opening\":\"%c\",\"window\":\"%c\",\"window_valid\":%u,\"raw\":%d,"
-    "\"baseline\":%d,\"base_age_ms\":%lu,\"peak_signed\":%d,\"pre_mm\":%u,"
+    "\"opening\":\"%c\",\"window\":null,\"window_valid\":null,\"raw\":%d,"
+    "\"baseline\":%d,\"base_age_ms\":%lu,\"peak_signed\":null,\"pre_mm\":%u,"
     "\"ruling\":\"%s\",\"evidence\":\"%s\",\"state\":\"%s\",\"ambiguity_count\":%u,"
     "\"ir_reason\":\"%s\",\"ir_interval\":\"%s\",\"distance_assessable\":%u,\"ir_boot\":\"%016llX\",\"ir_seq\":%lu,"
     "\"ir_alignment_us\":%lld,\"distance_bounds\":\"UNVALIDATED\","
     "\"action\":\"%s\"}",
     (unsigned long)j.serial,(unsigned long long)j.capturedUs,(unsigned long)j.openedAtMs,
-    poleChar(j.polarity),poleChar(j.windowPolarity),j.windowValid?1:0,(int)j.raw,
-    (int)j.baseline,(unsigned long)j.baselineAgeMs,(int)j.peakSigned,(unsigned)before.navMm,
+    poleChar(j.polarity),(int)j.raw,
+    (int)j.baseline,(unsigned long)j.baselineAgeMs,(unsigned)before.navMm,
     rulingName(result),evidenceClassName(navigator.status().evidence),navStateName(navigator.status().state),navigator.status().unresolvedCount,
-    ngr_nav::issueName(point.issue),ngr_nav::issueName(navigator.status().irIssue),
+    ngr_nav::issueName(point.issue),distanceBasisName(navigator.status().distance),
     navigator.status().distanceAssessable?1:0,(unsigned long long)point.wire.bootId,
     (unsigned long)point.wire.sequence,(long long)point.alignmentUs,
     navigator.unresolved()?"LOCATION_UNRESOLVED":navigator.positionKnown()?"EXPECT_CONFIRM_ADVANCE":"POSITION_WITHDRAWN");
@@ -432,41 +442,45 @@ static void publishDecision(const Judged& j,const NavStatus& before,Ruling resul
       "{\"event_serial\":%lu,\"branch\":%u,\"branches\":%u,\"mm\":%u,"
       "\"anchor_ms\":%lu,\"faults\":%u,\"causes\":%u,\"clean\":%u,"
       "\"distance_consistent\":%u,\"ir_interval\":\"%s\",\"authority\":\"ONE_COHERENT_POSITION\"}",
-      (unsigned long)j.serial,i,h.count(),x.mm,(unsigned long)x.lastRealMs,x.faults,x.causes,x.clean,x.distanceAgrees?1:0,ngr_nav::issueName(x.distanceIssue));
+      (unsigned long)j.serial,i,h.count(),x.mm,(unsigned long)x.lastRealMs,x.faults,x.causes,x.clean,x.distanceAgrees?1:0,distanceBasisName(x.distance));
     pub(T_HYPOTHESIS,b);
   }
 }
 
-static void compareMovement(const Judged& j,const ngr_nav::MotionPoint& point){
+static void compareMovement(const Judged& j,const ngr_nav::IrOdometryPoint& point){
+  // 20Q3: distance is the same-epoch travel from NAVI's last MM/IR
+  // synchronization -- the quantity the +/-15% window uses. No legacy
+  // TRACKING-at-both-endpoints interval and no 500 ms guard remain here.
   const auto& h=navigator.hypotheses();
-  for(uint8_t i=0;i<h.count();++i){
-    const auto& x=h.hypothesis(i);
-    auto interval=ngr_nav::between(x.movement,point);
-    unsigned mm=x.mm;unsigned distance=0;
-    for(unsigned step=0;step<=10;++step){
-      const uint32_t elapsed=j.openedAtMs-x.lastRealMs;
-      const bool tooSoon=NGR_PHYSICAL_VMAX_MM_S &&
-        uint64_t(elapsed)*NGR_PHYSICAL_VMAX_MM_S<uint64_t(distance)*1000;
-      char pulses[32]="null",nominal[40]="null",residual[40]="null";
-      if(interval.usable()){
-        snprintf(pulses,sizeof(pulses),"%llu",(unsigned long long)interval.pulses);
-        snprintf(nominal,sizeof(nominal),"%.3f",interval.nominalMm);
-        snprintf(residual,sizeof(residual),"%.3f",interval.nominalMm-distance);
-      }
-      char b[650];
-      snprintf(b,sizeof(b),
-        "{\"event_serial\":%lu,\"branch\":%u,\"anchor_mm\":%u,\"candidate_mm\":%u,"
-        "\"steps\":%u,\"mapped_mm\":%u,\"ir_pulses\":%s,\"ir_nominal_mm\":%s,"
-        "\"residual_mm\":%s,\"ir_quality\":\"%s\",\"ir_hard_verdict\":\"CANNOT_ASSESS\","
-        "\"timing_ms\":%lu,\"legacy_guard_500\":%u,\"physical_timing\":\"%s\","
-        "\"bounds\":\"UNVALIDATED\",\"opening_matches\":%u,\"window_matches\":%u}",
-        (unsigned long)j.serial,i,x.mm,mm,step,distance,pulses,nominal,residual,ngr_nav::issueName(interval.issue),
-        (unsigned long)elapsed,elapsed<500?1:0,
-        NGR_PHYSICAL_VMAX_MM_S?(tooSoon?"EXCLUDED":"POSSIBLE"):"UNCONFIGURED",
-        j.polarity==polarityAt(mm)?1:0,j.windowValid && j.windowPolarity==polarityAt(mm)?1:0);
-      pub(T_IR_COMPARE,b);
-      distance+=spanMm(mm,h.direction());mm=nextMarker(mm,h.direction());
+  if(!h.count())return;
+  const int8_t dir=h.direction();
+  double travel=0;const bool have=navigator.distanceAt(point,travel);
+  const unsigned anchor=navigator.haveReference()?navigator.referenceMm():h.hypothesis(0).mm;
+  const uint32_t elapsed=j.openedAtMs-h.hypothesis(0).lastRealMs;
+  unsigned mm=anchor;unsigned distance=0;
+  for(unsigned step=0;step<=10;++step){
+    const bool tooSoon=NGR_PHYSICAL_VMAX_MM_S &&
+      uint64_t(elapsed)*NGR_PHYSICAL_VMAX_MM_S<uint64_t(distance)*1000;
+    char pulses[32]="null",nominal[40]="null",residual[40]="null";
+    if(have){
+      snprintf(pulses,sizeof(pulses),"%llu",(unsigned long long)(travel*1000.0/point.pitchUm+0.5));
+      snprintf(nominal,sizeof(nominal),"%.3f",travel);
+      snprintf(residual,sizeof(residual),"%.3f",travel-distance);
     }
+    char b[650];
+    snprintf(b,sizeof(b),
+      "{\"event_serial\":%lu,\"branch\":0,\"anchor_mm\":%u,\"candidate_mm\":%u,"
+      "\"steps\":%u,\"mapped_mm\":%u,\"ir_pulses\":%s,\"ir_nominal_mm\":%s,"
+      "\"residual_mm\":%s,\"ir_quality\":\"%s\",\"ir_hard_verdict\":\"CANNOT_ASSESS\","
+      "\"timing_ms\":%lu,\"physical_timing\":\"%s\","
+      "\"bounds\":\"UNVALIDATED\",\"opening_matches\":%u}",
+      (unsigned long)j.serial,anchor,mm,step,distance,pulses,nominal,residual,
+      have?"MM_REFERENCED_EPOCH":navigator.haveReference()?"EPOCH_BREAK_OR_NO_IR_POINT":"NO_MM_REFERENCE",
+      (unsigned long)elapsed,
+      NGR_PHYSICAL_VMAX_MM_S?(tooSoon?"EXCLUDED":"POSSIBLE"):"UNCONFIGURED",
+      j.polarity==polarityAt(mm)?1:0);
+    pub(T_IR_COMPARE,b);
+    distance+=spanMm(mm,dir);mm=nextMarker(mm,dir);
   }
 }
 
@@ -544,14 +558,19 @@ static void hallTask(void*){
       pending.capturedUs=esp_timer_get_time();
       pending.raw=opening.rawAtDetect;pending.baseline=opening.localRef;
       pending.polarity=opening.polarity;pending.pwm=actualPwm;
-      pending.baselineAgeMs=opening.baselineAgeMs;havePending=true;
+      pending.baselineAgeMs=opening.baselineAgeMs;
+      // 20Q3: NAVI judges the opening now. It does not wait ~400 ms for the
+      // waveform window, which can neither delay nor revise this observation.
+      if(xQueueSend(judgedQ,&pending,0)!=pdTRUE)hallEventDrops=hallEventDrops+1;
+      havePending=true;
     }
     if(completed && havePending){
       const auto& window=hall.excursion();
-      pending.windowPolarity=window.peakSigned>=0?1:0;
-      pending.windowValid=!window.clipped && !window.stoppedShort;
-      pending.peakSigned=window.peakSigned;
-      if(xQueueSend(judgedQ,&pending,0)!=pdTRUE)hallEventDrops=hallEventDrops+1;
+      Judged w=pending;w.windowOnly=true;
+      w.windowPolarity=window.peakSigned>=0?1:0;
+      w.windowValid=!window.clipped && !window.stoppedShort;
+      w.peakSigned=window.peakSigned;
+      if(xQueueSend(judgedQ,&w,0)!=pdTRUE)hallWindowDrops=hallWindowDrops+1;
       havePending=false;
     }
     BaselineOutcome outcome;
@@ -921,7 +940,7 @@ static void serviceStatus(){
     actualPwm>0?1:0,moving,actualPwm,autoEnrolled?1:0,autoRunning?1:0,
     estopped?1:0,lowVoltage?1:0,inaReady?1:0,(unsigned long)estMmPerS,
     (int)publishedBaseline,(unsigned long)publishedBaselineAge,status.distanceConfirmed?1:0,
-    status.distanceAssessable?1:0,ngr_nav::issueName(status.irIssue),(unsigned long)status.irWaits,
+    status.distanceAssessable?1:0,distanceBasisName(status.distance),(unsigned long)status.irWaits,
     movement.paired()?1:0,(unsigned long)status.advances,(unsigned long)status.refusals,
     (unsigned long)pubDropped,(unsigned long)cmdDropped);
   if(n>0 && n<(int)sizeof(payload))pub(T_ALERT,payload);
@@ -1047,40 +1066,87 @@ static void stationService(uint32_t now){
   }
 }
 
+// 20Q3: POSITION_ADVANCED_SANS_MM. NAVI judged that the expected MM's
+// complete +/-15% window was physically traversed with no accepted Hall
+// landmark. navMm is NAVI's position judgment, not the last Hall-observed MM.
+static void publishSansMm(){
+  SansMmAdvance a;
+  while(navigator.takeSansAdvance(a)){
+    char b[320];
+    snprintf(b,sizeof(b),
+      "{\"ruling\":\"POSITION_ADVANCED_SANS_MM\",\"mm\":%u,\"dir\":\"%s\",\"reference_mm\":%u,"
+      "\"travel_mm\":%.1f,\"window_high_mm\":%.1f,\"consecutive\":%u,\"auto_limit\":%u,"
+      "\"hall_evidence\":\"NONE\",\"polarity\":\"UNKNOWN\",\"drops\":%lu}",
+      a.mm,a.dir>0?"CW":"CCW",a.referenceMm,a.travelMm,a.windowHighMm,a.consecutive,
+      (unsigned)SANS_MM_AUTO_LIMIT,(unsigned long)navigator.sansAdvanceDrops());
+    pub(T_SANS_MM,b);
+    publishNav(rulingName(Ruling::PositionAdvancedSansMm),nullptr,Ruling::PositionAdvancedSansMm);
+    lastAdvanceMs=0; // Hall-interval speed never spans a position with no Hall landmark
+  }
+}
+
+// Continuous exact-window evaluation against the current same-epoch IR point.
+// Skipped while any detection at or before this instant is unjudged, so a
+// traversal can never pre-empt a real observation that is still in flight.
+static void serviceTraversal(){
+  // The latest IR point was captured before this read; any detection stamped
+  // before it was numbered before its stamp, so it is visible here.
+  __sync_synchronize();
+  if(nextEventSerial==handledEventSerial)
+    navigator.traverse(irHealth.odometry().point());
+  publishSansMm();
+  // Provisional AUTO landmark-authority limit: normal End AUTO Operations.
+  // Not LOST: navMm, route history and healthy IR are all retained.
+  if(autoRunning && navigator.autoLandmarkLimitReached())
+    withdraw("AUTO ENDED: 10 consecutive MMs traversed without a Hall landmark. Manual available.");
+}
+
+static void publishHallWindow(const Judged& w){
+  char b[260];
+  snprintf(b,sizeof(b),
+    "{\"event_serial\":%lu,\"opening\":\"%c\",\"window\":\"%c\",\"window_valid\":%u,"
+    "\"peak_signed\":%d,\"agrees_with_opening\":%u,\"nav_authority\":\"NONE\",\"window_drops\":%lu}",
+    (unsigned long)w.serial,poleChar(w.polarity),poleChar(w.windowPolarity),w.windowValid?1:0,
+    (int)w.peakSigned,w.windowPolarity==w.polarity?1:0,(unsigned long)hallWindowDrops);
+  pub(T_HALL_WINDOW,b);
+}
+
 void loop(){
   CmdMsg c;while(cmdQ && xQueueReceive(cmdQ,&c,0)==pdTRUE)handleCommand(c);
   serviceMovement();
   observationHold=actualPwm==0 && commandedPwm==0;
   Judged j;
   while(judgedQ && xQueueReceive(judgedQ,&j,0)==pdTRUE){
+    if(j.windowOnly){publishHallWindow(j);continue;}
+    if(j.serial>handledEventSerial)handledEventSerial=j.serial;
     if(j.epoch!=navEpoch){++staleJudged;continue;}
     const auto point=movement.at(j.capturedUs,esp_timer_get_time());
     const auto before=navigator.status();
-    compareMovement(j,point);
     NavObservation p;p.openedAtMs=j.openedAtMs;p.polarity=j.polarity;
-    p.windowPolarity=j.windowPolarity;p.windowValid=j.windowValid;
-    p.directionConflict=before.navDir!=travelDir() || !travelDir();p.movement=point;
+    p.directionConflict=before.navDir!=travelDir() || !travelDir();
     p.odometry=irHealth.at(j.capturedUs,esp_timer_get_time());
+    compareMovement(j,p.odometry);
     const Ruling result=navigator.judge(p);
+    publishSansMm(); // expected MMs traversed before this opening, if any
     publishDecision(j,before,result,point);publishNav(rulingName(result),&j,result);
-    if(result==Ruling::Advanced || result==Ruling::AdvancedWithDiscrepancy || result==Ruling::MissedAndAdvanced) {
+    if(result==Ruling::Advanced || result==Ruling::AdvancedWithDiscrepancy) {
       char recoveryJson[512];
       const int n=navigator.recovery().format(recoveryJson,sizeof(recoveryJson),j.serial);
       if(n>0 && n<int(sizeof(recoveryJson)))pub(T_RECOVERY,recoveryJson);else ++pubDropped;
     }
     SequenceCorrection fix;
     if(navigator.takeCorrection(fix))applySequenceCorrection(fix);
-    if(result==Ruling::Advanced || result==Ruling::AdvancedWithDiscrepancy || result==Ruling::MissedAndAdvanced)
+    if(result==Ruling::Advanced || result==Ruling::AdvancedWithDiscrepancy)
       irHealth.acceptedMm(navigator.status().navMm,j.openedAtMs,j.capturedUs,j.serial,esp_timer_get_time());
     else if(!navigator.positionKnown())irHealth.invalidateReference();
     if(navigator.status().state==NavState::Uncertain && autoRunning)
       withdraw("NAV location unresolved: controlled stop; Manual may continue");
-    if((result==Ruling::Advanced || result==Ruling::AdvancedWithDiscrepancy || result==Ruling::MissedAndAdvanced) && before.navDir && lastAdvanceMs){
+    if((result==Ruling::Advanced || result==Ruling::AdvancedWithDiscrepancy) && before.navDir && lastAdvanceMs){
       uint32_t elapsed=j.openedAtMs-lastAdvanceMs;
       if(elapsed && elapsed<30000)estMmPerS=spanMm(before.navMm,before.navDir)*1000UL/elapsed;
     }
     if(result==Ruling::Uncertain)estMmPerS=0;
-    if(result==Ruling::Advanced || result==Ruling::AdvancedWithDiscrepancy || result==Ruling::MissedAndAdvanced)lastAdvanceMs=j.openedAtMs;
+    if(result==Ruling::Advanced || result==Ruling::AdvancedWithDiscrepancy)lastAdvanceMs=j.openedAtMs;
     char speed[16];snprintf(speed,sizeof(speed),"%lu",(unsigned long)estMmPerS);pub(T_SPEED,speed,true);
   }
   HallDecisionMsg hd;
@@ -1094,6 +1160,7 @@ void loop(){
       (unsigned long)publishedBaselineAge,hd.d.recovery?1:0);
     pub(T_ACQ_DIAG,b);
   }
+  serviceTraversal();
   stationService(millis());
   static uint32_t handledEventDrops=0;
   if (hallEventDrops!=handledEventDrops) {

@@ -1,6 +1,25 @@
-# NAVI COHERENCE 0.6 POSITION_STATIONS_R1
+# NAVI COHERENCE 0.6 POSITION_STATIONS_R1_20Q3
 
-## Current Candidate
+## Current Candidate: POSITION_STATIONS_R1_20Q3
+
+**Host tests pass; ESP32 compile pending local verification; not flashed; not
+field tested.** Boot name: `NAVI_COHERENCE_0_6_POSITION_STATIONS_R1_20Q3`.
+Same Arduino filename and NGR-Files shortcut. Base: POSITION_STATIONS_R1 at
+`57d34d6`.
+
+Implements three previously decided Twenty Questions standards (not new
+design): a 70-count, two-sample Hall opening; the 650 ms Hall-only fallback,
+used only without valid MM-referenced IR distance; and exact ±15% windows with
+`POSITION_ADVANCED_SANS_MM` when an expected MM's window is traversed. Ten
+consecutive MMs without a Hall landmark end AUTO; Manual remains available.
+
+Removed anachronisms: the 500 ms guard and `legacy_guard_500`; window-polarity
+NAV authority and the ~400 ms judgment delay; TRACKING-at-both-endpoints
+distance validity in NAV decisions (replaced by the IR Epoch/MM reference).
+
+Full record, tests, telemetry changes and limitations: [`CHANGES_20Q3.md`](CHANGES_20Q3.md).
+
+## Prior Candidate: POSITION_STATIONS_R1 (base of 20Q3)
 
 Prepared, not flashed; independent review and field acceptance pending.
 Current MM and direction determine station/section PWM requirements. Restart

