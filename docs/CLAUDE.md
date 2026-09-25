@@ -1,3 +1,7 @@
+> **Governing policy:** [`/AGENTS.md`](../AGENTS.md) is the standing NGR AI Agent
+> Operating Policy. It governs all agent work in this repository and takes
+> precedence over this file wherever there is any conflict.
+
 # esp-loco-control
 
 Firmware for battery-powered garden railway locomotives on the NGR.
