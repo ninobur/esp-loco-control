@@ -128,3 +128,42 @@ project record.
 Important architectural decisions, experimental findings, operating rules, and
 implementation decisions that future agents will need must be preserved in
 appropriate repository documentation.
+
+## 8. Track evidence has priority in behavioral development
+
+NGR is a physical railway. Behavioral claims about navigation, sensing,
+locomotive motion, stopping, recovery, and train coordination should therefore
+be established primarily through testing on the actual railway with the
+installed hardware.
+
+Dry-lab tests remain valuable for deterministic software questions:
+compilation, arithmetic, state-machine invariants, memory/buffer correctness,
+regression protection, and confirming that code implements an already-defined
+rule.
+
+Recorded field-data replay is useful for testing a specific hypothesis or
+reproducing an observed failure.
+
+However, synthetic scenarios and dry-lab possibilities must not acquire
+architectural importance merely because they can be constructed. Do not add
+rules, safeguards, state, thresholds, or control complexity solely to handle a
+hypothetical condition without evidence that the condition is physically
+plausible or has occurred on NGR.
+
+When dry analysis identifies a possible behavioral problem that has not been
+observed, prefer designing a bounded track test or adding instrumentation to
+determine whether it actually occurs.
+
+The development hierarchy is:
+
+```
+DETERMINISTIC SOFTWARE TESTING → FOCUSED REPLAY → TRACK TESTING AS PRIMARY BEHAVIORAL EVIDENCE
+```
+
+A host test can establish that software behaves as coded. It cannot by itself
+establish that the assumptions represented by that code describe the physical
+railway.
+
+This principle is consistent with the existing decisional-inertia direction to
+prioritize simplicity, installed-hardware evidence, and preponderance of
+evidence rather than adding complexity for synthetic sensor-only scenarios.
