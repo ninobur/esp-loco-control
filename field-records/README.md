@@ -32,6 +32,10 @@ log carries.
 | `20260926_toby_20q3_run1.log` | operator capture `9950012_20260926_085225.log` | 2026-09-26 08:52:25 → 08:54:53 | Toby 9950012 | first run of NAVI_COHERENCE 0.6 POSITION_STATIONS_R1_20Q3 (`c1651ef`); manual, MM049→045 CCW; verdict in `verdicts/` |
 | `20260926_toby_20q3_run2.log` | operator capture `9950012_20260926_085454.log` | 2026-09-26 08:54:54 → 09:37:00 | Toby 9950012 | 20Q3 (`c1651ef`), same boot as run 1; manual MM045→MM021 CCW; three Epoch-loss/resync cycles; ends with IR car hand-tilted over MM21 (contaminated after ~09:35:37); verdict in `verdicts/` |
 | `20260926_toby_20q3_run3.log` | operator capture `9950012_20260926_093737.log` | 2026-09-26 09:37:37 → 09:45:04 | Toby 9950012 | 20Q3 (`c1651ef`), same boot; no redeclaration; entire run in reverse (CW) from physical MM21 to MM053; IR car tilted only after the stop; verdict in `verdicts/` |
+| `20260926_toby_20q3_run4a.log` | operator capture `9950012_20260926_094508.log` | 2026-09-26 09:45:08 → 09:54:01 | Toby 9950012 | 20Q3 (`c1651ef`), same boot; standing after run 3, hand positioning at PWM 0 before the redeclaration; verdict `20260926_toby_20q3_run4.md` |
+| `20260926_toby_20q3_run4b.log` | operator capture `9950012_20260926_095401.log` | 2026-09-26 09:54:01 → 09:59:13 | Toby 9950012 | redeclared 052–053, AUTO CCW MM052→MM142 with Patio and Bamboo stops; first obstruction over MM142, E-stop, obstruction cleared by hand (IR contaminated 09:57:59–09:58:19) |
+| `20260926_toby_20q3_run4c.log` | operator capture `9950012_20260926_095913.log` | 2026-09-26 09:59:13 → 10:01:06 | Toby 9950012 | redeclared 142–143, manual CCW MM142→MM108; second obstruction past MM108; power cut |
+| `20260926_toby_20q3_run4d.log` | operator capture `9950012_20260926_100408.log` | 2026-09-26 10:04:08 → 10:08:14 | Toby 9950012 | new boot `146F61B4A8AEEC9C` after the power cut; stationary, undeclared |
 
 ## Cal recordings
 
@@ -48,3 +52,4 @@ absence of a file states equally well.
 | `20260926_toby_20q3_run1.md` | 20Q3 run 1: Hall-only → Epoch MM-reference handoff, ±15% windows at 1.03/0.97/1.03, X22R cadence-gate observation, next test |
 | `20260926_toby_20q3_run2.md` | 20Q3 run 2: recovery chain ×3 incl. mid-interval stop, ~402 ms extra Hall rejected by IR, #30 false advance to MM020 during manual handling (contamination noted) |
 | `20260926_toby_20q3_run3.md` | 20Q3 run 3: two-MM identity error across a reversal, uncorrected by recovery (TRAVEL_UNAVAILABLE_HOLD); IR rejected three false Hall events incl. a stop-on-magnet re-detection at 720 ms |
+| `20260926_toby_20q3_run4.md` | 20Q3 run 4 (logs run4a–d): first AUTO and station run under 20Q3; 117 of 117 Hall events correct (82/82 and 35/35 poles), 111 IR-judged inside ±15%; two obstruction stalls with PWM held and no stall recognition; E-stop, hand clearing and power cut noted as contamination |
