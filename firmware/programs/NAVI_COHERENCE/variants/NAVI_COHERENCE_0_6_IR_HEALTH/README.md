@@ -13,9 +13,20 @@ used only without valid MM-referenced IR distance; and exact ±15% windows with
 `POSITION_ADVANCED_SANS_MM` when an expected MM's window is traversed. Ten
 consecutive MMs without a Hall landmark end AUTO; Manual remains available.
 
-Removed anachronisms: the 500 ms guard and `legacy_guard_500`; window-polarity
-NAV authority and the ~400 ms judgment delay; TRACKING-at-both-endpoints
-distance validity in NAV decisions (replaced by the IR Epoch/MM reference).
+Removed anachronisms: the 500 ms guard and `legacy_guard_500`; X22's ~645 ms
+detector refractory (superseded; the detector is now X22R, which is X22 with the
+refractory removed, not a redesign, with tested equivalence); window-polarity NAV
+authority and the ~400 ms judgment delay; TRACKING-at-both-endpoints distance
+validity in NAV decisions (replaced by the IR Epoch/MM reference); invented
+Hall speed = 0 (the last actual Hall measurement is kept, with its age).
+
+`navMm` is NAVI's judgment of the current MM. MM/IR synchronization is the last
+accepted physical MM Hall strike with a valid aligned IR point; a sans-MM advance
+never creates one, and windows stay cumulative from it. Without a valid
+synchronization, the 650 ms Hall-only fallback is a temporary bridge until the
+next accepted MM with an aligned IR point. Station-stop Epoch loss is current IR
+TX behavior, not an architectural requirement. Hall and IR speed remain
+separately visible; neither was fused.
 
 Full record, tests, telemetry changes and limitations: [`CHANGES_20Q3.md`](CHANGES_20Q3.md).
 

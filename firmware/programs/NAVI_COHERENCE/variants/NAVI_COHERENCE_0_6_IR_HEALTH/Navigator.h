@@ -6,9 +6,9 @@
 namespace navi_one {
 // 20Q3 (decision 0093): Hall-only fallback, open-to-open from the previous
 // accepted detection. Consulted ONLY when no valid MM-referenced IR distance
-// exists; valid distance is never vetoed by time. Supersedes the inherited
-// 500 ms guard. X22's own refractory stays disabled (HallObserver.h), so this
-// is the one timing gate.
+// exists; valid distance is never vetoed by time. Supersedes both the inherited
+// 500 ms guard and X22's ~645 ms detector refractory (removed in X22R), so this
+// is the one timing rule.
 static constexpr uint32_t HALL_ONLY_GUARD_MS=650;
 // +/-15% of cumulative mapped distance (operator ruling 2026-09-22: widened from
 // 0.10 after 4/78 real magnets were refused). Compared in integer micrometres so

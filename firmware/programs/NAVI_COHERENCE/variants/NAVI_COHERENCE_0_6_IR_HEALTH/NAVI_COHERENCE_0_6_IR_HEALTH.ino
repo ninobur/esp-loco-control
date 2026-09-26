@@ -49,10 +49,12 @@
 #endif
 
 using namespace navi_one;
+using namespace ngr_hall; // 20Q3: X22R detector (X22 with the obsolete refractory removed)
 
 // Published on state/bootid. It is the ONLY thing that tells telemetry which
 // build is running, so it advances with every behavioural change.
-// This experiment has no time-based refractory exclusion.
+// The Hall detector has no refractory: its only timing rule is NAVI's 650 ms
+// Hall-only fallback (Navigator.h), used only without valid MM-referenced IR.
 #define SKETCH_NAME    "NAVI_COHERENCE_0_6_POSITION_STATIONS_R1_20Q3"
 #define BUILD_CLASS    "AUTO_ENABLED_FIELD_TEST"
 #define BUILD_SUBTITLE "POSITION_STATIONS_R1 + 20Q3: Hall 70/2, Hall-only 650 ms, exact +/-15% epoch windows, opening polarity only"
@@ -173,6 +175,11 @@ static uint32_t handledEventSerial = 0;
 // measured time. A measurement, not a model -- nothing in the accept path uses
 // it, and no PWM value appears in it. Display only.
 static uint32_t lastAdvanceMs = 0; static uint32_t estMmPerS = 0;
+// 20Q3: Hall-derived speed is operator/diagnostic telemetry with no NAV or
+// control authority. The last actual measurement is kept (never replaced by
+// an invented 0) until a new legitimate Hall-derived measurement; its age is
+// published so a stale value cannot pass as current. 0 = never measured.
+static uint32_t estMeasuredAtMs = 0;
 
 // The Hall task owns detection. navEpoch rejects queued events from an old
 // declaration or direction; the reset request is consumed on the Hall task.
@@ -351,7 +358,6 @@ static void warnClear(){ if (warnSticky) return; pub(T_WARN,"",true); }
 // AUTO withdrawal is a controlled stop, never an automatic restart.
 static void withdraw(const char* text){
   warnStick(text);
-  estMmPerS = 0; pub(T_SPEED,"0",true);
   autoRunning = false;
   if (autoEnrolled) { autoEnrolled = false; pub(T_ST_AUTO,"0",true); }
   requestPwm(0,0,AUTO_STEP_DOWN_MS,StopCause::Safety);
@@ -508,7 +514,7 @@ static void declarePosition(uint8_t mm,int8_t dir,const char* interval){
   navigator.declare(mm,dir,millis());
   carryResetRequest();
   warnSticky = false; pub(T_WARN,"",true);   // the declaration answers the strike
-  lastAdvanceMs = 0; estMmPerS = 0;          // no speed estimate spans a declaration
+  lastAdvanceMs = 0;                         // no speed estimate spans a declaration
   pub(T_SPEED,"0",true);
   char v[16]; snprintf(v,sizeof(v),"%u",mm); pub(T_ST_STARTMM,v,true);
   // The echo exists so the console's badge can read CONFIRMED. It is
@@ -922,6 +928,8 @@ static void serviceStatus(){
                  ngr_nav::MotionIssue::None:ngr_nav::MotionIssue::Stale;
   const auto motion=ngr_nav::between(prior,current);prior=current;
   const char* moving=motion.usable() && motion.pulses?"1":"null";
+  char estAge[16]="null"; // Hall speed age: null = no Hall-derived measurement yet
+  if(estMeasuredAtMs)snprintf(estAge,sizeof(estAge),"%lu",(unsigned long)(last-estMeasuredAtMs));
   char payload[960];
   int n=snprintf(payload,sizeof(payload),
     "{\"level\":\"%s\",\"reason\":\"STATUS\",\"loco\":\"%s\",\"uptime_ms\":%lu,"
@@ -929,7 +937,7 @@ static void serviceStatus(){
     "\"dead_reckoned_mm\":%u,\"tgt\":%u,\"dir\":\"%s\",\"session_dir\":\"%s\",\"trust\":\"%s\","
     "\"powered\":%u,\"moving\":%s,\"motion_source\":\"IR\",\"pwm\":%d,"
     "\"auto\":%u,\"running\":%u,\"estop\":%u,\"lowvolt\":%u,\"ina\":%u,"
-    "\"est_mm_s\":%lu,\"baseline\":%d,\"base_age_ms\":%lu,"
+    "\"est_mm_s\":%lu,\"est_age_ms\":%s,\"baseline\":%d,\"base_age_ms\":%lu,"
     "\"distance_confirmed\":%u,\"distance_assessable\":%u,\"ir_interval\":\"%s\",\"ir_waits\":%lu,\"ir_bounds\":\"UNVALIDATED\",\"ir_fitted\":%u,"
     "\"agree\":%lu,\"disagree\":%lu,\"pub_drop\":%lu,\"cmd_drop\":%lu}",
     navigator.positionKnown()?"CLEAR":navigator.evaluating()?"EVALUATING":"UNSET",LOCO_NAME,(unsigned long)last,
@@ -938,7 +946,7 @@ static void serviceStatus(){
     status.navDir>0?"CW":status.navDir<0?"CCW":"UNSET",
     sessionDir>0?"CW":sessionDir<0?"CCW":"UNSET",trustName(status.trust),
     actualPwm>0?1:0,moving,actualPwm,autoEnrolled?1:0,autoRunning?1:0,
-    estopped?1:0,lowVoltage?1:0,inaReady?1:0,(unsigned long)estMmPerS,
+    estopped?1:0,lowVoltage?1:0,inaReady?1:0,(unsigned long)estMmPerS,estAge,
     (int)publishedBaseline,(unsigned long)publishedBaselineAge,status.distanceConfirmed?1:0,
     status.distanceAssessable?1:0,distanceBasisName(status.distance),(unsigned long)status.irWaits,
     movement.paired()?1:0,(unsigned long)status.advances,(unsigned long)status.refusals,
@@ -1013,14 +1021,14 @@ void setup(){
   const int bootLen=snprintf(b,sizeof(b),
     "{\"sketch\":\"%s\",\"loco\":\"%s\",\"boot_id\":\"%016llX\","
     "\"field_accepted\":0,\"auto_enabled\":%u,\"hall_entry\":%d,\"window_ms\":%u,"
-    "\"guard_ms\":%u,\"baseline\":\"X22_LOCKED_NO_PWM_RECOVERY\","
+    "\"hall_only_guard_ms\":%u,\"baseline\":\"X22R_LOCKED_NO_PWM_RECOVERY\","
     "\"ir_source\":\"ESPNOW_TYPE5\",\"ir_bounds\":\"UNVALIDATED\","
     "\"ir_authority\":\"PHYSICAL_PROGRESS_GATE\","
     "\"normal_model\":\"EXPECT_CONFIRM_ADVANCE\",\"recovery_word\":10,\"traffic_coordination\":0,"
     "\"ir_health_mode\":\"RECOVERY_MEASUREMENT\",\"ir_window_pct\":15,\"sequence_authority\":\"PROXIMAL_UNIQUE_BETTER\"}",
     SKETCH_NAME,LOCO_NAME,(unsigned long long)bootId,
     (unsigned)NGR_ENABLE_EXPERIMENTAL_AUTO,hallSettings.departCounts,
-    hallSettings.windowMs,hallSettings.refractoryMs);
+    hallSettings.windowMs,(unsigned)HALL_ONLY_GUARD_MS);
   if (bootLen < 0 || bootLen >= (int)sizeof(b)) {
     Serial.printf("[BOOT] FATAL: boot record oversize (%d bytes) — halting\n",bootLen);
     writePwm(0); for(;;) delay(1000);
@@ -1143,9 +1151,8 @@ void loop(){
       withdraw("NAV location unresolved: controlled stop; Manual may continue");
     if((result==Ruling::Advanced || result==Ruling::AdvancedWithDiscrepancy) && before.navDir && lastAdvanceMs){
       uint32_t elapsed=j.openedAtMs-lastAdvanceMs;
-      if(elapsed && elapsed<30000)estMmPerS=spanMm(before.navMm,before.navDir)*1000UL/elapsed;
+      if(elapsed && elapsed<30000){estMmPerS=spanMm(before.navMm,before.navDir)*1000UL/elapsed;estMeasuredAtMs=j.openedAtMs;}
     }
-    if(result==Ruling::Uncertain)estMmPerS=0;
     if(result==Ruling::Advanced || result==Ruling::AdvancedWithDiscrepancy)lastAdvanceMs=j.openedAtMs;
     char speed[16];snprintf(speed,sizeof(speed),"%lu",(unsigned long)estMmPerS);pub(T_SPEED,speed,true);
   }

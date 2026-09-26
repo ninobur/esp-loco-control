@@ -1,6 +1,7 @@
 # NAVI_COHERENCE_0_6_POSITION_STATIONS_R1_20Q3 — change record
 
-2026-09-25. Implemented by Claude on task branch `claude/navi-ps-r1-20q-standards`
+2026-09-25, updated 2026-09-26 with the post-review operator rulings (§1a).
+Implemented by Claude on task branch `claude/navi-ps-r1-20q-standards`
 at David's explicit instruction. **Not flashed. Not field tested. ESP32
 compile pending local verification on David's laptop.**
 
@@ -48,8 +49,8 @@ decision 0093, decision 0094, `docs/NGR_NAVI_ARCHITECTURAL_LINEAGE_DRAFT_v0_1.md
   detection, applied **only** when no valid MM-referenced IR distance exists.
   Valid same-epoch distance is never vetoed by time.
 - **Decision:** 0093 (accepted provisional), handoff §13.
-- X22's own ~645 ms refractory stays disabled (`hallConfig()` sets 0). There is
-  one timing gate.
+- X22's ~645 ms detector refractory is **superseded** by this rule and has been
+  removed from the candidate's detector (X22R, below). There is one timing rule.
 - Inherited and unchanged: after a declaration or reversal, the 650 ms is
   measured from the declaration/reversal time, exactly as the 500 ms was.
 
@@ -88,6 +89,65 @@ decision 0093, decision 0094, `docs/NGR_NAVI_ARCHITECTURAL_LINEAGE_DRAFT_v0_1.md
 - Position judgment itself continues past ten (for example in Manual): the
   limit governs AUTO landmark authority only, per the ruling.
 
+## 1a. Operator rulings after review (2026-09-26)
+
+These are David's decisions on the review items; they govern this candidate.
+
+1. **645 ms refractory: superseded and removed.** Hall detector detects → NAVI
+   judges. The single timing rule with authority is 650 ms detection-to-detection,
+   applied by NAVI only when valid MM-referenced IR distance is unavailable. Valid
+   MM-referenced IR distance is never vetoed by a timing refractory. The candidate
+   now uses **X22R** (`ExcursionDetectorX22R.h`): X22 with the obsolete refractory
+   machinery removed. This is not a detector redesign; the locked per-interval
+   baseline and detection architecture are unchanged, and equivalence with X22 at
+   refractory=0 is tested. The historical X22 header and older builds are untouched.
+2. **IR Epoch break at station stops: accepted for this field candidate.** This is
+   the **currently observed IR TX behavior**, seen by David on the dashboard. It is
+   not an architectural requirement that stops end Epochs. Expected recovery:
+   Epoch ends → movement resumes in a new Epoch → no MM synchronization yet → the
+   first accepted MM uses the 650 ms Hall-only fallback → that accepted strike plus
+   its valid aligned IR point establishes the new MM/IR synchronization →
+   subsequent MMs return immediately to the ±15% mapped-distance method. No
+   probation or trust earning.
+3. **Synchronization after a sans-MM advance.** `navMm` is NAVI's judgment of the
+   current MM. The MM/IR synchronization point is the last accepted physical MM
+   Hall observation with a valid aligned IR point in the current Epoch. A
+   sans-MM advance never creates one. Example: MM029 accepted and synchronized;
+   MM030 traversed sans MM → the MM031 window is MM029→030 + MM030→031 from the
+   MM029 IR count; if MM031 is also missed, MM032 uses MM029→030→031→032. Only
+   another accepted MM with a valid aligned IR point resynchronizes and resets
+   cumulative distance. (Verified against the committed code on 2026-09-26.)
+4. **Accepted Hall MM without an aligned IR point.** NAVI advances `navMm`; no IR
+   count is manufactured and no synchronization is extrapolated. The previous
+   synchronization loses authority for later windows, and NAVI continues
+   temporarily on the 650 ms Hall-only fallback. The next accepted MM with a valid
+   aligned IR point resynchronizes immediately. The 650 ms rule is normally a
+   short bridge, often one interval, not a mode NAVI stays in.
+5. **Hypothetical within-Epoch IR count jump: no new safeguard.** There is no
+   installed-hardware evidence that this is an NGR problem. No Vmax/rate guard
+   was added; telemetry and the ten-MM AUTO limit suffice. Observed track
+   behavior, if any, will be addressed then.
+6. **Ten consecutive advances sans MM → normal End AUTO Operations** (preserved).
+   A provisional AUTO landmark-authority limit, not LOST; `navMm`, history and
+   valid IR are preserved; Manual remains available; an accepted Hall landmark
+   resets the count. It is not a statement that IR-only navigation is impossible:
+   future TRACKSIDE_LOCATOR absolute fixes may allow continued or restored
+   IR-supported navigation without onboard Hall confirmation.
+7. **Station logic follows `navMm`** (preserved). When valid referenced IR
+   establishes that an expected MM was traversed, station logic responds to the
+   updated position. Hall observation is evidence for NAVI's judgment; it is not
+   required for every legitimate position advance.
+8. **Hall-derived speed: telemetry correctness, not fusion.** Hall and IR speed
+   stay separately visible. Hall speed has no NAV or control authority. The last
+   actual Hall measurement is preserved until a new legitimate one replaces it
+   and is never replaced by an invented 0; its age is published. General NAVI
+   speed fusion is deferred.
+9. **Opening polarity at detection** is the Hall polarity with NAV authority
+   (preserved). The later window is diagnostic only.
+10. **500 ms guard: superseded and banished** from the active implementation.
+    Historical documents may record it as superseded history.
+11. This record and the README reflect these rulings.
+
 ## 2. Anachronistic mechanisms removed
 
 | Removed | Was | Replaced by |
@@ -96,6 +156,8 @@ decision 0093, decision 0094, `docs/NGR_NAVI_ARCHITECTURAL_LINEAGE_DRAFT_v0_1.md
 | `legacy_guard_500` | `nav/ir_compare` key evaluating `elapsed<500` | nothing; key removed |
 | Window-polarity NAV authority | `hallSupports()` accepted the 400 ms window peak sign as supporting evidence | opening polarity at detection is the only Hall polarity with NAV authority (lineage principles 3, 4) |
 | ~400 ms delay of NAV judgment | Hall task queued the event only after the acquisition window completed | the opening is queued at detection; the window follows as a separate record on `nav/hall_window` with `nav_authority:"NONE"` |
+| X22 ~645 ms detector refractory | `DetectorConfig::refractoryMs` (set to 0 by `hallConfig()`), the refractory/rearm-pending state, its suppression branch, `Detection::guardUntilMs`, and the baseline cycle's wait on the guard | nothing: removed in X22R. NAVI's 650 ms Hall-only fallback is the one timing rule. Boot telemetry reports `hall_only_guard_ms` instead of `guard_ms` |
+| Invented Hall speed = 0 | `withdraw()`, `LOCATION_UNRESOLVED` and declarations set Hall speed to 0 (`withdraw()` also published `telem/speed` = "0") | the last actual Hall-derived measurement is kept, with `est_age_ms`; spanning protections unchanged |
 | TRACKING-at-both-endpoints validity in the NAV decision path | `MovementSource::between()` required TRACKING at both ends and unchanged counters | the adopted Epoch model: the accepted strike's `IrOdometryPoint` is the MM synchronization; same-epoch odometry gives distance (decision 0094; lineage principles 11, 12) |
 
 `MISSED_AND_ADVANCED` is no longer produced. A wrong opening polarity inside
@@ -112,10 +174,13 @@ no probation.
 
 | File | Change |
 |---|---|
-| `NAVI_COHERENCE_0_6_IR_HEALTH.ino` | Build name/subtitle; `hallConfig(NAVI_HALL_DEPART_COUNTS)`; Hall task queues at detection and sends window telemetry separately; loop passes the epoch point to NAVI, calls `serviceTraversal()` before `stationService()`, publishes sans-MM advances, applies the ten-MM AUTO limit via `withdraw()`; `nav/ir_compare` uses epoch distance and drops `legacy_guard_500`/`window_matches`; new topics `nav/hall_window`, `nav/sans_mm` |
+| `NAVI_COHERENCE_0_6_IR_HEALTH.ino` | Build name/subtitle; `hallConfig(NAVI_HALL_DEPART_COUNTS)`; Hall task queues at detection and sends window telemetry separately; loop passes the epoch point to NAVI, calls `serviceTraversal()` before `stationService()`, publishes sans-MM advances, applies the ten-MM AUTO limit via `withdraw()`; uses X22R; boot telemetry `hall_only_guard_ms`; Hall speed no longer zeroed by withdrawal, `LOCATION_UNRESOLVED` or declaration, with `est_age_ms` in the status line; `nav/ir_compare` uses epoch distance and drops `legacy_guard_500`/`window_matches`; new topics `nav/hall_window`, `nav/sans_mm` |
+| `ExcursionDetectorX22R.h` (new) | X22R: the X22 detector with the obsolete refractory removed (namespace `ngr_hall`) |
+| `HallObserver.h` | uses X22R; no refractory configured |
 | `Navigator.h` | 650 ms; exact ±15% semantics; `traverse()`; sans-MM queue; epoch MM synchronization; opening polarity only; `DistanceBasis`; `SANS_MM_AUTO_LIMIT` |
 | `LocoConfig.h` | `NAVI_HALL_DEPART_COUNTS 70` |
 | `tests/test_20q_standards.cpp` | new focused tests (below) |
+| `tests/test_x22r_equivalence.cpp` | new: X22R versus historical X22 at refractory=0 |
 | `tests/test_coherence.cpp`, `tests/test_proximal_recovery.cpp`, `../../../../../tools/test_nav_decisional_inertia.cpp` | IR inputs converted from legacy `MotionPoint` to epoch `IrOdometryPoint`; assertions encoding the replaced rules updated (listed below) |
 | `README.md`, `CHANGES_20Q3.md` | documentation |
 
@@ -156,7 +221,8 @@ Flags: `-std=c++17 -Wall -Wextra -Werror -fsanitize=address,undefined` (g++ 13).
 
 | Test | Result |
 |---|---|
-| `tests/test_20q_standards.cpp` (new) | PASS: 2,394 window cases (every MM, both directions, wrap); 6 Hall-only/epoch; 242 traversal/limit; 6 detector (real X22) |
+| `tests/test_20q_standards.cpp` (new) | PASS: 2,394 window cases (every MM, both directions, wrap); 6 Hall-only/epoch; 242 traversal/limit; 6 detector (X22R) |
+| `tests/test_x22r_equivalence.cpp` (new) | PASS: X22R identical to X22 at refractory=0 over 72 seeded traces, 14,893,908 samples: 9,624 detections (all fields, opening polarity included), 8,772 window records (including sample arrays), 7,269 baseline outcomes (3,217 locks), 1,599 dwells, 29 lost-lock segments, reset and baseline-adjust calls; every public state getter compared each sample |
 | `tests/test_coherence.cpp` | PASS: 2,052 offset corrections, 6,840 single-misread holds (unchanged counts) |
 | `tests/test_proximal_recovery.cpp` | PASS: 421 ties, 65 one-vote improvements (unchanged counts) |
 | `tests/test_station_correction.cpp` | PASS: 32 |
@@ -169,7 +235,7 @@ Flags: `-std=c++17 -Wall -Wextra -Werror -fsanitize=address,undefined` (g++ 13).
 | `tools/test_manual_pwm.py` | PASS: 311 cases (run with g++; see note) |
 
 Boundary coverage in `test_20q_standards.cpp`: 69 versus 70 counts; first
-versus second qualifying sample; opposite-sign pair; X22 refractory disabled
+versus second qualifying sample; opposite-sign pair; no detector refractory
 (a new opening about 460 ms after the previous one is declared); 649 versus
 650 ms with no reference, with no IR point, and across an Epoch break; valid IR
 accepted 300 ms after the previous strike (no timing veto); just before 0.85D,
@@ -181,6 +247,13 @@ cumulative distance; an ended epoch never reopening; wraparound; both directions
 A mutation check confirmed that each implemented boundary is caught when
 perturbed: 849/851‰, the inclusive/exclusive edges, 649 and 500 ms, limit 9,
 missing count reset, missing cumulative reset, 38 counts, and refractory 645.
+The equivalence test was likewise shown to fail for X22 with its 645 ms
+refractory re-enabled, an inverted opening polarity, and a baseline cycle that
+does not wait for the acquisition window. (A `>=0` versus `>0` polarity mutant
+survives because a detection always has |departure| ≥ 70; it is equivalent.)
+X22's zero-deadline wrap (`nowMs + 0 == 0` maps to 1) is excluded by starting
+traces at t = 1; it is a clock-wrap artefact of the removed code, not retained
+behavior.
 
 Notes:
 - The two Python harnesses call `clang++ -fsanitize=address`. The cloud
@@ -195,7 +268,9 @@ Notes:
 - The sketch-level changes (Hall task queuing, `serviceTraversal()`,
   `publishSansMm()`, the AUTO-limit withdrawal, the new telemetry) cannot be
   host-compiled here. They were reviewed line by line; the local ESP32 compile
-  is their first compilation.
+  is their first compilation. `tools/test_position_station_integration.py`
+  stubs `withdraw()`, so the Hall-speed change inside the real `withdraw()` is
+  likewise review-only until the local compile and track test.
 
 ## 6. ESP32 compile
 
@@ -206,7 +281,8 @@ and David directed not to change that.
 ## 7. Deliberately unchanged
 
 PROXIMAL_R1 recovery; station behavior (targets, offsets, ramps, dwell,
-POSITION_STATIONS_R1 logic); X22 detector code and its locked baseline; IR TX/RX
+POSITION_STATIONS_R1 logic); the historical X22 detector header (older builds
+still use it; the candidate uses X22R, whose locked baseline is unchanged); IR TX/RX
 firmware; stopped-speed interpretation; manual control; E-stop and low-voltage
 paths; the shared NAVI_SIMPLIFIED profile; the measured-speed station ZIP (not
 incorporated); `MovementSource` (still used for `diag/ir_link` and
@@ -226,31 +302,36 @@ No `server/` code parses any of these fields (checked).
   known at judgment); `ir_interval` now carries the distance basis
   (`MM_REFERENCED_EPOCH`, `NO_MM_REFERENCE`, `EPOCH_BREAK`, `NO_IR_POINT`).
 - `nav/hypotheses` and the status alert: `ir_interval` carries the same basis names.
+- Boot record: `guard_ms` (the X22 refractory setting) is replaced by
+  `hall_only_guard_ms`: 650; `baseline` reads `X22R_LOCKED_NO_PWM_RECOVERY`.
+- Status alert: new `est_age_ms` (age of the Hall-derived `est_mm_s`, `null`
+  before the first measurement). `telem/speed` keeps its format but is no longer
+  forced to "0" by withdrawal, `LOCATION_UNRESOLVED` or declaration; it carries
+  the last actual Hall-derived measurement. IR/NAVI speed remains on `telem/ir`.
 - `nav/ir_compare`: `legacy_guard_500` and `window_matches` removed; `branch`
   is always 0; `anchor_mm` is the synchronized MM; distances are epoch travel;
   `ir_quality` is the distance basis.
 
 ## 9. Known limitations and review items
 
-1. **X22's 400 ms acquisition window still blanks new detections.** While it is
+1. **X22R's 400 ms acquisition window still blanks new detections.** While it is
    open the detector declares nothing new and only counts suppressions. This is
-   inherited X22 behavior, now separate from NAV judgment. A real next magnet
-   inside 400 ms needs more than about 700 mm/s; Toby cruises near 240 mm/s.
-   Not changed; recorded so it is not mistaken for NAVI's timing gate.
-2. **IR TX loses contrast at stops** (final-run record: every stop ended its
-   epoch). After each station stop, the first MM is Hall-only (650 ms) and no
-   traversal occurs until re-synchronization. This is expected under the Epoch
-   model, not a defect of this build.
-3. **A within-epoch IR count jump would traverse windows.** For example the
-   synthetic 10 m case: NAVI advances sans MM, and AUTO ends at ten. No physical
-   rate guard was added (AGENTS.md §8; the lineage rejects a universal Vmax).
-   Watch `nav/sans_mm` on track.
-4. **Sans-MM advances move `navMm` without Hall.** Station logic (unchanged)
-   acts on NAVI's position, including inside a station region.
-5. Hall-interval speed (`telem/speed`) does not span a sans-MM advance: the
-   next estimate restarts from the next accepted Hall.
-6. The traversal ordering guard (detection numbered before timestamped) and the
-   loop integration are verified by review only until local compile and track.
+   retained X22 behavior (not the removed refractory), separate from NAV
+   judgment. A real next magnet inside 400 ms needs more than about 700 mm/s;
+   Toby cruises near 240 mm/s.
+2. **Station-stop Epoch loss is currently observed IR TX behavior** (ruling 2),
+   not an architectural requirement. After such a stop the first MM is accepted
+   Hall-only (650 ms), which also resynchronizes when it has a valid aligned IR
+   point; the ±15% method resumes immediately after.
+3. **No safeguard against a within-Epoch IR count jump** (ruling 5). Such a jump
+   would traverse windows sans MM and, at ten, end AUTO. Watch `nav/sans_mm`.
+4. **Sans-MM advances move `navMm` without Hall** (ruling 7). Station logic
+   (unchanged) acts on NAVI's position, including inside a station region.
+5. **Hall-derived speed** never spans a sans-MM advance, declaration, correction
+   or withdrawal: the next estimate starts from the next accepted Hall. Until
+   then the last actual value is shown with its growing `est_age_ms` (ruling 8).
+6. The traversal ordering guard, the loop integration and the edited `withdraw()`
+   are verified by review only until the local compile and track test.
 
 ## Reproduce (repository root)
 

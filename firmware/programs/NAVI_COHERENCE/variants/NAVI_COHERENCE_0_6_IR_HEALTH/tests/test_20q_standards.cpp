@@ -133,9 +133,9 @@ static unsigned detector(const std::string& variant){
   assert(readFile(variant+"/LocoConfig.h").find("#define NAVI_HALL_DEPART_COUNTS 70")!=std::string::npos);
   assert(readFile(variant+"/NAVI_COHERENCE_0_6_IR_HEALTH.ino").find("hallConfig(NAVI_HALL_DEPART_COUNTS)")!=std::string::npos);
   const auto cfg=ngr_nav::hallConfig(70);
-  assert(cfg.departCounts==70 && cfg.persistSamples==2 && cfg.refractoryMs==0); // X22 refractory stays disabled
-  navi_one::ExcursionDetector<> d(cfg);
-  uint32_t t=0;const int16_t base=2000;Detection det;
+  assert(cfg.departCounts==70 && cfg.persistSamples==2); // X22R: no refractory exists (see test_x22r_equivalence.cpp)
+  ngr_hall::ExcursionDetector<> d(cfg);
+  uint32_t t=0;const int16_t base=2000;ngr_hall::Detection det;
   auto feed=[&](int16_t raw){++t;d.sample(t,raw,false,false,0);};
   for(int i=0;i<2200;++i)feed(base);
   assert(d.ready() && d.baseline()==base);
@@ -149,8 +149,8 @@ static unsigned detector(const std::string& variant){
   feed(base+70);const uint32_t second=t;                              // second consecutive qualifying sample
   assert(d.takeDetection(det) && det.detectedAtMs==second && det.polarity==1 && det.departAtDetect==70);
   quiet(450);                                                         // acquisition window is telemetry
-  // Refractory disabled: a new opening ~460 ms after the previous detection is
-  // declared (X22's default 645 ms guard would have suppressed it).
+  // No refractory: a new opening ~460 ms after the previous detection is
+  // declared: the detector has no refractory (X22's superseded 645 ms guard would have suppressed it).
   feed(base-70);assert(!d.takeDetection(det));
   feed(base-70);assert(d.takeDetection(det) && det.polarity==0 && det.detectedAtMs==t && t-second<645);
   quiet(450);
