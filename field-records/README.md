@@ -29,6 +29,7 @@ log carries.
 | `20260801_otto_chain-v3-cert.log` | `~/run_0801_1600.log` | 2026-08-01 16:00 → 08-03 15:31 | Otto 9950011 | contains the 16:03 dashboard-failure session that produced v1.10.1 |
 | `20260802_toby_lapA-sensor-flip-cert.log` | `~/toby_cert_0802_1831.log` | 2026-08-02 18:31 → 08-03 20:54 | Toby 9950012 (+ Otto traffic) | Lap A / sensor-flip certification; analysed in `verdicts/` |
 | `20260810_IR_SPEED_LOCAL_1_2_otto.log` | `~/NGR/telemetry/runs/20260810_IR_SPEED_LOCAL_1_2_otto.log` | 2026-08-10 19:19 → 21:09 PDT | Otto 9950011 + IR_SPEED_SENSOR | Merged beta-test capture: Otto Hall/navigation and IR test-car telemetry. Contains the three `HARD_BOUND` NO_QUORUM incidents, including the final Patio-area incident at log lines 25020–25120. |
+| `20260926_toby_20q3_run1.log` | operator capture `9950012_20260926_085225.log` | 2026-09-26 08:52:25 → 08:54:53 | Toby 9950012 | first run of NAVI_COHERENCE 0.6 POSITION_STATIONS_R1_20Q3 (`c1651ef`); manual, MM049→045 CCW; verdict in `verdicts/` |
 
 ## Cal recordings
 
@@ -42,3 +43,4 @@ absence of a file states equally well.
 | file | covers |
 |---|---|
 | `20260802_toby_lapA-sensor-flip-cert.md` | Toby's five certification metrics before/after the shielded cable |
+| `20260926_toby_20q3_run1.md` | 20Q3 run 1: Hall-only → Epoch MM-reference handoff, ±15% windows at 1.03/0.97/1.03, X22R cadence-gate observation, next test |
