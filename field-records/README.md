@@ -36,6 +36,7 @@ log carries.
 | `20260926_toby_20q3_run4b.log` | operator capture `9950012_20260926_095401.log` | 2026-09-26 09:54:01 → 09:59:13 | Toby 9950012 | redeclared 052–053, AUTO CCW MM052→MM142 with Patio and Bamboo stops; first obstruction over MM142, E-stop, obstruction cleared by hand (IR contaminated 09:57:59–09:58:19) |
 | `20260926_toby_20q3_run4c.log` | operator capture `9950012_20260926_095913.log` | 2026-09-26 09:59:13 → 10:01:06 | Toby 9950012 | redeclared 142–143, manual CCW MM142→MM108; second obstruction (toppled flower pot) past MM108; power cut; train then moved by hand back to MM108–109 |
 | `20260926_toby_20q3_run4d.log` | operator capture `9950012_20260926_100408.log` | 2026-09-26 10:04:08 → 10:08:14 | Toby 9950012 | new boot `146F61B4A8AEEC9C` after the power cut; stationary, undeclared |
+| `20260926_toby_20q3_run5.log` | operator capture `9950012_20260926_100408_COMPLETE.log` | 2026-09-26 10:04:08 → 10:42:40 | Toby 9950012 | complete capture of the post-power-cut boot (first 2,422 lines = run4d); declaration refused, manual CCW for 22.5 min with no position; 926/926 Hall poles match from MM108; IR uncoupled for display; verdict in `verdicts/` |
 
 ## Cal recordings
 
@@ -53,3 +54,4 @@ absence of a file states equally well.
 | `20260926_toby_20q3_run2.md` | 20Q3 run 2: recovery chain ×3 incl. mid-interval stop, ~402 ms extra Hall rejected by IR, #30 false advance to MM020 during manual handling (contamination noted) |
 | `20260926_toby_20q3_run3.md` | 20Q3 run 3: two-MM identity error across a reversal, uncorrected by recovery (TRAVEL_UNAVAILABLE_HOLD); IR rejected three false Hall events incl. a stop-on-magnet re-detection at 720 ms |
 | `20260926_toby_20q3_run4.md` | 20Q3 run 4 (logs run4a–d): first AUTO and station run under 20Q3; 117 of 117 Hall events correct (82/82 and 35/35 poles), 111 IR-judged inside ±15%; two obstruction stalls with PWM held and no stall recognition; E-stop, hand clearing and power cut noted as contamination |
+| `20260926_toby_20q3_run5.md` | 20Q3 run 5: undeclared manual running (declaration refused), 926/926 Hall events pole-consistent over five laps; IR coupling default-off after reboot and the operator's default-ON proposal |
