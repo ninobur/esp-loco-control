@@ -34,7 +34,7 @@ log carries.
 | `20260926_toby_20q3_run3.log` | operator capture `9950012_20260926_093737.log` | 2026-09-26 09:37:37 → 09:45:04 | Toby 9950012 | 20Q3 (`c1651ef`), same boot; no redeclaration; entire run in reverse (CW) from physical MM21 to MM053; IR car tilted only after the stop; verdict in `verdicts/` |
 | `20260926_toby_20q3_run4a.log` | operator capture `9950012_20260926_094508.log` | 2026-09-26 09:45:08 → 09:54:01 | Toby 9950012 | 20Q3 (`c1651ef`), same boot; standing after run 3, hand positioning at PWM 0 before the redeclaration; verdict `20260926_toby_20q3_run4.md` |
 | `20260926_toby_20q3_run4b.log` | operator capture `9950012_20260926_095401.log` | 2026-09-26 09:54:01 → 09:59:13 | Toby 9950012 | redeclared 052–053, AUTO CCW MM052→MM142 with Patio and Bamboo stops; first obstruction over MM142, E-stop, obstruction cleared by hand (IR contaminated 09:57:59–09:58:19) |
-| `20260926_toby_20q3_run4c.log` | operator capture `9950012_20260926_095913.log` | 2026-09-26 09:59:13 → 10:01:06 | Toby 9950012 | redeclared 142–143, manual CCW MM142→MM108; second obstruction past MM108; power cut |
+| `20260926_toby_20q3_run4c.log` | operator capture `9950012_20260926_095913.log` | 2026-09-26 09:59:13 → 10:01:06 | Toby 9950012 | redeclared 142–143, manual CCW MM142→MM108; second obstruction (toppled flower pot) past MM108; power cut; train then moved by hand back to MM108–109 |
 | `20260926_toby_20q3_run4d.log` | operator capture `9950012_20260926_100408.log` | 2026-09-26 10:04:08 → 10:08:14 | Toby 9950012 | new boot `146F61B4A8AEEC9C` after the power cut; stationary, undeclared |
 
 ## Cal recordings
