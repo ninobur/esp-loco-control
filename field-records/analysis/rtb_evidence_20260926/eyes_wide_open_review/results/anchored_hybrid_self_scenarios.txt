@@ -1,0 +1,60 @@
+otto anchored baseline               miss    0 extra     7 wrongpol    0 | |ref err|>10 on    1 magnets | fallbacks 0
+otto anchored boot ref truth+45      miss    0 extra     7 wrongpol    0 | |ref err|>10 on    4 magnets | fallbacks 0
+otto anchored boot ref truth+100     miss  899 extra   799 wrongpol    2 | |ref err|>10 on  645 magnets | fallbacks 0
+otto anchored boot ref truth+200     miss  946 extra   646 wrongpol  148 | |ref err|>10 on  598 magnets | fallbacks 0
+otto anchored boot ref truth-200     miss  824 extra   667 wrongpol   12 | |ref err|>10 on  559 magnets | fallbacks 0
+otto anchored step +60 @2000s        miss    0 extra   282 wrongpol   57 | |ref err|>10 on  144 magnets | fallbacks 0
+otto anchored step +120 @2000s       miss   90 extra    79 wrongpol    0 | |ref err|>10 on   82 magnets | fallbacks 0
+otto anchored step -120 @2000s       miss  228 extra   149 wrongpol   30 | |ref err|>10 on  106 magnets | fallbacks 0
+otto hybrid   baseline               miss    0 extra     7 wrongpol    0 | |ref err|>10 on    1 magnets | fallbacks 1
+otto hybrid   inject +60 @300        miss    0 extra     7 wrongpol    0 | |ref err|>10 on    2 magnets | fallbacks 2
+otto hybrid   inject +120 @300       miss    2 extra     8 wrongpol    0 | |ref err|>10 on    1 magnets | fallbacks 2
+otto hybrid   inject -80 @300        miss    0 extra     8 wrongpol    0 | |ref err|>10 on    1 magnets | fallbacks 2
+otto hybrid   boot ref truth+45      miss    0 extra     7 wrongpol    0 | |ref err|>10 on    3 magnets | fallbacks 2
+otto hybrid   boot ref truth+100     miss    4 extra     9 wrongpol    0 | |ref err|>10 on    1 magnets | fallbacks 2
+otto hybrid   boot ref truth+200     miss    4 extra     8 wrongpol    1 | |ref err|>10 on    1 magnets | fallbacks 2
+otto hybrid   boot ref truth-200     miss    1 extra     8 wrongpol    1 | |ref err|>10 on    2 magnets | fallbacks 2
+otto hybrid   step +60 @2000s        miss    0 extra     7 wrongpol    0 | |ref err|>10 on    2 magnets | fallbacks 2
+otto hybrid   step +120 @2000s       miss    1 extra     8 wrongpol    0 | |ref err|>10 on    1 magnets | fallbacks 2
+otto hybrid   step -120 @2000s       miss    2 extra     9 wrongpol    0 | |ref err|>10 on    1 magnets | fallbacks 2
+otto self     baseline               miss    9 extra    13 wrongpol    4 | |ref err|>10 on    5 magnets | fallbacks 0
+otto self     inject +60 @300        miss    9 extra    13 wrongpol    4 | |ref err|>10 on    6 magnets | fallbacks 0
+otto self     inject +120 @300       miss   11 extra    14 wrongpol    4 | |ref err|>10 on    5 magnets | fallbacks 0
+otto self     inject -80 @300        miss    9 extra    14 wrongpol    4 | |ref err|>10 on    5 magnets | fallbacks 0
+otto self     boot ref truth+45      miss    9 extra    13 wrongpol    4 | |ref err|>10 on    6 magnets | fallbacks 0
+otto self     boot ref truth+100     miss    9 extra    15 wrongpol    4 | |ref err|>10 on    5 magnets | fallbacks 0
+otto self     boot ref truth+200     miss   13 extra    14 wrongpol    5 | |ref err|>10 on    5 magnets | fallbacks 0
+otto self     boot ref truth-200     miss   10 extra    14 wrongpol    5 | |ref err|>10 on    6 magnets | fallbacks 0
+otto self     step +60 @2000s        miss    9 extra    13 wrongpol    4 | |ref err|>10 on    6 magnets | fallbacks 0
+otto self     step +120 @2000s       miss   10 extra    14 wrongpol    4 | |ref err|>10 on    5 magnets | fallbacks 0
+otto self     step -120 @2000s       miss   11 extra    15 wrongpol    4 | |ref err|>10 on    5 magnets | fallbacks 0
+toby anchored baseline               miss    3 extra     3 wrongpol    2 | |ref err|>10 on    0 magnets | fallbacks 0
+toby anchored boot ref truth+45      miss    3 extra     3 wrongpol    2 | |ref err|>10 on    1 magnets | fallbacks 0
+toby anchored boot ref truth+100     miss  215 extra   597 wrongpol    2 | |ref err|>10 on  969 magnets | fallbacks 0
+toby anchored boot ref truth+200     miss  750 extra   464 wrongpol  125 | |ref err|>10 on  439 magnets | fallbacks 0
+toby anchored boot ref truth-200     miss  788 extra   550 wrongpol   38 | |ref err|>10 on  395 magnets | fallbacks 0
+toby anchored step +60 @2000s        miss    3 extra     7 wrongpol    6 | |ref err|>10 on    8 magnets | fallbacks 0
+toby anchored step +120 @2000s       miss  276 extra   209 wrongpol    2 | |ref err|>10 on  136 magnets | fallbacks 0
+toby anchored step -120 @2000s       miss  153 extra   206 wrongpol    2 | |ref err|>10 on  259 magnets | fallbacks 0
+toby hybrid   baseline               miss    3 extra     3 wrongpol    2 | |ref err|>10 on    0 magnets | fallbacks 0
+toby hybrid   inject +60 @300        miss    3 extra     4 wrongpol    3 | |ref err|>10 on    1 magnets | fallbacks 1
+toby hybrid   inject +120 @300       miss    3 extra     4 wrongpol    2 | |ref err|>10 on    0 magnets | fallbacks 1
+toby hybrid   inject -80 @300        miss    3 extra     4 wrongpol    2 | |ref err|>10 on    0 magnets | fallbacks 1
+toby hybrid   boot ref truth+45      miss    3 extra     3 wrongpol    2 | |ref err|>10 on    1 magnets | fallbacks 0
+toby hybrid   boot ref truth+100     miss    8 extra     4 wrongpol    2 | |ref err|>10 on    1 magnets | fallbacks 1
+toby hybrid   boot ref truth+200     miss    8 extra     4 wrongpol    3 | |ref err|>10 on    1 magnets | fallbacks 1
+toby hybrid   boot ref truth-200     miss    3 extra     4 wrongpol    3 | |ref err|>10 on    0 magnets | fallbacks 1
+toby hybrid   step +60 @2000s        miss    3 extra     5 wrongpol    4 | |ref err|>10 on    3 magnets | fallbacks 1
+toby hybrid   step +120 @2000s       miss    4 extra     5 wrongpol    2 | |ref err|>10 on    1 magnets | fallbacks 1
+toby hybrid   step -120 @2000s       miss    7 extra     5 wrongpol    2 | |ref err|>10 on    0 magnets | fallbacks 1
+toby self     baseline               miss    3 extra     3 wrongpol    2 | |ref err|>10 on    0 magnets | fallbacks 0
+toby self     inject +60 @300        miss    3 extra     4 wrongpol    3 | |ref err|>10 on    1 magnets | fallbacks 0
+toby self     inject +120 @300       miss    3 extra     4 wrongpol    2 | |ref err|>10 on    0 magnets | fallbacks 0
+toby self     inject -80 @300        miss    3 extra     4 wrongpol    2 | |ref err|>10 on    0 magnets | fallbacks 0
+toby self     boot ref truth+45      miss    3 extra     3 wrongpol    2 | |ref err|>10 on    1 magnets | fallbacks 0
+toby self     boot ref truth+100     miss    8 extra     4 wrongpol    2 | |ref err|>10 on    1 magnets | fallbacks 0
+toby self     boot ref truth+200     miss    8 extra     4 wrongpol    3 | |ref err|>10 on    1 magnets | fallbacks 0
+toby self     boot ref truth-200     miss    3 extra     4 wrongpol    3 | |ref err|>10 on    0 magnets | fallbacks 0
+toby self     step +60 @2000s        miss    3 extra     4 wrongpol    3 | |ref err|>10 on    2 magnets | fallbacks 0
+toby self     step +120 @2000s       miss    4 extra     5 wrongpol    2 | |ref err|>10 on    1 magnets | fallbacks 0
+toby self     step -120 @2000s       miss    7 extra     5 wrongpol    2 | |ref err|>10 on    0 magnets | fallbacks 0

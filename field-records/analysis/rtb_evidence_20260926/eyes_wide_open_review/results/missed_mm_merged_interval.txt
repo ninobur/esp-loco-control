@@ -1,0 +1,6 @@
+otto missed-MM merged interval, mask all structure (anchored)            n=499 p50 1.0 p99 3.0 max 6.0
+otto missed-MM merged interval, mask boundary encounters only            n=499 p50 1.0 p99 4.0 max 7.0
+otto missed-MM merged interval, boundary + threshold, no lobe margins    n=499 p50 1.0 p99 4.0 max 7.0
+toby missed-MM merged interval, mask all structure (anchored)            n=380 p50 1.0 p99 5.0 max 7.0
+toby missed-MM merged interval, mask boundary encounters only            n=380 p50 1.0 p99 5.0 max 7.0
+toby missed-MM merged interval, boundary + threshold, no lobe margins    n=380 p50 nan p99 nan max nan

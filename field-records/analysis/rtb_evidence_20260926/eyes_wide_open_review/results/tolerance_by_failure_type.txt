@@ -1,0 +1,12 @@
+
+otto (n=1502 magnets, no stops). Onset |e| of each failure type; TOWARD = reference displaced toward the core's polarity
+  N TOWARD  FALSE_ORDINARY: min 62 p1 64 p50 68 (n757) | SPLIT_PREV_TRAIL: min 50 p1 56 p50 68 (n758) | LEAD_WRONGPOL: min 60 p1 60 p50 64 (n754) | WRONGPOL_AT_CORE: min 56 p1 60 p50 136 (n758) | MISS: min 60 p1 64 p50 110 (n740)
+  N AWAY    FALSE_ORDINARY: min 58 p1 58 p50 62 (n758) | SPLIT_PREV_TRAIL: min 44 p1 48 p50 62 (n758) | LEAD_SAMEPOL: min 58 p1 62 p50 64 (n739)
+  S TOWARD  FALSE_ORDINARY: min 56 p1 60 p50 62 (n742) | SPLIT_PREV_TRAIL: min 46 p1 50 p50 64 (n744) | LEAD_WRONGPOL: min 50 p1 56 p50 60 (n717) | WRONGPOL_AT_CORE: min 54 p1 56 p50 134 (n744) | MISS: min 56 p1 58 p50 110 (n725)
+  S AWAY    FALSE_ORDINARY: min 62 p1 62 p50 66 (n737) | SPLIT_PREV_TRAIL: min 50 p1 54 p50 62 (n744) | LEAD_SAMEPOL: min 62 p1 66 p50 70 (n651)
+
+toby (n=1126 magnets, no stops). Onset |e| of each failure type; TOWARD = reference displaced toward the core's polarity
+  N TOWARD  FALSE_ORDINARY: min 58 p1 61 p50 70 (n550) | SPLIT_PREV_TRAIL: min 58 p1 62 p50 70 (n545) | LEAD_WRONGPOL: min 52 p1 52 p50 62 (n558) | WRONGPOL_AT_CORE: min 44 p1 46 p50 58 (n556) | MISS: min 44 p1 76 p50 120 (n524)
+  N AWAY    FALSE_ORDINARY: min 54 p1 60 p50 68 (n527) | SPLIT_PREV_TRAIL: min 54 p1 58 p50 66 (n540) | LEAD_SAMEPOL: min 62 p1 63 p50 70 (n228)
+  S TOWARD  FALSE_ORDINARY: min 56 p1 59 p50 70 (n557) | SPLIT_PREV_TRAIL: min 56 p1 61 p50 70 (n554) | LEAD_WRONGPOL: min 52 p1 52 p50 62 (n566) | WRONGPOL_AT_CORE: min 48 p1 48 p50 60 (n565) | MISS: min 40 p1 42 p50 128 (n492)
+  S AWAY    FALSE_ORDINARY: min 44 p1 58 p50 68 (n532) | SPLIT_PREV_TRAIL: min 52 p1 58 p50 66 (n559) | LEAD_SAMEPOL: min 60 p1 65 p50 70 (n247)

@@ -1,0 +1,32 @@
+
+otto: error = ref - ordinary level just before next core (last100 clean)  n=1544
+  reference                              p50|e| p95|e| p99|e|  max|e|   n>10  n>20  n>30
+  EWO C(k-1)                               1.0    3.0    4.0   238.0     6     6     6
+  EWO gap-median(k-1) [lobes incl.]        1.0    4.0    5.0   238.0     6     6     6
+  X22-like first100(k)                     1.0    3.0    4.0    10.5     1     0     0
+  held: session first C                    2.0   32.0   34.0    38.0   191   191   135
+  recorder operative baseline              1.0   34.0   36.0    40.0   191   191   191
+  EWO |e|>8 cases:
+         k       t  e_ewo  e_x22  e_gap   stop  gap_W  clean_n       C  last100  first100  pwm_next     mm   ph
+867    867  1179.3  202.0    1.0  202.0  False   12.0      585  1934.0   1933.0    1934.0       110   64.0  5.0
+964    964  1389.1   -9.0    1.0   -9.0  False    9.9      362  1935.0   1935.0    1936.0        90  161.0  0.0
+1037  1037  1586.4  201.0    2.0  201.0  False   12.0      581  1935.0   1933.0    1935.0       110   64.0  5.0
+1133  1133  1797.8  162.0    1.0  162.0  False    9.9      357  1935.0   1934.0    1935.0        90  161.0  0.0
+1206  1206  1996.1  131.0    2.0  131.0  False   12.1      584  1934.0   1933.0    1935.0       110   64.0  5.0
+1353  1353  2326.4   32.0  -10.5   32.0   True  483.6    54709  1902.0   1904.0    1893.5        63   41.0  0.0
+1391  1391  2562.1 -238.0   -1.0 -238.0   True  238.9    53486  1902.0   1903.0    1902.0        61    3.0  0.0
+  EWO no stop in k-1 or k: n=1502 p50 1.0 p99 4.0 max 7.0
+  EWO stop in k-1 or k: n=41 p50 1.0 p99 223.6 max 238.0
+
+toby: error = ref - ordinary level just before next core (last100 clean)  n=1183
+  reference                              p50|e| p95|e| p99|e|  max|e|   n>10  n>20  n>30
+  EWO C(k-1)                               1.0    5.0    6.0     9.5     0     0     0
+  EWO gap-median(k-1) [lobes incl.]        1.0    6.0    7.0    30.5     1     1     1
+  X22-like first100(k)                     1.0    5.0    7.0    10.5     1     0     0
+  held: session first C                    1.0    3.9    5.0    11.5     1     0     0
+  recorder operative baseline              1.0    4.0    4.2    11.5     1     0     0
+  EWO |e|>8 cases:
+       k       t  e_ewo  e_x22  e_gap   stop  gap_W  clean_n       C  last100  first100  pwm_next
+761  761  1952.1   -9.5  -10.5   -9.5  False   17.0      606  1801.0   1810.5    1800.0        90
+  EWO no stop in k-1 or k: n=1124 p50 1.0 p99 6.0 max 9.5
+  EWO stop in k-1 or k: n=56 p50 2.0 p99 7.5 max 8.0

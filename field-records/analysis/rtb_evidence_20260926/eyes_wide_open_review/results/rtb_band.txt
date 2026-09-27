@@ -1,0 +1,18 @@
+otto RTB band ±70 x30 step=None: openings 1552 miss 0 extra 7 wrongpol 0 | encounter open-time p50 0.14s p99 0.4s max 78.3s
+otto RTB band ±70 x30 step=(2000.0, -45): openings 1552 miss 0 extra 7 wrongpol 0 | encounter open-time p50 0.14s p99 0.4s max 78.3s
+otto RTB band ±70 x30 step=(2000.0, 45): openings 1552 miss 0 extra 7 wrongpol 0 | encounter open-time p50 0.14s p99 0.4s max 78.3s
+otto RTB band ±40 x100 step=None: openings 1550 miss 0 extra 5 wrongpol 0 | encounter open-time p50 0.22s p99 0.5s max 78.3s
+otto RTB band ±40 x100 step=(2000.0, -45): openings 1523 miss 27 extra 5 wrongpol 0 | encounter open-time p50 0.22s p99 0.5s max 78.3s
+otto RTB band ±40 x100 step=(2000.0, 45): openings 1548 miss 2 extra 5 wrongpol 0 | encounter open-time p50 0.22s p99 0.5s max 78.3s
+otto RTB band ±25 x100 step=None: openings 1524 miss 26 extra 5 wrongpol 0 | encounter open-time p50 0.23s p99 0.5s max 96.8s
+otto RTB band ±25 x100 step=(2000.0, -45): openings 1485 miss 65 extra 5 wrongpol 0 | encounter open-time p50 0.23s p99 0.5s max 96.8s
+otto RTB band ±25 x100 step=(2000.0, 45): openings 1307 miss 242 extra 4 wrongpol 0 | encounter open-time p50 0.23s p99 0.5s max 270.6s
+otto RTB band ±15 x100 step=None: openings 1358 miss 191 extra 4 wrongpol 0 | encounter open-time p50 0.24s p99 0.6s max 1266.2s
+otto RTB band ±15 x100 step=(2000.0, -45): openings 1217 miss 332 extra 4 wrongpol 0 | encounter open-time p50 0.24s p99 0.6s max 1344.7s
+otto RTB band ±15 x100 step=(2000.0, 45): openings 1217 miss 332 extra 4 wrongpol 0 | encounter open-time p50 0.24s p99 0.6s max 1210.8s
+toby RTB band ±70 x30 step=None: openings 1189 miss 3 extra 3 wrongpol 2 | encounter open-time p50 0.14s p99 0.4s max 2.2s
+toby RTB band ±40 x100 step=None: openings 1187 miss 3 extra 1 wrongpol 2 | encounter open-time p50 0.22s p99 0.6s max 3.2s
+toby RTB band ±25 x100 step=None: openings 1186 miss 3 extra 0 wrongpol 2 | encounter open-time p50 0.23s p99 0.6s max 3.3s
+toby RTB band ±15 x100 step=None: openings 1186 miss 3 extra 0 wrongpol 2 | encounter open-time p50 0.24s p99 0.6s max 3.3s
+
+[exited with code 0]

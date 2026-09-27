@@ -1,0 +1,44 @@
+otto anchored
+  EXTRA     t=  1134.5s pwm= 38 ref= 1934.0 raw/peak= 2005.0  max_dt_nearby=2ms
+  EXTRA     t=  1134.5s pwm= 38 ref= 1934.0 raw/peak= 2005.0  max_dt_nearby=2ms
+  EXTRA     t=  1541.6s pwm= 38 ref= 1935.0 raw/peak= 2009.0  max_dt_nearby=3ms
+  EXTRA     t=  1541.6s pwm= 38 ref= 1934.0 raw/peak= 2005.0  max_dt_nearby=3ms
+  EXTRA     t=  1755.9s pwm= 28 ref= 1936.0 raw/peak= 2007.0  max_dt_nearby=3ms
+  EXTRA     t=  1951.0s pwm= 40 ref= 1935.0 raw/peak= 2010.0  max_dt_nearby=3ms
+  EXTRA     t=  2424.7s pwm= 39 ref= 1902.0 raw/peak= 1831.0  max_dt_nearby=3ms
+toby anchored
+  MISS      t=  1932.2s pwm= 90 ref=    nan raw/peak= -157.0  max_dt_nearby=1896ms
+  EXTRA     t=  1933.3s pwm= 90 ref= 1802.0 raw/peak= 1726.0  max_dt_nearby=1896ms
+  MISS      t=  1934.5s pwm= 90 ref=    nan raw/peak= -156.0  max_dt_nearby=1896ms
+  WRONGPOL  t=  1934.5s pwm= 90 ref= 1802.0 raw/peak= 1729.0  max_dt_nearby=1896ms
+  EXTRA     t=  1935.7s pwm= 90 ref= 1801.0 raw/peak= 1938.0  max_dt_nearby=2077ms
+  MISS      t=  1939.0s pwm= 90 ref=    nan raw/peak= -168.0  max_dt_nearby=2889ms
+  WRONGPOL  t=  1939.0s pwm= 90 ref= 1798.0 raw/peak= 1720.0  max_dt_nearby=2889ms
+  EXTRA     t=  1941.2s pwm= 90 ref= 1802.0 raw/peak= 1873.0  max_dt_nearby=2889ms
+otto self
+  EXTRA     t=  1134.5s pwm= 38 ref= 1934.0 raw/peak= 2005.0  max_dt_nearby=2ms
+  EXTRA     t=  1134.5s pwm= 38 ref= 1934.0 raw/peak= 2005.0  max_dt_nearby=2ms
+  EXTRA     t=  1175.3s pwm= 52 ref= 2136.0 raw/peak= 1985.0  max_dt_nearby=3ms
+  MISS      t=  1177.7s pwm= 91 ref=    nan raw/peak= -188.0  max_dt_nearby=3ms
+  WRONGPOL  t=  1179.4s pwm=110 ref= 2137.0 raw/peak= 2064.0  max_dt_nearby=3ms
+  EXTRA     t=  1541.6s pwm= 38 ref= 1935.0 raw/peak= 2009.0  max_dt_nearby=3ms
+  EXTRA     t=  1541.6s pwm= 38 ref= 1934.0 raw/peak= 2005.0  max_dt_nearby=3ms
+  EXTRA     t=  1582.5s pwm= 54 ref= 2134.0 raw/peak= 1987.0  max_dt_nearby=3ms
+  MISS      t=  1584.8s pwm= 92 ref=    nan raw/peak= -190.0  max_dt_nearby=2ms
+  WRONGPOL  t=  1586.5s pwm=110 ref= 2134.0 raw/peak= 2062.0  max_dt_nearby=2ms
+  EXTRA     t=  1755.9s pwm= 28 ref= 1936.0 raw/peak= 2007.0  max_dt_nearby=3ms
+  EXTRA     t=  1794.1s pwm= 44 ref= 2096.0 raw/peak= 1999.0  max_dt_nearby=3ms
+  MISS      t=  1796.4s pwm= 81 ref=    nan raw/peak= -161.0  max_dt_nearby=3ms
+  WRONGPOL  t=  1797.9s pwm= 90 ref= 2096.0 raw/peak= 2007.0  max_dt_nearby=3ms
+  MISS      t=  1799.3s pwm= 90 ref=    nan raw/peak= -173.0  max_dt_nearby=3ms
+  MISS      t=  1800.9s pwm= 90 ref=    nan raw/peak= -165.0  max_dt_nearby=3ms
+  MISS      t=  1802.3s pwm= 90 ref=    nan raw/peak= -178.0  max_dt_nearby=3ms
+  MISS      t=  1803.8s pwm= 90 ref=    nan raw/peak= -175.0  max_dt_nearby=3ms
+  EXTRA     t=  1951.0s pwm= 40 ref= 1935.0 raw/peak= 2010.0  max_dt_nearby=3ms
+  EXTRA     t=  1992.2s pwm= 53 ref= 2064.0 raw/peak= 1991.0  max_dt_nearby=3ms
+  MISS      t=  1994.6s pwm= 92 ref=    nan raw/peak= -188.0  max_dt_nearby=3ms
+  MISS      t=  1996.1s pwm=110 ref=    nan raw/peak=  157.0  max_dt_nearby=3ms
+  EXTRA     t=  1996.2s pwm=110 ref= 2064.0 raw/peak= 1983.0  max_dt_nearby=3ms
+  EXTRA     t=  2424.7s pwm= 39 ref= 1902.0 raw/peak= 1831.0  max_dt_nearby=3ms
+  EXTRA     t=  2503.0s pwm=  0 ref= 1665.0 raw/peak= 1867.0  max_dt_nearby=3ms
+  WRONGPOL  t=  2507.0s pwm=  0 ref= 1665.0 raw/peak= 1736.0  max_dt_nearby=3ms

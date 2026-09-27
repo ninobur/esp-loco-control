@@ -1,0 +1,41 @@
+baseline anchored (miss,extra,wrongpol): {'otto': (np.int64(0), 7, 0), 'toby': (np.int64(3), 3, 2)}
+
+== single bad reference injected after opening N (anchored). delta vs baseline; recovery = matched magnets after injection with |ref err|>5
+  otto N=300 e0= +30: miss +0 extra +0 wrongpol +0 | magnets judged with |err|>5: 6 (first consecutive run 2) | total openings 1552
+  otto N=300 e0= +45: miss +0 extra +0 wrongpol +0 | magnets judged with |err|>5: 4 (first consecutive run 0) | total openings 1552
+  otto N=300 e0= +60: miss +1 extra +1077 wrongpol +27 | magnets judged with |err|>5: 949 (first consecutive run 946) | total openings 2628
+  otto N=300 e0= +80: miss +558 extra +875 wrongpol +3 | magnets judged with |err|>5: 687 (first consecutive run 687) | total openings 1869
+  otto N=300 e0=+120: miss +781 extra +628 wrongpol +7 | magnets judged with |err|>5: 464 (first consecutive run 464) | total openings 1399
+  otto N=300 e0= -45: miss +0 extra +0 wrongpol +0 | magnets judged with |err|>5: 4 (first consecutive run 0) | total openings 1552
+  otto N=300 e0= -60: miss +0 extra +4460 wrongpol +500 | magnets judged with |err|>5: 1056 (first consecutive run 1055) | total openings 6012
+  otto N=300 e0= -80: miss +570 extra +749 wrongpol +0 | magnets judged with |err|>5: 490 (first consecutive run 489) | total openings 1731
+  otto N=300 e0=-120: miss +655 extra +877 wrongpol +52 | magnets judged with |err|>5: 590 (first consecutive run 590) | total openings 1774
+  otto N=900 e0= +30: miss +0 extra +0 wrongpol +0 | magnets judged with |err|>5: 4 (first consecutive run 0) | total openings 1552
+  otto N=900 e0= +45: miss +0 extra +0 wrongpol +0 | magnets judged with |err|>5: 4 (first consecutive run 0) | total openings 1552
+  otto N=900 e0= +60: miss +109 extra +1114 wrongpol +18 | magnets judged with |err|>5: 538 (first consecutive run 538) | total openings 2557
+  otto N=900 e0= +80: miss +316 extra +451 wrongpol +3 | magnets judged with |err|>5: 331 (first consecutive run 331) | total openings 1687
+  otto N=900 e0=+120: miss +442 extra +603 wrongpol +30 | magnets judged with |err|>5: 205 (first consecutive run 205) | total openings 1713
+  otto N=900 e0= -45: miss +0 extra +0 wrongpol +0 | magnets judged with |err|>5: 4 (first consecutive run 0) | total openings 1552
+  otto N=900 e0= -60: miss +0 extra +1948 wrongpol +205 | magnets judged with |err|>5: 458 (first consecutive run 457) | total openings 3500
+  otto N=900 e0= -80: miss +249 extra +381 wrongpol +0 | magnets judged with |err|>5: 213 (first consecutive run 212) | total openings 1684
+  otto N=900 e0=-120: miss +325 extra +1608 wrongpol +66 | magnets judged with |err|>5: 322 (first consecutive run 322) | total openings 2835
+  toby N=300 e0= +30: miss +0 extra +0 wrongpol +0 | magnets judged with |err|>5: 21 (first consecutive run 0) | total openings 1189
+  toby N=300 e0= +45: miss +0 extra +0 wrongpol +0 | magnets judged with |err|>5: 23 (first consecutive run 2) | total openings 1189
+  toby N=300 e0= +60: miss +0 extra +12 wrongpol +10 | magnets judged with |err|>5: 36 (first consecutive run 15) | total openings 1201
+  toby N=300 e0= +80: miss +80 extra +445 wrongpol +0 | magnets judged with |err|>5: 801 (first consecutive run 801) | total openings 1554
+  toby N=300 e0=+120: miss +572 extra +435 wrongpol +0 | magnets judged with |err|>5: 314 (first consecutive run 314) | total openings 1052
+  toby N=300 e0= -45: miss +0 extra +0 wrongpol +0 | magnets judged with |err|>5: 21 (first consecutive run 0) | total openings 1189
+  toby N=300 e0= -60: miss +0 extra +1 wrongpol +0 | magnets judged with |err|>5: 24 (first consecutive run 3) | total openings 1190
+  toby N=300 e0= -80: miss +72 extra +448 wrongpol +0 | magnets judged with |err|>5: 809 (first consecutive run 809) | total openings 1565
+  toby N=300 e0=-120: miss +590 extra +437 wrongpol -1 | magnets judged with |err|>5: 291 (first consecutive run 291) | total openings 1036
+  toby N=700 e0= +30: miss +0 extra +0 wrongpol +0 | magnets judged with |err|>5: 15 (first consecutive run 0) | total openings 1189
+  toby N=700 e0= +45: miss +0 extra +0 wrongpol +0 | magnets judged with |err|>5: 15 (first consecutive run 0) | total openings 1189
+  toby N=700 e0= +60: miss +0 extra +44 wrongpol +40 | magnets judged with |err|>5: 93 (first consecutive run 83) | total openings 1233
+  toby N=700 e0= +80: miss +41 extra +240 wrongpol +0 | magnets judged with |err|>5: 440 (first consecutive run 440) | total openings 1388
+  toby N=700 e0=+120: miss +338 extra +172 wrongpol +64 | magnets judged with |err|>5: 148 (first consecutive run 148) | total openings 1023
+  toby N=700 e0= -45: miss +0 extra +0 wrongpol +0 | magnets judged with |err|>5: 15 (first consecutive run 0) | total openings 1189
+  toby N=700 e0= -60: miss +0 extra +22 wrongpol +21 | magnets judged with |err|>5: 61 (first consecutive run 50) | total openings 1211
+  toby N=700 e0= -80: miss +47 extra +246 wrongpol +0 | magnets judged with |err|>5: 434 (first consecutive run 434) | total openings 1388
+  toby N=700 e0=-120: miss +326 extra +234 wrongpol +4 | magnets judged with |err|>5: 157 (first consecutive run 157) | total openings 1097
+
+[exited with code 0]
