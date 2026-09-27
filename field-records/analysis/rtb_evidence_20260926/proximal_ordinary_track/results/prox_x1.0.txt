@@ -1,0 +1,93 @@
+== sliding: |median(prev N) - median(next 100)|, all clean intervals (counts): p50 / p95 / max  [windows]
+  otto N=   5: 1.0 / 8.0 / 11.0  [2362]
+  otto N=  10: 1.0 / 7.5 / 10.5  [2340]
+  otto N=  20: 1.0 / 7.0 / 10.5  [2296]
+  otto N=  30: 1.0 / 7.0 / 11.0  [2253]
+  otto N=  50: 1.0 / 6.0 / 8.5  [2169]
+  otto N=  75: 0.5 / 5.0 / 8.0  [2069]
+  otto N= 100: 0.0 / 1.0 / 2.0  [1969]
+  otto N= 150: 0.0 / 2.0 / 6.0  [1773]
+  otto N= 200: 0.0 / 1.0 / 2.0  [1583]
+  otto N= 300: 0.5 / 1.0 / 2.0  [1220]
+  otto N= 400: 1.0 / 1.0 / 2.0  [921]
+  otto N= 600: 1.0 / 1.0 / 2.0  [544]
+  toby N=   5: 1.0 / 2.0 / 10.0  [1703]
+  toby N=  10: 0.5 / 1.5 / 9.5  [1689]
+  toby N=  20: 0.0 / 1.0 / 7.5  [1661]
+  toby N=  30: 0.0 / 1.0 / 4.0  [1633]
+  toby N=  50: 0.0 / 1.0 / 3.0  [1581]
+  toby N=  75: 0.0 / 1.0 / 4.0  [1516]
+  toby N= 100: 0.0 / 2.0 / 4.0  [1451]
+  toby N= 150: 0.0 / 2.0 / 5.0  [1321]
+  toby N= 200: 0.0 / 2.0 / 5.0  [1191]
+  toby N= 300: 0.5 / 2.0 / 6.0  [945]
+  toby N= 400: 1.0 / 3.0 / 7.0  [770]
+  toby N= 600: 1.0 / 3.3 / 8.0  [534]
+    loco                     seg pol  pwm      W  pre_n  pre_W   M_pre  Q_post  post_n  seg_first  rec_base     P10     P30    P100    P300
+0   otto  otto_low_pwm_N_seq3370   N   48  286.0    756    2.6  1932.0  1933.0     728     1932.0      1932  1931.0  1931.0  1931.0  1931.0
+1   otto  otto_low_pwm_N_seq3370   S   65  166.0    728    4.4  1933.0  1934.0     577     1932.0      1932  1941.5  1935.0  1934.0  1934.0
+2   otto  otto_low_pwm_N_seq3370   S   77  133.2    577    4.3  1934.0     NaN       0     1932.0      1932  1934.0  1934.0  1934.0  1934.0
+3   otto  otto_mid_pwm_N_seq4188   S   90   97.5    323    3.3  1934.0  1933.0     448     1934.0      1932  1933.0  1934.0  1935.0  1934.0
+4   otto  otto_mid_pwm_N_seq4188   N   90  101.0    448    4.4  1933.0  1934.0     462     1934.0      1932  1932.0  1932.0  1932.0  1933.0
+5   otto  otto_mid_pwm_N_seq4188   S   90  100.0    462    4.6  1934.0  1933.0     385     1934.0      1932  1933.0  1934.0  1933.0  1933.0
+6   otto  otto_low_pwm_S_seq1118   S   60  178.0   1221    6.9  1935.0  1934.0     762     1935.0      1935  1934.0  1934.0  1935.0  1934.0
+7   otto  otto_low_pwm_S_seq1118   N   60  178.0    762    4.3  1934.0     NaN       0     1935.0      1935  1933.0  1933.0  1933.0  1934.0
+8   otto  otto_high_pwm_N_seq117   S   93  130.0   1437   11.1  1934.0  1934.0     585     1934.0      1935  1935.0  1935.0  1935.0  1935.0
+9   otto  otto_high_pwm_N_seq117   N  110   98.0    585    6.0  1934.0  1933.0     417     1934.0      1935  1932.0  1933.0  1933.0  1933.0
+10  otto  otto_high_pwm_N_seq117   N  110   97.0    417    4.3  1933.0  1935.0     455     1934.0      1935  1938.0  1939.0  1934.0  1933.0
+11  otto  otto_difficult_not_a_m   S   90  106.0    225    2.1  1903.0  1901.0     496     1903.0      1935  1908.5  1909.0  1903.0     NaN
+12  otto  otto_difficult_not_a_m   N   90  100.0    496    5.0  1901.0  1901.0     620     1903.0      1935  1900.5  1901.0  1901.0  1901.0
+13  otto  otto_difficult_not_a_m   N   90  109.0    620    5.7  1901.0  1901.0     145     1903.0      1935  1899.0  1900.0  1901.0  1901.0
+14  otto  otto_difficult_no_posi   S    0  275.0    665    2.4  1903.0  1902.0    1136     1903.0      1935  1903.5  1904.0  1904.0  1904.0
+15  otto  otto_difficult_wrong_m   S   90  110.0    121    1.1  1902.0  1901.0     518     1902.0      1935  1903.0  1903.0  1902.0     NaN
+16  otto  otto_difficult_wrong_m   N   90  116.0    518    4.5  1901.0  1902.0    1556     1902.0      1935  1898.5  1899.0  1899.0  1899.0
+17  toby  toby_mid_pwm_S_t409264   S   63  189.0   1373    7.3  1799.0  1799.0     447     1799.0      1798  1799.0  1799.0  1799.5  1799.0
+18  toby  toby_mid_pwm_S_t409264   S   76  189.0    447    2.4  1799.0     NaN       0     1799.0      1798  1798.5  1798.0  1799.0  1799.0
+19  toby  toby_mid_pwm_N_t415952   S   90   86.0    642    7.5  1799.0  1798.0     418     1799.0      1798  1799.0  1799.0  1799.0  1799.0
+20  toby  toby_mid_pwm_N_t415952   N   90   86.0    418    4.9  1798.0  1797.0     379     1799.0      1798  1797.5  1798.0  1798.0  1798.0
+21  toby  toby_mid_pwm_N_t415952   N   90   96.0    379    3.9  1797.0  1799.0     531     1799.0      1798  1797.5  1798.0  1797.0  1798.0
+22  toby  toby_low_pwm_S_t437078   S   60  166.0   1443    8.7  1798.0  1800.0    1295     1798.0      1798  1799.0  1799.0  1799.0  1799.0
+23  toby  toby_low_pwm_N_t442867   N   60  162.0    727    4.5  1799.0  1799.0    1315     1799.0      1798  1797.0  1797.0  1797.0  1798.0
+24  toby  toby_difficult_disagre   S   72  137.0    125    0.9  1800.0  1799.0     473     1800.0      1799  1801.0  1801.0  1800.0     NaN
+25  toby  toby_difficult_disagre   N   81  110.0    473    4.3  1799.0  1799.0     349     1800.0      1799  1798.0  1798.5  1799.0  1799.0
+26  toby  toby_difficult_disagre   S   88  102.0    349    3.4  1799.0  1800.0     425     1800.0      1799  1800.0  1800.0  1800.0  1799.0
+
+== proximal P_N vs own-interval median M_pre and vs post-magnet level Q (|diff|: p50/max) 
+  otto N=   5 (n=17,15): vs M_pre 1.0/9.0   vs Q_post 2.0/8.0
+  otto N=  10 (n=17,15): vs M_pre 1.0/8.5   vs Q_post 2.0/7.5
+  otto N=  20 (n=17,15): vs M_pre 1.0/6.0   vs Q_post 1.0/8.0
+  otto N=  30 (n=17,15): vs M_pre 1.0/6.0   vs Q_post 1.0/8.0
+  otto N=  50 (n=17,15): vs M_pre 1.0/5.5   vs Q_post 2.0/7.5
+  otto N=  75 (n=17,15): vs M_pre 1.0/2.0   vs Q_post 1.0/3.0
+  otto N= 100 (n=17,15): vs M_pre 1.0/2.0   vs Q_post 1.0/3.0
+  otto N= 150 (n=16,14): vs M_pre 1.0/2.0   vs Q_post 1.2/3.0
+  otto N= 200 (n=16,14): vs M_pre 0.5/2.0   vs Q_post 1.0/3.0
+  otto N= 300 (n=15,13): vs M_pre 1.0/2.0   vs Q_post 1.0/3.0
+  otto N= 400 (n=14,12): vs M_pre 0.5/1.0   vs Q_post 1.0/2.0
+  otto N= 600 (n=7,6): vs M_pre 0.0/1.0   vs Q_post 1.0/1.0
+  otto M_pre vs Q_post: p50 1.0 max 2.0   signed: [1.0, 1.0, -1.0, 1.0, -1.0, -1.0, 0.0, -1.0, 2.0, -2.0, 0.0, 0.0, -1.0, -1.0, 1.0]
+  otto held seg_first vs Q_post: p50 1.0 max 2.0
+  otto held loco_first vs Q_post: p50 2.0 max 31.0
+  otto recorder baseline vs Q_post: p50 2.0 max 34.0
+  toby N=   5 (n=10,9): vs M_pre 1.0/2.0   vs Q_post 1.0/2.0
+  toby N=  10 (n=10,9): vs M_pre 0.8/2.0   vs Q_post 1.0/2.0
+  toby N=  20 (n=10,9): vs M_pre 0.8/2.0   vs Q_post 1.0/2.0
+  toby N=  30 (n=10,9): vs M_pre 1.0/2.0   vs Q_post 1.0/2.0
+  toby N=  50 (n=10,9): vs M_pre 0.2/1.0   vs Q_post 1.0/1.5
+  toby N=  75 (n=10,9): vs M_pre 0.0/1.0   vs Q_post 1.0/2.0
+  toby N= 100 (n=10,9): vs M_pre 0.0/2.0   vs Q_post 1.0/2.0
+  toby N= 150 (n=9,8): vs M_pre 0.0/1.0   vs Q_post 1.0/2.0
+  toby N= 200 (n=9,8): vs M_pre 0.5/1.0   vs Q_post 1.0/1.5
+  toby N= 300 (n=9,8): vs M_pre 0.0/1.0   vs Q_post 1.0/1.0
+  toby N= 400 (n=7,6): vs M_pre 0.0/1.0   vs Q_post 1.0/1.0
+  toby N= 600 (n=4,4): vs M_pre 0.5/1.0   vs Q_post 1.0/1.0
+  toby M_pre vs Q_post: p50 1.0 max 2.0   signed: [0.0, -1.0, -1.0, 2.0, 2.0, 0.0, -1.0, 0.0, 1.0]
+  toby held seg_first vs Q_post: p50 1.0 max 2.0
+  toby held loco_first vs Q_post: p50 0.0 max 2.0
+  toby recorder baseline vs Q_post: p50 1.0 max 2.0
+
+== naive proximal window ending at departure proxy minus D*W; bias vs M_pre in core-sign units (negative = toward leading lobe) median [min,max]
+  otto N=50: D=0:+27.5[+10,+47]n17  D=0.5:+0.0[-6,+16]n17  D=1:-3.0[-6,+3]n17  D=1.5:-2.0[-4,+4]n17  D=2:-2.0[-8,+4]n17  D=2.5:-1.0[-2,+5]n17  D=3:-1.0[-6,+1]n17  D=3.5:+0.0[-5,+2]n17
+  otto N=100: D=0:+7.5[+2,+40]n17  D=0.5:-1.0[-6,+14]n17  D=1:-2.0[-4,+1]n17  D=1.5:-2.0[-3,-1]n17  D=2:-1.0[-2,-0]n17  D=2.5:-1.0[-2,+0]n17  D=3:-1.0[-2,+0]n17  D=3.5:+0.0[-2,+1]n16
+  toby N=50: D=0:+2.8[-18,+24]n10  D=0.5:-11.0[-22,-10]n10  D=1:-8.0[-10,-4]n10  D=1.5:-5.2[-6,-2]n10  D=2:-3.0[-4,-1]n10  D=2.5:-2.0[-3,+0]n10  D=3:-1.0[-2,-0]n10  D=3.5:+0.0[-1,-0]n10
+  toby N=100: D=0:-9.0[-22,+4]n10  D=0.5:-10.8[-18,-7]n10  D=1:-7.0[-9,-3]n10  D=1.5:-4.2[-5,-1]n10  D=2:-2.5[-3,+0]n10  D=2.5:-1.5[-2,+0]n10  D=3:-0.5[-2,-0]n10  D=3.5:+0.0[-2,-0]n10
