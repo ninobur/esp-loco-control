@@ -27,6 +27,18 @@ authority. They cannot:
 NAVI may transparently report anomalous activity. The established position remains
 the incumbent (0104) unless other sufficient evidence later contradicts it.
 
+**"Coasting" is simulated by PWM (David, 2026-09-27).** "Coasting is a simulation by
+applying a slow ramp. The speed is absolutely controlled by pwm. That behavior is still
+present in the current manual mode. To the operator, it feels like the train is
+coasting, but the movement is 100% determined by pwm."
+- In code, the manual brake setting only sets the down-ramp step rate: 400 ms per
+  count at rest ("coast") down to 15 ms per count (hard brake) (`BRAKE_STEP_COAST_MS`,
+  `brakeStepMs()` in the sketch).
+- The locomotive follows the ramp. What the operator perceives as coasting is
+  motion at PWM > 0. Once PWM reaches 0, the locomotive is not moving.
+- Wherever older NGR text speaks of coasting after PWM reaches zero, it describes a
+  behavior that does not exist.
+
 **Operator declaration and redeclaration remain authoritative:** they are operator
 authority intentionally changing NAVI's world view. By normal practice, small operator
 adjustments are returned to substantially the same position; deliberate material
@@ -89,3 +101,8 @@ exceptions that David and Sam did not decide: another locomotive, a grade or a
 consist coasting at PWM 0, and motion below the tractive floor. The Decision now
 states the principle as decided, and those exceptions are removed. The evidence
 section is unchanged in substance.
+
+
+2026-09-27, on David's instruction: added the clarification that "coasting" is a
+PWM ramp simulation. Movement is entirely determined by PWM, and there is no
+movement after PWM reaches 0.
