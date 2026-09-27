@@ -36,6 +36,21 @@ Specifically, unless a spec explicitly says otherwise:
 
 ---
 
+## Architectural principles (read before proposing a design)
+
+[`NGR_DECISION_SYSTEM_DESIGN_PRINCIPLES.md`](NGR_DECISION_SYSTEM_DESIGN_PRINCIPLES.md)
+holds the enduring NGR decision-system design principles. Examples: put judgment
+where the information is; direct measurement before proxy; Evidence Accumulation
+Before Revision.
+
+Read it before proposing any architecture or implementation. For navigation
+work, read [`NAVI_DECISION_MODEL.md`](NAVI_DECISION_MODEL.md) too. Any
+architectural or reconciliation document should state near its top how it
+applies these principles, and name any it departs from. The principles authorize
+nothing; implementation authority still comes from the operator (`/AGENTS.md`).
+
+---
+
 ## Files
 
 | File | Purpose |

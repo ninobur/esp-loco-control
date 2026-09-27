@@ -1,5 +1,8 @@
 # Decision records
 
+> Enduring design principles, as distinct from dated decisions, are in
+> [`../NGR_DECISION_SYSTEM_DESIGN_PRINCIPLES.md`](../NGR_DECISION_SYSTEM_DESIGN_PRINCIPLES.md).
+
 ## Purpose
 
 This is a diary, not a rulebook. It exists so that people and future AI

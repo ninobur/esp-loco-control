@@ -70,6 +70,7 @@ It resolved two D-items:
 
 ## References
 
+- `../NGR_DECISION_SYSTEM_DESIGN_PRINCIPLES.md` (enduring principles)
 - `../NAVI_DECISION_MODEL.md` §2, §6
 - `../NAVI_DECISIONAL_INERTIA_CLARIFICATION_20260923.md`
 - `0098-proximal-physical-recovery-before-polarity-scoring.md`

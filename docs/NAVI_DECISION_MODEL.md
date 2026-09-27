@@ -1,5 +1,8 @@
 # NAVI decision model
 
+> **Read first:** [`NGR_DECISION_SYSTEM_DESIGN_PRINCIPLES.md`](NGR_DECISION_SYSTEM_DESIGN_PRINCIPLES.md), the enduring NGR decision-system design principles. This
+> document applies them to NAVI.
+
 **Canonical, living document.** Last revised 2026-09-27, after David and Sam's
 first-pass review of D1–D10 from
 [`NAVI_UNIFIED_AUTHORITY_X22_RECONCILIATION_PLAN_20260926.md`](NAVI_UNIFIED_AUTHORITY_X22_RECONCILIATION_PLAN_20260926.md).

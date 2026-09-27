@@ -82,6 +82,7 @@ This record uses that as prior evidence, not as an answer.
 
 ## References
 
+- `../NGR_DECISION_SYSTEM_DESIGN_PRINCIPLES.md` (enduring principles)
 - `../NAVI_DECISION_MODEL.md` §3, §6
 - `../NAVI_UNIFIED_AUTHORITY_X22_RECONCILIATION_PLAN_20260926.md` §1.2–1.3, §4
 - `../NAVI_BASELINE_TIMING_20260916_C3B93D0B.md`, `../NAVI_BASELINE_DRIFT_20260916_C3B93D0B.md`,

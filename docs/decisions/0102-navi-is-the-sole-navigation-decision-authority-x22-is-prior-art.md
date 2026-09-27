@@ -65,6 +65,7 @@ lower-context decision-maker between the data and NAVI.
 
 ## References
 
+- `../NGR_DECISION_SYSTEM_DESIGN_PRINCIPLES.md` (enduring principles)
 - `../NAVI_DECISION_MODEL.md`
 - `../NAVI_UNIFIED_AUTHORITY_X22_RECONCILIATION_PLAN_20260926.md`
 - `../../field-records/verdicts/20260926_toby_20q3_run{1..5}.md`

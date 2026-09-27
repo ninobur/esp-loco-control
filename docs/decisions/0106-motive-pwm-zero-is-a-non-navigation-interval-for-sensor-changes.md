@@ -77,6 +77,7 @@ cover it; it remains an example of IR moving without the locomotive.
 
 ## References
 
+- `../NGR_DECISION_SYSTEM_DESIGN_PRINCIPLES.md` (enduring principles)
 - `../NAVI_DECISION_MODEL.md` §3
 - `../../field-records/verdicts/20260926_toby_20q3_run{1,2,4}.md`
 - `../NAVI_UNIFIED_AUTHORITY_X22_RECONCILIATION_PLAN_20260926.md` (N2, N3, D2, D3, R4)

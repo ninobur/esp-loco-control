@@ -52,6 +52,7 @@ reasoning to be visible, which a scalar hides.
 
 ## References
 
+- `../NGR_DECISION_SYSTEM_DESIGN_PRINCIPLES.md` (enduring principles)
 - `../NAVI_DECISION_MODEL.md` §2, §4
 - `0091-ir-trust-is-earned-kept-through-stops-and-revoked-by-introspection.md`
   ("Transparent Judgment")

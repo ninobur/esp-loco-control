@@ -1,5 +1,8 @@
 # NAVI unified authority: X22 concept integration, reconciliation plan
 
+> **Governing principles:** [`NGR_DECISION_SYSTEM_DESIGN_PRINCIPLES.md`](NGR_DECISION_SYSTEM_DESIGN_PRINCIPLES.md) (enduring) and
+> [`NAVI_DECISION_MODEL.md`](NAVI_DECISION_MODEL.md) (their NAVI application).
+
 > **REVISED 2026-09-27 after David and Sam's first-pass review of D1–D10.**
 > The review changed several premises of this plan. The governing principles are
 > now in [`NAVI_DECISION_MODEL.md`](NAVI_DECISION_MODEL.md) and decision records
