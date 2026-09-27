@@ -102,7 +102,6 @@ consist coasting at PWM 0, and motion below the tractive floor. The Decision now
 states the principle as decided, and those exceptions are removed. The evidence
 section is unchanged in substance.
 
-
 2026-09-27, on David's instruction: added the clarification that "coasting" is a
 PWM ramp simulation. Movement is entirely determined by PWM, and there is no
 movement after PWM reaches 0.
