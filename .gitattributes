@@ -1,2 +1,4 @@
 *.pdf binary
 *.docx binary
+field-records/analysis/rtb_evidence_20260926/sources/*.xhr filter=lfs diff=lfs merge=lfs -text
+field-records/analysis/rtb_evidence_20260926/sources/*.qtcap filter=lfs diff=lfs merge=lfs -text
