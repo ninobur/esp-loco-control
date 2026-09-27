@@ -100,16 +100,18 @@ principle). → [0105](decisions/0105-evidence-is-relational-and-contextual-not-
 ## 3. Physical-state rules
 
 **Motive PWM = 0 is a non-navigation interval for sensor changes.** → [0106](decisions/0106-motive-pwm-zero-is-a-non-navigation-interval-for-sensor-changes.md)
-- At motive PWM 0, Toby is stopped under normal locomotive control. There is no
-  ordinary motive coasting.
-- Hall or IR changes during motive PWM 0 are retained and reported. They have
-  no authority to advance, retreat or correct position, to accumulate route
-  displacement, or to cause a compensating navigation response.
-- Operator declaration and redeclaration are different: operator authority
-  intentionally changing the world view.
-- IR wheel movement at PWM 0 may be a valid measurement of rotation, but it is
-  not signed route displacement and must not contaminate the MM/IR
-  relationship. If that relationship is broken, IR regains route-location
+- **PWM = 0 means no movement. Period.** Motive PWM 0 is a non-navigation
+  interval: NAVI is not moving the locomotive.
+- Changes in Hall, IR or other movement-related sensor data during that
+  interval are not locomotive route movement for navigation purposes. They may
+  be retained, reported and available as context, but they have no navigation
+  authority. They cannot advance, retreat or correct position, accumulate route
+  displacement, or cause a compensating navigation response.
+- Operator declaration and redeclaration remain authoritative.
+- IR wheel movement recorded at PWM 0 may be real movement of the measuring
+  wheel, including operator handling. It is not locomotive route movement,
+  cannot be used as signed route displacement, and must not contaminate the
+  MM/IR relationship. If that relationship is broken, IR regains route-location
   authority only through a trustworthy route reference: normally the next
   accepted MM, or an operator declaration.
 - **Open:** whether a completely motionless, normal PWM-0 station stop breaks

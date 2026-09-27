@@ -538,7 +538,7 @@ itself an implementation step that needs authorization.
 |---|---|---|---|
 | D1 | **SETTLED, reframed** | NAVI is the sole navigation decision authority. The authority structure is created anew from principles, not refactored from X22. X22 knowledge is preserved; its structure has no presumption of survival | 0102 |
 | D2 | **SETTLED: superseded** | Reproducing X22's PWM-zero and stopped-in-field outcomes is not a goal. Preserve the underlying information and useful concepts | 0102, 0106 |
-| D3 | **SETTLED** | At motive PWM 0, Toby is stopped; Hall/IR changes then have no navigation authority and are retained and reported. IR at PWM 0 is not signed route displacement; a broken MM/IR relationship is restored only by a trustworthy route reference | 0106 |
+| D3 | **SETTLED** | PWM = 0 means no movement: motive PWM 0 is a non-navigation interval; Hall/IR changes then have no navigation authority and are retained and reported. IR at PWM 0 is not signed route displacement; a broken MM/IR relationship is restored only by a trustworthy route reference | 0106 |
 | D4 | **OPEN** | Depends on a general Return to Baseline (RTB) model recognized from the Hall phenomenon, not a replacement timer or fixed distance | 0107 |
 | D5 | **SETTLED** | A new operational baseline requires sampling across movement. A stationary quiet value is one point. The boot reference under the clear-of-magnets condition is permitted | 0107 |
 | D6 | **SETTLED: no** | The 3 s cadence gate is not carried forward. Loss of IR does not require manufacturing a new baseline; the established one is retained while coherent | 0104 |
