@@ -1,5 +1,32 @@
 # NAVI unified authority: X22 concept integration, reconciliation plan
 
+> **REVISED 2026-09-27 after David and Sam's first-pass review of D1–D10.**
+> The review changed several premises of this plan. The governing principles are
+> now in [`NAVI_DECISION_MODEL.md`](NAVI_DECISION_MODEL.md) and decision records
+> [0102](decisions/0102-navi-is-the-sole-navigation-decision-authority-x22-is-prior-art.md)–[0107](decisions/0107-hall-baseline-is-spatial-rtb-is-recognized-from-the-phenomenon.md).
+> **Where this plan conflicts with them, they govern.**
+>
+> - **Still valid as evidence and inventory:**
+>   - §1, the evidence base;
+>   - §2, the current data flow;
+>   - §3, the authority inventory N1–N8 and the dormant paths, *as a description of
+>     X22R*;
+>   - §4, the N8 provenance;
+>   - §6, reversal out of scope;
+>   - the appendix time inventory.
+> - **Superseded as a proposal:**
+>   - §0's framing of a retained "measurement stage";
+>   - the "Fate" column of §3.2;
+>   - all of §5 (it refactored X22 rather than creating the authority structure
+>     anew, per 0102);
+>   - §7.4 (shadow X22R telemetry: D7, no);
+>   - §9 T1 as a prerequisite (D10);
+>   - §10 R4 (resolved by 0106);
+>   - §11 (replaced by §12, the dispositions).
+>
+> The original text is kept below, unedited except for these notes, so the
+> reasoning that led to the review stays readable.
+
 **Status: plan only. No firmware, test, dashboard, Pi, threshold or configuration
 change has been made.** It is for David and Sam to review together. Implementation
 waits for David's authorization.
@@ -11,6 +38,12 @@ waits for David's authorization.
   `ExcursionDetectorX22R.h`.
 
 ## 0. The decision this plan implements (operator, 2026-09-26)
+
+> **2026-09-27:** restated and extended in 0102. "Processing may be distributed …
+> but navigation judgment is not distributed." X22 is prior art, not the starting
+> point. The "measurement stage" below is superseded as a framing. Signal
+> conditioning may still live in a subordinate module, but what it does is to be
+> derived from the physical problem, not inherited from X22.
 
 > NAVI is the sole navigation authority. Hall and IR provide data. X22-derived
 > concepts are tools available to NAVI; X22 is not an independent decision
@@ -151,6 +184,14 @@ count suppressed openings.
 
 ### 3.2 Navigation consequences inside X22R (N1–N8)
 
+> **2026-09-27:** the inventory stands. The "Fate under the plan" column is
+> superseded: each mechanism is re-derived from its physical problem under 0102.
+> - **N2/N3:** resolved in principle by 0106 (PWM 0).
+> - **N4:** not carried forward (D6, 0104).
+> - **N5/N6:** 0103 (measured movement before PWM) and 0107 (baseline is spatial).
+> - **N7:** NAVI's world view, 0102.
+> - **N8:** D4 open, RTB model, 0107.
+
 | # | Mechanism | Where | What it currently does | Inference | Fate under the plan |
 |---|---|---|---|---|---|
 | N1 | 400 ms acquisition window | 467–482 | suppresses every opening within 400 ms of the last | "no new magnet within 400 ms" (time-based spacing) | suppression authority removed. Openings go to NAVI with a `within_window_of` fact. The window stays as a recording |
@@ -219,6 +260,15 @@ it. On the Hall-only fallback path it is retained unchanged, as an inherited
 fallback, not a new gate.
 
 ## 5. Proposed architecture
+
+> **2026-09-27: superseded as a proposal (0102).** It refactors X22R into a
+> "measurement stage" and preserves X22 outcomes through NAVI fallback rules.
+> - D2's outcome-reproduction was rejected.
+> - The no-IR fallback baseline cycle, including CADENCE, was rejected by D6.
+> - The IR region bounds are replaced by the RTB model (D4 open).
+>
+> The section is kept for the reasoning it records. The 650 ms rule (§5.3) and the
+> preserved Epoch/MM-reference semantics (§5.5) are unaffected.
 
 ### 5.1 Where each concept lives
 
@@ -363,6 +413,10 @@ work.
 
 ## 7. Telemetry
 
+> **2026-09-27:** item 4 (shadow X22R comparison) is **rejected (D7, 0102)**. NAVI
+> is instrumented instead as DATA → CONTEXT → ALTERNATIVES → EVALUATION → DECISION,
+> including HOLD (0104, 0105). The other items stand as candidates.
+
 **Survives unchanged:** `mm/marker`, `state/nav`, `nav/discrepancy`,
 `nav/ir_compare`, `nav/hypotheses`, `diag/recovery`, `nav/hall_window`,
 `nav/sans_mm`, `diag/hall_decision`, `diag/ir_health`, `telem/ir`, the status
@@ -421,6 +475,11 @@ line and `state/station`.
 
 ## 9. Questions that need track testing
 
+> **2026-09-27:** T1 is no longer a prerequisite (D10, 0107). Fresh Toby raw Hall +
+> IR data is useful validation when convenient. T3–T5 are reframed by 0106: sensor
+> changes at PWM 0 carry no navigation authority. T6 remains a separate
+> controlled retest.
+
 | # | Question | Why a host test cannot answer it |
 |---|---|---|
 | T1 | Toby's tail and leading-lobe extents in mm (at cruise, slow running, station approach, the Grillers grade), recorded as raw 1 kHz Hall together with IR | the constants are physical and Toby-specific; the Otto figures do not transfer |
@@ -448,6 +507,9 @@ itself an implementation step that needs authorization.
 
 ## 11. Decisions required before implementation
 
+> **2026-09-27:** these questions were reviewed. Their dispositions are in §12. The
+> original questions are kept as asked.
+
 - **D1** Adopt the architecture in §5.1: measurement stage with no suppression
   except prime and rearm; NAVI owns landmark and baseline authority.
 - **D2** Make the NAVI fallback rules for PWM-zero and field-at-stop openings
@@ -466,6 +528,29 @@ itself an implementation step that needs authorization.
 - **D9** A NAVI-side, distance-based lost-lock test (bad prime) as future work,
   or leave `lostMs` disabled?
 - **D10** Authorize the T1 instrument (raw Hall + IR recording on Toby).
+
+## 12. Dispositions, 2026-09-27 (David with Sam)
+
+| # | Status | Disposition and reasoning | Record |
+|---|---|---|---|
+| D1 | **SETTLED, reframed** | NAVI is the sole navigation decision authority. The authority structure is created anew from principles, not refactored from X22. X22 knowledge is preserved; its structure has no presumption of survival | 0102 |
+| D2 | **SETTLED: superseded** | Reproducing X22's PWM-zero and stopped-in-field outcomes is not a goal. Preserve the underlying information and useful concepts | 0102, 0106 |
+| D3 | **SETTLED** | At motive PWM 0, Toby is stopped; Hall/IR changes then have no navigation authority and are retained and reported. IR at PWM 0 is not signed route displacement; a broken MM/IR relationship is restored only by a trustworthy route reference | 0106 |
+| D4 | **OPEN** | Depends on a general Return to Baseline (RTB) model recognized from the Hall phenomenon, not a replacement timer or fixed distance | 0107 |
+| D5 | **SETTLED** | A new operational baseline requires sampling across movement. A stationary quiet value is one point. The boot reference under the clear-of-magnets condition is permitted | 0107 |
+| D6 | **SETTLED: no** | The 3 s cadence gate is not carried forward. Loss of IR does not require manufacturing a new baseline; the established one is retained while coherent | 0104 |
+| D7 | **SETTLED: no** | No X22 shadow decision system. Instrument NAVI itself | 0102 |
+| D8 | **OPEN** | Prerequisite first: is the baseline acquired-and-held, or a continuously maintained model of ordinary-track behavior? Resolve the baseline model and RTB before revisiting | 0107 |
+| D9 | **DEFERRED** | `lostMs` stays disabled. No replacement designed without a demonstrated failure | 0104 |
+| D10 | **SETTLED** | General model first, validated across locomotives; locomotive-specific accommodation only if evidence requires it. Toby raw Hall + IR is useful, not a prerequisite | 0107 |
+
+**Also open, not resolved here:** whether a completely motionless, normal PWM-0
+station stop breaks an otherwise valid IR/MM reference (0106).
+
+**Consistency check made during codification.** In the committed 20Q3 logs, IR pulses
+at applied PWM 0 occurred only as 1–2-pulse standing flicker and during recorded hand
+handling. Station stops showed none. This agrees with 0106's premise (details in
+0106).
 
 ---
 
