@@ -1,6 +1,6 @@
 # NAVI native Hall + accepted IR recorder
 
-Status: **implemented, compiled, not flashed, not installed on the Pi**.
+Status: **implemented, compiled, flashed for validation, and captured on the Pi**.
 
 Build: `NAVI_COHERENCE_0_6_POSITION_STATIONS_R1_20Q3_SYNC_R1`
 
@@ -153,4 +153,57 @@ flash and 106,540 bytes of global RAM. The only warnings were the three
 pre-existing enum-conversion warnings in the vendored Adafruit INA219 library;
 there were no warnings from the sketch or NSR1 recorder.
 
-No flash authorization is implied by this document.
+## 2026-09-27 validation run
+
+The recorder was flashed to Toby from the NSR1 build at commit `7b83179`.
+The first capture exposed a CRC-table interoperability defect: the firmware
+used `0xD6D930AC` where the standard nibble-table entry is `0xD6D6A3E8`.
+Commit `d54ab3f` corrects that entry and adds the `123456789` CRC-32 test
+vector. The corrected image compiled successfully and was flashed after the
+fix. The Pi receiver then decoded the new frames with zero CRC errors.
+
+The preserved capture is:
+
+```text
+/home/david/NGR/navi_sync/navi_sync_20260927_200313.nsr
+```
+
+It contains two Toby boot sessions. The corrected post-reboot session is
+`2572337812` (loco boot `9034675431648489490`). The final decode reported:
+
+```text
+bad=0, hall_samples=703632, ir_snapshots=6945, status=698
+```
+
+The first approximately 30 seconds after the reboot showed a 1 kHz Hall
+source cadence with `dt_us` median 1000 us, p95 1088 us, p99 1477 us and
+maximum 10222 us. The initial cumulative Hall-ring count was 1 and did not
+increase during that window; IR was accepted at approximately 10 Hz with no
+IR input-queue or IR-ring drops and no UDP failures.
+
+The deliberate movement window ran approximately from Toby time 447.995 s
+through 665.166 s. During that window the decoded Hall samples had median
+`dt_us` 1000 us, p95 1164 us, p99 1534 us and maximum 4015 us. There were no
+Hall batch sequence gaps in the received movement window, and the cumulative
+Hall-ring and UDP-failure counters did not increase during motion. NAVI
+context changed from stationary/unknown to known position and direction; the
+recorded accepted IR stream supplied 2398 additional wheel pulses in the two
+movement segments.
+
+The capture was intentionally left recording for several minutes before the
+movement began. That long unattended period saturated the recorder's network
+transport: cumulative `hall_ring_drops` reached 118 and `udp_failures` 99
+before motion, then remained flat during motion. Those losses make the full
+capture incomplete as a continuous evidence stream, but they were not caused
+by the movement interval and did not coincide with a change in Hall-task
+timing. Future long captures should address this transport-capacity issue
+before being treated as complete evidence.
+
+The IR stream itself was accepted and traceable, but not continuously
+measurement-ready: during the movement windows 1492 snapshots were healthy/
+ready and 699 reported `INADEQUATE_CONTRAST`. This is an observation from the
+field run, not a navigation decision or a recorder feedback path.
+
+The receiver was stopped after the capture to preserve it. No thresholds,
+navigation logic, station logic, throttle behavior or safety logic were
+changed for this validation.
