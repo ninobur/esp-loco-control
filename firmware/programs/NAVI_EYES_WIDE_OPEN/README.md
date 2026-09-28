@@ -34,10 +34,13 @@ distance observations itself, then collects every native Hall observation over
 the first 10 mm of measured travel and sets the median as the held initial
 reference. No later spatial replacement is included.
 
-After the reference exists, NAVI recognizes an opening only after two
-consecutive native Hall observations depart from the active reference by at
-least 70 counts. The second observation is retained with its serial, departure,
-and polarity. This does not grant the opening MM or navigation authority.
+After the reference exists, two consecutive native Hall observations departing
+from the active reference by at least 70 counts create a candidate opening.
+Those two samples are excluded from confirmation. Three subsequent qualifying
+samples that are strictly rising above the reference or strictly falling below
+it confirm the magnet and establish polarity. Three subsequent sub-70 samples
+abandon the candidate as a transient. This evidence does not grant an MM or
+navigation authority.
 
 Run the host gates with:
 

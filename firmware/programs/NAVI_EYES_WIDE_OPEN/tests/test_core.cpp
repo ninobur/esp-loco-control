@@ -108,107 +108,157 @@ int main() {
   NaviEvidence noReferenceEvidence;
   noReferenceEvidence.hall = noReferenceObservation;
   noReference.observe(noReferenceEvidence, noReferenceSample.sampleSerial);
-  check(!noReference.opening().recognized,
+  check(!noReference.opening().candidate && !noReference.opening().confirmed,
         "no opening is recognized before a Hall reference exists");
 
-  NaviCore openingNavi(40);
-  HallSample referenceSamples[] = {
-      {40, 3000, 100, 0, 1, IrHealth::Unknown, 0, 1},
-      {41, 3001, 100, 0, 5, IrHealth::Unknown, 0, 1},
-      {42, 3002, 100, 0, 10, IrHealth::Unknown, 0, 1},
-  };
-  for (size_t i = 0; i < 3; ++i) {
-    HallObservation observation{referenceSamples[i].sampleSerial,
-                                referenceSamples[i].sampleSerial, 1,
-                                &referenceSamples[i]};
-    observation.irDistanceMm = referenceSamples[i].irDistanceMm;
-    NaviEvidence evidence;
-    evidence.hall = observation;
-    openingNavi.observe(evidence, referenceSamples[i].sampleSerial);
-  }
-  check(openingNavi.initialHallReference() == 100,
-        "opening tests have an established Hall reference");
-
-  HallSample below70{50, 3010, 169, 0, 10, IrHealth::Unknown, 0, 1};
-  HallObservation below70Observation{50, 50, 1, &below70};
-  NaviEvidence below70Evidence;
-  below70Evidence.hall = below70Observation;
-  openingNavi.observe(below70Evidence, below70.sampleSerial);
-  check(openingNavi.lastHallDeparture() == 69 &&
-            openingNavi.qualifyingHallObservationCount() == 0,
-        "departure below 70 is nonqualifying");
-
-  HallSample exactly70{51, 3011, 170, 0, 10, IrHealth::Unknown, 0, 1};
-  HallObservation exactly70Observation{51, 51, 1, &exactly70};
-  NaviEvidence exactly70Evidence;
-  exactly70Evidence.hall = exactly70Observation;
-  openingNavi.observe(exactly70Evidence, exactly70.sampleSerial);
-  check(openingNavi.qualifyingHallObservationCount() == 1 &&
-            !openingNavi.opening().recognized,
-        "exactly 70 qualifies but one observation does not open");
-
-  HallSample reset{52, 3012, 169, 0, 10, IrHealth::Unknown, 0, 1};
-  HallObservation resetObservation{52, 52, 1, &reset};
-  NaviEvidence resetEvidence;
-  resetEvidence.hall = resetObservation;
-  openingNavi.observe(resetEvidence, reset.sampleSerial);
-  check(openingNavi.qualifyingHallObservationCount() == 0,
-        "nonqualifying observation resets consecutive qualification");
-
-  HallSample firstQualifying{53, 3013, 170, 0, 10, IrHealth::Unknown, 0, 1};
-  HallObservation firstQualifyingObservation{53, 53, 1, &firstQualifying};
-  NaviEvidence firstQualifyingEvidence;
-  firstQualifyingEvidence.hall = firstQualifyingObservation;
-  openingNavi.observe(firstQualifyingEvidence, firstQualifying.sampleSerial);
-  check(!openingNavi.opening().recognized,
-        "one qualifying observation alone does not establish an opening");
-
-  HallSample secondQualifying{54, 3014, 180, 0, 10, IrHealth::Unknown, 0, 1};
-  HallObservation secondQualifyingObservation{54, 54, 1, &secondQualifying};
-  NaviEvidence secondQualifyingEvidence;
-  secondQualifyingEvidence.hall = secondQualifyingObservation;
-  openingNavi.observe(secondQualifyingEvidence, secondQualifying.sampleSerial);
-  check(openingNavi.opening().recognized,
-        "the second consecutive qualifying observation establishes an opening");
-  check(openingNavi.opening().observationSerial == secondQualifying.sampleSerial,
-        "opening is retained at the second qualifying observation");
-  check(openingNavi.opening().polarity == HallOpeningPolarity::AboveReference,
-        "positive departure establishes above-reference polarity");
-
-  HallSample laterOpposite{55, 3015, 20, 0, 10, IrHealth::Unknown, 0, 1};
-  HallObservation laterOppositeObservation{55, 55, 1, &laterOpposite};
-  NaviEvidence laterOppositeEvidence;
-  laterOppositeEvidence.hall = laterOppositeObservation;
-  openingNavi.observe(laterOppositeEvidence, laterOpposite.sampleSerial);
-  check(openingNavi.lastHallSamples()->sampleSerial == laterOpposite.sampleSerial &&
-            openingNavi.lastHallSamples()->raw == laterOpposite.raw,
-        "Hall observations remain delivered after an opening is recognized");
-  check(openingNavi.opening().polarity == HallOpeningPolarity::AboveReference,
-        "later opposite Hall behavior cannot overwrite opening polarity");
-
-  NaviCore negativeNavi(40);
-  for (size_t i = 0; i < 3; ++i) {
-    HallObservation observation{referenceSamples[i].sampleSerial,
-                                referenceSamples[i].sampleSerial, 1,
-                                &referenceSamples[i]};
-    observation.irDistanceMm = referenceSamples[i].irDistanceMm;
-    NaviEvidence evidence;
-    evidence.hall = observation;
-    negativeNavi.observe(evidence, referenceSamples[i].sampleSerial);
-  }
-  HallSample negativeFirst{60, 3020, 30, 0, 10, IrHealth::Unknown, 0, 1};
-  HallSample negativeSecond{61, 3021, 20, 0, 10, IrHealth::Unknown, 0, 1};
-  HallSample negativeSamples[] = {negativeFirst, negativeSecond};
-  for (const HallSample& sample : negativeSamples) {
+  auto send = [](NaviCore& navi, HallSample& sample) {
     HallObservation observation{sample.sampleSerial, sample.sampleSerial, 1,
                                 &sample};
     observation.irDistanceMm = 10;
     NaviEvidence evidence;
     evidence.hall = observation;
-    negativeNavi.observe(evidence, sample.sampleSerial);
-  }
-  check(negativeNavi.opening().polarity == HallOpeningPolarity::BelowReference,
-        "negative departure establishes opposite polarity");
+    navi.observe(evidence, sample.sampleSerial);
+  };
+  auto establishReference = [&send](NaviCore& navi, uint32_t serial) {
+    HallSample samples[] = {
+        {serial, 3000, 100, 0, 1, IrHealth::Unknown, 0, 1},
+        {serial + 1, 3001, 100, 0, 5, IrHealth::Unknown, 0, 1},
+        {serial + 2, 3002, 100, 0, 10, IrHealth::Unknown, 0, 1},
+    };
+    for (HallSample& sample : samples) send(navi, sample);
+  };
+
+  NaviCore openingNavi(40);
+  establishReference(openingNavi, 40);
+  check(openingNavi.initialHallReference() == 100,
+        "opening tests have an established Hall reference");
+
+  HallSample below70{50, 3010, 169, 0, 10, IrHealth::Unknown, 0, 1};
+  send(openingNavi, below70);
+  check(openingNavi.lastHallDeparture() == 69 &&
+            openingNavi.qualifyingHallObservationCount() == 0,
+        "departure below 70 is nonqualifying");
+
+  HallSample exactly70{51, 3011, 170, 0, 10, IrHealth::Unknown, 0, 1};
+  send(openingNavi, exactly70);
+  check(openingNavi.qualifyingHallObservationCount() == 1 &&
+            !openingNavi.opening().candidate,
+        "exactly 70 qualifies but one observation does not create a candidate");
+
+  HallSample reset{52, 3012, 169, 0, 10, IrHealth::Unknown, 0, 1};
+  send(openingNavi, reset);
+  check(openingNavi.qualifyingHallObservationCount() == 0,
+        "nonqualifying observation resets routine qualification");
+
+  HallSample candidateFirst{53, 3013, 182, 0, 10, IrHealth::Unknown, 0, 1};
+  HallSample candidateSecond{54, 3014, 191, 0, 10, IrHealth::Unknown, 0, 1};
+  send(openingNavi, candidateFirst);
+  send(openingNavi, candidateSecond);
+  check(openingNavi.opening().candidate &&
+            !openingNavi.opening().confirmed &&
+            openingNavi.opening().candidateObservationSerial ==
+                candidateSecond.sampleSerial &&
+            openingNavi.opening().polarity == HallOpeningPolarity::Unknown,
+        "70x2 creates only an unpolarized candidate");
+  check(openingNavi.confirmationSampleCount() == 0,
+        "the two candidate-opening samples are excluded from confirmation");
+
+  HallSample rising[] = {
+      {55, 3015, 205, 0, 10, IrHealth::Unknown, 0, 1},
+      {56, 3016, 215, 0, 10, IrHealth::Unknown, 0, 1},
+      {57, 3017, 225, 0, 10, IrHealth::Unknown, 0, 1},
+  };
+  send(openingNavi, rising[0]);
+  check(openingNavi.confirmationSampleCount() == 1 &&
+            !openingNavi.opening().confirmed,
+        "first new qualifying sample starts confirmation");
+  send(openingNavi, rising[1]);
+  check(openingNavi.confirmationSampleCount() == 2 &&
+            !openingNavi.opening().confirmed,
+        "second new rising sample does not yet confirm");
+  send(openingNavi, rising[2]);
+  check(openingNavi.opening().confirmed &&
+            openingNavi.opening().observationSerial == rising[2].sampleSerial &&
+            openingNavi.opening().polarity == HallOpeningPolarity::AboveReference,
+        "three new rising samples confirm the magnet and polarity");
+
+  HallSample laterOpposite{58, 3018, 20, 0, 10, IrHealth::Unknown, 0, 1};
+  send(openingNavi, laterOpposite);
+  check(openingNavi.lastHallSamples()->sampleSerial == laterOpposite.sampleSerial &&
+            openingNavi.lastHallSamples()->raw == laterOpposite.raw,
+        "Hall observations remain delivered after confirmation");
+  check(openingNavi.opening().polarity == HallOpeningPolarity::AboveReference,
+        "later opposite Hall behavior cannot overwrite confirmed polarity");
+
+  NaviCore fallingNavi(40);
+  establishReference(fallingNavi, 70);
+  HallSample fallingCandidate[] = {
+      {80, 3030, 182, 0, 10, IrHealth::Unknown, 0, 1},
+      {81, 3031, 191, 0, 10, IrHealth::Unknown, 0, 1},
+  };
+  send(fallingNavi, fallingCandidate[0]);
+  send(fallingNavi, fallingCandidate[1]);
+  HallSample falling[] = {
+      {82, 3032, 18, 0, 10, IrHealth::Unknown, 0, 1},
+      {83, 3033, 8, 0, 10, IrHealth::Unknown, 0, 1},
+      {84, 3034, -2, 0, 10, IrHealth::Unknown, 0, 1},
+  };
+  for (HallSample& sample : falling) send(fallingNavi, sample);
+  check(fallingNavi.opening().confirmed &&
+            fallingNavi.opening().polarity == HallOpeningPolarity::BelowReference,
+        "three new falling samples confirm falling polarity");
+
+  NaviCore transientNavi(40);
+  establishReference(transientNavi, 90);
+  HallSample transientCandidate[] = {
+      {100, 3040, 182, 0, 10, IrHealth::Unknown, 0, 1},
+      {101, 3041, 191, 0, 10, IrHealth::Unknown, 0, 1},
+  };
+  send(transientNavi, transientCandidate[0]);
+  send(transientNavi, transientCandidate[1]);
+  HallSample lowSamples[] = {
+      {102, 3042, 40, 0, 10, IrHealth::Unknown, 0, 1},
+      {103, 3043, 50, 0, 10, IrHealth::Unknown, 0, 1},
+      {104, 3044, 40, 0, 10, IrHealth::Unknown, 0, 1},
+  };
+  for (HallSample& sample : lowSamples) send(transientNavi, sample);
+  check(!transientNavi.opening().candidate &&
+            !transientNavi.opening().confirmed &&
+            transientNavi.transientSampleCount() == 0,
+        "three consecutive low samples abandon the candidate as transient");
+
+  HallSample routineAfterTransient[] = {
+      {105, 3045, 170, 0, 10, IrHealth::Unknown, 0, 1},
+      {106, 3046, 180, 0, 10, IrHealth::Unknown, 0, 1},
+  };
+  send(transientNavi, routineAfterTransient[0]);
+  send(transientNavi, routineAfterTransient[1]);
+  check(transientNavi.opening().candidate &&
+            !transientNavi.opening().confirmed,
+        "transient abandonment returns to routine 70x2 detection");
+
+  NaviCore equivocalNavi(40);
+  establishReference(equivocalNavi, 110);
+  HallSample equivocalCandidate[] = {
+      {120, 3050, 182, 0, 10, IrHealth::Unknown, 0, 1},
+      {121, 3051, 191, 0, 10, IrHealth::Unknown, 0, 1},
+  };
+  send(equivocalNavi, equivocalCandidate[0]);
+  send(equivocalNavi, equivocalCandidate[1]);
+  HallSample brokenMonotonic[] = {
+      {122, 3052, 205, 0, 10, IrHealth::Unknown, 0, 1},
+      {123, 3053, 195, 0, 10, IrHealth::Unknown, 0, 1},
+  };
+  send(equivocalNavi, brokenMonotonic[0]);
+  send(equivocalNavi, brokenMonotonic[1]);
+  check(equivocalNavi.opening().candidate,
+        "a broken high pattern keeps the candidate active");
+  check(!equivocalNavi.opening().confirmed,
+        "a broken high pattern does not confirm the magnet");
+  check(equivocalNavi.confirmationSampleCount() == 1,
+        "a broken high pattern restarts the high sequence");
+  check(equivocalNavi.transientSampleCount() == 0,
+        "a broken high pattern is not counted as a negative");
 
   std::printf("%s: %d failures\n", failures ? "FAIL" : "PASS", failures);
   return failures ? 1 : 0;

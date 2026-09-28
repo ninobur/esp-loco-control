@@ -17,7 +17,10 @@ enum class HallOpeningPolarity : int8_t {
 };
 
 struct HallOpening {
-  bool recognized = false;
+  bool candidate = false;
+  uint32_t candidateObservationSerial = 0;
+  int32_t candidateDeparture = 0;
+  bool confirmed = false;
   uint32_t observationSerial = 0;
   int32_t departure = 0;
   HallOpeningPolarity polarity = HallOpeningPolarity::Unknown;
@@ -79,6 +82,8 @@ class NaviCore {
   uint8_t qualifyingHallObservationCount() const {
     return qualifyingHallObservationCount_;
   }
+  uint8_t confirmationSampleCount() const { return confirmationSampleCount_; }
+  uint8_t transientSampleCount() const { return transientSampleCount_; }
   const HallOpening& opening() const { return opening_; }
 
  private:
@@ -129,6 +134,15 @@ class NaviCore {
           lastHallDeparture_ >= kHallDepartureThreshold ||
           lastHallDeparture_ <= -kHallDepartureThreshold;
 
+      if (opening_.confirmed) {
+        continue;
+      }
+
+      if (opening_.candidate) {
+        observeCandidateSample(sample, qualifies);
+        continue;
+      }
+
       if (!qualifies) {
         qualifyingHallObservationCount_ = 0;
         continue;
@@ -137,14 +151,69 @@ class NaviCore {
       if (qualifyingHallObservationCount_ < 2) {
         ++qualifyingHallObservationCount_;
       }
-      if (!opening_.recognized && qualifyingHallObservationCount_ == 2) {
-        opening_.recognized = true;
-        opening_.observationSerial = sample.sampleSerial;
-        opening_.departure = lastHallDeparture_;
-        opening_.polarity = lastHallDeparture_ > 0
-                                ? HallOpeningPolarity::AboveReference
-                                : HallOpeningPolarity::BelowReference;
+      if (qualifyingHallObservationCount_ == 2) {
+        opening_.candidate = true;
+        opening_.candidateObservationSerial = sample.sampleSerial;
+        opening_.candidateDeparture = lastHallDeparture_;
+        qualifyingHallObservationCount_ = 0;
+        confirmationSampleCount_ = 0;
+        transientSampleCount_ = 0;
+        previousConfirmationDeparture_ = 0;
+        confirmationDirection_ = HallOpeningPolarity::Unknown;
       }
+    }
+  }
+
+  void observeCandidateSample(const HallSample& sample, bool qualifies) {
+    if (!qualifies) {
+      confirmationSampleCount_ = 0;
+      confirmationDirection_ = HallOpeningPolarity::Unknown;
+      if (transientSampleCount_ < 3) ++transientSampleCount_;
+      if (transientSampleCount_ == 3) {
+        opening_.candidate = false;
+        transientSampleCount_ = 0;
+        previousConfirmationDeparture_ = 0;
+      }
+      return;
+    }
+
+    transientSampleCount_ = 0;
+    const int32_t departure = lastHallDeparture_;
+    if (confirmationSampleCount_ == 0) {
+      confirmationSampleCount_ = 1;
+      previousConfirmationDeparture_ = departure;
+      return;
+    }
+
+    const bool positiveRise = previousConfirmationDeparture_ > 0 &&
+                               departure > previousConfirmationDeparture_;
+    const bool negativeFall = previousConfirmationDeparture_ < 0 &&
+                               departure < previousConfirmationDeparture_;
+    const HallOpeningPolarity direction =
+        positiveRise ? HallOpeningPolarity::AboveReference
+                     : negativeFall ? HallOpeningPolarity::BelowReference
+                                    : HallOpeningPolarity::Unknown;
+
+    if (confirmationDirection_ == HallOpeningPolarity::Unknown &&
+        direction != HallOpeningPolarity::Unknown) {
+      confirmationDirection_ = direction;
+      ++confirmationSampleCount_;
+    } else if (confirmationDirection_ != HallOpeningPolarity::Unknown &&
+               direction == confirmationDirection_) {
+      ++confirmationSampleCount_;
+    } else {
+      confirmationSampleCount_ = 1;
+      confirmationDirection_ = HallOpeningPolarity::Unknown;
+    }
+    previousConfirmationDeparture_ = departure;
+
+    if (confirmationSampleCount_ == 3 &&
+        confirmationDirection_ != HallOpeningPolarity::Unknown) {
+      opening_.candidate = false;
+      opening_.confirmed = true;
+      opening_.observationSerial = sample.sampleSerial;
+      opening_.departure = departure;
+      opening_.polarity = confirmationDirection_;
     }
   }
 
@@ -158,6 +227,10 @@ class NaviCore {
   int16_t initialReference_ = 0;
   int32_t lastHallDeparture_ = 0;
   uint8_t qualifyingHallObservationCount_ = 0;
+  uint8_t confirmationSampleCount_ = 0;
+  uint8_t transientSampleCount_ = 0;
+  int32_t previousConfirmationDeparture_ = 0;
+  HallOpeningPolarity confirmationDirection_ = HallOpeningPolarity::Unknown;
   HallOpening opening_;
 };
 
