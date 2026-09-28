@@ -9,15 +9,12 @@
 
 #include "NaviEvidence.h"
 #include "NaviCore.h"
-#include "SpatialHallReference.h"
 
 using namespace navi_eyes;
 
 static constexpr uint8_t HALL_PIN = 33;
 static constexpr uint8_t IR_PIN = 34;
-static constexpr uint16_t SPATIAL_BIN_MM = 25;
 
-static SpatialHallReference<> spatialReference(SPATIAL_BIN_MM);
 static NaviCore navi(40);
 static uint32_t sampleSerial = 0;
 
@@ -41,9 +38,6 @@ void loop() {
   sample.pwm = 0;
   sample.direction = 1;
 
-  // This is a physical observation. It is not declared RTB or a magnet.
-  spatialReference.add(sample.irDistanceMm, sample.raw);
-
   HallObservation observation;
   observation.firstSample = sample.sampleSerial;
   observation.lastSample = sample.sampleSerial;
@@ -53,9 +47,6 @@ void loop() {
 
   NaviEvidence evidence;
   evidence.hall = observation;
-  evidence.spatialBaselineAvailable = spatialReference.ready();
-  evidence.spatialBaselineCandidate = spatialReference.candidate();
-  evidence.spatialBaselineBins = static_cast<uint16_t>(spatialReference.occupiedBins());
   evidence.motivePwmZero = sample.pwm == 0;
   evidence.operatorMoved = false;
 

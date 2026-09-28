@@ -8,12 +8,9 @@ The sketch separates observation from judgment:
   samples surrounding an observation.
 * IR acquisition publishes cumulative pulses, measured displacement, and its
   health facts. No IR fact is converted into a veto or a magnet count.
-* `SpatialHallReference` is measurement-only. It represents Hall samples by
-  measured IR distance bins and returns a robust candidate reference. It has
-  no timers, refractory period, cadence gate, dwell gate, polarity rule, or
-  navigation state.
-* `NaviCore` receives observations and decides what they mean. It is the only
-  component allowed to accept, hold, reject, advance position, or stop.
+* `NaviCore` receives each native Hall observation, unchanged and in acquisition
+  order, and decides what it means. It is the only component allowed to accept,
+  hold, reject, advance position, or stop.
 
 The only use of time in the `.ino` is physical sampling/service scheduling and
 telemetry timestamps. No navigation decision uses elapsed time or a time-based
@@ -22,22 +19,13 @@ interval.
 This is a development candidate: host tests pass, but it is not field
 accepted and must not be flashed without hardware review.
 
-## Reference measurement
+## Function 1 boundary
 
-For a completed physically measured interval, callers feed Hall samples with
-their cumulative IR distance. The reference is calculated as:
-
-```text
-IR-measured distance -> one robust Hall representative per distance bin
-                      -> robust median across occupied bins
-```
-
-Zero IR progress is retained as a valid measured result. It does not mean IR
-failure and it does not cause the sketch to discard the Hall samples.
-
-The initial boot reference is the explicit operator-known clear condition. An
-operational baseline after movement must be spatially acquired; the required
-distance and RTB model remain open research questions.
+The hardware-acquisition path does only the technically required ADC read and
+attaches factual metadata: sample serial, timestamp, IR facts, PWM, and
+direction. It does not filter, average, median, qualify, gate, classify,
+interpret, suppress, or form Hall events. Later baseline, RTB, event, and
+navigation behavior is intentionally not implemented here.
 
 Run the host gates with:
 

@@ -23,6 +23,10 @@ class NaviCore {
   explicit NaviCore(uint16_t initialMm) : navMm_(initialMm) {}
 
   NaviJudgment observe(const NaviEvidence& evidence, uint32_t serial) {
+    if (evidence.hall.samples != nullptr && evidence.hall.sampleCount != 0) {
+      lastHallSamples_ = evidence.hall.samples;
+      lastHallSampleCount_ = evidence.hall.sampleCount;
+    }
     NaviJudgment result;
     result.observationSerial = serial;
     result.navMm = navMm_;
@@ -39,9 +43,13 @@ class NaviCore {
   }
 
   uint16_t navMm() const { return navMm_; }
+  const HallSample* lastHallSamples() const { return lastHallSamples_; }
+  uint16_t lastHallSampleCount() const { return lastHallSampleCount_; }
 
  private:
   uint16_t navMm_;
+  const HallSample* lastHallSamples_ = nullptr;
+  uint16_t lastHallSampleCount_ = 0;
 };
 
 }  // namespace navi_eyes
