@@ -56,6 +56,13 @@ that measurement, not a proxy for it:
 Time, PWM and other indirect indicators remain useful when the corresponding
 measurement is unavailable. They do not displace applicable direct evidence.
 
+**Measurement applicability.** Absence of measured displacement is itself a
+valid result; it is not, without context, sensor failure. An IR
+`INADEQUATE_CONTRAST` diagnostic describes the detector's current optical
+window. NAVI must distinguish that internal condition from independent
+evidence that significant physical movement occurred while IR failed to
+measure it. → [0108](decisions/0108-measurement-applicability-absence-of-measured-change-is-not-sensor-failure.md)
+
 **Evidence is not a conclusion.** A datum is evidence; its existence does not
 compel a change in NAVI's world view. → [0104](decisions/0104-evidence-accumulation-before-revision.md)
 

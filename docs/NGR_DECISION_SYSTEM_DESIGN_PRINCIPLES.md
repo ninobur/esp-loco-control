@@ -176,6 +176,37 @@ The system should be able to explain:
 A decision that cannot be reconstructed cannot be reviewed, and a decision that
 cannot be reviewed cannot be trusted on the railway.
 
+## 16. Measurement applicability: absence of measured change is not sensor failure
+
+A measurement must be interpreted in the context of the physical phenomenon
+being measured.
+
+For a movement sensor, no measured displacement is itself a valid measurement
+result:
+
+> No significant movement was measured.
+
+That result does not, by itself, mean that the sensor is unavailable,
+unhealthy, or incapable of measurement.
+
+Distinguish:
+
+- **measurement result:** no significant movement measured;
+- **internal diagnostic:** insufficient optical variation in the detector's
+  current window to establish contrast;
+- **measurement failure:** independent evidence establishes that significant
+  physical movement occurred while the measurement system failed to measure it.
+
+An internal detector diagnostic must not automatically be promoted into the
+operational conclusion that the measurement system failed. Evaluate a
+measurement system against the physical phenomenon it is intended to measure,
+and interpret the result at the component that has the relevant physical
+context.
+
+This principle does not claim that a movement sensor can measure arbitrarily
+small displacement. "No significant movement measured" respects the
+measurement's actual resolution and operating envelope.
+
 ---
 
 ## Using these principles

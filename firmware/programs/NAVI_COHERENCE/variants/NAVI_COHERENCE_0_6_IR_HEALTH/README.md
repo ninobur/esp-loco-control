@@ -198,7 +198,13 @@ Eight retired TX boot IDs are retained; exhaustion requires pairing again.
 
 Fresh READY zero counts preserve continuity; `unreliableSamples` alone does not
 end it. PRIMING and REACQUIRING are healthy but not measurement-ready. Current
-TX can report INADEQUATE_CONTRAST after a stop; that honestly ends continuity.
+TX can report INADEQUATE_CONTRAST after a stop; that honestly ends detector
+continuity. This is an internal optical diagnostic, not by itself a conclusion
+that the locomotive moved without being measured or that the IR system failed.
+Upstream interpretation must distinguish the detector condition from the
+measurement result (including a valid result of no significant movement) and
+use independent physical context before declaring measurement failure. See
+[decision 0108](../../../../../docs/decisions/0108-measurement-applicability-absence-of-measured-change-is-not-sensor-failure.md).
 This receiver-only addition does not repair the TX stationary-readiness issue.
 Navigation declarations/direction changes clear the shadow reference, not the
 instrument epoch. New READY data restores odometry immediately; only a later
