@@ -15,6 +15,9 @@ static HallSample sample(uint16_t value, uint8_t flags = 0) {
 }
 
 int main() {
+  const char* crcVector = "123456789";
+  assert(crc32(reinterpret_cast<const uint8_t*>(crcVector), 9) == 0xCBF43926u);
+
   Recorder r;
   r.begin(9950012, 0x12345678, 0x1122334455667788ULL);
   Context c; c.navMm = 41; c.navDir = 1; c.flags = CTX_NAV_KNOWN;
