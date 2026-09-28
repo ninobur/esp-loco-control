@@ -102,6 +102,114 @@ int main() {
   check(navi.initialHallReference() == 250,
         "stationary time does not change the established reference");
 
+  NaviCore noReference(40);
+  HallSample noReferenceSample{30, 2000, 170, 0, 0, IrHealth::Unknown, 0, 1};
+  HallObservation noReferenceObservation{30, 30, 1, &noReferenceSample};
+  NaviEvidence noReferenceEvidence;
+  noReferenceEvidence.hall = noReferenceObservation;
+  noReference.observe(noReferenceEvidence, noReferenceSample.sampleSerial);
+  check(!noReference.opening().recognized,
+        "no opening is recognized before a Hall reference exists");
+
+  NaviCore openingNavi(40);
+  HallSample referenceSamples[] = {
+      {40, 3000, 100, 0, 1, IrHealth::Unknown, 0, 1},
+      {41, 3001, 100, 0, 5, IrHealth::Unknown, 0, 1},
+      {42, 3002, 100, 0, 10, IrHealth::Unknown, 0, 1},
+  };
+  for (size_t i = 0; i < 3; ++i) {
+    HallObservation observation{referenceSamples[i].sampleSerial,
+                                referenceSamples[i].sampleSerial, 1,
+                                &referenceSamples[i]};
+    observation.irDistanceMm = referenceSamples[i].irDistanceMm;
+    NaviEvidence evidence;
+    evidence.hall = observation;
+    openingNavi.observe(evidence, referenceSamples[i].sampleSerial);
+  }
+  check(openingNavi.initialHallReference() == 100,
+        "opening tests have an established Hall reference");
+
+  HallSample below70{50, 3010, 169, 0, 10, IrHealth::Unknown, 0, 1};
+  HallObservation below70Observation{50, 50, 1, &below70};
+  NaviEvidence below70Evidence;
+  below70Evidence.hall = below70Observation;
+  openingNavi.observe(below70Evidence, below70.sampleSerial);
+  check(openingNavi.lastHallDeparture() == 69 &&
+            openingNavi.qualifyingHallObservationCount() == 0,
+        "departure below 70 is nonqualifying");
+
+  HallSample exactly70{51, 3011, 170, 0, 10, IrHealth::Unknown, 0, 1};
+  HallObservation exactly70Observation{51, 51, 1, &exactly70};
+  NaviEvidence exactly70Evidence;
+  exactly70Evidence.hall = exactly70Observation;
+  openingNavi.observe(exactly70Evidence, exactly70.sampleSerial);
+  check(openingNavi.qualifyingHallObservationCount() == 1 &&
+            !openingNavi.opening().recognized,
+        "exactly 70 qualifies but one observation does not open");
+
+  HallSample reset{52, 3012, 169, 0, 10, IrHealth::Unknown, 0, 1};
+  HallObservation resetObservation{52, 52, 1, &reset};
+  NaviEvidence resetEvidence;
+  resetEvidence.hall = resetObservation;
+  openingNavi.observe(resetEvidence, reset.sampleSerial);
+  check(openingNavi.qualifyingHallObservationCount() == 0,
+        "nonqualifying observation resets consecutive qualification");
+
+  HallSample firstQualifying{53, 3013, 170, 0, 10, IrHealth::Unknown, 0, 1};
+  HallObservation firstQualifyingObservation{53, 53, 1, &firstQualifying};
+  NaviEvidence firstQualifyingEvidence;
+  firstQualifyingEvidence.hall = firstQualifyingObservation;
+  openingNavi.observe(firstQualifyingEvidence, firstQualifying.sampleSerial);
+  check(!openingNavi.opening().recognized,
+        "one qualifying observation alone does not establish an opening");
+
+  HallSample secondQualifying{54, 3014, 180, 0, 10, IrHealth::Unknown, 0, 1};
+  HallObservation secondQualifyingObservation{54, 54, 1, &secondQualifying};
+  NaviEvidence secondQualifyingEvidence;
+  secondQualifyingEvidence.hall = secondQualifyingObservation;
+  openingNavi.observe(secondQualifyingEvidence, secondQualifying.sampleSerial);
+  check(openingNavi.opening().recognized,
+        "the second consecutive qualifying observation establishes an opening");
+  check(openingNavi.opening().observationSerial == secondQualifying.sampleSerial,
+        "opening is retained at the second qualifying observation");
+  check(openingNavi.opening().polarity == HallOpeningPolarity::AboveReference,
+        "positive departure establishes above-reference polarity");
+
+  HallSample laterOpposite{55, 3015, 20, 0, 10, IrHealth::Unknown, 0, 1};
+  HallObservation laterOppositeObservation{55, 55, 1, &laterOpposite};
+  NaviEvidence laterOppositeEvidence;
+  laterOppositeEvidence.hall = laterOppositeObservation;
+  openingNavi.observe(laterOppositeEvidence, laterOpposite.sampleSerial);
+  check(openingNavi.lastHallSamples()->sampleSerial == laterOpposite.sampleSerial &&
+            openingNavi.lastHallSamples()->raw == laterOpposite.raw,
+        "Hall observations remain delivered after an opening is recognized");
+  check(openingNavi.opening().polarity == HallOpeningPolarity::AboveReference,
+        "later opposite Hall behavior cannot overwrite opening polarity");
+
+  NaviCore negativeNavi(40);
+  for (size_t i = 0; i < 3; ++i) {
+    HallObservation observation{referenceSamples[i].sampleSerial,
+                                referenceSamples[i].sampleSerial, 1,
+                                &referenceSamples[i]};
+    observation.irDistanceMm = referenceSamples[i].irDistanceMm;
+    NaviEvidence evidence;
+    evidence.hall = observation;
+    negativeNavi.observe(evidence, referenceSamples[i].sampleSerial);
+  }
+  HallSample negativeFirst{60, 3020, 30, 0, 10, IrHealth::Unknown, 0, 1};
+  HallSample negativeSecond{61, 3021, 20, 0, 10, IrHealth::Unknown, 0, 1};
+  HallSample negativeSamples[] = {negativeFirst, negativeSecond};
+  for (const HallSample& sample : negativeSamples) {
+    HallObservation observation{sample.sampleSerial, sample.sampleSerial, 1,
+                                &sample};
+    observation.irDistanceMm = 10;
+    NaviEvidence evidence;
+    evidence.hall = observation;
+    negativeNavi.observe(evidence, sample.sampleSerial);
+  }
+  check(negativeNavi.opening().polarity == HallOpeningPolarity::BelowReference,
+        "negative departure establishes opposite polarity");
+
   std::printf("%s: %d failures\n", failures ? "FAIL" : "PASS", failures);
   return failures ? 1 : 0;
 }

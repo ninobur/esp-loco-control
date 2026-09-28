@@ -34,6 +34,11 @@ distance observations itself, then collects every native Hall observation over
 the first 10 mm of measured travel and sets the median as the held initial
 reference. No later spatial replacement is included.
 
+After the reference exists, NAVI recognizes an opening only after two
+consecutive native Hall observations depart from the active reference by at
+least 70 counts. The second observation is retained with its serial, departure,
+and polarity. This does not grant the opening MM or navigation authority.
+
 Run the host gates with:
 
 ```sh
