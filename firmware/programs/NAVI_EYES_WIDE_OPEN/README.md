@@ -42,6 +42,13 @@ it confirm the magnet and establish polarity. Three subsequent sub-70 samples
 abandon the candidate as a transient. This evidence does not grant an MM or
 navigation authority.
 
+After confirmation, NAVI uses that observation's cumulative IR distance as the
+origin for the next spatial Hall reference. It ignores the 0–100 mm clearance,
+selects one native Hall representative per distinct measured millimetre in the
+100–200 mm interval, and replaces the active reference with the median at 200
+mm. Repeated observations at one measured location therefore do not gain extra
+weight from stationary time.
+
 Run the host gates with:
 
 ```sh

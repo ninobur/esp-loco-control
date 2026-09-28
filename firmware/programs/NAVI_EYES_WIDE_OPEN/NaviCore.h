@@ -53,7 +53,11 @@ class NaviCore {
       collectionStarted_ = true;
     }
     collectInitialReference(evidence.hall);
-    recognizeOpening(evidence.hall);
+    if (spatialReferenceActive_) {
+      updateSpatialReference(evidence.hall);
+    } else if (recognizeOpening(evidence.hall)) {
+      beginSpatialReference(evidence.hall.irDistanceMm);
+    }
     lastIrDistanceMm_ = evidence.hall.irDistanceMm;
     NaviJudgment result;
     result.observationSerial = serial;
@@ -75,6 +79,7 @@ class NaviCore {
   uint16_t lastHallSampleCount() const { return lastHallSampleCount_; }
   bool initialHallReferenceAvailable() const { return initialReferenceAvailable_; }
   int16_t initialHallReference() const { return initialReference_; }
+  int16_t activeHallReference() const { return activeReference_; }
   bool initialReferenceCollectionStarted() const { return collectionStarted_; }
   size_t initialReferenceSampleCount() const { return collection_.size(); }
   uint32_t lastObservedIrDistanceMm() const { return lastIrDistanceMm_; }
@@ -85,6 +90,12 @@ class NaviCore {
   uint8_t confirmationSampleCount() const { return confirmationSampleCount_; }
   uint8_t transientSampleCount() const { return transientSampleCount_; }
   const HallOpening& opening() const { return opening_; }
+  const HallOpening& lastConfirmedOpening() const { return lastConfirmedOpening_; }
+  bool spatialReferenceActive() const { return spatialReferenceActive_; }
+  uint32_t spatialReferenceOriginMm() const { return spatialOriginMm_; }
+  size_t spatialReferenceSampleCount() const {
+    return spatialPopulation_.size();
+  }
 
  private:
   static constexpr uint32_t kInitialReferenceTravelMm = 10;
@@ -117,19 +128,22 @@ class NaviCore {
       const int32_t upper = ordered[middle];
       initialReference_ = static_cast<int16_t>((lower + upper) / 2);
     }
+    activeReference_ = initialReference_;
     initialReferenceAvailable_ = true;
   }
 
-  void recognizeOpening(const HallObservation& observation) {
+  bool recognizeOpening(const HallObservation& observation) {
     if (!initialReferenceAvailable_ || observation.samples == nullptr ||
         observation.sampleCount == 0) {
-      return;
+      return false;
     }
+
+    bool confirmed = false;
 
     for (uint16_t i = 0; i < observation.sampleCount; ++i) {
       const HallSample& sample = observation.samples[i];
       lastHallDeparture_ = static_cast<int32_t>(sample.raw) -
-                            static_cast<int32_t>(initialReference_);
+                            static_cast<int32_t>(activeReference_);
       const bool qualifies =
           lastHallDeparture_ >= kHallDepartureThreshold ||
           lastHallDeparture_ <= -kHallDepartureThreshold;
@@ -139,7 +153,7 @@ class NaviCore {
       }
 
       if (opening_.candidate) {
-        observeCandidateSample(sample, qualifies);
+        if (observeCandidateSample(sample, qualifies)) confirmed = true;
         continue;
       }
 
@@ -162,9 +176,10 @@ class NaviCore {
         confirmationDirection_ = HallOpeningPolarity::Unknown;
       }
     }
+    return confirmed;
   }
 
-  void observeCandidateSample(const HallSample& sample, bool qualifies) {
+  bool observeCandidateSample(const HallSample& sample, bool qualifies) {
     if (!qualifies) {
       confirmationSampleCount_ = 0;
       confirmationDirection_ = HallOpeningPolarity::Unknown;
@@ -174,7 +189,7 @@ class NaviCore {
         transientSampleCount_ = 0;
         previousConfirmationDeparture_ = 0;
       }
-      return;
+      return false;
     }
 
     transientSampleCount_ = 0;
@@ -182,7 +197,7 @@ class NaviCore {
     if (confirmationSampleCount_ == 0) {
       confirmationSampleCount_ = 1;
       previousConfirmationDeparture_ = departure;
-      return;
+      return false;
     }
 
     const bool positiveRise = previousConfirmationDeparture_ > 0 &&
@@ -214,8 +229,72 @@ class NaviCore {
       opening_.observationSerial = sample.sampleSerial;
       opening_.departure = departure;
       opening_.polarity = confirmationDirection_;
+      lastConfirmedOpening_ = opening_;
+      return true;
     }
+    return false;
   }
+
+  void beginSpatialReference(uint32_t originMm) {
+    spatialReferenceActive_ = true;
+    spatialOriginMm_ = originMm;
+    spatialPopulation_.clear();
+  }
+
+  void updateSpatialReference(const HallObservation& observation) {
+    if (observation.irDistanceMm < spatialOriginMm_) return;
+    const uint32_t traveledMm = observation.irDistanceMm - spatialOriginMm_;
+
+    if (traveledMm >= 100 && traveledMm <= 200 &&
+        observation.samples != nullptr && observation.sampleCount != 0) {
+      for (uint16_t i = 0; i < observation.sampleCount; ++i) {
+        bool represented = false;
+        for (const SpatialHallSample& selected : spatialPopulation_) {
+          if (selected.distanceMm == observation.irDistanceMm) {
+            represented = true;
+            break;
+          }
+        }
+        if (!represented) {
+          spatialPopulation_.push_back(
+              {observation.irDistanceMm, observation.samples[i].raw});
+        }
+      }
+    }
+
+    if (traveledMm < 200 || spatialPopulation_.empty()) return;
+
+    std::vector<int16_t> ordered;
+    ordered.reserve(spatialPopulation_.size());
+    for (const SpatialHallSample& selected : spatialPopulation_) {
+      ordered.push_back(selected.raw);
+    }
+    std::sort(ordered.begin(), ordered.end());
+    const size_t middle = ordered.size() / 2;
+    if (ordered.size() % 2 != 0) {
+      activeReference_ = ordered[middle];
+    } else {
+      const int32_t lower = ordered[middle - 1];
+      const int32_t upper = ordered[middle];
+      activeReference_ = static_cast<int16_t>((lower + upper) / 2);
+    }
+    spatialReferenceActive_ = false;
+    resetOpeningRecognition();
+  }
+
+  void resetOpeningRecognition() {
+    opening_ = HallOpening{};
+    qualifyingHallObservationCount_ = 0;
+    confirmationSampleCount_ = 0;
+    transientSampleCount_ = 0;
+    previousConfirmationDeparture_ = 0;
+    confirmationDirection_ = HallOpeningPolarity::Unknown;
+  }
+
+  struct SpatialHallSample {
+    uint32_t distanceMm;
+    int16_t raw;
+  };
 
   uint16_t navMm_;
   const HallSample* lastHallSamples_ = nullptr;
@@ -225,6 +304,7 @@ class NaviCore {
   std::vector<int16_t> collection_;
   bool initialReferenceAvailable_ = false;
   int16_t initialReference_ = 0;
+  int16_t activeReference_ = 0;
   int32_t lastHallDeparture_ = 0;
   uint8_t qualifyingHallObservationCount_ = 0;
   uint8_t confirmationSampleCount_ = 0;
@@ -232,6 +312,10 @@ class NaviCore {
   int32_t previousConfirmationDeparture_ = 0;
   HallOpeningPolarity confirmationDirection_ = HallOpeningPolarity::Unknown;
   HallOpening opening_;
+  HallOpening lastConfirmedOpening_;
+  bool spatialReferenceActive_ = false;
+  uint32_t spatialOriginMm_ = 0;
+  std::vector<SpatialHallSample> spatialPopulation_;
 };
 
 }  // namespace navi_eyes

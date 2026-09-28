@@ -111,13 +111,16 @@ int main() {
   check(!noReference.opening().candidate && !noReference.opening().confirmed,
         "no opening is recognized before a Hall reference exists");
 
-  auto send = [](NaviCore& navi, HallSample& sample) {
+  auto sendAt = [](NaviCore& navi, HallSample& sample, uint32_t distanceMm) {
     HallObservation observation{sample.sampleSerial, sample.sampleSerial, 1,
                                 &sample};
-    observation.irDistanceMm = 10;
+    observation.irDistanceMm = distanceMm;
     NaviEvidence evidence;
     evidence.hall = observation;
     navi.observe(evidence, sample.sampleSerial);
+  };
+  auto send = [&sendAt](NaviCore& navi, HallSample& sample) {
+    sendAt(navi, sample, 10);
   };
   auto establishReference = [&send](NaviCore& navi, uint32_t serial) {
     HallSample samples[] = {
@@ -259,6 +262,81 @@ int main() {
         "a broken high pattern restarts the high sequence");
   check(equivocalNavi.transientSampleCount() == 0,
         "a broken high pattern is not counted as a negative");
+
+  NaviCore spatialNavi(40);
+  establishReference(spatialNavi, 200);
+  check(spatialNavi.activeHallReference() == 100,
+        "initial reference remains active before a confirmed magnet");
+  HallSample firstCandidate[] = {
+      {210, 4000, 182, 0, 10, IrHealth::Unknown, 0, 1},
+      {211, 4001, 191, 0, 10, IrHealth::Unknown, 0, 1},
+  };
+  send(spatialNavi, firstCandidate[0]);
+  send(spatialNavi, firstCandidate[1]);
+  HallSample firstConfirmation[] = {
+      {212, 4002, 205, 0, 10, IrHealth::Unknown, 0, 1},
+      {213, 4003, 215, 0, 10, IrHealth::Unknown, 0, 1},
+      {214, 4004, 225, 0, 10, IrHealth::Unknown, 0, 1},
+  };
+  for (HallSample& sample : firstConfirmation) send(spatialNavi, sample);
+  check(spatialNavi.lastConfirmedOpening().confirmed &&
+            spatialNavi.spatialReferenceActive() &&
+            spatialNavi.spatialReferenceOriginMm() == 10,
+        "confirmed magnet establishes the spatial distance origin");
+  check(spatialNavi.activeHallReference() == 100,
+        "previous reference remains active during spatial collection");
+
+  HallSample clearance{215, 4010, 500, 0, 50, IrHealth::Unknown, 0, 1};
+  sendAt(spatialNavi, clearance, 50);
+  check(spatialNavi.spatialReferenceSampleCount() == 0,
+        "Hall observations in the 0-100 mm clearance are not collected");
+  check(spatialNavi.lastHallSamples()->sampleSerial == clearance.sampleSerial &&
+            spatialNavi.lastObservedIrDistanceMm() == 50,
+        "Hall and IR observations remain visible during clearance");
+
+  HallSample collection[] = {
+      {216, 4020, 100, 0, 110, IrHealth::Unknown, 0, 1},
+      {217, 4021, 110, 0, 130, IrHealth::Unknown, 0, 1},
+      {218, 4022, 120, 0, 160, IrHealth::Unknown, 0, 1},
+      {219, 4023, 900, 0, 160, IrHealth::Unknown, 0, 1},
+      {220, 4024, 130, 0, 190, IrHealth::Unknown, 0, 1},
+  };
+  sendAt(spatialNavi, collection[0], 110);
+  sendAt(spatialNavi, collection[1], 130);
+  sendAt(spatialNavi, collection[2], 160);
+  check(spatialNavi.spatialReferenceSampleCount() == 3,
+        "collection begins at 100 mm of NAVI-observed travel");
+  sendAt(spatialNavi, collection[3], 160);
+  check(spatialNavi.spatialReferenceSampleCount() == 3 &&
+            spatialNavi.lastHallSamples()->raw == collection[3].raw,
+        "repeated stationary observations remain visible without extra spatial weight");
+  sendAt(spatialNavi, collection[4], 190);
+  HallSample boundary{221, 4025, 140, 0, 210, IrHealth::Unknown, 0, 1};
+  sendAt(spatialNavi, boundary, 210);
+  check(!spatialNavi.spatialReferenceActive() &&
+            spatialNavi.activeHallReference() == 120 &&
+            spatialNavi.spatialReferenceSampleCount() == 5,
+        "the median of the 100-200 mm population becomes active at 200 mm");
+
+  HallSample nextCandidate[] = {
+      {222, 4030, 191, 0, 211, IrHealth::Unknown, 0, 1},
+      {223, 4031, 200, 0, 211, IrHealth::Unknown, 0, 1},
+  };
+  sendAt(spatialNavi, nextCandidate[0], 211);
+  sendAt(spatialNavi, nextCandidate[1], 211);
+  check(spatialNavi.opening().candidate,
+        "subsequent Hall detection uses the new spatial reference");
+  HallSample nextConfirmation[] = {
+      {224, 4032, 210, 0, 211, IrHealth::Unknown, 0, 1},
+      {225, 4033, 220, 0, 211, IrHealth::Unknown, 0, 1},
+      {226, 4034, 230, 0, 211, IrHealth::Unknown, 0, 1},
+  };
+  for (HallSample& sample : nextConfirmation) sendAt(spatialNavi, sample, 211);
+  check(spatialNavi.lastConfirmedOpening().observationSerial ==
+                nextConfirmation[2].sampleSerial &&
+            spatialNavi.spatialReferenceActive() &&
+            spatialNavi.spatialReferenceOriginMm() == 211,
+        "the next confirmed magnet starts a fresh spatial-reference cycle");
 
   std::printf("%s: %d failures\n", failures ? "FAIL" : "PASS", failures);
   return failures ? 1 : 0;
