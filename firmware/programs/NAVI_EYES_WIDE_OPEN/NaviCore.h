@@ -29,7 +29,15 @@ class NaviCore {
       lastHallSamples_ = evidence.hall.samples;
       lastHallSampleCount_ = evidence.hall.sampleCount;
     }
+    // NAVI compares the cumulative IR measurement itself. Hall observations
+    // continue to be collected even when the IR value repeats between updates.
+    const bool irDistanceProgressed =
+        evidence.hall.irDistanceMm > lastIrDistanceMm_;
+    if (!collectionStarted_ && irDistanceProgressed) {
+      collectionStarted_ = true;
+    }
     collectInitialReference(evidence.hall);
+    lastIrDistanceMm_ = evidence.hall.irDistanceMm;
     NaviJudgment result;
     result.observationSerial = serial;
     result.navMm = navMm_;
@@ -52,25 +60,25 @@ class NaviCore {
   int16_t initialHallReference() const { return initialReference_; }
   bool initialReferenceCollectionStarted() const { return collectionStarted_; }
   size_t initialReferenceSampleCount() const { return collection_.size(); }
+  uint32_t lastObservedIrDistanceMm() const { return lastIrDistanceMm_; }
 
  private:
   static constexpr uint32_t kInitialReferenceTravelMm = 10;
 
   void collectInitialReference(const HallObservation& observation) {
     if (initialReferenceAvailable_ || observation.samples == nullptr ||
-        observation.sampleCount == 0 || !observation.irAdvanced) {
+        observation.sampleCount == 0 || !collectionStarted_) {
       return;
     }
 
-    if (!collectionStarted_) {
-      collectionStarted_ = true;
+    if (observation.irDistanceMm <= kInitialReferenceTravelMm) {
+      for (uint16_t i = 0; i < observation.sampleCount; ++i) {
+        collection_.push_back(observation.samples[i].raw);
+      }
     }
 
-    for (uint16_t i = 0; i < observation.sampleCount; ++i) {
-      collection_.push_back(observation.samples[i].raw);
-    }
-
-    if (observation.irDistanceMm < kInitialReferenceTravelMm) {
+    if (observation.irDistanceMm < kInitialReferenceTravelMm ||
+        collection_.empty()) {
       return;
     }
 
@@ -90,6 +98,7 @@ class NaviCore {
   uint16_t navMm_;
   const HallSample* lastHallSamples_ = nullptr;
   uint16_t lastHallSampleCount_ = 0;
+  uint32_t lastIrDistanceMm_ = 0;
   bool collectionStarted_ = false;
   std::vector<int16_t> collection_;
   bool initialReferenceAvailable_ = false;

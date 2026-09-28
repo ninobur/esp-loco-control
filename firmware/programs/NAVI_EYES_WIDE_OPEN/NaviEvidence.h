@@ -22,7 +22,6 @@ struct HallObservation {
   uint32_t lastSample = 0;
   uint16_t sampleCount = 0;
   const HallSample* samples = nullptr;
-  bool irAdvanced = false;
   uint32_t irDistanceMm = 0;
   IrHealth irHealth = IrHealth::Unknown;
 };

@@ -43,6 +43,7 @@ void loop() {
   observation.lastSample = sample.sampleSerial;
   observation.sampleCount = 1;
   observation.samples = &sample;
+  observation.irDistanceMm = sample.irDistanceMm;
   observation.irHealth = sample.irHealth;
 
   NaviEvidence evidence;

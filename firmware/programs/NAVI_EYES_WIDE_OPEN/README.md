@@ -7,11 +7,13 @@ The sketch separates observation from judgment:
 * Hall acquisition publishes every native Hall sample and retains the raw
   samples surrounding an observation.
 * IR acquisition publishes cumulative pulses, measured displacement, and its
-  health facts. No IR fact is converted into a veto or a magnet count.
+  health facts. No upstream IR movement judgment is sent to NAVI.
 * `NaviCore` receives each native Hall observation, unchanged and in acquisition
   order, owns the initial-reference measurement, and decides what observations
   mean. It is the only component allowed to accept, hold, reject, advance
   position, or stop.
+* NAVI receives cumulative IR distance and health facts; no upstream movement
+  boolean determines whether Hall observations are delivered or collected.
 
 The only use of time in the `.ino` is physical sampling/service scheduling and
 telemetry timestamps. No navigation decision uses elapsed time or a time-based
@@ -27,9 +29,10 @@ attaches factual metadata: sample serial, timestamp, IR facts, PWM, and
 direction. It does not filter, average, median, qualify, gate, classify,
 interpret, suppress, or form Hall events. Later baseline, RTB, event, and
 navigation behavior is intentionally not implemented here. NAVI's initial
-reference collection is separate: after the first IR-reported movement, NAVI
-collects native Hall observations over 10 mm of measured IR travel and sets the
-median as the held initial reference. No later spatial replacement is included.
+reference collection is separate: NAVI compares successive cumulative IR
+distance observations itself, then collects every native Hall observation over
+the first 10 mm of measured travel and sets the median as the held initial
+reference. No later spatial replacement is included.
 
 Run the host gates with:
 
