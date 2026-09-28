@@ -1,6 +1,8 @@
 #pragma once
 
+#include <algorithm>
 #include <stdint.h>
+#include <vector>
 
 #include "NaviEvidence.h"
 
@@ -27,6 +29,7 @@ class NaviCore {
       lastHallSamples_ = evidence.hall.samples;
       lastHallSampleCount_ = evidence.hall.sampleCount;
     }
+    collectInitialReference(evidence.hall);
     NaviJudgment result;
     result.observationSerial = serial;
     result.navMm = navMm_;
@@ -45,11 +48,52 @@ class NaviCore {
   uint16_t navMm() const { return navMm_; }
   const HallSample* lastHallSamples() const { return lastHallSamples_; }
   uint16_t lastHallSampleCount() const { return lastHallSampleCount_; }
+  bool initialHallReferenceAvailable() const { return initialReferenceAvailable_; }
+  int16_t initialHallReference() const { return initialReference_; }
+  bool initialReferenceCollectionStarted() const { return collectionStarted_; }
+  size_t initialReferenceSampleCount() const { return collection_.size(); }
 
  private:
+  static constexpr uint32_t kInitialReferenceTravelMm = 10;
+
+  void collectInitialReference(const HallObservation& observation) {
+    if (initialReferenceAvailable_ || observation.samples == nullptr ||
+        observation.sampleCount == 0 || !observation.irAdvanced) {
+      return;
+    }
+
+    if (!collectionStarted_) {
+      collectionStarted_ = true;
+    }
+
+    for (uint16_t i = 0; i < observation.sampleCount; ++i) {
+      collection_.push_back(observation.samples[i].raw);
+    }
+
+    if (observation.irDistanceMm < kInitialReferenceTravelMm) {
+      return;
+    }
+
+    std::vector<int16_t> ordered = collection_;
+    std::sort(ordered.begin(), ordered.end());
+    const size_t middle = ordered.size() / 2;
+    if (ordered.size() % 2 != 0) {
+      initialReference_ = ordered[middle];
+    } else {
+      const int32_t lower = ordered[middle - 1];
+      const int32_t upper = ordered[middle];
+      initialReference_ = static_cast<int16_t>((lower + upper) / 2);
+    }
+    initialReferenceAvailable_ = true;
+  }
+
   uint16_t navMm_;
   const HallSample* lastHallSamples_ = nullptr;
   uint16_t lastHallSampleCount_ = 0;
+  bool collectionStarted_ = false;
+  std::vector<int16_t> collection_;
+  bool initialReferenceAvailable_ = false;
+  int16_t initialReference_ = 0;
 };
 
 }  // namespace navi_eyes
