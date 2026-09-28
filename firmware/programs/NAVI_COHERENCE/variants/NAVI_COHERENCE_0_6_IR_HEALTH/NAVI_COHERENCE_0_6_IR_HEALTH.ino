@@ -31,6 +31,12 @@
 #include <esp_timer.h>
 #include <Preferences.h>
 
+// NSR1 is a send-only observation tap.  The critical section protects only
+// completed recorder records; it is never held across Wi-Fi or MQTT work.
+static portMUX_TYPE naviSyncMux = portMUX_INITIALIZER_UNLOCKED;
+#define NAVI_SYNC_ENTER_CRITICAL() portENTER_CRITICAL(&naviSyncMux)
+#define NAVI_SYNC_EXIT_CRITICAL()  portEXIT_CRITICAL(&naviSyncMux)
+
 // Operator authorized AUTO for this build, 2026-09-22.
 #define NGR_ENABLE_EXPERIMENTAL_AUTO 1
 #include "LocoConfig.h"
@@ -43,6 +49,7 @@
 #include "RecoveryControl.h"
 #include "IrHealthMonitor.h"
 #include "IrSpeedTelemetry.h"
+#include "NaviSyncRecorder.h"
 
 #ifndef NAVI_BASELINE_ADAPT_PWM
 #error "This locomotive's profile has no NAVI_BASELINE_ADAPT_PWM. Measure the tractive floor from its own PWM/speed fit; do not copy another locomotive's."
@@ -55,9 +62,9 @@ using namespace ngr_hall; // 20Q3: X22R detector (X22 with the obsolete refracto
 // build is running, so it advances with every behavioural change.
 // The Hall detector has no refractory: its only timing rule is NAVI's 650 ms
 // Hall-only fallback (Navigator.h), used only without valid MM-referenced IR.
-#define SKETCH_NAME    "NAVI_COHERENCE_0_6_POSITION_STATIONS_R1_20Q3"
+#define SKETCH_NAME    "NAVI_COHERENCE_0_6_POSITION_STATIONS_R1_20Q3_SYNC_R1"
 #define BUILD_CLASS    "AUTO_ENABLED_FIELD_TEST"
-#define BUILD_SUBTITLE "POSITION_STATIONS_R1 + 20Q3: Hall 70/2, Hall-only 650 ms, exact +/-15% epoch windows, opening polarity only"
+#define BUILD_SUBTITLE "POSITION_STATIONS_R1 + 20Q3 + NSR1 native Hall/IR evidence recorder"
 #define FIELD_ACCEPTED 0
 
 // Types used in function signatures must appear before the Arduino
@@ -80,6 +87,11 @@ struct HallDecisionMsg { BaselineOutcome d; uint32_t t; };
 struct IrRx { uint8_t mac[6]; uint64_t receivedUs; uint8_t bytes[110]; };
 struct PubMsg { char topic[72]; char payload[1200]; uint16_t len; bool retain; };
 struct CmdMsg { char topic[72]; char payload[64]; };
+
+struct HallReading {
+  uint16_t raw[5];
+  int16_t median;
+};
 
 static const char*   MQTT_BROKER = "192.168.68.142";
 static const uint16_t MQTT_PORT  = 1883;
@@ -136,6 +148,18 @@ static ngr_nav::IrSpeedTelemetry irSpeed;
 static ngr_nav::IrSpeedQualification irSpeedQualification;
 static ngr_nav::NaviSpeedInterpretation naviSpeedInterpretation;
 static bool irCarCoupled=false; // Operator-confirmed, deliberately not persisted.
+static navi_sync::Recorder naviSyncRecorder;
+static uint32_t naviSyncSession=0;
+static WiFiUDP naviSyncUdp;
+static IPAddress naviSyncDest;
+static bool naviSyncDestValid=false;
+static uint32_t naviSyncUdpFailures=0, naviSyncDatagrams=0;
+static constexpr const char* NAVI_SYNC_HOST = "192.168.68.142";
+static constexpr uint16_t NAVI_SYNC_PORT = 47620;
+static volatile uint8_t naviSyncNavMm=navi_sync::MM_NA;
+static volatile int8_t naviSyncNavDir=0;
+static volatile uint8_t naviSyncStationPhase=0;
+static volatile uint8_t naviSyncContextFlags=0;
 static QueueHandle_t irQ=nullptr;
 static volatile uint32_t irQueueDrops=0;
 static uint32_t handledIrDrops=0;
@@ -199,11 +223,19 @@ static void carryResetRequest(){
   stationMachine.reset();
 }
 
-static int16_t hallRead(){
-  int r[5];
-  for (int i = 0; i < 5; ++i) r[i] = analogRead(HALL_PIN);
-  for (int i = 1; i < 5; ++i) { int v = r[i], j = i - 1; while (j >= 0 && r[j] > v) { r[j+1] = r[j]; --j; } r[j+1] = v; }
-  return (int16_t)r[2];
+static HallReading hallRead(){
+  HallReading out{}; int sorted[5];
+  for (int i = 0; i < 5; ++i) {
+    out.raw[i] = (uint16_t)analogRead(HALL_PIN);
+    sorted[i] = out.raw[i];
+  }
+  for (int i = 1; i < 5; ++i) {
+    int v = sorted[i], j = i - 1;
+    while (j >= 0 && sorted[j] > v) { sorted[j+1] = sorted[j]; --j; }
+    sorted[j+1] = v;
+  }
+  out.median = (int16_t)sorted[2];
+  return out;
 }
 
 
@@ -219,6 +251,28 @@ static bool autoEnrolled=false, autoRunning=false, estopped=false, lowVoltage=fa
 // the motor stops whether or not the command ever reaches loop().
 static volatile bool estopAsserted = false;
 static int8_t sessionDir = 0;
+
+static navi_sync::Context naviSyncContext(){
+  navi_sync::Context c;
+  c.navMm=naviSyncNavMm; c.navDir=naviSyncNavDir;
+  c.stationPhase=naviSyncStationPhase; c.flags=naviSyncContextFlags;
+  return c;
+}
+
+static void naviSyncRefreshContext(){
+  const NavStatus& s=navigator.status();
+  uint8_t flags=0;
+  if(navigator.positionKnown()) flags|=navi_sync::CTX_NAV_KNOWN;
+  if(autoEnrolled) flags|=navi_sync::CTX_AUTO_ENROLLED;
+  if(autoRunning) flags|=navi_sync::CTX_AUTO_RUNNING;
+  if(estopped || estopAsserted) flags|=navi_sync::CTX_ESTOP;
+  if(lowVoltage) flags|=navi_sync::CTX_LOW_VOLT;
+  if(observationHold) flags|=navi_sync::CTX_HOLD;
+  naviSyncNavMm=navigator.positionKnown()?s.navMm:navi_sync::MM_NA;
+  naviSyncNavDir=navigator.positionKnown()?s.navDir:0;
+  naviSyncStationPhase=(uint8_t)stationMachine.phase();
+  naviSyncContextFlags=flags;
+}
 // Per-STEP ramping, as LocoDriver_v2_1 did. The first cut computed a total
 // duration when the throttle command arrived and then interpolated, so moving
 // the brake DURING a deceleration changed nothing -- which is the only way a
@@ -549,7 +603,20 @@ static void hallTask(void*){
     if(recognizerResetRequest){
       hall.reset();myEpoch=navEpoch;recognizerResetRequest=false;havePending=false;
     }
-    const int16_t raw=hallRead();
+    const HallReading reading=hallRead();
+    const int16_t raw=reading.median;
+    navi_sync::HallSample evidence{};
+    memcpy(evidence.raw,reading.raw,sizeof(evidence.raw));
+    evidence.median=reading.median;
+    evidence.pwmActual=(uint8_t)actualPwm;
+    evidence.pwmCommanded=(uint8_t)commandedPwm;
+    evidence.flags=(motorDirection ? navi_sync::HALL_F_DIR_FWD : 0) |
+                    (estopped || estopAsserted ? navi_sync::HALL_F_ESTOP : 0) |
+                    (autoRunning ? navi_sync::HALL_F_AUTO : 0) |
+                    ((naviSyncContextFlags & navi_sync::CTX_NAV_KNOWN) ? navi_sync::HALL_F_NAV_KNOWN : 0) |
+                    (observationHold ? navi_sync::HALL_F_HOLD : 0) |
+                    (lowVoltage ? navi_sync::HALL_F_LOW_VOLT : 0);
+    naviSyncRecorder.addHall(esp_timer_get_time(),now,evidence,naviSyncContext());
     // Operating hold is not a physical zero-motion claim. The detector keeps
     // diagnosing the field, but cannot commit route advances during that hold.
     const bool completed=hall.sample(now,raw,actualPwm>NAVI_BASELINE_ADAPT_PWM,
@@ -606,8 +673,23 @@ static void serviceMovement(){
     if(ngr_nav::movementCrc(packet.bytes,108)==uint16_t(packet.bytes[108]|uint16_t(packet.bytes[109])<<8)){
       memcpy(lastSeenMac,packet.mac,6);++seenFrames;
     }
-    movement.receive(packet.mac,packet.bytes,110,packet.receivedUs);
+    const ngr_nav::RxResult movementResult =
+      movement.receive(packet.mac,packet.bytes,110,packet.receivedUs);
     irHealth.receive(packet.mac,packet.bytes,110,packet.receivedUs);
+    if (movementResult == ngr_nav::RxResult::Accepted ||
+        movementResult == ngr_nav::RxResult::Reset) {
+      // This is the actual accepted ~100 ms IR stream, not serviceIr()'s 1 Hz
+      // dashboard/status publication. The snapshot remains byte-for-byte
+      // available inside wire; recorder output cannot influence either
+      // movement or health admission.
+      naviSyncRecorder.addIr(
+        packet.receivedUs,packet.mac,
+        movementResult == ngr_nav::RxResult::Reset ? 2 : 1,
+        movement.latest(),
+        (uint8_t)irHealth.health().fault,
+        (uint8_t)irHealth.health().readiness,
+        (uint8_t)actualPwm,(uint8_t)commandedPwm,naviSyncContext());
+    }
   }
   irHealth.tick(esp_timer_get_time());
 }
@@ -622,6 +704,70 @@ static void onMqtt(char* t,byte* payload,unsigned int len){
   if (!strcmp(leaf,"estop")) { bool want=true; parseEstop(c.payload,want); if (want) estopAsserted = true; }
   if (cmdQ && xQueueSend(cmdQ,&c,0) != pdTRUE) ++cmdDropped;
 }
+
+static bool naviSyncSendBytes(const void* data,size_t length){
+  if(!naviSyncUdp.beginPacket(naviSyncDest,NAVI_SYNC_PORT) ||
+     naviSyncUdp.write(reinterpret_cast<const uint8_t*>(data),length) != length ||
+     !naviSyncUdp.endPacket()) {
+    ++naviSyncUdpFailures;
+    return false;
+  }
+  ++naviSyncDatagrams;
+  return true;
+}
+static bool naviSyncSend(const navi_sync::HallWire& wire){
+  return naviSyncSendBytes(&wire,sizeof(wire));
+}
+static bool naviSyncSend(const navi_sync::IrWire& wire){
+  return naviSyncSendBytes(&wire,sizeof(wire));
+}
+static bool naviSyncSend(const navi_sync::StatusWire& wire){
+  return naviSyncSendBytes(&wire,sizeof(wire));
+}
+
+static void naviSyncNetworkDrain(){
+  if(!naviSyncDestValid || WiFi.status()!=WL_CONNECTED) return;
+
+  // Hall is the high-rate stream; IR is interleaved deliberately so a busy
+  // Hall backlog cannot hide the accepted ~100 ms IR observations.
+  for(uint8_t i=0;i<12;++i){
+    bool did=false;
+    if((i&1)==0){
+      navi_sync::HallWire hallWire;
+      if(naviSyncRecorder.popHall(hallWire)){naviSyncSend(hallWire);did=true;}
+      if(!did){navi_sync::IrWire irWire;if(naviSyncRecorder.popIr(irWire)){naviSyncSend(irWire);did=true;}}
+    } else {
+      navi_sync::IrWire irWire;
+      if(naviSyncRecorder.popIr(irWire)){naviSyncSend(irWire);did=true;}
+      if(!did){navi_sync::HallWire hallWire;if(naviSyncRecorder.popHall(hallWire)){naviSyncSend(hallWire);did=true;}}
+    }
+    if(!did) break;
+  }
+
+  static uint32_t nextStatus=0;
+  const uint32_t nowMs=millis();
+  if((int32_t)(nowMs-nextStatus)>=0){
+    nextStatus=nowMs+1000;
+    navi_sync::Status status{};
+    status.tMs=nowMs; status.tUs=esp_timer_get_time();
+    status.hallSamples=naviSyncRecorder.hallSamples();
+    status.hallRingDrops=naviSyncRecorder.hallDrops();
+    status.irAccepted=naviSyncRecorder.irAccepted();
+    status.irRingDrops=naviSyncRecorder.irDrops();
+    status.irInputQueueDrops=irQueueDrops;
+    status.udpFailures=naviSyncUdpFailures;
+    status.datagramsSent=naviSyncDatagrams;
+    status.maxHallGapUs=naviSyncRecorder.maxHallGapUs();
+    status.hallHighWater=naviSyncRecorder.hallHighWater();
+    status.irHighWater=naviSyncRecorder.irHighWater();
+    status.wifiConnected=WiFi.status()==WL_CONNECTED?1:0;
+    status.mqttConnected=mqtt.connected()?1:0;
+    const navi_sync::StatusWire wire=naviSyncRecorder.makeStatus(
+      nowMs,status.tUs,naviSyncContext(),status);
+    naviSyncSend(wire);
+  }
+}
+
 static void networkTask(void*){
   char sub[72];
   uint32_t nextConnectMs = 0, wifiSinceMs = 0;
@@ -665,6 +811,7 @@ static void networkTask(void*){
       }
     }
     mqtt.loop();
+    naviSyncNetworkDrain();
     // ONLY DEQUEUE WHAT CAN ACTUALLY BE SENT. While the broker is away the
     // queue holds, so a blink of a few seconds costs nothing at all; a longer
     // outage overflows at the enqueue end, where pub() counts every loss.
@@ -969,6 +1116,15 @@ static void serviceStatus(){
 void setup(){
   Serial.begin(115200); delay(300);
   bootId = ((uint64_t)esp_random() << 32) | esp_random();
+  naviSyncSession=(uint32_t)esp_random();
+  if(!naviSyncSession)naviSyncSession=1;
+  naviSyncRecorder.begin((uint32_t)LOCO_ID,naviSyncSession,bootId);
+  naviSyncDestValid=naviSyncDest.fromString(NAVI_SYNC_HOST);
+  if(naviSyncDestValid)
+    Serial.printf("[REC] NSR1 native Hall + accepted IR -> %s:%u session=%08lX (observation only)\n",
+                  NAVI_SYNC_HOST,(unsigned)NAVI_SYNC_PORT,(unsigned long)naviSyncSession);
+  else
+    Serial.printf("[REC] NSR1 host is not a dotted quad: %s (not recording)\n",NAVI_SYNC_HOST);
   analogReadResolution(12);
   pinMode(HALL_PIN,INPUT);
   pinMode(MOTOR_DIR_PIN,OUTPUT); pinMode(MOTOR_PWM_PIN,OUTPUT);
@@ -996,6 +1152,7 @@ void setup(){
   irHealth.pair(savedMac,esp_timer_get_time());
   pubQ  =xQueueCreate(48,sizeof(PubMsg));    // holds ~5 s while the broker is away
   cmdQ  =xQueueCreate(16,sizeof(CmdMsg));
+  naviSyncRefreshContext();
   Serial.printf("[BOOT] %s \"%s\" — %s\n",SKETCH_NAME,BUILD_SUBTITLE,LOCO_NAME);
   Serial.printf("[BOOT] %s %s — PROXIMAL recovery active; not field accepted.\n",SKETCH_NAME,BUILD_CLASS);
   Serial.printf("[CAL] 2 s baseline — keep clear of magnets\n");
@@ -1177,6 +1334,7 @@ void loop(){
     else warnStick("HALL EVENT QUEUE OVERFLOW. Declare position.");
     handledEventDrops = hallEventDrops;
   }
+  naviSyncRefreshContext();
   serviceRamp(); serviceIna(); serviceIr(); serviceStatus(); serviceIrHealth();
   delay(2);
 }

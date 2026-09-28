@@ -2,8 +2,19 @@
 
 ## Current Candidate: POSITION_STATIONS_R1_20Q3
 
-**Host tests pass; ESP32 compile pending local verification; not flashed; not
-field tested.** Boot name: `NAVI_COHERENCE_0_6_POSITION_STATIONS_R1_20Q3`.
+### Prepared recorder build: `..._SYNC_R1`
+
+The prepared `NAVI_COHERENCE_0_6_POSITION_STATIONS_R1_20Q3_SYNC_R1` build adds
+the observation-only `NSR1` recorder described in
+[`docs/NAVI_SYNC_NATIVE_HALL_IR_RECORDER_20260927.md`](../../../../../docs/NAVI_SYNC_NATIVE_HALL_IR_RECORDER_20260927.md).
+It records the native-rate five-sample Hall readings/median and every accepted
+approximately 100 ms IR snapshot on the same ESP32 timer, with explicit queue,
+transport and timing-loss counters. It does not feed recorded values back into
+NAVI or alter control behavior. It compiles, has not been flashed, and the Pi
+receiver has not been installed or enabled.
+
+**Host tests pass; the prepared SYNC_R1 ESP32 build compiles; not flashed; not
+field tested.** Base boot name: `NAVI_COHERENCE_0_6_POSITION_STATIONS_R1_20Q3`.
 Same Arduino filename and NGR-Files shortcut. Base: POSITION_STATIONS_R1 at
 `57d34d6`.
 

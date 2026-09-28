@@ -1,0 +1,15 @@
+[Unit]
+Description=NGR native Hall and accepted IR evidence recorder
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=david
+ExecStart=/usr/bin/python3 /home/david/NGR/navi_sync_receiver.py --port 47620 --outdir /home/david/NGR/navi_sync
+Restart=always
+RestartSec=2
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target
