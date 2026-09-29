@@ -101,19 +101,26 @@ conflicting assumptions are superseded for NAVI_EWO as follows.
   evidence, confirmation uses the degraded mechanism, and there is no Missed
   Magnet until a confirmed expected MM re-anchors (0112).
 
+## Resolved by later instruction
+
+- **0107 D4/D8:** resolved for NAVI_EWO by 0113 to the extent the spatial geometry
+  answers them.
+- **Confident locomotive:** added as enduring principle 17 in
+  `NGR_DECISION_SYSTEM_DESIGN_PRINCIPLES.md`.
+
 ## Open points (not settled; do not treat any as decided)
 
 1. **CRM challenge:** no threshold or mechanism for telling the operator that the
    encountered MM are inconsistent with the declaration (0109).
-2. **0107 D4 and D8** are not formally closed by 0113.
-3. **Distance origin** of the +/-15% target interval after a confirmation and after
-   a Missed Magnet advance. The integrated README anchors it at the applicable IR
+2. **0107 D4/D8 remainders:** whether the 100 mm clearance is physically
+   sufficient, and how long a reference may be held across successive Missed
+   Magnets. (The rest of D4/D8 is resolved by 0113.)
+3. **Distance origin** of the +/-15% target interval after a Missed Magnet, where no
+   physical landmark was observed (and, as implemented, after a confirmation). The integrated README anchors it at the applicable IR
    context of the confirmed leading boundary. The brief does not state it.
 4. **Multiple IR senders:** the integrated candidate has no source-selection
    policy; David and Sam must decide a NAVI-owned policy before field use.
 5. **Spatial-reference details:** bin width, minimum coverage, and the per-location
    representative rule.
-6. **Whether "confident locomotive"** should be added to the enduring design
-   principles document. It is recorded in 0109 only.
-7. **Synchronized IR evidence** for the three surviving impostor candidates
+6. **Synchronized IR evidence** for the three surviving impostor candidates
    (X21 Grillers departure, QUORUM 243211, QUORUM 263774): track evidence needed.

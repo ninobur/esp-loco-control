@@ -62,7 +62,8 @@ future operator message is:
 **No threshold, count or automatic mechanism for making that determination is
 authorized or decided.** It is an intended direction, not a specification.
 
-**The confident locomotive.** NAVI should not stop merely because redundant
+**The confident locomotive** (now also an enduring principle, section 17 of
+`../NGR_DECISION_SYSTEM_DESIGN_PRINCIPLES.md`). NAVI should not stop merely because redundant
 evidence becomes temporarily unavailable, if the remaining evidence continues to
 coherently confirm its known targets. Loss of redundancy is not automatically
 loss of navigation competence. Likewise, uncertainty does not require NAVI to

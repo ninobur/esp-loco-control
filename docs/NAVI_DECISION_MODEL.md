@@ -197,17 +197,18 @@ Preserve useful knowledge, not the historical authority structure.
 | D1 | Adopt the measurement-stage / NAVI split of plan §5.1 | **SETTLED, reframed** | NAVI is the sole decision authority, but the new structure is created anew from these principles. It is not X22 refactored into NAVI (0102) |
 | D2 | NAVI fallback rules reproducing X22's PWM-zero and stopped-in-field outcomes | **SETTLED: superseded** | Preserve the information and useful concepts, not old outcomes because X22 produced them. PWM-0 behavior follows 0106 |
 | D3 | Landmarks at PWM 0 with valid IR travel; IR-car-only motion | **SETTLED** | No navigation authority at motive PWM 0; IR at PWM 0 is not signed route displacement (0106) |
-| D4 | IR-region bounds or shadow before a Toby measurement | **OPEN** | Pending a general RTB model (0107). No 80 ms, 71 mm, Toby- or Otto-specific answer is to be predetermined |
+| D4 | IR-region bounds or shadow before a Toby measurement | **RESOLVED for NAVI_EWO (0113), in part** | Pending a general RTB model (0107). No 80 ms, 71 mm, Toby- or Otto-specific answer is to be predetermined *(Earlier text is historical; 0113 states what is resolved and what remains.)* |
 | D5 | Stationary lock collection | **SETTLED** | A new operational baseline requires sampling across movement; boot reference excepted (0107) |
 | D6 | Keep 3 s cadence as a no-IR fallback | **SETTLED: no** | Loss of IR does not require a new baseline. Retain the established one while coherent; address demonstrated inadequacy then (0104) |
 | D7 | X22 shadow comparison telemetry | **SETTLED: no** | Instrument NAVI itself. Historical X22 behavior stays available in old code and field records (0102) |
-| D8 | Does a sans-MM advance open a baseline opportunity? | **OPEN** | Prerequisite question: is the baseline acquired-and-held, or a continuously maintained model of ordinary-track behavior? Resolve the baseline model and RTB first |
+| D8 | Does a sans-MM advance open a baseline opportunity? | **RESOLVED for NAVI_EWO (0113), in part** | Prerequisite question: is the baseline acquired-and-held, or a continuously maintained model of ordinary-track behavior? Resolve the baseline model and RTB first *(Earlier text is historical; 0113 states what is resolved and what remains.)* |
 | D9 | Distance-based lost-lock replacement | **DEFERRED** | `lostMs` stays disabled. No replacement designed without a demonstrated failure; if one appears, characterize and solve that phenomenon |
 | D10 | Toby raw Hall + IR recording as a prerequisite | **SETTLED** | General model first. Fresh Toby data is useful validation when convenient, not a prerequisite (0107) |
 
 **Open questions not to be resolved silently:**
-- D4 (RTB model);
-- D8 and its prerequisite, the held-versus-dynamic baseline model;
+- D4 and D8: resolved for NAVI_EWO by 0113 only to the extent that its spatial
+  geometry answers them (region, origin, held-and-replaced reference). Remaining
+  parts are listed in 0113;
 - D9 (deferred);
 - whether a motionless normal PWM-0 station stop breaks a valid IR/MM
   reference (0106).

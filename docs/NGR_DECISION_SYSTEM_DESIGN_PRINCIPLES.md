@@ -4,7 +4,8 @@
 system that makes decisions from sensor data: locomotive navigation, traffic
 coordination, stations, dispatch, and whatever replaces them.
 
-- They were established by David and Sam in September 2026.
+- They were established by David and Sam in September 2026. Section 17 was
+  added 2026-09-29.
 - They are meant to outlive any particular implementation.
 - Read this document before proposing an architecture or an implementation.
 
@@ -206,6 +207,36 @@ context.
 This principle does not claim that a movement sensor can measure arbitrarily
 small displacement. "No significant movement measured" respects the
 measurement's actual resolution and operating envelope.
+
+## 17. Loss of redundancy is not loss of competence (the confident locomotive)
+
+Loss of redundant evidence is not automatically loss of navigation competence.
+NAVI should continue when the remaining applicable evidence coherently supports
+its known context. Uncertainty does not require NAVI to invent an explanation or
+an alternative position.
+
+This extends section 7 (retain established knowledge when a source disappears)
+from what NAVI knows to whether it may keep operating. It is bounded by the
+principles around it:
+
+- **Applicable evidence only.** The remaining evidence must itself be applicable
+  and coherent with the known context (sections 3, 9, 10). A source that is
+  merely present does not qualify.
+- **Contradiction is not ignored.** Evidence that contradicts the known context
+  is preserved and weighed under section 6. This principle concerns the absence
+  of redundant evidence, not the presence of contrary evidence.
+- **Degradation stays visible.** Operating on reduced evidence is reported as
+  such (section 15), and weaker proxy evidence remains marked as degraded
+  (section 3), not promoted to a direct measurement.
+- **No manufactured alternatives.** When the known context is not confirmed, NAVI
+  observes and holds (sections 6 and 8). It does not search for a different
+  position to explain the gap. Judgment stays with NAVI as sole navigation
+  authority (section 1).
+
+*Example.* When the distance instrument drops out, NAVI need not stop while the
+targets it knows to expect continue to be confirmed by the evidence that remains.
+It also does not conclude that it must be somewhere else because one target went
+unconfirmed.
 
 ---
 

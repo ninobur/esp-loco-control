@@ -67,12 +67,31 @@ weighting and explicitly **did not select a bin width.**
 - **0107:** *refined.* Spatial baseline retained. The boot stationary-reference
   allowance is replaced by the first-10-mm movement method for NAVI_EWO. 0107's
   RTB-from-the-phenomenon methodology is not used for navigation authority in
-  NAVI_EWO. Its open items D4 (how RTB and the eligible baseline region are
-  recognized) and D8 (whether a sans-MM advance opens a baseline opportunity) are
-  **not formally closed by this record** and remain open. In EWO no
-  reference cycle follows a Missed Magnet advance, because only confirmation
-  starts one.
+  NAVI_EWO. Its D4 and D8 are resolved or refined in part; see below.
 - **0104 (D6):** consistent; the 3 s cadence gate is not carried.
+
+## Resolution of 0107 D4 and D8, to the extent this architecture answers them
+
+**D4** asked how RTB and the eligible baseline region are recognized.
+- *Resolved for NAVI_EWO:* the eligible baseline region is defined by physical
+  travel from the observed leading field boundary: 0-100 mm clearance, with no
+  reference collection; 100-200 mm collection. NAVI does not recognize RTB from
+  the waveform to find it (0110: no closure or morphology authority).
+- *Not resolved:* whether the 100 mm clearance is physically sufficient across
+  locomotives, tracks and speeds. It is an agreed geometry, not a measured one.
+  Whether any other NAVI lineage needs a general RTB recognizer is also not
+  answered here.
+
+**D8** asked whether a position advance without a confirmed MM opens a baseline
+opportunity, with the prerequisite question of whether the baseline is
+acquired-and-held or continuously maintained.
+- *Resolved for NAVI_EWO:* the reference is held and replaced, not continuously
+  maintained, and the origin of a replacement is an *observed* leading boundary.
+  A Missed Magnet advance observes no boundary, so it provides no origin and opens
+  no reference cycle. Only target confirmation starts one.
+- *Not resolved:* the handling of the +/-15% target origin after a Missed Magnet
+  (0111 open point), and how long the last reference may reasonably be held
+  across successive Missed Magnets or degraded operation.
 
 ## References
 
