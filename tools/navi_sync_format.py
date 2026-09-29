@@ -20,13 +20,21 @@ STATUS_FMT = "<IQIIIIIIIIHHBBBB"
 STATUS_LEN = struct.calcsize(STATUS_FMT)
 NAVI_FMT = "<QQQIIIIhhBBBbBBB"
 NAVI_LEN = struct.calcsize(NAVI_FMT)
+NAVI_V2_FMT = NAVI_FMT + "QI"
+NAVI_V2_LEN = struct.calcsize(NAVI_V2_FMT)
+CONSUMPTION_FMT = "<QQQIBBBbBBBB"
+CONSUMPTION_LEN = struct.calcsize(CONSUMPTION_FMT)
+ACTION_FMT = "<QQQQHHBBB72s64s"
+ACTION_LEN = struct.calcsize(ACTION_FMT)
 NATIVE_HALL_FMT = "<IQhBB"
 NATIVE_HALL_LEN = struct.calcsize(NATIVE_HALL_FMT)
 
 REC_HALL, REC_IR, REC_STATUS = 1, 2, 3
 REC_NAVI, REC_HALL_NATIVE = 4, 5
+REC_CONSUMPTION, REC_ACTION = 6, 7
 REC_NAME = {REC_HALL: "HALL", REC_IR: "IR", REC_STATUS: "STATUS",
-            REC_NAVI: "NAVI", REC_HALL_NATIVE: "HALL_NATIVE"}
+            REC_NAVI: "NAVI", REC_HALL_NATIVE: "HALL_NATIVE",
+            REC_CONSUMPTION: "CONSUMPTION", REC_ACTION: "ACTION"}
 SEQ_NA = 0xFFFFFFFF
 MM_NA = 0xFF
 
@@ -45,6 +53,38 @@ FRAME_LEN = struct.calcsize(FRAME_FMT)
 
 class BadRecord(Exception):
     """A datagram cannot be trusted as NSR1 evidence."""
+
+
+class LossTracker:
+    """Independent stream histories. Drop deltas are evidence, not proof that
+    every missing datagram was lost at one location; mixed losses are possible.
+    Late/duplicate datagrams must not roll the history back.
+    """
+    def __init__(self):
+        self.previous = {}
+
+    def observe(self, header):
+        key = (header.loco_id, header.loco_boot_id, header.session_id, header.rec_type)
+        old = self.previous.get(key)
+        current = (header.batch_seq, header.ring_drops)
+        if old is None:
+            self.previous[key] = current
+            return None
+        advance = (current[0] - old[0]) & 0xFFFFFFFF
+        if advance == 0 or advance >= 0x80000000:
+            return None
+        self.previous[key] = current
+        if advance == 1:
+            return None
+        drops = (current[1] - old[1]) & 0xFFFFFFFF
+        # Status is sent directly, not from a recorder ring. Its legacy header
+        # carries the Hall-ring counter and cannot explain a STATUS gap.
+        if header.rec_type == REC_STATUS:
+            drops = 0
+        return {"stream": key, "first": (old[0] + 1) & 0xFFFFFFFF,
+                "last": (current[0] - 1) & 0xFFFFFFFF,
+                "missing": advance - 1, "recorder_drop_delta": drops,
+                "origin": "onboard_or_mixed" if drops else "transport_or_unreported_onboard"}
 
 
 class Header:
@@ -74,7 +114,7 @@ def parse_record(data):
     fields = struct.unpack_from(HDR_FMT, data, 0)
     if fields[0] != MAGIC:
         raise BadRecord("bad magic %r" % (fields[0],))
-    if fields[1] != FORMAT_VERSION:
+    if fields[1] not in (FORMAT_VERSION, 2) or (fields[1] == 2 and fields[2] != REC_NAVI):
         raise BadRecord("unknown NSR1 version %d" % fields[1])
     header = Header(fields)
     payload = data[HDR_LEN:]
@@ -90,7 +130,15 @@ def parse_record(data):
     elif header.rec_type == REC_NAVI:
         if header.n_items != 1:
             raise BadRecord("NAVI item count is %d, expected 1" % header.n_items)
-        want = NAVI_LEN
+        want = NAVI_V2_LEN if header.version == 2 else NAVI_LEN
+    elif header.rec_type == REC_CONSUMPTION:
+        if not 1 <= header.n_items <= 32:
+            raise BadRecord("invalid consumption item count")
+        want = header.n_items * CONSUMPTION_LEN
+    elif header.rec_type == REC_ACTION:
+        if header.n_items != 1:
+            raise BadRecord("invalid action item count")
+        want = ACTION_LEN
     elif header.rec_type == REC_HALL_NATIVE:
         if not 1 <= header.n_items <= 48:
             raise BadRecord("invalid native Hall item count %d" % header.n_items)
@@ -135,12 +183,29 @@ def iter_native_hall(header, payload):
 
 
 def parse_navi(payload):
-    f = struct.unpack(NAVI_FMT, payload)
+    v2 = len(payload) == NAVI_V2_LEN
+    f = struct.unpack(NAVI_V2_FMT if v2 else NAVI_FMT, payload)
     keys = ("t_us", "ir_um", "opening_ir_um", "hall_serial",
             "opening_serial", "hall_queue_drops", "ir_queue_drops",
             "median5", "reference", "kind", "mm", "target",
             "direction", "degraded", "position_reliable", "spatial_phase")
-    return dict(zip(keys, f))
+    return dict(zip(keys + (("consumption_id", "ir_sequence") if v2 else ()), f))
+
+
+def iter_consumption(header, payload):
+    keys = ("id", "decision_us", "observation_us", "serial", "kind", "pwm",
+            "commanded_pwm", "direction", "nav_mm", "target", "station_phase", "context_flags")
+    for i in range(header.n_items):
+        yield dict(zip(keys, struct.unpack_from(CONSUMPTION_FMT, payload, i * CONSUMPTION_LEN)))
+
+
+def parse_action(payload):
+    keys = ("t_us", "last_consumption_id", "command_order", "command_received_us",
+            "ramp_up_ms", "ramp_down_ms", "kind", "pwm", "target_pwm", "topic", "payload")
+    result = dict(zip(keys, struct.unpack(ACTION_FMT, payload)))
+    for key in ("topic", "payload"):
+        result[key] = result[key].split(b"\0", 1)[0].decode("utf-8", errors="replace")
+    return result
 
 
 def parse_status(payload):

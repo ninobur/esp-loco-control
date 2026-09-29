@@ -5,6 +5,11 @@ Refines 0107 for NAVI_EWO. Documentation only. No implementation, flashing or
 deployment is authorized by this record.
 Decided by: David, after review with Sam.
 
+**Startup clause superseded by [0114](0114-ewo-boot-reference-uses-five-observed-pulse-positions.md)
+on 2026-09-29:** five distinct observed pulse positions with NAVI-owned per-position
+medians replace first-10-mm collection. The historical text below is retained;
+the post-confirmation spatial cycle is unchanged.
+
 ## Decision
 
 **The reference belongs to NAVI.** Progression is based on **physical travel, not

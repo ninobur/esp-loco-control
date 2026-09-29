@@ -10,12 +10,15 @@
 #include <esp_wifi.h>
 #include <esp_timer.h>
 #include <limits.h>
+#include <atomic>
 
 #include "../NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_HEALTH/LocoConfig.h"
 #include "../QUORUM/credentials.h"
 #include "../NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_HEALTH/Ops.h"
 #include "../NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_HEALTH/Stations.h"
 #include "NaviIntegratedCore.h"
+#include "NaviEstop.h"
+#include "NaviCompatibility.h"
 
 static portMUX_TYPE recorderMux = portMUX_INITIALIZER_UNLOCKED;
 #define NAVI_SYNC_ENTER_CRITICAL() portENTER_CRITICAL(&recorderMux)
@@ -25,7 +28,7 @@ static portMUX_TYPE recorderMux = portMUX_INITIALIZER_UNLOCKED;
 using namespace navi_one;
 using namespace navi_eyes;
 
-static constexpr char SKETCH_NAME[] = "NAVI_EYES_WIDE_OPEN_INTEGRATED_R1";
+static constexpr char SKETCH_NAME[] = "NAVI_EYES_WIDE_OPEN_INTEGRATED_R2";
 static constexpr char BUILD_CLASS[] = "INTEGRATION_CANDIDATE_NOT_FIELD_ACCEPTED";
 static constexpr uint8_t HALL_PIN = 33;
 static constexpr uint8_t I2C_SDA = 21, I2C_SCL = 22;
@@ -36,9 +39,11 @@ static constexpr uint16_t NAVI_SYNC_PORT = 47620;
 static constexpr char NAVI_SYNC_HOST[] = "192.168.68.142";
 static constexpr char MQTT_BROKER[] = "192.168.68.142";
 
-struct IrRx { uint8_t mac[6]; uint64_t receivedUs; uint16_t length; uint8_t pwmAtReceive; uint8_t bytes[110]; };
+struct IrRx { uint8_t mac[6]; uint64_t receivedUs; uint16_t length;
+  uint8_t pwmAtReceive, commandedAtReceive; navi_sync::Context contextAtReceive;
+  uint8_t bytes[110]; };
 struct PubMsg { char topic[72]; char payload[1200]; bool retain; };
-struct CmdMsg { char topic[72]; char payload[64]; };
+struct CmdMsg { char topic[72]; char payload[64]; uint64_t order; uint64_t receivedUs; };
 
 static NaviIntegratedCore navi;
 static StationMachine stationMachine;
@@ -69,29 +74,30 @@ static uint8_t brakeValue = 0, motorDirection = 1;
 static volatile int8_t sessionDir = 0;
 static bool autoEnrolled = false, autoRunning = false;
 static bool estopped = false, lowVoltage = false;
-static volatile bool estopAsserted = false;
+static std::atomic<bool> estopAsserted{false};
+static portMUX_TYPE estopMux = portMUX_INITIALIZER_UNLOCKED;
+static OrderedEstop orderedEstop;
 static Adafruit_INA219 ina219;
 static bool inaReady = false;
 static float busV = 0, busA = 0, busW = 0;
 static uint8_t lowVoltCount = 0;
 static bool warnSticky = false;
 
-static volatile uint8_t recorderMm = navi_sync::MM_NA;
-static volatile int8_t recorderDir = 0;
-static volatile uint8_t recorderStation = 0, recorderFlags = 0;
+static portMUX_TYPE contextMux = portMUX_INITIALIZER_UNLOCKED;
+static navi_sync::Context publishedContext;
+static uint64_t activeCommandOrder = 0, activeCommandReceivedUs = 0;
 
 static navi_sync::Context recorderContext() {
-  navi_sync::Context c;
-  c.navMm = recorderMm;
-  c.navDir = recorderDir;
-  c.stationPhase = recorderStation;
-  c.flags = recorderFlags;
+  portENTER_CRITICAL(&contextMux);
+  const navi_sync::Context c = publishedContext;
+  portEXIT_CRITICAL(&contextMux);
   return c;
 }
 static void refreshRecorderContext() {
-  recorderMm = navi.declared() && navi.positionReliable() ? navi.mm() : navi_sync::MM_NA;
-  recorderDir = navi.direction();
-  recorderStation = static_cast<uint8_t>(stationMachine.phase());
+  navi_sync::Context c;
+  c.navMm = navi.declared() && navi.positionReliable() ? navi.mm() : navi_sync::MM_NA;
+  c.navDir = navi.direction();
+  c.stationPhase = static_cast<uint8_t>(stationMachine.phase());
   uint8_t flags = 0;
   if (navi.declared() && navi.positionReliable()) flags |= navi_sync::CTX_NAV_KNOWN;
   if (autoEnrolled) flags |= navi_sync::CTX_AUTO_ENROLLED;
@@ -99,7 +105,44 @@ static void refreshRecorderContext() {
   if (estopped || estopAsserted) flags |= navi_sync::CTX_ESTOP;
   if (lowVoltage) flags |= navi_sync::CTX_LOW_VOLT;
   if (actualPwm == 0) flags |= navi_sync::CTX_HOLD;
-  recorderFlags = flags;
+  c.flags = flags;
+  portENTER_CRITICAL(&contextMux);
+  publishedContext = c;
+  portEXIT_CRITICAL(&contextMux);
+}
+
+static void recordInput(navi_sync::InputKind kind, uint64_t judgmentUs,
+                        uint64_t observationUs, uint32_t serial, uint8_t pwm,
+                        uint8_t commanded, int8_t direction) {
+  refreshRecorderContext();
+  const auto c = recorderContext();
+  navi_sync::ConsumptionItem item{};
+  item.id = navi.consumptionId() + 1;
+  item.decisionUs = judgmentUs; item.observationUs = observationUs; item.serial = serial;
+  item.kind = uint8_t(kind); item.pwm = pwm; item.commandedPwm = commanded;
+  item.direction = direction; item.navMm = c.navMm; item.target = navi.target().sequence;
+  item.stationPhase = c.stationPhase; item.contextFlags = c.flags;
+  recorder.addConsumption(item, c);
+}
+// Loop-task only. CommandReceived is recorded separately in the callback and
+// deliberately has no NAVI consumption ID: receipt is not consumption.
+static void recordAction(navi_sync::ActionKind kind, const char* topic = "",
+                         const char* payload = "") {
+  navi_sync::ActionSnapshot a{};
+  a.tUs = esp_timer_get_time(); a.lastConsumptionId = navi.consumptionId();
+  a.commandOrder = activeCommandOrder; a.commandReceivedUs = activeCommandReceivedUs;
+  a.kind = uint8_t(kind); a.pwm = actualPwm; a.targetPwm = commandedPwm;
+  a.rampUpMs = rampUpMs; a.rampDownMs = rampDownMs;
+  strlcpy(a.topic, topic, sizeof(a.topic)); strlcpy(a.payload, payload, sizeof(a.payload));
+  refreshRecorderContext(); recorder.addAction(a, recorderContext());
+}
+static void serviceObservationLoss() {
+  const uint32_t hallLost = hallQueueDrops, irLost = irQueueDrops;
+  if (hallLost == reportedHallDrops && irLost == reportedIrDrops) return;
+  reportedHallDrops = hallLost; reportedIrDrops = irLost;
+  const uint64_t now = esp_timer_get_time();
+  recordInput(navi_sync::InputKind::Loss, now, now, hallLost, actualPwm, commandedPwm, navi.direction());
+  navi.noteObservationLoss(hallLost, irLost, now);
 }
 
 static bool pub(const char* leaf, const char* payload, bool retain = false) {
@@ -126,6 +169,11 @@ static void writePwm(int value) {
 #else
   ledcWrite(PWM_CHANNEL, value);
 #endif
+  static int lastRecorded = -1;
+  if (value != lastRecorded) {
+    lastRecorded = value;
+    recordAction(navi_sync::ActionKind::AppliedPwm);
+  }
 }
 static uint16_t brakeStepMs() {
   return uint16_t(BRAKE_STEP_COAST_MS -
@@ -134,14 +182,18 @@ static uint16_t brakeStepMs() {
 static void requestPwm(int target, uint16_t up, uint16_t down,
                        bool manual = false) {
   target = constrain(target, 0, manual ? 255 : int(NAVI_MAX_OPERATING_PWM));
+  const bool changed = target != rampTarget || up != rampUpMs || down != rampDownMs;
   rampTarget = target;
   commandedPwm = target;
   rampUpMs = up;
   rampDownMs = down;
+  if (changed) recordAction(navi_sync::ActionKind::RequestedPwm);
 }
 static void serviceRamp() {
   digitalWrite(MOTOR_DIR_PIN, motorDirection ? HIGH : LOW);
   if (estopped || estopAsserted) {
+    estopped = true;
+    autoRunning = false;
     actualPwm = 0; commandedPwm = 0; rampTarget = 0;
     writePwm(0);
     return;
@@ -220,6 +272,8 @@ static void onIr(const esp_now_recv_info_t* info, const uint8_t* bytes,
   rx.receivedUs = esp_timer_get_time();
   rx.length = length < 0 ? 0 : static_cast<uint16_t>(length);
   rx.pwmAtReceive = static_cast<uint8_t>(actualPwm);
+  rx.commandedAtReceive = static_cast<uint8_t>(commandedPwm);
+  rx.contextAtReceive = recorderContext();
   if (length > 0 && length <= int(sizeof(rx.bytes))) memcpy(rx.bytes, bytes, length);
   if (irQ && xQueueSend(irQ, &rx, 0) != pdTRUE)
     irQueueDrops = irQueueDrops + 1;
@@ -245,11 +299,14 @@ static void serviceIrIngress() {
       ++irPacketInvalid;
       continue;
     }
-    navi.observeIr(wire, rx.receivedUs, rx.pwmAtReceive, rx.mac);
+    serviceObservationLoss();
+    const uint64_t judgedUs = esp_timer_get_time();
+    recordInput(navi_sync::InputKind::Ir, judgedUs, rx.receivedUs, wire.sequence,
+                rx.pwmAtReceive, rx.commandedAtReceive, rx.contextAtReceive.navDir);
+    navi.observeIr(wire, rx.receivedUs, rx.pwmAtReceive, rx.mac, judgedUs);
     recorder.addIr(rx.receivedUs, rx.mac, 1, wire,
                    navi.irHealthFault(), navi.irReadiness(),
-                   static_cast<uint8_t>(actualPwm),
-                   static_cast<uint8_t>(commandedPwm), recorderContext());
+                   rx.pwmAtReceive, rx.commandedAtReceive, rx.contextAtReceive);
   }
 }
 
@@ -270,6 +327,8 @@ static const char* eventName(EwoEventKind kind) {
     case EwoEventKind::PwmZeroDisplacement: return "PWM_ZERO_IR_DISPLACEMENT";
     case EwoEventKind::Reanchored: return "POSITION_REANCHORED";
     case EwoEventKind::ObservationLoss: return "OBSERVATION_LOSS";
+    case EwoEventKind::SpatialInvalidated: return "SPATIAL_INVALIDATED";
+    case EwoEventKind::BootReferenceIncomplete: return "BOOT_REFERENCE_INCOMPLETE";
     default: return "NONE";
   }
 }
@@ -281,11 +340,13 @@ static void publishEvents() {
       "{\"event\":\"%s\",\"hall_serial\":%lu,\"mm\":%u,\"target\":%u,"
       "\"dir\":%d,\"ir_um\":%llu,\"median5\":%d,\"reference\":%d,"
       "\"degraded\":%u,\"opening_serial\":%lu,\"opening_ir_um\":%llu,"
-      "\"position_reliable\":%u,\"spatial_phase\":%u}",
+      "\"position_reliable\":%u,\"spatial_phase\":%u,\"decision_us\":%llu,"
+      "\"consumption_id\":%llu,\"ir_seq\":%lu}",
       eventName(e.kind), (unsigned long)e.hallSerial, e.mm, e.target, e.direction,
       (unsigned long long)e.irUm, e.median, e.reference, e.degraded ? 1 : 0,
       (unsigned long)e.openingSerial, (unsigned long long)e.openingIrUm,
-      e.positionReliable ? 1 : 0, e.spatialPhase);
+      e.positionReliable ? 1 : 0, e.spatialPhase, (unsigned long long)e.timestampUs,
+      (unsigned long long)e.consumptionId, (unsigned long)e.irSequence);
     pub("nav/evidence", payload);
     navi_sync::NaviSnapshot recorded{};
     recorded.tUs = e.timestampUs;
@@ -293,8 +354,8 @@ static void publishEvents() {
     recorded.openingIrUm = e.openingIrUm;
     recorded.hallSerial = e.hallSerial;
     recorded.openingSerial = e.openingSerial;
-    recorded.hallQueueDrops = hallQueueDrops;
-    recorded.irQueueDrops = irQueueDrops;
+    recorded.hallQueueDrops = e.hallQueueDrops;
+    recorded.irQueueDrops = e.irQueueDrops;
     recorded.median = e.median;
     recorded.reference = e.reference;
     recorded.kind = static_cast<uint8_t>(e.kind);
@@ -304,6 +365,8 @@ static void publishEvents() {
     recorded.degraded = e.degraded;
     recorded.positionReliable = e.positionReliable;
     recorded.spatialPhase = e.spatialPhase;
+    recorded.consumptionId = e.consumptionId;
+    recorded.irSequence = e.irSequence;
     recorder.addNavi(recorded, recorderContext());
     if (e.kind == EwoEventKind::TargetConfirmed || e.kind == EwoEventKind::MissedMagnet)
       pub("mm/marker", payload);
@@ -327,7 +390,10 @@ static Ops opsNow() {
   return o;
 }
 static void declarePosition(uint8_t mm, int8_t direction, const char* interval) {
-  navi.declare(mm, direction, esp_timer_get_time());
+  const uint64_t now = esp_timer_get_time();
+  recordInput(navi_sync::InputKind::Declaration, now, activeCommandReceivedUs, mm,
+              actualPwm, commandedPwm, direction);
+  navi.declare(mm, direction, now);
   stationMachine.reset();
   warnSticky = false; pub("state/warning", "", true);
   char value[20]; snprintf(value, sizeof(value), "%u", mm);
@@ -342,8 +408,16 @@ static void declarePosition(uint8_t mm, int8_t direction, const char* interval) 
   }
   pub("state/nav_ready", "1", true);
 }
+static void reversePosition(int8_t direction) {
+  const uint64_t now = esp_timer_get_time();
+  recordInput(navi_sync::InputKind::Reversal, now, activeCommandReceivedUs,
+              direction > 0 ? 1 : 2, actualPwm, commandedPwm, direction);
+  navi.reverse(direction, now);
+  stationMachine.reset();
+}
 static void onMqtt(char* topic, byte* payload, unsigned length) {
   CmdMsg command{};
+  command.receivedUs = esp_timer_get_time();
   strlcpy(command.topic, topic, sizeof(command.topic));
   const unsigned count = length < sizeof(command.payload) - 1
                              ? length : sizeof(command.payload) - 1;
@@ -351,14 +425,29 @@ static void onMqtt(char* topic, byte* payload, unsigned length) {
   command.payload[count] = 0;
   const char* leaf = strrchr(command.topic, '/');
   leaf = leaf ? leaf + 1 : command.topic;
+  bool assertion = false;
   if (!strcmp(leaf, "estop")) {
     bool stop = true;
     parseEstop(command.payload, stop);
-    if (stop) estopAsserted = true;  // bypass an overflowing command queue
+    assertion = stop;
   }
+  portENTER_CRITICAL(&estopMux);
+  command.order = orderedEstop.received(assertion);
+  estopAsserted = orderedEstop.asserted(); // independent of queue insertion
+  portEXIT_CRITICAL(&estopMux);
+  navi_sync::ActionSnapshot arrival{};
+  arrival.tUs = command.receivedUs; arrival.commandOrder = command.order;
+  arrival.commandReceivedUs = command.receivedUs;
+  arrival.kind = uint8_t(navi_sync::ActionKind::CommandReceived);
+  arrival.pwm = actualPwm; arrival.targetPwm = commandedPwm;
+  strlcpy(arrival.topic, command.topic, sizeof(arrival.topic));
+  strlcpy(arrival.payload, command.payload, sizeof(arrival.payload));
+  recorder.addAction(arrival, recorderContext());
   if (cmdQ && xQueueSend(cmdQ, &command, 0) != pdTRUE) ++cmdDrops;
 }
 static void handleCommand(const CmdMsg& command) {
+  activeCommandOrder = command.order; activeCommandReceivedUs = command.receivedUs;
+  recordAction(navi_sync::ActionKind::CommandConsumed, command.topic, command.payload);
   const char* leaf = strrchr(command.topic, '/');
   leaf = leaf ? leaf + 1 : command.topic;
   const bool dispatcher = strstr(command.topic, "/dispatcher/") != nullptr;
@@ -381,12 +470,15 @@ static void handleCommand(const CmdMsg& command) {
   } else if (!strcmp(leaf, "estop")) {
     bool stop = true;
     const bool understood = parseEstop(command.payload, stop);
-    estopped = stop; estopAsserted = stop;
-    if (stop) { autoRunning = false; requestPwm(0, 0, 1); }
+    portENTER_CRITICAL(&estopMux);
+    estopped = orderedEstop.apply(command.order, stop);
+    estopAsserted = orderedEstop.asserted();
+    portEXIT_CRITICAL(&estopMux);
+    if (estopped) { autoRunning = false; requestPwm(0, 0, 1); }
     if (!understood) warn("ESTOP: unreadable payload, assumed STOP", true);
-    else if (stop) warn("ESTOP", true);
+    else if (estopped) warn(stop ? "ESTOP" : "ESTOP: older release ignored", true);
     else clearWarning();
-    pub("state/estop", stop ? "1" : "0", true);
+    pub("state/estop", estopped ? "1" : "0", true);
   } else if (!strcmp(leaf, "session_direction")) {
     int8_t direction;
     if (!parseSessionDir(command.payload, direction)) { warn("SESSION_DIRECTION: expected CW or CCW"); return; }
@@ -394,8 +486,7 @@ static void handleCommand(const CmdMsg& command) {
     sessionDir = direction;
     pub("state/session_direction", direction > 0 ? "CW" : "CCW", true);
     if (navi.declared() && travelDirection() != navi.direction()) {
-      navi.reverse(travelDirection(), esp_timer_get_time());
-      stationMachine.reset();
+      reversePosition(travelDirection());
     }
   } else if (!strcmp(leaf, "start_interval")) {
     if (Refusal reason = admitStartMarker(o)) { warn(reason); return; }
@@ -449,8 +540,7 @@ static void handleCommand(const CmdMsg& command) {
     if (actualPwm || commandedPwm) { warn("DIRECTION REFUSED: stop fully first"); return; }
     motorDirection = forward ? 1 : 0;
     if (navi.declared() && travelDirection() != navi.direction()) {
-      navi.reverse(travelDirection(), esp_timer_get_time());
-      stationMachine.reset();
+      reversePosition(travelDirection());
     }
   }
 }
@@ -510,6 +600,7 @@ static void serviceStation() {
       order.event, order.station, stPhaseName(stationMachine.phase()),
       order.offset, order.pwm);
     pub("state/station", payload);
+    recordAction(navi_sync::ActionKind::StationOrder, order.station, order.event);
   }
 }
 
@@ -524,6 +615,11 @@ static void syncDrain() {
   if (!naviSyncDestValid || WiFi.status() != WL_CONNECTED) return;
   for (unsigned i = 0; i < 20; ++i) {
     bool sent = false;
+    // Network-task-owned scratch buffers keep larger batches off its stack.
+    static navi_sync::ConsumptionWire consumed;
+    static navi_sync::ActionWire action;
+    if (recorder.popConsumption(consumed)) { syncSend(&consumed, sizeof(consumed)); sent = true; }
+    if (recorder.popAction(action)) { syncSend(&action, sizeof(action)); sent = true; }
     if (i % 4 == 0) {
       navi_sync::NativeHallWire wire;
       if (recorder.popNativeHall(wire)) { syncSend(&wire, sizeof(wire)); sent = true; }
@@ -671,11 +767,23 @@ static void serviceStatus() {
   if (size < 0 || size >= int(sizeof(payload))) {
     ++pubDrops;
     pub("state/warning", "EWO status JSON overflow");
-    return;
-  }
-  pub("state/nav", payload, true);
-  pub("state/loopstat", payload);
-  pub("telem/ir", payload);
+  } else pub("state/loopstat", payload);
+  char traceStatus[160];
+  snprintf(traceStatus, sizeof(traceStatus),
+    "{\"consumption_drop\":%lu,\"action_drop\":%lu,\"command_queue_drop\":%lu,\"lossless\":false}",
+    (unsigned long)recorder.consumptionDrops(), (unsigned long)recorder.actionDrops(),
+    (unsigned long)cmdDrops);
+  pub("state/trace", traceStatus);
+  char consolePayload[384];
+  int consoleSize = formatConsoleNav(consolePayload, sizeof(consolePayload), navi, sessionDir);
+  if (consoleSize > 0 && consoleSize < int(sizeof(consolePayload)))
+    pub("state/nav", consolePayload, true);
+  else ++pubDrops;
+  consoleSize = formatConsoleIr(consolePayload, sizeof(consolePayload), navi, nowUs, irCarCoupled);
+  if (consoleSize > 0 && consoleSize < int(sizeof(consolePayload))) {
+    pub("telem/ir", consolePayload);
+    pub("telem/speed", consolePayload);
+  } else ++pubDrops;
   const uint8_t* sourceMac = navi.latestIrMac();
   char link[320];
   snprintf(link, sizeof(link),
@@ -691,12 +799,20 @@ static void serviceStatus() {
   char value[16];
   snprintf(value, sizeof(value), "%d", int(actualPwm)); pub("state/throttle", value, true);
   pub("state/direction", motorDirection ? "2" : "0", true);
+  pub("state/auto", autoEnrolled ? "1" : "0", true);
+  pub("state/estop", estopped || estopAsserted ? "1" : "0", true);
   pub("state/nav_ready", navi.declared() && navi.positionReliable() ? "1" : "0", true);
 }
 
 void setup() {
   Serial.begin(115200);
   delay(300);
+  if (!navi.storageReady() || !recorder.storageReady()) {
+    // No PWM peripheral or control task has been enabled yet.
+    pinMode(MOTOR_PWM_PIN, OUTPUT); digitalWrite(MOTOR_PWM_PIN, LOW);
+    Serial.println("[BOOT] FATAL: bounded evidence storage allocation failed");
+    for (;;) delay(1000);
+  }
   bootId = (uint64_t(esp_random()) << 32) | esp_random();
   naviSyncSession = esp_random();
   if (!naviSyncSession) naviSyncSession = 1;
@@ -754,20 +870,20 @@ void setup() {
 
 void loop() {
   serviceRamp();  // e-stop asserted by MQTT callback pre-empts evidence backlog
+  serviceIrIngress(); // declaration must see IR already queued before it
   CmdMsg command;
   while (cmdQ && xQueueReceive(cmdQ, &command, 0) == pdTRUE) handleCommand(command);
-  serviceIrIngress();
   HallSample observation;
   for (unsigned processed = 0; processed < 128 && hallQ &&
        xQueueReceive(hallQ, &observation, 0) == pdTRUE; ++processed) {
-    navi.observeHall(observation);
+    serviceObservationLoss();
+    const uint64_t now = esp_timer_get_time();
+    recordInput(navi_sync::InputKind::Hall, now, observation.timestampUs, observation.sampleSerial,
+                observation.pwm, commandedPwm, observation.direction);
+    navi.observeHall(observation, now);
     if (estopAsserted) serviceRamp();
   }
-  if (hallQueueDrops != reportedHallDrops || irQueueDrops != reportedIrDrops) {
-    reportedHallDrops = hallQueueDrops;
-    reportedIrDrops = irQueueDrops;
-    navi.noteObservationLoss(reportedHallDrops, reportedIrDrops);
-  }
+  serviceObservationLoss();
   publishEvents();
   serviceStation();
   refreshRecorderContext();

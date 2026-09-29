@@ -48,8 +48,7 @@ def main():
     fh = open(path, "wb")
     F.write_capture_header(fh, int(time.time() * 1e6))
     last_flush = time.time()
-    last_seq = {}
-    last_drops = {}
+    loss_tracker = F.LossTracker()
     stats = {"datagrams": 0, "bytes": 0, "hall_items": 0, "native_hall": 0,
              "ir": 0, "navi": 0, "status": 0, "bad": 0, "gaps": 0, "lost": 0, "onboard": 0,
              "sessions": set()}
@@ -73,23 +72,16 @@ def main():
                 continue
 
             stats["sessions"].add((hdr.loco_id, hdr.session_id))
-            key = (hdr.session_id, hdr.rec_type)
-            previous = last_seq.get(key)
-            if previous is not None and hdr.batch_seq > previous + 1:
-                missing = hdr.batch_seq - previous - 1
+            gap = loss_tracker.observe(hdr)
+            if gap:
+                missing = gap["missing"]
                 stats["gaps"] += 1; stats["lost"] += missing
-                old_drop = last_drops.get(hdr.session_id)
-                if old_drop is not None and hdr.ring_drops != old_drop:
+                if gap["recorder_drop_delta"]:
                     stats["onboard"] += missing
-                    origin = "on locomotive"
-                else:
-                    origin = "in transit/receiver"
-                print("GAP %s %d..%d (%d missing; %s)" %
-                      (F.REC_NAME[hdr.rec_type], previous + 1,
-                       hdr.batch_seq - 1, missing, origin))
-            if previous is None or hdr.batch_seq > previous:
-                last_seq[key] = hdr.batch_seq
-            last_drops[hdr.session_id] = hdr.ring_drops
+                print("GAP %s %d..%d (%d missing; %s; recorder_delta=%d; stream=%s)" %
+                      (F.REC_NAME[hdr.rec_type], gap["first"],
+                       gap["last"], missing, gap["origin"],
+                       gap["recorder_drop_delta"], gap["stream"]))
             if hdr.rec_type == F.REC_HALL:
                 stats["hall_items"] += hdr.n_items
             elif hdr.rec_type == F.REC_HALL_NATIVE:
@@ -116,7 +108,7 @@ def main():
         fh.flush(); fh.close(); sock.close()
     print("stopped %s: %d datagrams, %d native Hall samples, %d IR snapshots, %d NAVI decisions, %d bad" %
           (path, stats["datagrams"], stats["native_hall"], stats["ir"], stats["navi"], stats["bad"]))
-    print("gaps=%d missing=%d attributed_on_loco=%d sessions=%d" %
+    print("gaps=%d missing=%d possibly_onboard_or_mixed=%d sessions=%d" %
           (stats["gaps"], stats["lost"], stats["onboard"], len(stats["sessions"])))
 
 

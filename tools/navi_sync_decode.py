@@ -31,6 +31,8 @@ def main():
     ap.add_argument("--ir-jsonl")
     ap.add_argument("--navi-jsonl")
     ap.add_argument("--status-jsonl")
+    ap.add_argument("--consumption-jsonl")
+    ap.add_argument("--action-jsonl")
     args = ap.parse_args()
 
     hall_f = open(args.hall_csv, "w", newline="") if args.hall_csv else None
@@ -38,11 +40,13 @@ def main():
     ir_f = open(args.ir_jsonl, "w") if args.ir_jsonl else None
     navi_f = open(args.navi_jsonl, "w") if args.navi_jsonl else None
     status_f = open(args.status_jsonl, "w") if args.status_jsonl else None
+    consumption_f = open(args.consumption_jsonl, "w") if args.consumption_jsonl else None
+    action_f = open(args.action_jsonl, "w") if args.action_jsonl else None
     hall_writer = None
     native_writer = None
     counts = {"datagrams": 0, "hall_samples": 0, "native_hall_samples": 0,
               "ir_snapshots": 0, "navi": 0, "status": 0,
-              "bad": 0, "sessions": set()}
+              "consumption": 0, "actions": 0, "bad": 0, "sessions": set()}
     try:
         for recv_us, data in F.iter_capture(args.capture):
             counts["datagrams"] += 1
@@ -107,8 +111,20 @@ def main():
                 item = F.parse_status(payload); item.update(base)
                 if status_f:
                     status_f.write(json.dumps(item, sort_keys=True) + "\n")
+            elif h.rec_type == F.REC_CONSUMPTION:
+                for item in F.iter_consumption(h, payload):
+                    counts["consumption"] += 1
+                    # Keep per-item consumed context separate from batch header.
+                    item["header"] = base
+                    if consumption_f:
+                        consumption_f.write(json.dumps(item, sort_keys=True) + "\n")
+            elif h.rec_type == F.REC_ACTION:
+                counts["actions"] += 1
+                item = F.parse_action(payload); item["header"] = base
+                if action_f:
+                    action_f.write(json.dumps(item, sort_keys=True) + "\n")
     finally:
-        for fh in (hall_f, native_f, ir_f, navi_f, status_f):
+        for fh in (hall_f, native_f, ir_f, navi_f, status_f, consumption_f, action_f):
             if fh:
                 fh.close()
     counts["sessions"] = len(counts["sessions"])

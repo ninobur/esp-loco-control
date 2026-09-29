@@ -6,6 +6,7 @@
 
 #include "../NAVI_EYES_WIDE_OPEN/NaviEvidence.h"
 #include "NaviMapAdapter.h"
+#include "NaviBootReference.h"
 #include "../../reference/NAVI_COHERENCE/IR_ARCHITECTURE_0_4/IrOdometryEpoch.h"
 
 namespace navi_eyes {
@@ -13,7 +14,8 @@ namespace navi_eyes {
 enum class EwoEventKind : uint8_t {
   None, Declared, Reversed, HallSupport, TargetConfirmed, MissedMagnet,
   ReferenceReady, SpatialClearance, SpatialCollect, SpatialReady, SpatialEmpty,
-  IrDegraded, IrNormal, PwmZeroDisplacement, Reanchored, ObservationLoss
+  IrDegraded, IrNormal, PwmZeroDisplacement, Reanchored, ObservationLoss,
+  SpatialInvalidated, BootReferenceIncomplete
 };
 
 struct EwoEvent {
@@ -31,6 +33,9 @@ struct EwoEvent {
   uint64_t openingIrUm = 0;
   bool positionReliable = false;
   uint8_t spatialPhase = 0;
+  uint64_t consumptionId = 0;
+  uint32_t irSequence = 0;
+  uint32_t hallQueueDrops = 0, irQueueDrops = 0;
 };
 
 // NAVI's working target-only authority. Acquisition delivers each ADC result
@@ -42,6 +47,8 @@ class NaviIntegratedCore {
 
   void declare(uint8_t mm, int8_t direction, uint64_t nowUs) {
     if (mm >= navi_one::ROUTE_N || (direction != 1 && direction != -1)) return;
+    beginDecision(nowUs);
+    contextSinceUs_ = nowUs;
     declared_ = true;
     positionReliable_ = true;
     mm_ = mm;
@@ -61,6 +68,8 @@ class NaviIntegratedCore {
   void reverse(int8_t direction, uint64_t nowUs) {
     if (!declared_ || (direction != 1 && direction != -1) ||
         direction == direction_) return;
+    beginDecision(nowUs);
+    contextSinceUs_ = nowUs;
     direction_ = direction;
     // The last passed MM is encountered first when running back over it.
     reverseTarget_ = true;
@@ -75,13 +84,20 @@ class NaviIntegratedCore {
   }
 
   void observeIr(const ir_movement::WireSnapshot& w, uint64_t receivedUs,
-                 uint8_t pwm, const uint8_t* sourceMac = nullptr) {
+                 uint8_t pwm, const uint8_t* sourceMac = nullptr,
+                 uint64_t judgmentUs = 0) {
+    beginDecision(judgmentUs ? judgmentUs : receivedUs);
     ++irObservationCount_;
+    bool sourceChanged = false;
+    if (sourceMac && haveSource_)
+      for (size_t i = 0; i < 6; ++i) sourceChanged |= latestIrMac_[i] != sourceMac[i];
     if (sourceMac)
       for (size_t i = 0; i < 6; ++i) latestIrMac_[i] = sourceMac[i];
+    if (sourceMac) haveSource_ = true;
+    if (sourceChanged) irEpoch_.sourceChanged();
     const bool hadIr = haveIr_;
     const auto prior = latestIr_;
-    const bool sameFrame = hadIr && w.bootId == prior.bootId &&
+    const bool sameFrame = hadIr && !sourceChanged && w.bootId == prior.bootId &&
                            w.calibrationId == prior.calibrationId &&
                            w.pitchUm == prior.pitchUm;
     const bool ordered = !hadIr || !sameFrame ||
@@ -99,19 +115,18 @@ class NaviIntegratedCore {
     latestIr_ = w;
     latestIrReceivedUs_ = receivedUs;
     haveIr_ = true;
-    if (!bootOriginValid_) {
-      bootOriginUm_ = w.nominalUm;
-      bootOriginValid_ = true;
-    }
+    bootReference_.origin(w.completedPulses);
+    if (discontinuity) bootReference_.newFrameBeforeCollection(w.completedPulses);
     if (!ordered) {
+      resetTargetEvidence();
       irContinuity_ = false;
       interpretedHealth_.healthy = false;
       interpretedHealth_.fault = ngr_nav::IrHealthFault::OrderFault;
       interpretedHealth_.readiness = ngr_nav::IrReadiness::Unavailable;
       interpretedHealth_.detectorReason = w.opticalReason;
-      targetOriginValid_ = false;
-      relationshipReliable_ = false;
-      setDegraded(true);
+      speedAvailable_ = false;
+      invalidateRelationship();
+      invalidateBoot();
       return;
     }
     const bool priorContinuity = irContinuity_;
@@ -134,16 +149,22 @@ class NaviIntegratedCore {
       irContinuity_ = update.measurementReady && !discontinuity;
     }
     if (discontinuity || !irContinuity_) {
-      targetOriginValid_ = false;
-      relationshipReliable_ = false;
-      setDegraded(true);
+      resetTargetEvidence();
+      invalidateRelationship();
+      if (bootReference_.started()) invalidateBoot();
     }
+    speedAvailable_ = priorContinuity && sameFrame && ordered &&
+                      irContinuity_ && !discontinuity;
+    if (speedAvailable_)
+      speedMmS_ = double(w.completedPulses - prior.completedPulses) *
+                  double(w.pitchUm) * 1000.0 / double(w.capturedUs - prior.capturedUs);
     const bool advanced = sameFrame && ordered &&
                           w.completedPulses > prior.completedPulses;
+    if (advanced && pwm == 0 && bootReference_.started()) invalidateBoot();
     if (advanced && pwm == 0 && declared_) {
+      resetTargetEvidence();
       positionReliable_ = false;
-      relationshipReliable_ = false;
-      targetOriginValid_ = false;
+      invalidateRelationship();
       ++pwmZeroDisplacements_;
       push(EwoEventKind::PwmZeroDisplacement);
       setDegraded(true);
@@ -151,14 +172,15 @@ class NaviIntegratedCore {
     // IR at PWM=0 remains a fact, but cannot progress references, targets or
     // distance rulings. The anomaly above invalidates only the relationship.
     if (pwm == 0) return;
-    if (!irApplicable(receivedUs)) {
-      setDegraded(true);
+    if (!irApplicable(decisionUs_)) {
+      invalidateRelationship();
       return;
     }
     setDegraded(!relationshipReliable_ || !targetOriginValid_);
-    if (!initialReferenceReady_ && w.nominalUm > bootOriginUm_) {
-      initialCollectionStarted_ = true;
-      if (w.nominalUm - bootOriginUm_ >= 10000) closeInitialReference();
+    if (!initialReferenceReady_) {
+      bootReference_.progress(w.completedPulses);
+      if (bootReference_.fault()) reportBootFault();
+      if (bootReference_.ready()) closeInitialReference();
     }
     if (spatialPhase_ != SpatialPhase::None) updateSpatialPhase(w.nominalUm);
     // A packet arriving after declaration or a degraded confirmation is not
@@ -168,26 +190,34 @@ class NaviIntegratedCore {
   }
 
   void observeHall(const HallSample& sample) {
+    observeHall(sample, sample.timestampUs); // synchronous host callers
+  }
+  void observeHall(const HallSample& sample, uint64_t judgmentUs) {
+    beginDecision(judgmentUs);
     ++hallObservationCount_;
     lastHall_ = sample;
     haveHall_ = true;
     if (sample.pwm == 0) return;  // still delivered and retained
+    if (!irApplicable(decisionUs_)) {
+      invalidateRelationship();
+      if (bootReference_.started()) invalidateBoot();
+    }
     if (!initialReferenceReady_) {
-      if (initialCollectionStarted_ && haveIr_ && bootOriginValid_ &&
-          latestIr_.nominalUm >= bootOriginUm_ &&
-          latestIr_.nominalUm - bootOriginUm_ < 10000)
-        initialPopulation_.push_back(sample.raw);
+      if (irApplicable(decisionUs_)) bootReference_.observe(sample.raw);
+      if (bootReference_.fault()) reportBootFault();
       return;
     }
+    // A declaration/reversal clears incompatible queued evidence as well as
+    // the rolling window. Acquisition and its recording remain untouched.
+    if (!declared_ || sample.timestampUs < contextSinceUs_) return;
     if (spatialPhase_ != SpatialPhase::None &&
-        irApplicable(sample.timestampUs)) {
+        irApplicable(decisionUs_) && relationshipReliable_) {
       collectSpatial(sample.raw);
       return;
     }
-    if (!declared_) return;
     HallPoint point{sample.sampleSerial, sample.timestampUs, sample.raw,
                     haveIr_ ? latestIr_.nominalUm : 0,
-                    irApplicable(sample.timestampUs)};
+                    irApplicable(decisionUs_)};
     hallWindow_.push_back(point);
     if (hallWindow_.size() > 5) hallWindow_.erase(hallWindow_.begin());
     if (hallWindow_.size() < 5) return;
@@ -214,7 +244,7 @@ class NaviIntegratedCore {
       }
     }
     if (!landmark) return;
-    const bool normal = irApplicable(sample.timestampUs) &&
+    const bool normal = irApplicable(decisionUs_) &&
                         relationshipReliable_ && targetOriginValid_;
     if (normal) {
       if (latestIr_.nominalUm < targetOriginUm_) return;
@@ -232,14 +262,20 @@ class NaviIntegratedCore {
 
   // A transport gap is a fact. NAVI invalidates only the IR distance relation;
   // it does not infer a new location or suppress future observations.
-  void noteObservationLoss(uint32_t hallDrops, uint32_t irDrops) {
+  void noteObservationLoss(uint32_t hallDrops, uint32_t irDrops, uint64_t nowUs = 0) {
+    beginDecision(nowUs ? nowUs : decisionUs_);
+    const bool newIrLoss = irDrops != irLoss_;
+    const bool newHallLoss = hallDrops != hallLoss_;
     hallLoss_ = hallDrops;
     irLoss_ = irDrops;
-    if (irDrops) {
+    if (newIrLoss) {
       irContinuity_ = false;
-      targetOriginValid_ = false;
-      relationshipReliable_ = false;
-      setDegraded(true);
+      speedAvailable_ = false;
+      invalidateRelationship();
+    }
+    if (newIrLoss || newHallLoss) {
+      resetTargetEvidence();
+      if (bootReference_.started()) invalidateBoot();
     }
     push(EwoEventKind::ObservationLoss);
   }
@@ -270,7 +306,13 @@ class NaviIntegratedCore {
   TargetSpec target() const { return target_; }
   bool relationshipReliable() const { return relationshipReliable_; }
   bool initialReferenceReady() const { return initialReferenceReady_; }
-  bool initialCollectionStarted() const { return initialCollectionStarted_; }
+  bool storageReady() const { return bootReference_.storageReady(); }
+  bool initialCollectionStarted() const { return bootReference_.started(); }
+  bool bootReferenceIncomplete() const { return bootReference_.fault(); }
+  uint8_t bootReferencePositions() const { return bootReference_.positions(); }
+  uint64_t consumptionId() const { return consumptionId_; }
+  bool irSpeedAvailable(uint64_t nowUs) const { return speedAvailable_ && irApplicable(nowUs); }
+  double irSpeedMmS() const { return speedMmS_; }
   int16_t activeReference() const { return activeReference_; }
   int16_t hallMedian() const { return hallMedian_; }
   bool hallSupport() const { return hallSupport_; }
@@ -313,17 +355,14 @@ class NaviIntegratedCore {
   void push(EwoEventKind kind) {
     const size_t next = (eventHead_ + 1) % kEventCapacity;
     if (next == eventTail_) { ++eventLoss_; return; }
-    const uint64_t timestamp = kind == EwoEventKind::HallSupport ||
-        kind == EwoEventKind::TargetConfirmed ? lastHall_.timestampUs :
-        kind == EwoEventKind::Declared || kind == EwoEventKind::Reversed ?
-          lastAcceptedOpeningUs_ : latestIrReceivedUs_;
-    events_[eventHead_] = {kind, timestamp,
+    events_[eventHead_] = {kind, decisionUs_,
                            haveHall_ ? lastHall_.sampleSerial : 0,
                            mm_, static_cast<uint8_t>(target_.sequence),
                            direction_, haveIr_ ? latestIr_.nominalUm : 0,
                            hallMedian_, activeReference_, degraded_,
                            openingSerial_, openingIrUm_, positionReliable_,
-                           static_cast<uint8_t>(spatialPhase_)};
+                           static_cast<uint8_t>(spatialPhase_), consumptionId_,
+                           haveIr_ ? latestIr_.sequence : 0, hallLoss_, irLoss_};
     eventHead_ = next;
   }
   void setDegraded(bool degraded) {
@@ -344,14 +383,13 @@ class NaviIntegratedCore {
     hallMedian_ = 0;
   }
   void closeInitialReference() {
-    if (initialReferenceReady_ || initialPopulation_.empty()) return;
-    activeReference_ = median(initialPopulation_);
-    initialPopulation_.clear();
+    if (initialReferenceReady_ || !bootReference_.ready()) return;
+    activeReference_ = bootReference_.reference();
     initialReferenceReady_ = true;
     resetTargetEvidence();
     push(EwoEventKind::ReferenceReady);
   }
-  void confirm(HallPoint landmark, const HallSample& latest,
+  void confirm(HallPoint landmark, const HallSample&,
                bool degraded) {
     setDegraded(degraded);
     openingSerial_ = landmark.serial;
@@ -362,7 +400,7 @@ class NaviIntegratedCore {
     reverseTarget_ = false;
     ++confirmedCount_;
     const bool boundaryMeasured = landmark.irApplicable &&
-                                  irApplicable(latest.timestampUs);
+                                  irApplicable(decisionUs_);
     const bool reanchored = !relationshipReliable_ && boundaryMeasured;
     if (boundaryMeasured) {
       // The field's observed leading boundary, not the later median decision,
@@ -385,7 +423,7 @@ class NaviIntegratedCore {
       spatialCount_ = 0;
       push(EwoEventKind::SpatialClearance);
     } else spatialPhase_ = SpatialPhase::None;
-    setDegraded(!irApplicable(latest.timestampUs) ||
+    setDegraded(!irApplicable(decisionUs_) ||
                 !relationshipReliable_ || !targetOriginValid_);
   }
   void updateSpatialPhase(uint64_t nowUm) {
@@ -428,7 +466,7 @@ class NaviIntegratedCore {
   void evaluateMissing(uint64_t nowUm) {
     if (!declared_ || !initialReferenceReady_ ||
         spatialPhase_ != SpatialPhase::None || !relationshipReliable_ ||
-        !targetOriginValid_ || !irApplicable(latestIrReceivedUs_) ||
+        !targetOriginValid_ || !irApplicable(decisionUs_) ||
         nowUm < targetOriginUm_) return;
     for (unsigned count = 0; count < navi_one::ROUTE_N; ++count) {
       const uint64_t expected = uint64_t(target_.distanceMm) * 1000;
@@ -443,6 +481,25 @@ class NaviIntegratedCore {
     }
   }
 
+  void beginDecision(uint64_t nowUs) { decisionUs_ = nowUs; ++consumptionId_; }
+  void invalidateRelationship() {
+    if (targetOriginValid_ || relationshipReliable_ || spatialPhase_ != SpatialPhase::None)
+      resetTargetEvidence();
+    targetOriginValid_ = relationshipReliable_ = false;
+    if (spatialPhase_ != SpatialPhase::None) {
+      spatialPhase_ = SpatialPhase::None;
+      spatialCount_ = 0;
+      push(EwoEventKind::SpatialInvalidated);
+    }
+    setDegraded(true);
+  }
+  void reportBootFault() {
+    if (!bootFaultReported_) { bootFaultReported_ = true; push(EwoEventKind::BootReferenceIncomplete); }
+  }
+  void invalidateBoot() { bootReference_.invalidate(); if (bootReference_.fault()) reportBootFault(); }
+  uint64_t decisionUs_ = 0, consumptionId_ = 0, contextSinceUs_ = 0;
+  bool haveSource_ = false, speedAvailable_ = false, bootFaultReported_ = false;
+  double speedMmS_ = 0;
   bool declared_ = false, reverseTarget_ = false;
   bool positionReliable_ = false;
   uint8_t mm_ = 0;
@@ -461,9 +518,7 @@ class NaviIntegratedCore {
   uint64_t hallObservationCount_ = 0, irObservationCount_ = 0;
   uint32_t hallLoss_ = 0, irLoss_ = 0, eventLoss_ = 0;
   uint32_t confirmedCount_ = 0, missedCount_ = 0, pwmZeroDisplacements_ = 0;
-  bool bootOriginValid_ = false, initialCollectionStarted_ = false;
-  uint64_t bootOriginUm_ = 0;
-  std::vector<int16_t> initialPopulation_;
+  BootReference bootReference_;
   bool initialReferenceReady_ = false;
   int16_t activeReference_ = 0, hallMedian_ = 0;
   bool hallSupport_ = false;

@@ -8,6 +8,8 @@
 #include <stdint.h>
 #include <stddef.h>
 #include <string.h>
+#include <memory>
+#include <new>
 #include "../../common/IrMovementWire.h"
 
 #ifndef NAVI_SYNC_ENTER_CRITICAL
@@ -24,6 +26,8 @@ static constexpr uint8_t REC_IR = 2;
 static constexpr uint8_t REC_STATUS = 3;
 static constexpr uint8_t REC_NAVI = 4; // EWO extension: NAVI conclusion, not acquisition
 static constexpr uint8_t REC_HALL_NATIVE = 5;
+static constexpr uint8_t REC_CONSUMPTION = 6;
+static constexpr uint8_t REC_ACTION = 7;
 static constexpr uint32_t SEQ_NA = 0xFFFFFFFFu;
 static constexpr uint8_t MM_NA = 0xFFu;
 
@@ -144,6 +148,8 @@ struct __attribute__((packed)) NaviSnapshot {
   uint8_t degraded;
   uint8_t positionReliable;
   uint8_t spatialPhase;
+  uint64_t consumptionId;
+  uint32_t irSequence;
 };
 struct __attribute__((packed)) NaviWire {
   Header header;
@@ -167,7 +173,7 @@ static_assert(sizeof(HallSample) == 18, "NSR1 Hall sample layout changed");
 static_assert(sizeof(IrSnapshot) == 133, "NSR1 IR snapshot layout changed");
 static_assert(sizeof(Status) == 52, "NSR1 status layout changed");
 static_assert(sizeof(StatusWire) == 108, "NSR1 status wire layout changed");
-static_assert(sizeof(NaviSnapshot) == 51, "EWO NAVI snapshot layout changed");
+static_assert(sizeof(NaviSnapshot) == 63, "EWO NAVI v2 snapshot layout changed");
 static_assert(sizeof(NativeHallItem) == 16, "EWO native Hall item layout changed");
 
 static constexpr uint16_t HALL_BATCH_SAMPLES = 48;  // 48 kHz-equivalent ms
@@ -175,6 +181,32 @@ static constexpr uint16_t HALL_RING_BATCHES = 24;   // nominally >1 s of Hall
 static constexpr uint16_t IR_RING_RECORDS = 48;     // nominally >4 s of IR
 static constexpr uint16_t NAVI_RING_RECORDS = 64;
 static constexpr uint16_t NATIVE_HALL_RING_BATCHES = 24;
+
+enum class InputKind : uint8_t { Hall = 1, Ir, Declaration, Reversal, Loss };
+struct __attribute__((packed)) ConsumptionItem {
+  uint64_t id, decisionUs, observationUs;
+  uint32_t serial; // Hall serial / IR TX sequence / declared MM / direction / Hall loss total
+  uint8_t kind, pwm, commandedPwm;
+  int8_t direction;
+  uint8_t navMm, target, stationPhase, contextFlags; // context BEFORE consumption
+};
+static constexpr uint16_t CONSUMPTION_ITEMS = 32, CONSUMPTION_BATCHES = 8;
+struct __attribute__((packed)) ConsumptionWire {
+  Header header;
+  ConsumptionItem items[CONSUMPTION_ITEMS];
+};
+enum class ActionKind : uint8_t { CommandReceived = 1, CommandConsumed,
+  RequestedPwm, AppliedPwm, StationOrder };
+struct __attribute__((packed)) ActionSnapshot {
+  uint64_t tUs, lastConsumptionId, commandOrder, commandReceivedUs;
+  uint16_t rampUpMs, rampDownMs;
+  uint8_t kind, pwm, targetPwm;
+  char topic[72], payload[64]; // bounded original command or station event
+};
+struct __attribute__((packed)) ActionWire { Header header; ActionSnapshot snapshot; };
+static constexpr uint16_t ACTION_RECORDS = 24;
+static_assert(sizeof(ConsumptionItem) == 36, "consumption wire layout");
+static_assert(sizeof(ActionSnapshot) == 175, "action wire layout");
 
 static const uint32_t CRC_NIBBLE[16] = {
   0x00000000u, 0x1DB71064u, 0x3B6E20C8u, 0x26D930ACu,
@@ -213,7 +245,9 @@ struct __attribute__((packed)) IrWire {
 
 class Recorder {
  public:
+  bool storageReady() const { return bool(trace_); }
   void begin(uint32_t locoId, uint32_t sessionId, uint64_t locoBootId) {
+    if (!storageReady()) return;
     NAVI_SYNC_ENTER_CRITICAL();
     locoId_ = locoId; sessionId_ = sessionId; locoBootId_ = locoBootId;
     hallHead_ = hallTail_ = hallCount_ = 0;
@@ -227,6 +261,10 @@ class Recorder {
     naviSequence_ = naviDrops_ = 0;
     nativeBatchSeq_ = nativeDrops_ = nativeSamples_ = 0;
     nativeCurrent_.header.nItems = 0;
+    trace_->current.header.nItems = 0;
+    consumptionHead_ = consumptionTail_ = consumptionCount_ = 0;
+    actionHead_ = actionTail_ = actionCount_ = 0;
+    consumptionSequence_ = consumptionDrops_ = actionSequence_ = actionDrops_ = 0;
     hallCurrent_.header.nItems = 0;
     hallHighWater_ = irHighWater_ = 0;
     NAVI_SYNC_EXIT_CRITICAL();
@@ -307,6 +345,7 @@ class Recorder {
                snapshot.tUs, naviSequence_++, snapshot.hallSerial,
                context, naviDrops_);
     out.header.nItems = 1;
+    out.header.version = 2; // only NAVI payload extended; v1 readers remain explicit
     out.snapshot = snapshot;
     out.header.crc32 = recordCrc(out.header,
       reinterpret_cast<const uint8_t*>(&out.snapshot), sizeof(out.snapshot));
@@ -395,11 +434,74 @@ class Recorder {
   uint32_t naviDrops() const { return naviDrops_; }
   uint32_t nativeDrops() const { return nativeDrops_; }
   uint32_t nativeSamples() const { return nativeSamples_; }
+  uint32_t consumptionDrops() const { return consumptionDrops_; }
+  uint32_t actionDrops() const {
+    NAVI_SYNC_ENTER_CRITICAL();
+    const uint32_t drops = actionDrops_;
+    NAVI_SYNC_EXIT_CRITICAL(); return drops;
+  }
   uint32_t maxHallGapUs() const { return maxHallGapUs_; }
   uint16_t hallHighWater() const { return hallHighWater_; }
   uint16_t irHighWater() const { return irHighWater_; }
   uint16_t hallDepth() const { return hallCount_; }
   uint16_t irDepth() const { return irCount_; }
+
+  // Sole producer: NAVI loop. The acquisition stream remains separate so a
+  // failed Hall input enqueue cannot masquerade as an observation NAVI used.
+  void addConsumption(const ConsumptionItem& item, const Context& context) {
+    if (!trace_->current.header.nItems)
+      initHeader(trace_->current.header, REC_CONSUMPTION,
+                 uint32_t(item.decisionUs / 1000), item.decisionUs,
+                 consumptionSequence_, uint32_t(item.id), context, consumptionDrops_);
+    trace_->current.items[trace_->current.header.nItems++] = item;
+    if (trace_->current.header.nItems != CONSUMPTION_ITEMS) return;
+    trace_->current.header.crc32 = recordCrc(trace_->current.header,
+      reinterpret_cast<const uint8_t*>(trace_->current.items), sizeof(trace_->current.items));
+    NAVI_SYNC_ENTER_CRITICAL();
+    if (consumptionCount_ == CONSUMPTION_BATCHES) {
+      ++consumptionDrops_; consumptionTail_ = (consumptionTail_ + 1) % CONSUMPTION_BATCHES;
+      --consumptionCount_;
+    }
+    trace_->consumption[consumptionHead_] = trace_->current;
+    consumptionHead_ = (consumptionHead_ + 1) % CONSUMPTION_BATCHES;
+    ++consumptionCount_;
+    NAVI_SYNC_EXIT_CRITICAL();
+    trace_->current.header.nItems = 0;
+    ++consumptionSequence_;
+  }
+  bool popConsumption(ConsumptionWire& out) {
+    NAVI_SYNC_ENTER_CRITICAL();
+    if (!consumptionCount_) { NAVI_SYNC_EXIT_CRITICAL(); return false; }
+    out = trace_->consumption[consumptionTail_];
+    consumptionTail_ = (consumptionTail_ + 1) % CONSUMPTION_BATCHES;
+    --consumptionCount_;
+    NAVI_SYNC_EXIT_CRITICAL(); return true;
+  }
+  void addAction(const ActionSnapshot& snapshot, const Context& context) {
+    ActionWire out{};
+    NAVI_SYNC_ENTER_CRITICAL();
+    const uint32_t seq = actionSequence_++;
+    const uint32_t drops = actionDrops_;
+    NAVI_SYNC_EXIT_CRITICAL();
+    initHeader(out.header, REC_ACTION, uint32_t(snapshot.tUs / 1000), snapshot.tUs,
+               seq, SEQ_NA, context, drops);
+    out.header.nItems = 1; out.snapshot = snapshot;
+    out.header.crc32 = recordCrc(out.header,
+      reinterpret_cast<const uint8_t*>(&out.snapshot), sizeof(out.snapshot));
+    NAVI_SYNC_ENTER_CRITICAL();
+    if (actionCount_ == ACTION_RECORDS) {
+      ++actionDrops_; actionTail_ = (actionTail_ + 1) % ACTION_RECORDS; --actionCount_;
+    }
+    trace_->action[actionHead_] = out;
+    actionHead_ = (actionHead_ + 1) % ACTION_RECORDS; ++actionCount_;
+    NAVI_SYNC_EXIT_CRITICAL();
+  }
+  bool popAction(ActionWire& out) {
+    NAVI_SYNC_ENTER_CRITICAL();
+    if (!actionCount_) { NAVI_SYNC_EXIT_CRITICAL(); return false; }
+    out = trace_->action[actionTail_]; actionTail_ = (actionTail_ + 1) % ACTION_RECORDS;
+    --actionCount_; NAVI_SYNC_EXIT_CRITICAL(); return true;
+  }
 
  private:
   void initHeader(Header& h, uint8_t type, uint32_t tMs, uint64_t tUs,
@@ -468,6 +570,15 @@ class Recorder {
   NaviWire naviRing_[NAVI_RING_RECORDS]{};
   NativeHallWire nativeCurrent_{};
   NativeHallWire nativeRing_[NATIVE_HALL_RING_BATCHES]{};
+  struct TraceStorage {
+    ConsumptionWire current{}, consumption[CONSUMPTION_BATCHES]{};
+    ActionWire action[ACTION_RECORDS]{};
+  };
+  std::unique_ptr<TraceStorage> trace_{new (std::nothrow) TraceStorage{}};
+  uint16_t consumptionHead_ = 0, consumptionTail_ = 0, consumptionCount_ = 0;
+  uint16_t actionHead_ = 0, actionTail_ = 0, actionCount_ = 0;
+  uint32_t consumptionSequence_ = 0, consumptionDrops_ = 0;
+  uint32_t actionSequence_ = 0, actionDrops_ = 0;
 };
 
 } // namespace navi_sync

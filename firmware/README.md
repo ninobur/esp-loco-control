@@ -41,6 +41,15 @@ or a successful build.
 
 ## Current catalog
 
+**2026-09-29 EWO audit corrections:**
+`programs/NAVI_EYES_WIDE_OPEN_INTEGRATED/NAVI_EYES_WIDE_OPEN_INTEGRATED.ino`
+identifies as **NAVI_EYES_WIDE_OPEN_INTEGRATED_R2**. Development control candidate;
+Toby configuration built and host-tested, not flashed, not field accepted.
+Based on reviewed candidate `cd55929` and governing docs `612b791`.
+Controlling records: decisions 0109–0114 and
+`../docs/NAVI_EWO_REVIEW_CORRECTIONS_20260929.md`. No operational promotion and
+no Otto build claim. Await David and Sam's review and separate hardware authority.
+
 **2026-09-23 IR stop-retention revision:**
 `programs/IR_SCOPE_ESPNOW/variants/IR_SCOPE_ESPNOW_TX/IR_SCOPE_ESPNOW_TX.ino`
 identifies as **IR_SCOPE_ESPNOW_ACTIVE_TX_1_6_R2**. Diagnostic movement source,

@@ -15,9 +15,10 @@ static ir_movement::WireSnapshot ir(uint32_t sequence, uint64_t pulses,
                                     uint8_t reason = ir_movement::TRACKING) {
   ir_movement::WireSnapshot w;
   w.bootId = 42;
-  w.sequence = sequence;
+  w.sequence = sequence * 10;
   w.capturedUs = uint64_t(sequence) * 100000;
   w.completedPulses = pulses;
+  w.observedRises = pulses;
   w.pitchUm = 1000;
   w.nominalUm = pulses * 1000;
   w.opticalReason = reason;
@@ -36,11 +37,13 @@ static HallSample hall(uint32_t serial, uint64_t tUs, int16_t raw,
 static void bootReference(NaviIntegratedCore& n) {
   n.observeIr(ir(1, 0), 100000, 0);
   n.observeHall(hall(1, 110000, 700, 0));
-  n.observeIr(ir(2, 1), 200000, 40);
-  n.observeHall(hall(2, 210000, 100));
-  n.observeIr(ir(3, 5), 300000, 40);
-  n.observeHall(hall(3, 310000, 110));
-  n.observeHall(hall(4, 311000, 120));
+  for (uint32_t i = 0; i < 5; ++i) {
+    auto w = ir(2, i + 1);
+    w.sequence += i;
+    w.capturedUs += i * 20000;
+    n.observeIr(w, 200000 + i * 20000, 40);
+    n.observeHall(hall(2 + i, 210000 + i * 20000, 100 + i * 5));
+  }
   n.observeIr(ir(4, 10), 400000, 40);
 }
 
@@ -49,9 +52,9 @@ int main() {
   check(!n.initialReferenceReady(), "boot has no Hall reference");
   bootReference(n);
   check(n.initialReferenceReady() && n.activeReference() == 110,
-        "IR first 10 mm closes NAVI-owned raw Hall median");
-  check(n.hallObservationCount() == 4 && n.lastHall().raw == 120 &&
-            n.lastHallSerial() == 4,
+        "five distinct observed pulse positions close NAVI-owned spatial median");
+  check(n.hallObservationCount() == 6 && n.lastHall().raw == 120 &&
+            n.lastHallSerial() == 6,
         "all native Hall readings remain unchanged and in order");
   n.declare(0, 1, 500000);
   check(n.target().sequence == 1 && n.target().distanceMm == 330,
@@ -117,7 +120,7 @@ int main() {
   for (uint32_t i = 0; i < 5; ++i)
     stationary.observeHall(hall(21 + i, 611000 + i * 1000, 200, 0));
   check(stationary.irObservationCount() == priorIrCount + 1 &&
-            stationary.hallObservationCount() == 10 &&
+            stationary.hallObservationCount() == 12 &&
             stationary.relationshipReliable(),
         "stationary PWM-zero observations remain visible without invalidating IR relationship");
   const uint64_t epochAtStop = stationary.irMeasurementEpochId();
