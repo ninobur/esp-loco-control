@@ -9,6 +9,7 @@ static void check(bool ok, const char* msg) {
 }
 
 static void send(NaviCore& navi, HallSample& sample, uint32_t distanceMm) {
+  sample.irDistanceMm = distanceMm;
   HallObservation observation{sample.sampleSerial, sample.sampleSerial, 1,
                               &sample};
   observation.irDistanceMm = distanceMm;
@@ -19,169 +20,177 @@ static void send(NaviCore& navi, HallSample& sample, uint32_t distanceMm) {
 
 static void establishReference(NaviCore& navi, uint32_t serial = 1) {
   HallSample samples[] = {
-      {serial, 3000, 100, 0, 1, IrHealth::Unknown, 0, 1},
-      {serial + 1, 3001, 100, 0, 5, IrHealth::Unknown, 0, 1},
-      {serial + 2, 3002, 100, 0, 10, IrHealth::Unknown, 0, 1},
+      {serial, 3000, 100, 3, 1, IrHealth::AdequateContrast, 0, 1},
+      {serial + 1, 3001, 100, 4, 5, IrHealth::InadequateContrast, 0, 1},
+      {serial + 2, 3002, 100, 5, 10, IrHealth::Failed, 0, 0},
   };
   for (HallSample& sample : samples) send(navi, sample, sample.irDistanceMm);
 }
 
-static void candidate(NaviCore& navi, uint32_t serial, int16_t first,
-                      int16_t second, uint32_t distanceMm) {
-  HallSample samples[] = {
-      {serial, 4000, first, 0, distanceMm, IrHealth::Unknown, 0, 1},
-      {serial + 1, 4001, second, 0, distanceMm, IrHealth::Unknown, 0, 1},
-  };
-  for (HallSample& sample : samples) send(navi, sample, distanceMm);
+static void sendReadings(NaviCore& navi, uint32_t serial, const int16_t (&raw)[5],
+                         uint32_t distanceMm) {
+  for (size_t i = 0; i < 5; ++i) {
+    HallSample sample{serial + static_cast<uint32_t>(i),
+                      4000 + static_cast<uint32_t>(i), raw[i], 0,
+                      distanceMm, IrHealth::Unknown, 0, 1};
+    send(navi, sample, distanceMm);
+  }
 }
 
 int main() {
-  NaviCore navi(40);
-  check(!navi.initialHallReferenceAvailable(), "NAVI starts without reference");
+  // Function 1 and Function 2 remain unchanged.
+  NaviCore initial(40);
+  check(!initial.initialHallReferenceAvailable(),
+        "NAVI starts without an initial Hall reference");
   HallSample stationary{1, 900, 1500, 0, 0, IrHealth::Unknown, 0, 1};
-  send(navi, stationary, 0);
-  check(!navi.initialReferenceCollectionStarted(),
-        "stationary evidence does not start initial collection");
+  send(initial, stationary, 0);
   stationary.timestampUs = 999999;
-  send(navi, stationary, 0);
-  check(!navi.initialReferenceCollectionStarted(),
-        "stationary time does not advance collection");
+  send(initial, stationary, 0);
+  check(!initial.initialReferenceCollectionStarted(),
+        "stationary time does not start the initial collection");
 
-  HallSample initial[] = {
-      {10, 1000, 100, 3, 1, IrHealth::AdequateContrast, 0, 1},
-      {11, 1001, 300, 4, 4, IrHealth::InadequateContrast, 0, 1},
-      {12, 1002, 200, 5, 7, IrHealth::Failed, 0, 0},
-      {13, 1003, 250, 6, 10, IrHealth::Unknown, 0, 1},
+  HallSample factual{10, 1000, 120, 3, 1, IrHealth::AdequateContrast, 7, 1};
+  send(initial, factual, 0);
+  check(initial.lastHallSamples()->sampleSerial == factual.sampleSerial &&
+            initial.lastHallSamples()->timestampUs == factual.timestampUs &&
+            initial.lastHallSamples()->raw == factual.raw &&
+            initial.lastHallSamples()->irPulses == factual.irPulses &&
+            initial.lastHallSamples()->irDistanceMm == factual.irDistanceMm &&
+            initial.lastHallSamples()->irHealth == factual.irHealth &&
+            initial.lastHallSamples()->pwm == factual.pwm &&
+            initial.lastHallSamples()->direction == factual.direction,
+        "native Hall and IR facts reach NAVI unchanged");
+  HallSample boot[] = {
+      {20, 1001, 100, 0, 4, IrHealth::Unknown, 0, 1},
+      {21, 1002, 200, 0, 7, IrHealth::Unknown, 0, 1},
+      {22, 1003, 300, 0, 10, IrHealth::Unknown, 0, 1},
   };
-  for (HallSample& sample : initial) {
-    send(navi, sample, sample.irDistanceMm);
-    check(navi.lastHallSamples()->sampleSerial == sample.sampleSerial &&
-              navi.lastHallSamples()->timestampUs == sample.timestampUs &&
-              navi.lastHallSamples()->raw == sample.raw &&
-              navi.lastHallSamples()->irPulses == sample.irPulses &&
-              navi.lastHallSamples()->irDistanceMm == sample.irDistanceMm &&
-              navi.lastHallSamples()->irHealth == sample.irHealth &&
-              navi.lastHallSamples()->pwm == sample.pwm &&
-              navi.lastHallSamples()->direction == sample.direction,
-          "native Hall and factual metadata reach NAVI unchanged");
-  }
-  check(navi.initialHallReferenceAvailable() && navi.initialHallReference() == 225,
-        "NAVI establishes the initial median at 10 mm");
+  for (HallSample& sample : boot) send(initial, sample, sample.irDistanceMm);
+  check(initial.initialHallReferenceAvailable() &&
+            initial.initialHallReference() == 200,
+        "NAVI establishes the Function 2 initial median at 10 mm");
 
-  NaviCore threshold(40);
-  establishReference(threshold, 20);
-  threshold.configureExpectedTarget(
+  // Five raw readings are maintained inside NAVI; two outliers do not control
+  // the median. The expected target is AboveReference.
+  NaviCore positive(40);
+  establishReference(positive, 40);
+  positive.configureExpectedTarget(
       {HallOpeningPolarity::AboveReference, 100, 1, 1});
-  candidate(threshold, 30, 170, 180, 95);
-  check(threshold.opening().candidate && !threshold.expectedTargetConfirmed(),
-        "two qualifying samples create only a candidate");
-  HallSample below70{32, 4010, 169, 0, 96, IrHealth::Unknown, 0, 1};
-  send(threshold, below70, 96);
-  check(!threshold.expectedTargetConfirmed(),
-        "a sub-threshold third sample cannot confirm the target");
+  const int16_t positiveRaw[] = {180, 20, 190, 30, 200};
+  sendReadings(positive, 50, positiveRaw, 100);
+  check(positive.rollingHallSampleCount() == 5 &&
+            positive.rollingHallMedian() == 180,
+        "NAVI calculates a rolling median of five raw Hall readings");
+  check(positive.hallSupportsTarget(),
+        "positive median departure of at least 70 supports the target");
+  check(positive.expectedTargetConfirmed(),
+        "Hall support plus coherent IR and context confirms the target");
+  check(positive.lastConfirmedOpening().landmarkObservationSerial == 50,
+        "landmark is the earliest expected-direction raw threshold sample");
 
-  NaviCore threeOfThree(40);
-  establishReference(threeOfThree, 40);
-  threeOfThree.configureExpectedTarget(
-      {HallOpeningPolarity::AboveReference, 100, 1, 1});
-  candidate(threeOfThree, 50, 182, 191, 95);
-  HallSample thirdA{52, 4020, 205, 0, 100, IrHealth::Unknown, 0, 1};
-  send(threeOfThree, thirdA, 100);
-  check(threeOfThree.expectedTargetConfirmed(),
-        "3/3 expected polarity confirms Hall evidence");
+  NaviCore negative(40);
+  establishReference(negative, 70);
+  negative.configureExpectedTarget(
+      {HallOpeningPolarity::BelowReference, 100, 2, 1});
+  const int16_t negativeRaw[] = {20, -80, -90, -100, 30};
+  sendReadings(negative, 80, negativeRaw, 100);
+  check(negative.rollingHallMedian() == 20 || negative.rollingHallMedian() == -80,
+        "negative window median is calculated from the five native readings");
+  check(negative.hallSupportsTarget() && negative.expectedTargetConfirmed(),
+        "negative median departure of at most -70 supports the target");
 
-  NaviCore twoOfThree(40);
-  establishReference(twoOfThree, 60);
-  twoOfThree.configureExpectedTarget(
-      {HallOpeningPolarity::AboveReference, 100, 1, 1});
-  candidate(twoOfThree, 70, 182, 191, 95);
-  HallSample mixed{72, 4021, 22, 0, 100, IrHealth::Unknown, 0, 1};
-  send(twoOfThree, mixed, 100);
-  check(twoOfThree.expectedTargetConfirmed(),
-        "2/3 expected polarity confirms Hall evidence");
+  NaviCore opposite(40);
+  establishReference(opposite, 100);
+  opposite.configureExpectedTarget(
+      {HallOpeningPolarity::BelowReference, 100, 3, 1});
+  const int16_t oppositeRaw[] = {180, 185, 190, 195, 200};
+  sendReadings(opposite, 110, oppositeRaw, 100);
+  check(!opposite.hallSupportsTarget() && !opposite.expectedTargetConfirmed(),
+        "opposite-polarity median does not support the target");
+  check(opposite.rollingHallSampleCount() == 5,
+        "two or fewer readings do not create an old candidate state");
 
-  NaviCore oneOfThree(40);
-  establishReference(oneOfThree, 80);
-  oneOfThree.configureExpectedTarget(
-      {HallOpeningPolarity::AboveReference, 100, 1, 1});
-  candidate(oneOfThree, 90, 182, -78, 95);
-  HallSample below{92, 4022, -5, 0, 100, IrHealth::Unknown, 0, 1};
-  send(oneOfThree, below, 100);
-  check(!oneOfThree.expectedTargetConfirmed() && !oneOfThree.opening().confirmed,
-        "1/3 expected polarity fails Hall evidence");
-
+  // A Hall-supported window at the wrong physical distance is retained but
+  // cannot confirm or begin Function 4.
   NaviCore wrongDistance(40);
-  establishReference(wrongDistance, 100);
+  establishReference(wrongDistance, 130);
   wrongDistance.configureExpectedTarget(
-      {HallOpeningPolarity::AboveReference, 100, 1, 1});
-  candidate(wrongDistance, 110, 182, 191, 50);
-  HallSample wrongDistanceThird{112, 4030, 205, 0, 50, IrHealth::Unknown, 0, 1};
-  send(wrongDistance, wrongDistanceThird, 50);
-  check(!wrongDistance.expectedTargetConfirmed(),
-        "Hall-consistent evidence at wrong IR distance is rejected");
-  check(!wrongDistance.spatialReferenceActive(),
-        "a rejected target does not start Function 4");
-  HallSample stillSeeking{113, 4031, 100, 0, 100, IrHealth::Unknown, 0, 1};
-  send(wrongDistance, stillSeeking, 100);
-  check(!wrongDistance.expectedTargetMissing(),
-        "NAVI continues seeking while target interval remains open");
+      {HallOpeningPolarity::AboveReference, 100, 4, 1});
+  sendReadings(wrongDistance, 140, positiveRaw, 50);
+  check(wrongDistance.hallSupportsTarget() &&
+            !wrongDistance.expectedTargetConfirmed() &&
+            !wrongDistance.spatialReferenceActive(),
+        "Hall support at the wrong IR distance cannot confirm the target");
+  sendReadings(wrongDistance, 150, positiveRaw, 100);
+  check(wrongDistance.expectedTargetConfirmed(),
+        "NAVI continues seeking and later confirms within the open interval");
 
-  NaviCore coherent(40);
-  establishReference(coherent, 120);
-  coherent.configureExpectedTarget(
-      {HallOpeningPolarity::AboveReference, 100, 7, 1});
-  candidate(coherent, 130, 182, 191, 90);
-  HallSample coherentThird{132, 4040, 205, 0, 100, IrHealth::Unknown, 0, 1};
-  send(coherent, coherentThird, 100);
-  check(coherent.expectedTargetConfirmed(),
-        "coherent Hall and IR evidence confirms expected MM");
-  check(coherent.lastConfirmedOpening().landmarkObservationSerial == 130 &&
-            coherent.lastConfirmedOpening().landmarkIrDistanceMm == 90,
-        "opening landmark is retained from the first qualifying sample");
-  check(coherent.spatialReferenceActive() &&
-            coherent.spatialReferenceOriginMm() == 90,
-        "Function 4 uses the opening landmark, not confirmation distance");
-  check(coherent.navMm() == 40,
-        "target evidence does not infer or alter an alternative position");
+  // Inconsistent evidence does not infer another location or alter position.
+  check(wrongDistance.navMm() == 40,
+        "inconsistent evidence preserves NAVI position/context");
 
+  // Missing-target advancement preserves position and selects the next map
+  // target without alternative-position inference.
   NaviCore missing(40);
-  establishReference(missing, 150);
+  establishReference(missing, 180);
   missing.configureExpectedTarget(
       {HallOpeningPolarity::AboveReference, 100, 8, 1}, 0);
   missing.configureSubsequentTarget(
       {HallOpeningPolarity::BelowReference, 120, 9, 1});
-  HallSample passedInterval{160, 4050, 100, 0, 117, IrHealth::Unknown, 0, 1};
-  send(missing, passedInterval, 117);
-  check(missing.missingTargetCount() == 1 &&
+  HallSample passed{190, 5000, 100, 0, 117, IrHealth::Unknown, 0, 1};
+  send(missing, passed, 117);
+  check(missing.missingTargetCount() == 1 && missing.navMm() == 40 &&
             missing.expectedTarget().sequence == 9 &&
-            missing.expectedTarget().polarity == HallOpeningPolarity::BelowReference &&
-            missing.navMm() == 40,
+            missing.expectedTarget().polarity == HallOpeningPolarity::BelowReference,
         "passing the interval records missing and advances target context");
 
-  HallSample clearance{200, 5000, 500, 0, 150, IrHealth::Unknown, 0, 1};
-  send(coherent, clearance, 150);
-  check(coherent.spatialReferenceSampleCount() == 0,
-        "0-100 mm clearance does not populate replacement reference");
-  HallSample collection[] = {
-      {201, 5001, 100, 0, 190, IrHealth::Unknown, 0, 1},
-      {202, 5002, 110, 0, 210, IrHealth::Unknown, 0, 1},
-      {203, 5003, 120, 0, 240, IrHealth::Unknown, 0, 1},
-      {204, 5004, 900, 0, 240, IrHealth::Unknown, 0, 1},
-      {205, 5005, 130, 0, 270, IrHealth::Unknown, 0, 1},
-      {206, 5006, 140, 0, 290, IrHealth::Unknown, 0, 1},
+  // The confirmed target starts Function 4 at the retained landmark, not at
+  // the later median-confirmation sample.
+  NaviCore spatial(40);
+  establishReference(spatial, 220);
+  spatial.configureExpectedTarget(
+      {HallOpeningPolarity::AboveReference, 100, 10, 1});
+  const int16_t landmarkRaw[] = {20, 180, 20, 190, 200};
+  sendReadings(spatial, 230, landmarkRaw, 90);
+  check(spatial.expectedTargetConfirmed() && spatial.spatialReferenceActive() &&
+            spatial.spatialReferenceOriginMm() == 90 &&
+            spatial.lastConfirmedOpening().landmarkObservationSerial == 231,
+        "Function 4 uses the retained median-window opening landmark");
+
+  HallSample clearance{240, 5100, 500, 0, 150, IrHealth::Unknown, 0, 1};
+  send(spatial, clearance, 150);
+  check(spatial.spatialReferenceSampleCount() == 0,
+        "0-100 mm remains clearance");
+  HallSample refSamples[] = {
+      {241, 5101, 100, 0, 190, IrHealth::Unknown, 0, 1},
+      {242, 5102, 110, 0, 210, IrHealth::Unknown, 0, 1},
+      {243, 5103, 120, 0, 240, IrHealth::Unknown, 0, 1},
+      {244, 5104, 900, 0, 240, IrHealth::Unknown, 0, 1},
+      {245, 5105, 130, 0, 270, IrHealth::Unknown, 0, 1},
+      {246, 5106, 140, 0, 290, IrHealth::Unknown, 0, 1},
   };
-  send(coherent, collection[0], 190);
-  send(coherent, collection[1], 210);
-  send(coherent, collection[2], 240);
-  send(coherent, collection[3], 240);
-  check(coherent.spatialReferenceSampleCount() == 3,
-        "100-200 mm collection represents physical locations once");
-  send(coherent, collection[4], 270);
-  check(coherent.spatialReferenceActive(),
-        "reference remains pending before 200 mm");
-  send(coherent, collection[5], 290);
-  check(!coherent.spatialReferenceActive() && coherent.activeHallReference() == 120,
-        "median becomes active at 200 mm");
+  for (HallSample& sample : refSamples) send(spatial, sample, sample.irDistanceMm);
+  check(!spatial.spatialReferenceActive() && spatial.activeHallReference() == 120,
+        "100-200 mm collection completes with its spatial median at 200 mm");
+  check(spatial.rollingHallSampleCount() == 0,
+        "active-reference replacement clears incompatible Hall window history");
+
+  // Target changes and context/reference transitions clear incompatible Hall
+  // history without changing NAVI position.
+  NaviCore context(40);
+  establishReference(context, 260);
+  context.configureExpectedTarget(
+      {HallOpeningPolarity::AboveReference, 100, 11, 1});
+  HallSample one{270, 6000, 180, 0, 50, IrHealth::Unknown, 0, 1};
+  send(context, one, 50);
+  check(context.rollingHallSampleCount() == 1, "window retains native history");
+  context.configureExpectedTarget(
+      {HallOpeningPolarity::BelowReference, 120, 12, 1});
+  check(context.rollingHallSampleCount() == 0 && context.navMm() == 40,
+        "target-context change clears incompatible rolling history only");
+  context.resetHallTargetContext();
+  check(context.rollingHallSampleCount() == 0,
+        "explicit navigation-context reset clears the rolling window");
 
   std::printf("%s: %d failures\n", failures ? "FAIL" : "PASS", failures);
   return failures ? 1 : 0;

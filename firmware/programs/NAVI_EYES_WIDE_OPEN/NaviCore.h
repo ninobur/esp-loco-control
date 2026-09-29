@@ -24,9 +24,6 @@ struct TargetSpec {
 };
 
 struct HallOpening {
-  bool candidate = false;
-  uint32_t candidateObservationSerial = 0;
-  int32_t candidateDeparture = 0;
   uint32_t landmarkObservationSerial = 0;
   uint32_t landmarkIrDistanceMm = 0;
   bool confirmed = false;
@@ -57,6 +54,7 @@ class NaviCore {
     targetOriginMm_ = originMm;
     targetConfirmed_ = false;
     targetMissing_ = false;
+    resetHallTargetContext();
   }
 
   void configureSubsequentTarget(const TargetSpec& target) {
@@ -66,10 +64,20 @@ class NaviCore {
         target.distanceMm != 0;
   }
 
+  // Context transitions clear only Hall evidence that was measured under the
+  // previous reference/target context. They do not alter NAVI's position.
+  void resetHallTargetContext() {
+    rollingHallWindow_.clear();
+    hallSupportsTarget_ = false;
+    opening_ = HallOpening{};
+  }
+
   NaviJudgment observe(const NaviEvidence& evidence, uint32_t serial) {
     if (evidence.hall.samples != nullptr && evidence.hall.sampleCount != 0) {
       lastHallSamples_ = evidence.hall.samples;
       lastHallSampleCount_ = evidence.hall.sampleCount;
+      for (uint16_t i = 0; i < evidence.hall.sampleCount; ++i)
+        appendHallSample(evidence.hall.samples[i]);
     }
     // NAVI compares the cumulative IR measurement itself. Hall observations
     // continue to be collected even when the IR value repeats between updates.
@@ -81,7 +89,7 @@ class NaviCore {
     collectInitialReference(evidence.hall);
     if (spatialReferenceActive_) {
       updateSpatialReference(evidence.hall);
-    } else if (recognizeTargetHallEvidence(evidence.hall)) {
+    } else if (recognizeTargetHallEvidence()) {
       beginSpatialReference(opening_.landmarkIrDistanceMm);
     }
 
@@ -112,10 +120,6 @@ class NaviCore {
   size_t initialReferenceSampleCount() const { return collection_.size(); }
   uint32_t lastObservedIrDistanceMm() const { return lastIrDistanceMm_; }
   int32_t lastHallDeparture() const { return lastHallDeparture_; }
-  uint8_t qualifyingHallObservationCount() const {
-    return qualifyingHallObservationCount_;
-  }
-  uint8_t confirmationSampleCount() const { return confirmationSampleCount_; }
   const HallOpening& opening() const { return opening_; }
   const HallOpening& lastConfirmedOpening() const { return lastConfirmedOpening_; }
   bool spatialReferenceActive() const { return spatialReferenceActive_; }
@@ -124,6 +128,9 @@ class NaviCore {
     return spatialPopulation_.size();
   }
   bool expectedTargetConfirmed() const { return targetConfirmed_; }
+  bool hallSupportsTarget() const { return hallSupportsTarget_; }
+  int16_t rollingHallMedian() const { return rollingHallMedian_; }
+  size_t rollingHallSampleCount() const { return rollingHallWindow_.size(); }
   bool expectedTargetMissing() const { return targetMissing_; }
   uint32_t missingTargetCount() const { return missingTargetCount_; }
   uint32_t targetOriginMm() const { return targetOriginMm_; }
@@ -162,79 +169,73 @@ class NaviCore {
     }
     activeReference_ = initialReference_;
     initialReferenceAvailable_ = true;
+    resetHallTargetContext();
   }
 
-  bool recognizeTargetHallEvidence(const HallObservation& observation) {
-    if (!initialReferenceAvailable_ || observation.samples == nullptr ||
-        observation.sampleCount == 0 || targetMissing_) {
+  void appendHallSample(const HallSample& sample) {
+    rollingHallWindow_.push_back(
+        {sample.sampleSerial, sample.irDistanceMm, sample.raw, sample.direction});
+    if (rollingHallWindow_.size() > 5) rollingHallWindow_.erase(rollingHallWindow_.begin());
+  }
+
+  bool recognizeTargetHallEvidence() {
+    if (!initialReferenceAvailable_ || rollingHallWindow_.size() < 5 ||
+        targetMissing_) {
       return false;
     }
 
-    bool confirmed = false;
+    std::vector<int16_t> ordered;
+    ordered.reserve(rollingHallWindow_.size());
+    for (const HallWindowSample& sample : rollingHallWindow_)
+      ordered.push_back(sample.raw);
+    std::sort(ordered.begin(), ordered.end());
+    rollingHallMedian_ = ordered[ordered.size() / 2];
+    const int32_t medianDeparture =
+        static_cast<int32_t>(rollingHallMedian_) -
+        static_cast<int32_t>(activeReference_);
+    lastHallDeparture_ = medianDeparture;
+    hallSupportsTarget_ =
+        (expectedTarget_.polarity == HallOpeningPolarity::AboveReference &&
+         medianDeparture >= kHallDepartureThreshold) ||
+        (expectedTarget_.polarity == HallOpeningPolarity::BelowReference &&
+         medianDeparture <= -kHallDepartureThreshold);
+    if (!hallSupportsTarget_ || !targetConfigured_ || opening_.confirmed)
+      return false;
 
-    for (uint16_t i = 0; i < observation.sampleCount; ++i) {
-      const HallSample& sample = observation.samples[i];
-      lastHallDeparture_ = static_cast<int32_t>(sample.raw) -
-                            static_cast<int32_t>(activeReference_);
-      const bool qualifies =
-          lastHallDeparture_ >= kHallDepartureThreshold ||
-          lastHallDeparture_ <= -kHallDepartureThreshold;
-
-      if (opening_.confirmed) continue;
-
-      if (!qualifies) {
-        qualifyingHallObservationCount_ = 0;
-        confirmationSampleCount_ = 0;
-        targetWindow_.clear();
-        opening_.candidate = false;
-        continue;
-      }
-
-      targetWindow_.push_back({sample.sampleSerial, sample.irDistanceMm,
-                               lastHallDeparture_, sample.direction});
-      if (targetWindow_.size() > 3) targetWindow_.erase(targetWindow_.begin());
-      if (qualifyingHallObservationCount_ < 2) ++qualifyingHallObservationCount_;
-      if (qualifyingHallObservationCount_ == 2) {
-        opening_.candidate = true;
-        opening_.candidateObservationSerial = sample.sampleSerial;
-        opening_.candidateDeparture = lastHallDeparture_;
-        opening_.landmarkObservationSerial = targetWindow_[0].serial;
-        opening_.landmarkIrDistanceMm = targetWindow_[0].irDistanceMm;
-      }
-
-      if (!opening_.candidate || targetWindow_.size() < 3 ||
-          !targetConfigured_) continue;
-      confirmationSampleCount_ = static_cast<uint8_t>(targetWindow_.size());
-      if (!hallWindowMatchesTarget() || !distanceMatchesExpectedTarget() ||
-          !contextMatchesTarget(sample)) continue;
-
-      opening_.candidate = false;
-      opening_.confirmed = true;
-      opening_.observationSerial = sample.sampleSerial;
-      opening_.departure = lastHallDeparture_;
-      opening_.polarity = expectedTarget_.polarity;
-      lastConfirmedOpening_ = opening_;
-      targetConfirmed_ = true;
-      targetMissing_ = false;
-      confirmed = true;
-    }
-    return confirmed;
-  }
-
-  bool hallWindowMatchesTarget() const {
-    uint8_t matches = 0;
-    for (const TargetHallSample& sample : targetWindow_) {
-      if ((expectedTarget_.polarity == HallOpeningPolarity::AboveReference &&
-           sample.departure >= kHallDepartureThreshold) ||
+    const HallWindowSample* landmark = nullptr;
+    for (const HallWindowSample& sample : rollingHallWindow_) {
+      const int32_t departure = static_cast<int32_t>(sample.raw) -
+                                static_cast<int32_t>(activeReference_);
+      const bool expectedDirection =
+          (expectedTarget_.polarity == HallOpeningPolarity::AboveReference &&
+           departure >= kHallDepartureThreshold) ||
           (expectedTarget_.polarity == HallOpeningPolarity::BelowReference &&
-           sample.departure <= -kHallDepartureThreshold)) ++matches;
+           departure <= -kHallDepartureThreshold);
+      if (expectedDirection) {
+        landmark = &sample;
+        break;
+      }
     }
-    return matches >= 2;
+    if (landmark == nullptr) return false;
+    opening_.landmarkObservationSerial = landmark->serial;
+    opening_.landmarkIrDistanceMm = landmark->irDistanceMm;
+    const HallWindowSample& latest = rollingHallWindow_.back();
+    if (!distanceMatchesExpectedTarget(latest.irDistanceMm) ||
+        !contextMatchesTarget(latest.direction))
+      return false;
+
+    opening_.confirmed = true;
+    opening_.observationSerial = latest.serial;
+    opening_.departure = medianDeparture;
+    opening_.polarity = expectedTarget_.polarity;
+    lastConfirmedOpening_ = opening_;
+    targetConfirmed_ = true;
+    targetMissing_ = false;
+    return true;
   }
 
-  bool distanceMatchesExpectedTarget() const {
-    if (!targetConfigured_ || targetWindow_.empty()) return false;
-    const uint32_t current = targetWindow_.back().irDistanceMm;
+  bool distanceMatchesExpectedTarget(uint32_t current) const {
+    if (!targetConfigured_) return false;
     if (current < targetOriginMm_) return false;
     const uint64_t expected = expectedTarget_.distanceMm;
     const uint32_t lower = static_cast<uint32_t>(expected * 85 / 100);
@@ -243,9 +244,9 @@ class NaviCore {
     return traveled >= lower && traveled <= upper;
   }
 
-  bool contextMatchesTarget(const HallSample& sample) const {
+  bool contextMatchesTarget(uint8_t direction) const {
     return expectedTarget_.direction == 0 ||
-           expectedTarget_.direction == sample.direction;
+           expectedTarget_.direction == direction;
   }
 
   void evaluateMissingTarget(uint32_t currentDistanceMm) {
@@ -256,9 +257,8 @@ class NaviCore {
     targetMissing_ = true;
     ++missingTargetCount_;
     opening_ = HallOpening{};
-    targetWindow_.clear();
-    qualifyingHallObservationCount_ = 0;
-    confirmationSampleCount_ = 0;
+    rollingHallWindow_.clear();
+    hallSupportsTarget_ = false;
     if (subsequentTargetConfigured_) {
       targetOriginMm_ += expectedTarget_.distanceMm;
       expectedTarget_ = subsequentTarget_;
@@ -314,18 +314,15 @@ class NaviCore {
   }
 
   void resetOpeningRecognition() {
-    opening_ = HallOpening{};
-    qualifyingHallObservationCount_ = 0;
-    confirmationSampleCount_ = 0;
-    targetWindow_.clear();
+    resetHallTargetContext();
     targetConfirmed_ = false;
     targetMissing_ = false;
   }
 
-  struct TargetHallSample {
+  struct HallWindowSample {
     uint32_t serial;
     uint32_t irDistanceMm;
-    int32_t departure;
+    int16_t raw;
     uint8_t direction;
   };
 
@@ -344,9 +341,9 @@ class NaviCore {
   int16_t initialReference_ = 0;
   int16_t activeReference_ = 0;
   int32_t lastHallDeparture_ = 0;
-  uint8_t qualifyingHallObservationCount_ = 0;
-  uint8_t confirmationSampleCount_ = 0;
-  std::vector<TargetHallSample> targetWindow_;
+  std::vector<HallWindowSample> rollingHallWindow_;
+  int16_t rollingHallMedian_ = 0;
+  bool hallSupportsTarget_ = false;
   HallOpening opening_;
   HallOpening lastConfirmedOpening_;
   TargetSpec expectedTarget_;
