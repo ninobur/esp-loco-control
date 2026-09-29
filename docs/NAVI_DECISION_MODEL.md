@@ -12,6 +12,13 @@ judgments. Each principle is recorded, with its reasoning and history, in a
 numbered decision record (`decisions/0102`–`0107`). This page is the index and
 the summary.
 
+**NAVI_EWO extension (2026-09-29):** decisions 0109-0113 extend this model for
+NAVI_EYES_WIDE_OPEN. The governing set and supersession ledger are in
+[`NAVI_EWO_GOVERNING_DOCUMENTS.md`](NAVI_EWO_GOVERNING_DOCUMENTS.md). The
+sections below were not rewritten; where they conflict with 0109-0113 for
+NAVI_EWO, those decisions govern (notably 0106's IR-at-PWM-0 rule, superseded by
+0112).
+
 **It authorizes no implementation.** Nothing here changes firmware, tests,
 thresholds, the dashboard, the Pi or field behavior. Per
 [`decisions/README.md`](decisions/README.md), no record authorizes an agent to

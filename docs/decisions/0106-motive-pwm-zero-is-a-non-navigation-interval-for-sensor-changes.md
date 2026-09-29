@@ -1,6 +1,8 @@
 # 0106 - Motive PWM = 0 is a non-navigation interval for sensor changes
 
 Status: Accepted as principle (2026-09-27, David with Sam). Resolves D3.
+**Partially superseded by 0112 (2026-09-29)** for IR at PWM = 0 and the OPEN
+station-stop question; Hall-at-PWM-0 rules stand. Body below unchanged.
 Documentation only.
 Decided by: David, after review with Sam. Wording corrected on David's
 instruction, 2026-09-27 (see Revision at the end).

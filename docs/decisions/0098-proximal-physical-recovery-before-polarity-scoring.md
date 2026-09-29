@@ -1,6 +1,8 @@
 # 0098 - Physical proximal recovery precedes polarity scoring
 
 Status: Accepted (2026-09-23, David's pasted twelve-point recovery instructions)
+**Superseded by 0109 (2026-09-29) for NAVI_EWO.** Remains prior art for the
+NAVI_COHERENCE lineage.
 
 Supersedes the whole-route sequence-recovery portion of0090. AUTO enablement,
 station behavior and the +/-15% nominal window are not redefined here.

@@ -60,6 +60,7 @@ what is on the locomotive can always be checked against what is in the repo.
 [`docs/NGR_DECISION_SYSTEM_DESIGN_PRINCIPLES.md`](docs/NGR_DECISION_SYSTEM_DESIGN_PRINCIPLES.md)
 (the enduring decision-system design principles) and, for navigation work,
 [`docs/NAVI_DECISION_MODEL.md`](docs/NAVI_DECISION_MODEL.md). Agent operating
-policy is [`AGENTS.md`](AGENTS.md).
+policy is [`AGENTS.md`](AGENTS.md). The canonical NAVI_EWO governing set is
+listed in [`docs/NAVI_EWO_GOVERNING_DOCUMENTS.md`](docs/NAVI_EWO_GOVERNING_DOCUMENTS.md).
 
 `docs/ROAD_TO_CTO.md` — the milestone plan and its current state.

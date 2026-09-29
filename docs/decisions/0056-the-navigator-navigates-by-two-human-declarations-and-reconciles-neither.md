@@ -1,6 +1,8 @@
 # 0056 — The navigator navigates by two human declarations, and reconciles neither
 
 Status: Accepted (operator, 2026-08-29)
+See 0109 (2026-09-29): its refusal-and-stop consequence is narrowed for NAVI_EWO
+by Missed Magnet continuity (flagged for review). Body below unchanged.
 
 ## Decision
 

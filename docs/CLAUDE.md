@@ -44,7 +44,9 @@ where the information is; direct measurement before proxy; Evidence Accumulation
 Before Revision.
 
 Read it before proposing any architecture or implementation. For navigation
-work, read [`NAVI_DECISION_MODEL.md`](NAVI_DECISION_MODEL.md) too. Any
+work, read [`NAVI_DECISION_MODEL.md`](NAVI_DECISION_MODEL.md) too, and for
+NAVI_EYES_WIDE_OPEN the governing set in
+[`NAVI_EWO_GOVERNING_DOCUMENTS.md`](NAVI_EWO_GOVERNING_DOCUMENTS.md). Any
 architectural or reconciliation document should state near its top how it
 applies these principles, and name any it departs from. The principles authorize
 nothing; implementation authority still comes from the operator (`/AGENTS.md`).

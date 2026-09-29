@@ -2,6 +2,7 @@
 
 Status: Accepted as principle (2026-09-27, David with Sam). Settles D5 and D10;
 **D4 and D8 remain OPEN**. Documentation only.
+Refined for NAVI_EWO by 0113 (2026-09-29). Body below unchanged.
 Decided by: David, after review with Sam. The quotations are from David's
 codification instruction of 2026-09-27.
 

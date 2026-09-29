@@ -3,7 +3,8 @@
 **Date:** 2026-09-22
 **Status:** **Accepted (provisional), 2026-09-22**
 **Decided by:** operator
-**Scope:** NAVI_COHERENCE only (0.4 / 0.5 test-program lineage). Does not
+**Scope:** NAVI_COHERENCE only (extended to NAVI_EWO degraded IR operation by
+0111, 2026-09-29) (0.4 / 0.5 test-program lineage). Does not
 change 0081's 500 ms value for the QUORUM / NAVI_ONE production lineage.
 **Not yet implemented:** `MIN_MARKER_MS` in `Navigator.h` remains `500` in
 committed source as of this record. This decision sets the target value for
