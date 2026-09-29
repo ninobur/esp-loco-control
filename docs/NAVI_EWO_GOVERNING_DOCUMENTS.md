@@ -54,8 +54,8 @@ guard; scope extended to EWO by 0111).
 - [`../field-records/analysis/20260927_navi_eyes_wide_open_spatial_reference_report.md`](../field-records/analysis/20260927_navi_eyes_wide_open_spatial_reference_report.md)
   (supports the spatial-reference principle; does not choose a bin width)
 - [`../field-records/analysis/20260928_navi_eyes_wide_open_historical_impostor_challenge_report.md`](../field-records/analysis/20260928_navi_eyes_wide_open_historical_impostor_challenge_report.md)
-  (verdict INCONCLUSIVE; replayed a two-consecutive-sample 70-count gate, not the
-  median-of-five statistic of 0110)
+  (verdict INCONCLUSIVE; replayed the earlier two-consecutive-sample 70-count
+  gate. Prior art for 0110's statistic; it does not reopen it)
 
 ## 5. Current implementation documentation (candidates, not field accepted)
 
@@ -89,29 +89,31 @@ conflicting assumptions are superseded for NAVI_EWO as follows.
 | IR as an experimental supplement; stationary `INADEQUATE_CONTRAST` as degradation | IR is a normal sensor; no-change is a valid result | 0111 |
 | IR displacement at PWM = 0 is not real and must not touch the MM/IR relationship (0106) | Accepted as factual; relationship marked unreliable | 0112 |
 | Stationary boot reference (0107 allowance) | First-10-mm movement method | 0113 |
-| Refusal-and-stop on a missing magnet (0056) | Missed Magnet continuity with applicable IR | 0109 (flagged) |
+| Refusal-and-stop on a missing magnet (0056) | Missed Magnet continuity with applicable IR | 0109 (confirmed 2026-09-29) |
+
+## Confirmed by David and Sam, 2026-09-29
+
+- **0056:** Missed Magnet continuity narrows 0056's refusal-and-stop consequence
+  for NAVI_EWO (0109).
+- **0104 RESOLVE:** EWO has no mechanism to revise position toward a different
+  hypothesis beyond Missed Magnet advance and operator redeclaration (0109).
+- **Unreliable IR/MM relationship:** IR is not applicable as target-interval
+  evidence, confirmation uses the degraded mechanism, and there is no Missed
+  Magnet until a confirmed expected MM re-anchors (0112).
 
 ## Open points (not settled; do not treat any as decided)
 
 1. **CRM challenge:** no threshold or mechanism for telling the operator that the
    encountered MM are inconsistent with the declaration (0109).
-2. **0056:** confirm that Missed Magnet continuity narrows 0056's refusal-and-stop
-   consequence rather than contradicting it (0109).
-3. **0104 RESOLVE:** confirm that EWO's lack of any mechanism to revise position to
-   a different hypothesis is intended (0109).
-4. **Unreliable IR/MM relationship (0112):** what NAVI does between an
-   unexpected-movement event and the re-anchoring MM. Our reading, unconfirmed:
-   IR is not applicable as target-interval evidence; confirmation falls to the
-   degraded mechanism; there is no Missed Magnet.
-5. **0107 D4 and D8** are not formally closed by 0113.
-6. **Distance origin** of the +/-15% target interval after a confirmation and after
+2. **0107 D4 and D8** are not formally closed by 0113.
+3. **Distance origin** of the +/-15% target interval after a confirmation and after
    a Missed Magnet advance. The integrated README anchors it at the applicable IR
    context of the confirmed leading boundary. The brief does not state it.
-7. **Multiple IR senders:** the integrated candidate has no source-selection
+4. **Multiple IR senders:** the integrated candidate has no source-selection
    policy; David and Sam must decide a NAVI-owned policy before field use.
-8. **Spatial-reference details:** bin width, minimum coverage, and the per-location
+5. **Spatial-reference details:** bin width, minimum coverage, and the per-location
    representative rule.
-9. **Whether "confident locomotive"** should be added to the enduring design
+6. **Whether "confident locomotive"** should be added to the enduring design
    principles document. It is recorded in 0109 only.
-10. **Synchronized IR evidence** for the three surviving impostor candidates
-    (X21 Grillers departure, QUORUM 243211, QUORUM 263774): track evidence needed.
+7. **Synchronized IR evidence** for the three surviving impostor candidates
+   (X21 Grillers departure, QUORUM 243211, QUORUM 263774): track evidence needed.

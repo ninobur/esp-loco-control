@@ -70,7 +70,9 @@ PWM 0 (32 s, 60 s and 22 s stops) in which the pulse count was unchanged.
   in that interval beyond "next confirmed expected MM re-anchors, using degraded
   confirmation where appropriate." By 0111 there is no no-IR Missed Magnet, so
   target progression by Missed Magnet is unavailable in that interval. **This
-  consequence is inferred and is flagged for confirmation by David and Sam.**
+  consequence was confirmed by David and Sam, 2026-09-29:** while the relationship
+  is unreliable, IR is not applicable as target-interval evidence, confirmation
+  uses the degraded mechanism, and there is no Missed Magnet.
 - **Risk: a re-anchoring MM confirmed by degraded (650 ms) evidence is weaker**
   than one confirmed with IR distance.
 

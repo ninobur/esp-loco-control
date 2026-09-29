@@ -126,14 +126,15 @@ recognizer.
   wrong declaration produce refusal and stop): *narrowed for NAVI_EWO.* Its
   principle that NAVI never guesses or invents position is preserved. Its
   consequence that a disagreement ends in refusal and stop is replaced, for a
-  missed target with applicable IR, by Missed Magnet continuity. **Flagged for
-  David and Sam** (see the governing document, open points).
+  missed target with applicable IR, by Missed Magnet continuity. **Confirmed by
+  David and Sam, 2026-09-29.**
 - **0098** (proximal physical recovery): *superseded for NAVI_EWO.* Remains prior
   art for NAVI_COHERENCE.
 - **0104** (Evidence Accumulation Before Revision): *refined.* OBSERVE and HOLD
   are preserved (the shrug is OBSERVE plus HOLD). RESOLVE toward a *different
   position hypothesis* has no authorized mechanism in EWO, beyond Missed Magnet
-  advance and operator redeclaration. **Flagged.**
+  advance and operator redeclaration. **Confirmed by David and Sam,
+  2026-09-29.**
 - **0101** (position determines local operating requirements): preserved and
   reaffirmed.
 - **0102** (NAVI sole authority; X22 prior art): reaffirmed and extended.

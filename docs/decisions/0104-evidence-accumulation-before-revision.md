@@ -3,7 +3,7 @@
 Status: Accepted as a named canonical principle (2026-09-27, David with Sam).
 Documentation only.
 See 0109 (2026-09-29): RESOLVE toward a different position hypothesis has no
-authorized mechanism in NAVI_EWO (flagged for review).
+authorized mechanism in NAVI_EWO (confirmed by David and Sam, 2026-09-29).
 Decided by: David, after review with Sam. The quotations are from David's
 codification instruction of 2026-09-27.
 

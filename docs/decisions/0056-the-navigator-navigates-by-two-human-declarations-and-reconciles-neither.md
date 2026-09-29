@@ -2,7 +2,7 @@
 
 Status: Accepted (operator, 2026-08-29)
 See 0109 (2026-09-29): its refusal-and-stop consequence is narrowed for NAVI_EWO
-by Missed Magnet continuity (flagged for review). Body below unchanged.
+by Missed Magnet continuity (confirmed by David and Sam, 2026-09-29). Body below unchanged.
 
 ## Decision
 

@@ -69,7 +69,7 @@ weighting and explicitly **did not select a bin width.**
   RTB-from-the-phenomenon methodology is not used for navigation authority in
   NAVI_EWO. Its open items D4 (how RTB and the eligible baseline region are
   recognized) and D8 (whether a sans-MM advance opens a baseline opportunity) are
-  **not formally closed by this record; flagged** for David and Sam. In EWO no
+  **not formally closed by this record** and remain open. In EWO no
   reference cycle follows a Missed Magnet advance, because only confirmation
   starts one.
 - **0104 (D6):** consistent; the 3 s cadence gate is not carried.
