@@ -1,0 +1,3319 @@
+# ============================================================================
+# NGR dashboard v1.12.0 — NAVI_EWO-NATIVE DISPLAY
+#
+# Written for NAVI_EYES_WIDE_OPEN_INTEGRATED_R2 (candidate caf2280, decisions
+# 0109-0114). Contract, field inventory and KEEP/ADAPT/RETIRE/NEW table:
+# docs/NGR_DASHBOARD_EWO_TELEMETRY_CONTRACT_20260929.md.
+#
+# THE DASHBOARD DOES NOT DECIDE NAVIGATION STATE. It displays what NAVI says it
+# knows (state/nav, state/loopstat), what NAVI concluded (nav/evidence), what
+# the locomotive is doing (telem/ir, state/station, state/*), and nothing else.
+# Every EWO rule below is presentation of a published fact:
+#
+#   * Position: state/nav mm only while NAVI reports position_reliable=1.
+#     position_reliable=0 with loopstat pwm0_ir_motion>0 is NAVI's own
+#     "IR moved at PWM=0, relationship unreliable" state (the firmware counts
+#     that event only after a declaration, and only a confirmed MM or a
+#     declaration restores reliability). It is shown as POSITION REFERENCE
+#     UNRELIABLE and clears when NAVI reports position_reliable=1 again.
+#   * Target: state/nav target plus loopstat target_distance_mm/polarity.
+#   * Result: TARGET_CONFIRMED / MISSED_MAGNET events from nav/evidence (and
+#     mm/marker, deduplicated). The shrug is not displayed.
+#   * IR normal vs degraded: NAVI's `degraded` flag. The raw optical reason
+#     (INADEQUATE_CONTRAST etc.), health fault, epoch and source live only in
+#     the development evidence panel.
+#   * Motion: MOVING/STOPPED only from NAVI-qualified IR speed (telem/ir
+#     ir_valid/ir_mmps). No IR speed = motion NOT MEASURED; PWM is shown, never
+#     promoted to a motion claim (0112).
+#   * AUTO running: loopstat `running` (autoRunning). Enrollment stays
+#     state/auto. Running is not movement.
+#   * Reboot: a live state/bootid whose boot_id differs from the last one seen.
+#     EWO publishes no `alert`; nothing here recreates it.
+#
+# RETIRED FOR EWO LOCOMOTIVES ONLY (legacy firmware keeps its v1.11.2 display):
+# QUORUM pill, polarity AGREE/DISAGREE panel and %, landmark line, and the
+# MM-derived station countdown (it decided station occupancy from MM; station
+# state now comes only from the station controller's state/station).
+#
+# Everything below this block is v1.11.2 and earlier, unchanged in intent.
+# ============================================================================
+# NGR dashboard v1.11.2 — SHOW WHAT IS RUNNING, AND STOP LYING ABOUT THROTTLE
+#
+# Operator, 2026-08-14, after two flashes whose success could not be confirmed
+# from the console and a paired session whose held locomotives showed no reason
+# for holding:
+#
+#   1. SKETCH VERSION per locomotive. The firmware has always published it
+#      retained on state/bootid and the app has always stored it in
+#      st["sketch"] — it simply never reached the screen. Mixed builds are now
+#      visible, and flagged: 1.14 and 1.14A cannot confirm roles with each
+#      other (the echo wire version differs), so a mismatched pair is a fault
+#      the operator must be able to SEE.
+#   2. CTO STATUS from state/cto — role, partner, gap, traffic phase, fleet
+#      hold. When a locomotive sits still for a good reason, the reason belongs
+#      on the screen. This is the GO_HELD gap: BEGIN publishes LAUNCH, CTO caps
+#      it to zero, and nothing said why.
+#   3. THROTTLE SLIDER SYNC. value="0" was hard-coded and nothing ever wrote
+#      the live value, so arriving at a page showed 0 while the locomotive ran
+#      at 120 — and a small nudge then commanded a large change. The v1.10.2
+#      rule ("the slider never moves by itself") was written to stop the poller
+#      fighting the operator's finger mid-drag; it was never meant to leave the
+#      control lying. Now: the slider syncs from the locomotive's COMMANDED
+#      throttle whenever the operator is not touching it, and never while they
+#      are. Operator ruling, 2026-08-14.
+#
+# Previously: v1.11.1 — FIRST FIELD TEST, THREE FAULTS
+#
+# v1.11.0 met the operator on 2026-08-13 and came back with three findings.
+# All three are mine, introduced by the redesign; none touch the authority
+# rules.
+#
+#   THE LOCATION SLIDER WAS 129 PIXELS WIDE. It is a block child of its
+#     panel, not a flex item like the throttle and brake, so the `flex:1` in
+#     the shared input[type=range] rule did nothing for it and it fell back
+#     to the browser's intrinsic width — barely a third of the panel.
+#     v1.10.11 had width:100% on it and I dropped that in the CSS rewrite.
+#     The visible symptom the operator reported was TWO faults from one
+#     cause: "only goes partway" (the short track) and "only lets me choose
+#     segments starting with odd numbers" — 171 marker positions across
+#     129 px is 1.3 steps per pixel, so a fingertip cannot land on
+#     consecutive values. Now 331 px, ~2 px per marker, all 171 reachable.
+#
+#   THE CONFIRMATION WAIT IS DELETED, by operator ruling: "I don't need to
+#     wait for confirmation. Besides, it prevented me from enlisting Toby in
+#     auto mode." It did, and that was the serious one. AUTO's pre-flight
+#     tested the locomotive's ECHOED state/start_interval, so a locomotive
+#     that never echoed could not be enlisted at all, however many times its
+#     position was declared. The gate now asks whether the OPERATOR supplied
+#     orientation and location — which is what P6 always meant: withholding
+#     cmd/auto is SEQUENCING, not authority, and QUORUM owns the refusal
+#     (P11) with this console showing it raw.
+#
+#     What was sent is remembered only to unlock that sequencing and to
+#     label the badge. It is display memory, exactly like lastCommandedDir
+#     (v1.10.4), and it is NEVER rendered as CONFIRMED — confirmed still
+#     means the locomotive said it back. A location that has been sent but
+#     not echoed says so, in those words.
+#
+#     Gone with it: the 12-second timeout, the WAITING FOR CONFIRMATION…
+#     badge and status line, and the 1 s double-tap guard on SET LOCATION —
+#     the same guard v1.10.2 removed from the direction buttons for
+#     swallowing a deliberate re-press.
+#
+# ---------------------------------------------------------------------------
+# NGR dashboard v1.11.0 — THE ROSTER IS NOT A LIST
+#
+# Layout redesign from the operator's own sketches (Dashboard.csv,
+# Console.csv, 2026-08-12). Full design record, including what was rejected
+# and why: docs/dashboard-redesign/README.md.
+#
+# NO AUTHORITY RULE IS CHANGED BY THIS VERSION. P2-P14 stand exactly as
+# v1.10.10 left them; the drop-retained rule (v1.10.0), the P8 provisional
+# seed, the never-fabricate-a-value rule (v1.10.9) and the E-STOP ordering
+# (v1.10.8) are carried over untouched. What changed is where things sit on
+# the screen, which locomotives can appear on it, and one released-set bug.
+#
+#   DISCOVERY — there is no roster. A locomotive appears on the console when
+#     it is HEARD. LOCO_NAMES is a display lookup and nothing more: an
+#     unknown id still gets a column, labelled with its own number, and a
+#     fourth or fifth locomotive needs no code change to show up.
+#
+#     THE DISCOVERY GATE: only a NON-RETAINED message may create a
+#     locomotive. A wildcard subscription hands us the broker's entire
+#     retained backlog on connect, including locomotives switched off for
+#     months; creating on "first message seen" would fill the console with
+#     ghost columns at every restart. That is the v1.10.0 stale-tile failure
+#     and the v1.10.11 zombie-last-will failure arriving by a new door.
+#     Retained messages may UPDATE a locomotive that already exists (the P8
+#     seed still works exactly as before); they may never bring one into
+#     being.
+#
+#     A COLUMN NEVER DISAPPEARS. Nothing is ever pruned from loco_state. A
+#     locomotive that goes quiet keeps its column and greys — losing the
+#     column of the locomotive that most needs watching is not an option.
+#
+#     ORDER IS STABLE, not arrival order: known names in their listed order,
+#     then anything else by id. BEGIN must be where it was yesterday.
+#
+#   CONSOLE — three commands across the top (E-STOP ALL, END AO, CIRCUIT
+#     EXPRESS), then one column per discovered locomotive. Each column:
+#     name and a tiny ONLINE/STALE link chip, the mode chip, BEGIN / PAUSE /
+#     E-STOP, then QUORUM, then % agreement, then MM / pKPH / PWM / V.
+#
+#     LEAD / TRAIL chips were designed for the chip row and removed before
+#     first run: nothing publishes the roles, and deriving them from position
+#     is only safe behind an envelope-overlap test (two locomotives on the
+#     same piece of track otherwise get labelled confidently and wrongly).
+#     The design survives in docs/dashboard-redesign/mockup_v7.html.
+#
+#     QUORUM OUTRANKS THE LINK. A locomotive can be talking steadily and
+#     have no idea where it is; that is the more important fact and it is
+#     shown first. EVALUATING is a real third state and is not collapsed
+#     into either QUORUM or NO QUORUM — collapsing it up claims a certainty
+#     the locomotive has not got, collapsing it down stops a locomotive that
+#     is still working it out.
+#
+#     NOTHING MAY MOVE WHEN A LOCOMOTIVE GOES QUIET. The mode chip holds a
+#     fixed row and reads UNKNOWN rather than collapsing to a hyphen; the
+#     link chip has a floor width; no status string may wrap.
+#     The two columns are meant to be read across, and a column that
+#     re-flows as its locomotive gets into trouble breaks exactly when it is
+#     needed. A stale locomotive's figures are kept but dimmed: true once,
+#     not true now.
+#
+#   RELEASE SET FIXED — v1.10.11's dispatcher_endcto() released Otto and
+#     Toby by hardcoded id and then fanned stop/ across all of LOCO_IDS.
+#     Hans was in that tuple, so END AO stopped Hans and never released it.
+#     Both halves now walk the discovered set, so the bug cannot recur by
+#     someone forgetting to extend a tuple.
+#
+#   LOCO PAGE — the once-per-session setup (SESSION ORIENTATION, SET
+#     LOCATION, AUTO) moves to a STARTUP block at the bottom. The operating
+#     controls and the figures own the top of the screen, and E-STOP rises
+#     from the eighth card to the fifth.
+#
+#     Throttle shows COMMANDED beside PWM, both large, so the gap between
+#     what was asked for and what the locomotive is doing is one glance.
+#
+#     DIRECTION is FOR / REV. Neutral is still a state the firmware reports
+#     (direction=1) and is still displayed when reported — it is simply no
+#     longer commandable from here.
+#
+#     AGREEMENT IS A ROLLING PERCENTAGE OF THE LAST TEN VERDICTS, not the
+#     session total. Field case: 4015 agree / 30 disagree reads 99% while
+#     eight of the last ten markers disagreed. The session total is kept
+#     underneath in small text. Gaps in the tick row are LABELLED — a gap
+#     means markers passed without a verdict, which happens in
+#     NAV_EVALUATING and NAV_NO_QUORUM (QUORUM.ino acceptEvent) or across a
+#     re-declaration. That gap is the scar of a position incident and the
+#     old row threw it away by butting the ticks together.
+#
+#     REMOVED: CAL RECORDING (superseded by the continuous runlog), the DNA
+#     placeholder, the Low V and pKPH tiles, and the MANUAL button (manual
+#     is the default and cannot be chosen while auto is in force).
+#
+#   INA219 IS LIVE. v1.10.11 carried a comment claiming no firmware
+#     publishes telem/voltage|current|power. That was stale: QUORUM v1.7
+#     restored the service under decision 0012 and publishes all three every
+#     5 s, retained. The comment is gone and Voltage/Current/Power are shown
+#     on both pages without apology.
+#
+# ---------------------------------------------------------------------------
+# Everything below this line is v1.10.11 and earlier. Its history is intact
+# because the rules it records are still in force.
+# ---------------------------------------------------------------------------
+
+from flask import Flask, render_template_string, request, jsonify, redirect, url_for, make_response
+from markupsafe import Markup
+import threading
+import time
+import os
+# subprocess/glob went with CAL RECORDING — the continuous runlog
+# (server/ngr_runlog.py) supersedes the per-loco mosquitto_sub processes.
+import json
+import re
+import datetime
+from collections import deque
+import paho.mqtt.client as mqtt_client
+
+app = Flask(__name__)
+
+def is_authenticated(req):
+    return True
+
+
+# ============================================================================
+# MQTT
+# ============================================================================
+# v1.11.2: overridable so the app can be smoke-tested from a workstation
+# against the live broker. Default is unchanged — it normally runs ON the Pi.
+MQTT_BROKER = os.environ.get("NGR_MQTT_BROKER", "127.0.0.1")
+MQTT_PORT   = 1883
+
+# ---------------------------------------------------------------------------
+# THE ROSTER IS NOT A LIST. A locomotive gets a column because it is HEARD,
+# not because its id was typed in here. LOCO_NAMES is a DISPLAY lookup and
+# nothing more: an id nobody has named still appears, labelled with its own
+# number, so a fourth or fifth locomotive needs no code change to show up.
+# Adding a name here only gives it a nicer label and a friendlier URL.
+# ---------------------------------------------------------------------------
+LOCO_NAMES = {
+    "9950011": "Otto",
+    "9950012": "Toby",
+    "2095111": "Hans",
+}
+
+# A field older than this is stale: tile grays, gates re-lock. Otto's alert
+# and loopstat both broadcast at 1 Hz, so 5 s means five missed heartbeats.
+FRESH_S = 5.0
+
+# alert.est_mm_s (layout mm/s) -> pKPH, a house speed unit — NOT physical
+# km/h and not tied to any geometric scale ratio. Canonical since 2026-09-23
+# (decision 0099): the navigation-firmware constant, matched so the
+# dashboard's pKPH is comparable with what the firmware itself computes and
+# publishes (est_mm_s, ir_pkph). Verbatim from NGR_LL_DNA_CTO2_r12 (lines
+# 414/2100), SOLONAV 1.x, and firmware/programs/{NAVI_CL2,QUORUM,NAVI_2}.ino's
+# PKPH_PER_MMPS. Previously 3.6*45.0/1000.0 (0.162, an unrelated 1:45
+# geometric guess) — see docs/IR_SENSOR_NOTES.md and docs/decisions/0099.
+PKPH_PER_MM_S = 1.0 / 5.37325
+
+
+def _fresh_state():
+    """Everything Otto has not said this session is '--' / UNSET. Nothing here
+    is ever seeded from a remembered value."""
+    return {
+        "online": "0", "throttle": "0", "direction": "--", "brake": "0",
+        "estop": "0", "auto": "0", "ce": "0", "lowvolt": "--", "warning": "",
+        "voltage": "--", "current": "--", "power": "--", "block": "--",
+        "session_dir": "UNSET", "nav_ready": "0", "start_interval": "UNSET",
+        # from the 1 Hz alert / loopstat / nav events (QUORUM 1.0 vocabulary;
+        # confidence is deleted with the tally navigator and never read)
+        "nav": "UNSET", "moving": "--", "pwm": "--", "pkph": "--", "mm": "--",
+        "landmark": "", "miss_streak": "--", "viable": [], "candidate_mm": "--",
+        "nav_event": "", "nav_event_ts": "",
+        # v1.10.2: polarity agreement tally — session counts and the last ten
+        # verdicts [[mm, 1|0], ...], from nav AGREE/DISAGREE events, reset on
+        # epoch (a fresh state IS the reset).
+        "agree_n": 0, "disagree_n": 0, "verdicts": [],
+        "sketch": "", "uptime_ms": None,
+        # v1.11.5: latest telem/ir link-activity payload, verbatim, same
+        # verbatim-parse-at-render pattern as cto/speed_view.
+        "ir_link": "",
+        # v1.11.2: latest CTO_STATUS heartbeat from state/cto, verbatim. "" until
+        # the locomotive speaks — a locomotive on pre-CTO firmware never will,
+        # and the panel stays hidden rather than inventing a state for it.
+        "cto": "",
+        # v1.11.3: latest quorum-speed-view/1 heartbeat from telem/speed,
+        # verbatim, same pattern as cto above — "" until the locomotive has
+        # IR Test A and has spoken. A locomotive without the layer (Otto,
+        # or Toby before this build) never publishes the topic and the tile
+        # stays hidden rather than guessing a state for it.
+        "speed_view": "",
+        # v1.10.10 P4: ENLISTED (autoEnrolled, from state/auto ONLY).
+        # Tri-state: "--" = never proven this session; "0"/"1" as reported.
+        # st["auto"] remains RUNNING (autoRunning, from the alert ONLY).
+        "enlisted": "--",
+        # P7: the locomotive's latest command response / station event, raw.
+        "station_event": "", "station_note": "", "station_seq": None,
+        "station_ts": "",
+        # v1.12.0: station controller's reported phase/station/offset from the
+        # same state/station payload. Displayed, never derived from MM.
+        "station_phase": "", "station_name": "", "station_off": None,
+        # v1.12.0 EWO. True once the locomotive identifies as NAVI_EWO. Every
+        # dict below holds NAVI-published values verbatim; nothing is inferred.
+        "ewo": False,
+        "ewo_nav": {},        # latest state/nav (console adapter)
+        "ewo_stat": {},       # latest state/loopstat
+        "ewo_ir": {},         # latest telem/ir
+        "ewo_trace": {},      # latest state/trace
+        "ewo_link": {},       # latest diag/ir_link
+        "ewo_events": [],     # recent nav/evidence conclusions, newest last
+        "ewo_result": None,   # latest TARGET_CONFIRMED / MISSED_MAGNET
+        "ewo_ref_source": "", # INITIAL_REFERENCE -> BOOT, SPATIAL_REFERENCE -> SPATIAL
+        "ewo_spatial_event": "",
+    }
+
+
+# Nav states in which Otto's position is usable. QUORUM 1.0 publishes
+# NORMAL/EVALUATING/NO_QUORUM/UNSET; legacy TRACKING/LOST (Toby, SOLONAV_2_14)
+# is still understood.
+USABLE_NAV = ("TRACKING", "NORMAL", "EVALUATING")
+
+
+# Populated by discovery, NEVER pruned. A locomotive that goes quiet keeps
+# its entry and greys on screen: a column vanishing mid-session is how you
+# lose sight of the locomotive that most needs watching.
+loco_state = {}     # lid -> state dict
+loco_rx    = {}     # lid -> {field: time.monotonic() of last LIVE message}
+loco_epoch = {}     # lid -> bumped on reboot; client re-locks on change
+
+# v1.10.10 P8 — provisional retained-authority seed, per MQTT connection.
+# The v1.10.0 drop-retained rule killed the ghost tiles and stays. But it
+# also discards the locomotive's REAL current authority state on every
+# reconnect, and the default that stands in is a fabrication (the v1.10.9
+# Toby NEUTRAL bug; the 2026-08-07 MANUAL-while-enlisted bug). The firmware
+# publishes the governing contract: retained state is interpretable ONLY
+# while the retained last-will 'online' flag reads 1. online is a SIBLING
+# of state/, delivered in no guaranteed order — so retained authority
+# values are held PROVISIONALLY here and promoted into loco_state only
+# when online=1 arrives; discarded on online=0. Never _touch()ed: a seed
+# is reported state, not a live report. Live messages always supersede.
+AUTHORITY_SEED_TOPICS = {
+    "state/auto": "enlisted", "state/estop": "estop",
+    "state/direction": "direction",
+    "state/session_direction": "session_dir",
+    "state/start_interval": "start_interval",
+}
+known_boot_id = {}      # lid -> last boot_id seen on state/bootid (v1.12.0)
+
+
+def _boot_id_of(payload):
+    try:
+        bid = json.loads(payload).get("boot_id")
+    except Exception:
+        return None
+    return str(bid) if bid else None
+
+
+loco_seed = {}          # lid -> {sub: provisional value}
+loco_seed_online = {}   # lid -> None until online seen
+
+# v1.11.0 — SEEDS FOR A LOCOMOTIVE THAT DOES NOT EXIST YET.
+# The broker replays its retained backlog the instant we subscribe, which is
+# BEFORE any locomotive has said anything live. Under discovery that means
+# loco_state is still empty when the P8 seeds arrive, and the discovery gate
+# would drop every one of them — leaving an enlisted locomotive reading
+# "never proven this session" until it next happened to change state/auto,
+# which for a running locomotive can be a very long time. (Caught on the
+# first side-by-side run against the live broker: Otto was enlisted and the
+# candidate console showed no authority at all.)
+#
+# So hold them here instead. NOTHING IN THIS BUFFER IS EVER RENDERED, so it
+# cannot raise a ghost column; it is replayed into the ordinary P8 machinery
+# only at the moment the locomotive proves itself alive.
+PENDING_SEED_MAX = 64           # a flood of bad ids cannot grow this
+pending_seed = {}               # lid -> {sub: retained value}
+pending_seed_online = {}        # lid -> retained online payload
+
+
+def _hold_seed(lid, sub, payload):
+    if sub != "online" and sub not in AUTHORITY_SEED_TOPICS:
+        return
+    if sub == "online":
+        pending_seed_online[lid] = payload
+        if payload != "1":
+            pending_seed.pop(lid, None)   # last will fired: the seeds are void
+        return
+    if lid not in pending_seed and len(pending_seed) >= PENDING_SEED_MAX:
+        return
+    pending_seed.setdefault(lid, {})[sub] = payload
+
+mqtt_lock = threading.Lock()
+mqtt_conn = None
+
+loco_log = {}   # lid -> deque(maxlen=300)
+dispatch_log = deque(maxlen=200)
+
+# Fields whose ages the client renders.
+AGE_FIELDS = ("heard", "voltage", "current", "power", "lowvolt", "pwm", "pkph",
+              "mm", "nav", "moving", "session_dir", "nav_ready", "start_interval",
+              "marker", "throttle", "direction", "estop", "auto", "warning",
+              "cto", "speed_view", "ir_link",
+              # v1.12.0 EWO
+              "ewo_nav", "ewo_stat", "ewo_ir", "ewo_result", "station",
+              "ewo_link", "ewo_trace")
+
+# v1.12.0: recent NAVI conclusions kept for the evidence panel.
+EWO_EVENT_KEEP = 16
+# A target result stays in the operator line this long, then the line returns
+# to SEEKING. Presentation only; NAVI's counters remain in the evidence panel.
+EWO_RESULT_SHOW_S = 30.0
+# Named here so the dashboard and its tests agree on the firmware's
+# enumerations (IrMovementDetector.h, IrInstrument.h, NaviCore.h).
+IR_REASON_NAMES = ("PRIMING", "INADEQUATE_CONTRAST", "SATURATION", "SAMPLE_GAP",
+                   "SIGNAL_STALE", "REACQUIRING", "TRACKING")
+IR_FAULT_NAMES = ("HEALTHY", "NO_SOURCE", "LINK_STALE", "PACKET_INVALID",
+                  "ORDER_FAULT", "CALIBRATION_FAULT", "INADEQUATE_CONTRAST",
+                  "SATURATION", "SAMPLE_GAP", "PULSE_FAULT")
+IR_READINESS_NAMES = ("READY", "PRIMING", "REACQUIRING", "UNAVAILABLE")
+SPATIAL_PHASE_NAMES = {0: "NONE", 1: "CLEARANCE 0-100 mm", 2: "COLLECTING 100-200 mm"}
+STATION_PHASE_TEXT = {
+    "APPROACH": "APPROACHING", "ZONE": "IN STATION ZONE", "ZERO_RAMP": "STOPPING",
+    "DWELL": "STOPPED — DWELL", "DEPART": "DEPARTING", "IDLE": "",
+}
+STATION_FAILURE_EVENTS = ("MISSED", "PHASE_TIMEOUT")
+
+
+def _is_ewo_sketch(name):
+    return str(name or "").startswith("NAVI_EYES_WIDE_OPEN")
+
+# state/<x> payloads copied verbatim into loco_state. The firmware publishes
+# these on change (retained), so a live arrival is a confirmation event.
+SIMPLE_STATE = {
+    "state/throttle": "throttle", "state/direction": "direction",
+    "state/brake": "brake", "state/estop": "estop",
+    # v1.10.10 P4: state/auto is autoEnrolled — it feeds ENLISTED, never
+    # the RUNNING flag. (The alert feeds RUNNING, never ENLISTED.)
+    "state/auto": "enlisted",
+    "state/lowvolt": "lowvolt", "state/warning": "warning",
+    "state/block": "block", "state/ce": "ce",
+    "state/session_direction": "session_dir", "state/nav_ready": "nav_ready",
+    "state/start_interval": "start_interval",
+}
+
+
+def _touch(lid, *fields):
+    now = time.monotonic()
+    for f in fields:
+        loco_rx[lid][f] = now
+
+
+def _ensure_loco(lid):
+    """Bring a locomotive into being. CALLED ONLY FROM THE LIVE PATH — see the
+    discovery gate in on_mqtt_message(). Creating on any message would let the
+    broker's retained backlog conjure columns for locomotives switched off
+    months ago, which is the v1.10.0 stale-tile failure wearing a new hat."""
+    if lid in loco_state:
+        return False
+    loco_state[lid] = _fresh_state()
+    loco_rx[lid] = {}
+    loco_epoch[lid] = 0
+    loco_log[lid] = deque(maxlen=300)
+    # P8, replayed: anything the broker handed us from the retained backlog
+    # before this locomotive existed. Promoted on exactly the same contract as
+    # ever — retained state is interpretable ONLY while the retained online
+    # flag reads 1, and never _touch()ed, because a seed is reported state,
+    # not a live report.
+    loco_seed[lid] = pending_seed.pop(lid, {})
+    loco_seed_online[lid] = pending_seed_online.pop(lid, None)
+    if loco_seed_online[lid] == "1":
+        for k, v in loco_seed[lid].items():
+            loco_state[lid][AUTHORITY_SEED_TOPICS[k]] = v
+    return True
+
+
+def _log(lid, subtopic, payload, periodic=False, retained=False):
+    ts = datetime.datetime.now().strftime("%H:%M:%S")
+    val = ("(retained) " + payload) if retained else payload
+    entry = {"ts": ts, "topic": subtopic, "value": val, "p": 1 if (periodic or retained) else 0}
+    loco_log[lid].appendleft(entry)
+    dispatch_log.appendleft({"ts": ts, "loco": lid, "topic": subtopic, "value": val})
+
+
+def _reset_session(lid, reason):
+    """Otto rebooted (live bootid, or alert uptime went backwards): everything
+    he confirmed belonged to the previous boot. Gates re-lock, banner clears."""
+    loco_state[lid] = _fresh_state()
+    loco_rx[lid] = {}
+    loco_epoch[lid] += 1
+    _log(lid, "dashboard", "SESSION RESET — %s" % reason)
+
+
+def _apply_nav_state(lid, nav, mm=None):
+    """Central nav bookkeeping: MM renders while Otto's position is usable
+    (NORMAL/EVALUATING — position is held while evaluating — or legacy
+    TRACKING); nav falling to UNSET re-locks the interval/throttle gates."""
+    st = loco_state[lid]
+    prev = st["nav"]
+    st["nav"] = nav
+    _touch(lid, "nav")
+    if nav in USABLE_NAV:
+        if mm is not None:
+            try:
+                st["mm"] = "%03d" % int(mm)
+                _touch(lid, "mm")
+            except (TypeError, ValueError):
+                pass
+    else:
+        st["mm"] = "--"
+    if nav == "UNSET" and prev != "UNSET":
+        st["nav_ready"] = "0"
+        st["start_interval"] = "UNSET"
+        _touch(lid, "nav_ready", "start_interval")
+
+
+# ============================================================================
+# v1.12.0 — NAVI_EWO presentation. Every function here reads what NAVI
+# published and arranges it for a person. None of it chooses a position, a
+# target, a magnet or a sensor; if a fact is not published it is shown as
+# not known.
+# ============================================================================
+def _ewo_take_event(lid, st, payload):
+    """Record one NAVI conclusion. nav/evidence and mm/marker carry identical
+    payloads for TARGET_CONFIRMED / MISSED_MAGNET; (event, decision_us,
+    consumption_id) identifies one conclusion, so the second copy is dropped."""
+    try:
+        d = json.loads(payload)
+    except Exception:
+        return
+    if not isinstance(d, dict) or not d.get("event"):
+        return
+    key = (d.get("event"), d.get("decision_us"), d.get("consumption_id"))
+    for old in st["ewo_events"]:
+        if (old.get("event"), old.get("decision_us"), old.get("consumption_id")) == key:
+            return
+    e = dict(d)
+    e["ts"] = datetime.datetime.now().strftime("%H:%M:%S")
+    st["ewo"] = True
+    st["ewo_events"].append(e)
+    del st["ewo_events"][:-EWO_EVENT_KEEP]
+    ev = e["event"]
+    if ev in ("TARGET_CONFIRMED", "MISSED_MAGNET"):
+        st["ewo_result"] = e
+        _touch(lid, "ewo_result")
+    elif ev == "INITIAL_REFERENCE":
+        st["ewo_ref_source"] = "BOOT (five observed positions)"
+    elif ev == "SPATIAL_REFERENCE":
+        st["ewo_ref_source"] = "SPATIAL (replaced after confirmed MM)"
+    if ev.startswith("SPATIAL_"):
+        st["ewo_spatial_event"] = ev
+
+
+def _int(v, default=None):
+    try:
+        return int(v)
+    except (TypeError, ValueError):
+        return default
+
+
+def _mm3(v):
+    n = _int(v)
+    return None if n is None else "%03d" % n
+
+
+def _named(names, v):
+    n = _int(v)
+    if n is None:
+        return "--"
+    return names[n] if 0 <= n < len(names) else str(n)
+
+
+def _fresh_age(ages, field):
+    a = ages.get(field)
+    return a is not None and a <= FRESH_S
+
+
+def _ewo_view(st, ages):
+    """The EWO operator/diagnostic model for one locomotive, from published
+    facts only. Returns None for legacy firmware."""
+    if not st.get("ewo"):
+        return None
+    nav, stat, ir = st["ewo_nav"], st["ewo_stat"], st["ewo_ir"]
+    src = nav or stat
+    heard = ages.get("heard")
+    have_navi = bool(nav or stat)
+    reliable = _int(src.get("position_reliable")) == 1
+    degraded = _int(src.get("degraded")) == 1
+    ref_ready = _int(src.get("reference_ready")) == 1
+    boot_positions = _int(nav.get("boot_positions"), 0)
+    boot_incomplete = _int(nav.get("boot_incomplete")) == 1
+    pwm0_moves = _int(stat.get("pwm0_ir_motion"), 0)
+    mm = _mm3(src.get("mm"))
+    target = _mm3(src.get("target"))
+    rdir = _int(src.get("dir"), 0)
+
+    # ---- NAVI's navigation state, in the order NAVI's flags decide it ----
+    if not have_navi:
+        mode, mode_text = "UNKNOWN", "NO NAVI STATE RECEIVED"
+    elif reliable:
+        if boot_incomplete:
+            mode, mode_text = "REFERENCE_INCOMPLETE", \
+                "HALL REFERENCE INCOMPLETE — NAVI CANNOT CONFIRM TARGETS THIS BOOT"
+        elif not ref_ready:
+            mode, mode_text = "REFERENCE_PENDING", \
+                "ESTABLISHING HALL REFERENCE (%d/5 POSITIONS)" % boot_positions
+        elif degraded:
+            mode, mode_text = "DEGRADED", "IR DEGRADED — HALL NAVIGATION"
+        else:
+            mode, mode_text = "NORMAL", "HALL + IR NORMAL"
+    elif pwm0_moves > 0:
+        # Only a declared NAVI counts PWM=0 displacement, and only a confirmed
+        # MM or a declaration makes the position reliable again.
+        mode, mode_text = "UNRELIABLE", \
+            "POSITION REFERENCE UNRELIABLE — AWAITING MM RE-ANCHOR"
+    else:
+        mode, mode_text = "NOT_DECLARED", "POSITION NOT DECLARED"
+    declared = mode not in ("NOT_DECLARED", "UNKNOWN")
+
+    pol = _int(stat.get("target_polarity"))
+    target_view = None
+    if declared and target:
+        target_view = {
+            "mm": target,
+            "polarity": {1: "N", -1: "S"}.get(pol, "?"),
+            "distance_mm": _int(stat.get("target_distance_mm")),
+            "dir": {1: "CW", -1: "CCW"}.get(rdir, "--"),
+        }
+
+    # ---- Latest conclusion ----
+    result = None
+    r, r_age = st["ewo_result"], ages.get("ewo_result")
+    if r and r_age is not None and r_age <= EWO_RESULT_SHOW_S:
+        rmm = _mm3(r.get("mm")) or "---"
+        if r["event"] == "MISSED_MAGNET":
+            result = {"kind": "MISSED_MAGNET", "level": "warn", "age_s": r_age,
+                      "text": "MISSED MM%s" % rmm +
+                              (" — SEEKING MM%s" % target if target else "")}
+        else:
+            how = ("DEGRADED HALL CONFIRMATION" if _int(r.get("degraded")) == 1
+                   else "HALL + IR")
+            result = {"kind": "TARGET_CONFIRMED", "level": "ok", "age_s": r_age,
+                      "text": "TARGET CONFIRMED MM%s — %s" % (rmm, how)}
+    if result is None and declared and target:
+        result = {"kind": "SEEKING", "level": "info", "age_s": None,
+                  "text": "SEEKING MM%s" % target}
+
+    # ---- What the locomotive is doing ----
+    pwm = st.get("pwm", "--")
+    if _fresh_age(ages, "moving") and st["moving"] in ("0", "1"):
+        moving = st["moving"] == "1"
+        motion = {"state": "MOVING" if moving else "STOPPED",
+                  "text": ("MOVING — %s pKPH" % st["pkph"]) if moving else "STOPPED",
+                  "source": "IR"}
+    else:
+        motion = {"state": "UNKNOWN", "source": None,
+                  "text": "MOTION NOT MEASURED — NO IR SPEED" +
+                          ("" if pwm in ("--", None) else " (PWM %s)" % pwm)}
+    enrolled, running = st.get("enlisted"), st.get("auto") == "1" and _fresh_age(ages, "auto")
+    if running:
+        control = "AUTO ACTIVE"
+    elif enrolled == "1":
+        control = "AUTO ENROLLED — NOT RUNNING"
+    elif enrolled == "0":
+        control = "MANUAL"
+    else:
+        control = "CONTROL MODE NOT REPORTED"
+
+    phase = st.get("station_phase") or ""
+    s_age = ages.get("station")
+    station = None
+    if phase and phase != "IDLE":
+        station = {"phase": phase, "name": st.get("station_name", ""),
+                   "text": "%s — %s" % (st.get("station_name", "").upper(),
+                                             STATION_PHASE_TEXT.get(phase, phase)),
+                   "age_s": s_age}
+        if not running:
+            station["text"] += " (AUTO NOT RUNNING)"
+    elif st.get("station_event") == "DEPARTED" and s_age is not None and s_age <= EWO_RESULT_SHOW_S:
+        station = {"phase": "IDLE", "name": st.get("station_name", ""), "age_s": s_age,
+                   "text": "DEPARTED %s" % st.get("station_name", "").upper()}
+    station_failed = (st.get("station_event") in STATION_FAILURE_EVENTS and
+                      s_age is not None and s_age <= 60)
+
+    # ---- Operator attention (not diagnostics) ----
+    alerts = []
+    if st.get("estop") == "1":
+        alerts.append({"level": "bad", "text": "E-STOP ACTIVE"})
+    if st.get("lowvolt") == "1":
+        alerts.append({"level": "bad", "text": "LOW VOLTAGE — CONTROLLED STOP"})
+    if boot_incomplete:
+        alerts.append({"level": "bad", "text":
+                       "HALL REFERENCE INCOMPLETE — NAVI CANNOT CONFIRM TARGETS THIS BOOT"})
+    if mode == "UNRELIABLE":
+        alerts.append({"level": "bad", "text": mode_text})
+    elif mode == "DEGRADED":
+        alerts.append({"level": "warn", "text": mode_text})
+    if result and result["kind"] == "MISSED_MAGNET":
+        alerts.append({"level": "warn", "text": result["text"]})
+    if station_failed:
+        alerts.append({"level": "bad", "text": "STATION APPROACH FAILED — %s %s" %
+                       (st.get("station_name", "").upper(), st["station_event"])})
+    nav_age = ages.get("ewo_nav")
+    if heard is not None and heard <= FRESH_S and (nav_age is None or nav_age > FRESH_S):
+        alerts.append({"level": "warn", "text": "NAVI STATE NOT RECEIVED" +
+                       ("" if nav_age is None else " FOR %d s" % round(nav_age))})
+
+    # ---- One-line status, highest priority first ----
+    where = ("MM%s → SEEKING MM%s" % (mm, target)) if (reliable and mm and target) else ""
+    if heard is None:
+        status = ("SILENT — NO TELEMETRY THIS SESSION", "bad")
+    elif heard > FRESH_S:
+        status = ("TELEMETRY STALE — LAST HEARD %d s AGO" % round(heard), "bad")
+    elif st.get("estop") == "1":
+        status = ("E-STOP ACTIVE", "bad")
+    elif st.get("lowvolt") == "1":
+        status = ("LOW VOLTAGE — CONTROLLED STOP", "bad")
+    elif mode in ("REFERENCE_INCOMPLETE", "UNRELIABLE"):
+        status = (mode_text, "bad")
+    elif mode == "NOT_DECLARED":
+        status = ("POSITION NOT DECLARED — NAVI IS NOT SEEKING A TARGET", "warn")
+    elif mode == "UNKNOWN":
+        status = ("NO NAVI STATE RECEIVED", "warn")
+    elif mode in ("REFERENCE_PENDING", "DEGRADED"):
+        status = ("%s · %s" % (where, mode_text) if where else mode_text, "warn")
+    else:
+        status = (where or mode_text, "ok")
+
+    # The firmware's PWM=0 warning is sticky until the next declaration, but
+    # NAVI can re-anchor at a confirmed MM before that. NAVI's own state wins.
+    warning = st.get("warning", "")
+    superseded = ""
+    if reliable and warning.startswith("IR measured motion at PWM=0"):
+        superseded, warning = warning, ""
+
+    return {
+        "mode": mode, "mode_text": mode_text, "reliable": reliable,
+        "declared": declared, "degraded": degraded, "boot_positions": boot_positions,
+        "mm": mm if reliable else None,
+        "last_mm": mm if (mode == "UNRELIABLE") else None,
+        "target": target_view, "result": result, "motion": motion,
+        "control": control, "station": station, "alerts": alerts,
+        "status": {"text": status[0], "cls": status[1]},
+        "warning": warning, "warning_superseded": superseded,
+        "counts": {"confirmed": _int(stat.get("confirmed")),
+                   "missed": _int(stat.get("missed"))},
+        "diag": _ewo_diag(st, ages, boot_positions, boot_incomplete),
+    }
+
+
+def _ewo_diag(st, ages, boot_positions, boot_incomplete):
+    """Development evidence panel: why NAVI believes what it says. Sections of
+    [label, value] rows, rendered generically by the page."""
+    stat, ir, link, trace = st["ewo_stat"], st["ewo_ir"], st["ewo_link"], st["ewo_trace"]
+    pol = _int(stat.get("target_polarity"))
+    v = lambda d, k: "--" if d.get(k) is None else d.get(k)
+    hall = [
+        ["Active Hall reference", v(stat, "reference")],
+        ["Reference source", st["ewo_ref_source"] or
+         ("established (source event not received)" if _int(stat.get("reference_ready")) == 1
+          else "not yet established")],
+        ["Boot positions", "%d/5%s" % (boot_positions, " — INCOMPLETE" if boot_incomplete else "")],
+        ["NAVI median-of-five", v(stat, "median5")],
+        ["Target polarity", {1: "N (above reference)", -1: "S (below reference)"}.get(pol, "--")],
+        ["Hall supports target", {1: "yes", 0: "no"}.get(_int(stat.get("hall_support")), "--")],
+    ]
+    spatial = [
+        ["Cycle phase", SPATIAL_PHASE_NAMES.get(_int(stat.get("spatial_phase")), "--")],
+        ["Last cycle event", st["ewo_spatial_event"] or "--"],
+    ]
+    irrows = [
+        ["Applicable (NAVI)", {1: "yes", 0: "no"}.get(_int(stat.get("ir_applicable")), "--")],
+        ["Navigation", "degraded (Hall)" if _int(stat.get("degraded")) == 1 else "normal (Hall + IR)"],
+        ["Speed reason", ir.get("ir_speed_reason", "--")],
+        ["Instrument health", _named(IR_FAULT_NAMES, stat.get("ir_health_fault"))],
+        ["Readiness", _named(IR_READINESS_NAMES, stat.get("ir_readiness"))],
+        ["Raw optical reason", _named(IR_REASON_NAMES, stat.get("ir_reason"))],
+        ["Last packet age", "--" if stat.get("ir_age_ms") is None else "%s ms" % stat["ir_age_ms"]],
+        ["Sequence / pulses", "%s / %s" % (v(stat, "ir_seq"), v(stat, "ir_pulses"))],
+        ["Epoch (active)", "%s (%s)" % (v(stat, "ir_epoch"), v(stat, "ir_epoch_active"))],
+        ["IR boot / calibration", "%s / %s" % (v(stat, "ir_boot"), v(stat, "ir_calibration"))],
+        ["Gaps / saturated / aborts", "%s / %s / %s" % (v(stat, "ir_gap"), v(stat, "ir_sat"),
+                                                        v(stat, "ir_abort"))],
+        ["Source MAC", v(link, "source_mac")],
+        ["Paired MAC (display only)", v(link, "paired_mac")],
+    ]
+    counters = [
+        ["Confirmed / missed", "%s / %s" % (v(stat, "confirmed"), v(stat, "missed"))],
+        ["PWM=0 IR motion events", v(stat, "pwm0_ir_motion")],
+        ["Hall / IR observations", "%s / %s" % (v(stat, "hall_seen"), v(stat, "ir_seen"))],
+        ["Hall / IR queue drops", "%s / %s" % (v(stat, "hall_q_drop"), v(stat, "ir_q_drop"))],
+        ["IR invalid packets", v(stat, "ir_invalid")],
+        ["NAVI event drops", v(stat, "event_drop")],
+        ["MQTT publish drops", v(stat, "pub_drop")],
+        ["NSR1 hall/ir/navi/native drops", "%s / %s / %s / %s" % (
+            v(stat, "nsr_hall_drop"), v(stat, "nsr_ir_drop"), v(stat, "nsr_navi_drop"),
+            v(stat, "nsr_native_drop"))],
+        ["Trace consumption/action/command drops", "%s / %s / %s" % (
+            v(trace, "consumption_drop"), v(trace, "action_drop"), v(trace, "command_queue_drop"))],
+    ]
+    events = [{k: e.get(k) for k in ("ts", "event", "mm", "target", "median5", "reference",
+                                      "degraded", "position_reliable", "ir_um", "spatial_phase")}
+              for e in reversed(st["ewo_events"])]
+    return {"sections": [["HALL", hall], ["SPATIAL REFERENCE", spatial], ["IR", irrows],
+                         ["COUNTERS", counters]],
+            "events": events,
+            "firmware_warning": st.get("warning", "")}
+
+
+def _ewo_pill(view, heard):
+    """Console pill for an EWO locomotive: NAVI's navigation state."""
+    if not heard or view is None:
+        return ["UNKNOWN", "q-unset"]
+    return {
+        "NORMAL": ["HALL+IR", "q-ok"],
+        "DEGRADED": ["IR DEGRADED", "q-eval"],
+        "REFERENCE_PENDING": ["REF %d/5" % view["boot_positions"], "q-eval"],
+        "REFERENCE_INCOMPLETE": ["REF INCOMPLETE", "q-bad"],
+        "UNRELIABLE": ["POS UNRELIABLE", "q-bad"],
+        "NOT_DECLARED": ["NOT DECLARED", "q-unset"],
+    }.get(view["mode"], ["UNKNOWN", "q-unset"])
+
+
+def on_mqtt_connect(client, userdata, flags, rc, properties=None):
+    if rc == 0:
+        print("MQTT connected")
+        with mqtt_lock:
+            for lid in list(loco_state):
+                loco_seed[lid].clear()
+                loco_seed_online[lid] = None    # P8: seeds are per-connection
+            pending_seed.clear()                # ... and so is the held backlog
+            pending_seed_online.clear()
+        # ONE WILDCARD PER TOPIC FAMILY. The id slot is '+', so a locomotive
+        # nobody has ever heard of is already subscribed to before it speaks.
+        # v1.12.0: nav/# carries NAVI_EWO's conclusions (nav/evidence) and
+        # diag/# its IR link provenance. Neither existed for older firmware.
+        for pat in ("online", "state/#", "telem/#", "alert", "mm/#",
+                    "nav/#", "diag/#",
+                    "cmd/#"):   # cmd so the packet log shows every command once
+            client.subscribe(f"ngr/loco/+/{pat}")
+    else:
+        print(f"MQTT connect failed rc={rc}")
+
+
+def on_mqtt_message(client, userdata, msg):
+    topic = msg.topic
+    payload = msg.payload.decode("utf-8", errors="ignore")
+    parts = topic.split("/")
+    if len(parts) < 4 or parts[0] != "ngr" or parts[1] != "loco":
+        return
+    lid = parts[2]
+    sub = "/".join(parts[3:])
+    retained = bool(msg.retain)
+
+    with mqtt_lock:
+        # v1.12.0: remember the boot identity even from a retained replay, so
+        # the next LIVE bootid can be judged new or not. Only a boot_id field
+        # counts: older firmware that republishes bootid on every connect
+        # without one can never trigger a reset (v1.10.11 field finding A).
+        if sub == "state/bootid" and retained:
+            bid = _boot_id_of(payload)
+            if bid:
+                known_boot_id[lid] = bid
+        if lid not in loco_state:
+            # ---- THE DISCOVERY GATE ----
+            # A retained message is the BROKER replaying what a locomotive
+            # said before it was switched off. It may never bring a column
+            # into being, or every restart repopulates the console with
+            # locomotives that are not there. A cmd/ echo is this dashboard's
+            # own voice and may not conjure one either. Only something live,
+            # from the locomotive itself, counts as an arrival.
+            if retained:
+                _hold_seed(lid, sub, payload)   # held, never rendered
+                return
+            if sub.startswith("cmd/"):
+                return
+            _ensure_loco(lid)
+            _log(lid, "dashboard", "DISCOVERED — %s" % LOCO_NAMES.get(lid, lid))
+        st = loco_state[lid]
+
+        # Store replays are remembered numbers, not Otto speaking. Log, never
+        # render — EXCEPT the P8 provisional authority seed. A retained value
+        # is held aside and promoted only if the retained online flag proves
+        # the locomotive alive (online=1); a powered-off locomotive keeps its
+        # blank. online itself may be retained and is handled here too.
+        if retained:
+            _log(lid, sub, payload, retained=True)
+            if sub == "online":
+                loco_seed_online[lid] = payload
+                if payload == "1":
+                    # Promote everything held provisionally.
+                    for k, v in loco_seed[lid].items():
+                        st[AUTHORITY_SEED_TOPICS[k]] = v
+                else:
+                    # Last will fired: the locomotive is gone; seeds are void.
+                    loco_seed[lid].clear()
+                return
+            if sub in AUTHORITY_SEED_TOPICS:
+                loco_seed[lid][sub] = payload
+                if loco_seed_online[lid] == "1":
+                    st[AUTHORITY_SEED_TOPICS[sub]] = payload
+            return
+
+        # Commands are the dashboard speaking, not Otto: log them (that is how
+        # one-press-one-publish is verified) but they carry no freshness.
+        if sub.startswith("cmd/"):
+            _log(lid, sub, payload)
+            return
+
+        _touch(lid, "heard")
+        periodic = False
+
+        if sub == "online":
+            st["online"] = payload
+            loco_seed_online[lid] = payload          # P8: live online governs too
+            if payload == "1":
+                for k, v in loco_seed[lid].items():
+                    if st.get(AUTHORITY_SEED_TOPICS[k]) in ("--", "", None):
+                        st[AUTHORITY_SEED_TOPICS[k]] = v
+            else:
+                loco_seed[lid].clear()
+
+        elif sub == "state/station":
+            # P7: the locomotive's command responses and station events, raw.
+            # QUORUM 1.10 adds "seq" on *_REFUSED / STOP_IGNORED (P13).
+            try:
+                d = json.loads(payload)
+                st["station_event"] = str(d.get("event", ""))
+                st["station_note"]  = str(d.get("note", ""))
+                st["station_seq"]   = d.get("seq")
+                st["station_ts"]    = time.strftime("%H:%M:%S")
+                # v1.12.0: the station controller's own phase and station.
+                # Command-response payloads carry neither and leave them.
+                if "phase" in d:
+                    st["station_phase"] = str(d.get("phase", ""))
+                    st["station_name"]  = str(d.get("station", "") or "")
+                    st["station_off"]   = d.get("off")
+                    _touch(lid, "station")
+            except Exception:
+                pass
+
+        elif sub == "state/loopstat":
+            periodic = True
+            try:
+                d = json.loads(payload)
+                if "pwm" in d:
+                    st["pwm"] = str(d["pwm"])
+                    _touch(lid, "pwm")
+                if "miss_streak" in d:      # QUORUM 1.0; replaces conf, which is not read
+                    st["miss_streak"] = str(d["miss_streak"])
+                if _is_ewo_sketch(d.get("build")):
+                    # v1.12.0 EWO. loopstat's `mm` is NAVI's internal MM even
+                    # while NAVI reports the position unreliable, so it must
+                    # NOT drive the MM tile — state/nav does that, gated on
+                    # position_reliable. `running` is autoRunning: the RUNNING
+                    # flag the alert used to carry. `auto` here is enrollment
+                    # and is ignored; state/auto remains its source.
+                    st["ewo"] = True
+                    st["ewo_stat"] = d
+                    _touch(lid, "ewo_stat")
+                    if "running" in d:
+                        st["auto"] = "1" if d["running"] in (1, True, "1") else "0"
+                        _touch(lid, "auto")
+                else:
+                    _apply_nav_state(lid, d.get("nav", st["nav"]), d.get("mm"))
+            except Exception:
+                pass
+
+        elif sub == "alert":
+            try:
+                d = json.loads(payload)
+                periodic = (d.get("reason") == "STATUS")
+                # Reboot detection: uptime going backwards means a new boot.
+                up = d.get("uptime_ms")
+                if isinstance(up, (int, float)):
+                    prev_up = st["uptime_ms"]
+                    if prev_up is not None and up < prev_up - 5000:
+                        _reset_session(lid, "alert uptime reset (%d -> %d ms)" % (prev_up, up))
+                        st = loco_state[lid]
+                        _touch(lid, "heard")   # this alert IS the new boot speaking
+                    st["uptime_ms"] = up
+                # v1.10.11: the alert carries the LOCOMOTIVE'S cumulative
+                # agree/disagree (since its boot). Those are the authority —
+                # the console's event-derived tally could only drift or be
+                # wiped. Self-healing after any gap. (Alert never writes
+                # authority state — M4 — but tallies are telemetry, not
+                # authority.)
+                if "agree" in d:    st["agree_n"]    = int(d["agree"])
+                if "disagree" in d: st["disagree_n"] = int(d["disagree"])
+                if "moving" in d:
+                    st["moving"] = str(d["moving"])
+                    _touch(lid, "moving")
+                if "pwm" in d:
+                    st["pwm"] = str(d["pwm"])
+                    _touch(lid, "pwm")
+                if "est_mm_s" in d:
+                    if str(d.get("moving")) == "0":
+                        st["pkph"] = "0.0"
+                    else:
+                        st["pkph"] = "%.1f" % (float(d["est_mm_s"]) * PKPH_PER_MM_S)
+                    _touch(lid, "pkph")
+                sd = d.get("session_dir")
+                if sd in ("CW", "CCW", "UNSET"):
+                    st["session_dir"] = sd
+                    _touch(lid, "session_dir")
+                if "auto" in d:
+                    # P4: the alert's auto field is autoRunning. It writes the
+                    # RUNNING flag ONLY. The alert stream is never the source
+                    # of record for any authority state (spec M4) — writing
+                    # st["enlisted"] here is exactly the bug that made AUTO
+                    # look dead for two days.
+                    st["auto"] = str(d["auto"])
+                    _touch(lid, "auto")
+                if "viable" in d and isinstance(d["viable"], list):
+                    st["viable"] = d["viable"]      # QUORUM candidate offsets
+                if "candidate_mm" in d:
+                    st["candidate_mm"] = str(d["candidate_mm"])
+                lm = d.get("last_confirmed_landmark")
+                if lm is not None:
+                    st["landmark"] = lm
+                nav = d.get("nav")
+                if nav:
+                    _apply_nav_state(lid, nav, d.get("dead_reckoned_mm"))
+                    # nav_ready exactly as QUORUM derives it: a declared
+                    # direction and a usable position (EVALUATING included).
+                    st["nav_ready"] = "1" if (sd in ("CW", "CCW") and nav in USABLE_NAV) else "0"
+                    _touch(lid, "nav_ready")
+            except Exception:
+                pass
+
+        elif sub == "state/nav":
+            try:
+                d = json.loads(payload)
+                ev = d.get("event", "")
+                st["nav_event"] = ev
+                st["nav_event_ts"] = datetime.datetime.now().strftime("%H:%M:%S")
+                # QUORUM publishes a DIRECTION event on EVERY accepted
+                # cmd/direction — including a same-value press, which
+                # state/direction (publish-on-change) stays silent about.
+                # That event is the per-press confirmation the buttons wait
+                # on; the VALUE binding stays the state/direction integer.
+                # A DIRECTION event says the direction CHANGED; it does not
+                # carry the integer. It may refresh a value we already hold —
+                # that is what makes a same-value re-press visible — but it
+                # must never mark a value fresh that we have never received,
+                # or the dashboard reports a direction the locomotive never
+                # sent. (v1.10.9: that is exactly what happened to Toby.)
+                if ev == "DIRECTION" and st["direction"] != "--":
+                    _touch(lid, "direction")
+                # v1.10.2: polarity agreement tally (Change 6). AGREE/DISAGREE
+                # ride state/nav on every firmware generation.
+                # v1.10.11: these increments are now only smoothing between
+                # 1 Hz alerts — the alert's cumulative counts overwrite them
+                # every second and are the authority.
+                if ev in ("AGREE", "DISAGREE"):
+                    ok = 1 if ev == "AGREE" else 0
+                    if ok:
+                        st["agree_n"] += 1
+                    else:
+                        st["disagree_n"] += 1
+                    try:
+                        vmm = int(d.get("mm", -1))
+                    except (TypeError, ValueError):
+                        vmm = -1
+                    st["verdicts"].append([vmm, ok])
+                    if len(st["verdicts"]) > 10:
+                        st["verdicts"].pop(0)
+                sd = d.get("session_dir")
+                if sd in ("CW", "CCW", "UNSET"):
+                    st["session_dir"] = sd
+                    _touch(lid, "session_dir")
+                if "miss_streak" in d:
+                    st["miss_streak"] = str(d["miss_streak"])
+                if d.get("authority") == "NAVI_EWO":
+                    # v1.12.0: the EWO console adapter. state is NORMAL only
+                    # while NAVI is declared AND position_reliable, so the
+                    # existing nav/mm bookkeeping below already refuses to
+                    # show an MM NAVI does not stand behind.
+                    st["ewo"] = True
+                    st["ewo_nav"] = d
+                    _touch(lid, "ewo_nav")
+                _apply_nav_state(lid, d.get("state", st["nav"]), d.get("mm"))
+            except Exception:
+                pass
+
+        elif sub == "state/cto":
+            # v1.11.2. Only the 5 s CTO_STATUS heartbeat is retained for the
+            # panel; transitions (CTO_PAIRED, CTO_TRAFFIC, CTO_FLEET_STOP...)
+            # already reach the operator through the packet log, and letting
+            # them overwrite the panel would make it flicker between a state
+            # and an event.
+            try:
+                if json.loads(payload).get("event") == "CTO_STATUS":
+                    st["cto"] = payload
+                    _touch(lid, "cto")
+            except Exception:
+                pass
+
+        elif sub == "state/bootid":
+            # v1.10.11 (field finding A, 2026-08-08): a live bootid means Otto
+            # CONNECTED — the firmware republishes it on EVERY MQTT connect,
+            # not only after a boot. Treating it as a reboot wiped the console
+            # session 14+ times in one afternoon of link flapping (agree
+            # tallies zeroed, pre-flight lost, AUTO withheld) while the
+            # locomotive ran on undisturbed. Reboot detection lives in the
+            # alert handler's uptime-regression test, which reconnects can
+            # never trip. Here we only take the identity and the fact that he
+            # is alive.
+            try:
+                sketch = json.loads(payload).get("sketch", "")
+            except Exception:
+                sketch = ""
+            # v1.12.0: EWO publishes bootid once per boot, carrying a random
+            # 64-bit boot_id. A LIVE one that differs from the last boot_id
+            # seen (live or retained) is a reboot — the fact the alert
+            # uptime-regression test used to provide, which EWO does not send.
+            bid = _boot_id_of(payload)
+            prev = known_boot_id.get(lid)
+            if bid and prev and bid != prev:
+                _reset_session(lid, "boot_id %s -> %s" % (prev, bid))
+                st = loco_state[lid]
+            if bid:
+                known_boot_id[lid] = bid
+            st["sketch"] = sketch
+            if _is_ewo_sketch(sketch):
+                st["ewo"] = True
+            st["online"] = "1"
+            _touch(lid, "heard")
+
+        elif sub in SIMPLE_STATE:
+            field = SIMPLE_STATE[sub]
+            val = payload
+            # The firmware publishes "000-000" for no-interval; never show it as set.
+            if field == "start_interval" and val == "000-000":
+                val = "UNSET"
+            periodic = (st[field] == val)   # unchanged republish (older firmware sends 1-2 Hz)
+            st[field] = val
+            _touch(lid, field)
+
+        elif sub == "telem/voltage":
+            st["voltage"] = payload
+            _touch(lid, "voltage")
+        elif sub == "telem/current":
+            st["current"] = payload
+            _touch(lid, "current")
+        elif sub == "telem/power":
+            st["power"] = payload
+            _touch(lid, "power")
+        elif sub == "telem/speed":
+            # v1.11.3: IR Test A's quorum-speed-view/1, 1 Hz, non-retained.
+            # Verbatim like state/cto — the tile parses at render time, not
+            # here, same as ctoRow() does for the cto payload.
+            st["speed_view"] = payload
+            _touch(lid, "speed_view")
+
+        elif sub == "telem/ir":
+            # v1.11.5: NAVI_COHERENCE-lineage IR link-activity heartbeat
+            # (paired/radio/freshness/pulse counters) — a different fact
+            # from telem/speed above. Verbatim, parsed at render time.
+            st["ir_link"] = payload
+            _touch(lid, "ir_link")
+            try:
+                d = json.loads(payload)
+            except Exception:
+                d = None
+            if isinstance(d, dict) and d.get("authority") == "NAVI_EWO":
+                # v1.12.0: NAVI-qualified IR speed is the only motion fact EWO
+                # publishes. The alert's est_mm_s/moving are gone and are not
+                # reconstructed. No valid speed = no update, so MOVING/STOPPED
+                # and pKPH age into UNKNOWN / stale rather than guess.
+                st["ewo"] = True
+                st["ewo_ir"] = d
+                _touch(lid, "ewo_ir")
+                mmps = d.get("ir_mmps")
+                if d.get("ir_valid") in (1, True) and isinstance(mmps, (int, float)) \
+                        and mmps >= 0:
+                    st["moving"] = "1" if mmps > 0 else "0"
+                    st["pkph"] = "%.1f" % (float(mmps) * PKPH_PER_MM_S)
+                    _touch(lid, "moving", "pkph")
+
+        elif sub == "mm/marker":
+            _touch(lid, "marker")
+            # v1.12.0: EWO publishes the TARGET_CONFIRMED / MISSED_MAGNET
+            # payload here as well as on nav/evidence; either copy counts once.
+            _ewo_take_event(lid, st, payload)
+
+        elif sub == "nav/evidence":
+            # v1.12.0: NAVI_EWO's conclusions, one JSON object per event.
+            _ewo_take_event(lid, st, payload)
+
+        elif sub == "state/trace":
+            try:
+                st["ewo_trace"] = json.loads(payload)
+                _touch(lid, "ewo_trace")
+            except Exception:
+                pass
+
+        elif sub == "diag/ir_link":
+            try:
+                st["ewo_link"] = json.loads(payload)
+                _touch(lid, "ewo_link")
+            except Exception:
+                pass
+
+        elif sub == "mm/speed":
+            # Legacy measured-speed topic (older sketches). Live only.
+            try:
+                d = json.loads(payload)
+                if d.get("source") == "SEGMENT_MEASURED" and d.get("pkph") is not None:
+                    st["pkph"] = "%.1f" % float(d["pkph"])
+                    _touch(lid, "pkph")
+            except Exception:
+                pass
+
+        _log(lid, sub, payload, periodic=periodic)
+
+
+def pub(topic, value):
+    global mqtt_conn
+    if mqtt_conn and mqtt_conn.is_connected():
+        mqtt_conn.publish(topic, str(value), retain=False)
+
+def pub_loco(lid, subtopic, value):
+    pub(f"ngr/loco/{lid}/cmd/{subtopic}", value)
+
+def pub_dispatcher(subcmd):
+    pub(f"ngr/dispatcher/cmd/{subcmd}", "1")
+
+
+def state_payload(lid):
+    with mqtt_lock:
+        if lid not in loco_state:
+            # Named in LOCO_NAMES but never heard: a blank state, not an
+            # error. Blank-until-proven (P8) is the same answer the page
+            # gives for a locomotive that has gone quiet.
+            st = _fresh_state()
+            st["verdicts"] = []
+            st["ages"] = {f: None for f in AGE_FIELDS}
+            st["epoch"] = 0
+            return st
+        st = dict(loco_state[lid])
+        st["verdicts"] = list(st["verdicts"])   # snapshot under the lock
+        st["ewo_events"] = list(st["ewo_events"])
+        rx = dict(loco_rx[lid])
+        ep = loco_epoch[lid]
+    now = time.monotonic()
+    st["ages"] = {f: (round(now - rx[f], 1) if f in rx else None) for f in AGE_FIELDS}
+    st["epoch"] = ep
+    st["ewo_view"] = _ewo_view(st, st["ages"])   # None for legacy firmware
+    return st
+
+
+def mqtt_thread():
+    global mqtt_conn
+    while True:
+        try:
+            # The client id is overridable so a SECOND instance can be run
+            # alongside the live one for validation. Two clients sharing an id
+            # kick each other off the broker in a loop, which would take the
+            # running dashboard's telemetry down with it.
+            c = mqtt_client.Client(
+                mqtt_client.CallbackAPIVersion.VERSION2,
+                client_id=os.environ.get("NGR_MQTT_CLIENT_ID", "ngr-flask"))
+            c.on_connect = on_mqtt_connect
+            c.on_message = on_mqtt_message
+            mqtt_conn = c
+            c.connect(MQTT_BROKER, MQTT_PORT, keepalive=60)
+            c.loop_forever()
+        except Exception as e:
+            print(f"MQTT error: {e}")
+            mqtt_conn = None
+        time.sleep(5)
+
+threading.Thread(target=mqtt_thread, daemon=True).start()
+
+
+# ============================================================================
+# Roster helpers — display only. NOT a gate on who may appear.
+# ============================================================================
+def loco_name(lid):
+    return LOCO_NAMES.get(lid, lid)
+
+
+def loco_slug(lid):
+    return LOCO_NAMES.get(lid, lid).lower()
+
+
+def console_order():
+    """Every NAMED locomotive, always, followed by anything unnamed that has
+    been heard.
+
+    Naming a locomotive in LOCO_NAMES says "I expect to see this one", and it
+    gets a column whether or not it is switched on — otherwise the console is
+    blank until something speaks, which reads as broken and leaves nowhere to
+    reach for a locomotive you are about to power up. That is NOT a retreat
+    from discovery and it does not reopen the ghost-column hole: a named
+    locomotive that has never been heard shows UNKNOWN and STALE with no
+    authority and no figures, because its state comes from _fresh_state(),
+    never from the broker's retained backlog. Blank-until-proven (P8) is
+    exactly what it displays.
+
+    Order is stable: named ones in their listed order, strangers after by id.
+    Arrival order would shuffle between sessions and BEGIN has to be where it
+    was yesterday."""
+    named = list(LOCO_NAMES)
+    rest = sorted(l for l in loco_state if l not in LOCO_NAMES)
+    return named + rest
+
+
+def discovered_order():
+    """Only locomotives actually heard this session. The console shows more
+    than this; the packet log and anything counting real traffic wants this."""
+    named = [l for l in LOCO_NAMES if l in loco_state]
+    rest = sorted(l for l in loco_state if l not in LOCO_NAMES)
+    return named + rest
+
+
+# A locomotive on the console that has never been heard has no state dict at
+# all. It gets a blank one rather than an entry in loco_state, so that being
+# LISTED never counts as having been HEARD anywhere else in the app.
+_BLANK_STATE = None
+
+
+def state_or_blank(lid):
+    global _BLANK_STATE
+    st = loco_state.get(lid)
+    if st is not None:
+        return st
+    if _BLANK_STATE is None:
+        _BLANK_STATE = _fresh_state()
+    return _BLANK_STATE
+
+
+def resolve_loco(ref):
+    """A locomotive may be addressed by id or by known name. An id nobody has
+    named is perfectly valid — under discovery the id IS the identity."""
+    if ref in loco_state:
+        return ref
+    low = str(ref).lower()
+    for lid in loco_state:
+        if loco_slug(lid) == low:
+            return lid
+    for lid, nm in LOCO_NAMES.items():          # named but not yet heard
+        if nm.lower() == low or lid == ref:
+            return lid
+    return None
+
+
+# P4 authority, as the console shows it. RUNNING (autoRunning, from the 1 Hz
+# alert) and ENLISTED (autoEnrolled, from state/auto) are NOT the same state
+# and must never be merged: PAUSE moves RUNNING -> ENLISTED and deliberately
+# keeps the locomotive enrolled, so a single "AUTO" would make a PAUSE
+# invisible on screen.
+def _mode_of(st):
+    if st["auto"] == "1":
+        return "CE" if st["ce"] == "1" else "RUN"
+    if st["enlisted"] == "1":
+        return "ENL"
+    if st["enlisted"] == "--":
+        return "NONE"        # never proven this session (P8 blank-until-proven)
+    return "MAN"
+
+
+# Nav states in which the locomotive has a position it trusts.
+_QUORUM_OK = ("TRACKING", "NORMAL")
+
+
+def _quorum_of(st, heard):
+    """The console's quorum indicator. A locomotive we are not hearing gets
+    UNKNOWN, never its last value — a stale reading is not a current one."""
+    if not heard:
+        return "UNKNOWN"
+    nav = st["nav"]
+    if nav in _QUORUM_OK:
+        return "QUORUM"
+    if nav == "EVALUATING":
+        return "EVALUATING"
+    if nav in ("NO_QUORUM", "LOST"):
+        return "NO_QUORUM"
+    return "UNSET"
+
+
+def _rolling_agree(st):
+    """Rolling percentage over the last ten verdicts, NOT the session total.
+    A session reading 4015 agree / 30 disagree shows 99% while eight of the
+    last ten markers disagreed; the recent number is the one that matters.
+    The session totals are still published for the small print."""
+    v = st["verdicts"]
+    if not v:
+        return None
+    return int(round(100.0 * sum(1 for x in v if x[1] == 1) / len(v)))
+
+
+# ============================================================================
+# Nav bar — built from the discovered set, not a hardcoded list
+# ============================================================================
+NAV_STYLE = """
+.nav-bar { display:flex; gap:6px; padding:10px 10px 0; max-width:700px; margin:0 auto;
+           flex-wrap:wrap; }
+.nav-btn { flex:1; min-width:64px; text-align:center; padding:12px 4px; border-radius:10px;
+           background:rgba(40,40,40,0.7); color:#ccc; text-decoration:none;
+           font-size:15px; font-weight:bold; border:2px solid #555; }
+.nav-btn.active { background:rgba(60,60,60,0.95); color:#fff; border-color:#aaa; }
+"""
+
+
+def nav(active):
+    parts = ['<a href="/console" class="nav-btn %s">Console</a>'
+             % ("active" if active == "console" else "")]
+    with mqtt_lock:
+        order = console_order()
+    for lid in order:
+        parts.append('<a href="/loco/%s" class="nav-btn %s">%s</a>'
+                     % (loco_slug(lid), "active" if active == lid else "", loco_name(lid)))
+    return Markup('<div class="nav-bar">%s</div>' % "".join(parts))
+
+
+# ============================================================================
+# Shared CSS
+# ============================================================================
+SHARED_CSS = """
+body { margin:0; font-family:Arial,sans-serif;
+  background:linear-gradient(135deg,#a8a8a8 0%,#d9d9d9 20%,#8f8f8f 50%,#d7d7d7 80%,#9c9c9c 100%);
+  background-attachment:fixed; color:#111; padding-bottom:40px; }
+.container { max-width:700px; margin:auto; padding:8px; }
+.panel { background:rgba(40,40,40,0.92); border-radius:12px; padding:10px 12px;
+  margin-bottom:8px; box-shadow:0 3px 8px rgba(0,0,0,0.3); border:2px solid #666; }
+.sec-hdr { text-align:center; color:#fff; font-size:17px; font-weight:800;
+  letter-spacing:2px; margin-bottom:8px; }
+.badge { font-size:13px; font-weight:bold; padding:5px 11px; border-radius:20px; letter-spacing:1px; }
+.badge-online  { background:#2a7a2a; color:#baffba; border:1px solid #4fc34f; }
+.badge-offline { background:#5a2020; color:#ffb3b3; border:1px solid #b32020; }
+.badge-stale   { background:#5a4a10; color:#ffe0a0; border:1px solid #b39020; }
+/* v1.11.2: firmware version chip. .mismatch when the fleet is not all on one
+   build — 1.14 and 1.14A cannot confirm roles with each other, so a mixed
+   pair is a fault the operator must be able to SEE, not infer. */
+.swchip { font-size:10px; font-weight:bold; letter-spacing:0.5px; padding:2px 6px;
+          border-radius:9px; background:#20303c; color:#9fd6ff; border:1px solid #2f5a72; }
+.swchip.mismatch { background:#5a2020; color:#ffb3b3; border-color:#b32020; }
+.swchip.unknown  { background:#2a2a2a; color:#777;    border-color:#444; }
+/* CTO one-liner under each console column */
+.ctorow { font-size:10px; color:#9fd6ff; margin-top:3px; min-height:12px; }
+.ctorow .hold { color:#ff6b6b; font-weight:bold; }
+.ctorow .slow { color:#ffcc66; }
+.ctorow .ce   { color:#cfe6ff; font-weight:bold; }   /* v1.11.4: CE mission, matches the CE badge */
+.irrow { font-size:10px; color:#c9a8ff; margin-top:2px; min-height:12px; }
+.irrow .stale { color:#777; font-style:italic; }
+.irrow .irauth { color:#666; margin-left:4px; }
+.estop-btn { width:100%; padding:20px; border-radius:50px; border:3px solid #b32020;
+  background:rgba(40,40,40,0.92); color:#ff5050; font-size:21px; font-weight:bold;
+  letter-spacing:3px; cursor:pointer; text-align:center; display:block; }
+.estop-btn.active { background:#b32020; color:#fff; }
+.estop-btn:disabled { opacity:0.35; }
+.log-hdr { display:flex; justify-content:space-between; align-items:center;
+  margin-bottom:6px; gap:6px; }
+.log-btn { background:#333; border:1px solid #555; color:#ccc; font-size:12px;
+  padding:6px 13px; border-radius:6px; cursor:pointer; font-weight:bold; }
+.log-btn.on { background:#1a3a5a; color:#b8e2ff; border-color:#2a6aa8; }
+.log-body { color:#fff; background:#0a0a0a; font-size:11px; font-family:monospace;
+  padding:8px; border-radius:6px; max-height:260px; overflow-y:auto; }
+"""
+
+
+# ============================================================================
+# Dispatcher console
+# ============================================================================
+CONSOLE_HTML = """<!DOCTYPE html>
+<html><head>
+<title>NGR Dispatcher Console</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+{{ nav_style }}
+{{ shared_css }}
+.cmdrow { display:grid; grid-template-columns:1.15fr 1fr 1fr; gap:8px; margin-bottom:12px; }
+.cmdrow button { border-radius:10px; padding:16px 4px; font-size:14px; font-weight:bold;
+  cursor:pointer; line-height:1.25; letter-spacing:1px;
+  box-shadow:inset 0 1px 2px rgba(255,255,255,0.22),0 2px 4px rgba(0,0,0,0.4); }
+.b-estopall { background:rgba(30,30,30,0.95); color:#ff5050; border:3px solid #b32020;
+  font-size:15px; letter-spacing:1px; }
+.b-estopall:hover { background:#8a1515; color:#fff; }
+.b-end { background:#7a3a00; color:#ffd080; border:2px solid #aa6000; }
+.b-ce  { background:#2d6ea8; color:#fff; border:none; }
+
+.cgrid { display:grid; gap:10px; }
+/* Grid items default to min-width:auto and refuse to shrink below their own
+   content, which pushed the third column off a phone screen entirely. */
+.cgrid > div { min-width:0; }
+/* Type scales with the column count so the fleet always fits the width. The
+   figures stay the largest thing in the column at every size. */
+.cgrid.cols-3 .col-name { font-size:15px; letter-spacing:0; }
+.cgrid.cols-3 .namerow { gap:3px; }
+.cgrid.cols-3 .readout .rl, .cgrid.cols-3 .readout .rv { font-size:18px; }
+.cgrid.cols-3 .readout { padding:5px 7px; }
+.cgrid.cols-3 .pill .pv { font-size:14px; }
+.cgrid.cols-3 .cbtn, .cgrid.cols-3 .cbtn-estop { font-size:13px; padding:12px 2px; }
+.cgrid.cols-3 .link-tiny { min-width:44px; font-size:8px; }
+.cgrid.cols-4 .col-name { font-size:14px; letter-spacing:0; }
+.cgrid.cols-4 .readout .rl, .cgrid.cols-4 .readout .rv { font-size:15px; }
+.cgrid.cols-4 .readout { padding:4px 5px; }
+.cgrid.cols-4 .pill .pv { font-size:11px; }
+.cgrid.cols-4 .pill { padding:7px 2px; }
+.cgrid.cols-4 .cbtn, .cgrid.cols-4 .cbtn-estop { font-size:11px; padding:11px 1px; }
+.cgrid.cols-4 .mode { font-size:9px; padding:2px 3px; }
+.cgrid.cols-4 .link-tiny { min-width:36px; font-size:8px; padding:2px 3px; }
+.cgrid.cols-4 .namerow { gap:3px; }
+.col-hdr { text-align:center; padding-bottom:7px; border-bottom:1px solid #444; margin-bottom:9px; }
+/* min-width:0 + ellipsis: a long name must shorten cleanly rather than be
+   sliced through the middle of a letter by the row's overflow:hidden. */
+.col-name { color:#fff; font-size:19px; font-weight:bold; letter-spacing:2px;
+  min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+/* The tiny link chip rides beside the name, where the width is already spare.
+   Both header rows are FIXED HEIGHT so the columns' figures always line up,
+   whatever the states say. */
+.namerow { display:flex; gap:6px; align-items:center; justify-content:center;
+  height:24px; overflow:hidden; }
+.chiprow { display:flex; gap:5px; justify-content:center; align-items:center;
+  flex-wrap:nowrap; margin-top:4px; height:20px; overflow:hidden; }
+/* The chip takes the whole row at a fixed size, so no wording change can
+   nudge anything sideways as a locomotive changes state or goes quiet.
+   (LEAD / TRAIL chips were designed to share this row — removed 2026-08-12
+   because nothing publishes the roles. The design is preserved in
+   docs/dashboard-redesign/mockup_v7.html for whenever CTO/Bubble v2 does.) */
+.chiprow .mode { flex:1 1 0; text-align:center; white-space:nowrap;
+  overflow:hidden; text-overflow:ellipsis; }
+.mode { font-size:10px; font-weight:bold; letter-spacing:1px; padding:3px 6px; border-radius:4px; }
+.mode.m-run  { background:rgba(42,122,42,0.35); color:#baffba; border:1px solid #4fc34f; }
+.mode.m-enl  { background:rgba(30,90,140,0.35); color:#b8e2ff; border:1px solid #2a6aa8; }
+.mode.m-man  { background:rgba(60,60,80,0.5);   color:#ccd8ff; border:1px solid #8888aa; }
+.mode.m-ce   { background:rgba(45,110,168,0.4); color:#cfe6ff; border:1px solid #2d6ea8; }
+.mode.m-none { background:rgba(40,40,40,0.6);   color:#888;    border:1px solid #555; }
+.link-tiny { font-size:9px; font-weight:bold; letter-spacing:1px; padding:2px 5px;
+  border-radius:3px; white-space:nowrap; min-width:52px; text-align:center; }
+.link-tiny.up   { background:rgba(42,122,42,0.22); color:#9ada9a; border:1px solid #3a7a3a; }
+.link-tiny.down { background:rgba(140,110,20,0.4); color:#ffe0a0; border:1px solid #b39020; }
+
+.cbtn { border:none; border-radius:9px; padding:15px 4px; width:100%;
+  font-size:15px; font-weight:bold; cursor:pointer; margin-bottom:7px; color:#fff;
+  box-shadow:inset 0 1px 2px rgba(255,255,255,0.25),0 2px 4px rgba(0,0,0,0.4); }
+.btn-go { background:#3fa34d; } .btn-stop { background:#d9a21b; }
+.cbtn-estop { background:rgba(30,30,30,0.9); color:#ff5050; border:2px solid #b32020;
+  border-radius:9px; padding:13px 4px; width:100%; font-size:14px; font-weight:bold;
+  letter-spacing:1px; cursor:pointer; margin-bottom:7px; }
+.cbtn-estop.active { background:#b32020; color:#fff; }
+/* Status pills. No titles: every value names itself, including the unheard
+   case, where a bare dash would say nothing at all. nowrap keeps each one a
+   single line so the columns cannot fall out of step. */
+.pill { border-radius:6px; padding:9px 4px; margin-bottom:5px; text-align:center; border:1px solid; }
+.pill .pv { font-size:17px; font-weight:bold; letter-spacing:1px; line-height:1.15;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.q-ok    { background:rgba(42,122,42,0.35);  border-color:#4fc34f; color:#baffba; }
+.q-eval  { background:rgba(140,110,20,0.35); border-color:#d9a21b; color:#ffe0a0; }
+.q-bad   { background:rgba(140,30,30,0.45);  border-color:#b32020; color:#ffb3b3; }
+.q-unset { background:rgba(40,40,40,0.6);    border-color:#666;    color:#999; }
+/* Label to the LEFT of the value, both at the same size: one line per figure
+   instead of two, and the digits line up down the pair of columns. */
+.readout { display:flex; align-items:baseline; justify-content:space-between; gap:6px;
+  background:#222; border-radius:6px; padding:6px 10px; margin-bottom:4px; }
+.readout .rl { font-size:23px; color:#9a9a9a; font-weight:bold; font-family:monospace;
+  letter-spacing:1px; }
+.readout .rv { font-size:23px; font-weight:bold; font-family:monospace; color:#eee; }
+.readout .rv.stale { color:#777; }
+.station-note { font-size:11px; font-weight:bold; min-height:14px; text-align:center; margin-top:2px; }
+.empty-note { color:#aaa; font-size:14px; font-weight:bold; text-align:center;
+  padding:26px 10px; line-height:1.6; }
+</style></head><body>
+{{ nav_html }}
+<div class="container">
+
+  <div class="panel">
+    <!-- P12: SET broadcasts — everyone stops is right for an emergency.
+         CLEAR is per-locomotive (a broadcast clear would execute the clear
+         path on locomotives that were never stopped, including a manually
+         running one). Displayed E-STOP state derives from retained
+         state/estop ONLY — never from the last command sent. -->
+    <div class="cmdrow">
+      <button class="b-estopall" onclick="dc('estop')">&#9888; E-STOP ALL</button>
+      <button class="b-end" onclick="endAo()">END AO</button>
+      <button class="b-ce"  onclick="dc('ce')">CIRCUIT EXPRESS</button>
+    </div>
+    <div class="cgrid" id="cgrid"></div>
+  </div>
+
+  <div class="panel">
+    <div class="log-hdr">
+      <span style="color:#ddd;font-size:13px;font-weight:bold;letter-spacing:1px;">PACKET LOG</span>
+      <button class="log-btn" onclick="clearLog()">CLEAR</button>
+    </div>
+    <div class="log-body" id="dispatch-log">
+      <div style="color:#aaa;">Waiting for packets...</div>
+    </div>
+  </div>
+
+</div>
+<script>
+var MODE_VIEW = {
+  'MAN':  ['MANUAL',   'm-man'],
+  'ENL':  ['ENLISTED', 'm-enl'],
+  // v1.12.0: RUN is autoRunning — AUTO is in force, NOT "the train is
+  // moving". A train dwelling at a station is still AUTO ACTIVE.
+  'RUN':  ['AUTO ACTIVE', 'm-run'],
+  'CE':   ['CE',       'm-ce'],
+  // A dash is narrow, so a chip that shrinks to one re-centres the row and
+  // the whole column shifts as a locomotive goes quiet. UNKNOWN holds the
+  // width AND says what it means.
+  'NONE': ['UNKNOWN',  'm-none']
+};
+var QUORUM_VIEW = {
+  'QUORUM':     ['QUORUM',       'q-ok'],
+  'EVALUATING': ['EVALUATING',   'q-eval'],
+  'NO_QUORUM':  ['NO QUORUM',    'q-bad'],
+  'UNSET':      ['NOT DECLARED', 'q-unset'],
+  'UNKNOWN':    ['UNKNOWN',      'q-unset']
+};
+
+function dc(cmd){ fetch('/dispatcher/cmd/'+cmd,{method:'POST'}).catch(e=>console.error(e)); }
+function endAo(){
+  if(confirm('End auto operations and return every locomotive to manual control?')){
+    fetch('/dispatcher/endcto',{method:'POST'}).catch(e=>console.error(e));
+  }
+}
+
+function esc(s){
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// v1.11.2 — firmware version chip. FLEET_SW is filled by renderConsole each
+// poll so a mismatch is judged against what everyone else is running, not
+// against a hard-coded expectation that would rot at the next release.
+var FLEET_SW = {};
+function swChip(l) {
+  var sw = l.sketch || '';
+  if (!sw) return '<span class="swchip unknown">SW ?</span>';
+  // v1.12.0: NAVI_EYES_WIDE_OPEN_INTEGRATED_R2 -> EWO.R2, or it pushes the
+  // mode chip off the fixed-height row.
+  var shortSw = sw.replace(/^QUORUM_/, '')
+                  .replace(/^NAVI_EYES_WIDE_OPEN(_INTEGRATED)?_?/, 'EWO_')
+                  .replace(/_/g, '.');
+  var others = Object.keys(FLEET_SW).filter(function (k) { return k !== l.id && FLEET_SW[k]; });
+  var mixed = others.some(function (k) { return FLEET_SW[k] !== sw; });
+  return '<span class="swchip' + (mixed ? ' mismatch' : '') + '" title="' + esc(sw) +
+         (mixed ? ' — FLEET MISMATCH: builds differ, roles may not confirm' : '') +
+         '">' + esc(shortSw) + '</span>';
+}
+
+// v1.11.2 — one CTO line per column: why this locomotive is or is not moving.
+function ctoRow(l) {
+  if (!l.cto) return '<div class="ctorow"></div>';
+  var c;
+  try { c = JSON.parse(l.cto); } catch (e) { return '<div class="ctorow"></div>'; }
+  if (c.fleet_hold) return '<div class="ctorow"><span class="hold">FLEET STOP</span></div>';
+  // v1.11.4: a locomotive on a CE mission is deliberately unpaired — CE severs
+  // the bubble — so "unpaired" was technically true and told the operator
+  // nothing about what the train was actually doing. The mission is the more
+  // useful fact while one is running; the pairing state returns when it ends.
+  var role;
+  if (c.mission && c.mission !== 'NONE') role = c.mission;
+  else role = (c.role && c.role !== 'NONE') ? c.role : 'unpaired';
+  var gap = (c.gap_ahead !== undefined && c.gap_ahead >= 0) ? (' &middot; gap ' + c.gap_ahead) : '';
+  var t = '';
+  if (c.traffic === 3) t = ' &middot; <span class="hold">HOLDING</span>';
+  else if (c.traffic === 1) t = ' &middot; <span class="slow">SLOWING</span>';
+  var cls = (c.mission && c.mission !== 'NONE') ? ' class="ce"' : '';
+  return '<div class="ctorow"><span' + cls + '>' + role.toLowerCase() + '</span>' +
+         gap + t + '</div>';
+}
+
+// v1.11.3 — IR Test A speed readout, one line, same hidden-until-heard
+// pattern as ctoRow(). authority is always OBSERVE_ONLY in this build — the
+// fixed string is Test A's own acceptance check, and the label makes that
+// visible on the console too, so nobody reads this as a control input.
+function irRow(l) {
+  if (!l.speed_view) return '<div class="irrow"></div>';
+  var v;
+  try { v = JSON.parse(l.speed_view); } catch (e) { return '<div class="irrow"></div>'; }
+  var ir = (v.ir_valid && v.ir_mmps !== null && v.ir_mmps !== undefined)
+    ? (Math.round(v.ir_mmps) + ' mm/s')
+    : '<span class="stale">no signal</span>';
+  var mm = (v.mm_valid && v.mm_mmps !== null && v.mm_mmps !== undefined)
+    ? (' &middot; mm ' + Math.round(v.mm_mmps) + ' mm/s') : '';
+  return '<div class="irrow">IR ' + ir + mm +
+         ' <span class="irauth">' + esc(v.authority || '') + '</span></div>';
+}
+
+function colHtml(l){
+  var stale = !l.heard;
+  var st = function(x){ return (x===null||x===undefined||x==='--'||stale) ? ' stale' : ''; };
+  var val = function(x){ return (x===null||x===undefined||x==='--') ? '\\u2014' : x; };
+  var m = MODE_VIEW[l.mode] || MODE_VIEW['NONE'];
+  // v1.12.0: an EWO locomotive has no quorum and no polarity verdicts. Its
+  // pill is NAVI's navigation state and the row below it is NAVI's target.
+  var q = l.ewo ? l.ewo_pill : (QUORUM_VIEW[l.quorum] || QUORUM_VIEW['UNKNOWN']);
+  var mm = (l.mm && l.mm !== '--') ? l.mm : '\\u2014';
+  var kph = (l.pkph && l.pkph !== '--') ? String(Math.round(parseFloat(l.pkph))) : '\\u2014';
+  var agr = (l.agree_pct === null || l.agree_pct === undefined) ? '\\u2014' : l.agree_pct;
+  var secondLbl = l.ewo ? 'TGT' : '%';
+  var secondVal = l.ewo ? (l.ewo_target || '\\u2014') : agr;
+  var secondRaw = l.ewo ? l.ewo_target : l.agree_pct;
+  var estopped = (l.estop === '1');
+  var stn = '';
+  if (l.ewo && l.ewo_station){
+    stn = '<div class="station-note" style="color:#8cf;">'+esc(l.ewo_station)+'</div>';
+  } else if (l.station && l.station.event){
+    var refused = l.station.event.indexOf('REFUSED')>=0 || l.station.event==='STOP_IGNORED';
+    stn = '<div class="station-note" style="color:'+(refused?'#f88':'#8c8')+';">'+
+          esc(l.station.event)+(l.station.seq!=null?(' #'+l.station.seq):'')+'</div>';
+  } else { stn = '<div class="station-note"></div>'; }
+
+  return '<div>'+
+    '<div class="col-hdr">'+
+      '<div class="namerow">'+
+        '<span class="col-name">'+esc(l.name).toUpperCase()+'</span>'+
+        '<span class="link-tiny '+(l.heard?'up':'down')+'">'+(l.heard?'ONLINE':'STALE')+'</span>'+
+      '</div>'+
+      '<div class="chiprow">'+
+        '<span class="mode '+m[1]+'">'+m[0]+'</span>'+
+        swChip(l)+
+      '</div>'+
+      ctoRow(l)+
+      irRow(l)+
+    '</div>'+
+    '<button class="cbtn btn-go"   onclick="dc(\\'go/'+l.id+'\\')">BEGIN</button>'+
+    '<button class="cbtn btn-stop" onclick="dc(\\'stop/'+l.id+'\\')">PAUSE</button>'+
+    '<button class="cbtn-estop'+(estopped?' active':'')+'" onclick="dc(\\''+
+      (estopped?'estopclear/':'estopset/')+l.id+'\\')">'+(estopped?'CLEAR':'E-STOP')+'</button>'+
+    '<div class="pill '+q[1]+'"><div class="pv">'+q[0]+'</div></div>'+
+    '<div class="readout"><span class="rl">'+secondLbl+'</span><span class="rv'+st(secondRaw)+'">'+secondVal+'</span></div>'+
+    '<div class="readout"><span class="rl">MM</span><span class="rv'+st(l.mm)+'">'+mm+'</span></div>'+
+    '<div class="readout"><span class="rl">pKPH</span><span class="rv'+st(l.pkph)+'">'+kph+'</span></div>'+
+    '<div class="readout"><span class="rl">PWM</span><span class="rv'+st(l.pwm)+'">'+val(l.pwm)+'</span></div>'+
+    '<div class="readout"><span class="rl">V</span><span class="rv'+st(l.voltage)+'">'+val(l.voltage)+'</span></div>'+
+    stn +
+    '</div>';
+}
+
+function pollStatus(){
+  fetch('/dispatcher/state').then(r=>r.json()).then(s=>{
+    var locos = s.locos || [];
+    var grid = document.getElementById('cgrid');
+    if(!locos.length){
+      grid.style.gridTemplateColumns = '1fr';
+      grid.innerHTML = '<div class="empty-note">No locomotive has been heard '+
+        'this session.<br>A column appears when one starts talking.</div>';
+      return;
+    }
+    grid.style.gridTemplateColumns = 'repeat('+locos.length+',1fr)';
+    grid.className = 'cgrid' + (locos.length >= 4 ? ' cols-4'
+                              : (locos.length === 3 ? ' cols-3' : ''));
+    // v1.11.2: seed the fleet build map BEFORE rendering, so swChip() judges a
+    // mismatch against what the rest of the fleet is actually running.
+    FLEET_SW = {};
+    locos.forEach(function (x) { if (x.sketch) FLEET_SW[x.id] = x.sketch; });
+    grid.innerHTML = locos.map(colHtml).join('');
+  }).catch(e=>{});
+}
+
+var logPausedUntil = 0;
+function clearLog(){
+  document.getElementById('dispatch-log').innerHTML =
+    '<div style="color:#aaa;">Cleared \\u2014 resuming in 5s</div>';
+  logPausedUntil = Date.now()+5000;
+}
+function pollLog(){
+  if(Date.now() < logPausedUntil) return;
+  fetch('/dispatcher/log').then(r=>r.json()).then(entries=>{
+    if(!entries.length) return;
+    document.getElementById('dispatch-log').innerHTML = entries.map(e=>
+      esc(e.ts+'  '+(e.name||e.loco)+'  '+e.topic+'  '+e.value)
+    ).join('<br>');
+  }).catch(e=>{});
+}
+setInterval(pollStatus,2000);
+setInterval(pollLog,1000);
+pollStatus(); pollLog();
+</script>
+</body></html>"""
+
+
+# ============================================================================
+# Loco page
+# ============================================================================
+LOCO_HTML = """<!DOCTYPE html>
+<html><head>
+<title>NGR &mdash; {{ name }}</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+{{ nav_style }}
+{{ shared_css }}
+.header-wrap { position:relative; display:flex; align-items:center;
+  justify-content:flex-end; width:100%; }
+.loco-title { position:absolute; left:50%; transform:translateX(-50%);
+  font-size:24px; font-weight:bold; color:#fff; letter-spacing:2px;
+  text-transform:uppercase; }
+.status-line { text-align:center; color:#fff; font-size:18px; font-weight:800;
+  letter-spacing:1px; margin-top:10px; min-height:22px; line-height:1.3; }
+.status-line.bad  { color:#ffb3b3; }
+.status-line.warn { color:#ffe0a0; }
+.status-line.ok   { color:#baffba; }
+.warning-line { text-align:center; color:#ffc040; font-size:14px; font-weight:bold;
+  min-height:16px; margin-top:4px; }
+.motion-bar { text-align:center; font-size:26px; font-weight:900; letter-spacing:4px;
+  padding:14px 4px; border-radius:10px; margin-top:8px; }
+.motion-bar.moving  { background:#7a2508; color:#ffc9a8; border:2px solid #ff7040; }
+.motion-bar.stopped { background:#14421a; color:#a8ffa8; border:2px solid #2a7a2a; }
+.motion-bar.unknown { background:#333;    color:#ccc;    border:2px solid #777; }
+
+.dir-row { display:flex; gap:8px; }
+.dir-btn { flex:1; text-align:center; padding:16px 2px; border-radius:8px;
+  border:2px solid #555; background:rgba(30,30,30,0.8); color:#ccc;
+  font-size:17px; font-weight:bold; cursor:pointer; letter-spacing:1px; }
+.dir-btn.active-rev { background:#5a2020; color:#ffb3b3; border-color:#b32020; }
+.dir-btn.active-fwd { background:#1a4a1a; color:#7fff7f; border-color:#2a7a2a; }
+.dir-btn.locked { opacity:0.35; pointer-events:none; }
+/* Neutral is still a state the firmware reports (direction=1). It is no
+   longer commandable from here, so it needs somewhere to be SEEN. */
+.neutral-chip { text-align:center; margin-top:8px; font-size:14px; font-weight:bold;
+  letter-spacing:1px; padding:8px; border-radius:6px; display:none;
+  background:#4a4a10; color:#ffd080; border:1px solid #aa8800; }
+.gate-note { text-align:center; color:#ffe0a0; font-size:14px; font-weight:bold;
+  min-height:17px; margin-top:8px; }
+
+.thr-pair { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:10px; }
+.thr-cell { text-align:center; }
+.thr-num { font-size:38px; font-weight:bold; font-family:monospace; line-height:1; }
+.thr-num span { font-size:14px; color:#aaa; font-weight:normal; }
+.thr-num.stale { color:#777 !important; }
+.thr-cap { font-size:12px; font-weight:bold; letter-spacing:2px; margin-top:4px; }
+.slider-row { display:flex; align-items:center; gap:8px; }
+.slider-lbl { color:#ddd; font-size:15px; font-weight:bold; letter-spacing:1px; min-width:70px; }
+.slider-val { font-size:19px; font-weight:bold; min-width:36px; text-align:right; }
+.slider-val.green  { color:#4fc34f; }
+.slider-val.yellow { color:#ffc040; }
+input[type=range] { flex:1; height:30px; cursor:pointer; -webkit-appearance:none;
+  appearance:none; border-radius:15px; outline:none; border:none; background:#333; }
+input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; appearance:none;
+  width:34px; height:34px; border-radius:50%; background:#eee; border:2px solid #aaa;
+  cursor:pointer; box-shadow:0 2px 6px rgba(0,0,0,0.5); }
+input[type=range]:disabled { opacity:0.35; }
+/* width:100% IS LOad-BEARING. This slider is a block child of the panel, not
+   a flex item like the throttle and brake, so the flex:1 above does nothing
+   for it and it falls back to the browser's ~129px intrinsic width. At that
+   size 171 marker positions span 129px — 1.3 steps per pixel — and a
+   fingertip cannot land on consecutive values, which is exactly how it
+   reached the field only offering every other marker. */
+input.interval-slider { width:100%; height:34px; border-radius:17px;
+  background:linear-gradient(to right,#4a2a8a 0%,#7050c0 100%); }
+
+.num-row { display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:6px; }
+.num-cell { text-align:center; }
+.big-num { font-size:38px; font-weight:bold; font-family:monospace; line-height:1; }
+.big-num.stale { color:#777 !important; }
+.num-lbl { font-size:15px; font-weight:bold; letter-spacing:1px; margin-top:4px; }
+.age-chip { font-size:11px; color:#999; min-height:13px; font-weight:bold; text-align:center; }
+#ir-speed-reason { overflow-wrap:anywhere; min-height:39px; }
+#ir-coupling-control { color:#ddd; font-size:14px; margin-top:8px; }
+#ir-coupling-control:not([hidden]) { display:inline-flex; align-items:center; gap:6px; }
+@media (max-width:420px) { .num-row .big-num { font-size:24px; } }
+.mm-landmark { text-align:center; font-size:15px; color:#9fd6ff; font-weight:bold;
+  letter-spacing:1px; margin-top:8px; min-height:18px; }
+.mm-countdown { text-align:center; font-size:13px; color:#8ec8f0; font-weight:bold;
+  letter-spacing:1px; font-style:italic; margin-top:2px; min-height:15px; }
+.telem-grid { display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; }
+.telem-cell { background:#222; border-radius:7px; padding:9px 4px; text-align:center; }
+.telem-lbl  { font-size:13px; color:#ddd; margin-bottom:3px; font-weight:bold; }
+.telem-val  { font-size:21px; font-weight:bold; color:#4fc34f; }
+.telem-val.warn  { color:#ffc040; }
+.telem-val.stale { color:#777; }
+.telem-age  { font-size:10px; color:#999; min-height:12px; font-weight:bold; }
+.block-display { text-align:center; color:#f1f1f1; font-size:14px; font-weight:bold;
+  margin-top:6px; letter-spacing:2px; }
+
+.tickmm { display:inline-block; min-width:34px; text-align:center; padding:4px 3px;
+  border-radius:5px; font-family:monospace; font-size:13px; font-weight:bold; }
+.tickmm.a { background:#14421a; color:#7fff7f; border:1px solid #2a7a2a; }
+.tickmm.d { background:#5a2020; color:#ffb3b3; border:1px solid #b32020; }
+/* A gap in the tick row is not missing data — it is markers that passed
+   without a verdict, which happens in NAV_EVALUATING and NAV_NO_QUORUM or
+   across a re-declaration. It is the scar of a position incident and is
+   worth more than the ticks either side of it. */
+.tickgap { display:inline-block; padding:4px 5px; font-size:11px; font-weight:bold;
+  color:#ffd080; font-family:monospace; border-radius:5px;
+  background:rgba(90,74,16,0.45); border:1px dashed #aa8800; }
+.roll-lbl { color:#ddd; font-size:13px; font-weight:bold; letter-spacing:1px;
+  margin-top:2px; line-height:1.35; text-align:center; }
+.session-note { text-align:center; color:#999; font-size:12px; font-weight:bold; margin-top:10px; }
+
+.startup-rule { text-align:center; color:#ddd; font-size:15px; font-weight:800;
+  letter-spacing:4px; margin:22px 0 10px; position:relative; }
+.startup-rule:before, .startup-rule:after { content:""; position:absolute; top:50%;
+  width:26%; height:2px; background:rgba(40,40,40,0.55); }
+.startup-rule:before { left:2%; } .startup-rule:after { right:2%; }
+.sdir-row { display:flex; gap:8px; }
+.sdir-btn { flex:1; text-align:center; padding:14px 2px; border-radius:8px;
+  border:2px solid #555; background:rgba(30,30,30,0.8); color:#ccc;
+  font-size:15px; font-weight:bold; cursor:pointer; }
+.sdir-btn.active { background:#1a3a5a; color:#b8e2ff; border-color:#2a6aa8; }
+.sdir-btn.locked { opacity:0.35; pointer-events:none; }
+.badge-line { text-align:center; font-size:13px; font-weight:bold; letter-spacing:1px;
+  margin-top:8px; padding:7px; border-radius:6px; }
+.badge-line.ready    { color:#a8ffa8; background:rgba(42,122,42,0.25); }
+.badge-line.notready { color:#ffb3b3; background:rgba(90,32,32,0.25); }
+.badge-line.set      { color:#d0b8ff; background:rgba(60,30,100,0.35); }
+.badge-line.notset   { color:#bbb;    background:rgba(30,30,30,0.4); }
+.badge-line.waiting  { color:#ffe0a0; background:rgba(90,74,16,0.35); }
+.interval-display { text-align:center; font-size:30px; font-weight:bold;
+  color:#d0b8ff; letter-spacing:3px; margin-bottom:8px; font-family:monospace; }
+.interval-display span { font-size:14px; color:#aaa; font-weight:normal; letter-spacing:1px; }
+.interval-tick-row { display:flex; justify-content:space-between; color:#999;
+  font-size:10px; font-family:monospace; padding:0 2px; margin-top:2px; }
+.send-btn { display:block; width:100%; margin-top:10px; padding:13px; border-radius:8px;
+  border:2px solid #7050c0; background:rgba(60,30,100,0.5); color:#d0b8ff;
+  font-size:16px; font-weight:bold; letter-spacing:1px; cursor:pointer; }
+.send-btn:disabled { opacity:0.35; cursor:default; }
+.auto-btn { display:block; width:100%; padding:18px; border-radius:10px;
+  border:2px solid #4a4; background:rgba(40,70,40,0.6); color:#7f7;
+  font-size:19px; font-weight:bold; letter-spacing:3px; cursor:pointer;
+  text-align:center; text-decoration:none; }
+.auto-btn.on     { background:#1a4a1a; color:#7fff7f; border-color:#2a7a2a; }
+.auto-btn.locked { opacity:0.4; pointer-events:none; }
+/* v1.12.0 NAVI panel */
+.navi-where { display:flex; align-items:center; justify-content:center; gap:14px; }
+.navi-cell { text-align:center; min-width:110px; }
+.navi-cell .big-num { color:#9fd6ff; font-size:44px; }
+.navi-arrow { color:#888; font-size:30px; font-weight:bold; }
+.navi-sub { text-align:center; color:#bbb; font-size:13px; font-weight:bold;
+  letter-spacing:1px; margin-top:4px; min-height:15px; }
+.navi-mode, .navi-result, .navi-station, .navi-control { text-align:center; font-size:15px;
+  font-weight:bold; letter-spacing:1px; margin-top:7px; padding:6px; border-radius:6px; }
+.navi-mode.ok   { color:#a8ffa8; background:rgba(42,122,42,0.25); }
+.navi-mode.warn { color:#ffe0a0; background:rgba(90,74,16,0.45); }
+.navi-mode.bad  { color:#ffb3b3; background:rgba(120,30,30,0.5); }
+.navi-mode.unset{ color:#bbb;    background:rgba(30,30,30,0.4); }
+.navi-result.ok   { color:#a8ffa8; }
+.navi-result.warn { color:#ffd080; }
+.navi-result.info { color:#9fd6ff; }
+.navi-station { color:#9fd6ff; background:rgba(20,50,80,0.45); }
+.navi-station:empty, .navi-result:empty, .navi-control:empty { display:none; }
+.navi-control { color:#ddd; font-size:13px; }
+.navi-alerts div { text-align:center; font-size:13px; font-weight:bold; margin-top:5px;
+  padding:5px; border-radius:5px; }
+.navi-alerts .bad  { color:#fff; background:#8a1a1a; }
+.navi-alerts .warn { color:#1a1a1a; background:#e0b040; }
+.ev-sec { color:#9fd6ff; font-size:12px; font-weight:bold; letter-spacing:1px; margin:8px 0 3px; }
+.ev-row { display:flex; justify-content:space-between; gap:8px; color:#ddd; font-size:12px;
+  font-family:monospace; border-bottom:1px solid #333; padding:2px 0; }
+.ev-row span:last-child { color:#fff; text-align:right; overflow-wrap:anywhere; }
+.ev-log { color:#ccc; font-size:11px; font-family:monospace; background:#0a0a0a;
+  padding:6px; border-radius:6px; max-height:200px; overflow-y:auto; }
+</style></head><body>
+{{ nav_html }}
+<div class="container">
+
+  <div class="panel">
+    <div class="header-wrap">
+      <span class="loco-title">{{ name }}</span>
+      <span class="badge badge-offline" id="online-badge">OFFLINE</span>
+    </div>
+    <div id="fault-banner" style="display:none;background:#b32020;color:#fff;
+      font-size:13px;font-weight:bold;padding:8px;border-radius:8px;margin-bottom:8px;
+      line-height:1.35;word-break:break-word;"></div>
+    <div class="status-line" id="status-line">NO TELEMETRY THIS SESSION</div>
+    <div class="warning-line" id="warning-line"></div>
+    <div class="motion-bar unknown" id="motion-bar">UNKNOWN</div>
+  </div>
+
+  <!-- v1.12.0 NAVI (EWO locomotives only; hidden for legacy firmware).
+       Everything here is what NAVI published: its position, the MM it is
+       seeking, its latest conclusion, its navigation mode, and the station
+       controller's phase. The dashboard computes none of it. -->
+  <div class="panel" id="navi-panel" style="display:none;">
+    <div class="sec-hdr">NAVI</div>
+    <div class="navi-where">
+      <div class="navi-cell">
+        <div class="big-num" id="navi-mm">&mdash;</div>
+        <div class="num-lbl" style="color:#9fd6ff;">POSITION</div>
+      </div>
+      <div class="navi-arrow">&rarr;</div>
+      <div class="navi-cell">
+        <div class="big-num" id="navi-target" style="color:#ffd080;">&mdash;</div>
+        <div class="num-lbl" style="color:#ffd080;">SEEKING</div>
+      </div>
+    </div>
+    <div class="navi-sub" id="navi-last"></div>
+    <div class="navi-sub" id="navi-target-detail"></div>
+    <div class="navi-mode" id="navi-mode"></div>
+    <div class="navi-result" id="navi-result"></div>
+    <div class="navi-station" id="navi-station"></div>
+    <div class="navi-control" id="navi-control"></div>
+    <div class="navi-alerts" id="navi-alerts"></div>
+  </div>
+
+  <!-- DIRECTION. FOR / REV only; NEUTRAL is reported, not commanded. -->
+  <div class="panel" id="panel-dir">
+    <div class="sec-hdr">DIRECTION</div>
+    <div class="dir-row">
+      <button onclick="sendDir(0)" id="dir-btn-0" class="dir-btn">REV</button>
+      <button onclick="sendDir(2)" id="dir-btn-2" class="dir-btn">FOR</button>
+    </div>
+    <div class="neutral-chip" id="neutral-chip">REPORTING NEUTRAL</div>
+    <div class="gate-note" id="dir-gate-note"></div>
+  </div>
+
+  <!-- THROTTLE. NEVER locked in MANUAL (v1.10.2 operator ruling): undeclared
+       operation is signalled by the status line, not by a disabled control.
+       The slider is the OPERATOR'S commanded value and never moves by itself;
+       the loco's actual PWM is the separate read-only figure beside it. -->
+  <div class="panel" id="panel-throttle">
+    <div class="sec-hdr">THROTTLE</div>
+    <div class="thr-pair">
+      <div class="thr-cell">
+        <div class="thr-num" id="throttle-display" style="color:#7fff9f;">0<span> / 255</span></div>
+        <div class="thr-cap" style="color:#7fff9f;">COMMANDED</div>
+      </div>
+      <div class="thr-cell">
+        <div class="thr-num" id="thr-actual" style="color:#9fd6ff;">&mdash;</div>
+        <div class="thr-cap" style="color:#9fd6ff;">PWM <span id="thr-actual-age"
+             style="color:#999;font-size:10px;font-weight:normal;"></span></div>
+      </div>
+    </div>
+    <div class="slider-row">
+      <!-- v1.11.2: value="0" is only the pre-telemetry placeholder now.
+           pollState() syncs this from the locomotive's commanded throttle
+           whenever the operator is not touching it. -->
+      <input type="range" min="0" max="255" value="0" step="1"
+             id="throttle-slider"
+             onpointerdown="thrDragStart(this.value)"
+             ontouchstart="thrDragStart(this.value)"
+             oninput="thrInput(this.value)"
+             onchange="thrRelease(this.value)" />
+      <span class="slider-val green" id="thr-val">0</span>
+    </div>
+    <div class="gate-note" id="throttle-gate-note"></div>
+  </div>
+
+  <!-- v1.11.2: CTO status. Hidden entirely until the locomotive publishes a
+       CTO_STATUS heartbeat, so pre-CTO firmware shows nothing rather than a
+       fabricated state. -->
+  <div class="panel" id="cto-panel" style="display:none;">
+    <div class="thr-cap" style="color:#9fd6ff;">CTO</div>
+    <div id="cto-line" style="font-size:15px;margin-top:4px;">&mdash;</div>
+    <div id="cto-why" style="font-size:12px;margin-top:3px;color:#777;"></div>
+  </div>
+
+  <div class="panel">
+    <div class="slider-row">
+      <span class="slider-lbl">BRAKE</span>
+      <input type="range" min="0" max="255" value="0" step="1"
+             id="brake-slider" style="direction:rtl;"
+             oninput="sendCmd('brake',this.value);
+                      document.getElementById('brake-val').textContent=this.value" />
+      <span class="slider-val yellow" id="brake-val">0</span>
+    </div>
+  </div>
+
+  <!-- E-STOP: manual-chamber control (R4/P5), never gated within it. -->
+  <div class="panel">
+    <button onclick="toggleEstop()" id="estop-btn" class="estop-btn">E-STOP</button>
+  </div>
+
+  <div class="panel">
+    <div class="num-row">
+      <div class="num-cell">
+        <div class="big-num stale" id="mm-display" style="color:#9fd6ff;">&mdash;</div>
+        <div class="age-chip" id="mm-display-age"></div>
+        <div class="num-lbl" style="color:#9fd6ff;">MM</div>
+      </div>
+      <div class="num-cell">
+        <div class="big-num stale" id="kph-display" style="color:#ffd080;">&mdash;</div>
+        <div class="age-chip" id="kph-display-age"></div>
+        <div class="num-lbl" style="color:#ffd080;" id="kph-label">pKPH</div>
+      </div>
+      <div class="num-cell">
+        <div class="big-num stale" id="pwm-display" style="color:#7fff9f;">&mdash;</div>
+        <div class="age-chip" id="pwm-display-age"></div>
+        <div class="num-lbl" style="color:#7fff9f;">PWM</div>
+      </div>
+      <div class="num-cell">
+        <div class="big-num stale" id="irkph-display" style="color:#c9a0ff;">&mdash;</div>
+        <div class="age-chip" id="irkph-display-age"></div>
+        <div class="num-lbl" style="color:#c9a0ff;">IR pKPH</div>
+        <div class="age-chip" id="ir-speed-reason"></div>
+      </div>
+    </div>
+    <label id="ir-coupling-control" hidden>
+      <input type="checkbox" id="ir-coupled" onchange="setIrCoupled(this.checked)">
+      IR car coupled
+    </label>
+    <div class="mm-landmark" id="mm-landmark"></div>
+    <div class="mm-countdown" id="mm-countdown"></div>
+  </div>
+
+  <!-- INA219 telemetry. QUORUM v1.7 restored the service (decision 0012) and
+       publishes all three every 5 s, retained. -->
+  <div class="panel">
+    <div class="telem-grid">
+      <div class="telem-cell">
+        <div class="telem-lbl">Voltage</div>
+        <div class="telem-val stale" id="telem-voltage">&mdash;</div>
+        <div class="telem-age" id="telem-voltage-age"></div>
+      </div>
+      <div class="telem-cell">
+        <div class="telem-lbl">Current</div>
+        <div class="telem-val stale" id="telem-current">&mdash;</div>
+        <div class="telem-age" id="telem-current-age"></div>
+      </div>
+      <div class="telem-cell">
+        <div class="telem-lbl">Power</div>
+        <div class="telem-val stale" id="telem-power">&mdash;</div>
+        <div class="telem-age" id="telem-power-age"></div>
+      </div>
+    </div>
+    <div class="block-display" id="block-display"></div>
+  </div>
+
+  <!-- v1.12.0: development evidence for EWO — why NAVI believes what it
+       says. Collapsed by default; none of it is an operator alarm. -->
+  <div class="panel" id="evidence-panel" style="display:none;">
+    <div class="log-hdr">
+      <span style="color:#ddd;font-size:13px;font-weight:bold;letter-spacing:1px;">NAVI EVIDENCE (DEVELOPMENT)</span>
+      <button class="log-btn" id="evidence-toggle" onclick="toggleEvidence()">EXPAND</button>
+    </div>
+    <div id="evidence-body" style="display:none;"></div>
+  </div>
+
+  <div class="panel" id="agree-panel">
+    <div class="sec-hdr">POLARITY AGREEMENT</div>
+    <div style="display:flex;justify-content:space-around;align-items:center;">
+      <div style="text-align:center;">
+        <div class="big-num stale" id="agree-pct" style="font-size:44px;">&mdash;</div>
+        <div class="roll-lbl">AGREE %<br><span style="color:#9fd6ff;">LAST 10 VERDICTS</span></div>
+      </div>
+      <div style="text-align:left;color:#ddd;font-size:15px;font-weight:bold;line-height:1.7;">
+        <span id="agree-n" style="color:#7fff7f;font-family:monospace;">0</span> agree<br>
+        <span id="disagree-n" style="color:#ff8080;font-family:monospace;">0</span> disagree
+      </div>
+    </div>
+    <div id="verdict-ticks" style="display:flex;gap:5px;justify-content:center;
+      margin-top:10px;flex-wrap:wrap;align-items:center;min-height:34px;"></div>
+    <div class="session-note" id="session-note"></div>
+  </div>
+
+  <!-- ==================== STARTUP ==================== -->
+  <div class="startup-rule">STARTUP</div>
+
+  <div class="panel" id="panel-sdir">
+    <div class="sec-hdr">SESSION ORIENTATION</div>
+    <div class="sdir-row">
+      <button onclick="sendSessionDir('CW')"  id="sdir-cw"  class="sdir-btn">CLOCKWISE</button>
+      <button onclick="sendSessionDir('CCW')" id="sdir-ccw" class="sdir-btn">COUNTER-CLOCKWISE</button>
+    </div>
+    <div class="badge-line notready" id="navready-badge">SESSION DIRECTION NOT CONFIRMED THIS SESSION</div>
+  </div>
+
+  <div class="panel" id="panel-interval">
+    <div class="sec-hdr">SET LOCATION</div>
+    <div class="interval-display" id="interval-display">
+      <span style="color:#999;">&mdash; slide to select &mdash;</span>
+    </div>
+    <input type="range" min="0" max="170" step="1" value="85"
+           id="interval-slider" class="interval-slider"
+           oninput="onIntervalSlide(this.value)" />
+    <div class="interval-tick-row">
+      <span>000</span><span>017</span><span>034</span><span>051</span>
+      <span>068</span><span>085</span><span>102</span><span>119</span>
+      <span>136</span><span>153</span><span>170</span>
+    </div>
+    <button class="send-btn" id="interval-send" onclick="sendInterval()">SET LOCATION</button>
+    <div class="gate-note" id="interval-gate-note"></div>
+    <div class="badge-line notset" id="interval-badge">NO LOCATION CONFIRMED THIS SESSION</div>
+  </div>
+
+  <!-- AUTO only. Manual is the default and cannot be chosen from here while
+       auto is in force; P9 keeps release on the dispatcher console. -->
+  <div class="panel">
+    <a href="/loco/{{ slug }}/mode/1" class="auto-btn" id="auto-btn">AUTO</a>
+    <div class="gate-note" id="auto-gate-note"></div>
+  </div>
+
+  <div class="panel">
+    <div class="log-hdr">
+      <span style="color:#ddd;font-size:13px;font-weight:bold;letter-spacing:1px;">PACKET LOG</span>
+      <span>
+        <button class="log-btn" id="log-filter" onclick="toggleLogFilter()" style="display:none;">SHOW PERIODIC</button>
+        <button class="log-btn" id="log-clear"  onclick="clearLog('loco-log')" style="display:none;">CLEAR</button>
+        <button class="log-btn" id="log-toggle" onclick="toggleLogOpen()">EXPAND</button>
+      </span>
+    </div>
+    <div class="log-body" id="loco-log" style="display:none;"></div>
+  </div>
+
+</div>
+<script>
+// ==========================================================================
+// All rendering below is driven by /loco/{{ slug }}/state — the ACTIVE TAB's
+// locomotive, and nothing else. v1.10.2 operator ruling: the dashboard must
+// never say no to a manual operator. Controls are disabled only by the AUTO
+// chamber (dispatcher control); everything else is loud truth in the status
+// line. Declared/undeclared state MIRRORS the locomotive's reported nav
+// state; the dashboard never generates a re-declaration requirement itself.
+// ==========================================================================
+// ---- FAULT BANNER (v1.10.6) -----------------------------------------------
+// There is no console on a phone in a garden. An exception inside pollState()
+// would stop every later DOM update and leave the operator nothing to report
+// but "it broke". Paint it on the page instead.
+function showFault(msg){
+  try {
+    var b = document.getElementById('fault-banner');
+    if(!b) return;
+    var t = new Date().toTimeString().slice(0,8);
+    b.style.display = '';
+    b.textContent = '\\u26a0 DASHBOARD FAULT ' + t + ' \\u2014 ' + msg +
+                    '  (controls still work; reload to clear)';
+  } catch(e) {}
+}
+window.addEventListener('error', function(e){
+  showFault((e.message||'error') + ' @' + (e.lineno||'?'));
+});
+window.addEventListener('unhandledrejection', function(e){
+  showFault('promise: ' + (e.reason && e.reason.message ? e.reason.message : e.reason));
+});
+
+// A dropped request is ORDINARY. An exception thrown inside our own render
+// code is not: that is the fault that makes the page look frozen. Only the
+// second kind earns a banner, or the banner becomes noise and stops being
+// read. (CODEX review of v1.10.6: a caught rejection fires neither
+// window.onerror nor unhandledrejection.)
+function pollFail(where, e){
+  var m = (e && e.message) ? e.message : String(e);
+  if (/failed to fetch|load failed|networkerror|network request failed|aborted/i.test(m)) return;
+  showFault(where + ' \\u2014 ' + m);
+}
+
+var SLUG = '{{ slug }}';
+var LOCO = '{{ name }}'.toUpperCase();
+var STALE_S = 5;
+// Same conversion the server applies to est_mm_s for the pKPH tile — a house
+// speed unit, NOT physical km/h (decision 0099). Injected from the server's
+// own PKPH_PER_MM_S so the IR pKPH tile can never drift from what pKPH means
+// on this page.
+var PKPH_PER_MM_S = {{ pkph_per_mm_s }};
+
+// Prefer NAVI's judgment; older firmware retains the raw IR display fallback.
+// Published ir_pkph is redundant cross-check telemetry.
+// Never reinterpret a bare telem/speed Hall estimate as an IR measurement.
+function irSpeedView(s) {
+  var link = null, v = null, age = null;
+  try { link = JSON.parse(s.ir_link || 'null'); } catch (e) {}
+  if (link && typeof link === 'object' && 'ir_valid' in link) {
+    v = link; age = ageOf(s, 'ir_link');
+  } else {
+    try { v = JSON.parse(s.speed_view || 'null'); } catch (e) {}
+    age = ageOf(s, 'speed_view');
+  }
+  var available = v && typeof v === 'object' && !Array.isArray(v);
+  var fresh = age !== null && age >= 0 && age <= STALE_S;
+  var interpreted = available && 'navi_speed_valid' in v;
+  var flag = available && (interpreted ? v.navi_speed_valid : v.ir_valid);
+  var mmps = available && (interpreted ? v.navi_speed_mmps : v.ir_mmps);
+  var reason = available && (interpreted ? v.navi_speed_reason : v.ir_speed_reason);
+  var valid = (flag === true || flag === 1) &&
+    typeof mmps === 'number' && isFinite(mmps) && mmps >= 0;
+  return {value: fresh && valid ? (mmps * PKPH_PER_MM_S).toFixed(1) : '--',
+    age: age, reason: !fresh ? 'TELEMETRY_STALE' : !available ? 'NO_IR_SPEED' :
+      (reason || (valid ? 'MEASURED' : 'UNAVAILABLE')),
+    couplingSupported: !!(link && typeof link.ir_coupled === 'number'),
+    coupled: !!(link && link.ir_coupled === 1), couplingFresh: fresh && v === link};
+}
+
+function setIrCoupled(value) {
+  fetch('/loco/'+SLUG+'/cmd/ir_coupled/'+(value ? '1' : '0'), {method:'POST'})
+    .catch(e=>console.error(e));
+}
+var isCto = false;
+var lastEpoch = null;
+// v1.10.4 (BUG 2): the last direction the OPERATOR commanded. Display memory
+// only — nothing is gated on it. It keeps the button lit until the locomotive
+// actually reports a direction, so a missing echo can never blank the
+// selection or let it fall back to a default.
+var lastCommandedDir = null;
+
+function ageOf(s, f){
+  var a = s.ages ? s.ages[f] : null;
+  return (a === null || a === undefined) ? null : a;
+}
+function isFresh(s, f){ var a = ageOf(s, f); return a !== null && a <= STALE_S; }
+
+function setTile(id, val, age){
+  var el = document.getElementById(id);
+  var ageEl = document.getElementById(id + '-age');
+  if(!el) return;
+  if(age === null || val === null || val === undefined || val === '--' || val === ''){
+    el.innerHTML = '&mdash;';
+    el.classList.add('stale');
+    if(ageEl) ageEl.textContent = '';
+  } else if(age > STALE_S){
+    el.textContent = val;
+    el.classList.add('stale');
+    if(ageEl) ageEl.textContent = Math.round(age) + ' s ago';
+  } else {
+    el.textContent = val;
+    el.classList.remove('stale');
+    if(ageEl) ageEl.textContent = '';
+  }
+}
+
+// ---- Location slider: purely local until SET LOCATION is pressed ----
+var pendingInterval = null;
+var MM_TOTAL = 171;
+// v1.11.1 — THERE IS NO CONFIRMATION WAIT. Operator ruling after the first
+// field test: "I don't need to wait for confirmation. Besides, it prevented
+// me from enlisting Toby in auto mode."
+//
+// The old pendingSend held a WAITING FOR CONFIRMATION… state for up to 12 s
+// and, worse, AUTO's pre-flight tested the locomotive's ECHOED start_interval
+// — so a locomotive that never echoed could not be enlisted at all, however
+// many times the operator declared its position. P6 is explicit that
+// withholding cmd/auto is SEQUENCING, not authority: QUORUM owns the refusals
+// (P11) and this console displays them raw. So the gate now asks whether the
+// operator supplied orientation and location, not whether the locomotive
+// echoed them back.
+//
+// What was SENT is remembered only to unlock AUTO and to label the badge
+// honestly. It is display memory, exactly like lastCommandedDir (v1.10.4) —
+// nothing is gated on it beyond sequencing, and it is NEVER shown as
+// CONFIRMED. Confirmed means the locomotive said it.
+var lastSentInterval = null;
+var lastSentSdir = null;
+
+function mmToInterval(mm) {
+  var lo = mm % MM_TOTAL;
+  var hi = (lo + 1) % MM_TOTAL;
+  return ('000'+lo).slice(-3) + '-' + ('000'+hi).slice(-3);
+}
+function onIntervalSlide(val) {
+  var mm = parseInt(val);
+  pendingInterval = mmToInterval(mm);
+  var lo = ('000'+mm).slice(-3);
+  var hi = ('000'+((mm+1)%MM_TOTAL)).slice(-3);
+  document.getElementById('interval-display').innerHTML =
+    '<b>'+lo+'</b><span> \\u2014 </span><b>'+hi+'</b>';
+}
+// TAP PUBLISHES. No confirmation wait, no bounce guard — the same rule the
+// direction buttons have followed since v1.10.2, where a 1 s guard swallowing
+// a deliberate re-press was itself the bug.
+function sendInterval() {
+  var btn = document.getElementById('interval-send');
+  if (btn.disabled) return;                  // AUTO chamber only
+  if (!pendingInterval) {
+    var b = document.getElementById('interval-badge');
+    b.textContent = 'SLIDE TO SELECT A LOCATION FIRST';
+    b.className = 'badge-line notset';
+    return;
+  }
+  lastSentInterval = pendingInterval;
+  fetch('/loco/'+SLUG+'/startinterval/'+lastSentInterval, {method:'POST'})
+    .catch(e => console.error(e));
+}
+
+// ---- Station MM countdown ----
+var MM_STATIONS = [
+  { name: "Southpoint", mm: 0   },
+  { name: "Patio",      mm: 15  },
+  { name: "Grillers",   mm: 63  },
+  { name: "Westpoint",  mm: 72  },
+  { name: "Northpoint", mm: 98  },
+  { name: "Arches",     mm: 108 },
+  { name: "Eastpoint",  mm: 140 },
+  { name: "Bamboo",     mm: 157 }
+];
+function mmCountdown(currentMmStr) {
+  var cur = parseInt(currentMmStr, 10);
+  if (isNaN(cur)) return '';
+  for (var i = 0; i < MM_STATIONS.length; i++) {
+    var st = MM_STATIONS[i];
+    var ahead = (st.mm - cur + MM_TOTAL) % MM_TOTAL;
+    if (ahead === 0) return 'AT ' + st.name.toUpperCase();
+    if (ahead > 0 && ahead <= 5) return st.name + ' \\u2192 ' + ahead;
+  }
+  return '';
+}
+
+// The whole manual command path: read the value, publish it. The isCto test
+// is the CHAMBER boundary (dispatcher in control), not a manual gate — in
+// MANUAL it is always false. Nothing else may be added here.
+function sendCmd(sub, val) {
+  if (isCto) return;
+  fetch('/loco/'+SLUG+'/cmd/'+sub+'/'+encodeURIComponent(val),{method:'POST'})
+    .catch(e=>console.error(e));
+}
+
+// THROTTLE — publishes immediately, but never stacks requests (v1.10.6).
+// A finger drag emits ~60 input events a second; earlier versions fired a
+// fetch for every one and iOS queued the surplus behind pollState. NOT a
+// debounce and NOT a confirmation wait: the first move goes out at once, and
+// if one is in flight the NEWEST value is held and sent when it returns.
+var thrInFlight = false, thrPending = null;
+
+// STARTING FROM ZERO, PUBLISH ON RELEASE ONLY (operator, 2026-08-29).
+// Dragging up from a standstill published every intermediate value, so the
+// locomotive chased the slider through the whole sweep and the departure was
+// whatever the drag happened to look like. Once it is already moving the
+// operator is trimming a running train and wants the wheel to answer at once,
+// so continuous publishing stays for that case.
+var thrFromZero = false;
+function thrDragStart(v){ thrFromZero = (parseInt(v,10) === 0); }
+function thrInput(v){
+  document.getElementById("thr-val").textContent = v;
+  document.getElementById("throttle-display").innerHTML = v + "<span> / 255</span>";
+  if (!thrFromZero) sendThrottle(v);
+}
+function thrRelease(v){
+  thrFromZero = false;
+  sendThrottle(v);
+}
+function sendThrottle(v) {
+  document.getElementById('thr-val').textContent = v;
+  document.getElementById('throttle-display').innerHTML = v + '<span> / 255</span>';
+  if (isCto) return;
+  if (thrInFlight) { thrPending = v; return; }
+  thrInFlight = true;
+  fetch('/loco/'+SLUG+'/cmd/throttle/' + encodeURIComponent(v), {method:'POST'})
+    .catch(function(e){ console.error(e); })
+    .then(function(){
+      thrInFlight = false;
+      if (thrPending !== null) { var p = thrPending; thrPending = null; sendThrottle(p); }
+    });
+}
+
+// E-STOP: fires in every state including UNSET, LOST and stale.
+function toggleEstop() {
+  var btn = document.getElementById('estop-btn');
+  var isActive = btn.classList.contains('active');
+  if (isActive) {
+    btn.textContent = 'E-STOP';
+    btn.classList.remove('active');
+  } else {
+    btn.textContent = 'E-STOP ACTIVE \\u2014 TAP TO CLEAR';
+    btn.classList.add('active');
+  }
+  // E-STOP GOES FIRST, always. Nothing is added ahead of this line.
+  fetch('/loco/'+SLUG+'/cmd/estop/' + (isActive ? '0' : '1'), {method:'POST'})
+    .catch(e => {
+      console.error(e);
+      if (isActive) {
+        btn.textContent = 'E-STOP ACTIVE \\u2014 TAP TO CLEAR';
+        btn.classList.add('active');
+      } else {
+        btn.textContent = 'E-STOP';
+        btn.classList.remove('active');
+      }
+    });
+  // BUG 1 (SAFETY): zero the throttle behind it. A slider still showing 120
+  // after an E-STOP is a loaded gun — clearing E-STOP could resume at speed.
+  zeroThrottle();
+}
+
+// v1.11.2: is the operator physically on the slider right now? Set on
+// pointer/touch/key down, cleared on up — the guard that lets the poller sync
+// the control without ever moving it under a finger.
+var thrTouching = false;
+(function () {
+  var sl = document.getElementById('throttle-slider');
+  if (!sl) return;
+  ['pointerdown','touchstart','keydown','mousedown'].forEach(function (e) {
+    sl.addEventListener(e, function () { thrTouching = true; });
+  });
+  ['pointerup','touchend','touchcancel','keyup','mouseup','blur'].forEach(function (e) {
+    sl.addEventListener(e, function () { thrTouching = false; });
+  });
+  // A pointer released outside the control still ends the drag.
+  window.addEventListener('pointerup', function () { thrTouching = false; });
+  window.addEventListener('mouseup',   function () { thrTouching = false; });
+})();
+
+// v1.11.2: CTO status. Renders only when the locomotive has published a
+// CTO_STATUS heartbeat — pre-CTO firmware leaves the panel hidden rather than
+// showing an invented state.
+function renderCto(s) {
+  var box = document.getElementById('cto-panel');
+  if (!box) return;
+  if (!s.cto) { box.style.display = 'none'; return; }
+  var c;
+  try { c = JSON.parse(s.cto); } catch (e) { box.style.display = 'none'; return; }
+  box.style.display = '';
+  var age = ageOf(s, 'cto');
+  var stale = (age === null || age > 12);   // heartbeat is 5 s
+  var TRAF = {0: 'CLEAR', 1: 'SLOWING', 3: 'HOLDING'};
+  var role = c.role || 'NONE';
+  var bits = [];
+  bits.push('<b>' + role + '</b>');
+  if (c.partner) bits.push('partner ' + c.partner);
+  if (c.gap_ahead !== undefined && c.gap_ahead >= 0) bits.push('gap ' + c.gap_ahead + ' MM');
+  bits.push('traffic ' + (TRAF[c.traffic] || c.traffic));
+  if (c.mode) bits.push('mode ' + c.mode);
+  var why = '';
+  if (c.fleet_hold) {
+    why = 'FLEET STOP — a peer is stale or has no position';
+  } else if (c.traffic === 3) {
+    why = 'HOLDING for traffic ahead';
+  } else if (c.traffic === 1) {
+    why = 'SLOWED for traffic ahead';
+  }
+  document.getElementById('cto-line').innerHTML = bits.join(' &middot; ');
+  var w = document.getElementById('cto-why');
+  w.textContent = why;
+  w.style.color = c.fleet_hold ? '#ff6b6b' : (c.traffic ? '#ffcc66' : '#777');
+  box.style.opacity = stale ? '0.45' : '1';
+}
+
+// Force the throttle control to 0 and publish it. Used by E-STOP only.
+function zeroThrottle() {
+  var sl = document.getElementById('throttle-slider');
+  if (sl) sl.value = 0;
+  var v = document.getElementById('thr-val');
+  if (v) v.textContent = '0';
+  var d = document.getElementById('throttle-display');
+  if (d) d.innerHTML = '0<span> / 255</span>';
+  // AN E-STOP SUPERSEDES ANYTHING THE COALESCER IS HOLDING (v1.10.8). If a
+  // request is still outstanding, queue a TRAILING ZERO rather than merely
+  // dropping the pending value: the in-flight command may still reach the
+  // broker after ours, so the last throttle published must be 0 whichever
+  // way the ordering falls.
+  thrPending = thrInFlight ? '0' : null;
+  fetch('/loco/'+SLUG+'/cmd/throttle/0', {method:'POST'}).catch(e => console.error(e));
+}
+
+// TAP PUBLISHES. Nothing between the tap and the fetch — no bounce guard, no
+// pending state, no confirmation wait. The button shows it registered the tap
+// AT ONCE (optimistic); the locomotive's confirmed echo re-renders it
+// passively in pollState().
+function sendDir(d) {
+  if (isCto) return;
+  fetch('/loco/'+SLUG+'/cmd/direction/'+d, {method:'POST'}).catch(e => console.error(e));
+  lastCommandedDir = String(d);
+  updateDirButtons(d, true);
+}
+
+function sendSessionDir(d) {
+  if (isCto) return;
+  lastSentSdir = d;
+  fetch('/loco/'+SLUG+'/sessiondir/'+d, {method:'POST'}).catch(e => console.error(e));
+  // No optimistic highlight: the button lights only on this loco's confirmed
+  // state/session_direction. lastSentSdir unlocks AUTO's sequencing and
+  // nothing else — it never lights a button and never reads as CONFIRMED.
+}
+
+// Illumination = THIS loco's confirmed state/direction. NEUTRAL (1) has no
+// button any more, so it is shown as a chip instead of silently lighting
+// nothing — a reported state must remain visible even when it cannot be
+// commanded.
+function updateDirButtons(d, confirmed) {
+  var ds = String(d);
+  var rev = document.getElementById('dir-btn-0');
+  var fwd = document.getElementById('dir-btn-2');
+  rev.classList.remove('active-rev');
+  fwd.classList.remove('active-fwd');
+  if (confirmed && ds === '0') rev.classList.add('active-rev');
+  if (confirmed && ds === '2') fwd.classList.add('active-fwd');
+  document.getElementById('neutral-chip').style.display =
+    (confirmed && ds === '1') ? 'block' : 'none';
+}
+
+function fmt1(v){ var n=parseFloat(v); return isNaN(n)?v:n.toFixed(1); }
+
+function resetLocalSession(){
+  // The LOCOMOTIVE rebooted (its epoch bumped): drop everything staged
+  // locally. This is the only dashboard-side reset there is.
+  lastCommandedDir = null;
+  lastSentInterval = null;
+  lastSentSdir = null;
+  document.getElementById('dir-gate-note').textContent = '';
+  var b = document.getElementById('interval-badge');
+  b.textContent = 'NO LOCATION DECLARED';
+  b.className = 'badge-line notset';
+}
+
+// Rolling agreement over the last ten verdicts. The session totals are still
+// shown, in small print underneath, because they are what the locomotive
+// itself is counting — but the headline number is the recent one.
+function renderAgreement(s){
+  var v = s.verdicts || [];
+  var pctEl = document.getElementById('agree-pct');
+  if (v.length) {
+    var agree = 0;
+    for (var i=0;i<v.length;i++) if (v[i][1] === 1) agree++;
+    var pct = Math.round(100*agree/v.length);
+    pctEl.textContent = pct;
+    pctEl.classList.remove('stale');
+    pctEl.style.color = pct>=90 ? '#7fff7f' : (pct>=70 ? '#ffd080' : '#ff8080');
+    document.getElementById('agree-n').textContent = agree;
+    document.getElementById('disagree-n').textContent = v.length - agree;
+  } else {
+    pctEl.innerHTML = '&mdash;';
+    pctEl.classList.add('stale');
+    pctEl.style.color = '';
+    document.getElementById('agree-n').textContent = '0';
+    document.getElementById('disagree-n').textContent = '0';
+  }
+
+  // Ticks oldest first, with any gap in mm named. A gap means markers passed
+  // without a verdict — nav was evaluating or without quorum, or position was
+  // re-declared. Butting the ticks together threw that away.
+  //
+  // st["verdicts"] is ALREADY oldest-first: the handler appends and pops(0).
+  // Reversing it here computed every step backwards round the loop and
+  // reported "168 silent" between two consecutive markers.
+  // THE GAP IS DIRECTION-BLIND, and it has to be. Marker numbers ASCEND
+  // clockwise and DESCEND counter-clockwise, so a single modular step
+  // forward reads 170 backwards: running CCW, the old formula printed
+  // "169 silent" between every consecutive pair (field, 2026-08-13, Otto
+  // reversed at marker ~1000). Worse than clutter — with a genuine 8-marker
+  // gap running CCW it reported 161, so the number was wrong exactly when
+  // it mattered.
+  //
+  // Take the shorter arc between the two markers. Two consecutive
+  // detections cannot be most of a lap apart, so the short way round is the
+  // distance actually travelled, whichever way the locomotive is pointing.
+  // This also survives a reversal INSIDE the ten-verdict window, which a
+  // fixed direction would not.
+  var out = [], asc = v;
+  for (var j=0;j<asc.length;j++){
+    if (j>0){
+      var fwd  = (asc[j][0] - asc[j-1][0] + MM_TOTAL) % MM_TOTAL;
+      var back = (asc[j-1][0] - asc[j][0] + MM_TOTAL) % MM_TOTAL;
+      var step = Math.min(fwd, back);
+      if (asc[j][0] >= 0 && asc[j-1][0] >= 0 && step > 1){
+        // "N silent" removed 2026-08-29 (operator). The dashboard cannot know
+        // why navMm stepped by more than one -- a declaration and a direction
+        // change both do it legitimately -- and naming the gap "silent
+        // magnets" asserted a cause that is not in evidence. The firmware has
+        // no such concept; this chip was the last place it survived.
+      }
+    }
+    var mm = (asc[j][0] >= 0) ? ('000'+asc[j][0]).slice(-3) : '???';
+    out.push('<span class="tickmm '+(asc[j][1]===1?'a':'d')+'">'+mm+'</span>');
+  }
+  document.getElementById('verdict-ticks').innerHTML = out.join('');
+
+  var tot = (s.agree_n||0) + (s.disagree_n||0);
+  document.getElementById('session-note').textContent = tot
+    ? ('session total: ' + (s.agree_n||0) + ' agree / ' + (s.disagree_n||0) +
+       ' disagree \\u2014 ' + Math.round(100*(s.agree_n||0)/tot) + '%')
+    : '';
+}
+
+// ---- v1.12.0 NAVI_EWO panel. Renders s.ewo_view, which the server builds
+// from NAVI's published state and events only. Nothing here decides. ----
+function esc(x){
+  return String(x).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+var evidenceOpen = false;
+function toggleEvidence(){
+  evidenceOpen = !evidenceOpen;
+  document.getElementById('evidence-body').style.display = evidenceOpen ? '' : 'none';
+  document.getElementById('evidence-toggle').textContent = evidenceOpen ? 'COLLAPSE' : 'EXPAND';
+}
+function renderEvidence(v){
+  var h = [];
+  v.diag.sections.forEach(function(sec){
+    h.push('<div class="ev-sec">' + esc(sec[0]) + '</div>');
+    sec[1].forEach(function(row){
+      h.push('<div class="ev-row"><span>' + esc(row[0]) + '</span><span>' +
+             esc(row[1]) + '</span></div>');
+    });
+  });
+  if (v.diag.firmware_warning) {
+    h.push('<div class="ev-sec">FIRMWARE WARNING (RAW)</div><div class="ev-row"><span>' +
+           esc(v.diag.firmware_warning) + (v.warning_superseded ?
+           ' \\u2014 superseded: NAVI reports position reliable' : '') + '</span></div>');
+  }
+  h.push('<div class="ev-sec">RECENT NAVI CONCLUSIONS</div>');
+  h.push('<div class="ev-log">' + (v.diag.events.length ? v.diag.events.map(function(e){
+    return esc(e.ts + '  ' + e.event + '  mm ' + e.mm + ' tgt ' + e.target +
+               '  med5 ' + e.median5 + ' ref ' + e.reference +
+               (e.degraded ? '  degraded' : '') + (e.position_reliable === 0 ? '  pos-unreliable' : ''));
+  }).join('<br>') : 'none received this session') + '</div>');
+  document.getElementById('evidence-body').innerHTML = h.join('');
+}
+function renderEwo(s, v){
+  var panel = document.getElementById('navi-panel');
+  var evp = document.getElementById('evidence-panel');
+  if (!v) { panel.style.display = 'none'; evp.style.display = 'none'; return; }
+  panel.style.display = ''; evp.style.display = '';
+  var navFresh = isFresh(s, 'ewo_nav');
+  var mmEl = document.getElementById('navi-mm');
+  mmEl.innerHTML = v.mm ? esc(v.mm) : '&mdash;';
+  mmEl.classList.toggle('stale', !navFresh || !v.mm);
+  var tEl = document.getElementById('navi-target');
+  tEl.innerHTML = v.target ? esc(v.target.mm) : '&mdash;';
+  tEl.classList.toggle('stale', !navFresh || !v.target);
+  document.getElementById('navi-last').textContent = v.last_mm
+    ? ('LAST ESTABLISHED MM' + v.last_mm + ' \\u2014 NOT CURRENTLY RELIABLE') : '';
+  var t = v.target;
+  document.getElementById('navi-target-detail').textContent = t
+    ? ('TARGET POLARITY ' + t.polarity + ' \\u00b7 MAPPED ' +
+       (t.distance_mm === null ? '--' : t.distance_mm) + ' mm \\u00b7 ' + t.dir) : '';
+  var modeEl = document.getElementById('navi-mode');
+  modeEl.textContent = v.mode_text;
+  modeEl.className = 'navi-mode ' + ({NORMAL:'ok', DEGRADED:'warn', REFERENCE_PENDING:'warn',
+    REFERENCE_INCOMPLETE:'bad', UNRELIABLE:'bad'}[v.mode] || 'unset');
+  var rEl = document.getElementById('navi-result');
+  rEl.textContent = v.result ? (v.result.text + (v.result.age_s !== null ?
+    ' \\u00b7 ' + Math.round(v.result.age_s) + ' s ago' : '')) : '';
+  rEl.className = 'navi-result ' + (v.result ? v.result.level : '');
+  document.getElementById('navi-station').textContent = v.station ? ('STATION: ' + v.station.text) : '';
+  var counts = v.counts || {};
+  document.getElementById('navi-control').textContent = v.control +
+    (counts.confirmed !== null && counts.confirmed !== undefined
+      ? ' \\u00b7 confirmed ' + counts.confirmed + ' \\u00b7 missed ' + counts.missed : '');
+  // The mode badge and result line already say these; list only the rest.
+  document.getElementById('navi-alerts').innerHTML = v.alerts.filter(function(a){
+    return a.text !== v.mode_text && !(v.result && a.text === v.result.text);
+  }).map(function(a){
+    return '<div class="' + a.level + '">' + esc(a.text) + '</div>';
+  }).join('');
+  if (evidenceOpen) renderEvidence(v);
+}
+
+function pollState(){
+  fetch('/loco/'+SLUG+'/state').then(r=>r.json()).then(s=>{
+    // ---- Session epoch: the loco rebooted -> local staging clears ----
+    if (lastEpoch === null) { lastEpoch = s.epoch; }
+    else if (s.epoch !== lastEpoch) { lastEpoch = s.epoch; resetLocalSession(); }
+
+    // P4: greying and authority display key on ENLISTED (state/auto =
+    // autoEnrolled). s.auto is RUNNING (autoRunning, from the alert) and is
+    // shown as activity, never used for authority.
+    isCto = (s.enlisted === '1');
+    var isRunning = (s.auto === '1');
+
+    var heardAge = ageOf(s, 'heard');
+    var alive = heardAge !== null && heardAge <= STALE_S;
+
+    var badge = document.getElementById('online-badge');
+    if (alive) { badge.textContent='ONLINE'; badge.className='badge badge-online'; }
+    else if (heardAge !== null) { badge.textContent='STALE'; badge.className='badge badge-stale'; }
+    else { badge.textContent='OFFLINE'; badge.className='badge badge-offline'; }
+
+    var ewo = s.ewo_view || null;   // v1.12.0: null for legacy firmware
+    var motion = !isFresh(s,'moving') ? 'UNKNOWN' : (s.moving==='1' ? 'MOVING' : 'STOPPED');
+    if (ewo) motion = ewo.motion.state;   // NAVI-qualified IR speed only
+    var mb = document.getElementById('motion-bar');
+    if (motion==='MOVING')      { mb.textContent='MOVING';  mb.className='motion-bar moving'; }
+    else if (motion==='STOPPED'){ mb.textContent='STOPPED'; mb.className='motion-bar stopped'; }
+    else { mb.textContent = heardAge===null ? 'UNKNOWN \\u2014 NO TELEMETRY' : 'UNKNOWN \\u2014 STALE';
+           mb.className='motion-bar unknown'; }
+    if (ewo && heardAge !== null) mb.textContent = ewo.motion.text;
+    renderEwo(s, ewo);
+
+    var declared = (s.nav==='TRACKING' || s.nav==='NORMAL' || s.nav==='EVALUATING');
+    var sdirConfirmed = (s.session_dir==='CW' || s.session_dir==='CCW')
+                        && ageOf(s,'session_dir') !== null;
+    var intervalConfirmed = s.start_interval && s.start_interval!=='UNSET'
+                        && ageOf(s,'start_interval') !== null;
+    var navReady = s.nav_ready === '1' && declared;
+
+    // ---- Location badge. CONFIRMED means the locomotive said it; SENT means
+    // only that we published it. Nothing waits, nothing times out. ----
+    var ibadge = document.getElementById('interval-badge');
+    if (intervalConfirmed) {
+      ibadge.textContent = 'LOCATION SET \\u2014 ' + s.start_interval + ' \\u2014 CONFIRMED';
+      ibadge.className = 'badge-line set';
+    } else if (declared) {
+      ibadge.textContent = 'POSITION DECLARED';
+      ibadge.className = 'badge-line set';
+    } else if (lastSentInterval) {
+      ibadge.textContent = 'LOCATION SENT \\u2014 ' + lastSentInterval +
+                           ' \\u2014 NOT YET ECHOED';
+      ibadge.className = 'badge-line notset';
+    } else {
+      ibadge.textContent = 'NO LOCATION CONFIRMED THIS SESSION';
+      ibadge.className = 'badge-line notset';
+    }
+
+    // ---- SET LOCATION: a REMINDER, never a refusal (v1.10.5). The operator
+    // decides when it is safe to declare. AUTO remains a chamber boundary,
+    // not a manual gate. ----
+    var intervalGateNote = '';
+    if (isCto)                     intervalGateNote = 'AUTO \\u2014 DISPATCHER IN CONTROL';
+    else if (motion === 'MOVING')  intervalGateNote = LOCO + ' REPORTS MOVING \\u2014 CONFIRM STOPPED BEFORE DECLARING';
+    else if (motion === 'UNKNOWN') intervalGateNote = 'MOTION UNKNOWN \\u2014 CONFIRM ' + LOCO + ' IS STOPPED BEFORE DECLARING';
+    document.getElementById('interval-gate-note').textContent = intervalGateNote;
+    document.getElementById('interval-send').disabled = isCto;
+    document.getElementById('interval-slider').disabled = isCto;
+
+    // ---- MANUAL controls are NEVER locked (v1.10.2). AUTO is the only
+    // disable; it is a chamber, not a gate. ----
+    document.getElementById('throttle-slider').disabled = isCto;
+    document.getElementById('brake-slider').disabled = isCto;
+    document.getElementById('throttle-gate-note').textContent =
+      isCto ? 'AUTO \\u2014 DISPATCHER IN CONTROL' : '';
+
+    document.getElementById('sdir-cw').classList.toggle('active',  sdirConfirmed && s.session_dir==='CW');
+    document.getElementById('sdir-ccw').classList.toggle('active', sdirConfirmed && s.session_dir==='CCW');
+    document.getElementById('sdir-cw').classList.toggle('locked',  isCto);
+    document.getElementById('sdir-ccw').classList.toggle('locked', isCto);
+    var navBadge = document.getElementById('navready-badge');
+    if (navReady) {
+      navBadge.textContent = 'NAV READY \\u2014 ' + s.session_dir;
+      navBadge.className = 'badge-line ready';
+    } else if (sdirConfirmed) {
+      navBadge.textContent = 'DIRECTION ' + s.session_dir + ' CONFIRMED';
+      navBadge.className = 'badge-line notready';
+    } else {
+      navBadge.textContent = 'SESSION DIRECTION NOT CONFIRMED THIS SESSION';
+      navBadge.className = 'badge-line notready';
+    }
+
+    // ---- Motor direction: PASSIVE DISPLAY ONLY. Lit from this loco's
+    // reported state/direction integer. Nothing waits on it and no control's
+    // behaviour depends on it — an echo that never arrives costs a light,
+    // never a command. "--" means we have never received one, which happens
+    // routinely: the firmware publishes state/direction RETAINED and this
+    // dashboard drops retained messages, so a console restart loses it until
+    // the locomotive next changes direction. Treating "never heard" as a
+    // report is what made Toby appear to sit in NEUTRAL (v1.10.9).
+    var dirReported = ageOf(s,'direction') !== null && s.direction !== '--';
+    if (dirReported) updateDirButtons(s.direction, true);
+    else if (lastCommandedDir !== null) updateDirButtons(lastCommandedDir, true);
+    else updateDirButtons(null, false);
+
+    var dirNote = document.getElementById('dir-gate-note');
+    if (dirReported && lastCommandedDir !== null && s.direction !== lastCommandedDir) {
+      var nm = {'0':'REVERSE','1':'NEUTRAL','2':'FORWARD'};
+      var want = nm[lastCommandedDir] || lastCommandedDir;
+      var got  = nm[s.direction] || s.direction;
+      var why  = (motion === 'MOVING')
+               ? ' \\u2014 STOP FIRST: DIRECTION IS REFUSED WHILE MOVING'
+               : (isCto ? ' \\u2014 AUTO IS IN CONTROL' : ' \\u2014 CHECK THE WARNING LINE');
+      dirNote.textContent = want + ' NOT ACCEPTED, ' + LOCO + ' REPORTS ' + got + why;
+    } else if (!dirReported && lastCommandedDir !== null) {
+      dirNote.textContent = LOCO + ' HAS NOT REPORTED ITS DIRECTION \\u2014 SHOWING YOUR LAST COMMAND';
+    } else {
+      dirNote.textContent = '';
+    }
+    document.getElementById('dir-btn-0').classList.toggle('locked', isCto);
+    document.getElementById('dir-btn-2').classList.toggle('locked', isCto);
+
+    // ---- AUTO (P5/P6/P9/R8) ----
+    // Rendered from REPORTED state only. Successful enlistment = AUTO lights
+    // and the manual controls grey; a refusal = nothing changes (R8: the
+    // absence of change IS the refusal signal). No release control here (P9)
+    // — END lives on the dispatcher console.
+    var autoBtn = document.getElementById('auto-btn');
+    var autoNote = document.getElementById('auto-gate-note');
+    // P6: withhold the enlistment request until startup is SUPPLIED — by the
+    // operator, not echoed back by the locomotive. Testing the echo is what
+    // stopped Toby being enlisted at all on 2026-08-13: a locomotive that
+    // never echoes state/start_interval could not be put into AUTO however
+    // many times its position was declared. P6 is sequencing, not authority;
+    // QUORUM owns the refusal (P11) and this console shows it raw.
+    var sdirSupplied = (s.session_dir==='CW' || s.session_dir==='CCW') ||
+                       (lastSentSdir !== null);
+    var locSupplied  = (s.start_interval && s.start_interval!=='UNSET' &&
+                        s.start_interval!=='000-000') ||
+                       (lastSentInterval !== null) || declared;
+    var preflit = sdirSupplied && locSupplied;
+    if (isCto) {
+      autoBtn.className = 'auto-btn on locked';
+      autoBtn.removeAttribute('href');
+      // v1.12.0: ACTIVE, not RUNNING — AUTO in force says nothing about motion.
+      autoBtn.textContent = isRunning ? 'AUTO \\u2014 ACTIVE' : 'ENLISTED';
+      autoNote.textContent = isRunning
+        ? 'Dispatcher holds this locomotive. Release is on the dispatcher console.'
+        : 'Dispatcher holds this locomotive. Release is on the dispatcher console.';
+    } else {
+      autoBtn.textContent = 'AUTO';
+      if (preflit) {
+        autoBtn.className = 'auto-btn';
+        autoBtn.setAttribute('href', '/loco/'+SLUG+'/mode/1');
+        autoNote.textContent = '';
+      } else {
+        autoBtn.className = 'auto-btn locked';
+        autoBtn.removeAttribute('href');   // P6: request withheld, not refused
+        autoNote.textContent = 'AUTO needs startup: set ORIENTATION (CW/CCW), then the location.';
+      }
+    }
+
+    // ---- E-STOP control (R4/P5): manual-chamber only ----
+    var esBtn = document.getElementById('estop-btn');
+    if (esBtn) {
+      esBtn.disabled = isCto;
+      esBtn.title = isCto ? 'Enlisted \\u2014 E-STOP from the dispatcher console' : '';
+      if (s.estop === '1') {
+        esBtn.textContent = 'E-STOP ACTIVE \\u2014 TAP TO CLEAR';
+        esBtn.className = 'estop-btn active';
+      } else {
+        esBtn.textContent = 'E-STOP';
+        esBtn.className = 'estop-btn';
+      }
+    }
+
+    // ---- R13: the slider zeroes on E-STOP so a clear cannot re-command a
+    // stale value. The one sanctioned exception to "the slider never moves by
+    // itself" (v1.10.2), by operator ruling. ----
+    if (s.estop === '1') {
+      var sl = document.getElementById('throttle-slider');
+      if (sl && sl.value !== '0') { sl.value = 0; sendThrottle(0); }
+    }
+
+    // ---- v1.11.2: SLIDER SYNC. The v1.10.2 rule was "the slider never moves
+    // by itself", written so the poller could not fight the operator's finger
+    // mid-drag. But nothing ever seeded it either: value="0" is hard-coded in
+    // the HTML, so arriving at a page showed 0 while the locomotive ran at
+    // 120, and a small nudge then commanded a large change.
+    //
+    // The rule is preserved where it matters and dropped where it lied: sync
+    // from the locomotive's COMMANDED throttle whenever the operator is not
+    // touching the control, never while they are. thrTouching is set on
+    // pointer/touch/key down and cleared on up — so a drag is untouchable, and
+    // the value the operator just published is what comes back anyway.
+    if (!thrTouching && !thrInFlight && thrPending === null) {
+      var sl2 = document.getElementById('throttle-slider');
+      if (sl2 && s.throttle !== undefined && s.throttle !== '--') {
+        var want = String(parseInt(s.throttle, 10));
+        if (want !== 'NaN' && sl2.value !== want) {
+          sl2.value = want;
+          var tv = document.getElementById('thr-val');
+          if (tv) tv.textContent = want;
+        }
+      }
+    }
+
+    // ---- Actual PWM, beside the commanded number ----
+    var actEl = document.getElementById('thr-actual');
+    var actAge = document.getElementById('thr-actual-age');
+    var pwmAge = ageOf(s,'pwm');
+    if (pwmAge === null || s.pwm === '--') {
+      actEl.innerHTML = '&mdash;'; actEl.style.color = '#777'; actAge.textContent = '';
+    } else if (pwmAge > STALE_S) {
+      actEl.textContent = s.pwm; actEl.style.color = '#777';
+      actAge.textContent = Math.round(pwmAge) + 's ago';
+    } else {
+      actEl.textContent = s.pwm; actEl.style.color = '#9fd6ff'; actAge.textContent = '';
+    }
+
+    renderCto(s);   // v1.11.2
+
+    // ---- Telemetry (INA219 restored at QUORUM v1.7, decision 0012) ----
+    setTile('telem-voltage', fmt1(s.voltage), ageOf(s,'voltage'));
+    setTile('telem-current', fmt1(s.current), ageOf(s,'current'));
+    setTile('telem-power',   fmt1(s.power),   ageOf(s,'power'));
+    document.getElementById('telem-voltage').classList.toggle('warn',
+      s.lowvolt === '1' && isFresh(s,'lowvolt'));
+    document.getElementById('block-display').textContent =
+      (s.block && s.block !== '--') ? LOCO + ': ' + s.block : '';
+
+    // ---- MM / pKPH / PWM / IR pKPH (house speed units) ----
+    setTile('mm-display',  s.mm, ageOf(s,'mm'));
+    if (ewo) {
+      // v1.12.0: IR pKPH beside it is the same measurement, so this cell
+      // shows the MM NAVI is seeking instead of repeating the speed.
+      document.getElementById('kph-label').textContent = 'TARGET';
+      setTile('kph-display', ewo.target ? ewo.target.mm : '--', ageOf(s,'ewo_nav'));
+    } else {
+      document.getElementById('kph-label').textContent = 'pKPH';
+      setTile('kph-display', s.pkph !== '--' ? parseFloat(s.pkph).toFixed(1) : '--',
+              ageOf(s,'pkph'));
+    }
+    setTile('pwm-display', s.pwm, ageOf(s,'pwm'));
+
+    const ir = irSpeedView(s);
+    setTile('irkph-display', ir.value, ir.age);
+    document.getElementById('ir-speed-reason').textContent = ir.reason.replace(/_/g, ' ');
+    document.getElementById('ir-coupling-control').hidden = !ir.couplingSupported;
+    const coupling = document.getElementById('ir-coupled');
+    coupling.checked = ir.coupled;
+    coupling.disabled = !ir.couplingFresh;
+    var mmLive = isFresh(s,'mm') && s.mm !== '--';
+    // v1.12.0: for EWO the countdown is RETIRED — it decided station
+    // occupancy from MM. Station state comes from the station controller.
+    document.getElementById('mm-landmark').textContent = (mmLive && !ewo) ? (s.landmark || '') : '';
+    document.getElementById('mm-countdown').textContent = (mmLive && !ewo) ? mmCountdown(s.mm) : '';
+
+    document.getElementById('agree-panel').style.display = ewo ? 'none' : '';
+    if (!ewo) renderAgreement(s);
+
+    // ---- Warning line (the firmware clears it itself after 20 s) ----
+    var warnText = ewo ? ewo.warning : s.warning;
+    document.getElementById('warning-line').textContent = (alive && warnText) ? warnText : '';
+
+    // ---- Plain-language status line. Loss of position, silence and
+    // undeclared operation are LOUD here; they never remove controls. ----
+    var line, cls;
+    if (heardAge === null) {
+      line = LOCO + ' SILENT \\u2014 NO TELEMETRY THIS SESSION'; cls = 'bad';
+    } else if (heardAge > STALE_S) {
+      line = 'TELEMETRY STALE \\u2014 LAST HEARD ' + Math.round(heardAge) + ' s AGO'; cls = 'bad';
+    } else if (s.estop === '1') {
+      line = 'E-STOP ACTIVE'; cls = 'bad';
+    } else if (s.nav === 'UNSET') {
+      line = 'POSITION NOT DECLARED \\u2014 NAVIGATION WILL NOT TRACK'; cls = 'warn';
+    } else if (s.nav === 'LOST') {
+      line = 'POSITION LOST \\u2014 MANUAL CONTROL RETAINED \\u2014 STOP AND RE-DECLARE WHEN READY';
+      cls = 'bad';
+    } else if (s.nav === 'NO_QUORUM') {
+      line = 'POSITION UNCERTAIN \\u2014 QUORUM UNRESOLVED \\u2014 MANUAL CONTROL RETAINED'
+           + (motion === 'STOPPED' ? ' \\u2014 RE-DECLARE LOCATION TO CONTINUE'
+                                   : ' \\u2014 STOP AND RE-DECLARE WHEN READY');
+      cls = 'bad';
+    } else if (s.nav === 'EVALUATING') {
+      line = 'CHECKING POSITION \\u2014 QUORUM EVALUATING \\u2014 MM ' + s.mm; cls = 'warn';
+    } else {
+      line = 'TRACKING \\u2014 MM ' + s.mm; cls = 'ok';
+    }
+    if (ewo) { line = ewo.status.text; cls = ewo.status.cls; }
+    var sl2 = document.getElementById('status-line');
+    sl2.textContent = line;
+    sl2.className = 'status-line ' + cls;
+  }).catch(function(e){ pollFail('pollState', e); });
+}
+
+// ---- Packet log: collapsed by default, periodic republishes filtered ----
+var logOpen = false;
+var showPeriodic = false;
+var logEntries = [];
+var logPausedUntil = {};
+function toggleLogOpen(){
+  logOpen = !logOpen;
+  document.getElementById('loco-log').style.display = logOpen ? '' : 'none';
+  document.getElementById('log-toggle').textContent = logOpen ? 'COLLAPSE' : 'EXPAND';
+  document.getElementById('log-filter').style.display = logOpen ? '' : 'none';
+  document.getElementById('log-clear').style.display  = logOpen ? '' : 'none';
+  if (logOpen) { pollLog(); }
+}
+function toggleLogFilter(){
+  showPeriodic = !showPeriodic;
+  var b = document.getElementById('log-filter');
+  b.textContent = showPeriodic ? 'HIDE PERIODIC' : 'SHOW PERIODIC';
+  b.classList.toggle('on', showPeriodic);
+  renderLog();
+}
+function clearLog(id){
+  document.getElementById(id).innerHTML =
+    '<div style="color:#aaa;font-size:11px;">Cleared \\u2014 resuming in 5s</div>';
+  logPausedUntil[id]=Date.now()+5000;
+}
+function renderLog(){
+  if(!logOpen) return;
+  if(logPausedUntil['loco-log'] && Date.now()<logPausedUntil['loco-log']) return;
+  var shown = showPeriodic ? logEntries : logEntries.filter(function(e){ return !e.p; });
+  if(!shown.length){
+    document.getElementById('loco-log').innerHTML =
+      '<div style="color:#aaa;font-size:11px;">No events' +
+      (logEntries.length ? ' (periodic republishes hidden \\u2014 tap SHOW PERIODIC)' : '') + '</div>';
+    return;
+  }
+  document.getElementById('loco-log').innerHTML = shown.map(function(e){
+    return e.ts+'  '+e.topic+'  '+e.value;
+  }).join('<br>');
+}
+function pollLog(){
+  if(!logOpen) return;   // don't poll a hidden log
+  fetch('/loco/'+SLUG+'/log').then(r=>r.json()).then(entries=>{
+    logEntries = entries;
+    renderLog();
+  }).catch(function(e){ pollFail('pollLog', e); });
+}
+
+setInterval(pollState,1000);
+setInterval(pollLog,1000);
+pollState();
+</script>
+</body></html>"""
+
+
+# ============================================================================
+# Rendering
+# ============================================================================
+def render_loco(lid):
+    return render_template_string(
+        LOCO_HTML,
+        name=loco_name(lid), lid=lid, slug=loco_slug(lid),
+        nav_html=nav(lid), nav_style=NAV_STYLE, shared_css=SHARED_CSS,
+        pkph_per_mm_s=PKPH_PER_MM_S,
+    )
+
+
+# ============================================================================
+# Root / console
+# ============================================================================
+@app.route("/")
+def index():
+    return redirect(url_for("console"))
+
+
+@app.route("/console")
+def console():
+    return render_template_string(
+        CONSOLE_HTML,
+        nav_html=nav("console"), nav_style=NAV_STYLE, shared_css=SHARED_CSS,
+    )
+
+
+@app.route("/dispatcher/state")
+def dispatcher_state():
+    # online = "heard recently", not the retained online flag. Each MQTT
+    # reconnect strands a zombie last-will (the old session's online 0 firing
+    # AFTER the new session's online 1), so the flag flips while the
+    # locomotive streams continuously. Heard-age cannot be fooled that way.
+    now = time.monotonic()
+    with mqtt_lock:
+        out = []
+        for lid in console_order():
+            st = state_or_blank(lid)
+            t = loco_rx.get(lid, {}).get("heard")
+            heard = (t is not None and now - t <= 10)
+            rx = loco_rx.get(lid, {})
+            ages = {f: (now - rx[f]) if f in rx else None for f in AGE_FIELDS}
+            view = _ewo_view(st, ages)
+            out.append({
+                # v1.12.0: EWO columns show NAVI's state, target and station
+                # instead of QUORUM and polarity agreement.
+                "ewo": view is not None,
+                "ewo_pill": _ewo_pill(view, heard) if view is not None else None,
+                "ewo_target": (view["target"]["mm"] if view and view["target"] else None),
+                "ewo_station": (view["station"]["text"] if view and view["station"] else ""),
+                "ewo_motion": (view["motion"]["state"] if view else None),
+                "id": lid,
+                "name": loco_name(lid),
+                "slug": loco_slug(lid),
+                "heard": heard,
+                # v1.11.2: the console shows what is actually RUNNING on each
+                # locomotive. Always published retained by the firmware; the
+                # app has stored it since v1.10.11 and never displayed it.
+                "sketch": st["sketch"],
+                "cto": st["cto"],
+                "mode": _mode_of(st),
+                "quorum": _quorum_of(st, heard),
+                "estop": st["estop"],
+                "mm": st["mm"],
+                "pkph": st["pkph"],
+                "pwm": st["pwm"],
+                "voltage": st["voltage"],
+                "agree_pct": _rolling_agree(st),
+                "agree_n": st["agree_n"],
+                "disagree_n": st["disagree_n"],
+                "block": st["block"],
+                "station": {k: st["station_" + k] for k in ("event", "note", "seq", "ts")},
+            })
+    return jsonify({"locos": out})
+
+
+@app.route("/dispatcher/cmd/<path:subcmd>", methods=["POST"])
+def dispatcher_cmd(subcmd):
+    """P2: bare go/stop fan out per locomotive — QUORUM subscribes only to
+    ngr/dispatcher/cmd/go/<id>, and the suffix-less topic is an ESP-NOW-era
+    fossil the Dispatcher ESP32 used to fan out over radio. Flask is the only
+    place that can live now. The fan-out list is the DISCOVERED set."""
+    parts = subcmd.split("/")
+    verb = parts[0]
+    target = parts[1] if len(parts) > 1 else None
+    # The commandable set is the set ON SCREEN. A column you can see but not
+    # press would be worse than no column, and publishing to a locomotive
+    # that is not listening costs nothing.
+    with mqtt_lock:
+        known = console_order()
+    if target is not None and target not in known:
+        return "", 204
+    if verb in ("go", "stop"):
+        if target:
+            pub_dispatcher("%s/%s" % (verb, target))
+        else:
+            for lid in known:
+                pub_dispatcher("%s/%s" % (verb, lid))
+    elif verb == "ce" and target is None:
+        pub_dispatcher("ce")
+    elif verb == "estop" and target is None:
+        # P12: SET broadcasts — everyone stops is right for an emergency.
+        pub_dispatcher("estop")
+    elif verb == "estopset" and target:
+        pub_loco(target, "estop", "1")
+    elif verb == "estopclear" and target:
+        # P12: CLEAR is PER-LOCOMOTIVE. A broadcast clear would execute the
+        # clear path on locomotives that were never stopped.
+        pub_loco(target, "estop", "0")
+    return "", 204
+
+
+@app.route("/dispatcher/endcto", methods=["POST"])
+def dispatcher_endcto():
+    """v1.11.0: BOTH halves walk the discovered set. v1.10.11 released Otto and
+    Toby by hardcoded id and then fanned stop/ across all of LOCO_IDS — Hans
+    was in that tuple, so END AO stopped Hans and never released it. Deriving
+    the list from what the console shows means the bug cannot recur by someone
+    forgetting to extend a tuple, and END AO cannot miss a locomotive that is
+    enlisted but currently between telemetry."""
+    with mqtt_lock:
+        known = console_order()
+    for lid in known:
+        pub_loco(lid, "dispatcher_release", "1")
+    for lid in known:
+        pub_dispatcher("stop/%s" % lid)
+    return "", 204
+
+
+@app.route("/dispatcher/log")
+def dispatcher_log():
+    with mqtt_lock:
+        entries = list(dispatch_log)
+    for e in entries:
+        e = e.setdefault("name", loco_name(e["loco"]))
+    return jsonify(entries)
+
+
+# ============================================================================
+# Per-locomotive command path
+# ============================================================================
+def _cmd(lid, subtopic, value):
+    """E-STOP is NEVER gated: it publishes in every state — UNSET, LOST,
+    stale, and AUTO (v1.9.5 returned 423 for estop in AUTO; that was wrong).
+    Driving commands respect AUTO; IR coupling only qualifies telemetry."""
+    if subtopic == "ir_coupled":
+        if value not in {"0", "1"}:
+            return "Expected 0 or 1", 400
+        pub_loco(lid, subtopic, value)
+        return "", 204
+    if subtopic == "estop":
+        pub_loco(lid, "estop", value)
+        return "", 204
+    # NO LOCK ON THE MANUAL PATH (v1.10.3). on_mqtt_message() holds mqtt_lock
+    # for its ENTIRE body, every JSON parse of every inbound message, so a
+    # manual command could block behind telemetry parsing. E-STOP returns
+    # above without ever touching it, which is precisely the asymmetry the
+    # operator measured between E-STOP and throttle. A bare dict read is
+    # atomic under the GIL, and the value could change immediately after
+    # release anyway, so the lock bought nothing.
+    if loco_state.get(lid, {}).get("auto") == "1":
+        return "", 423
+    if subtopic in {"throttle", "brake", "direction"}:
+        pub_loco(lid, subtopic, value)
+    return "", 204
+
+
+# ============================================================================
+# Locomotive routes — ONE parametrised set. A locomotive is addressed by id
+# or by known name; discovery means an unnamed id is a first-class address.
+# ============================================================================
+@app.route("/loco/<ref>")
+def loco_page(ref):
+    lid = resolve_loco(ref)
+    if lid is None:
+        return ("<h2 style='font-family:Arial;padding:2rem;color:#ccc;background:#222;"
+                "min-height:100vh;margin:0;'>No locomotive %s &mdash; nothing by that "
+                "name or id has been heard this session.</h2>" % Markup.escape(ref)), 404
+    return render_loco(lid)
+
+
+@app.route("/loco/<ref>/state")
+def loco_state_route(ref):
+    lid = resolve_loco(ref)
+    if lid is None:
+        return jsonify({"error": "unknown locomotive"}), 404
+    return jsonify(state_payload(lid))
+
+
+@app.route("/loco/<ref>/cmd/<subtopic>/<value>", methods=["POST"])
+def loco_cmd(ref, subtopic, value):
+    lid = resolve_loco(ref)
+    if lid is None:
+        return "", 404
+    return _cmd(lid, subtopic, value)
+
+
+@app.route("/loco/<ref>/sessiondir/<d>", methods=["GET", "POST"])
+def loco_sessiondir(ref, d):
+    lid = resolve_loco(ref)
+    if lid is None:
+        return "", 404
+    if loco_state.get(lid, {}).get("auto") == "1":
+        return ("", 423) if request.method == "POST" else redirect("/loco/" + loco_slug(lid))
+    if d in ("CW", "CCW"):
+        pub_loco(lid, "session_direction", d)
+    return ("", 204) if request.method == "POST" else redirect("/loco/" + loco_slug(lid))
+
+
+@app.route("/loco/<ref>/startinterval/<interval>", methods=["GET", "POST"])
+def loco_startinterval(ref, interval):
+    lid = resolve_loco(ref)
+    if lid is None:
+        return "", 404
+    if loco_state.get(lid, {}).get("auto") == "1":
+        return ("", 423) if request.method == "POST" else redirect("/loco/" + loco_slug(lid))
+    if re.match(r'^\d{3}-\d{3}$', interval):
+        pub_loco(lid, "start_interval", interval)
+    return ("", 204) if request.method == "POST" else redirect("/loco/" + loco_slug(lid))
+
+
+@app.route("/loco/<ref>/mode/<int:m>")
+def loco_mode(ref, m):
+    lid = resolve_loco(ref)
+    if lid is None:
+        return "", 404
+    if m == 1:
+        pub_loco(lid, "auto", "1")
+    return redirect("/loco/" + loco_slug(lid))
+
+
+@app.route("/loco/<ref>/log")
+def loco_log_route(ref):
+    lid = resolve_loco(ref)
+    if lid is None:
+        return jsonify([])
+    with mqtt_lock:
+        return jsonify(list(loco_log.get(lid, [])))
+
+
+# Legacy addresses. The old console linked to /otto, /toby, /hans and those
+# links are in bookmarks and on a phone home screen.
+@app.route("/<any_slug>")
+def legacy_loco(any_slug):
+    lid = resolve_loco(any_slug)
+    if lid is None:
+        return "", 404
+    return redirect("/loco/" + loco_slug(lid))
+
+
+# ============================================================================
+if __name__ == "__main__":
+    # 8080 is the operator's address and the default. NGR_PORT exists so a
+    # candidate build can be run beside the live one before it takes over.
+    app.run(host="0.0.0.0", port=int(os.environ.get("NGR_PORT", "8080")), threaded=True)
