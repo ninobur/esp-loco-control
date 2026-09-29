@@ -192,6 +192,27 @@ int main() {
   check(context.rollingHallSampleCount() == 0,
         "explicit navigation-context reset clears the rolling window");
 
+  // A stopped Hall reading is delivered as evidence, but cannot create the
+  // first reference, confirm a target, or advance a pending spatial reference.
+  NaviCore stopped(40);
+  HallSample stoppedSample{300, 7000, 190, 0, 10,
+                           IrHealth::AdequateContrast, 0, 1};
+  NaviEvidence stoppedEvidence;
+  stoppedEvidence.hall = {300, 300, 1, &stoppedSample, 10,
+                          IrHealth::AdequateContrast};
+  stoppedEvidence.motivePwmZero = true;
+  const NaviJudgment held = stopped.observe(stoppedEvidence, 300);
+  check(held.decision == NaviDecision::Hold &&
+            stopped.lastHallSamples() == &stoppedSample &&
+            stopped.lastHallSamples()->raw == 190 &&
+            stopped.lastHallSamples()->sampleSerial == 300,
+        "PWM-zero Hall observation remains visible and unchanged");
+  check(!stopped.initialReferenceCollectionStarted() &&
+            !stopped.initialHallReferenceAvailable() &&
+            stopped.rollingHallSampleCount() == 0 &&
+            stopped.lastObservedIrDistanceMm() == 0,
+        "PWM-zero observation cannot mutate reference or target state");
+
   std::printf("%s: %d failures\n", failures ? "FAIL" : "PASS", failures);
   return failures ? 1 : 0;
 }

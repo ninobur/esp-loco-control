@@ -27,16 +27,22 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("capture")
     ap.add_argument("--hall-csv")
+    ap.add_argument("--native-hall-csv")
     ap.add_argument("--ir-jsonl")
+    ap.add_argument("--navi-jsonl")
     ap.add_argument("--status-jsonl")
     args = ap.parse_args()
 
     hall_f = open(args.hall_csv, "w", newline="") if args.hall_csv else None
+    native_f = open(args.native_hall_csv, "w", newline="") if args.native_hall_csv else None
     ir_f = open(args.ir_jsonl, "w") if args.ir_jsonl else None
+    navi_f = open(args.navi_jsonl, "w") if args.navi_jsonl else None
     status_f = open(args.status_jsonl, "w") if args.status_jsonl else None
     hall_writer = None
-    counts = {"datagrams": 0, "hall_samples": 0, "ir_snapshots": 0,
-              "status": 0, "bad": 0, "sessions": set()}
+    native_writer = None
+    counts = {"datagrams": 0, "hall_samples": 0, "native_hall_samples": 0,
+              "ir_snapshots": 0, "navi": 0, "status": 0,
+              "bad": 0, "sessions": set()}
     try:
         for recv_us, data in F.iter_capture(args.capture):
             counts["datagrams"] += 1
@@ -78,13 +84,31 @@ def main():
                 item.update(base)
                 if ir_f:
                     ir_f.write(json.dumps(item, sort_keys=True) + "\n")
-            else:
+            elif h.rec_type == F.REC_HALL_NATIVE:
+                if native_writer is None and native_f:
+                    native_writer = csv.writer(native_f)
+                    native_writer.writerow(["session_id", "batch_seq", "serial", "t_us",
+                                            "raw", "pwm", "direction", "nav_mm",
+                                            "nav_dir", "station_phase", "ctx_flags"])
+                for item in F.iter_native_hall(h, payload):
+                    counts["native_hall_samples"] += 1
+                    if native_writer:
+                        native_writer.writerow([h.session_id, h.batch_seq, item["serial"],
+                                                item["t_us"], item["raw"], item["pwm"],
+                                                item["direction"], h.nav_mm, h.nav_dir,
+                                                h.station_phase, h.ctx_flags])
+            elif h.rec_type == F.REC_NAVI:
+                counts["navi"] += 1
+                item = F.parse_navi(payload); item.update(base)
+                if navi_f:
+                    navi_f.write(json.dumps(item, sort_keys=True) + "\n")
+            elif h.rec_type == F.REC_STATUS:
                 counts["status"] += 1
                 item = F.parse_status(payload); item.update(base)
                 if status_f:
                     status_f.write(json.dumps(item, sort_keys=True) + "\n")
     finally:
-        for fh in (hall_f, ir_f, status_f):
+        for fh in (hall_f, native_f, ir_f, navi_f, status_f):
             if fh:
                 fh.close()
     counts["sessions"] = len(counts["sessions"])

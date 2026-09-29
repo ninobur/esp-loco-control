@@ -18,9 +18,15 @@ IR_FMT = "<Q6sBBBBBBbBB110s"
 IR_LEN = struct.calcsize(IR_FMT)
 STATUS_FMT = "<IQIIIIIIIIHHBBBB"
 STATUS_LEN = struct.calcsize(STATUS_FMT)
+NAVI_FMT = "<QQQIIIIhhBBBbBBB"
+NAVI_LEN = struct.calcsize(NAVI_FMT)
+NATIVE_HALL_FMT = "<IQhBB"
+NATIVE_HALL_LEN = struct.calcsize(NATIVE_HALL_FMT)
 
 REC_HALL, REC_IR, REC_STATUS = 1, 2, 3
-REC_NAME = {REC_HALL: "HALL", REC_IR: "IR", REC_STATUS: "STATUS"}
+REC_NAVI, REC_HALL_NATIVE = 4, 5
+REC_NAME = {REC_HALL: "HALL", REC_IR: "IR", REC_STATUS: "STATUS",
+            REC_NAVI: "NAVI", REC_HALL_NATIVE: "HALL_NATIVE"}
 SEQ_NA = 0xFFFFFFFF
 MM_NA = 0xFF
 
@@ -81,6 +87,14 @@ def parse_record(data):
             raise BadRecord("%s item count is %d, expected 1" %
                             (REC_NAME[header.rec_type], header.n_items))
         want = IR_LEN if header.rec_type == REC_IR else STATUS_LEN
+    elif header.rec_type == REC_NAVI:
+        if header.n_items != 1:
+            raise BadRecord("NAVI item count is %d, expected 1" % header.n_items)
+        want = NAVI_LEN
+    elif header.rec_type == REC_HALL_NATIVE:
+        if not 1 <= header.n_items <= 48:
+            raise BadRecord("invalid native Hall item count %d" % header.n_items)
+        want = header.n_items * NATIVE_HALL_LEN
     else:
         raise BadRecord("unknown record type %d" % header.rec_type)
     if len(payload) != want:
@@ -110,6 +124,23 @@ def parse_ir(payload):
         "nav_dir": f[8], "station_phase": f[9], "ctx_flags": f[10],
         "wire": f[11],
     }
+
+
+def iter_native_hall(header, payload):
+    for i in range(header.n_items):
+        serial, t_us, raw, pwm, direction = struct.unpack_from(
+            NATIVE_HALL_FMT, payload, i * NATIVE_HALL_LEN)
+        yield {"serial": serial, "t_us": t_us, "raw": raw,
+               "pwm": pwm, "direction": direction}
+
+
+def parse_navi(payload):
+    f = struct.unpack(NAVI_FMT, payload)
+    keys = ("t_us", "ir_um", "opening_ir_um", "hall_serial",
+            "opening_serial", "hall_queue_drops", "ir_queue_drops",
+            "median5", "reference", "kind", "mm", "target",
+            "direction", "degraded", "position_reliable", "spatial_phase")
+    return dict(zip(keys, f))
 
 
 def parse_status(payload):

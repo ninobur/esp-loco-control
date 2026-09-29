@@ -73,9 +73,22 @@ class NaviCore {
   }
 
   NaviJudgment observe(const NaviEvidence& evidence, uint32_t serial) {
+    NaviJudgment result;
+    result.observationSerial = serial;
+    result.navMm = navMm_;
     if (evidence.hall.samples != nullptr && evidence.hall.sampleCount != 0) {
       lastHallSamples_ = evidence.hall.samples;
       lastHallSampleCount_ = evidence.hall.sampleCount;
+    }
+    // The observations are visible to NAVI even while stopped. Only their
+    // navigation interpretation is held; no reference, target, or spatial
+    // state may change from a PWM-zero Hall observation.
+    if (evidence.motivePwmZero) {
+      result.decision = NaviDecision::Hold;
+      result.reason = "MOTIVE_PWM_ZERO_CONTEXT";
+      return result;
+    }
+    if (evidence.hall.samples != nullptr && evidence.hall.sampleCount != 0) {
       for (uint16_t i = 0; i < evidence.hall.sampleCount; ++i)
         appendHallSample(evidence.hall.samples[i]);
     }
@@ -95,14 +108,6 @@ class NaviCore {
 
     evaluateMissingTarget(evidence.hall.irDistanceMm);
     lastIrDistanceMm_ = evidence.hall.irDistanceMm;
-    NaviJudgment result;
-    result.observationSerial = serial;
-    result.navMm = navMm_;
-    if (evidence.motivePwmZero) {
-      result.decision = NaviDecision::Hold;
-      result.reason = "MOTIVE_PWM_ZERO_CONTEXT";
-      return result;
-    }
     // No inherited X22R gate is silently recreated here. Until NAVI has a
     // route/context rule, the observation remains reconstructible and held.
     result.decision = NaviDecision::Observe;

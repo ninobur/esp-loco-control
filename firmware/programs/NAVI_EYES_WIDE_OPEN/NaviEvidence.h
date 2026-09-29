@@ -8,7 +8,7 @@ enum class IrHealth : uint8_t { Unknown, AdequateContrast, InadequateContrast, F
 
 struct HallSample {
   uint32_t sampleSerial = 0;
-  uint32_t timestampUs = 0;
+  uint64_t timestampUs = 0;
   int16_t raw = 0;
   uint32_t irPulses = 0;
   uint32_t irDistanceMm = 0;
