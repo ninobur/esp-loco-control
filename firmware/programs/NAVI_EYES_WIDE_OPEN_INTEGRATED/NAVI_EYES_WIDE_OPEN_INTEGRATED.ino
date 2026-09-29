@@ -19,7 +19,10 @@
 #ifdef HALL_POLARITY_INVERTED
 #undef HALL_POLARITY_INVERTED
 #endif
-#include "../QUORUM/credentials.h"
+#ifndef NAVI_MAX_OPERATING_PWM
+#define NAVI_MAX_OPERATING_PWM NORMAL_PWM
+#endif
+#include "credentials.h"
 #include "../NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_HEALTH/Ops.h"
 #include "../NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_HEALTH/Stations.h"
 #include "NaviIntegratedCore.h"
