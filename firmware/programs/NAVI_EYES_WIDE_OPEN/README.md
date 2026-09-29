@@ -32,22 +32,29 @@ navigation behavior is intentionally not implemented here. NAVI's initial
 reference collection is separate: NAVI compares successive cumulative IR
 distance observations itself, then collects every native Hall observation over
 the first 10 mm of measured travel and sets the median as the held initial
-reference. No later spatial replacement is included.
+reference. Later replacement is NAVI-owned and begins only after target
+confirmation as described below.
 
 After the reference exists, two consecutive native Hall observations departing
 from the active reference by at least 70 counts create a candidate opening.
-Those two samples are excluded from confirmation. Three subsequent qualifying
-samples that are strictly rising above the reference or strictly falling below
-it confirm the magnet and establish polarity. Three subsequent sub-70 samples
-abandon the candidate as a transient. This evidence does not grant an MM or
-navigation authority.
+The first qualifying sample is retained as the physical opening landmark. NAVI
+then evaluates a three-sample qualifying Hall window against the known target:
+all three departures must be at least 70 counts in absolute value and at least
+two must have the expected mapped polarity. No slope or abstract magnet
+polarity is calculated. Hall agreement alone is insufficient: NAVI also checks
+the target's mapped direction/context and measured IR distance within ±15%.
+An inconsistent observation does not identify an alternative magnet or alter
+position; NAVI continues seeking the same target while its interval remains
+open. Passing the interval records the target as missing and advances the
+target context without erasing NAVI's position.
 
-After confirmation, NAVI uses that observation's cumulative IR distance as the
-origin for the next spatial Hall reference. It ignores the 0–100 mm clearance,
-selects one native Hall representative per distinct measured millimetre in the
-100–200 mm interval, and replaces the active reference with the median at 200
-mm. Repeated observations at one measured location therefore do not gain extra
-weight from stationary time.
+After target confirmation, NAVI uses the retained opening landmark's cumulative
+IR distance—not the later confirmation sample—as the origin for the next spatial
+Hall reference. It ignores the 0–100 mm clearance, selects one native Hall
+representative per distinct measured millimetre in the 100–200 mm interval, and
+replaces the active reference with the median at 200 mm. Repeated observations
+at one measured location therefore do not gain extra weight from stationary
+time. A failed target confirmation never starts this spatial-reference cycle.
 
 Run the host gates with:
 

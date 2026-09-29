@@ -16,10 +16,19 @@ enum class HallOpeningPolarity : int8_t {
   BelowReference = -1,
 };
 
+struct TargetSpec {
+  HallOpeningPolarity polarity = HallOpeningPolarity::Unknown;
+  uint32_t distanceMm = 0;
+  uint32_t sequence = 0;
+  uint8_t direction = 0;
+};
+
 struct HallOpening {
   bool candidate = false;
   uint32_t candidateObservationSerial = 0;
   int32_t candidateDeparture = 0;
+  uint32_t landmarkObservationSerial = 0;
+  uint32_t landmarkIrDistanceMm = 0;
   bool confirmed = false;
   uint32_t observationSerial = 0;
   int32_t departure = 0;
@@ -40,6 +49,23 @@ class NaviCore {
  public:
   explicit NaviCore(uint16_t initialMm) : navMm_(initialMm) {}
 
+  void configureExpectedTarget(const TargetSpec& target,
+                               uint32_t originMm = 0) {
+    expectedTarget_ = target;
+    targetConfigured_ = target.polarity != HallOpeningPolarity::Unknown &&
+                        target.distanceMm != 0;
+    targetOriginMm_ = originMm;
+    targetConfirmed_ = false;
+    targetMissing_ = false;
+  }
+
+  void configureSubsequentTarget(const TargetSpec& target) {
+    subsequentTarget_ = target;
+    subsequentTargetConfigured_ =
+        target.polarity != HallOpeningPolarity::Unknown &&
+        target.distanceMm != 0;
+  }
+
   NaviJudgment observe(const NaviEvidence& evidence, uint32_t serial) {
     if (evidence.hall.samples != nullptr && evidence.hall.sampleCount != 0) {
       lastHallSamples_ = evidence.hall.samples;
@@ -55,9 +81,11 @@ class NaviCore {
     collectInitialReference(evidence.hall);
     if (spatialReferenceActive_) {
       updateSpatialReference(evidence.hall);
-    } else if (recognizeOpening(evidence.hall)) {
-      beginSpatialReference(evidence.hall.irDistanceMm);
+    } else if (recognizeTargetHallEvidence(evidence.hall)) {
+      beginSpatialReference(opening_.landmarkIrDistanceMm);
     }
+
+    evaluateMissingTarget(evidence.hall.irDistanceMm);
     lastIrDistanceMm_ = evidence.hall.irDistanceMm;
     NaviJudgment result;
     result.observationSerial = serial;
@@ -88,7 +116,6 @@ class NaviCore {
     return qualifyingHallObservationCount_;
   }
   uint8_t confirmationSampleCount() const { return confirmationSampleCount_; }
-  uint8_t transientSampleCount() const { return transientSampleCount_; }
   const HallOpening& opening() const { return opening_; }
   const HallOpening& lastConfirmedOpening() const { return lastConfirmedOpening_; }
   bool spatialReferenceActive() const { return spatialReferenceActive_; }
@@ -96,6 +123,11 @@ class NaviCore {
   size_t spatialReferenceSampleCount() const {
     return spatialPopulation_.size();
   }
+  bool expectedTargetConfirmed() const { return targetConfirmed_; }
+  bool expectedTargetMissing() const { return targetMissing_; }
+  uint32_t missingTargetCount() const { return missingTargetCount_; }
+  uint32_t targetOriginMm() const { return targetOriginMm_; }
+  TargetSpec expectedTarget() const { return expectedTarget_; }
 
  private:
   static constexpr uint32_t kInitialReferenceTravelMm = 10;
@@ -132,9 +164,9 @@ class NaviCore {
     initialReferenceAvailable_ = true;
   }
 
-  bool recognizeOpening(const HallObservation& observation) {
+  bool recognizeTargetHallEvidence(const HallObservation& observation) {
     if (!initialReferenceAvailable_ || observation.samples == nullptr ||
-        observation.sampleCount == 0) {
+        observation.sampleCount == 0 || targetMissing_) {
       return false;
     }
 
@@ -148,91 +180,90 @@ class NaviCore {
           lastHallDeparture_ >= kHallDepartureThreshold ||
           lastHallDeparture_ <= -kHallDepartureThreshold;
 
-      if (opening_.confirmed) {
-        continue;
-      }
-
-      if (opening_.candidate) {
-        if (observeCandidateSample(sample, qualifies)) confirmed = true;
-        continue;
-      }
+      if (opening_.confirmed) continue;
 
       if (!qualifies) {
         qualifyingHallObservationCount_ = 0;
+        confirmationSampleCount_ = 0;
+        targetWindow_.clear();
+        opening_.candidate = false;
         continue;
       }
 
-      if (qualifyingHallObservationCount_ < 2) {
-        ++qualifyingHallObservationCount_;
-      }
+      targetWindow_.push_back({sample.sampleSerial, sample.irDistanceMm,
+                               lastHallDeparture_, sample.direction});
+      if (targetWindow_.size() > 3) targetWindow_.erase(targetWindow_.begin());
+      if (qualifyingHallObservationCount_ < 2) ++qualifyingHallObservationCount_;
       if (qualifyingHallObservationCount_ == 2) {
         opening_.candidate = true;
         opening_.candidateObservationSerial = sample.sampleSerial;
         opening_.candidateDeparture = lastHallDeparture_;
-        qualifyingHallObservationCount_ = 0;
-        confirmationSampleCount_ = 0;
-        transientSampleCount_ = 0;
-        previousConfirmationDeparture_ = 0;
-        confirmationDirection_ = HallOpeningPolarity::Unknown;
+        opening_.landmarkObservationSerial = targetWindow_[0].serial;
+        opening_.landmarkIrDistanceMm = targetWindow_[0].irDistanceMm;
       }
+
+      if (!opening_.candidate || targetWindow_.size() < 3 ||
+          !targetConfigured_) continue;
+      confirmationSampleCount_ = static_cast<uint8_t>(targetWindow_.size());
+      if (!hallWindowMatchesTarget() || !distanceMatchesExpectedTarget() ||
+          !contextMatchesTarget(sample)) continue;
+
+      opening_.candidate = false;
+      opening_.confirmed = true;
+      opening_.observationSerial = sample.sampleSerial;
+      opening_.departure = lastHallDeparture_;
+      opening_.polarity = expectedTarget_.polarity;
+      lastConfirmedOpening_ = opening_;
+      targetConfirmed_ = true;
+      targetMissing_ = false;
+      confirmed = true;
     }
     return confirmed;
   }
 
-  bool observeCandidateSample(const HallSample& sample, bool qualifies) {
-    if (!qualifies) {
-      confirmationSampleCount_ = 0;
-      confirmationDirection_ = HallOpeningPolarity::Unknown;
-      if (transientSampleCount_ < 3) ++transientSampleCount_;
-      if (transientSampleCount_ == 3) {
-        opening_.candidate = false;
-        transientSampleCount_ = 0;
-        previousConfirmationDeparture_ = 0;
-      }
-      return false;
+  bool hallWindowMatchesTarget() const {
+    uint8_t matches = 0;
+    for (const TargetHallSample& sample : targetWindow_) {
+      if ((expectedTarget_.polarity == HallOpeningPolarity::AboveReference &&
+           sample.departure >= kHallDepartureThreshold) ||
+          (expectedTarget_.polarity == HallOpeningPolarity::BelowReference &&
+           sample.departure <= -kHallDepartureThreshold)) ++matches;
     }
+    return matches >= 2;
+  }
 
-    transientSampleCount_ = 0;
-    const int32_t departure = lastHallDeparture_;
-    if (confirmationSampleCount_ == 0) {
-      confirmationSampleCount_ = 1;
-      previousConfirmationDeparture_ = departure;
-      return false;
+  bool distanceMatchesExpectedTarget() const {
+    if (!targetConfigured_ || targetWindow_.empty()) return false;
+    const uint32_t current = targetWindow_.back().irDistanceMm;
+    if (current < targetOriginMm_) return false;
+    const uint64_t expected = expectedTarget_.distanceMm;
+    const uint32_t lower = static_cast<uint32_t>(expected * 85 / 100);
+    const uint32_t upper = static_cast<uint32_t>((expected * 115 + 99) / 100);
+    const uint32_t traveled = current - targetOriginMm_;
+    return traveled >= lower && traveled <= upper;
+  }
+
+  bool contextMatchesTarget(const HallSample& sample) const {
+    return expectedTarget_.direction == 0 ||
+           expectedTarget_.direction == sample.direction;
+  }
+
+  void evaluateMissingTarget(uint32_t currentDistanceMm) {
+    if (!targetConfigured_ || targetConfirmed_ || targetMissing_ ||
+        spatialReferenceActive_ || currentDistanceMm < targetOriginMm_) return;
+    const uint64_t upper = static_cast<uint64_t>(expectedTarget_.distanceMm) * 115 / 100;
+    if (currentDistanceMm - targetOriginMm_ <= upper) return;
+    targetMissing_ = true;
+    ++missingTargetCount_;
+    opening_ = HallOpening{};
+    targetWindow_.clear();
+    qualifyingHallObservationCount_ = 0;
+    confirmationSampleCount_ = 0;
+    if (subsequentTargetConfigured_) {
+      targetOriginMm_ += expectedTarget_.distanceMm;
+      expectedTarget_ = subsequentTarget_;
+      targetMissing_ = false;
     }
-
-    const bool positiveRise = previousConfirmationDeparture_ > 0 &&
-                               departure > previousConfirmationDeparture_;
-    const bool negativeFall = previousConfirmationDeparture_ < 0 &&
-                               departure < previousConfirmationDeparture_;
-    const HallOpeningPolarity direction =
-        positiveRise ? HallOpeningPolarity::AboveReference
-                     : negativeFall ? HallOpeningPolarity::BelowReference
-                                    : HallOpeningPolarity::Unknown;
-
-    if (confirmationDirection_ == HallOpeningPolarity::Unknown &&
-        direction != HallOpeningPolarity::Unknown) {
-      confirmationDirection_ = direction;
-      ++confirmationSampleCount_;
-    } else if (confirmationDirection_ != HallOpeningPolarity::Unknown &&
-               direction == confirmationDirection_) {
-      ++confirmationSampleCount_;
-    } else {
-      confirmationSampleCount_ = 1;
-      confirmationDirection_ = HallOpeningPolarity::Unknown;
-    }
-    previousConfirmationDeparture_ = departure;
-
-    if (confirmationSampleCount_ == 3 &&
-        confirmationDirection_ != HallOpeningPolarity::Unknown) {
-      opening_.candidate = false;
-      opening_.confirmed = true;
-      opening_.observationSerial = sample.sampleSerial;
-      opening_.departure = departure;
-      opening_.polarity = confirmationDirection_;
-      lastConfirmedOpening_ = opening_;
-      return true;
-    }
-    return false;
   }
 
   void beginSpatialReference(uint32_t originMm) {
@@ -286,10 +317,17 @@ class NaviCore {
     opening_ = HallOpening{};
     qualifyingHallObservationCount_ = 0;
     confirmationSampleCount_ = 0;
-    transientSampleCount_ = 0;
-    previousConfirmationDeparture_ = 0;
-    confirmationDirection_ = HallOpeningPolarity::Unknown;
+    targetWindow_.clear();
+    targetConfirmed_ = false;
+    targetMissing_ = false;
   }
+
+  struct TargetHallSample {
+    uint32_t serial;
+    uint32_t irDistanceMm;
+    int32_t departure;
+    uint8_t direction;
+  };
 
   struct SpatialHallSample {
     uint32_t distanceMm;
@@ -308,11 +346,17 @@ class NaviCore {
   int32_t lastHallDeparture_ = 0;
   uint8_t qualifyingHallObservationCount_ = 0;
   uint8_t confirmationSampleCount_ = 0;
-  uint8_t transientSampleCount_ = 0;
-  int32_t previousConfirmationDeparture_ = 0;
-  HallOpeningPolarity confirmationDirection_ = HallOpeningPolarity::Unknown;
+  std::vector<TargetHallSample> targetWindow_;
   HallOpening opening_;
   HallOpening lastConfirmedOpening_;
+  TargetSpec expectedTarget_;
+  TargetSpec subsequentTarget_;
+  bool targetConfigured_ = false;
+  bool subsequentTargetConfigured_ = false;
+  bool targetConfirmed_ = false;
+  bool targetMissing_ = false;
+  uint32_t missingTargetCount_ = 0;
+  uint32_t targetOriginMm_ = 0;
   bool spatialReferenceActive_ = false;
   uint32_t spatialOriginMm_ = 0;
   std::vector<SpatialHallSample> spatialPopulation_;
