@@ -20,12 +20,9 @@ static HallSample h(uint32_t serial, uint64_t us, int raw, uint8_t pwm=40) {
   return s;
 }
 static void boot(NaviIntegratedCore& n) {
-  n.observeIr(wire(1,0),100000,0);
-  for (unsigned i=1;i<=5;++i) {
-    n.observeIr(wire(i+1,i),100000+i*40000,40);
-    n.observeHall(h(i,110000+i*40000,100+i*5));
-  }
-  n.observeIr(wire(7,10),400000,40);
+  n.observeHall(h(1,110000,115));
+  n.observeIr(wire(1,0),120000,40);
+  n.observeIr(wire(2,10),220000,40);
   assert(n.initialReferenceReady() && n.activeReference()==115);
 }
 static void first(NaviIntegratedCore& n) {
@@ -53,31 +50,13 @@ static void b1() {
     declared.observeHall(h(500+i,1240000+i*1000,190),1261000+i*1000);
   assert(declared.confirmedCount()==0); // acquisition predates new context
 }
-static void bootSpatial() {
-  for (unsigned repeats : {1u,10000u}) {
-    NaviIntegratedCore n; n.observeIr(wire(1,0,42,9652),100000,0);
-    for(unsigned i=1;i<=5;++i) {
-      // Skips the old entire 10-mm window on the very first report.
-      n.observeIr(wire(i+1,i*2,42,9652),100000+i*100000,40);
-      const int raw = i<=3 ? 100+i*5 : 900; // two field-affected positions
-      for(unsigned j=0;j<(i==5?repeats:1);++j)
-        n.observeHall(h(i*10000+j,110000+i*100000+j,raw));
-      assert(!n.initialReferenceReady());
-    }
-    n.observeIr(wire(7,12,42,9652),700000,40);
-    assert(n.initialReferenceReady() && n.activeReference()==115);
-    assert(n.bootReferencePositions()==5);
-  }
-  BootReference exact; exact.origin(0);
-  for(unsigned i=1;i<=5;++i) {
-    exact.progress(i);
-    exact.observe(4095); exact.observe(100+i); exact.observe(100+i);
-    exact.observe(100+i); exact.observe(0);
-  }
-  exact.progress(6); assert(exact.ready() && exact.reference()==103);
-  BootReference empty; empty.origin(0); empty.progress(2); empty.progress(4);
-  assert(empty.fault() && !empty.ready());
-  static_assert(sizeof(BootReference)<17000,"boot storage must remain bounded");
+static void bootReferenceIsImmediate() {
+  NaviIntegratedCore n;
+  assert(!n.initialReferenceReady());
+  n.observeHall(h(1,100000,222));
+  assert(n.initialReferenceReady() && n.activeReference()==222);
+  n.observeIr(wire(1,0),110000,0);
+  assert(n.initialReferenceReady() && n.activeReference()==222);
 }
 static void frames() {
   for (unsigned scenario=0;scenario<4;++scenario) {
@@ -148,6 +127,6 @@ int main(int argc,char**) {
     formatConsoleIr(out,sizeof(out),n,1700001,true); puts(out);
     return 0;
   }
-  b1(); bootSpatial(); frames(); loss(); estop();
-  puts("PASS: B1/B2, five-position median/skip/stall, frame/re-anchor, causal time, cumulative loss");
+  b1(); bootReferenceIsImmediate(); frames(); loss(); estop();
+  puts("PASS: B1/B2, provisional boot reference, frame/re-anchor, causal time, cumulative loss");
 }

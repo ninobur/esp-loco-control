@@ -10,12 +10,12 @@ inline int formatConsoleNav(char* out, size_t size, const NaviIntegratedCore& n,
   return snprintf(out, size,
     "{\"state\":\"%s\",\"mm\":%u,\"target\":%u,\"dir\":%d,"
     "\"session_dir\":\"%s\",\"position_reliable\":%u,\"degraded\":%u,"
-    "\"reference_ready\":%u,\"boot_positions\":%u,\"boot_incomplete\":%u,"
+    "\"reference_ready\":%u,\"boot_reference\":\"%s\","
     "\"authority\":\"NAVI_EWO\"}",
     usable ? "NORMAL" : "UNSET", n.mm(), unsigned(n.target().sequence), n.direction(),
     sessionDir > 0 ? "CW" : sessionDir < 0 ? "CCW" : "UNSET", usable,
-    n.degraded(), n.initialReferenceReady(), n.bootReferencePositions(),
-    n.bootReferenceIncomplete());
+    n.degraded(), n.initialReferenceReady(),
+    n.initialReferenceReady() ? "PROVISIONAL_OR_SPATIAL" : "UNSET");
 }
 inline int formatConsoleIr(char* out, size_t size, const NaviIntegratedCore& n,
                            uint64_t nowUs, bool coupled) {

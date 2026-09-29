@@ -12,7 +12,13 @@
 #include <limits.h>
 #include <atomic>
 
-#include "../NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_HEALTH/LocoConfig.h"
+// EWO hardware target: Otto's reviewed X22 profile. The profile supplies
+// LOCO_ID, pins, motor/PWM, direction, IR pairing and battery configuration.
+// Its legacy polarity macro is intentionally not a NAVI authority here.
+#include "../NAVI_ONE/variants/NAVI_ONE_X22/LocoConfig.h"
+#ifdef HALL_POLARITY_INVERTED
+#undef HALL_POLARITY_INVERTED
+#endif
 #include "../QUORUM/credentials.h"
 #include "../NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_HEALTH/Ops.h"
 #include "../NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_HEALTH/Stations.h"
@@ -328,7 +334,6 @@ static const char* eventName(EwoEventKind kind) {
     case EwoEventKind::Reanchored: return "POSITION_REANCHORED";
     case EwoEventKind::ObservationLoss: return "OBSERVATION_LOSS";
     case EwoEventKind::SpatialInvalidated: return "SPATIAL_INVALIDATED";
-    case EwoEventKind::BootReferenceIncomplete: return "BOOT_REFERENCE_INCOMPLETE";
     default: return "NONE";
   }
 }

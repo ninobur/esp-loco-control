@@ -20,7 +20,7 @@ credentials are not part of this candidate.
   infer movement or filter by the paired MAC. NAVI owns continuity, health,
   recency, applicability, and distance judgment. Invalid wire packets and queue
   loss are counted separately.
-- NAVI: owns the five-observed-pulse-position boot Hall median (0114); rolling median-of-five in the known
+- NAVI: owns a provisional single-sample boot Hall reference (0115); rolling median-of-five in the known
   target-polarity direction; latest-received applicable IR ±15% target distance;
   650-ms degraded target confirmation when IR is unavailable; Missed Magnet
   progression only with applicable IR; and the 0–100/100–200 mm spatial Hall
@@ -37,15 +37,17 @@ cross-device synchronization is introduced. A source/frame/continuity break,
 staleness encountered during judgment, or PWM-zero displacement cancels a
 dependent spatial cycle and retains the previous valid reference.
 
-Boot collection uses the first five **distinct observed** pulse counts after
-progression begins; skipped counts are not fabricated. NAVI owns an exact
-4096-bin histogram for one position at a time, then a five-value population of
-position medians. A next distinct report closes each population, including the
-fifth. The 16,384-byte fixed allocation is checked before control tasks start
-and freed after successful closure. Empty/lost/invalid populations or counter
-overflow report `BOOT_REFERENCE_INCOMPLETE`; they never invent a reference or
-silently retry a later window. There is no new automatic stop/retry policy.
-Five observed positions may span more than five physical pulses.
+At boot the first nonzero-PWM native Hall ADC establishes a provisional
+reference immediately. No IR movement, five-position collection, boot median,
+startup window, retry, or permanent boot-readiness gate is used. The normal
+leading-boundary 0–100 / 100–200 mm spatial cycle replaces that provisional
+reference at 200 mm. Telemetry identifies the reference as provisional until
+that replacement.
+
+After a Missed Magnet, NAVI advances only the mapped target. The last physical
+field-boundary origin is retained; mapped intervals accumulate from it, while
+the ±15% coherence tolerance is applied only to the current interval. A later
+confirmed target reanchors the physical origin.
 
 At PWM=0 all observations still reach NAVI. Hall cannot alter navigation state.
 Continuous IR no-change retains the existing IR/MM relationship, including
@@ -56,9 +58,8 @@ re-anchor it. An actual continuity break still causes degraded IR operation.
 
 The route adapter uses the common empirically established Hall sign convention
 for Toby and Otto: mapped North is AboveReference, South is BelowReference.
-Otto's legacy `HALL_POLARITY_INVERTED=true` setting was historically unused;
-this candidate deliberately does not activate it. The legacy profile is not
-rewritten here.
+Otto's legacy `HALL_POLARITY_INVERTED=true` setting is explicitly undefined
+after selecting Otto's profile; it is not navigation authority.
 
 Operational consumers receive NAVI position/events through `mm()`, `target()`,
 `positionReliable()`, and `takeEvent()`. The shell retains manual motor control,

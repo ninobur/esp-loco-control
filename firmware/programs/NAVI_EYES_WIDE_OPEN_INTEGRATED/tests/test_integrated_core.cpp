@@ -34,27 +34,21 @@ static HallSample hall(uint32_t serial, uint64_t tUs, int16_t raw,
   h.direction = direction;
   return h;
 }
-static void bootReference(NaviIntegratedCore& n) {
-  n.observeIr(ir(1, 0), 100000, 0);
-  n.observeHall(hall(1, 110000, 700, 0));
-  for (uint32_t i = 0; i < 5; ++i) {
-    auto w = ir(2, i + 1);
-    w.sequence += i;
-    w.capturedUs += i * 20000;
-    n.observeIr(w, 200000 + i * 20000, 40);
-    n.observeHall(hall(2 + i, 210000 + i * 20000, 100 + i * 5));
-  }
-  n.observeIr(ir(4, 10), 400000, 40);
+static void provisionalReference(NaviIntegratedCore& n) {
+  // Boot reference is exactly one native Hall ADC, with no IR prerequisite.
+  n.observeHall(hall(1, 110000, 110, 40));
+  n.observeIr(ir(1, 0), 120000, 40);
+  n.observeIr(ir(2, 10), 220000, 40);
 }
 
 int main() {
   NaviIntegratedCore n;
   check(!n.initialReferenceReady(), "boot has no Hall reference");
-  bootReference(n);
+  provisionalReference(n);
   check(n.initialReferenceReady() && n.activeReference() == 110,
-        "five distinct observed pulse positions close NAVI-owned spatial median");
-  check(n.hallObservationCount() == 6 && n.lastHall().raw == 120 &&
-            n.lastHallSerial() == 6,
+        "one native Hall ADC establishes the provisional boot reference immediately");
+  check(n.hallObservationCount() == 1 && n.lastHall().raw == 110 &&
+            n.lastHallSerial() == 1,
         "all native Hall readings remain unchanged and in order");
   n.declare(0, 1, 500000);
   check(n.target().sequence == 1 && n.target().distanceMm == 330,
@@ -74,7 +68,7 @@ int main() {
             n.spatialPhase() == 1,
         "first threshold reading in qualifying population anchors clearance");
   NaviIntegratedCore boundary;
-  bootReference(boundary);
+  provisionalReference(boundary);
   boundary.declare(0, 1, 500000);
   boundary.observeIr(ir(5, 340), 600000, 40);
   boundary.observeHall(hall(500, 610000, 190));
@@ -112,7 +106,7 @@ int main() {
         "coherent degraded Hall targets continue without invented IR misses");
 
   NaviIntegratedCore stationary;
-  bootReference(stationary);
+  provisionalReference(stationary);
   stationary.declare(0, 1, 500000);
   const uint64_t priorIrCount = stationary.irObservationCount();
   stationary.observeIr(ir(5, 10), 600000, 0);
@@ -120,7 +114,7 @@ int main() {
   for (uint32_t i = 0; i < 5; ++i)
     stationary.observeHall(hall(21 + i, 611000 + i * 1000, 200, 0));
   check(stationary.irObservationCount() == priorIrCount + 1 &&
-            stationary.hallObservationCount() == 12 &&
+            stationary.hallObservationCount() == 7 &&
             stationary.relationshipReliable(),
         "stationary PWM-zero observations remain visible without invalidating IR relationship");
   const uint64_t epochAtStop = stationary.irMeasurementEpochId();
@@ -133,7 +127,7 @@ int main() {
             stationary.latestIr().opticalReason == ir_movement::INADEQUATE_CONTRAST,
         "PWM-zero inadequate contrast with no measured change preserves epoch, IR/MM relation and raw diagnostic");
   NaviIntegratedCore longDwell;
-  bootReference(longDwell);
+  provisionalReference(longDwell);
   longDwell.declare(0, 1, 500000);
   const uint64_t dwellEpoch = longDwell.irMeasurementEpochId();
   longDwell.observeIr(ir(5, 10, ir_movement::INADEQUATE_CONTRAST), 600000, 0);
@@ -157,7 +151,7 @@ int main() {
         "650-ms degraded confirmation reanchors after PWM-zero displacement");
 
   NaviIntegratedCore shrug;
-  bootReference(shrug);
+  provisionalReference(shrug);
   shrug.declare(0, 1, 500000);
   shrug.observeIr(ir(5, 340), 600000, 40);
   for (uint32_t i = 0; i < 5; ++i)
@@ -169,8 +163,25 @@ int main() {
             shrug.mm() == 1,
         "applicable IR passage marks missed target and seeks next mapped MM");
 
+  NaviIntegratedCore consecutiveMisses;
+  provisionalReference(consecutiveMisses);
+  consecutiveMisses.declare(0, 1, 500000);
+  // Target 1 (330 mm) and target 2 (340 mm) are missed from the same
+  // physical origin. Target 3 is then accepted at the cumulative 990 mm
+  // position, with tolerance based only on target 3's 330-mm interval.
+  consecutiveMisses.observeIr(ir(5, 400), 600000, 40);
+  consecutiveMisses.observeIr(ir(6, 740), 700000, 40);
+  check(consecutiveMisses.missedCount() == 2 && consecutiveMisses.mm() == 2 &&
+            consecutiveMisses.target().sequence == 3,
+        "consecutive Missed Magnets advance mapped target without moving physical origin");
+  consecutiveMisses.observeIr(ir(7, 1000), 800000, 40);
+  for (uint32_t i = 0; i < 5; ++i)
+    consecutiveMisses.observeHall(hall(80 + i, 810000 + i * 1000, 20));
+  check(consecutiveMisses.confirmedCount() == 1 && consecutiveMisses.mm() == 3,
+        "cumulative expected distance uses local tolerance for the current interval");
+
   NaviIntegratedCore noIr;
-  bootReference(noIr);
+  provisionalReference(noIr);
   noIr.declare(0, 1, 500000);
   noIr.observeHall(hall(50, 2000000, 190));
   check(noIr.missedCount() == 0,
@@ -180,7 +191,7 @@ int main() {
         "reversal seeks last passed MM in new route direction");
 
   NaviIntegratedCore stale;
-  bootReference(stale);
+  provisionalReference(stale);
   stale.declare(0, 1, 500000);
   stale.observeIr(ir(5, 340), 600000, 40);
   for (uint32_t i = 0; i < 5; ++i)
@@ -192,7 +203,7 @@ int main() {
         "stale IR cannot hold degraded target recognition behind spatial collection");
 
   NaviIntegratedCore emptySpatial;
-  bootReference(emptySpatial);
+  provisionalReference(emptySpatial);
   emptySpatial.declare(0, 1, 500000);
   emptySpatial.observeIr(ir(5, 340), 600000, 40);
   for (uint32_t i = 0; i < 5; ++i)
@@ -206,7 +217,7 @@ int main() {
         "empty 100-200 mm interval is reported without inventing a median");
 
   NaviIntegratedCore ccw;
-  bootReference(ccw);
+  provisionalReference(ccw);
   ccw.declare(1, -1, 500000);
   check(ccw.target().sequence == 0 && ccw.target().direction == 2,
         "CCW declaration selects correct target context");
@@ -221,7 +232,7 @@ int main() {
         "correct CCW direction confirms the known target");
 
   NaviIntegratedCore health;
-  bootReference(health);
+  provisionalReference(health);
   health.declare(0, 1, 500000);
   health.observeIr(ir(5, 10, ir_movement::SIGNAL_STALE), 600000, 40);
   check(health.irApplicable(700000),
@@ -236,7 +247,7 @@ int main() {
         "IR progression under unresolved optical diagnostic is not silently qualified");
 
   NaviIntegratedCore brokenAtStop;
-  bootReference(brokenAtStop);
+  provisionalReference(brokenAtStop);
   brokenAtStop.declare(0, 1, 500000);
   auto gapAtStop = ir(5, 10);
   ++gapAtStop.sampleGaps;
@@ -245,7 +256,7 @@ int main() {
         "an actual IR continuity break at PWM zero is reported as degraded");
 
   NaviIntegratedCore latest;
-  bootReference(latest);
+  provisionalReference(latest);
   latest.declare(0, 1, 500000);
   const uint8_t sourceMac[6] = {2, 3, 4, 5, 6, 7};
   latest.observeIr(ir(5, 200), 600000, 40, sourceMac);
@@ -258,7 +269,7 @@ int main() {
         "Hall uses the latest received IR fact, not a stale earlier packet");
 
   NaviIntegratedCore losses;
-  bootReference(losses);
+  provisionalReference(losses);
   losses.declare(0, 1, 500000);
   losses.noteObservationLoss(2, 3);
   check(losses.hallLoss() == 2 && losses.irLoss() == 3 &&
@@ -266,7 +277,7 @@ int main() {
         "queue loss is visible without another subsystem declaring NAVI lost");
 
   NaviIntegratedCore redeclared;
-  bootReference(redeclared);
+  provisionalReference(redeclared);
   redeclared.declare(0, 1, 500000);
   redeclared.observeIr(ir(5, 340), 600000, 40);
   for (uint32_t i = 0; i < 4; ++i)

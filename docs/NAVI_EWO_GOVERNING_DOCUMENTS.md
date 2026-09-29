@@ -38,7 +38,8 @@ This page is a directory and a supersession ledger. It authorizes nothing
 | [0111](decisions/0111-ir-is-a-normal-navigation-sensor-navi-decides-applicability-degraded-operation-stays-inside-navi.md) | IR as a normal sensor; `INADEQUATE_CONTRAST`; temporary Hall/IR association; degraded 650 ms | NAVI_EWO |
 | [0112](decisions/0112-pwm-zero-makes-hall-non-actionable-ir-displacement-at-pwm-zero-is-factual-and-invalidates-the-map-relationship-not-the-instrument.md) | PWM = 0 applicability | NAVI_EWO |
 | [0113](decisions/0113-the-navi-ewo-hall-reference-is-spatial-and-is-replaced-from-the-leading-field-boundary.md) | Spatial Hall reference | NAVI_EWO |
-| [0114](decisions/0114-ewo-boot-reference-uses-five-observed-pulse-positions.md) | Five distinct observed pulse positions; per-position Hall medians; replaces 0113 startup clause | NAVI_EWO |
+| [0114](decisions/0114-ewo-boot-reference-uses-five-observed-pulse-positions.md) | Historical five-position startup proposal; superseded/withdrawn | Historical |
+| [0115](decisions/0115-ewo-provisional-single-sample-boot-reference-and-missed-magnet-origin.md) | Provisional single-sample boot reference; physical origin retained across Missed Magnets | NAVI_EWO |
 
 Related decisions that remain in force and are not changed here: 0101
 (position determines local operating requirements), 0100, and 0093 (650 ms
@@ -89,7 +90,7 @@ conflicting assumptions are superseded for NAVI_EWO as follows.
 | Shadow "what X22 would have done" and shadow accepted-MM reference mechanisms | Not used. NAVI itself is instrumented | 0102, 0110 |
 | IR as an experimental supplement; stationary `INADEQUATE_CONTRAST` as degradation | IR is a normal sensor; no-change is a valid result | 0111 |
 | IR displacement at PWM = 0 is not real and must not touch the MM/IR relationship (0106) | Accepted as factual; relationship marked unreliable | 0112 |
-| Stationary boot reference (0107 allowance), then first-10-mm startup (0113) | Five distinct observed pulse positions, one NAVI-owned Hall median per position | 0114 |
+| Stationary boot reference (0107 allowance), then first-10-mm startup (0113) | One provisional native Hall ADC at boot; 0113 spatial replacement remains | 0115 |
 | Refusal-and-stop on a missing magnet (0056) | Missed Magnet continuity with applicable IR | 0109 (confirmed 2026-09-29) |
 
 ## Confirmed by David and Sam, 2026-09-29
@@ -116,12 +117,9 @@ conflicting assumptions are superseded for NAVI_EWO as follows.
 2. **0107 D4/D8 remainders:** whether the 100 mm clearance is physically
    sufficient, and how long a reference may be held across successive Missed
    Magnets. (The rest of D4/D8 is resolved by 0113.)
-3. **Distance origin** of the +/-15% target interval after a Missed Magnet, where no
-   physical landmark was observed (and, as implemented, after a confirmation). The integrated README anchors it at the applicable IR
-   context of the confirmed leading boundary. The brief does not state it.
-4. **Multiple IR senders:** the integrated candidate has no source-selection
+3. **Multiple IR senders:** the integrated candidate has no source-selection
    policy; David and Sam must decide a NAVI-owned policy before field use.
-5. **Spatial-reference details:** bin width, minimum coverage, and the per-location
+4. **Spatial-reference details:** bin width, minimum coverage, and the per-location
    representative rule.
-6. **Synchronized IR evidence** for the three surviving impostor candidates
+5. **Synchronized IR evidence** for the three surviving impostor candidates
    (X21 Grillers departure, QUORUM 243211, QUORUM 263774): track evidence needed.

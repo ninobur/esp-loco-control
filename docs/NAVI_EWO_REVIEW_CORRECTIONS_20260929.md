@@ -1,4 +1,8 @@
-# Integrated EWO R2 — authorized review corrections
+# Integrated EWO R2 — authorized review corrections (historical)
+
+This review record remains preserved as historical evidence. Its five-position
+boot-reference correction and open post–Missed Magnet origin question were
+superseded by current decision 0115 during final cleanup on 2026-09-29.
 
 Status: development candidate; not flashed, not field accepted. David and Sam
 accepted the do-not-flash review of `cd55929c5f95c2d41bc00771c97641938612bd8a`

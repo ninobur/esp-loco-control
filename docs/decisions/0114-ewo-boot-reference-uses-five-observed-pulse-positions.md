@@ -1,8 +1,8 @@
 # 0114 — EWO boot reference uses five distinct observed pulse positions
 
-Status: Accepted by David and Sam in the authorized correction instruction,
-2026-09-29. Refines **only the startup clause of 0113**. This record preserves
-the human decision; it is not an agent-selected alternative.
+Status: Historical and superseded/withdrawn by 0115 on 2026-09-29. This record
+preserves the human decision and reason for withdrawal; it is not current
+NAVI_EWO authority.
 
 ## Decision
 
