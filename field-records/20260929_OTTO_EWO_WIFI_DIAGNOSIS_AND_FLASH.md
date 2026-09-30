@@ -259,3 +259,63 @@ the short Hall/IR agreement does not certify every marker. EWO remains an
 integration candidate, not field accepted. Correlated Hall/IR replay across
 the full run is needed before judging NAVI's navigation accuracy. No motion
 command or firmware change was made during this audit.
+
+## Addendum — provisional NAVI navigation rating from full run snapshot
+
+At the operator's request, a **read-only** snapshot of the Raspberry Pi MQTT
+run log was analyzed. Source:
+`/home/david/NGR/telemetry/runs/9950011_20260929_204400.log` on
+`192.168.68.142`; local temporary snapshot:
+`/private/tmp/otto-ewo-run-20260929-204400-final.log` (11,070,940 bytes,
+SHA-256 `a8e8914147ddcbd6e6be895265590eee638d1543868316944e3b22f39f94f023`).
+The snapshot spans 20:44:00–21:59:18 PDT, including the final `online=0`.
+JSON events and one-second loop status were counted; the
+committed 171-marker route map was used to audit next-marker order, polarity,
+and leading-boundary nominal IR distances. This did not alter the Pi, Otto,
+or any command topic.
+
+The operator clarified that they did **not** follow Otto along the whole
+route, so their earlier MM/direction agreement was approximate. The
+independent physical check is the endpoint: after a slow section, a stop, and
+backing up approximately 30 MM, Otto finished between MM049 and MM050.
+The log records `REVERSED` at MM16 at 21:56:46, then confirms MM16 in the
+opposite direction at 21:57:01 and progresses to MM49 at 21:58:41. At the
+final stop, NAVI reported `mm=49`, `target=50`, `dir=1`, `pwm=0`, and
+`position_reliable=1`, matching the physical interval. The final NAVI state
+also reported `degraded=1`, so the endpoint match is not a claim that every
+sensor remained healthy. Within the completed log:
+
+- 410 target confirmations, zero `MISSED_MAGNET` events, one commanded
+  reversal, zero out-of-sequence confirmed marker transitions, and zero
+  confirmed-marker polarity mismatches against the map.
+- All 1,526 one-second samples with PWM > 0 reported
+  `position_reliable=1`. Nine confirmations were marked degraded, with nine
+  `POSITION_REANCHORED` events. About 13.4% of powered samples reported
+  `degraded=1`; `ir_applicable=1` in about 87.8% of powered samples. Nine
+  `IR_DEGRADED` events, nine `IR_NORMAL` events, four spatial invalidations,
+  and 406 spatial-reference completions were recorded. Some degraded stretches
+  lasted roughly 40–70 seconds; continued correct physical MM reporting is
+  encouraging evidence for the fallback path, not proof it is universally safe.
+- The median absolute difference between consecutive confirmed leading-boundary
+  nominal IR distance and mapped spacing was about 3.0%; the 95th percentile
+  was about 9.9%. Twice at MM 20→19, on different passes, the nominal IR
+  difference was about 270.3 mm against the map's 320 mm (15.5% short).
+  This repeated near-boundary discrepancy merits separate review; it is not
+  evidence by itself of a wrong MM. Normal NAVI confirmations are already
+  IR-gated, so these distance statistics are not an independent accuracy proof.
+- Hall input queue drops were 7 at the first loop-status sample and still 7
+  at the last; IR input queue drops, NAVI event drops, PWM-zero IR motion
+  events, and MQTT publish drops were zero in this run. Native NSR
+  recorder drops rose 43→252 and NSR Hall drops 0→2, so a lossless full replay
+  is not claimed. Rejected ESP-NOW packet counts were not attributed to the
+  IR car without source identification.
+
+**Provisional rating: 8/10 for observed manual navigation behavior.** The
+successful endpoint match after reversal is meaningful independent evidence,
+while 410 internally consistent confirmations are not 410 separate physical
+checks. Points are withheld for the
+degraded/re-anchor stretches, repeated MM 20→19 distance discrepancy,
+recorder losses, and absence of supervised AUTO/station validation. This is
+not a rating of EWO's defective speed telemetry, nor field acceptance of the
+firmware. Intermediate marker assignments could not be independently verified
+by this run's endpoint observation alone.
