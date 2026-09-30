@@ -735,7 +735,8 @@ static void networkTask(void*) {
                       ip[0], ip[1], ip[2], ip[3], WiFi.RSSI(),
                       mqttConnected ? "CONNECTED" : "DISCONNECTED", mqtt.state());
       } else {
-        Serial.printf("[NET] wifi=DISCONNECTED mqtt=%s mqtt_state=%d\n",
+        Serial.printf("[NET] wifi=DISCONNECTED wifi_status=%d mqtt=%s mqtt_state=%d\n",
+                      static_cast<int>(WiFi.status()),
                       mqttConnected ? "CONNECTED" : "DISCONNECTED", mqtt.state());
       }
       if (mqttConnected) {
@@ -904,11 +905,15 @@ void setup() {
     Serial.println("[BOOT] FATAL: Hall task failed");
     writePwm(0); for (;;) delay(1000);
   }
+  // Start the station association before claiming the radio for ESP-NOW.
+  // On this target, initializing ESP-NOW first can leave the station
+  // disconnected and prevent MQTT (and therefore dashboard commands) from
+  // ever becoming available.
   WiFi.mode(WIFI_STA); WiFi.setSleep(false);
-  radioReady = esp_now_init() == ESP_OK;
-  if (radioReady) radioReady = esp_now_register_recv_cb(onIr) == ESP_OK;
   WiFi.begin(WIFI_SSID, WIFI_PASS);
   Serial.printf("[NET] wifi=CONNECTING mqtt_broker=%s\n", MQTT_BROKER);
+  radioReady = esp_now_init() == ESP_OK;
+  if (radioReady) radioReady = esp_now_register_recv_cb(onIr) == ESP_OK;
   mqtt.setServer(MQTT_BROKER, 1883);
   mqtt.setCallback(onMqtt);
   mqtt.setBufferSize(1408);
