@@ -130,3 +130,20 @@ connectivity, **not its cause**: intentional unplugging/power-off, battery or
 Wi-Fi trouble, reboot, and other possibilities remain unresolved pending the
 operator's report or a new serial/live telemetry trace. No movement command
 was sent by the observer.
+
+## Addendum — operator-reported direction reversal
+
+After the first test-run watch, the operator reported that Otto was set to
+forward but physically ran backward, and said they intended to switch the
+motor leads. This physical observation is the operator's report; it was not
+independently witnessed through MQTT. The broker's retained state at the time
+read `state/direction=2` (forward), `state/session_direction=CW`, and
+`state/throttle=0`; because Otto was offline, these are last-published values,
+not a live electrical measurement. The EWO source uses Otto's X22 profile
+(`MOTOR_DIR_PIN=16`) and drives that pin HIGH for `motorDirection=1`, matching
+the X22 sketch's forward mapping. No software inversion was found in those
+specific paths. This does not establish the actual polarity of Otto's motor
+leads or explain why physical travel was reversed. The observer neither
+changed wiring nor sent a direction/throttle command. A powered-off wiring
+change, if made by the operator, needs a separate low-speed physical direction
+check before relying on NAVI's route direction or continuing an assisted run.
