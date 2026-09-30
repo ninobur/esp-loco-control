@@ -1,4 +1,4 @@
-/* EWO integrated working-sketch candidate. NOT FIELD ACCEPTED. Do not flash. */
+/* EWO integrated working-sketch candidate. NOT FIELD ACCEPTED. */
 #include <Arduino.h>
 #include <WiFi.h>
 #include <WiFiUdp.h>
@@ -47,6 +47,9 @@ static constexpr uint16_t BRAKE_STEP_COAST_MS = 400, BRAKE_STEP_HARD_MS = 15;
 static constexpr uint16_t NAVI_SYNC_PORT = 47620;
 static constexpr char NAVI_SYNC_HOST[] = "192.168.68.142";
 static constexpr char MQTT_BROKER[] = "192.168.68.142";
+// Each PubMsg is 1273 bytes. A 48-entry queue exhausted Otto's usable heap
+// before Wi-Fi association; 16 connected with no publish drops in bench test.
+static constexpr uint8_t PUB_QUEUE_DEPTH = 16;
 
 struct IrRx { uint8_t mac[6]; uint64_t receivedUs; uint16_t length;
   uint8_t pwmAtReceive, commandedAtReceive; navi_sync::Context contextAtReceive;
@@ -80,6 +83,11 @@ static bool radioReady = false, irCarCoupled = false;
 static bool haveNetReport = false, lastWifiConnected = false, lastMqttConnected = false;
 static int lastMqttState = 0;
 static uint32_t lastConnectivityReportMs = 0;
+
+static void onWifiDisconnect(WiFiEvent_t, WiFiEventInfo_t info) {
+  Serial.printf("[NET] wifi_disconnect_reason=%u\n",
+                static_cast<unsigned>(info.wifi_sta_disconnected.reason));
+}
 
 static volatile int actualPwm = 0, commandedPwm = 0;
 static int rampTarget = 0;
@@ -682,7 +690,7 @@ static void syncDrain() {
   syncSend(&wire, sizeof(wire));
 }
 static void networkTask(void*) {
-  uint32_t nextConnect = 0, wifiDownSince = 0;
+  uint32_t nextConnect = 0, wifiDownSince = 0, nextIrInitAttempt = 0;
   for (;;) {
     const uint32_t now = millis();
     const bool wifiConnected = WiFi.status() == WL_CONNECTED;
@@ -692,6 +700,16 @@ static void networkTask(void*) {
         WiFi.disconnect(); WiFi.begin(WIFI_SSID, WIFI_PASS); wifiDownSince = now;
       }
     } else wifiDownSince = 0;
+    if (wifiConnected && !radioReady && now >= nextIrInitAttempt) {
+      nextIrInitAttempt = now + 15000;
+      const esp_err_t initResult = esp_now_init();
+      const esp_err_t callbackResult = initResult == ESP_OK
+          ? esp_now_register_recv_cb(onIr) : initResult;
+      radioReady = callbackResult == ESP_OK;
+      if (initResult == ESP_OK && !radioReady) esp_now_deinit();
+      Serial.printf("[IR] radio=%s init_error=%d callback_error=%d\n",
+                    radioReady ? "READY" : "FAILED", initResult, callbackResult);
+    }
     if (wifiConnected && !mqtt.connected() && now >= nextConnect) {
       wifiClient.setConnectionTimeout(3000);
       nextConnect = now + 2000;
@@ -859,6 +877,8 @@ static void serviceStatus() {
 void setup() {
   Serial.begin(115200);
   delay(300);
+  pinMode(MOTOR_PWM_PIN, OUTPUT);
+  digitalWrite(MOTOR_PWM_PIN, LOW);
   recorder = new (std::nothrow) navi_sync::Recorder();
   if (!navi.storageReady() || !recorder || !recorder->storageReady()) {
     // No PWM peripheral or control task has been enabled yet.
@@ -886,8 +906,12 @@ void setup() {
   inaReady = ina219.begin();
   hallQ = xQueueCreate(256, sizeof(HallSample));
   irQ = xQueueCreate(32, sizeof(IrRx));
-  pubQ = xQueueCreate(48, sizeof(PubMsg));
+  pubQ = xQueueCreate(PUB_QUEUE_DEPTH, sizeof(PubMsg));
   cmdQ = xQueueCreate(16, sizeof(CmdMsg));
+  Serial.printf("[BOOT] queues hall=%u ir=%u pub=%u cmd=%u pub_depth=%u heap=%lu max_block=%lu\n",
+                hallQ != nullptr, irQ != nullptr, pubQ != nullptr, cmdQ != nullptr,
+                PUB_QUEUE_DEPTH, (unsigned long)ESP.getFreeHeap(),
+                (unsigned long)ESP.getMaxAllocHeap());
   if (!hallQ || !irQ || !pubQ || !cmdQ) {
     Serial.println("[BOOT] FATAL: queue allocation failed");
     writePwm(0); for (;;) delay(1000);
@@ -897,23 +921,19 @@ void setup() {
     pairing.getBytes("ir_mac", pairedIrMac, 6);
   Serial.printf("[BOOT] profile loco=%s id=%lu mqtt_broker=%s sync_host=%s ir=ALL_VALID_TYPE5_TO_NAVI\n",
                 LOCO_NAME, (unsigned long)LOCO_ID, MQTT_BROKER, NAVI_SYNC_HOST);
-  Serial.printf("[BOOT] ir_radio=%s paired_mac=%02X:%02X:%02X:%02X:%02X:%02X display_only=1\n",
-                radioReady ? "READY" : "FAILED", pairedIrMac[0], pairedIrMac[1],
+  Serial.printf("[BOOT] ir_radio=WAITING_FOR_WIFI paired_mac=%02X:%02X:%02X:%02X:%02X:%02X display_only=1\n",
+                pairedIrMac[0], pairedIrMac[1],
                 pairedIrMac[2], pairedIrMac[3], pairedIrMac[4], pairedIrMac[5]);
   refreshRecorderContext();
   if (xTaskCreatePinnedToCore(hallTask, "hall", 4096, nullptr, 3, nullptr, 0) != pdPASS) {
     Serial.println("[BOOT] FATAL: Hall task failed");
     writePwm(0); for (;;) delay(1000);
   }
-  // Start the station association before claiming the radio for ESP-NOW.
-  // On this target, initializing ESP-NOW first can leave the station
-  // disconnected and prevent MQTT (and therefore dashboard commands) from
-  // ever becoming available.
-  WiFi.mode(WIFI_STA); WiFi.setSleep(false);
+  // Let Wi-Fi select the AP channel before starting ESP-NOW reception.
+  WiFi.onEvent(onWifiDisconnect, ARDUINO_EVENT_WIFI_STA_DISCONNECTED);
+  WiFi.mode(WIFI_STA);
   WiFi.begin(WIFI_SSID, WIFI_PASS);
   Serial.printf("[NET] wifi=CONNECTING mqtt_broker=%s\n", MQTT_BROKER);
-  radioReady = esp_now_init() == ESP_OK;
-  if (radioReady) radioReady = esp_now_register_recv_cb(onIr) == ESP_OK;
   mqtt.setServer(MQTT_BROKER, 1883);
   mqtt.setCallback(onMqtt);
   mqtt.setBufferSize(1408);
@@ -928,7 +948,7 @@ void setup() {
     SKETCH_NAME, BUILD_CLASS, (unsigned long long)bootId);
   pub("state/bootid", payload, true);
   if (!inaReady) warn("INA219 NOT FOUND — no battery protection this session", true);
-  Serial.printf("[BOOT] %s — integration candidate, not field accepted; no flash authorized\n", SKETCH_NAME);
+  Serial.printf("[BOOT] %s — integration candidate, not field accepted\n", SKETCH_NAME);
 }
 
 void loop() {

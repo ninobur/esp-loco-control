@@ -2,10 +2,11 @@
 
 Authorized correction of integrated candidate `cd55929`, based on governing
 documentation `612b791`. The stale pre-integration `638c635` is not this build.
-**Not field accepted. Do not flash Toby or Otto.** See
+**Not field accepted. Otto's supervised diagnostic flash was authorized by the
+operator; do not flash Toby.** See
 [`NAVI_EWO_REVIEW_CORRECTIONS_20260929.md`](../../../docs/NAVI_EWO_REVIEW_CORRECTIONS_20260929.md).
-The build requires the real, locally held `firmware/programs/QUORUM/credentials.h`;
-credentials are not part of this candidate.
+The build requires the real, locally held repository-root `credentials.h` on
+the compiler include path; credentials are not part of this candidate.
 
 ## Authority and evidence paths
 
@@ -79,6 +80,14 @@ and successes, IR radio readiness and observed-frame count. When MQTT is
 connected, retained `state/connectivity` reports Wi-Fi/MQTT state, broker,
 IR-radio/source activity, and NSR UDP failure count so a stale dashboard can be
 distinguished from a navigation or sensor problem.
+
+Otto's 48-entry MQTT publish queue allocated about 61 KB before Wi-Fi started.
+With the recorder and other queues present, Wi-Fi repeatedly timed out during
+authentication. Starting Wi-Fi first connected but then the queue allocation
+failed. A 16-entry queue saved about 40 KB; Wi-Fi, MQTT, and ESP-NOW then came
+up, and the observed idle `pub_drop` count remained zero. The boot log reports
+queue allocation, free heap, and largest free block. The reduced outage buffer
+still needs sustained-load and reconnect testing before field acceptance.
 
 ## Record and test
 
