@@ -56,7 +56,10 @@ struct CmdMsg { char topic[72]; char payload[64]; uint64_t order; uint64_t recei
 
 static NaviIntegratedCore navi;
 static StationMachine stationMachine;
-static navi_sync::Recorder recorder;
+// The recorder owns large fixed native Hall/IR/NAVI rings. Keep the pointer
+// small in internal DRAM so ESP-IDF can create the Arduino app task; allocate
+// the unchanged recorder after setup() begins.
+static navi_sync::Recorder* recorder = nullptr;
 static QueueHandle_t hallQ = nullptr, irQ = nullptr, pubQ = nullptr, cmdQ = nullptr;
 static volatile uint32_t hallQueueDrops = 0, irQueueDrops = 0;
 static uint32_t reportedHallDrops = 0, reportedIrDrops = 0;
@@ -131,7 +134,7 @@ static void recordInput(navi_sync::InputKind kind, uint64_t judgmentUs,
   item.kind = uint8_t(kind); item.pwm = pwm; item.commandedPwm = commanded;
   item.direction = direction; item.navMm = c.navMm; item.target = navi.target().sequence;
   item.stationPhase = c.stationPhase; item.contextFlags = c.flags;
-  recorder.addConsumption(item, c);
+  recorder->addConsumption(item, c);
 }
 // Loop-task only. CommandReceived is recorded separately in the callback and
 // deliberately has no NAVI consumption ID: receipt is not consumption.
@@ -143,7 +146,7 @@ static void recordAction(navi_sync::ActionKind kind, const char* topic = "",
   a.kind = uint8_t(kind); a.pwm = actualPwm; a.targetPwm = commandedPwm;
   a.rampUpMs = rampUpMs; a.rampDownMs = rampDownMs;
   strlcpy(a.topic, topic, sizeof(a.topic)); strlcpy(a.payload, payload, sizeof(a.payload));
-  refreshRecorderContext(); recorder.addAction(a, recorderContext());
+  refreshRecorderContext(); recorder->addAction(a, recorderContext());
 }
 static void serviceObservationLoss() {
   const uint32_t hallLost = hallQueueDrops, irLost = irQueueDrops;
@@ -262,14 +265,14 @@ static void hallTask(void*) {
       item.raw = observation.raw;
       item.pwm = observation.pwm;
       item.direction = observation.direction;
-      recorder.addNativeHall(item, recorderContext());
+      recorder->addNativeHall(item, recorderContext());
     }
     wire.median = INT16_MIN;  // no acquisition median; field is legacy NSR1 layout
     wire.pwmActual = static_cast<uint8_t>(actualPwm);
     wire.pwmCommanded = static_cast<uint8_t>(commandedPwm);
     wire.flags = motorDirection ? navi_sync::HALL_F_DIR_FWD : 0;
     if (actualPwm == 0) wire.flags |= navi_sync::HALL_F_HOLD;
-    recorder.addHall(firstUs, uint32_t(firstUs / 1000), wire, recorderContext());
+      recorder->addHall(firstUs, uint32_t(firstUs / 1000), wire, recorderContext());
     vTaskDelayUntil(&wake, 1);
   }
 }
@@ -313,7 +316,7 @@ static void serviceIrIngress() {
     recordInput(navi_sync::InputKind::Ir, judgedUs, rx.receivedUs, wire.sequence,
                 rx.pwmAtReceive, rx.commandedAtReceive, rx.contextAtReceive.navDir);
     navi.observeIr(wire, rx.receivedUs, rx.pwmAtReceive, rx.mac, judgedUs);
-    recorder.addIr(rx.receivedUs, rx.mac, 1, wire,
+    recorder->addIr(rx.receivedUs, rx.mac, 1, wire,
                    navi.irHealthFault(), navi.irReadiness(),
                    rx.pwmAtReceive, rx.commandedAtReceive, rx.contextAtReceive);
   }
@@ -375,7 +378,7 @@ static void publishEvents() {
     recorded.spatialPhase = e.spatialPhase;
     recorded.consumptionId = e.consumptionId;
     recorded.irSequence = e.irSequence;
-    recorder.addNavi(recorded, recorderContext());
+    recorder->addNavi(recorded, recorderContext());
     if (e.kind == EwoEventKind::TargetConfirmed || e.kind == EwoEventKind::MissedMagnet)
       pub("mm/marker", payload);
     if (e.kind == EwoEventKind::PwmZeroDisplacement)
@@ -450,7 +453,7 @@ static void onMqtt(char* topic, byte* payload, unsigned length) {
   arrival.pwm = actualPwm; arrival.targetPwm = commandedPwm;
   strlcpy(arrival.topic, command.topic, sizeof(arrival.topic));
   strlcpy(arrival.payload, command.payload, sizeof(arrival.payload));
-  recorder.addAction(arrival, recorderContext());
+  recorder->addAction(arrival, recorderContext());
   if (cmdQ && xQueueSend(cmdQ, &command, 0) != pdTRUE) ++cmdDrops;
 }
 static void handleCommand(const CmdMsg& command) {
@@ -626,30 +629,30 @@ static void syncDrain() {
     // Network-task-owned scratch buffers keep larger batches off its stack.
     static navi_sync::ConsumptionWire consumed;
     static navi_sync::ActionWire action;
-    if (recorder.popConsumption(consumed)) { syncSend(&consumed, sizeof(consumed)); sent = true; }
-    if (recorder.popAction(action)) { syncSend(&action, sizeof(action)); sent = true; }
+    if (recorder->popConsumption(consumed)) { syncSend(&consumed, sizeof(consumed)); sent = true; }
+    if (recorder->popAction(action)) { syncSend(&action, sizeof(action)); sent = true; }
     if (i % 4 == 0) {
       navi_sync::NativeHallWire wire;
-      if (recorder.popNativeHall(wire)) { syncSend(&wire, sizeof(wire)); sent = true; }
+      if (recorder->popNativeHall(wire)) { syncSend(&wire, sizeof(wire)); sent = true; }
     } else if (i % 4 == 1) {
       navi_sync::NaviWire wire;
-      if (recorder.popNavi(wire)) { syncSend(&wire, sizeof(wire)); sent = true; }
+      if (recorder->popNavi(wire)) { syncSend(&wire, sizeof(wire)); sent = true; }
     } else if (i % 4 == 2) {
       navi_sync::IrWire wire;
-      if (recorder.popIr(wire)) { syncSend(&wire, sizeof(wire)); sent = true; }
+      if (recorder->popIr(wire)) { syncSend(&wire, sizeof(wire)); sent = true; }
     } else {
       navi_sync::HallWire wire;
-      if (recorder.popHall(wire)) { syncSend(&wire, sizeof(wire)); sent = true; }
+      if (recorder->popHall(wire)) { syncSend(&wire, sizeof(wire)); sent = true; }
     }
     if (!sent) {
       navi_sync::HallWire hall;
       navi_sync::IrWire ir;
       navi_sync::NaviWire nav;
       navi_sync::NativeHallWire native;
-      if (recorder.popNativeHall(native)) { syncSend(&native, sizeof(native)); sent = true; }
-      else if (recorder.popHall(hall)) { syncSend(&hall, sizeof(hall)); sent = true; }
-      else if (recorder.popIr(ir)) { syncSend(&ir, sizeof(ir)); sent = true; }
-      else if (recorder.popNavi(nav)) { syncSend(&nav, sizeof(nav)); sent = true; }
+      if (recorder->popNativeHall(native)) { syncSend(&native, sizeof(native)); sent = true; }
+      else if (recorder->popHall(hall)) { syncSend(&hall, sizeof(hall)); sent = true; }
+      else if (recorder->popIr(ir)) { syncSend(&ir, sizeof(ir)); sent = true; }
+      else if (recorder->popNavi(nav)) { syncSend(&nav, sizeof(nav)); sent = true; }
     }
     if (!sent) break;
   }
@@ -659,19 +662,19 @@ static void syncDrain() {
   navi_sync::Status status{};
   status.tMs = lastStatus;
   status.tUs = esp_timer_get_time();
-  status.hallSamples = recorder.hallSamples();
-  status.hallRingDrops = recorder.hallDrops();
-  status.irAccepted = recorder.irAccepted();
-  status.irRingDrops = recorder.irDrops();
+  status.hallSamples = recorder->hallSamples();
+  status.hallRingDrops = recorder->hallDrops();
+  status.irAccepted = recorder->irAccepted();
+  status.irRingDrops = recorder->irDrops();
   status.irInputQueueDrops = irQueueDrops;
   status.udpFailures = naviSyncUdpFailures;
   status.datagramsSent = naviSyncDatagrams;
-  status.maxHallGapUs = recorder.maxHallGapUs();
-  status.hallHighWater = recorder.hallHighWater();
-  status.irHighWater = recorder.irHighWater();
+  status.maxHallGapUs = recorder->maxHallGapUs();
+  status.hallHighWater = recorder->hallHighWater();
+  status.irHighWater = recorder->irHighWater();
   status.wifiConnected = WiFi.status() == WL_CONNECTED;
   status.mqttConnected = mqtt.connected();
-  const navi_sync::StatusWire wire = recorder.makeStatus(
+  const navi_sync::StatusWire wire = recorder->makeStatus(
       lastStatus, status.tUs, recorderContext(), status);
   syncSend(&wire, sizeof(wire));
 }
@@ -765,9 +768,9 @@ static void serviceStatus() {
     (unsigned long long)navi.hallObservationCount(),
     (unsigned long long)navi.irObservationCount(), (unsigned long)hallQueueDrops,
     (unsigned long)irQueueDrops, (unsigned long)irPacketInvalid,
-    (unsigned long)recorder.hallDrops(), (unsigned long)recorder.irDrops(),
-    (unsigned long)recorder.naviDrops(),
-    (unsigned long)recorder.nativeDrops(),
+    (unsigned long)recorder->hallDrops(), (unsigned long)recorder->irDrops(),
+    (unsigned long)recorder->naviDrops(),
+    (unsigned long)recorder->nativeDrops(),
     (unsigned long)navi.eventLoss(), (unsigned long)navi.pwmZeroDisplacements(),
     (unsigned long)navi.confirmedCount(), (unsigned long)navi.missedCount(),
     int(actualPwm), autoEnrolled, autoRunning, estopped, lowVoltage,
@@ -779,7 +782,7 @@ static void serviceStatus() {
   char traceStatus[160];
   snprintf(traceStatus, sizeof(traceStatus),
     "{\"consumption_drop\":%lu,\"action_drop\":%lu,\"command_queue_drop\":%lu,\"lossless\":false}",
-    (unsigned long)recorder.consumptionDrops(), (unsigned long)recorder.actionDrops(),
+    (unsigned long)recorder->consumptionDrops(), (unsigned long)recorder->actionDrops(),
     (unsigned long)cmdDrops);
   pub("state/trace", traceStatus);
   char consolePayload[384];
@@ -815,7 +818,8 @@ static void serviceStatus() {
 void setup() {
   Serial.begin(115200);
   delay(300);
-  if (!navi.storageReady() || !recorder.storageReady()) {
+  recorder = new (std::nothrow) navi_sync::Recorder();
+  if (!navi.storageReady() || !recorder || !recorder->storageReady()) {
     // No PWM peripheral or control task has been enabled yet.
     pinMode(MOTOR_PWM_PIN, OUTPUT); digitalWrite(MOTOR_PWM_PIN, LOW);
     Serial.println("[BOOT] FATAL: bounded evidence storage allocation failed");
@@ -824,7 +828,7 @@ void setup() {
   bootId = (uint64_t(esp_random()) << 32) | esp_random();
   naviSyncSession = esp_random();
   if (!naviSyncSession) naviSyncSession = 1;
-  recorder.begin(LOCO_ID, naviSyncSession, bootId);
+  recorder->begin(LOCO_ID, naviSyncSession, bootId);
   naviSyncDestValid = naviSyncDest.fromString(NAVI_SYNC_HOST);
   analogReadResolution(12);
   pinMode(HALL_PIN, INPUT);
