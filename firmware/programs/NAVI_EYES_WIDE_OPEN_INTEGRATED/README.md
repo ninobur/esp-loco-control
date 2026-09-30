@@ -73,6 +73,13 @@ ESTOP assertions latch at callback arrival independently of queue success;
 only a demonstrably newer release can clear the latch. Ordered delivery is not
 assumed, and a dropped assertion still withdraws motor power in the control loop.
 
+Runtime connectivity is explicit. Serial output reports the selected profile,
+broker/sync destinations, Wi-Fi transitions with IP/RSSI, MQTT connect failures
+and successes, IR radio readiness and observed-frame count. When MQTT is
+connected, retained `state/connectivity` reports Wi-Fi/MQTT state, broker,
+IR-radio/source activity, and NSR UDP failure count so a stale dashboard can be
+distinguished from a navigation or sensor problem.
+
 ## Record and test
 
 NSR1 version 1 types 1–5 remain readable by the updated tools. R2 emits **version

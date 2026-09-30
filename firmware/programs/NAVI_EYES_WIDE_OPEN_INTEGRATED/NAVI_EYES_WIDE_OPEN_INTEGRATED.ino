@@ -77,6 +77,9 @@ static uint8_t pairedIrMac[6]{};
 static uint8_t lastSeenMac[6]{};
 static uint32_t seenIrFrames = 0;
 static bool radioReady = false, irCarCoupled = false;
+static bool haveNetReport = false, lastWifiConnected = false, lastMqttConnected = false;
+static int lastMqttState = 0;
+static uint32_t lastConnectivityReportMs = 0;
 
 static volatile int actualPwm = 0, commandedPwm = 0;
 static int rampTarget = 0;
@@ -682,13 +685,14 @@ static void networkTask(void*) {
   uint32_t nextConnect = 0, wifiDownSince = 0;
   for (;;) {
     const uint32_t now = millis();
-    if (WiFi.status() != WL_CONNECTED) {
+    const bool wifiConnected = WiFi.status() == WL_CONNECTED;
+    if (!wifiConnected) {
       if (!wifiDownSince) wifiDownSince = now;
       else if (now - wifiDownSince > 15000) {
         WiFi.disconnect(); WiFi.begin(WIFI_SSID, WIFI_PASS); wifiDownSince = now;
       }
     } else wifiDownSince = 0;
-    if (WiFi.status() == WL_CONNECTED && !mqtt.connected() && now >= nextConnect) {
+    if (wifiConnected && !mqtt.connected() && now >= nextConnect) {
       wifiClient.setConnectionTimeout(3000);
       nextConnect = now + 2000;
       char id[48], online[72];
@@ -710,9 +714,45 @@ static void networkTask(void*) {
         snprintf(topic, sizeof(topic), "ngr/dispatcher/cmd/stop/%s", LOCO_NAME);
         mqtt.subscribe(topic);
         mqtt.subscribe("ngr/dispatcher/cmd/estop");
+        Serial.printf("[MQTT] connected broker=%s client=%s\n", MQTT_BROKER, id);
       }
+      else Serial.printf("[MQTT] connect failed state=%d broker=%s\n", mqtt.state(), MQTT_BROKER);
     }
     mqtt.loop();
+    const bool mqttConnected = mqtt.connected();
+    if (wifiConnected != lastWifiConnected ||
+        mqttConnected != lastMqttConnected ||
+        mqtt.state() != lastMqttState || !haveNetReport ||
+        now - lastConnectivityReportMs >= 5000) {
+      lastWifiConnected = wifiConnected;
+      lastMqttConnected = mqttConnected;
+      lastMqttState = mqtt.state();
+      haveNetReport = true;
+      lastConnectivityReportMs = now;
+      if (wifiConnected) {
+        IPAddress ip = WiFi.localIP();
+        Serial.printf("[NET] wifi=CONNECTED ip=%u.%u.%u.%u rssi=%d mqtt=%s mqtt_state=%d\n",
+                      ip[0], ip[1], ip[2], ip[3], WiFi.RSSI(),
+                      mqttConnected ? "CONNECTED" : "DISCONNECTED", mqtt.state());
+      } else {
+        Serial.printf("[NET] wifi=DISCONNECTED mqtt=%s mqtt_state=%d\n",
+                      mqttConnected ? "CONNECTED" : "DISCONNECTED", mqtt.state());
+      }
+      if (mqttConnected) {
+        IPAddress ip = WiFi.localIP();
+        char connectivity[520], topic[72];
+        snprintf(topic, sizeof(topic), "ngr/loco/%s/state/connectivity", LOCO_NAME);
+        snprintf(connectivity, sizeof(connectivity),
+          "{\"wifi\":%u,\"ip\":\"%u.%u.%u.%u\",\"rssi\":%d,"
+          "\"mqtt\":1,\"mqtt_state\":%d,\"broker\":\"%s\","
+          "\"ir_radio\":%u,\"ir_seen\":%lu,\"ir_coupled\":%u,"
+          "\"navi_sync\":%u,\"udp_failures\":%lu}",
+          wifiConnected, ip[0], ip[1], ip[2], ip[3], WiFi.RSSI(), mqtt.state(),
+          MQTT_BROKER, radioReady, (unsigned long)seenIrFrames, irCarCoupled,
+          naviSyncDestValid, (unsigned long)naviSyncUdpFailures);
+        mqtt.publish(topic, connectivity, true);
+      }
+    }
     syncDrain();
     if (mqtt.connected()) {
       PubMsg message;
@@ -854,6 +894,11 @@ void setup() {
   pairing.begin("ngr-nav", false);
   if (pairing.getBytesLength("ir_mac") == 6)
     pairing.getBytes("ir_mac", pairedIrMac, 6);
+  Serial.printf("[BOOT] profile loco=%s id=%lu mqtt_broker=%s sync_host=%s ir=ALL_VALID_TYPE5_TO_NAVI\n",
+                LOCO_NAME, (unsigned long)LOCO_ID, MQTT_BROKER, NAVI_SYNC_HOST);
+  Serial.printf("[BOOT] ir_radio=%s paired_mac=%02X:%02X:%02X:%02X:%02X:%02X display_only=1\n",
+                radioReady ? "READY" : "FAILED", pairedIrMac[0], pairedIrMac[1],
+                pairedIrMac[2], pairedIrMac[3], pairedIrMac[4], pairedIrMac[5]);
   refreshRecorderContext();
   if (xTaskCreatePinnedToCore(hallTask, "hall", 4096, nullptr, 3, nullptr, 0) != pdPASS) {
     Serial.println("[BOOT] FATAL: Hall task failed");
@@ -863,6 +908,7 @@ void setup() {
   radioReady = esp_now_init() == ESP_OK;
   if (radioReady) radioReady = esp_now_register_recv_cb(onIr) == ESP_OK;
   WiFi.begin(WIFI_SSID, WIFI_PASS);
+  Serial.printf("[NET] wifi=CONNECTING mqtt_broker=%s\n", MQTT_BROKER);
   mqtt.setServer(MQTT_BROKER, 1883);
   mqtt.setCallback(onMqtt);
   mqtt.setBufferSize(1408);
