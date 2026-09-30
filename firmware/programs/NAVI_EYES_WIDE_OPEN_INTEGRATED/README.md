@@ -157,14 +157,24 @@ The shell suite also runs the shared IR architecture and station-position tests.
 - Finite Hall/IR/event/UDP/MQTT queues expose loss counters but are not proven
   lossless under hardware load or Wi-Fi outage. Boot storage is now bounded,
   but its spatial assumptions and the larger trace rate need hardware validation.
+- Otto's 2026-09-29 moving run exposed an EWO/NAVI speed-telemetry defect:
+  `telem/ir` and `telem/speed` publish adjacent ~100-ms pulse rates as speed,
+  including zero-pulse `MEASURED` values, rather than the prior qualified
+  ~1-second estimate. The dashboard's main pKPH is also stale because EWO
+  omits its Hall/segment-speed input. Do not use these displayed speeds as
+  evidence of physical motion. NAVI does not consume the computed rates; it
+  uses cumulative nominal IR distance and Hall observations, which still
+  require full-run validation. See the dated field record.
 - Native Hall NSR1 timestamps/serials and decision records enable offline
-  reconstruction; no on-track capture or end-to-end receiver throughput test
-  has been performed. Fixed network addresses are inherited operational
-  configuration, not a deployment recommendation.
+  reconstruction; no complete on-track NSR1 capture or end-to-end receiver
+  throughput test has been performed. Fixed network addresses are inherited
+  operational configuration, not a deployment recommendation.
 - The reviewed build was flashed to Otto on 2026-09-29. Wi-Fi, MQTT, ESP-NOW
   initialization and the dashboard's session-orientation/interval-location
-  controls were verified at rest. No movement, valid IR reception, station, or
-  AUTO behavior was verified on Otto; none of this build was tested on Toby.
+  controls were verified at rest; a later manual moving run produced valid
+  type-5 IR and Hall/NAVI telemetry but exposed the speed defects above.
+  Physical direction and full-run position accuracy were not independently
+  verified; station and AUTO behavior were not tested. Toby was not flashed.
 
 ## 21-item disposition audit
 

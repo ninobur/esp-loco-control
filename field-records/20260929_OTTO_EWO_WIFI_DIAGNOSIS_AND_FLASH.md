@@ -199,3 +199,63 @@ lossless. The invalid packets' source was not established. A follow-up speed
 design could aggregate multiple sender-timestamped pulses over a longer,
 clearly labeled display window while leaving NAVI's raw IR observation path
 unchanged. No speed or navigation algorithm was altered in this review.
+
+### Correction to the speed interpretation after operator challenge
+
+The operator correctly objected that describing 18.0/35.9 (and 18.0/0) as
+"expected quantization" understated a **new EWO display regression**. The
+earlier NAVI_COHERENCE IR telemetry calls `IrSpeedTelemetry::sample()` once per
+second. It subtracts cumulative pulses and sender capture times across that
+roughly one-second interval, reports `ir_window_us` and `ir_delta_pulses`, and
+uses `NO_PULSES` rather than `MEASURED` for a zero-pulse interval. Its
+qualification can mark zero invalid when Hall has advanced and can flag a
+prolonged powered zero. A committed 2026-09-26 Toby run log contains actual
+one-second windows (for example 6 pulses / 1,000,000 us = 57.912 mm/s =
+10.778 house pKPH), not adjacent 100-ms snapshots.
+
+EWO's `NaviIntegratedCore::observeIr()` replaces that operator-facing speed
+path with the difference between each pair of consecutive type-5 frames,
+roughly 100 ms apart, and `NaviCompatibility::formatConsoleIr()` labels every
+available result `MEASURED`, including zero pulses while PWM is nonzero.
+EWO also omits the earlier display qualification and the window/pulse-count
+fields. This is the causal software difference; the one-/two-pulse arithmetic
+explains the numbers but **does not make them valid speed readings**. The
+short sample at PWM 40 gave an IR cumulative-pulse average near 8.1 house
+pKPH over eight seconds. A 300-mm mapped Hall interval advanced in about
+seven seconds, roughly 8.0 house pKPH if the landmark timing is representative.
+Those two *rough averages* are mutually plausible and far below the displayed
+18.0/35.9 spikes. The source does not establish absolute speed calibration,
+but it strongly points to the EWO display calculation, not newly erratic wheel
+motion, as the immediate defect.
+
+The appropriate correction is a separate, display-only speed estimator with
+the prior continuous-epoch, sender-timestamped approximately one-second
+window and explicit validity/reason fields; NAVI should continue receiving
+every raw IR observation unchanged. The missing main pKPH contract is a
+separate producer/consumer issue and should not be "fixed" by silently
+putting IR speed into the Hall/segment tile. This addendum is diagnostic only:
+no firmware, dashboard, or hardware change was made or tested here.
+
+### Navigation-consumer audit and attribution
+
+The operator reports that IR speed had been reliable and in line with Hall
+speed on prior programs, and correctly identifies EWO/NAVI as the new problem.
+The prior one-second telemetry implementation and the current pulse/Hall
+averages support that attribution; this session found no evidence that the
+IR car itself began producing the displayed 18.0/35.9/0 jumps. The incorrect
+rate calculation is in EWO's `NaviIntegratedCore`, and the incorrect
+`MEASURED` presentation is in EWO's compatibility output.
+
+Those displayed rates cannot be used as navigation speed. A source-reference
+check found `speedMmS_` and `speedAvailable_` consumed only by
+`NaviCompatibility::formatConsoleIr()` for `telem/ir` and `telem/speed`.
+NAVI's target coherence, missed-magnet, and spatial-reference paths instead
+use the type-5 packet's cumulative `nominalUm` (completed pulses multiplied
+by pitch), together with Hall evidence. Thus the faulty adjacent-frame
+**display-rate values are not directly fed into NAVI's decisions**. This is
+an architectural boundary, not a defense of defective EWO or proof that its
+navigation is sound: cumulative distance is still nominal/unvalidated, and
+the short Hall/IR agreement does not certify every marker. EWO remains an
+integration candidate, not field accepted. Correlated Hall/IR replay across
+the full run is needed before judging NAVI's navigation accuracy. No motion
+command or firmware change was made during this audit.
