@@ -99,3 +99,34 @@ new flash: Otto remains on the binary built from `b7bdfb5`.
 For each further change, record the source revision, exact hardware target,
 commands/tests run, observed serial and broker evidence, operator observations,
 and unresolved limits. Keep private credentials out of committed records.
+
+## Addendum — first operator test-run watch, 2026-09-29 ~20:39–20:41 PDT
+
+The operator announced a test run. A read-only subscription to Otto's MQTT
+topics (`ngr/loco/9950011/state/loopstat`, `state/connectivity`, `online`)
+received live telemetry; no commands were published and no hardware or firmware
+was changed. At 20:39:04 PDT, connectivity reported Wi-Fi/MQTT/IR radio all
+ready (`1`), RSSI -51 dBm, and 3,133 total radio frames seen. The corresponding
+loop status reported MM 122, target 123, direction +1, PWM 0, `running=0`,
+`confirmed=2`, `missed=1`, 1,574 accepted IR observations, 1,644 invalid IR
+packets, `ir_applicable=0`, `degraded=1`, `estop=0`, `lowvolt=0`, and
+`pub_drop=0`. The confirmed/missed counters are cumulative; this watch cannot
+assign those events to a specific portion of the operator's run.
+
+Through 20:39:12 PDT, accepted IR observations rose to 1,650 and invalid
+packets to 1,723, while the sampled state stayed at PWM 0, MM 122, target 123,
+`running=0`, `ir_applicable=0`, and `degraded=1`. Thus the radio was receiving
+both valid type-5 observations and packets rejected by EWO's wire validator;
+their senders and the reason for rejection were not identified. The last
+connectivity sample received at 20:39:10 PDT still showed Wi-Fi/MQTT ready,
+RSSI -40 dBm, and nine cumulative NSR UDP failures.
+
+Fresh telemetry then stopped. A further 12-second fresh-message check and a
+20-second online watch received no updates. The broker's retained
+`ngr/loco/9950011/online` value was `0`; its retained connectivity JSON still
+said connected, but was stale. Otto's former `/dev/cu.wchusbserial10` device
+was also absent from the Mac. This evidence establishes loss of observable
+connectivity, **not its cause**: intentional unplugging/power-off, battery or
+Wi-Fi trouble, reboot, and other possibilities remain unresolved pending the
+operator's report or a new serial/live telemetry trace. No movement command
+was sent by the observer.
