@@ -874,6 +874,8 @@ static void serviceStatus() {
 void setup() {
   Serial.begin(115200);
   delay(300);
+  pinMode(MOTOR_PWM_PIN, OUTPUT);
+  digitalWrite(MOTOR_PWM_PIN, LOW);
   recorder = new (std::nothrow) navi_sync::Recorder();
   if (!navi.storageReady() || !recorder || !recorder->storageReady()) {
     // No PWM peripheral or control task has been enabled yet.
@@ -901,12 +903,20 @@ void setup() {
   inaReady = ina219.begin();
   hallQ = xQueueCreate(256, sizeof(HallSample));
   irQ = xQueueCreate(32, sizeof(IrRx));
-  pubQ = xQueueCreate(48, sizeof(PubMsg));
+  // Diagnostic: 16 x 1273-byte MQTT messages instead of 48.
+  pubQ = xQueueCreate(16, sizeof(PubMsg));
   cmdQ = xQueueCreate(16, sizeof(CmdMsg));
+  Serial.printf("[DIAG] queues hall=%u ir=%u pub=%u cmd=%u pub_item=%u heap=%lu max_block=%lu\n",
+                hallQ != nullptr, irQ != nullptr, pubQ != nullptr, cmdQ != nullptr,
+                static_cast<unsigned>(sizeof(PubMsg)), (unsigned long)ESP.getFreeHeap(),
+                (unsigned long)ESP.getMaxAllocHeap());
   if (!hallQ || !irQ || !pubQ || !cmdQ) {
     Serial.println("[BOOT] FATAL: queue allocation failed");
     writePwm(0); for (;;) delay(1000);
   }
+  Serial.printf("[DIAG] after_allocations heap=%lu max_block=%lu wifi_status=%d\n",
+                (unsigned long)ESP.getFreeHeap(), (unsigned long)ESP.getMaxAllocHeap(),
+                static_cast<int>(WiFi.status()));
   pairing.begin("ngr-nav", false);
   if (pairing.getBytesLength("ir_mac") == 6)
     pairing.getBytes("ir_mac", pairedIrMac, 6);
@@ -920,19 +930,8 @@ void setup() {
     Serial.println("[BOOT] FATAL: Hall task failed");
     writePwm(0); for (;;) delay(1000);
   }
-  // ESP-NOW shares the station radio. Initialize it after Wi-Fi associates.
   WiFi.onEvent(onWifiDisconnect, ARDUINO_EVENT_WIFI_STA_DISCONNECTED);
   WiFi.mode(WIFI_STA);
-  const int16_t targetAps = WiFi.scanNetworks(false, true, false, 300, 0, WIFI_SSID);
-  Serial.printf("[NET] target_ap_scan=%d ssid_length=%u station_mac=%s\n",
-                targetAps, static_cast<unsigned>(strlen(WIFI_SSID)),
-                WiFi.macAddress().c_str());
-  for (int16_t i = 0; i < targetAps; ++i) {
-    Serial.printf("[NET] target_ap rssi=%ld channel=%ld auth=%d bssid=%s\n",
-                  static_cast<long>(WiFi.RSSI(i)), static_cast<long>(WiFi.channel(i)),
-                  static_cast<int>(WiFi.encryptionType(i)), WiFi.BSSIDstr(i).c_str());
-  }
-  WiFi.scanDelete();
   WiFi.begin(WIFI_SSID, WIFI_PASS);
   Serial.printf("[NET] wifi=CONNECTING mqtt_broker=%s\n", MQTT_BROKER);
   mqtt.setServer(MQTT_BROKER, 1883);
