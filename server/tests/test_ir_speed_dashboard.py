@@ -18,6 +18,62 @@ with patch("threading.Thread.start"):
 
 
 class SpeedTest(unittest.TestCase):
+    def test_actual_ewo_firmware_payloads(self):
+        source = SERVER.parent / "firmware/programs/NAVI_EYES_WIDE_OPEN_INTEGRATED/tests/emit_telemetry_contract.cpp"
+        with tempfile.TemporaryDirectory() as tmp:
+            binary = Path(tmp) / "ewo_contract"
+            subprocess.run(["c++", "-std=c++17", "-Wall", "-Wextra", "-Werror",
+                            str(source), "-o", str(binary)], check=True)
+            payloads = [json.loads(line) for line in subprocess.check_output(
+                [str(binary)], text=True).splitlines()]
+        moving, stopped, stale, reset = payloads
+        self.assertAlmostEqual(moving["ir_mmps"], 20.0)
+        self.assertEqual(moving["ir_speed_reason"], "MEASURED")
+        self.assertEqual(stopped["ir_mmps"], 0)
+        self.assertEqual(stopped["ir_speed_reason"], "STOPPED")
+        self.assertNotEqual(stopped["ir_reason"], moving["ir_reason"])
+        self.assertIsNone(stale["ir_mmps"])
+        self.assertEqual(stale["ir_speed_reason"], "UNAVAILABLE")
+        self.assertEqual(reset["ir_distance_state"], "FRAME_LOST_REDECLARE")
+        self.assertEqual(reset["mm"], 0)
+
+        def feed(sub, value):
+            msg = type("Msg", (), {"topic": "ngr/loco/9950011/" + sub,
+                "payload": json.dumps(value).encode(), "retain": False})()
+            app.on_mqtt_message(None, None, msg)
+
+        feed("state/nav", reset)
+        feed("telem/ir", moving)
+        feed("telem/speed", moving)
+        state = app.app.test_client().get("/loco/otto/state").get_json()
+        self.assertEqual(state["pkph"], "3.7")
+        self.assertEqual(state["ir_distance_state"], "FRAME_LOST_REDECLARE")
+        feed("telem/ir", stopped)
+        feed("telem/speed", stopped)
+        state = app.app.test_client().get("/loco/otto/state").get_json()
+        self.assertEqual(state["pkph"], "0.0")
+        feed("telem/speed", stale)
+        self.assertEqual(app.app.test_client().get("/loco/otto/state").get_json()["pkph"], "--")
+
+        html = app.app.test_client().get("/loco/otto").get_data(as_text=True)
+        self.assertIn('id="ir-mmps-display"', html)
+        self.assertIn('id="irkph-display"', html)
+        self.assertIn('id="kph-display"', html)
+        fn = re.search(r"function irSpeedView\(s\) \{.*?\n\}", html, re.S).group()
+        js = "const assert=require('assert'); const STALE_S=5; const PKPH_PER_MM_S=1/5.37325;\n"
+        js += "function ageOf(s,k){return s.ages[k] ?? null;}\n" + fn
+        js += "const state=(v,age=0)=>({ir_link:JSON.stringify(v),ages:{ir_link:age}});\n"
+        for name, payload in (("moving", moving), ("stopped", stopped), ("stale", stale)):
+            js += f"const {name}={json.dumps(payload)};\n"
+        js += "assert.equal(irSpeedView(state(moving)).mmps,'20.0');\n"
+        js += "assert.equal(irSpeedView(state(moving)).value,'3.7');\n"
+        js += "assert.equal(irSpeedView(state(stopped)).mmps,'0.0');\n"
+        js += "assert.equal(irSpeedView(state(stopped)).value,'0.0');\n"
+        js += "assert.equal(irSpeedView(state(stopped)).reason,'STOPPED');\n"
+        js += "assert.equal(irSpeedView(state(stale)).value,'--');\n"
+        js += "assert.equal(irSpeedView(state(moving,6)).value,'--');\n"
+        subprocess.run(["node", "-e", js], check=True)
+
     def test_telemetry_buffer_bound(self):
         sketch = SERVER.parent / 'firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_HEALTH/NAVI_COHERENCE_0_6_IR_HEALTH.ino'
         source = sketch.read_text().split('static void serviceIr(){', 1)[1]

@@ -20,7 +20,7 @@ class EwoIntegration(unittest.TestCase):
     def setUpClass(cls):
         cls.tmp = tempfile.TemporaryDirectory()
         cls.root = Path(cls.tmp.name)
-        for name in ('emit_records', 'test_review_regressions'):
+        for name in ('emit_records', 'test_review_regressions', 'emit_telemetry_contract'):
             subprocess.run(['c++', '-std=c++17', '-Wall', '-Wextra', '-Werror',
                             str(TESTS / (name + '.cpp')), '-o', str(cls.root / name)], check=True)
 
@@ -67,7 +67,10 @@ class EwoIntegration(unittest.TestCase):
 
     def test_controller_consumes_actual_firmware_adapter_output(self):
         data = subprocess.check_output([str(self.root/'test_review_regressions'), 'json'], text=True)
-        unset, nav, moving, stopped, stale = [json.loads(line) for line in data.splitlines()]
+        unset, nav, _, _, _ = [json.loads(line) for line in data.splitlines()]
+        moving, stopped, stale, reset = [json.loads(line) for line in
+            subprocess.check_output([str(self.root/'emit_telemetry_contract')],
+                                    text=True).splitlines()]
         source = (ROOT/'server/ngr_app_v1_11_2.py').read_text()
         tree = ast.parse(source)
         fn = next(n for n in tree.body if isinstance(n, ast.FunctionDef) and n.name=='_apply_nav_state')
@@ -81,6 +84,7 @@ class EwoIntegration(unittest.TestCase):
         self.assertEqual(moving['ir_valid'], 1)
         self.assertEqual(stopped['ir_mmps'], 0)
         self.assertEqual(stale['ir_valid'], 0)
+        self.assertEqual(reset['ir_distance_state'], 'FRAME_LOST_REDECLARE')
         node = shutil.which('node')
         self.assertIsNotNone(node, 'Node is required to exercise the actual dashboard renderer')
         js_fn = re.search(r'function irSpeedView\(s\) \{.*?\n\}', source, re.S).group()

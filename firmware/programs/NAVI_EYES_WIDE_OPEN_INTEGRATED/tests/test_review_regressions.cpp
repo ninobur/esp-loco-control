@@ -35,10 +35,10 @@ static void b1() {
   NaviIntegratedCore n; boot(n); n.declare(0,1,500000);
   n.observeIr(wire(8,50),1200000,40);
   for(unsigned i=0;i<5;++i) n.observeHall(h(300+i,1190000+i*1000,190),1201000+i*1000);
-  assert(n.irApplicable(1205000) && n.confirmedCount()==0 && !n.degraded());
+  assert(n.irApplicable(1205000) && n.confirmedCount()==0 && !n.distanceHolding());
   n.observeIr(wire(9,340),1250000,40);
   n.observeHall(h(305,1240000,190),1251000);
-  assert(n.confirmedCount()==1 && !n.degraded());
+  assert(n.confirmedCount()==1 && !n.distanceHolding());
   EwoEvent e; bool found=false;
   while(n.takeEvent(e)) if(e.kind==EwoEventKind::TargetConfirmed) {
     found=true; assert(e.timestampUs==1251000 && e.consumptionId==n.consumptionId() && e.irSequence==9);
@@ -77,13 +77,10 @@ static void frames() {
     const uint8_t b[6]={2};
     n.observeIr(wire(11,scenario<2?1:451,scenario<2?43:42),900000,40,scenario==3?b:nullptr);
     for(unsigned i=0;i<5;++i) n.observeHall(h(400+i,1300000+i*1000,0));
-    assert(n.confirmedCount()==2 && n.mm()==2 && n.relationshipReliable() && n.spatialPhase()==1);
+    assert(n.confirmedCount()==1 && n.mm()==1 && !n.relationshipReliable() && n.spatialPhase()==0);
     assert(n.activeReference()==115);
-    EwoEvent e; bool reanchored=false;
-    while(n.takeEvent(e)) if(e.kind==EwoEventKind::Reanchored) {
-      reanchored=true; assert(e.timestampUs==1304000);
-    }
-    assert(reanchored);
+    n.declare(1,1,1400000); // only the operator restores mapped context
+    assert(n.relationshipReliable() && n.target().sequence==2);
   }
 }
 static void loss() {
@@ -95,7 +92,7 @@ static void loss() {
   n.noteObservationLoss(1,1,1210000);
   assert(n.relationshipReliable() && n.irApplicable(1210000));
   n.noteObservationLoss(1,2,1220000);
-  assert(!n.relationshipReliable() && n.spatialPhase()==0);
+  assert(n.relationshipReliable()); // same-frame counter bridges transport loss
 }
 static void estop() {
   OrderedEstop latch;
@@ -116,9 +113,9 @@ static void estop() {
 int main(int argc,char**) {
   if(argc>1) {
     NaviIntegratedCore n; char out[384];
-    formatConsoleNav(out,sizeof(out),n,0); puts(out);
+    formatConsoleNav(out,sizeof(out),n,0,0); puts(out);
     boot(n); n.declare(12,1,500000);
-    formatConsoleNav(out,sizeof(out),n,1); puts(out);
+    formatConsoleNav(out,sizeof(out),n,1,500000); puts(out);
     n.observeIr(wire(8,20),600000,40);
     formatConsoleIr(out,sizeof(out),n,600000,true); puts(out);
     auto stopped=wire(9,20); stopped.opticalReason=ir_movement::INADEQUATE_CONTRAST;
@@ -128,5 +125,5 @@ int main(int argc,char**) {
     return 0;
   }
   b1(); bootReferenceIsImmediate(); frames(); loss(); estop();
-  puts("PASS: B1/B2, provisional boot reference, frame/re-anchor, causal time, cumulative loss");
+  puts("PASS: B1/B2, provisional boot reference, frame hold/redeclaration, causal time, cumulative loss");
 }

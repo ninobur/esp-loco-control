@@ -1,6 +1,8 @@
 # 0112 - At PWM = 0 Hall is non-actionable; IR displacement at PWM = 0 is factual and invalidates the map relationship, not the instrument
 
-Status: Accepted as principle (recorded 2026-09-29; settled by David with Sam).
+Status: Partially superseded by 0116 (2026-09-30): EWO's degraded Hall-only
+re-anchor after PWM-zero displacement is withdrawn. Other rules remain.
+Originally accepted 2026-09-29 by David with Sam.
 Partially supersedes 0106 (see below). Documentation only. No implementation,
 flashing or deployment is authorized by this record.
 Decided by: David, after review with Sam.

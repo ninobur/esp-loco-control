@@ -1,6 +1,7 @@
 # 0115 — EWO uses a provisional single-sample boot reference and retains physical origin across Missed Magnets
 
-Status: Current NAVI_EWO authority, accepted 2026-09-29. This decision
+Status: Current except its degraded-confirmation non-reopening clause,
+superseded by 0116 (2026-09-30). Accepted 2026-09-29. This decision
 supersedes/withdraws 0114 because the five-position startup mechanism addressed
 an unproven failure mode and introduced a demonstrated startup failure mode.
 

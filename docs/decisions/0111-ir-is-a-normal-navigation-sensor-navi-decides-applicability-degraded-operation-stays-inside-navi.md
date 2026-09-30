@@ -1,6 +1,8 @@
 # 0111 - IR is a normal navigation sensor; NAVI decides applicability; degraded operation stays inside NAVI
 
-Status: Accepted as principle (recorded 2026-09-29; settled by David with Sam).
+Status: Partially superseded by 0116 (2026-09-30): EWO degraded Hall-only
+navigation and the health veto are withdrawn. Other principles remain.
+Originally accepted 2026-09-29 by David with Sam.
 Documentation only. No implementation, flashing or deployment is authorized by
 this record.
 Decided by: David, after review with Sam.

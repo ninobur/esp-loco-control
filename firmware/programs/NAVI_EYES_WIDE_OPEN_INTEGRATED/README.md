@@ -1,9 +1,10 @@
-# NAVI_EYES_WIDE_OPEN_INTEGRATED_R2
+# NAVI_EYES_WIDE_OPEN_INTEGRATED_R2 — IR-authoritative candidate
 
 Authorized correction of integrated candidate `cd55929`, based on governing
 documentation `612b791`. The stale pre-integration `638c635` is not this build.
-**Not field accepted. Otto's supervised diagnostic flash was authorized by the
-operator; do not flash Toby.** See
+**This corrected candidate is not field accepted and has not been flashed.
+Otto's earlier supervised diagnostic flash was authorized by the operator;
+do not flash Otto or Toby from this branch pending David/Sam review.** See
 [`NAVI_EWO_REVIEW_CORRECTIONS_20260929.md`](../../../docs/NAVI_EWO_REVIEW_CORRECTIONS_20260929.md).
 The Otto Wi-Fi diagnosis and supervised flash are recorded in
 [`20260929_OTTO_EWO_WIFI_DIAGNOSIS_AND_FLASH.md`](../../../field-records/20260929_OTTO_EWO_WIFI_DIAGNOSIS_AND_FLASH.md).
@@ -25,7 +26,7 @@ the compiler include path; credentials are not part of this candidate.
   loss are counted separately.
 - NAVI: owns a provisional single-sample boot Hall reference (0115); rolling median-of-five in the known
   target-polarity direction; latest-received applicable IR ±15% target distance;
-  650-ms degraded target confirmation when IR is unavailable; Missed Magnet
+  no Hall-only target confirmation or re-anchor when IR is unavailable; Missed Magnet
   progression only with applicable IR; and the 0–100/100–200 mm spatial Hall
   reference cycle. The leading landmark is the first raw expected-sign ≥70
   sample in the five-sample population that produces a qualifying median.
@@ -36,9 +37,10 @@ the compiler include path; credentials are not part of this candidate.
 Judgment-time freshness is explicit: the loop passes its local processing time
 to NAVI. Hall acquisition timestamps remain landmarks, not a reason to discard
 healthy IR already available to NAVI. No interpolation, future-packet wait or
-cross-device synchronization is introduced. A source/frame/continuity break,
-staleness encountered during judgment, or PWM-zero displacement cancels a
-dependent spatial cycle and retains the previous valid reference.
+cross-device synchronization is introduced. A genuine source/frame/scale/order
+break or PWM-zero displacement cancels a dependent spatial cycle and retains
+the previous valid reference. Staleness suspends applicability; a later
+same-frame cumulative snapshot can bridge the gap.
 
 At boot the first nonzero-PWM native Hall ADC establishes a provisional
 reference immediately. No IR movement, five-position collection, boot median,
@@ -56,8 +58,27 @@ At PWM=0 all observations still reach NAVI. Hall cannot alter navigation state.
 Continuous IR no-change retains the existing IR/MM relationship, including
 when the raw detector reason is `INADEQUATE_CONTRAST`; the raw reason remains in
 NSR1 and telemetry. Measured displacement at PWM=0 invalidates the *map/IR
-relationship*, not the IR instrument; a later confirmed expected MM may
-re-anchor it. An actual continuity break still causes degraded IR operation.
+relationship*, not the IR instrument. A true frame loss cannot be re-anchored
+by a timed Hall field; operator redeclaration restores navigation context.
+The last established MM and target are held while IR distance is unavailable.
+
+Raw health observations—including `INADEQUATE_CONTRAST`, saturation, sample
+gaps, pulse aborts and reacquisition—continue through NSR1, loop status and
+IR telemetry. They do not veto a coherent cumulative counter. A stationary
+diagnostic with no pulse progress is provisionally STOPPED. PWM >60 with a
+measured zero speed raises a diagnostic warning, not a movement judgment.
+Packets with incompatible boot/source/calibration/pitch, counter reversal or
+unusable ordering break the mapped frame. `IR_DISTANCE_HOLD` reports that
+condition; there is no degraded Hall navigation mode.
+
+Normal reversal keeps the frame: NAVI captures the latest received cumulative
+IR count as a new directional origin, computes the signed position relative
+to the last mapped MM, and seeks the marker ahead in the new direction with
+ordinary Hall+IR coherence. This also covers a second reversal before the
+first reversed target. Packet cadence means the observed origin may precede
+the direction command slightly; field validation is still needed. If no coherent origin is available, the
+position is held for operator redeclaration. Missed Magnet keeps its physical
+origin and interval-local tolerance in both directions.
 
 The route adapter uses the common empirically established Hall sign convention
 for Toby and Otto: mapped North is AboveReference, South is BelowReference.
@@ -70,7 +91,9 @@ ramps/braking, direction, estop, INA219 battery protection, Wi-Fi, MQTT,
 ESP-NOW, station approach/stop/dwell/departure, AUTO, telemetry, and NSR1.
 Stations consume NAVI's position; they do not judge magnets or infer location.
 The output-only compatibility adapter emits console `NORMAL`/`UNSET` state and
-MM, plus factual consecutive-IR-measurement speed in `ir_valid`/`ir_mmps`.
+MM, plus an approximately one-second pulse-window IR speed in
+`ir_valid`/`ir_mmps`. Zero measured speed is published as `0`/`STOPPED`;
+stale or insufficient-window speed is `null`/`UNAVAILABLE`.
 It cannot alter NAVI. No controller file changes are required.
 ESTOP assertions latch at callback arrival independently of queue success;
 only a demonstrably newer release can clear the latch. Ordered delivery is not
@@ -99,7 +122,9 @@ NSR1 version 1 types 1–5 remain readable by the updated tools. R2 emits **vers
 2 for type 4 only** (`NAVI`, 63-byte snapshot: original 51 bytes plus 64-bit
 consumption ID and 32-bit IR sequence). Type 5 is unchanged (`HALL_NATIVE`,
 16 bytes per ADC observation, 48 observations per datagram). IR records retain the full raw
-110-byte wire snapshot, including `opticalReason`. Type 1 grouped Hall records
+110-byte wire snapshot, including `opticalReason`. The legacy NSR1 type-4
+`degraded` byte is retained for binary compatibility but now records
+`ir_distance_holding` only; it never means Hall-only navigation. Type 1 grouped Hall records
 are for older tooling only and carry no acquisition median. The receiver keeps
 every datagram in the capture file, including malformed ones; the updated
 decoder can export native Hall CSV and NAVI JSONL:
@@ -157,14 +182,11 @@ The shell suite also runs the shared IR architecture and station-position tests.
 - Finite Hall/IR/event/UDP/MQTT queues expose loss counters but are not proven
   lossless under hardware load or Wi-Fi outage. Boot storage is now bounded,
   but its spatial assumptions and the larger trace rate need hardware validation.
-- Otto's 2026-09-29 moving run exposed an EWO/NAVI speed-telemetry defect:
-  `telem/ir` and `telem/speed` publish adjacent ~100-ms pulse rates as speed,
-  including zero-pulse `MEASURED` values, rather than the prior qualified
-  ~1-second estimate. The dashboard's main pKPH is also stale because EWO
-  omits its Hall/segment-speed input. Do not use these displayed speeds as
-  evidence of physical motion. NAVI does not consume the computed rates; it
-  uses cumulative nominal IR distance and Hall observations, which still
-  require full-run validation. See the dated field record.
+- Otto's 2026-09-29 moving run exposed 100-ms pulse-rate quantization in EWO
+  speed telemetry, and the dashboard's main pKPH did not ingest EWO's
+  `telem/speed`. This candidate uses an approximately one-second pulse window
+  and explicitly ingests EWO speed for both IR Speed and house-unit pKPH.
+  These values remain display-only; NAVI uses cumulative IR distance.
 - Native Hall NSR1 timestamps/serials and decision records enable offline
   reconstruction; no complete on-track NSR1 capture or end-to-end receiver
   throughput test has been performed. Fixed network addresses are inherited
@@ -173,8 +195,10 @@ The shell suite also runs the shared IR architecture and station-position tests.
   initialization and the dashboard's session-orientation/interval-location
   controls were verified at rest; a later manual moving run produced valid
   type-5 IR and Hall/NAVI telemetry but exposed the speed defects above.
-  Physical direction and full-run position accuracy were not independently
-  verified; station and AUTO behavior were not tested. Toby was not flashed.
+  Subsequent Otto 2026-09-29/30 runs exercised stations and AUTO and exposed
+  false 650-ms Hall-only MM confirmations during a stopped Hall field. This
+  candidate removes that path but has not yet been validated on track. Toby
+  was not flashed.
 
 ## 21-item disposition audit
 
@@ -185,7 +209,7 @@ The shell suite also runs the shared IR architecture and station-position tests.
 5. X22R baseline/lock/settle/quiet/cadence/rearm/dwell/old-field: excluded.
 6. `Navigator::judge`: excluded; NAVI judges.
 7. `Navigator::traverse`: excluded; NAVI advances targets.
-8. 650-ms degraded mechanism: inside NAVI, marked degraded; Hall backlog cannot manufacture it.
+8. 650-ms degraded mechanism: removed from active EWO navigation by 0116.
 9. `Navigator::acceptThrough`: excluded.
 10. ProximalRecovery: excluded.
 11. Sequence correction/alternative-position search: excluded.

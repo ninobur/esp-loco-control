@@ -1,7 +1,7 @@
 # NAVI_EWO governing documents
 
 Directory of the canonical governing set for NAVI_EYES_WIDE_OPEN (EWO), in
-precedence order. Last revised 2026-09-29.
+precedence order. Last revised 2026-09-30.
 
 This page is a directory and a supersession ledger. It authorizes nothing
 (`/AGENTS.md` section 2), and no decision record authorizes an agent to act
@@ -35,15 +35,16 @@ This page is a directory and a supersession ledger. It authorizes nothing
 | [0108](decisions/0108-measurement-applicability-absence-of-measured-change-is-not-sensor-failure.md) | Absence of measured change is not sensor failure | NAVI |
 | [0109](decisions/0109-navi-ewo-is-a-target-only-navigator-it-confirms-its-target-shrugs-at-everything-else-and-continues.md) | Target-only mission; shrug; Missed Magnet; declaration/CRM; confident locomotive; station boundary; supersession scope | NAVI_EWO |
 | [0110](decisions/0110-native-observations-belong-to-navi-and-target-confirmation-is-relational.md) | Native observations; median-of-five Hall statistic; relational confirmation | NAVI_EWO |
-| [0111](decisions/0111-ir-is-a-normal-navigation-sensor-navi-decides-applicability-degraded-operation-stays-inside-navi.md) | IR as a normal sensor; `INADEQUATE_CONTRAST`; temporary Hall/IR association; degraded 650 ms | NAVI_EWO |
-| [0112](decisions/0112-pwm-zero-makes-hall-non-actionable-ir-displacement-at-pwm-zero-is-factual-and-invalidates-the-map-relationship-not-the-instrument.md) | PWM = 0 applicability | NAVI_EWO |
+| [0111](decisions/0111-ir-is-a-normal-navigation-sensor-navi-decides-applicability-degraded-operation-stays-inside-navi.md) | IR as a normal sensor; temporary Hall/IR association; degraded 650 ms **withdrawn by 0116** | NAVI_EWO |
+| [0112](decisions/0112-pwm-zero-makes-hall-non-actionable-ir-displacement-at-pwm-zero-is-factual-and-invalidates-the-map-relationship-not-the-instrument.md) | PWM = 0 applicability; degraded re-anchor **withdrawn by 0116** | NAVI_EWO |
 | [0113](decisions/0113-the-navi-ewo-hall-reference-is-spatial-and-is-replaced-from-the-leading-field-boundary.md) | Spatial Hall reference | NAVI_EWO |
 | [0114](decisions/0114-ewo-boot-reference-uses-five-observed-pulse-positions.md) | Historical five-position startup proposal; superseded/withdrawn | Historical |
 | [0115](decisions/0115-ewo-provisional-single-sample-boot-reference-and-missed-magnet-origin.md) | Provisional single-sample boot reference; physical origin retained across Missed Magnets | NAVI_EWO |
+| [0116](decisions/0116-ewo-ir-distance-is-authoritative-and-hall-only-navigation-is-withdrawn.md) | Health observes; IR distance required; no Hall-only confirmation; reversals retain coherent frames; true frame loss requires redeclaration | NAVI_EWO |
 
 Related decisions that remain in force and are not changed here: 0101
-(position determines local operating requirements), 0100, and 0093 (650 ms
-guard; scope extended to EWO by 0111).
+(position determines local operating requirements) and 0100. 0093 remains
+NAVI_COHERENCE prior art; its EWO extension by 0111 is withdrawn by 0116.
 
 ## 3. Reconciliation and architectural history
 
@@ -67,8 +68,9 @@ guard; scope extended to EWO by 0111).
 - [`NAVI_SYNC_NATIVE_HALL_IR_RECORDER_20260927.md`](NAVI_SYNC_NATIVE_HALL_IR_RECORDER_20260927.md)
   (recorder)
 
-Neither candidate has been flashed or field tested. This directory does not
-authorize flashing (AGENTS.md section 2).
+The prior integrated candidate was flashed to Otto and field tested on
+2026-09-29/30. The 0116 correction is a new, unflashed candidate; this
+directory does not authorize flashing (AGENTS.md section 2).
 
 ## 6. Historical prior art (kept, not deleted, not authoritative for EWO)
 
@@ -88,7 +90,10 @@ conflicting assumptions are superseded for NAVI_EWO as follows.
 | NAVI_COHERENCE navigation judgment (Navigator judge/traverse, accepted-MM reference, `hallReady` readiness, movement comparison) | NAVI_EWO judgment | 0109-0111 |
 | Proximal recovery (0098), sequence correction, alternative-position search, map-wide matching, QUORUM recovery, 10-MM AUTO recovery limit | Not authorized. Missed Magnet is the only recovery | 0109 |
 | Shadow "what X22 would have done" and shadow accepted-MM reference mechanisms | Not used. NAVI itself is instrumented | 0102, 0110 |
-| IR as an experimental supplement; stationary `INADEQUATE_CONTRAST` as degradation | IR is a normal sensor; no-change is a valid result | 0111 |
+| IR as an experimental supplement; stationary `INADEQUATE_CONTRAST` as degradation | IR is a normal sensor; diagnostics cannot veto coherent distance | 0111, 0116 |
+| 650-ms degraded Hall-only EWO confirmation or re-anchor | Withdrawn; no IR distance means hold MM/target, not Hall-only progress | 0116 (supersedes EWO extension of 0093 and part of 0111/0112) |
+| Reversal as an automatic IR/map frame break | Preserve coherent frame, capture cumulative reversal origin, and require Hall+IR confirmation | 0116 |
+| Genuine IR frame loss recoverable at next timed Hall field | Hold position/context; operator redeclaration restores the mapping | 0116 |
 | IR displacement at PWM = 0 is not real and must not touch the MM/IR relationship (0106) | Accepted as factual; relationship marked unreliable | 0112 |
 | Stationary boot reference (0107 allowance), then first-10-mm startup (0113) | One provisional native Hall ADC at boot; 0113 spatial replacement remains | 0115 |
 | Refusal-and-stop on a missing magnet (0056) | Missed Magnet continuity with applicable IR | 0109 (confirmed 2026-09-29) |
@@ -99,9 +104,9 @@ conflicting assumptions are superseded for NAVI_EWO as follows.
   for NAVI_EWO (0109).
 - **0104 RESOLVE:** EWO has no mechanism to revise position toward a different
   hypothesis beyond Missed Magnet advance and operator redeclaration (0109).
-- **Unreliable IR/MM relationship:** IR is not applicable as target-interval
-  evidence, confirmation uses the degraded mechanism, and there is no Missed
-  Magnet until a confirmed expected MM re-anchors (0112).
+- **Unreliable IR/MM relationship (historical 2026-09-29 ruling):** The degraded
+  mechanism was used to confirm an expected MM and re-anchor. Otto's later
+  evidence caused David and Sam to withdraw that rule in 0116.
 
 ## Resolved by later instruction
 

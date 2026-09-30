@@ -346,10 +346,10 @@ static const char* eventName(EwoEventKind kind) {
     case EwoEventKind::SpatialCollect: return "SPATIAL_COLLECT";
     case EwoEventKind::SpatialReady: return "SPATIAL_REFERENCE";
     case EwoEventKind::SpatialEmpty: return "SPATIAL_EMPTY_RETAINED_REFERENCE";
-    case EwoEventKind::IrDegraded: return "IR_DEGRADED";
-    case EwoEventKind::IrNormal: return "IR_NORMAL";
+    case EwoEventKind::IrDistanceHold: return "IR_DISTANCE_HOLD";
+    case EwoEventKind::IrDistanceReady: return "IR_DISTANCE_READY";
     case EwoEventKind::PwmZeroDisplacement: return "PWM_ZERO_IR_DISPLACEMENT";
-    case EwoEventKind::Reanchored: return "POSITION_REANCHORED";
+    case EwoEventKind::Reanchored: return "RESERVED_REANCHOR_EVENT";
     case EwoEventKind::ObservationLoss: return "OBSERVATION_LOSS";
     case EwoEventKind::SpatialInvalidated: return "SPATIAL_INVALIDATED";
     default: return "NONE";
@@ -362,11 +362,11 @@ static void publishEvents() {
     snprintf(payload, sizeof(payload),
       "{\"event\":\"%s\",\"hall_serial\":%lu,\"mm\":%u,\"target\":%u,"
       "\"dir\":%d,\"ir_um\":%llu,\"median5\":%d,\"reference\":%d,"
-      "\"degraded\":%u,\"opening_serial\":%lu,\"opening_ir_um\":%llu,"
+      "\"ir_distance_holding\":%u,\"opening_serial\":%lu,\"opening_ir_um\":%llu,"
       "\"position_reliable\":%u,\"spatial_phase\":%u,\"decision_us\":%llu,"
       "\"consumption_id\":%llu,\"ir_seq\":%lu}",
       eventName(e.kind), (unsigned long)e.hallSerial, e.mm, e.target, e.direction,
-      (unsigned long long)e.irUm, e.median, e.reference, e.degraded ? 1 : 0,
+      (unsigned long long)e.irUm, e.median, e.reference, e.distanceHolding ? 1 : 0,
       (unsigned long)e.openingSerial, (unsigned long long)e.openingIrUm,
       e.positionReliable ? 1 : 0, e.spatialPhase, (unsigned long long)e.timestampUs,
       (unsigned long long)e.consumptionId, (unsigned long)e.irSequence);
@@ -385,7 +385,7 @@ static void publishEvents() {
     recorded.mm = e.mm;
     recorded.target = e.target;
     recorded.direction = e.direction;
-    recorded.degraded = e.degraded;
+    recorded.degraded = e.distanceHolding; // NSR1 v2 slot retained for compatibility
     recorded.positionReliable = e.positionReliable;
     recorded.spatialPhase = e.spatialPhase;
     recorded.consumptionId = e.consumptionId;
@@ -795,7 +795,7 @@ static void serviceStatus() {
     "\"target_distance_mm\":%lu,\"target_polarity\":%d,"
     "\"position_reliable\":%u,\"reference_ready\":%u,\"reference\":%d,"
     "\"median5\":%d,\"hall_support\":%u,\"spatial_phase\":%u,"
-    "\"ir_applicable\":%u,\"degraded\":%u,\"ir_health_fault\":%u,"
+    "\"ir_applicable\":%u,\"ir_distance_state\":\"%s\",\"ir_health_fault\":%u,"
     "\"ir_readiness\":%u,\"ir_boot\":\"%016llX\","
     "\"ir_epoch\":%llu,\"ir_epoch_active\":%u,"
     "\"ir_seq\":%lu,\"ir_pulses\":%llu,\"ir_reason\":%u,"
@@ -807,12 +807,13 @@ static void serviceStatus() {
     "\"nsr_ir_drop\":%lu,\"nsr_navi_drop\":%lu,\"nsr_native_drop\":%lu,"
     "\"event_drop\":%lu,\"pwm0_ir_motion\":%lu,"
     "\"confirmed\":%lu,\"missed\":%lu,\"pwm\":%d,\"auto\":%u,"
-    "\"running\":%u,\"estop\":%u,\"lowvolt\":%u,\"pub_drop\":%lu}",
+    "\"running\":%u,\"estop\":%u,\"lowvolt\":%u,"
+    "\"ir_stationary_pwm_warning\":%u,\"pub_drop\":%lu}",
     SKETCH_NAME, navi.mm(), unsigned(navi.target().sequence), navi.direction(),
     (unsigned long)navi.target().distanceMm, int(navi.target().polarity),
     navi.positionReliable(), navi.initialReferenceReady(), navi.activeReference(),
     navi.hallMedian(), navi.hallSupport(), navi.spatialPhase(),
-    navi.irApplicable(nowUs), navi.degraded(), navi.irHealthFault(),
+    navi.irApplicable(nowUs), navi.irDistanceState(nowUs), navi.irHealthFault(),
     navi.irReadiness(), (unsigned long long)ir.bootId,
     (unsigned long long)navi.irMeasurementEpochId(), navi.irMeasurementEpochActive(),
     (unsigned long)ir.sequence, (unsigned long long)ir.completedPulses,
@@ -834,6 +835,7 @@ static void serviceStatus() {
     (unsigned long)navi.eventLoss(), (unsigned long)navi.pwmZeroDisplacements(),
     (unsigned long)navi.confirmedCount(), (unsigned long)navi.missedCount(),
     int(actualPwm), autoEnrolled, autoRunning, estopped, lowVoltage,
+    actualPwm > 60 && navi.irSpeedAvailable(nowUs) && navi.irSpeedMmS() == 0,
     (unsigned long)pubDrops);
   if (size < 0 || size >= int(sizeof(payload))) {
     ++pubDrops;
@@ -846,7 +848,7 @@ static void serviceStatus() {
     (unsigned long)cmdDrops);
   pub("state/trace", traceStatus);
   char consolePayload[384];
-  int consoleSize = formatConsoleNav(consolePayload, sizeof(consolePayload), navi, sessionDir);
+  int consoleSize = formatConsoleNav(consolePayload, sizeof(consolePayload), navi, sessionDir, nowUs);
   if (consoleSize > 0 && consoleSize < int(sizeof(consolePayload)))
     pub("state/nav", consolePayload, true);
   else ++pubDrops;

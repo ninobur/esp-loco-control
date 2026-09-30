@@ -98,12 +98,12 @@ int main() {
         "per-location 100-200 mm median replaces reference at 200 mm");
   for (uint32_t i = 0; i < 5; ++i)
     n.observeHall(hall(40 + i, 2200000 + i * 1000, 0));
-  check(n.confirmedCount() == 2 && n.mm() == 2 && n.degraded(),
-        "without fresh IR, coherent next target confirms by NAVI-owned 650-ms fallback");
+  check(n.confirmedCount() == 1 && n.mm() == 1,
+        "without fresh IR, Hall cannot confirm another target");
   for (uint32_t i = 0; i < 5; ++i)
     n.observeHall(hall(50 + i, 3000000 + i * 1000, 0));
-  check(n.confirmedCount() == 3 && n.mm() == 3 && n.missedCount() == 0,
-        "coherent degraded Hall targets continue without invented IR misses");
+  check(n.confirmedCount() == 1 && n.mm() == 1 && n.missedCount() == 0,
+        "elapsed time cannot manufacture Hall confirmation or IR misses");
 
   NaviIntegratedCore stationary;
   provisionalReference(stationary);
@@ -121,9 +121,8 @@ int main() {
   stationary.observeIr(ir(6, 10, ir_movement::INADEQUATE_CONTRAST), 650000, 0);
   check(stationary.irApplicable(650000) && stationary.irMeasurementEpochActive() &&
             stationary.irMeasurementEpochId() == epochAtStop &&
-            stationary.relationshipReliable() && !stationary.degraded() &&
-            stationary.irHealthFault() == static_cast<uint8_t>(ngr_nav::IrHealthFault::None) &&
-            stationary.irReadiness() == static_cast<uint8_t>(ngr_nav::IrReadiness::Ready) &&
+            stationary.relationshipReliable() && !stationary.distanceHolding() &&
+            stationary.irHealthFault() == static_cast<uint8_t>(ngr_nav::IrHealthFault::InadequateContrast) &&
             stationary.latestIr().opticalReason == ir_movement::INADEQUATE_CONTRAST,
         "PWM-zero inadequate contrast with no measured change preserves epoch, IR/MM relation and raw diagnostic");
   NaviIntegratedCore longDwell;
@@ -135,20 +134,20 @@ int main() {
   longDwell.observeIr(ir(7, 11), 800000, 40);
   check(longDwell.irMeasurementEpochId() == dwellEpoch &&
             longDwell.relationshipReliable() && longDwell.irApplicable(800000) &&
-            !longDwell.degraded(),
+            !longDwell.distanceHolding(),
         "repeated stationary contrast diagnostics do not break continuity on restart");
   stationary.observeIr(ir(7, 11), 700000, 0);
   check(!stationary.relationshipReliable() &&
             stationary.pwmZeroDisplacements() == 1 &&
-            !stationary.positionReliable() && stationary.mm() == 0,
-        "unexpected PWM-zero IR travel invalidates only map/IR relationship");
+            stationary.positionReliable() && stationary.mm() == 0,
+        "unexpected PWM-zero IR travel breaks distance frame but retains known MM");
   stationary.observeIr(ir(8, 340), 800000, 40);
   const int16_t sustained[] = {190, 191, 192, 193, 194};
   for (uint32_t i = 0; i < 5; ++i)
     stationary.observeHall(hall(30 + i, 1200000 + i * 1000, sustained[i]));
-  check(stationary.confirmedCount() == 1 && stationary.relationshipReliable() &&
-            stationary.positionReliable() && stationary.mm() == 1,
-        "650-ms degraded confirmation reanchors after PWM-zero displacement");
+  check(stationary.confirmedCount() == 0 && !stationary.relationshipReliable() &&
+            stationary.positionReliable() && stationary.mm() == 0,
+        "Hall cannot re-anchor after PWM-zero displacement; operator redeclaration is needed");
 
   NaviIntegratedCore shrug;
   provisionalReference(shrug);
@@ -199,8 +198,8 @@ int main() {
   check(stale.spatialPhase() == 1, "confirmed target starts clearance before IR outage");
   for (uint32_t i = 0; i < 5; ++i)
     stale.observeHall(hall(70 + i, 2200000 + i * 1000, 0));
-  check(stale.confirmedCount() == 2 && stale.mm() == 2,
-        "stale IR cannot hold degraded target recognition behind spatial collection");
+  check(stale.confirmedCount() == 1 && stale.mm() == 1,
+        "stale IR holds target even after prior spatial collection");
 
   NaviIntegratedCore emptySpatial;
   provisionalReference(emptySpatial);
@@ -242,9 +241,9 @@ int main() {
   check(health.irApplicable(700000),
         "inadequate optical contrast alone does not invalidate measured no-change");
   health.observeIr(ir(7, 11, ir_movement::INADEQUATE_CONTRAST), 800000, 40);
-  check(!health.irApplicable(800000) &&
+  check(health.irApplicable(800000) &&
             health.irHealthFault() == static_cast<uint8_t>(ngr_nav::IrHealthFault::InadequateContrast),
-        "IR progression under unresolved optical diagnostic is not silently qualified");
+        "diagnostic remains visible without vetoing coherent cumulative pulses");
 
   NaviIntegratedCore brokenAtStop;
   provisionalReference(brokenAtStop);
@@ -252,8 +251,9 @@ int main() {
   auto gapAtStop = ir(5, 10);
   ++gapAtStop.sampleGaps;
   brokenAtStop.observeIr(gapAtStop, 600000, 0);
-  check(!brokenAtStop.relationshipReliable() && brokenAtStop.degraded(),
-        "an actual IR continuity break at PWM zero is reported as degraded");
+  check(brokenAtStop.relationshipReliable() &&
+            brokenAtStop.latestIr().sampleGaps == 1,
+        "diagnostic sample-gap count is visible without erasing cumulative distance");
 
   NaviIntegratedCore latest;
   provisionalReference(latest);
@@ -273,8 +273,8 @@ int main() {
   losses.declare(0, 1, 500000);
   losses.noteObservationLoss(2, 3);
   check(losses.hallLoss() == 2 && losses.irLoss() == 3 &&
-            losses.declared() && losses.mm() == 0 && !losses.relationshipReliable(),
-        "queue loss is visible without another subsystem declaring NAVI lost");
+            losses.declared() && losses.mm() == 0 && losses.relationshipReliable(),
+        "packet loss is visible and cumulative counter can bridge it");
 
   NaviIntegratedCore redeclared;
   provisionalReference(redeclared);

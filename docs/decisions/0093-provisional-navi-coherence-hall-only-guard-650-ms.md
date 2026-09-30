@@ -1,7 +1,8 @@
 # 0093 — Provisional NAVI_COHERENCE Hall-only guard: 650 ms, open-to-open
 
 **Date:** 2026-09-22
-**Status:** **Accepted (provisional), 2026-09-22**
+**Status:** **Accepted (provisional) for NAVI_COHERENCE, 2026-09-22.**
+Its 0111 extension to NAVI_EWO was withdrawn by 0116 (2026-09-30).
 **Decided by:** operator
 **Scope:** NAVI_COHERENCE only (extended to NAVI_EWO degraded IR operation by
 0111, 2026-09-29) (0.4 / 0.5 test-program lineage). Does not

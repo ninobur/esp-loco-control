@@ -12,12 +12,12 @@ judgments. Each principle is recorded, with its reasoning and history, in a
 numbered decision record (`decisions/0102`–`0107`). This page is the index and
 the summary.
 
-**NAVI_EWO extension (2026-09-29):** decisions 0109-0113 extend this model for
+**NAVI_EWO extension (2026-09-29/30):** decisions 0109-0113 and 0115-0116 extend this model for
 NAVI_EYES_WIDE_OPEN. The governing set and supersession ledger are in
 [`NAVI_EWO_GOVERNING_DOCUMENTS.md`](NAVI_EWO_GOVERNING_DOCUMENTS.md). The
-sections below were not rewritten; where they conflict with 0109-0113 for
-NAVI_EWO, those decisions govern (notably 0106's IR-at-PWM-0 rule, superseded by
-0112).
+sections below were not rewritten; where they conflict with later EWO
+decisions, those decisions govern (notably 0106's IR-at-PWM-0 rule, superseded
+by 0112, and the EWO Hall-only fallback, withdrawn by 0116).
 
 **It authorizes no implementation.** Nothing here changes firmware, tests,
 thresholds, the dashboard, the Pi or field behavior. Per
@@ -232,8 +232,8 @@ superseded.
   [0094](decisions/0094-ir-validity-is-continuous-health-not-earned-trust.md):
   physically possible positions first; IR validity as continuous health.
 - [0093](decisions/0093-provisional-navi-coherence-hall-only-guard-650-ms.md):
-  the 650 ms Hall-only fallback. It is unchanged, and it is an example of
-  degraded-mode timing used only when measured distance is unavailable (0103).
+  historical NAVI_COHERENCE Hall-only fallback. Its EWO extension was
+  withdrawn by 0116 after Otto's sustained-field false confirmations.
 - [`NAVI_IR_OPTIMISTIC_CONTINUITY_PRINCIPLE_20260920.md`](NAVI_IR_OPTIMISTIC_CONTINUITY_PRINCIPLE_20260920.md),
   [`NAVI_SHARED_TRAIN_STATE_PRINCIPLE_20260923.md`](NAVI_SHARED_TRAIN_STATE_PRINCIPLE_20260923.md),
   [`NAVI_CTO_ARCHITECTURE_AND_PROVENANCE_20260909.md`](NAVI_CTO_ARCHITECTURE_AND_PROVENANCE_20260909.md).

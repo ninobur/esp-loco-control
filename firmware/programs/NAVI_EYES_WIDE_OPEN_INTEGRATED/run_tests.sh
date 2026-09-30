@@ -18,6 +18,8 @@ flags='-std=c++17 -Wall -Wextra -Werror -fsanitize=address,undefined'
 "$build_dir/ops"
 "$cxx" $flags "$here/tests/test_review_regressions.cpp" -o "$build_dir/review"
 "$build_dir/review"
+"$cxx" $flags "$here/tests/test_ir_authority.cpp" -o "$build_dir/authority"
+"$build_dir/authority"
 ir="$here/../../reference/NAVI_COHERENCE/IR_ARCHITECTURE_0_4"
 "$cxx" $flags -I"$ir" "$ir/tests/test_ir_architecture.cpp" -o "$build_dir/ir"
 "$build_dir/ir"

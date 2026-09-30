@@ -231,6 +231,7 @@ def _fresh_state():
         # from the 1 Hz alert / loopstat / nav events (QUORUM 1.0 vocabulary;
         # confidence is deleted with the tally navigator and never read)
         "nav": "UNSET", "moving": "--", "pwm": "--", "pkph": "--", "mm": "--",
+        "ir_distance_state": "", "ir_stationary_pwm_warning": False,
         "landmark": "", "miss_streak": "--", "viable": [], "candidate_mm": "--",
         "nav_event": "", "nav_event_ts": "",
         # v1.10.2: polarity agreement tally — session counts and the last ten
@@ -334,7 +335,8 @@ dispatch_log = deque(maxlen=200)
 AGE_FIELDS = ("heard", "voltage", "current", "power", "lowvolt", "pwm", "pkph",
               "mm", "nav", "moving", "session_dir", "nav_ready", "start_interval",
               "marker", "throttle", "direction", "estop", "auto", "warning",
-              "cto", "speed_view", "ir_link")
+              "cto", "speed_view", "ir_link", "ir_distance_state",
+              "ir_stationary_pwm_warning")
 
 # state/<x> payloads copied verbatim into loco_state. The firmware publishes
 # these on change (retained), so a live arrival is a confirmation event.
@@ -530,6 +532,9 @@ def on_mqtt_message(client, userdata, msg):
                     _touch(lid, "pwm")
                 if "miss_streak" in d:      # QUORUM 1.0; replaces conf, which is not read
                     st["miss_streak"] = str(d["miss_streak"])
+                if d.get("build", "").startswith("NAVI_EYES_WIDE_OPEN"):
+                    st["ir_stationary_pwm_warning"] = bool(d.get("ir_stationary_pwm_warning"))
+                    _touch(lid, "ir_stationary_pwm_warning")
                 _apply_nav_state(lid, d.get("nav", st["nav"]), d.get("mm"))
             except Exception:
                 pass
@@ -637,6 +642,9 @@ def on_mqtt_message(client, userdata, msg):
                 if sd in ("CW", "CCW", "UNSET"):
                     st["session_dir"] = sd
                     _touch(lid, "session_dir")
+                if d.get("authority") == "NAVI_EWO":
+                    st["ir_distance_state"] = str(d.get("ir_distance_state", ""))
+                    _touch(lid, "ir_distance_state")
                 if "miss_streak" in d:
                     st["miss_streak"] = str(d["miss_streak"])
                 _apply_nav_state(lid, d.get("state", st["nav"]), d.get("mm"))
@@ -699,6 +707,20 @@ def on_mqtt_message(client, userdata, msg):
             # here, same as ctoRow() does for the cto payload.
             st["speed_view"] = payload
             _touch(lid, "speed_view")
+            # EWO publishes measured physical IR speed here, not the old
+            # alert.est_mm_s estimate. Only EWO may drive its primary pKPH
+            # tile from this contract; older firmware paths remain unchanged.
+            try:
+                d = json.loads(payload)
+                if d.get("authority") == "NAVI_EWO":
+                    v = d.get("ir_mmps")
+                    if d.get("ir_valid") in (1, True) and isinstance(v, (int, float)) and not isinstance(v, bool) and 0 <= v < float("inf"):
+                        st["pkph"] = "%.1f" % (v * PKPH_PER_MM_S)
+                    else:
+                        st["pkph"] = "--"
+                    _touch(lid, "pkph")
+            except (TypeError, ValueError, json.JSONDecodeError):
+                pass
 
         elif sub == "telem/ir":
             # v1.11.5: NAVI_COHERENCE-lineage IR link-activity heartbeat
@@ -1515,6 +1537,7 @@ input.interval-slider { width:100%; height:34px; border-radius:17px;
         <div class="big-num stale" id="irkph-display" style="color:#c9a0ff;">&mdash;</div>
         <div class="age-chip" id="irkph-display-age"></div>
         <div class="num-lbl" style="color:#c9a0ff;">IR pKPH</div>
+        <div class="age-chip" id="ir-mmps-display">IR Speed &mdash;</div>
         <div class="age-chip" id="ir-speed-reason"></div>
       </div>
     </div>
@@ -1687,6 +1710,7 @@ function irSpeedView(s) {
   var valid = (flag === true || flag === 1) &&
     typeof mmps === 'number' && isFinite(mmps) && mmps >= 0;
   return {value: fresh && valid ? (mmps * PKPH_PER_MM_S).toFixed(1) : '--',
+    mmps: fresh && valid ? mmps.toFixed(1) : '--',
     age: age, reason: !fresh ? 'TELEMETRY_STALE' : !available ? 'NO_IR_SPEED' :
       (reason || (valid ? 'MEASURED' : 'UNAVAILABLE')),
     couplingSupported: !!(link && typeof link.ir_coupled === 'number'),
@@ -2302,6 +2326,8 @@ function pollState(){
 
     const ir = irSpeedView(s);
     setTile('irkph-display', ir.value, ir.age);
+    document.getElementById('ir-mmps-display').textContent =
+      'IR Speed ' + (ir.mmps === '--' ? '\u2014' : ir.mmps + ' mm/s');
     document.getElementById('ir-speed-reason').textContent = ir.reason.replace(/_/g, ' ');
     document.getElementById('ir-coupling-control').hidden = !ir.couplingSupported;
     const coupling = document.getElementById('ir-coupled');
@@ -2337,8 +2363,23 @@ function pollState(){
       cls = 'bad';
     } else if (s.nav === 'EVALUATING') {
       line = 'CHECKING POSITION \\u2014 QUORUM EVALUATING \\u2014 MM ' + s.mm; cls = 'warn';
+    } else if (s.ir_distance_state === 'FRAME_LOST_REDECLARE' &&
+               isFresh(s,'ir_distance_state')) {
+      line = 'IR DISTANCE FRAME LOST \\u2014 MM ' + s.mm +
+             ' HELD \\u2014 RE-DECLARE LOCATION TO RESUME NAVIGATION'; cls = 'bad';
+    } else if ((s.ir_distance_state === 'IR_STALE' ||
+                s.ir_distance_state === 'NO_IR_SOURCE') && isFresh(s,'ir_distance_state')) {
+      line = 'IR DISTANCE UNAVAILABLE \\u2014 MM ' + s.mm +
+             ' HELD \\u2014 NAVIGATION WAITING'; cls = 'warn';
+    } else if (s.ir_distance_state === 'UNANCHORED_REDECLARE' &&
+               isFresh(s,'ir_distance_state')) {
+      line = 'IR DISTANCE UNANCHORED \\u2014 MM ' + s.mm +
+             ' HELD \\u2014 RE-DECLARE LOCATION'; cls = 'warn';
+    } else if (s.ir_stationary_pwm_warning && isFresh(s,'ir_stationary_pwm_warning')) {
+      line = 'IR STOPPED WHILE PWM > 60 \\u2014 CHECK FOR STALL OR IR ISSUE'; cls = 'warn';
     } else {
-      line = 'TRACKING \\u2014 MM ' + s.mm; cls = 'ok';
+      line = (ir.reason === 'STOPPED' ? 'STOPPED \\u2014 ' : 'HALL + IR TRACKING \\u2014 ') +
+             'MM ' + s.mm; cls = 'ok';
     }
     var sl2 = document.getElementById('status-line');
     sl2.textContent = line;
