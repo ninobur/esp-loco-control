@@ -24,6 +24,9 @@ single run, not separate runs.
    stopped physically between markers 014 and 015.
 4. After the analysis, David reported that the IR car was physically coupled
    to Otto and powered up during the run.
+5. On inspection, David found the **IR sensor housing physically dislodged**,
+   likely by a turnout with a high frog. His planned remedy is to redesign
+   the housing smaller for more ground clearance.
 
 ## Logged facts
 
@@ -57,7 +60,9 @@ single run, not separate runs.
 
 - During the stop (14:47:20) the IR read `INADEQUATE_CONTRAST` (1) with
   span 15. That was also normal at the first Patio stop, and the sensor
-  recovered on departure then.
+  recovered on departure then. The finer 1 Hz timing shows the collapse
+  actually began at about 14:47:09.9, before standstill, while PWM was
+  still 37 (see interpretation 4).
 - 14:47:22 `DEPART` at PWM 90. This time the sensor **did not recover**.
   Pulses went 6403 → 6404 over the next ~20 s, and span stayed around 95.
 - The Patio `DEPARTED` event, which waits for 3 markers of distance, came
@@ -153,6 +158,45 @@ single run, not separate runs.
    - the condition of the reflective pattern on the wheel;
    - anything that happened to the car at the second Patio stop.
 
+   **Resolved by inspection (observation 5):** the sensor housing was
+   dislodged. This confirms (b): the wheel turned, but the sensor no longer
+   viewed it properly.
+
+   **When and where it failed (from 1 Hz loopstat in part 1):**
+
+   | Time | PWM (zero-ramp) | IR pulses | Span | Reason |
+   |---|---|---|---|---|
+   | 14:47:05 (`ZERO_RAMP`, MM15) | 57 | +12–13/s | ~1100 | `TRACKING` |
+   | 14:47:07 | 47 | +7/s | 847 | `TRACKING` |
+   | 14:47:08 | 42 | +5/s | 655 | `TRACKING` |
+   | 14:47:09.9 (MM14 IR step at 14:47:09.760) | 37 | frozen at 6403 | 15 | `INADEQUATE_CONTRAST`; `ir_abort` 8 → 11 |
+
+   Otto was still rolling under decreasing PWM for about 7 more seconds;
+   `DWELL_BEGIN` came at 14:47:17. For comparison, in lap 1 the sensor was
+   still `TRACKING` (span 1263) at PWM 28 during the Grillers stop.
+
+   After `DEPART` (14:47:22) it never recovered: span 15–111, one pulse by
+   14:47:44.
+
+   So the dislodging happened at about **14:47:08–14:47:10, while moving
+   slowly, between MM15 and MM14**, just CCW of Patio (MM15). It did not
+   happen at standstill or on restart. NAVI's position was still
+   IR-accurate at that moment, so the location is trustworthy.
+
+   Consistency with David's frog explanation (Claude):
+   - It is well supported **if a high-frog turnout sits at about MM14–15**.
+   - Lap 1 crossed every turnout on the route with the IR intact. A strike
+     at that spot on the second pass implies marginal clearance, or a
+     housing already loosened by earlier contacts.
+   - If the high-frog turnout is elsewhere, the timing does not fit a
+     single strike there. Cumulative loosening, completed near MM14–15, is
+     then the alternative.
+   - A smaller housing with more clearance addresses contact. Secure
+     retention of the sensor's alignment would address the
+     loosened-then-shifted alternative.
+   - Suggested bench/track check: push the IR car slowly by hand through
+     the suspect turnout and watch the housing.
+
 5. **The "IR car coupled" dashboard checkbox was off for the whole run, and
    this does not explain the failure.**
    - Every `telem/ir` message in all four logs (9,597) carries
@@ -182,9 +226,14 @@ rate is expected under EWO has not been examined here.
 ## Open items for David
 
 - Confirm whether the lap-1 station stops were physically at the stations.
-- Inspect the IR car: whether it is on the rails, wheel rotation, sensor
-  aim and gap, and the condition of the reflective pattern. Coupling and
-  power are already confirmed.
+- IR car inspected: housing dislodged (observation 5). Remaining questions:
+  - Confirm whether the high-frog turnout is at about MM14–15, where the
+    failure occurred.
+  - Record the housing redesign and a clearance check through that turnout
+    when done.
+- Even with the mechanical cause fixed, the firmware could not tell a
+  blinded sensor from a stopped train. The policy question below still
+  stands.
 - Design question (David and Sam): the "IR car coupled" checkbox has no
   navigation effect in R2 (interpretation 5).
 - Policy decision (David's): whether a sustained PWM-without-IR-progress
