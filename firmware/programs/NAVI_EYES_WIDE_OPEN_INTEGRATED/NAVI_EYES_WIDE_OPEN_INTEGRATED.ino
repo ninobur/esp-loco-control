@@ -81,6 +81,11 @@ static bool haveNetReport = false, lastWifiConnected = false, lastMqttConnected 
 static int lastMqttState = 0;
 static uint32_t lastConnectivityReportMs = 0;
 
+static void onWifiDisconnect(WiFiEvent_t, WiFiEventInfo_t info) {
+  Serial.printf("[NET] wifi_disconnect_reason=%u\n",
+                static_cast<unsigned>(info.wifi_sta_disconnected.reason));
+}
+
 static volatile int actualPwm = 0, commandedPwm = 0;
 static int rampTarget = 0;
 static uint16_t rampUpMs = MANUAL_STEP_UP_MS, rampDownMs = 0;
@@ -682,7 +687,7 @@ static void syncDrain() {
   syncSend(&wire, sizeof(wire));
 }
 static void networkTask(void*) {
-  uint32_t nextConnect = 0, wifiDownSince = 0;
+  uint32_t nextConnect = 0, wifiDownSince = 0, nextIrInitAttempt = 0;
   for (;;) {
     const uint32_t now = millis();
     const bool wifiConnected = WiFi.status() == WL_CONNECTED;
@@ -692,6 +697,16 @@ static void networkTask(void*) {
         WiFi.disconnect(); WiFi.begin(WIFI_SSID, WIFI_PASS); wifiDownSince = now;
       }
     } else wifiDownSince = 0;
+    if (wifiConnected && !radioReady && now >= nextIrInitAttempt) {
+      nextIrInitAttempt = now + 15000;
+      const esp_err_t initResult = esp_now_init();
+      const esp_err_t callbackResult = initResult == ESP_OK
+          ? esp_now_register_recv_cb(onIr) : initResult;
+      radioReady = callbackResult == ESP_OK;
+      if (initResult == ESP_OK && !radioReady) esp_now_deinit();
+      Serial.printf("[IR] radio=%s init_error=%d callback_error=%d\n",
+                    radioReady ? "READY" : "FAILED", initResult, callbackResult);
+    }
     if (wifiConnected && !mqtt.connected() && now >= nextConnect) {
       wifiClient.setConnectionTimeout(3000);
       nextConnect = now + 2000;
@@ -897,23 +912,29 @@ void setup() {
     pairing.getBytes("ir_mac", pairedIrMac, 6);
   Serial.printf("[BOOT] profile loco=%s id=%lu mqtt_broker=%s sync_host=%s ir=ALL_VALID_TYPE5_TO_NAVI\n",
                 LOCO_NAME, (unsigned long)LOCO_ID, MQTT_BROKER, NAVI_SYNC_HOST);
-  Serial.printf("[BOOT] ir_radio=%s paired_mac=%02X:%02X:%02X:%02X:%02X:%02X display_only=1\n",
-                radioReady ? "READY" : "FAILED", pairedIrMac[0], pairedIrMac[1],
+  Serial.printf("[BOOT] ir_radio=WAITING_FOR_WIFI paired_mac=%02X:%02X:%02X:%02X:%02X:%02X display_only=1\n",
+                pairedIrMac[0], pairedIrMac[1],
                 pairedIrMac[2], pairedIrMac[3], pairedIrMac[4], pairedIrMac[5]);
   refreshRecorderContext();
   if (xTaskCreatePinnedToCore(hallTask, "hall", 4096, nullptr, 3, nullptr, 0) != pdPASS) {
     Serial.println("[BOOT] FATAL: Hall task failed");
     writePwm(0); for (;;) delay(1000);
   }
-  // Start the station association before claiming the radio for ESP-NOW.
-  // On this target, initializing ESP-NOW first can leave the station
-  // disconnected and prevent MQTT (and therefore dashboard commands) from
-  // ever becoming available.
-  WiFi.mode(WIFI_STA); WiFi.setSleep(false);
+  // ESP-NOW shares the station radio. Initialize it after Wi-Fi associates.
+  WiFi.onEvent(onWifiDisconnect, ARDUINO_EVENT_WIFI_STA_DISCONNECTED);
+  WiFi.mode(WIFI_STA);
+  const int16_t targetAps = WiFi.scanNetworks(false, true, false, 300, 0, WIFI_SSID);
+  Serial.printf("[NET] target_ap_scan=%d ssid_length=%u station_mac=%s\n",
+                targetAps, static_cast<unsigned>(strlen(WIFI_SSID)),
+                WiFi.macAddress().c_str());
+  for (int16_t i = 0; i < targetAps; ++i) {
+    Serial.printf("[NET] target_ap rssi=%ld channel=%ld auth=%d bssid=%s\n",
+                  static_cast<long>(WiFi.RSSI(i)), static_cast<long>(WiFi.channel(i)),
+                  static_cast<int>(WiFi.encryptionType(i)), WiFi.BSSIDstr(i).c_str());
+  }
+  WiFi.scanDelete();
   WiFi.begin(WIFI_SSID, WIFI_PASS);
   Serial.printf("[NET] wifi=CONNECTING mqtt_broker=%s\n", MQTT_BROKER);
-  radioReady = esp_now_init() == ESP_OK;
-  if (radioReady) radioReady = esp_now_register_recv_cb(onIr) == ESP_OK;
   mqtt.setServer(MQTT_BROKER, 1883);
   mqtt.setCallback(onMqtt);
   mqtt.setBufferSize(1408);
