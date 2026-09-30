@@ -5,6 +5,8 @@ documentation `612b791`. The stale pre-integration `638c635` is not this build.
 **Not field accepted. Otto's supervised diagnostic flash was authorized by the
 operator; do not flash Toby.** See
 [`NAVI_EWO_REVIEW_CORRECTIONS_20260929.md`](../../../docs/NAVI_EWO_REVIEW_CORRECTIONS_20260929.md).
+The Otto Wi-Fi diagnosis and supervised flash are recorded in
+[`20260929_OTTO_EWO_WIFI_DIAGNOSIS_AND_FLASH.md`](../../../field-records/20260929_OTTO_EWO_WIFI_DIAGNOSIS_AND_FLASH.md).
 The build requires the real, locally held repository-root `credentials.h` on
 the compiler include path; credentials are not part of this candidate.
 
@@ -85,9 +87,11 @@ Otto's 48-entry MQTT publish queue allocated about 61 KB before Wi-Fi started.
 With the recorder and other queues present, Wi-Fi repeatedly timed out during
 authentication. Starting Wi-Fi first connected but then the queue allocation
 failed. A 16-entry queue saved about 40 KB; Wi-Fi, MQTT, and ESP-NOW then came
-up, and the observed idle `pub_drop` count remained zero. The boot log reports
-queue allocation, free heap, and largest free block. The reduced outage buffer
-still needs sustained-load and reconnect testing before field acceptance.
+up. The diagnostic build had `pub_drop=0` at an 88-second check, but the
+reviewed build reported five startup publish drops, unchanged in three checks
+at 64–66 seconds. The boot log reports queue allocation, free heap, and largest
+free block. The reduced outage buffer still needs sustained-load and reconnect
+testing before field acceptance.
 
 ## Record and test
 
@@ -157,8 +161,10 @@ The shell suite also runs the shared IR architecture and station-position tests.
   reconstruction; no on-track capture or end-to-end receiver throughput test
   has been performed. Fixed network addresses are inherited operational
   configuration, not a deployment recommendation.
-- The sketch has not been flashed or field-tested. Compile and host tests do
-  not prove motor, IR radio, station, or AUTO behavior on Toby or Otto.
+- The reviewed build was flashed to Otto on 2026-09-29. Wi-Fi, MQTT, ESP-NOW
+  initialization and the dashboard's session-orientation/interval-location
+  controls were verified at rest. No movement, valid IR reception, station, or
+  AUTO behavior was verified on Otto; none of this build was tested on Toby.
 
 ## 21-item disposition audit
 

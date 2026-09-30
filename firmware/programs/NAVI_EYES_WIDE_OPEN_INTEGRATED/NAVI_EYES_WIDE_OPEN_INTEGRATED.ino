@@ -48,7 +48,8 @@ static constexpr uint16_t NAVI_SYNC_PORT = 47620;
 static constexpr char NAVI_SYNC_HOST[] = "192.168.68.142";
 static constexpr char MQTT_BROKER[] = "192.168.68.142";
 // Each PubMsg is 1273 bytes. A 48-entry queue exhausted Otto's usable heap
-// before Wi-Fi association; 16 connected with no publish drops in bench test.
+// before Wi-Fi association; 16 connected, but startup drops were seen in the
+// reviewed build and sustained-load/reconnect behavior remains unverified.
 static constexpr uint8_t PUB_QUEUE_DEPTH = 16;
 
 struct IrRx { uint8_t mac[6]; uint64_t receivedUs; uint16_t length;
