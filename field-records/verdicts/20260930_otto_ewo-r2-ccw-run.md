@@ -22,6 +22,8 @@ single run, not separate runs.
    marker 040.
 3. David shut down the run (dispatcher release, logged 15:04:23.455). Otto
    stopped physically between markers 014 and 015.
+4. After the analysis, David reported that the IR car was physically coupled
+   to Otto and powered up during the run.
 
 ## Logged facts
 
@@ -131,6 +133,45 @@ single run, not separate runs.
    trickle show the wheel sometimes turned. That argues against an
    uncoupled, stationary car. The ESP-NOW link stayed up throughout.
 
+   David's report that the car was coupled and powered (observation 4)
+   rules out an uncoupled or unpowered car. It does not separate (a) from
+   (b).
+
+   The logs lean slightly toward (b), though not decisively:
+   - In the blind period, median span was about 79–95, against 15–31 at the
+     lap-1 station stops where the wheel was genuinely still.
+   - `ir_abort` kept climbing at about 0.5/s, against about 2 per stop in
+     lap 1.
+
+   So the optical signal varied more than a stopped wheel's, but not enough
+   to form clean pulses. A wheel turning intermittently (binding or skidding
+   under (a)) could produce the same pattern.
+
+   Physical checks that would settle it:
+   - whether the car is on the rails and the measured wheel spins freely;
+   - the sensor's aim and gap;
+   - the condition of the reflective pattern on the wheel;
+   - anything that happened to the car at the second Patio stop.
+
+5. **The "IR car coupled" dashboard checkbox was off for the whole run, and
+   this does not explain the failure.**
+   - Every `telem/ir` message in all four logs (9,597) carries
+     `"ir_coupled":0`.
+   - In R2 the `ir_coupled` command only sets `irCarCoupled`, which is
+     echoed in telemetry (`state/connectivity`, `telem/ir`, `diag/ir_link`)
+     and never read by NAVI. `diag/ir_link` reports
+     `"paired_for_display_only":1`, the boot message states
+     `"ir":"ALL_TYPE5_TO_NAVI"`, and the pairing handler warns that "every
+     IR report remains visible to NAVI."
+   - Lap 1 navigated correctly with the same flag at 0, and the failure
+     began at ~14:47 with no change to the flag.
+
+   The checkbox is still a potential operator trap, in the other direction
+   from the one first suspected. It suggests the operator controls whether
+   NAVI uses the IR car, but NAVI consumes every IR report regardless of
+   the checkbox. Whether that control should be changed, relabelled or
+   removed is a design question for David and Sam.
+
 ## Separate observation (not the cause of this failure)
 
 In lap 1, with the IR healthy, 75% of NAVI's advances (152 of 202) were
@@ -141,8 +182,11 @@ rate is expected under EWO has not been examined here.
 ## Open items for David
 
 - Confirm whether the lap-1 station stops were physically at the stations.
-- Inspect the IR car: wheel rotation, sensor position and cleanliness, and
-  whether it was coupled and on the rails when Otto stopped.
+- Inspect the IR car: whether it is on the rails, wheel rotation, sensor
+  aim and gap, and the condition of the reflective pattern. Coupling and
+  power are already confirmed.
+- Design question (David and Sam): the "IR car coupled" checkbox has no
+  navigation effect in R2 (interpretation 5).
 - Policy decision (David's): whether a sustained PWM-without-IR-progress
   condition should hold NAVI or stop AUTO. No code has been changed.
 - Record currency: the R2 record on `codex/ewo-ir-authoritative`
