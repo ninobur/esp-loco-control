@@ -147,3 +147,55 @@ leads or explain why physical travel was reversed. The observer neither
 changed wiring nor sent a direction/throttle command. A powered-off wiring
 change, if made by the operator, needs a separate low-speed physical direction
 check before relying on NAVI's route direction or continuing an assisted run.
+
+## Addendum — later moving run and dashboard speed, ~21:43–21:45 PDT
+
+At the operator's request, read-only MQTT and dashboard-state checks were made
+while Otto was online; no commands, wiring, firmware, or server files were
+changed. Live telemetry at 21:43:53 showed Wi-Fi/MQTT/IR radio ready,
+`ir_coupled=1`, CCW session and NAVI direction -1. The dashboard state showed
+MM 147 then 146, with reported throttle 55. During the 21:44:09–17 sample,
+PWM was 40, MM advanced 142 to 140, `position_reliable=1`, `degraded=0`,
+`ir_applicable=1`, `ir_health_fault=0`, and cumulative confirmations rose 250
+to 252 while cumulative missed markers remained zero. This is encouraging
+short-window navigation telemetry, not independent physical position proof or
+field acceptance. `running=0` in EWO loopstat means AUTO is not running; it
+does **not** mean the manual motor is stopped when PWM is nonzero.
+
+The operator reported that the main pKPH tile did not show a useful speed.
+The live dashboard `/loco/9950011/state` returned `pkph="0.0"`, but its
+`ages.pkph` was about 21,871 seconds (roughly six hours) while the MM, PWM,
+IR-link, and speed-view ages were about one second. Thus the main pKPH value
+was stale, not a current zero-speed measurement. The current dashboard source
+refreshes this field from `alert.est_mm_s` or a `mm/speed` object with
+`source="SEGMENT_MEASURED"`; EWO emits neither. EWO's `telem/speed` is an IR
+JSON object and is stored as `speed_view`, not interpreted as the main pKPH
+input. This is a confirmed producer/consumer contract mismatch. It should be
+fixed with an explicitly defined main-speed source, not by silently relabeling
+IR speed as Hall/segment speed.
+
+The operator also reported IR pKPH alternating around 18.0 and 35.9. EWO
+calculates `ir_mmps` from the pulse difference between **consecutive** valid
+IR frames using their sender capture timestamps. The observed IR sequence
+advanced about ten frames per second. With the transmitted nominal wheel pitch
+of 9.652 mm, one pulse per roughly 100-ms frame interval gives about 96.52
+mm/s, or 18.0 house pKPH (`mm/s / 5.37325`); two pulses give about 193.04
+mm/s, or 35.9 pKPH. Those two display numbers are therefore the expected
+quantized outcomes of a one-frame window, not evidence that Otto's physical
+speed doubles every second. The live 21:44:09–17 sample actually showed
+`ir_mmps` toggling between 0 and 96.52 while the cumulative pulse count rose
+8001 to 8037. That 36-pulse change over approximately eight seconds implies
+roughly 43.4 mm/s, or 8.1 house pKPH, averaged over that window; it is only
+an approximate window average, not a calibrated speed verdict. In particular,
+EWO marked some zero-pulse single-frame results `ir_valid=1` and `MEASURED`
+while PWM was 40 and the pulse total was advancing across seconds. The raw
+short-window value is unsuitable as a smooth dashboard speed display.
+
+Other boot-cumulative counters at 21:44 included Hall input queue drops 7,
+native recorder drops 182, invalid IR packets about 37,300, and 324 NSR UDP
+failures in the preceding connectivity snapshot. Hall/recorder drop counters
+did not rise during the eight-second sample, but the capture path is not
+lossless. The invalid packets' source was not established. A follow-up speed
+design could aggregate multiple sender-timestamped pulses over a longer,
+clearly labeled display window while leaving NAVI's raw IR observation path
+unchanged. No speed or navigation algorithm was altered in this review.
