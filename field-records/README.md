@@ -29,6 +29,10 @@ log carries.
 | `20260801_otto_chain-v3-cert.log` | `~/run_0801_1600.log` | 2026-08-01 16:00 → 08-03 15:31 | Otto 9950011 | contains the 16:03 dashboard-failure session that produced v1.10.1 |
 | `20260802_toby_lapA-sensor-flip-cert.log` | `~/toby_cert_0802_1831.log` | 2026-08-02 18:31 → 08-03 20:54 | Toby 9950012 (+ Otto traffic) | Lap A / sensor-flip certification; analysed in `verdicts/` |
 | `20260810_IR_SPEED_LOCAL_1_2_otto.log` | `~/NGR/telemetry/runs/20260810_IR_SPEED_LOCAL_1_2_otto.log` | 2026-08-10 19:19 → 21:09 PDT | Otto 9950011 + IR_SPEED_SENSOR | Merged beta-test capture: Otto Hall/navigation and IR test-car telemetry. Contains the three `HARD_BOUND` NO_QUORUM incidents, including the final Patio-area incident at log lines 25020–25120. |
+| `20260930_otto_ewo-r2-ccw-run_part1_1224.log` (+ `.meta.json`) | uploaded capture `9950011_20260930_122400` | 2026-09-30 12:24 → 14:54 | Otto 9950011 | NAVI_EYES_WIDE_OPEN_INTEGRATED_R2; four boots, then the CCW AUTO run from 14:40:36 (lap 1, IR failure onset at the second Patio stop ~14:47) |
+| `20260930_otto_ewo-r2-ccw-run_part2_1454.log` (+ `.meta.json`) | uploaded capture `9950011_20260930_145441` | 2026-09-30 14:54 → 14:58 | Otto 9950011 | same run, continued |
+| `20260930_otto_ewo-r2-ccw-run_part3_1458.log` (+ `.meta.json`) | uploaded capture `9950011_20260930_145813` | 2026-09-30 14:58 → 15:01 | Otto 9950011 | same run, continued |
+| `20260930_otto_ewo-r2-ccw-run_part4_1501.log` (+ `.meta.json`) | uploaded capture `9950011_20260930_150118` | 2026-09-30 15:01 → 15:04 | Otto 9950011 | same run; dispatcher release 15:04:23 |
 
 ## Cal recordings
 
@@ -42,3 +46,4 @@ absence of a file states equally well.
 | file | covers |
 |---|---|
 | `20260802_toby_lapA-sensor-flip-cert.md` | Toby's five certification metrics before/after the shielded cable |
+| `20260930_otto_ewo-r2-ccw-run.md` | Otto EWO R2 CCW run: IR went blind at the second Patio stop and NAVI fell behind Otto (Claude's analysis, not yet reviewed) |
