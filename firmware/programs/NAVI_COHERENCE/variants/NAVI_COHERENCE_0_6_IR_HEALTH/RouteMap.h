@@ -1,7 +1,8 @@
 #pragma once
 // ---------------------------------------------------------------------------
 // RouteMap — the surveyed truth of the Lowline. Generated from QUORUM.ino,
-// which carried these tables from the original survey; unchanged in value.
+// which carried these tables from the original survey. David's 2026-10-02
+// remeasurement corrects intervals 011-012, 012-013 and 013-014 only.
 //
 // This is a DECLARATION (decision 0056). It is maintained by a person, and the
 // navigator cannot verify it. When the physical route changes and this file
@@ -30,10 +31,10 @@ static const uint8_t ROUTE_POLARITY[ROUTE_N] = {
 };
 
 // Surveyed spacing in REAL millimetres between marker i and marker i+1 (CW).
-// Sums to 52150 mm. Minimum 280, maximum 355, mean 304.
+// Sums to 52264 mm. Minimum 280, maximum 360.
 static const uint16_t ROUTE_SPACING_MM[ROUTE_N] = {
   330,340,330,315,325,330,315,300,300,295,
-  300,290,300,315,315,325,310,300,300,320,
+  300,335,324,360,315,325,310,300,300,320,
   315,315,305,300,295,300,300,300,300,315,
   330,320,315,310,300,300,300,300,300,300,
   300,300,300,300,300,300,300,300,300,300,
