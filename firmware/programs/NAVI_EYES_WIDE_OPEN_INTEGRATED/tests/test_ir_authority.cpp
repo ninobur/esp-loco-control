@@ -98,7 +98,12 @@ int main() {
 
   NaviIntegratedCore reverseAfterMiss;
   boot(reverseAfterMiss);
-  reverseAfterMiss.declare(0, 1, 500000);
+  reverseAfterMiss.declare(navi_one::nextMarker(0, -1), 1, 250000);
+  absentSupport(reverseAfterMiss, 250000);
+  reverseAfterMiss.observeIr(ir(3, 11), 300000, 40);
+  field(reverseAfterMiss, 420, 310000, 1);
+  assert(reverseAfterMiss.mm() == 0 && reverseAfterMiss.confirmedCount() == 1);
+  reverseAfterMiss.observeIr(ir(4, 211), 400000, 40);
   reverseAfterMiss.observeIr(ir(6, 400), 610000, 40);
   reverseAfterMiss.observeIr(ir(7, 740), 710000, 40);
   assert(reverseAfterMiss.missedCount() == 2 && reverseAfterMiss.mm() == 2);
@@ -107,7 +112,7 @@ int main() {
          reverseAfterMiss.target().sequence == 2);
   reverseAfterMiss.observeIr(ir(8, 800), 810000, 40);
   field(reverseAfterMiss, 450, 820000, 2);
-  assert(reverseAfterMiss.confirmedCount() == 1 && reverseAfterMiss.mm() == 2);
+  assert(reverseAfterMiss.confirmedCount() == 2 && reverseAfterMiss.mm() == 2);
 
   NaviIntegratedCore reset;
   boot(reset);

@@ -1,6 +1,6 @@
 /* EWO integrated working-sketch candidate. NOT FIELD ACCEPTED.
- * R2 first-target-after-declaration revision, 2026-10-02 (decision 0117).
- * Rollback: d0185be25ec51f9ba6d58567458a59d3f1c289ca.
+ * R2_FT2 first-target Hall-onset revision, 2026-10-02 (decision 0118).
+ * Rollback: c3c925a (prior rule), d0185be (current Otto build).
  * No flashing authorized by this change; await David's review.
  */
 #include <Arduino.h>
@@ -41,7 +41,7 @@ static portMUX_TYPE recorderMux = portMUX_INITIALIZER_UNLOCKED;
 using namespace navi_one;
 using namespace navi_eyes;
 
-static constexpr char SKETCH_NAME[] = "NAVI_EYES_WIDE_OPEN_INTEGRATED_R2";
+static constexpr char SKETCH_NAME[] = "NAVI_EYES_WIDE_OPEN_INTEGRATED_R2_FT2";
 static constexpr char BUILD_CLASS[] = "INTEGRATION_CANDIDATE_NOT_FIELD_ACCEPTED";
 static constexpr uint8_t HALL_PIN = 33;
 static constexpr uint8_t I2C_SDA = 21, I2C_SCL = 22;

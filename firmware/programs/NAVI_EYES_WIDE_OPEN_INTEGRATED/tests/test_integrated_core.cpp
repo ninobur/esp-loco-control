@@ -165,13 +165,23 @@ int main() {
   check(shrug.confirmedCount() == 0 && shrug.mm() == 0,
         "opposite Hall median shrugs without alternate-position inference");
   shrug.observeIr(ir(6, 400), 700000, 40);
-  check(shrug.missedCount() == 1 && shrug.target().sequence == 2 &&
-            shrug.mm() == 1,
-        "applicable IR passage marks missed target and seeks next mapped MM");
+  check(shrug.missedCount() == 0 && shrug.target().sequence == 1 &&
+            shrug.mm() == 0,
+        "first target holds despite IR passage and opposite Hall support");
 
   NaviIntegratedCore consecutiveMisses;
   provisionalReference(consecutiveMisses);
-  consecutiveMisses.declare(0, 1, 500000);
+  // Establish MM0 at an actual Hall landmark before testing normal misses.
+  consecutiveMisses.declare(navi_one::nextMarker(0, -1), 1, 250000);
+  absentSupport(consecutiveMisses, 250000);
+  consecutiveMisses.observeIr(ir(3, 11), 300000, 40);
+  const int16_t firstRaw = consecutiveMisses.target().polarity ==
+      HallOpeningPolarity::AboveReference ? 200 : 20;
+  for (uint32_t i = 0; i < 5; ++i)
+    consecutiveMisses.observeHall(hall(10 + i, 310000 + i * 1000, firstRaw));
+  check(consecutiveMisses.mm() == 0 && consecutiveMisses.confirmedCount() == 1,
+        "normal miss fixture starts from confirmed MM0");
+  consecutiveMisses.observeIr(ir(4, 211), 400000, 40);
   // Target 1 (330 mm) and target 2 (340 mm) are missed from the same
   // physical origin. Target 3 is then accepted at the cumulative 990 mm
   // position, with tolerance based only on target 3's 330-mm interval.
@@ -180,10 +190,10 @@ int main() {
   check(consecutiveMisses.missedCount() == 2 && consecutiveMisses.mm() == 2 &&
             consecutiveMisses.target().sequence == 3,
         "consecutive Missed Magnets advance mapped target without moving physical origin");
-  consecutiveMisses.observeIr(ir(7, 1000), 800000, 40);
+  consecutiveMisses.observeIr(ir(7, 1001), 800000, 40);
   for (uint32_t i = 0; i < 5; ++i)
     consecutiveMisses.observeHall(hall(80 + i, 810000 + i * 1000, 20));
-  check(consecutiveMisses.confirmedCount() == 1 && consecutiveMisses.mm() == 3,
+  check(consecutiveMisses.confirmedCount() == 2 && consecutiveMisses.mm() == 3,
         "cumulative expected distance uses local tolerance for the current interval");
 
   NaviIntegratedCore noIr;
