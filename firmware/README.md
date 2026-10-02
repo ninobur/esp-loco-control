@@ -190,7 +190,7 @@ lineage even while it awaits field acceptance.
 - Put the human-readable version in `SKETCH_NAME`; identify immutable versions
   by commit and, when flashed, by git tag.
 - Every locomotive build is numbered and registered (decision 0119): `SKETCH_NAME`
-  is a sequential build number such as `EWO-14`, bumped in every commit that
+  is a sequential build number such as `EWO-14_20261002` (number, then creation date), bumped in every commit that
   changes firmware behaviour, with a row in [`BUILDS.md`](BUILDS.md). Every
   flash goes in the flash log there.
 - Name diagnostics for the question or instrument (`IR_DIAG`, `HALL_DIAG`), not

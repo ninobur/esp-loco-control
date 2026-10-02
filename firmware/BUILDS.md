@@ -24,7 +24,7 @@ does **not** report these numbers: EWO-1 reports
 `NAVI_EYES_WIDE_OPEN_INTEGRATED_R1`, EWO-2 to EWO-12 all report
 `NAVI_EYES_WIDE_OPEN_INTEGRATED_R2`, and EWO-13 reports `…_R2_FT2`. The
 "Tell apart by" column says how to identify them from a log. From EWO-14 on,
-the firmware reports its own number (`SKETCH_NAME = "EWO-14"`).
+the firmware reports its own number (`SKETCH_NAME = "EWO-14_YYYYMMDD"`, date the build was created).
 
 | Build | Commit | Date (PDT) | Branch | What changed | Tell apart by | Flashed / status |
 |---|---|---|---|---|---|---|

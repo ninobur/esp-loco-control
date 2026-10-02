@@ -159,7 +159,7 @@ and evidence status as separate facts:
   implementation reports, and field verdicts.
 
 - **Firmware builds are numbered** (decision 0119). Any firmware change bumps
-  the build number in `SKETCH_NAME` and adds a row to `firmware/BUILDS.md` in
+  the build number in `SKETCH_NAME` (`EWO-14_YYYYMMDD`, creation date) and adds a row to `firmware/BUILDS.md` in
   the same commit. To identify the build behind a log, read its `build` field
   and look it up there; record any flash not yet in the flash log.
 

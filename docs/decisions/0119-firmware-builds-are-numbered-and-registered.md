@@ -7,10 +7,13 @@ versions. Set up a system now … And have CODEX start numbering the versions."
 
 ## Decision
 
-1. Every locomotive firmware build has a short sequential number per line:
-   `EWO-14`, `EWO-15`, … The number is the whole value of `SKETCH_NAME`, so it
-   appears in every boot message and every `loopstat`, and therefore in
-   every run log.
+1. Every locomotive firmware build has a short sequential number per line,
+   followed by the date the build was created: `EWO-14_20261002`. This is the
+   whole value of `SKETCH_NAME`, so it appears in every boot message and every
+   `loopstat`, and therefore in every run log. The number is the unique key;
+   the date is for reading logs at a glance (David, 2026-10-02). The date is
+   written by hand in the commit that creates the build. It is not the
+   compile date (`__DATE__`), which would give one commit different names.
 2. Any commit that changes what the firmware does (any `.ino`/`.h` change
    other than comments) bumps the number, in that same commit.
 3. The same commit adds the build's row to `firmware/BUILDS.md`: number,
