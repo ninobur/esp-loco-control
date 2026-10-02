@@ -39,6 +39,10 @@ static void boot(NaviIntegratedCore& n) {
   n.observeIr(ir(2, 10), 220000, 40);
   assert(n.initialReferenceReady());
 }
+static void absentSupport(NaviIntegratedCore& n, uint64_t afterUs) {
+  for (uint32_t i = 0; i < 5; ++i)
+    n.observeHall(hall(10 + i, afterUs + 1000 + i * 1000, 110));
+}
 
 int main() {
   // Otto's MM13->12->11 failure: one sustained Hall field, unchanged IR,
@@ -62,6 +66,7 @@ int main() {
   NaviIntegratedCore reversal;
   boot(reversal);
   reversal.declare(0, 1, 500000);
+  absentSupport(reversal, 500000);
   reversal.observeIr(ir(6, 340), 610000, 40);
   field(reversal, 200, 620000, 1);
   assert(reversal.mm() == 1 && reversal.confirmedCount() == 1);
@@ -78,6 +83,7 @@ int main() {
   NaviIntegratedCore doubleReverse;
   boot(doubleReverse);
   doubleReverse.declare(0, 1, 500000);
+  absentSupport(doubleReverse, 500000);
   doubleReverse.observeIr(ir(6, 340), 610000, 40);
   field(doubleReverse, 350, 620000, 1);
   doubleReverse.observeIr(ir(7, 540), 710000, 40);
@@ -106,6 +112,7 @@ int main() {
   NaviIntegratedCore reset;
   boot(reset);
   reset.declare(0, 1, 500000);
+  absentSupport(reset, 500000);
   reset.observeIr(ir(6, 340), 610000, 40);
   field(reset, 500, 620000, 1);
   assert(reset.mm() == 1);
@@ -117,6 +124,7 @@ int main() {
   assert(reset.confirmedCount() == 1 && reset.missedCount() == 0 &&
          reset.mm() == 1 && reset.target().sequence == 2);
   reset.declare(1, 1, 900000);  // operator-owned recovery
+  absentSupport(reset, 900000);
   assert(reset.relationshipReliable() && reset.target().sequence == 2);
   reset.observeIr(ir(3, 680, 43), 1010000, 40);
   field(reset, 700, 1020000, 1);

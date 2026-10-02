@@ -54,6 +54,8 @@ class NaviIntegratedCore {
     mm_ = mm;
     direction_ = direction;
     reverseTarget_ = false;
+    firstTargetAfterDeclare_ = true;
+    firstTargetSupportAbsent_ = false;
     chooseTarget();
     physicalOriginUm_ = irApplicable(nowUs) ? latestIr_.nominalUm : 0;
     expectedCumulativeUm_ = irApplicable(nowUs) ?
@@ -95,6 +97,7 @@ class NaviIntegratedCore {
     const uint64_t distanceToTarget = reversible ? uint64_t(seekCurrentMm ?
         -newPosition : newInterval - newPosition) : 0;
     contextSinceUs_ = nowUs;
+    firstTargetAfterDeclare_ = false;
     direction_ = direction;
     reverseTarget_ = seekCurrentMm;
     chooseTarget();
@@ -205,6 +208,7 @@ class NaviIntegratedCore {
     // A declaration/reversal clears incompatible queued evidence as well as
     // the rolling window. Acquisition and its recording remain untouched.
     if (!declared_ || sample.timestampUs < contextSinceUs_) return;
+    if (firstTargetAfterDeclare_ && sample.timestampUs == contextSinceUs_) return;
     if (spatialPhase_ != SpatialPhase::None &&
         irApplicable(decisionUs_) && relationshipReliable_) {
       collectSpatial(sample.raw);
@@ -226,7 +230,12 @@ class NaviIntegratedCore {
                     departure >= 70) ||
                    (target_.polarity == HallOpeningPolarity::BelowReference &&
                     departure <= -70);
-    if (!hallSupport_) return;  // target-only shrug, including opposite field
+    if (!hallSupport_) {
+      // Only an observed full window counts as absence; resetTargetEvidence()
+      // and the initial false hallSupport_ are not a post-declaration onset.
+      if (firstTargetAfterDeclare_) firstTargetSupportAbsent_ = true;
+      return;  // target-only shrug, including opposite field
+    }
     if (!priorSupport) push(EwoEventKind::HallSupport);
     if (sample.direction != (direction_ > 0 ? 1 : 2)) return;
     const HallPoint* landmark = nullptr;
@@ -247,8 +256,10 @@ class NaviIntegratedCore {
       const uint64_t expectedInterval = uint64_t(target_.distanceMm) * 1000;
       const uint64_t tolerance = expectedInterval * 15 / 100;
       if (reverseTarget_ && traveled == 0) return;
-      if (traveled + tolerance < expectedCumulativeUm_ ||
-          traveled > expectedCumulativeUm_ + tolerance) return;
+      if (firstTargetAfterDeclare_) {
+        if (!firstTargetSupportAbsent_ || traveled == 0) return;
+      } else if (traveled + tolerance < expectedCumulativeUm_) return;
+      if (traveled > expectedCumulativeUm_ + tolerance) return;
     } else return;  // No measured distance means no MM confirmation.
     confirm(*landmark);
   }
@@ -397,6 +408,7 @@ class NaviIntegratedCore {
     }
   }
   void confirm(HallPoint landmark) {
+    firstTargetAfterDeclare_ = false;
     setDistanceHolding(false);
     openingSerial_ = landmark.serial;
     openingIrUm_ = landmark.irUm;
@@ -470,6 +482,7 @@ class NaviIntegratedCore {
       mm_ = static_cast<uint8_t>(target_.sequence);
       reverseTarget_ = false;
       ++missedCount_;
+      firstTargetAfterDeclare_ = false;
       push(EwoEventKind::MissedMagnet);
       chooseTarget();
       resetTargetEvidence();
@@ -493,6 +506,7 @@ class NaviIntegratedCore {
   bool haveSource_ = false, speedAvailable_ = false;
   double speedMmS_ = 0;
   bool declared_ = false, reverseTarget_ = false;
+  bool firstTargetAfterDeclare_ = false, firstTargetSupportAbsent_ = false;
   bool positionReliable_ = false;
   uint8_t mm_ = 0;
   int8_t direction_ = 0;

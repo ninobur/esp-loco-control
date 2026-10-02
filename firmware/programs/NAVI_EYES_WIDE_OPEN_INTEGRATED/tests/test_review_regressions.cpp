@@ -27,21 +27,25 @@ static void boot(NaviIntegratedCore& n) {
 }
 static void first(NaviIntegratedCore& n) {
   boot(n); n.declare(0,1,500000);
+  for(unsigned i=0;i<5;++i) n.observeHall(h(10+i,510000+i*1000,115));
   n.observeIr(wire(8,340),600000,40);
   for(unsigned i=0;i<5;++i) n.observeHall(h(100+i,610000+i*1000,190));
   assert(n.confirmedCount()==1 && n.spatialPhase()==1);
 }
 static void b1() {
-  NaviIntegratedCore n; boot(n); n.declare(0,1,500000);
-  n.observeIr(wire(8,50),1200000,40);
-  for(unsigned i=0;i<5;++i) n.observeHall(h(300+i,1190000+i*1000,190),1201000+i*1000);
-  assert(n.irApplicable(1205000) && n.confirmedCount()==0 && !n.distanceHolding());
-  n.observeIr(wire(9,340),1250000,40);
-  n.observeHall(h(305,1240000,190),1251000);
-  assert(n.confirmedCount()==1 && !n.distanceHolding());
+  // After the first confirmation the ordinary lower bound still applies.
+  NaviIntegratedCore n; first(n);
+  n.observeIr(wire(9,540),700000,40); // complete spatial cycle, retain reference
+  EwoEvent prior; while(n.takeEvent(prior)) {}
+  n.observeIr(wire(10,550),1200000,40); // 210 mm, target requires 340 +/- 51
+  for(unsigned i=0;i<5;++i) n.observeHall(h(300+i,1190000+i*1000,0),1201000+i*1000);
+  assert(n.irApplicable(1205000) && n.confirmedCount()==1 && !n.distanceHolding());
+  n.observeIr(wire(11,680),1250000,40);
+  n.observeHall(h(305,1240000,0),1251000);
+  assert(n.confirmedCount()==2 && !n.distanceHolding());
   EwoEvent e; bool found=false;
   while(n.takeEvent(e)) if(e.kind==EwoEventKind::TargetConfirmed) {
-    found=true; assert(e.timestampUs==1251000 && e.consumptionId==n.consumptionId() && e.irSequence==9);
+    found=true; assert(e.timestampUs==1251000 && e.consumptionId==n.consumptionId() && e.irSequence==11);
   }
   assert(found);
   NaviIntegratedCore declared; boot(declared); declared.declare(0,1,1250000);

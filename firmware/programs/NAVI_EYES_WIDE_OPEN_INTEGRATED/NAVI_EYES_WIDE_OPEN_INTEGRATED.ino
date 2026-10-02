@@ -1,4 +1,8 @@
-/* EWO integrated working-sketch candidate. NOT FIELD ACCEPTED. */
+/* EWO integrated working-sketch candidate. NOT FIELD ACCEPTED.
+ * R2 first-target-after-declaration revision, 2026-10-02 (decision 0117).
+ * Rollback: d0185be25ec51f9ba6d58567458a59d3f1c289ca.
+ * No flashing authorized by this change; await David's review.
+ */
 #include <Arduino.h>
 #include <WiFi.h>
 #include <WiFiUdp.h>

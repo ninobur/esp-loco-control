@@ -40,6 +40,11 @@ static void provisionalReference(NaviIntegratedCore& n) {
   n.observeIr(ir(1, 0), 120000, 40);
   n.observeIr(ir(2, 10), 220000, 40);
 }
+static void absentSupport(NaviIntegratedCore& n, uint64_t afterUs = 500000) {
+  // A declaration no longer implies that target support was observed absent.
+  for (uint32_t i = 0; i < 5; ++i)
+    n.observeHall(hall(2 + i, afterUs + 1000 + i * 1000, 110));
+}
 
 int main() {
   NaviIntegratedCore n;
@@ -51,6 +56,7 @@ int main() {
             n.lastHallSerial() == 1,
         "all native Hall readings remain unchanged and in order");
   n.declare(0, 1, 500000);
+  absentSupport(n);
   check(n.target().sequence == 1 && n.target().distanceMm == 330,
         "declared route context chooses the known CW target");
   n.observeIr(ir(5, 340), 600000, 40);
@@ -70,6 +76,7 @@ int main() {
   NaviIntegratedCore boundary;
   provisionalReference(boundary);
   boundary.declare(0, 1, 500000);
+  absentSupport(boundary);
   boundary.observeIr(ir(5, 340), 600000, 40);
   boundary.observeHall(hall(500, 610000, 190));
   boundary.observeHall(hall(501, 611000, 190));
@@ -192,6 +199,7 @@ int main() {
   NaviIntegratedCore stale;
   provisionalReference(stale);
   stale.declare(0, 1, 500000);
+  absentSupport(stale);
   stale.observeIr(ir(5, 340), 600000, 40);
   for (uint32_t i = 0; i < 5; ++i)
     stale.observeHall(hall(60 + i, 610000 + i * 1000, 190));
@@ -204,6 +212,7 @@ int main() {
   NaviIntegratedCore emptySpatial;
   provisionalReference(emptySpatial);
   emptySpatial.declare(0, 1, 500000);
+  absentSupport(emptySpatial);
   emptySpatial.observeIr(ir(5, 340), 600000, 40);
   for (uint32_t i = 0; i < 5; ++i)
     emptySpatial.observeHall(hall(75 + i, 610000 + i * 1000, 190));
@@ -218,6 +227,7 @@ int main() {
   NaviIntegratedCore ccw;
   provisionalReference(ccw);
   ccw.declare(1, -1, 500000);
+  absentSupport(ccw);
   check(ccw.target().sequence == 0 && ccw.target().direction == 2,
         "CCW declaration selects correct target context");
   ccw.observeIr(ir(5, 340), 600000, 40);
@@ -258,6 +268,7 @@ int main() {
   NaviIntegratedCore latest;
   provisionalReference(latest);
   latest.declare(0, 1, 500000);
+  absentSupport(latest);
   const uint8_t sourceMac[6] = {2, 3, 4, 5, 6, 7};
   latest.observeIr(ir(5, 200), 600000, 40, sourceMac);
   latest.observeIr(ir(6, 340), 700000, 40, sourceMac);

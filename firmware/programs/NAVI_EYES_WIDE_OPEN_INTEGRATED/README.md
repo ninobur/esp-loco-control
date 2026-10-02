@@ -1,4 +1,45 @@
-# NAVI_EYES_WIDE_OPEN_INTEGRATED_R2 — IR-authoritative candidate
+# NAVI_EYES_WIDE_OPEN_INTEGRATED_R2 — first-target-after-declaration candidate
+
+This scoped 2026-10-02 revision starts from `origin/codex/ewo-ir-authoritative`
+at **`d0185be25ec51f9ba6d58567458a59d3f1c289ca` (rollback point)**, the build David
+identifies as currently on Otto. Task branch: `codex/ewo-first-target-after-declare`.
+**NOT field accepted. This revision has not been flashed.** David reviews the
+commit and decides whether to flash and run one CW and one CCW lap with NSR1
+recording enabled. No running Pi service is changed.
+Full scope and verification: [change log](../../../docs/NAVI_EWO_FIRST_TARGET_CHANGELOG_20261002.md).
+
+## Scoped declaration rule (0117)
+
+The first target after declaration accepts an onset within
+**`0 < traveled <= interval + 15%`**, using applicable IR distance. A full
+median-of-five window made from actionable Hall samples acquired strictly
+after the declaration must first show support absent, then a later window
+must show support present. An initially supported field does not qualify:
+it must drop and return. The default/reset false support value is not evidence
+of absence. Pre-declaration queued samples cannot establish that onset.
+
+The exception clears on confirmation, on a recorded Missed Magnet, or on
+reversal. Subsequent targets use the unchanged cumulative-distance window and
+interval-local ±15% tolerance. The first target is still missed only when IR
+passes the unchanged upper bound (not at equality). Polarity, ±70 threshold,
+direction, median-of-five, leading-landmark selection and spatial reference
+cycle remain unchanged. MQTT and NSR1 formats are unchanged; the `.ino` change
+is its version comment only.
+
+**Known limit, not fixed:** reversal before the first confirmation still
+computes position from the assumed declaration origin.
+
+Regression `tests/test_first_target_after_declare.cpp` reconstructs David's
+reported Otto 2026-10-02 CCW case (`9950011_20261002_120424.log`): declaration
+45, target 44 at 106 mm, then target 43 at its normal window. This is a
+deterministic reconstruction, not a full-log/native-NSR replay. It also covers
+normal first-target distance in both directions, initially supported fields,
+zero/inclusive-upper bounds, first miss and restored lower bound, wrong
+polarity, queued old samples, redeclaration and reversal. Existing confirmation
+fixtures now supply an observed neutral window after declaration. See
+[decision 0117](../../../docs/decisions/0117-first-target-after-declaration-accepts-any-onset-within-interval-plus-15-percent.md).
+
+## Prior build provenance
 
 Authorized correction of integrated candidate `cd55929`, based on governing
 documentation `612b791`. The stale pre-integration `638c635` is not this build.
