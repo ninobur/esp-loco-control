@@ -70,3 +70,42 @@ At this record's commit, flashing has not yet occurred. The authorized upload
 must use this committed source's verified build, followed by stationary boot,
 Wi-Fi/MQTT, EWO telemetry and Type-5 reception checks. This document does not
 claim those post-flash checks or field acceptance in advance.
+
+## Stationary post-flash result (documentation-only follow-up)
+
+Flashed firmware commit: **`17e8ed116e8efd90d5396f450885a0073916bf7f`**, pushed
+before upload. Clean source and the application hash above were verified before
+`arduino-cli upload --input-dir /private/tmp/ewo-survey-otto-esp32-20261002`.
+Upload identified Otto's MAC and verified hashes of every written region,
+including the application. No firmware source changed after that build/flash.
+
+- MQTT captured the new boot ID **`76906767B3A7C6D7`**, sketch
+  `NAVI_EYES_WIDE_OPEN_INTEGRATED_R2_FT2`, class
+  `INTEGRATION_CANDIDATE_NOT_FIELD_ACCEPTED`, `field_accepted=0`.
+- Serial confirmed Wi-Fi at `192.168.68.73`, MQTT CONNECTED/state 0; live
+  connectivity reports identify broker `192.168.68.142` and IR radio ready.
+- After David powered the Test Car, valid Type-5 sequence advanced 1483→1532
+  while consumed IR observations advanced 404→451; `ir_applicable=1` and
+  measured pulses remained zero. Later dashboard IR sequence was 1832, with
+  measured speed 0 / STOPPED. Source MAC `38:18:2B:30:8C:2C` matched the stored
+  display-only pairing. No IR Test Car change or command was made.
+- PWM=0, AUTO=0, running=0, confirmations=0 and misses=0 throughout the checked
+  samples. Navigation is undeclared after boot: dashboard UNSET/MM --/ready 0.
+  No movement, declaration or AUTO-run command was sent.
+- Dashboard receives fresh EWO nav/IR/readiness telemetry. Its deployed HTML
+  supports readiness and the firmware warning line but lacks the newer dedicated
+  `ir_distance_state` status rendering. Compatibility is partial at that display
+  layer; no dashboard or Pi update was performed. Its old station/warning fields
+  retain historical values and are not evidence of a new departure.
+
+Unexpected observations, recorded without fixes or inferred causes:
+
+- Rejected IR-wire counter increased (762→772→781 in consecutive diagnostic
+  samples), even while valid Type-5 observations continued. IR queue drops=0.
+- Post-boot Hall queue drops=50, legacy Hall recorder drops=3 and native Hall
+  recorder drops=175 in the later sample; event drops=0 and publish drops=0.
+- UDP failure count=91 in two connectivity snapshots. Capture completeness is
+  not established; these counters require review before relying on field NSR1.
+
+Otto was left stationary for David's physical run. Toby, the IR Test Car and all
+Pi services were untouched. These checks are not field acceptance.
