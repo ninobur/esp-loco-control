@@ -10,6 +10,9 @@
 
 namespace navi_eyes {
 
+static constexpr const char* kPwmZeroMovementWarning =
+    "Movement detected while PWM=0. Reposition/verify locomotive and declare position before resuming navigation.";
+
 enum class EwoEventKind : uint8_t {
   None, Declared, Reversed, HallSupport, TargetConfirmed, MissedMagnet,
   ReferenceReady, SpatialClearance, SpatialCollect, SpatialReady, SpatialEmpty,
@@ -56,7 +59,7 @@ class NaviIntegratedCore {
     reverseTarget_ = false;
     firstTargetAfterDeclare_ = true;
     firstTargetSupportAbsent_ = false;
-    clearCoordinateRecovery();
+    pwmZeroMovementRequiresDeclaration_ = false;
     chooseTarget();
     // Until the first Hall confirmation, this records movement since declaration,
     // not a known marker position or an expected first-target distance.
@@ -101,7 +104,6 @@ class NaviIntegratedCore {
         -newPosition : newInterval - newPosition) : 0;
     contextSinceUs_ = nowUs;
     firstTargetAfterDeclare_ = false;
-    clearCoordinateRecovery(); // reverse math still requires a known coordinate
     direction_ = direction;
     reverseTarget_ = seekCurrentMm;
     chooseTarget();
@@ -176,27 +178,15 @@ class NaviIntegratedCore {
     if (advanced && pwm == 0 && declared_) {
       // Wheel movement is factual, but unsigned handling is not route travel.
       // Do not erase interval/context or disguise an independent frame failure.
-      if (!frameLost_) invalidateCoordinate();
+      requireDeclarationAfterMovement();
       ++pwmZeroDisplacements_;
       push(EwoEventKind::PwmZeroDisplacement);
       setDistanceHolding(true);
     }
     // IR at PWM=0 remains a fact, but cannot progress references, targets or
     // distance rulings. A zero-displacement dwell leaves a known coordinate alone.
-    if (pwm == 0) {
-      if (intervalPositionUnknown_) resetCoordinateOnset();
-      return;
-    }
+    if (pwm == 0 || pwmZeroMovementRequiresDeclaration_) return;
     if (!irApplicable(decisionUs_)) return;
-    if (intervalPositionUnknown_ && !reacquireOriginReady_) {
-      // The first powered report is a local movement origin, not a landmark.
-      // Its incoming delta may include handling; only subsequent travel counts.
-      reacquireOriginUm_ = w.nominalUm;
-      reacquireSinceUs_ = receivedUs;
-      reacquireOriginReady_ = true;
-      reacquireSupportAbsent_ = false;
-      resetTargetEvidence();
-    }
     setDistanceHolding(!relationshipReliable_ || !targetOriginValid_);
     if (spatialPhase_ != SpatialPhase::None) updateSpatialPhase(w.nominalUm);
     // A packet is not a mapped landmark; only an operator declaration or a
@@ -213,6 +203,7 @@ class NaviIntegratedCore {
     lastHall_ = sample;
     haveHall_ = true;
     if (sample.pwm == 0) return;  // still delivered and retained
+    if (pwmZeroMovementRequiresDeclaration_) return; // only declaration can resume navigation
     // The first native Hall ADC is the provisional boot reference. It is
     // deliberately independent of IR applicability and never blocks startup.
     if (!initialReferenceReady_) {
@@ -226,8 +217,6 @@ class NaviIntegratedCore {
     // the rolling window. Acquisition and its recording remain untouched.
     if (!declared_ || sample.timestampUs < contextSinceUs_) return;
     if (firstTargetAfterDeclare_ && sample.timestampUs == contextSinceUs_) return;
-    if (intervalPositionUnknown_ &&
-        (!reacquireOriginReady_ || sample.timestampUs <= reacquireSinceUs_)) return;
     if (spatialPhase_ != SpatialPhase::None &&
         irApplicable(decisionUs_) && relationshipReliable_) {
       collectSpatial(sample.raw);
@@ -253,7 +242,6 @@ class NaviIntegratedCore {
       // Only an observed full window counts as absence; resetTargetEvidence()
       // and the initial false hallSupport_ are not a post-declaration onset.
       if (firstTargetAfterDeclare_) firstTargetSupportAbsent_ = true;
-      if (intervalPositionUnknown_) reacquireSupportAbsent_ = true;
       return;  // target-only shrug, including opposite field
     }
     if (!priorSupport) push(EwoEventKind::HallSupport);
@@ -270,13 +258,7 @@ class NaviIntegratedCore {
     if (!landmark || !landmark->irApplicable) return;
     const bool normal = irApplicable(decisionUs_) &&
                         relationshipReliable_ && targetOriginValid_;
-    if (intervalPositionUnknown_) {
-      // Startup-like localization: no expected distance until the appropriate
-      // landmark. Hall alone, old support and unpowered wheel travel cannot anchor.
-      if (!irApplicable(decisionUs_) || !reacquireOriginReady_ ||
-          !reacquireSupportAbsent_ || latestIr_.nominalUm <= reacquireOriginUm_ ||
-          landmark->irUm <= reacquireOriginUm_) return;
-    } else if (normal) {
+    if (normal) {
       if (latestIr_.nominalUm < physicalOriginUm_) return;
       const uint64_t traveled = latestIr_.nominalUm - physicalOriginUm_;
       const uint64_t expectedInterval = uint64_t(target_.distanceMm) * 1000;
@@ -331,11 +313,13 @@ class NaviIntegratedCore {
   int8_t direction() const { return direction_; }
   TargetSpec target() const { return target_; }
   bool relationshipReliable() const { return relationshipReliable_; }
+  bool pwmZeroMovementRequiresDeclaration() const { return pwmZeroMovementRequiresDeclaration_; }
   const char* irDistanceState(uint64_t nowUs) const {
     if (!haveIr_) return "NO_IR_SOURCE";
     if (frameLost_) return "FRAME_LOST_REDECLARE";
-    // Localization and instrument applicability are separate telemetry facts.
-    if (intervalPositionUnknown_) return "INTERVAL_KNOWN_IR_POSITION_UNKNOWN";
+    // A physical-movement hold is not an instrument fault. A separate frame
+    // failure takes precedence above; neither condition permits Hall recovery.
+    if (pwmZeroMovementRequiresDeclaration_) return "PWM_ZERO_MOVEMENT_REDECLARE";
     if (!irApplicable(nowUs)) return "IR_STALE";
     if (!relationshipReliable_ || !targetOriginValid_) return "UNANCHORED_REDECLARE";
     return "HALL_IR_READY";
@@ -437,7 +421,6 @@ class NaviIntegratedCore {
   }
   void confirm(HallPoint landmark) {
     firstTargetAfterDeclare_ = false;
-    clearCoordinateRecovery();
     setDistanceHolding(false);
     openingSerial_ = landmark.serial;
     openingIrUm_ = landmark.irUm;
@@ -500,7 +483,7 @@ class NaviIntegratedCore {
     }
   }
   void evaluateMissing(uint64_t nowUm) {
-    if (!declared_ || firstTargetAfterDeclare_ || intervalPositionUnknown_ || !initialReferenceReady_ ||
+    if (!declared_ || firstTargetAfterDeclare_ || pwmZeroMovementRequiresDeclaration_ || !initialReferenceReady_ ||
         spatialPhase_ != SpatialPhase::None || !relationshipReliable_ ||
         !targetOriginValid_ || !irApplicable(decisionUs_) ||
         nowUm < physicalOriginUm_) return;
@@ -518,17 +501,9 @@ class NaviIntegratedCore {
   }
 
   void beginDecision(uint64_t nowUs) { decisionUs_ = nowUs; ++consumptionId_; }
-  void resetCoordinateOnset() {
-    reacquireOriginReady_ = reacquireSupportAbsent_ = false;
+  void requireDeclarationAfterMovement() {
+    pwmZeroMovementRequiresDeclaration_ = true;
     resetTargetEvidence();
-  }
-  void clearCoordinateRecovery() {
-    intervalPositionUnknown_ = false;
-    reacquireOriginReady_ = reacquireSupportAbsent_ = false;
-  }
-  void invalidateCoordinate() {
-    intervalPositionUnknown_ = true;
-    resetCoordinateOnset();
     targetOriginValid_ = relationshipReliable_ = false;
     // A spatial collection measured from the old coordinate cannot continue;
     // the last active Hall reference itself remains authoritative.
@@ -540,7 +515,6 @@ class NaviIntegratedCore {
     setDistanceHolding(true);
   }
   void invalidateRelationship() {
-    clearCoordinateRecovery(); // genuine frame failures retain redeclare semantics
     if (targetOriginValid_ || relationshipReliable_ || spatialPhase_ != SpatialPhase::None)
       resetTargetEvidence();
     targetOriginValid_ = relationshipReliable_ = false;
@@ -563,9 +537,7 @@ class NaviIntegratedCore {
   TargetSpec target_{};
   bool relationshipReliable_ = false, targetOriginValid_ = false;
   bool frameLost_ = false;
-  bool intervalPositionUnknown_ = false;
-  bool reacquireOriginReady_ = false, reacquireSupportAbsent_ = false;
-  uint64_t reacquireOriginUm_ = 0, reacquireSinceUs_ = 0;
+  bool pwmZeroMovementRequiresDeclaration_ = false;
   uint64_t physicalOriginUm_ = 0, expectedCumulativeUm_ = 0;
   bool haveIr_ = false, irContinuity_ = false, distanceHolding_ = true;
   ir_movement::WireSnapshot latestIr_{};

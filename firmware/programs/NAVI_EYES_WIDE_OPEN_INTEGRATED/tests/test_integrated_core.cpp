@@ -154,7 +154,7 @@ int main() {
     stationary.observeHall(hall(30 + i, 1200000 + i * 1000, sustained[i]));
   check(stationary.confirmedCount() == 0 && !stationary.relationshipReliable() &&
             stationary.positionReliable() && stationary.mm() == 0,
-        "Hall without post-resume IR progression and observed absence cannot re-anchor");
+        "Hall cannot re-anchor after PWM-zero movement; operator declaration is required");
 
   NaviIntegratedCore shrug;
   provisionalReference(shrug);

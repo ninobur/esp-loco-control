@@ -1,6 +1,12 @@
 # 0119 — PWM-zero IR movement retains the interval; only its IR coordinate is lost
 
-Status: Accepted rule, 2026-10-02, by David's scoped correction instruction.
+Status: Automatic reacquisition superseded by
+[0120](0120-pwm-zero-movement-requires-operator-position-verification-and-declaration.md),
+2026-10-02. PWM-zero displacement now requires operator verification/repositioning
+and declaration; NAVI holds and withdraws AUTO, with no automatic recovery.
+The original rule below is preserved as historical reasoning, not current authority.
+
+Originally accepted rule, 2026-10-02, by David's scoped correction instruction.
 Refines 0112 and supersedes 0116's PWM-zero mandatory-redeclaration rule.
 Implementation **NOT field accepted**. No flash, deployment or merge authorized.
 

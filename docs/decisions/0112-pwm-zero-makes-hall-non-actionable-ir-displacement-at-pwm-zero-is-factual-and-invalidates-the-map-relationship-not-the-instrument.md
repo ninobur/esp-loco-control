@@ -1,5 +1,11 @@
 # 0112 - At PWM = 0 Hall is non-actionable; IR displacement at PWM = 0 is factual and invalidates the map relationship, not the instrument
 
+Current refinement: [0120](0120-pwm-zero-movement-requires-operator-position-verification-and-declaration.md)
+(2026-10-02) supersedes 0119's automatic recovery below. PWM-zero movement
+requires operator position verification/repositioning and declaration; no
+automatic recovery. Zero-movement dwell still preserves localization. Historical
+supersession notes and original text follow without erasure.
+
 Status: Partially superseded by 0116 (2026-09-30): EWO's degraded Hall-only
 re-anchor after PWM-zero displacement is withdrawn. Further refined by
 [0119](0119-pwm-zero-ir-movement-retains-interval-and-reacquires-coordinate.md)

@@ -85,7 +85,7 @@ class EwoIntegration(unittest.TestCase):
         self.assertEqual(stopped['ir_mmps'], 0)
         self.assertEqual(stale['ir_valid'], 0)
         self.assertEqual(reset['ir_distance_state'], 'FRAME_LOST_REDECLARE')
-        self.assertEqual(unknown['ir_distance_state'], 'INTERVAL_KNOWN_IR_POSITION_UNKNOWN')
+        self.assertEqual(unknown['ir_distance_state'], 'PWM_ZERO_MOVEMENT_REDECLARE')
         self.assertEqual(unknown['state'], 'NORMAL')
         scope['_apply_nav_state']('9950012', unknown['state'], unknown['mm'])
         self.assertEqual(scope['loco_state']['9950012']['mm'], '000')
@@ -105,9 +105,88 @@ class EwoIntegration(unittest.TestCase):
                                          'ir_distance_state': unknown['ir_distance_state']}) + ';'
         js += "const heardAge=0, LOCO='Otto', motion='STOPPED', ir={reason:'STOPPED'};"
         js += 'function isFresh(){return true;}\n' + status
-        js += "assert.equal(cls,'warn'); assert.match(line,/INTERVAL KNOWN - MM 000 HELD/);"
-        js += "assert.match(line,/IR POSITION UNKNOWN/); assert.ok(!line.includes('RE-DECLARE'));"
+        js += "assert.equal(cls,'bad'); assert.match(line,/MOVEMENT AT PWM=0 - LAST MM 000 HELD/);"
+        js += "assert.match(line,/VERIFY\\/REPOSITION LOCO AND DECLARE POSITION/);"
         subprocess.run([node, '-e', js], check=True)
+
+    def test_actual_sketch_pwm_zero_auto_withdrawal_and_admission(self):
+        source = (TESTS.parent/'NAVI_EYES_WIDE_OPEN_INTEGRATED.ino').read_text()
+        # Compile the actual shell functions with output-only hardware stubs.
+        functions = []
+        for name in ('withdraw', 'servicePwmZeroMovementHold', 'opsNow'):
+            functions.append(re.search(r'^static (?:void|Ops) ' + name +
+                                       r'\([^\n]*\) \{.*?^\}', source, re.M | re.S).group())
+        loop = source[source.index('void loop() {'):]
+        self.assertLess(loop.index('serviceIrIngress();'), loop.index('servicePwmZeroMovementHold();'))
+        self.assertLess(loop.index('servicePwmZeroMovementHold();'), loop.index('handleCommand(command)'))
+        self.assertLess(loop.index('servicePwmZeroMovementHold();'), loop.index('serviceStation();'))
+        self.assertIn('else if (Refusal reason = admitAuto(o))', source)
+        self.assertIn('if (Refusal reason = admitGo(o))', source)
+        self.assertIn('pub("state/nav_ready", opsNow().positionKnown ? "1" : "0", true);', source)
+        cpp = '#include "' + str(TESTS.parent/'NaviIntegratedCore.h') + '"\n'
+        cpp += '#include "' + str(ROOT/'firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_HEALTH/Ops.h') + '"\n'
+        cpp += r'''
+#include <cassert>
+#include <cstring>
+using namespace navi_one;
+using namespace navi_eyes;
+static NaviIntegratedCore navi;
+static bool autoEnrolled = true, autoRunning = true, estopped = false, lowVoltage = false;
+static int motorDirection = 1, actualPwm = 0, commandedPwm = 40, sessionDir = 1;
+static constexpr int SAFE_DIRECTION_CHANGE_PWM = 15, AUTO_STEP_DOWN_MS = 31;
+static int stopRequests = 0;
+static const char* warning = nullptr;
+static bool publishedAutoOff = false, publishedNotReady = false;
+static void requestPwm(int target, int, int) {
+  assert(target == 0); commandedPwm = target; ++stopRequests;
+}
+static void pub(const char* topic, const char* payload, bool retained) {
+  assert(retained && !strcmp(payload,"0"));
+  if (!strcmp(topic,"state/auto")) publishedAutoOff = true;
+  if (!strcmp(topic,"state/nav_ready")) publishedNotReady = true;
+}
+static void warn(const char* message, bool sticky) { assert(sticky); warning = message; }
+'''
+        cpp += '\n'.join(functions)
+        cpp += r'''
+static void ir(uint32_t seq, uint64_t pulses, uint8_t pwm) {
+  ir_movement::WireSnapshot w;
+  w.bootId = 42; w.sequence = seq; w.capturedUs = uint64_t(seq) * 100000;
+  w.completedPulses = w.observedRises = pulses; w.pitchUm = 1000;
+  w.nominalUm = pulses * w.pitchUm; w.opticalReason = ir_movement::TRACKING;
+  navi.observeIr(w, w.capturedUs, pwm);
+}
+int main() {
+  ir(1,0,40); navi.declare(45,-1,110000);
+  servicePwmZeroMovementHold(); assert(stopRequests == 0);
+  // Fill NAVI's event queue: withdrawal must not depend on event delivery.
+  for (unsigned i=1;i<=80;++i) navi.noteObservationLoss(i,0,110000+i);
+  assert(navi.eventLoss() > 0);
+  ir(2,1,0); servicePwmZeroMovementHold();
+  assert(stopRequests == 1 && !autoEnrolled && !autoRunning && commandedPwm == 0);
+  assert(publishedAutoOff && publishedNotReady && warning == kPwmZeroMovementWarning);
+  assert(!opsNow().positionKnown && admitAuto(opsNow()) != nullptr);
+  autoEnrolled = true; assert(admitGo(opsNow()) != nullptr);
+  servicePwmZeroMovementHold(); assert(!autoEnrolled && stopRequests == 2);
+  commandedPwm = 40; // operator manual positioning remains available
+  ir(3,1000,40); servicePwmZeroMovementHold();
+  assert(commandedPwm == 40 && stopRequests == 2 && admitThrottle(opsNow()) == nullptr);
+  assert(navi.mm() == 45 && navi.target().sequence == 44 && !opsNow().positionKnown);
+  commandedPwm = 0; navi.declare(12,1,310000);
+  assert(opsNow().positionKnown && admitAuto(opsNow()) == nullptr);
+  autoEnrolled = true; assert(admitGo(opsNow()) == nullptr); autoRunning = true;
+  ir(4,1000,0); servicePwmZeroMovementHold(); // ordinary station dwell
+  assert(stopRequests == 2 && autoRunning && autoEnrolled);
+  ir(5,1001,0); servicePwmZeroMovementHold(); // subsequent movement relatches
+  assert(stopRequests == 3 && !autoRunning && !autoEnrolled);
+}
+'''
+        path = self.root/'actual_pwm_zero_shell.cpp'
+        path.write_text(cpp)
+        exe = self.root/'actual_pwm_zero_shell'
+        subprocess.run(['c++', '-std=c++17', '-Wall', '-Wextra', '-Werror',
+                        '-fsanitize=address,undefined', str(path), '-o', str(exe)], check=True)
+        subprocess.run([str(exe)], check=True)
 
     def test_loss_identity_and_late_packets(self):
         def header(kind, seq, drops=0, loco=9950012, boot=42, session=7):

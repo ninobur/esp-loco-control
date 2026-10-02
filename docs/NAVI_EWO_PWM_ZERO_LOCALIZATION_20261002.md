@@ -1,5 +1,9 @@
 # EWO PWM-zero within-interval localization correction — 2026-10-02
 
+**Historical candidate `b146815`: automatic recovery withdrawn by decision 0120.**
+See [the declaration-required correction](NAVI_EWO_PWM_ZERO_DECLARATION_20261002.md).
+The following implementation and test report is retained as history, not current policy.
+
 Candidate **NOT field accepted**. Implement/test/commit/push only. No flashing,
 deployment, merge, live MQTT commands or Pi service changes are authorized.
 Stop for David and Sam's review.

@@ -2367,10 +2367,10 @@ function pollState(){
                isFresh(s,'ir_distance_state')) {
       line = 'IR DISTANCE FRAME LOST \\u2014 MM ' + s.mm +
              ' HELD \\u2014 RE-DECLARE LOCATION TO RESUME NAVIGATION'; cls = 'bad';
-    } else if (s.ir_distance_state === 'INTERVAL_KNOWN_IR_POSITION_UNKNOWN' &&
+    } else if (s.ir_distance_state === 'PWM_ZERO_MOVEMENT_REDECLARE' &&
                isFresh(s,'ir_distance_state')) {
-      line = 'INTERVAL KNOWN - MM ' + s.mm +
-             ' HELD - IR POSITION UNKNOWN - WAITING FOR POWERED IR + HALL LANDMARK'; cls = 'warn';
+      line = 'MOVEMENT AT PWM=0 - LAST MM ' + s.mm +
+             ' HELD - VERIFY/REPOSITION LOCO AND DECLARE POSITION'; cls = 'bad';
     } else if ((s.ir_distance_state === 'IR_STALE' ||
                 s.ir_distance_state === 'NO_IR_SOURCE') && isFresh(s,'ir_distance_state')) {
       line = 'IR DISTANCE UNAVAILABLE \\u2014 MM ' + s.mm +

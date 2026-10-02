@@ -5,6 +5,12 @@ until David and Sam review the compiled build and field evidence. This record
 does not authorize flashing.
 Decided by: David, after review with Sam and Otto's 2026-09-29/30 runs.
 
+Current refinement: [0120](0120-pwm-zero-movement-requires-operator-position-verification-and-declaration.md)
+(2026-10-02) withdraws 0119's automatic recovery: PWM-zero movement requires
+operator position verification/repositioning and declaration, with AUTO withdrawn.
+This physical-movement hold is explicitly distinct from IR instrument failure.
+The superseded 0119 annotation and original decision remain below as history.
+
 Partially superseded by [0119](0119-pwm-zero-ir-movement-retains-interval-and-reacquires-coordinate.md)
 (2026-10-02): PWM-zero displacement alone loses only the within-interval IR
 coordinate, not interval identity, and does not require redeclaration. Powered

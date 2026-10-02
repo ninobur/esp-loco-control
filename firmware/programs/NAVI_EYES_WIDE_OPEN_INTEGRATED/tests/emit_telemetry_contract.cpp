@@ -38,7 +38,7 @@ int main() {
   std::puts(json);  // stale is not zero
   n.observeIr(packet(25, 40), 2450000, 0);
   formatConsoleNav(json, sizeof(json), n, 1, 2450000);
-  std::puts(json);  // handling retains interval; coordinate alone is unknown
+  std::puts(json);  // handling retains diagnostic context; declaration required
   n.observeIr(packet(1, 0, 43), 2500000, 40);
   formatConsoleNav(json, sizeof(json), n, 1, 2500000);
   std::puts(json);  // genuine frame reset: context held, redeclare required

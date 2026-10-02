@@ -1,5 +1,5 @@
 /* EWO integrated working-sketch candidate. NOT FIELD ACCEPTED.
- * PWM-zero coordinate recovery, 2026-10-02 (decision 0119); FT2 unchanged.
+ * PWM-zero movement requires operator declaration, 2026-10-02 (0120 supersedes 0119).
  * Rollback: ab0938b (R2_FT2 flashed to Otto); earlier c3c925a, d0185be.
  * No flashing/deployment authorized by this change; await David/Sam review.
  */
@@ -248,6 +248,18 @@ static void withdraw(const char* why) {
   warn(why, true);
 }
 
+// Check the durable NAVI latch, not its finite event queue. Withdraw once for
+// each new movement count and refuse any AUTO restart until declaration.
+// Manual positioning remains available after withdrawal.
+static void servicePwmZeroMovementHold() {
+  static uint32_t reportedDisplacements = 0;
+  if (!navi.pwmZeroMovementRequiresDeclaration()) return;
+  if (reportedDisplacements != navi.pwmZeroDisplacements() || autoEnrolled || autoRunning) {
+    reportedDisplacements = navi.pwmZeroDisplacements();
+    withdraw(kPwmZeroMovementWarning);
+  }
+}
+
 // CRC/length checks are wire acquisition facts, not movement qualification.
 static uint16_t movementCrc(const uint8_t* bytes, size_t length) {
   uint16_t crc = 0xffff;
@@ -397,8 +409,8 @@ static void publishEvents() {
     recorder->addNavi(recorded, recorderContext());
     if (e.kind == EwoEventKind::TargetConfirmed || e.kind == EwoEventKind::MissedMagnet)
       pub("mm/marker", payload);
-    if (e.kind == EwoEventKind::PwmZeroDisplacement)
-      warn("IR measured motion at PWM=0; not signed route travel", true);
+    if (e.kind == EwoEventKind::PwmZeroDisplacement && navi.pwmZeroMovementRequiresDeclaration())
+      warn(kPwmZeroMovementWarning, true);
   }
 }
 
@@ -408,7 +420,8 @@ static int8_t travelDirection() {
 }
 static Ops opsNow() {
   Ops o;
-  o.positionKnown = navi.declared() && navi.positionReliable();
+  o.positionKnown = navi.declared() && navi.positionReliable() &&
+                    !navi.pwmZeroMovementRequiresDeclaration();
   o.enrolled = autoEnrolled; o.running = autoRunning;
   o.estopped = estopped; o.lowVoltage = lowVoltage;
   o.forward = motorDirection; o.actualPwm = actualPwm;
@@ -878,7 +891,7 @@ static void serviceStatus() {
   pub("state/direction", motorDirection ? "2" : "0", true);
   pub("state/auto", autoEnrolled ? "1" : "0", true);
   pub("state/estop", estopped || estopAsserted ? "1" : "0", true);
-  pub("state/nav_ready", navi.declared() && navi.positionReliable() ? "1" : "0", true);
+  pub("state/nav_ready", opsNow().positionKnown ? "1" : "0", true);
 }
 
 void setup() {
@@ -961,6 +974,7 @@ void setup() {
 void loop() {
   serviceRamp();  // e-stop asserted by MQTT callback pre-empts evidence backlog
   serviceIrIngress(); // declaration must see IR already queued before it
+  servicePwmZeroMovementHold(); // withdraw before queued AUTO/GO commands or station departure
   CmdMsg command;
   while (cmdQ && xQueueReceive(cmdQ, &command, 0) == pdTRUE) handleCommand(command);
   HallSample observation;
