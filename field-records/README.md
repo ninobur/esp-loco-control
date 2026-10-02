@@ -37,6 +37,7 @@ log carries.
 | `20260926_toby_20q3_run4c.log` | operator capture `9950012_20260926_095913.log` | 2026-09-26 09:59:13 → 10:01:06 | Toby 9950012 | redeclared 142–143, manual CCW MM142→MM108; second obstruction (toppled flower pot) past MM108; power cut; train then moved by hand back to MM108–109 |
 | `20260926_toby_20q3_run4d.log` | operator capture `9950012_20260926_100408.log` | 2026-09-26 10:04:08 → 10:08:14 | Toby 9950012 | new boot `146F61B4A8AEEC9C` after the power cut; stationary, undeclared |
 | `20260926_toby_20q3_run5.log` | operator capture `9950012_20260926_100408_COMPLETE.log` | 2026-09-26 10:04:08 → 10:42:40 | Toby 9950012 | complete capture of the post-power-cut boot (first 2,422 lines = run4d); declaration refused, manual CCW for 22.5 min with no position; 926/926 Hall poles match from MM108; IR uncoupled for display; verdict in `verdicts/` |
+| `20261002_otto_ewo-r2-ft2_ccw-cw-stations.log` | operator capture `9950011_20261002_124930.log` | 2026-10-02 12:49:30 → 13:37:40 | Otto 9950011 | EWO R2 boot then `…_R2_FT2` (13:22); CCW AUTO station run, hand turn at PWM 0 (28 `PWM_ZERO_IR_DISPLACEMENT`), redeclared 045–046, CW AUTO station run; verdict in `verdicts/`; basis for decision 0120 |
 
 ## Cal recordings
 
@@ -55,3 +56,4 @@ absence of a file states equally well.
 | `20260926_toby_20q3_run3.md` | 20Q3 run 3: two-MM identity error across a reversal, uncorrected by recovery (TRAVEL_UNAVAILABLE_HOLD); IR rejected three false Hall events incl. a stop-on-magnet re-detection at 720 ms |
 | `20260926_toby_20q3_run4.md` | 20Q3 run 4 (logs run4a–d): first AUTO and station run under 20Q3; 117 of 117 Hall events correct (82/82 and 35/35 poles), 111 IR-judged inside ±15%; two obstruction stalls with PWM held and no stall recognition; E-stop, hand clearing and power cut noted as contamination |
 | `20260926_toby_20q3_run5.md` | 20Q3 run 5: undeclared manual running (declaration refused), 926/926 Hall events pole-consistent over five laps; IR coupling default-off after reboot and the operator's default-ON proposal |
+| `20261002_otto_ewo-r2-ft2_ccw-cw-stations.md` | Otto EWO R2_FT2 CCW and CW AUTO station runs; 28 PWM-zero IR displacement events are one hand-turning episode; interval retained and only the within-interval IR coordinate lost under 0120; implementation nonconformance noted |
