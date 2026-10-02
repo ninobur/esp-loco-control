@@ -10,6 +10,94 @@ commit and decides whether to flash and run one CW and one CCW lap with NSR1
 recording enabled. No running Pi service is changed.
 Full scope and verification: [change log](../../../docs/NAVI_EWO_FIRST_TARGET_CHANGELOG_20261002.md).
 
+## PWM-zero IR displacement (0120): governing; this candidate does not conform
+
+Read [decision 0120](../../../docs/decisions/0120-pwm-zero-ir-displacement-retains-the-interval-and-resets-only-the-within-interval-ir-coordinate.md)
+before modifying navigation behavior. It refines 0112 and partially supersedes
+0116. Where the implementation description further below differs from it, 0120
+governs and the difference is a finding.
+
+When NAVI observes IR displacement while motive PWM = 0, the observation is
+factual but has no known relationship to signed route travel. **NAVI loses IR
+knowledge of where the locomotive is within the already-established MM
+interval. It does not lose the identity of that interval.**
+
+- **Retained:** established interval, last MM, expected adjacent target,
+  operator route direction/context, Hall reference (unless independently
+  invalidated). The observation cannot infer that the locomotive left the
+  interval.
+- **Lost:** the within-interval IR coordinate (distance-to-target). PWM-zero
+  counts are never signed route distance and never advance position.
+- **On powered movement:** interval known, coordinate unknown, as at startup.
+  The 0118 first-target rule re-establishes the IR/MM landmark at the next
+  appropriate Hall+IR target encounter. NAVI does not become undeclared.
+- **Redeclaration** belongs to the operator, who uses it when they know the
+  locomotive is in another interval. PWM-zero displacement alone does not
+  require it. Genuine frame breaks (source, boot, calibration, scale, order)
+  still hold for redeclaration under 0116.
+- **Terminology:** say "interval identity" or "within-interval IR coordinate",
+  never "map/IR relationship destroyed". PWM-zero movement is an observed
+  event, not a navigation error.
+
+**Audit of this candidate (`958ef9a`, 2026-10-02):**
+
+- *Conforms:*
+  - `mm_`, `target_`, `direction_`, `declared_`, `positionReliable_` and
+    `activeReference_` are kept.
+  - Hall at PWM = 0 is ignored (`NaviIntegratedCore.h:200`), and IR at PWM = 0
+    returns before any distance ruling (`:183`).
+  - A spatial cycle that depends on the lost coordinate is cancelled; the prior
+    reference is kept (`:499-503`).
+- *Does not conform:*
+  1. `NaviIntegratedCore.h:174-180` routes PWM-zero displacement through
+     `invalidateRelationship()` (`:494-505`). That sets `frameLost_`, the same
+     state as a genuine source/order/scale break (`:150-168`).
+  2. `NaviIntegratedCore.h:253-265`: once `relationshipReliable_` and
+     `targetOriginValid_` are false, Hall cannot confirm the retained target.
+     Only `declare()` (`:48-72`) restores them, so redeclaration is in effect
+     required.
+  3. `NaviIntegratedCore.h:312` reports `FRAME_LOST_REDECLARE` for this case.
+     The dashboard `server/ngr_app_v1_11_2.py:2366-2369` then shows "IR
+     DISTANCE FRAME LOST … RE-DECLARE LOCATION TO RESUME NAVIGATION".
+  4. Wording that uses the terminology 0120 rejects:
+     - `NAVI_EYES_WIDE_OPEN_INTEGRATED.ino:400-401` warns "map/IR relationship
+       unreliable";
+     - `NaviIntegratedCore.h:181-182`;
+     - this README's paragraphs on PWM=0 and on frame breaks below, which group
+       PWM-zero displacement with true frame loss.
+  5. `tests/test_integrated_core.cpp:146-162` asserts the superseded rule ("Hall
+     cannot re-anchor after PWM-zero displacement; operator redeclaration is
+     needed").
+  6. `NaviIntegratedCore.h:84-113`: a reversal after PWM-zero displacement finds
+     no coherent coordinate and sets `frameLost_`. 0120 does not settle
+     reversal while the coordinate is unknown; this is open for David and Sam.
+  7. Consequence found by reading the code, not observed on track:
+     - AUTO admission (`.ino:411`) checks only `declared() &&
+       positionReliable()`, and both stay true. AUTO can therefore start after
+       PWM-zero displacement without redeclaration.
+     - NAVI can then neither confirm (item 2) nor rule Missed Magnet
+       (`:476-478`), so MM would stay frozen while the train runs.
+     - Conforming re-establishment removes this gap.
+
+**Minimal conceptual change (not authorized; for review):**
+
+- On PWM-zero displacement, stop routing through frame loss. Mark only the
+  within-interval coordinate unknown, keeping MM, target, direction and Hall
+  reference.
+- Re-enter the existing 0118 first-target state:
+  - Hall onset after the event, using the absent→present guard;
+  - applicable IR;
+  - positive powered travel measured from the IR count captured at the latest
+    PWM-zero displacement;
+  - no distance window or Missed Magnet ruling until the retained target is
+    confirmed.
+- Report it as a distinct `ir_distance_state` rather than
+  `FRAME_LOST_REDECLARE`. The value name is for David; the MQTT field is
+  unchanged.
+- Leave the genuine frame-break path and the 0116 reversal arithmetic unchanged
+  unless David and Sam decide the reversal question.
+- Replace the test in item 5.
+
 ## Scoped declaration rule (0118, supersedes 0117)
 
 The first target after declaration is found by target-polarity Hall onset,

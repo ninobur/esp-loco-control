@@ -1,7 +1,7 @@
 # NAVI_EWO governing documents
 
 Directory of the canonical governing set for NAVI_EYES_WIDE_OPEN (EWO), in
-precedence order. Last revised 2026-09-30.
+precedence order. Last revised 2026-10-02 (0120).
 
 This page is a directory and a supersession ledger. It authorizes nothing
 (`/AGENTS.md` section 2), and no decision record authorizes an agent to act
@@ -36,15 +36,39 @@ This page is a directory and a supersession ledger. It authorizes nothing
 | [0109](decisions/0109-navi-ewo-is-a-target-only-navigator-it-confirms-its-target-shrugs-at-everything-else-and-continues.md) | Target-only mission; shrug; Missed Magnet; declaration/CRM; confident locomotive; station boundary; supersession scope | NAVI_EWO |
 | [0110](decisions/0110-native-observations-belong-to-navi-and-target-confirmation-is-relational.md) | Native observations; median-of-five Hall statistic; relational confirmation | NAVI_EWO |
 | [0111](decisions/0111-ir-is-a-normal-navigation-sensor-navi-decides-applicability-degraded-operation-stays-inside-navi.md) | IR as a normal sensor; temporary Hall/IR association; degraded 650 ms **withdrawn by 0116** | NAVI_EWO |
-| [0112](decisions/0112-pwm-zero-makes-hall-non-actionable-ir-displacement-at-pwm-zero-is-factual-and-invalidates-the-map-relationship-not-the-instrument.md) | PWM = 0 applicability; degraded re-anchor **withdrawn by 0116** | NAVI_EWO |
+| [0112](decisions/0112-pwm-zero-makes-hall-non-actionable-ir-displacement-at-pwm-zero-is-factual-and-invalidates-the-map-relationship-not-the-instrument.md) | PWM = 0 applicability; degraded re-anchor **withdrawn by 0116**; PWM-zero displacement **refined by 0120** | NAVI_EWO |
 | [0113](decisions/0113-the-navi-ewo-hall-reference-is-spatial-and-is-replaced-from-the-leading-field-boundary.md) | Spatial Hall reference | NAVI_EWO |
 | [0114](decisions/0114-ewo-boot-reference-uses-five-observed-pulse-positions.md) | Historical five-position startup proposal; superseded/withdrawn | Historical |
 | [0115](decisions/0115-ewo-provisional-single-sample-boot-reference-and-missed-magnet-origin.md) | Provisional single-sample boot reference; physical origin retained across Missed Magnets | NAVI_EWO |
-| [0116](decisions/0116-ewo-ir-distance-is-authoritative-and-hall-only-navigation-is-withdrawn.md) | Health observes; IR distance required; no Hall-only confirmation; reversals retain coherent frames; true frame loss requires redeclaration | NAVI_EWO |
+| [0116](decisions/0116-ewo-ir-distance-is-authoritative-and-hall-only-navigation-is-withdrawn.md) | Health observes; IR distance required; no Hall-only confirmation; reversals retain coherent frames; true frame loss requires redeclaration (PWM-zero displacement **no longer treated as frame loss: 0120**) | NAVI_EWO |
+| [0120](decisions/0120-pwm-zero-ir-displacement-retains-the-interval-and-resets-only-the-within-interval-ir-coordinate.md) | PWM-zero IR displacement retains interval identity, last MM, target, context and Hall reference; only the within-interval IR coordinate is lost, re-established by the 0118 startup rule on powered movement; no redeclaration required (operator may redeclare). **Current candidate does not conform** | NAVI_EWO |
 
 Related decisions that remain in force and are not changed here: 0101
 (position determines local operating requirements) and 0100. 0093 remains
 NAVI_COHERENCE prior art; its EWO extension by 0111 is withdrawn by 0116.
+
+### PWM-zero IR displacement: read 0120 before changing navigation (governing)
+
+When NAVI observes IR displacement while motive PWM = 0, the observation is
+factual but has no known relationship to signed route travel. **NAVI loses IR
+knowledge of where the locomotive is within the already-established MM interval.
+It does not lose the identity of that interval.**
+
+- **Retained:** established interval, last MM, expected adjacent target,
+  operator route direction/context, Hall reference (unless independently
+  invalidated).
+- **Lost:** the IR-derived coordinate within the interval, that is, the
+  distance-to-target relationship. PWM-zero counts are never signed route
+  distance.
+- **On powered movement:** interval known, coordinate unknown, the same problem
+  as startup. NAVI re-establishes the IR/MM landmark at the next appropriate
+  Hall+IR target encounter (0118 mechanism).
+- **Redeclaration** is the operator's choice when the operator knows the
+  locomotive is in another interval. PWM-zero displacement alone never requires
+  it.
+- Say "interval identity" and "within-interval IR coordinate". Do not say
+  "map/IR relationship destroyed". PWM-zero movement is an observed event, not a
+  navigation error.
 
 ## 3. Reconciliation and architectural history
 
@@ -95,6 +119,7 @@ conflicting assumptions are superseded for NAVI_EWO as follows.
 | Reversal as an automatic IR/map frame break | Preserve coherent frame, capture cumulative reversal origin, and require Hall+IR confirmation | 0116 |
 | Genuine IR frame loss recoverable at next timed Hall field | Hold position/context; operator redeclaration restores the mapping | 0116 |
 | IR displacement at PWM = 0 is not real and must not touch the MM/IR relationship (0106) | Accepted as factual; relationship marked unreliable | 0112 |
+| PWM-zero IR displacement "destroys the mapped distance relationship"; redeclaration restores it (0112 wording, 0116) | Interval identity, last MM, target, context and Hall reference retained; only the within-interval IR coordinate is lost and is re-established by the 0118 startup rule on powered movement; redeclaration only at operator discretion | 0120 |
 | Stationary boot reference (0107 allowance), then first-10-mm startup (0113) | One provisional native Hall ADC at boot; 0113 spatial replacement remains | 0115 |
 | Refusal-and-stop on a missing magnet (0056) | Missed Magnet continuity with applicable IR | 0109 (confirmed 2026-09-29) |
 

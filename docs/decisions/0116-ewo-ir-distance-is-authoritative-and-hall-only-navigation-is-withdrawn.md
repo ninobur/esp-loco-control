@@ -3,6 +3,10 @@
 Status: Accepted for NAVI_EWO, 2026-09-30. Implementation remains a candidate
 until David and Sam review the compiled build and field evidence. This record
 does not authorize flashing.
+Partially superseded by [0120](0120-pwm-zero-ir-displacement-retains-the-interval-and-resets-only-the-within-interval-ir-coordinate.md)
+(2026-10-02): IR movement during PWM=0 no longer "destroys the mapped distance
+relationship" or calls for redeclaration; it retains the interval and resets
+only the within-interval IR coordinate. Genuine frame breaks are unchanged.
 Decided by: David, after review with Sam and Otto's 2026-09-29/30 runs.
 
 ## Decision
