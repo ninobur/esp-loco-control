@@ -2,7 +2,7 @@
 
 Every firmware build that can run on a locomotive gets a number, and every
 number gets one row here. Rule: decision
-[0118](../docs/decisions/0118-firmware-builds-are-numbered-and-registered.md).
+[0119](../docs/decisions/0119-firmware-builds-are-numbered-and-registered.md).
 
 How to use it:
 
@@ -19,11 +19,12 @@ Statuses follow `firmware/README.md` (Built, Reviewed, Field accepted…).
 
 ## EWO line — `firmware/programs/NAVI_EYES_WIDE_OPEN_INTEGRATED/`
 
-EWO-1 to EWO-12 were numbered after the fact (2026-10-02). Their firmware
+EWO-1 to EWO-13 were numbered after the fact (2026-10-02). Their firmware
 does **not** report these numbers: EWO-1 reports
-`NAVI_EYES_WIDE_OPEN_INTEGRATED_R1`, and EWO-2 to EWO-12 all report
-`NAVI_EYES_WIDE_OPEN_INTEGRATED_R2`. The "Tell apart by" column says how to
-identify them from a log. From EWO-13 on, the firmware reports its own number.
+`NAVI_EYES_WIDE_OPEN_INTEGRATED_R1`, EWO-2 to EWO-12 all report
+`NAVI_EYES_WIDE_OPEN_INTEGRATED_R2`, and EWO-13 reports `…_R2_FT2`. The
+"Tell apart by" column says how to identify them from a log. From EWO-14 on,
+the firmware reports its own number (`SKETCH_NAME = "EWO-14"`).
 
 | Build | Commit | Date (PDT) | Branch | What changed | Tell apart by | Flashed / status |
 |---|---|---|---|---|---|---|
@@ -38,7 +39,8 @@ identify them from a log. From EWO-13 on, the firmware reports its own number.
 | EWO-9 | `182a202` | 09-29 19:43 | codex/otto-wifi-auth-diag | DIAGNOSTIC: publish queue 48→16 | as above | Tested on Otto during Wi-Fi diagnosis (flash record, item 4) |
 | EWO-10 | `b7bdfb5` | 09-29 19:53 | codex/ewo-review-corrections | Wi-Fi startup memory budget fix | as above | **Flashed to Otto 2026-09-29**, upload hash verified |
 | EWO-11 | `d0185be` | 09-30 11:52 | codex/ewo-ir-authoritative | IR distance required for navigation, Hall-only navigation withdrawn (0116); speed display fix | first build with `ir_distance_state` in loopstat | **On Otto by 2026-10-02 12:04**; flash itself not recorded |
-| EWO-12 | `c3c925a` | 10-02 12:59 | codex/ewo-first-target-after-declare | First target after declaration: window (0, interval+15%] (0117) | — | Built; not flashed |
+| EWO-12 | `c3c925a` | 10-02 12:59 | codex/ewo-first-target-after-declare | First target after declaration: window (0, interval+15%] (0117) | — | Built; not flashed; superseded by EWO-13 |
+| EWO-13 | `ab0938b` | 10-02 | codex/ewo-first-target-after-declare | First target found by Hall onset, no distance window, no first-target miss (0118) | reports `NAVI_EYES_WIDE_OPEN_INTEGRATED_R2_FT2` | Built, reviewed; not flashed |
 
 Not builds: `a156b70` (09-29 20:02) changed only a source comment. The
 Wi-Fi-only probe `b35103a` (`OTTO_WIFI_MINIMAL_PROBE`) is a separate

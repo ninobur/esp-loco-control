@@ -1,13 +1,14 @@
-# 0118 — Firmware builds are numbered sequentially and registered
+# 0119 — Firmware builds are numbered sequentially and registered
 
-Status: Accepted, 2026-10-02.
+Status: Accepted, 2026-10-02. (Drafted as 0118; renumbered because 0118 was
+assigned to the first-target rule in `ab0938b`.)
 Decided by: David — "A basic AI task is to keep track of the firmware
 versions. Set up a system now … And have CODEX start numbering the versions."
 
 ## Decision
 
 1. Every locomotive firmware build has a short sequential number per line:
-   `EWO-13`, `EWO-14`, … The number is the whole value of `SKETCH_NAME`, so it
+   `EWO-14`, `EWO-15`, … The number is the whole value of `SKETCH_NAME`, so it
    appears in every boot message and every `loopstat`, and therefore in
    every run log.
 2. Any commit that changes what the firmware does (any `.ino`/`.h` change
@@ -43,7 +44,7 @@ but nothing required changing it, and it was not changed.
 
 ## Consequences
 
-- EWO-1 to EWO-12 were numbered after the fact. Their firmware does not
+- EWO-1 to EWO-13 were numbered after the fact. Their firmware does not
   report the number; the register says how to tell them apart from logs.
 - The dashboard shows the `sketch` string only as text; no tool parses it.
 - Other lines (QUORUM, NAVI_COHERENCE…) adopt the same rule at their next
