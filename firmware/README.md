@@ -189,6 +189,10 @@ lineage even while it awaits field acceptance.
 - Keep the Arduino sketch filename and folder stable as `programs/QUORUM/QUORUM.ino`.
 - Put the human-readable version in `SKETCH_NAME`; identify immutable versions
   by commit and, when flashed, by git tag.
+- Every locomotive build is numbered and registered (decision 0118): `SKETCH_NAME`
+  is a sequential build number such as `EWO-13`, bumped in every commit that
+  changes firmware behaviour, with a row in [`BUILDS.md`](BUILDS.md). Every
+  flash goes in the flash log there.
 - Name diagnostics for the question or instrument (`IR_DIAG`, `HALL_DIAG`), not
   as apparent QUORUM releases.
 - Give each non-trivial diagnostic a short README or a complete sketch header

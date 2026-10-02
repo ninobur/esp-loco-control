@@ -158,6 +158,11 @@ and evidence status as separate facts:
   `ONE_STATION.ino`. Use the stable QUORUM path, `SKETCH_NAME`, git history,
   implementation reports, and field verdicts.
 
+- **Firmware builds are numbered** (decision 0118). Any firmware change bumps
+  the build number in `SKETCH_NAME` and adds a row to `firmware/BUILDS.md` in
+  the same commit. To identify the build behind a log, read its `build` field
+  and look it up there; record any flash not yet in the flash log.
+
 Every firmware review includes a librarian check: role, status, controlling
 record, provenance, promotion outcome, and catalog currency.
 
