@@ -5,6 +5,14 @@ until David and Sam review the compiled build and field evidence. This record
 does not authorize flashing.
 Decided by: David, after review with Sam and Otto's 2026-09-29/30 runs.
 
+Partially superseded by [0119](0119-pwm-zero-ir-movement-retains-interval-and-reacquires-coordinate.md)
+(2026-10-02): PWM-zero displacement alone loses only the within-interval IR
+coordinate, not interval identity, and does not require redeclaration. Powered
+IR plus appropriate Hall onset can reacquire it. Genuine frame failures and
+the withdrawal of Hall-only navigation remain unchanged. Also see 0118 for the
+first-target startup exception to normal ±15% windows. Original text follows
+unchanged to preserve the decision history.
+
 ## Decision
 
 IR health is observation and telemetry, not authority to erase coherent

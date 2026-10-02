@@ -83,7 +83,7 @@ static void frames() {
     for(unsigned i=0;i<5;++i) n.observeHall(h(400+i,1300000+i*1000,0));
     assert(n.confirmedCount()==1 && n.mm()==1 && !n.relationshipReliable() && n.spatialPhase()==0);
     assert(n.activeReference()==115);
-    n.declare(1,1,1400000); // only the operator restores mapped context
+    n.declare(1,1,1400000); // explicit redeclaration remains authoritative in every case
     assert(n.relationshipReliable() && n.target().sequence==2);
   }
 }

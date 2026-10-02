@@ -1,14 +1,55 @@
-# NAVI_EYES_WIDE_OPEN_INTEGRATED_R2_FT2 — first-target Hall-onset candidate
+# NAVI_EYES_WIDE_OPEN_INTEGRATED_R2_FT2 — PWM-zero localization correction candidate
 
-This scoped 2026-10-02 revision replaces the first-target rule at
-**`c3c925ac10c55bf3a9be1ed4a1a31d0f4af117f1` (immediate rollback point)**.
-**`d0185be25ec51f9ba6d58567458a59d3f1c289ca`** remains the rollback point for
-the build David identifies as currently on Otto. The task branch remains
-`codex/ewo-first-target-after-declare`.
-**NOT field accepted. This revision has not been flashed.** David reviews the
-commit and decides whether to flash and run one CW and one CCW lap with NSR1
-recording enabled. No running Pi service is changed.
-Full scope and verification: [change log](../../../docs/NAVI_EWO_FIRST_TARGET_CHANGELOG_20261002.md).
+This scoped 2026-10-02 correction starts from **`ab0938b0f01531a38ce4d8a1d9d932ffad4f0334`**,
+the FT2 build flashed to Otto with David's approval, and immediate rollback
+point. Earlier rollback points remain `c3c925a` and `d0185be`.
+Task branch: `codex/ewo-pwm-zero-localization`.
+**NOT field accepted. This correction has not been flashed, deployed or merged.**
+Stop for David and Sam's review; no running Pi service is changed.
+Full scope and verification: [correction change log](../../../docs/NAVI_EWO_PWM_ZERO_LOCALIZATION_20261002.md).
+The [FT2 change log](../../../docs/NAVI_EWO_FIRST_TARGET_CHANGELOG_20261002.md)
+is retained as prior-build history. The runtime sketch name remains
+`NAVI_EYES_WIDE_OPEN_INTEGRATED_R2_FT2`; use the candidate commit to distinguish
+this correction from the flashed FT2 build.
+
+## PWM-zero coordinate recovery (0119)
+
+IR wheel movement at PWM=0 is factual but is **not signed route travel**.
+Retain the declared interval, established MM, appropriate target, direction
+and active Hall reference. Only the within-interval IR coordinate/distance to
+target becomes unknown. Do not advance MM or rule Missed Magnet from that
+movement. A spatial collection tied to the old coordinate is canceled, but its
+last active reference remains. Zero-displacement PWM-zero dwell changes none
+of those relationships.
+
+Telemetry `state/nav` and loop status use
+`ir_distance_state=INTERVAL_KNOWN_IR_POSITION_UNKNOWN`. Console navigation
+remains `NORMAL` with the retained MM/target/direction; distance is held. This
+state describes localization even if the IR link later becomes stale;
+`ir_applicable` separately reports current instrument applicability. The
+repository dashboard adds an amber interval-known / IR-position-unknown status
+without requesting redeclaration. No MQTT topic or JSON shape changes, NSR1
+format changes, or live server deployment are included.
+
+The first applicable powered IR report becomes a **new local movement origin**,
+discarding its incoming delta because it can include handling. Subsequent
+powered positive IR travel plus fresh target-polarity Hall absent→present
+support locates the retained target, without an upper distance bound or miss
+while unknown. Hall samples must be acquired strictly after that origin report;
+the selected leading landmark must also have positive displacement from it.
+An initially supported field must drop and return. Hall alone or time alone
+cannot confirm. Confirmation establishes the physical landmark origin and
+resumes ordinary ±15% windows, miss authority and spatial reference cycling.
+Another PWM-zero report while reacquisition is pending resets its local-origin
+and onset evidence; it does not invalidate a known coordinate without movement.
+
+Explicit redeclaration overrides the context. Genuine source/frame/scale/order
+failure remains `FRAME_LOST_REDECLARE`; wheel movement cannot mask or clear it.
+Reversal while unlocalized retains the existing hold/redeclare limitation;
+reverse math is unchanged. As with FT2, failing to detect the intended landmark
+can make a later target-polarity landmark silently acquire the retained target's
+label. No alternate-position inference has been added. See
+[0119](../../../docs/decisions/0119-pwm-zero-ir-movement-retains-interval-and-reacquires-coordinate.md).
 
 ## Scoped declaration rule (0118, supersedes 0117)
 
@@ -30,9 +71,8 @@ landmark exactly as before. The exception clears on confirmation or reversal.
 Subsequent targets use the unchanged cumulative-distance window,
 interval-local ±15% tolerance and missed-magnet policy. Polarity, ±70 threshold,
 direction, median-of-five, leading-landmark selection and spatial reference
-cycle remain unchanged. MQTT and NSR1 formats are unchanged. The `.ino` changes
-are its version comment and `SKETCH_NAME`, now
-`NAVI_EYES_WIDE_OPEN_INTEGRATED_R2_FT2` so logs identify the build.
+cycle remain unchanged. MQTT and NSR1 formats are unchanged. FT2 introduced
+the runtime sketch name `NAVI_EYES_WIDE_OPEN_INTEGRATED_R2_FT2`.
 
 **Accepted limit:** if the first magnet is not detected, the next target-polarity
 magnet is accepted as the first, silently, one or more markers off.
@@ -109,9 +149,11 @@ confirmed target reanchors the physical origin.
 At PWM=0 all observations still reach NAVI. Hall cannot alter navigation state.
 Continuous IR no-change retains the existing IR/MM relationship, including
 when the raw detector reason is `INADEQUATE_CONTRAST`; the raw reason remains in
-NSR1 and telemetry. Measured displacement at PWM=0 invalidates the *map/IR
-relationship*, not the IR instrument. A true frame loss cannot be re-anchored
-by a timed Hall field; operator redeclaration restores navigation context.
+NSR1 and telemetry. Measured displacement at PWM=0 invalidates only the
+*within-interval IR coordinate*, not interval/map identity or the IR instrument;
+powered Hall+IR localization can restore it as described in 0119 above.
+A true frame loss cannot be re-anchored by a timed Hall field; operator
+redeclaration restores navigation context.
 The last established MM and target are held while IR distance is unavailable.
 
 Raw health observations—including `INADEQUATE_CONTRAST`, saturation, sample
@@ -146,7 +188,8 @@ The output-only compatibility adapter emits console `NORMAL`/`UNSET` state and
 MM, plus an approximately one-second pulse-window IR speed in
 `ir_valid`/`ir_mmps`. Zero measured speed is published as `0`/`STOPPED`;
 stale or insufficient-window speed is `null`/`UNAVAILABLE`.
-It cannot alter NAVI. No controller file changes are required.
+It cannot alter NAVI. The repository controller's new status-line branch displays
+the unknown coordinate separately from the retained MM; deployment is not included.
 ESTOP assertions latch at callback arrival independently of queue success;
 only a demonstrably newer release can clear the latch. Ordered delivery is not
 assumed, and a dropped assertion still withdraws motor power in the control loop.

@@ -1,7 +1,14 @@
 # 0112 - At PWM = 0 Hall is non-actionable; IR displacement at PWM = 0 is factual and invalidates the map relationship, not the instrument
 
 Status: Partially superseded by 0116 (2026-09-30): EWO's degraded Hall-only
-re-anchor after PWM-zero displacement is withdrawn. Other rules remain.
+re-anchor after PWM-zero displacement is withdrawn. Further refined by
+[0119](0119-pwm-zero-ir-movement-retains-interval-and-reacquires-coordinate.md)
+(2026-10-02): interval/MM/target/direction/reference are retained; only the
+within-interval IR coordinate becomes unknown. PWM-zero wheel movement is not
+signed route travel. Powered IR progression plus a fresh appropriate Hall
+landmark can restore the coordinate without redeclaration; Hall-only recovery
+remains withdrawn. The original decision below is preserved as history;
+0119 governs its conflicting broad “map relationship” and 0106-supersession wording.
 Originally accepted 2026-09-29 by David with Sam.
 Partially supersedes 0106 (see below). Documentation only. No implementation,
 flashing or deployment is authorized by this record.

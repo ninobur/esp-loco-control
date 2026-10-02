@@ -68,7 +68,7 @@ class EwoIntegration(unittest.TestCase):
     def test_controller_consumes_actual_firmware_adapter_output(self):
         data = subprocess.check_output([str(self.root/'test_review_regressions'), 'json'], text=True)
         unset, nav, _, _, _ = [json.loads(line) for line in data.splitlines()]
-        moving, stopped, stale, reset = [json.loads(line) for line in
+        moving, stopped, stale, unknown, reset = [json.loads(line) for line in
             subprocess.check_output([str(self.root/'emit_telemetry_contract')],
                                     text=True).splitlines()]
         source = (ROOT/'server/ngr_app_v1_11_2.py').read_text()
@@ -85,6 +85,10 @@ class EwoIntegration(unittest.TestCase):
         self.assertEqual(stopped['ir_mmps'], 0)
         self.assertEqual(stale['ir_valid'], 0)
         self.assertEqual(reset['ir_distance_state'], 'FRAME_LOST_REDECLARE')
+        self.assertEqual(unknown['ir_distance_state'], 'INTERVAL_KNOWN_IR_POSITION_UNKNOWN')
+        self.assertEqual(unknown['state'], 'NORMAL')
+        scope['_apply_nav_state']('9950012', unknown['state'], unknown['mm'])
+        self.assertEqual(scope['loco_state']['9950012']['mm'], '000')
         node = shutil.which('node')
         self.assertIsNotNone(node, 'Node is required to exercise the actual dashboard renderer')
         js_fn = re.search(r'function irSpeedView\(s\) \{.*?\n\}', source, re.S).group()
@@ -94,6 +98,15 @@ class EwoIntegration(unittest.TestCase):
         js += "const view=v=>irSpeedView({ir_link:JSON.stringify(v),ages:{ir_link:0}});"
         js += "assert.notEqual(view(data[0]).value,'--'); assert.equal(view(data[1]).value,'0.0');"
         js += "assert.equal(view(data[2]).value,'--');"
+        # Execute the actual status-line decision chain, without running a server.
+        start = source.index('    var line, cls;')
+        status = source[start:source.index('    var sl2 =', start)]
+        js += '\nconst s=' + json.dumps({'mm': '000', 'nav': unknown['state'],
+                                         'ir_distance_state': unknown['ir_distance_state']}) + ';'
+        js += "const heardAge=0, LOCO='Otto', motion='STOPPED', ir={reason:'STOPPED'};"
+        js += 'function isFresh(){return true;}\n' + status
+        js += "assert.equal(cls,'warn'); assert.match(line,/INTERVAL KNOWN - MM 000 HELD/);"
+        js += "assert.match(line,/IR POSITION UNKNOWN/); assert.ok(!line.includes('RE-DECLARE'));"
         subprocess.run([node, '-e', js], check=True)
 
     def test_loss_identity_and_late_packets(self):

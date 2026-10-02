@@ -1,4 +1,8 @@
 #pragma once
+
+// state/mm describe retained map context. ir_distance_state separately reports
+// INTERVAL_KNOWN_IR_POSITION_UNKNOWN after PWM-zero movement (decision 0119).
+// This is not FRAME_LOST_REDECLARE; IR applicability remains a separate fact.
 #include <stdio.h>
 #include "NaviIntegratedCore.h"
 

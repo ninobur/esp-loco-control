@@ -1,7 +1,7 @@
 /* EWO integrated working-sketch candidate. NOT FIELD ACCEPTED.
- * R2_FT2 first-target Hall-onset revision, 2026-10-02 (decision 0118).
- * Rollback: c3c925a (prior rule), d0185be (current Otto build).
- * No flashing authorized by this change; await David's review.
+ * PWM-zero coordinate recovery, 2026-10-02 (decision 0119); FT2 unchanged.
+ * Rollback: ab0938b (R2_FT2 flashed to Otto); earlier c3c925a, d0185be.
+ * No flashing/deployment authorized by this change; await David/Sam review.
  */
 #include <Arduino.h>
 #include <WiFi.h>
@@ -398,7 +398,7 @@ static void publishEvents() {
     if (e.kind == EwoEventKind::TargetConfirmed || e.kind == EwoEventKind::MissedMagnet)
       pub("mm/marker", payload);
     if (e.kind == EwoEventKind::PwmZeroDisplacement)
-      warn("IR measured motion at PWM=0; map/IR relationship unreliable", true);
+      warn("IR measured motion at PWM=0; not signed route travel", true);
   }
 }
 

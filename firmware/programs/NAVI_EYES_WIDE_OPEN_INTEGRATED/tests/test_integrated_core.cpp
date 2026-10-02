@@ -147,14 +147,14 @@ int main() {
   check(!stationary.relationshipReliable() &&
             stationary.pwmZeroDisplacements() == 1 &&
             stationary.positionReliable() && stationary.mm() == 0,
-        "unexpected PWM-zero IR travel breaks distance frame but retains known MM");
+        "unexpected PWM-zero IR travel loses within-interval coordinate but retains known MM");
   stationary.observeIr(ir(8, 340), 800000, 40);
   const int16_t sustained[] = {190, 191, 192, 193, 194};
   for (uint32_t i = 0; i < 5; ++i)
     stationary.observeHall(hall(30 + i, 1200000 + i * 1000, sustained[i]));
   check(stationary.confirmedCount() == 0 && !stationary.relationshipReliable() &&
             stationary.positionReliable() && stationary.mm() == 0,
-        "Hall cannot re-anchor after PWM-zero displacement; operator redeclaration is needed");
+        "Hall without post-resume IR progression and observed absence cannot re-anchor");
 
   NaviIntegratedCore shrug;
   provisionalReference(shrug);

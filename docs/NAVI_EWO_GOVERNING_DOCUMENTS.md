@@ -1,7 +1,7 @@
 # NAVI_EWO governing documents
 
 Directory of the canonical governing set for NAVI_EYES_WIDE_OPEN (EWO), in
-precedence order. Last revised 2026-09-30.
+precedence order. Last revised 2026-10-02.
 
 This page is a directory and a supersession ledger. It authorizes nothing
 (`/AGENTS.md` section 2), and no decision record authorizes an agent to act
@@ -36,11 +36,14 @@ This page is a directory and a supersession ledger. It authorizes nothing
 | [0109](decisions/0109-navi-ewo-is-a-target-only-navigator-it-confirms-its-target-shrugs-at-everything-else-and-continues.md) | Target-only mission; shrug; Missed Magnet; declaration/CRM; confident locomotive; station boundary; supersession scope | NAVI_EWO |
 | [0110](decisions/0110-native-observations-belong-to-navi-and-target-confirmation-is-relational.md) | Native observations; median-of-five Hall statistic; relational confirmation | NAVI_EWO |
 | [0111](decisions/0111-ir-is-a-normal-navigation-sensor-navi-decides-applicability-degraded-operation-stays-inside-navi.md) | IR as a normal sensor; temporary Hall/IR association; degraded 650 ms **withdrawn by 0116** | NAVI_EWO |
-| [0112](decisions/0112-pwm-zero-makes-hall-non-actionable-ir-displacement-at-pwm-zero-is-factual-and-invalidates-the-map-relationship-not-the-instrument.md) | PWM = 0 applicability; degraded re-anchor **withdrawn by 0116** | NAVI_EWO |
+| [0112](decisions/0112-pwm-zero-makes-hall-non-actionable-ir-displacement-at-pwm-zero-is-factual-and-invalidates-the-map-relationship-not-the-instrument.md) | PWM = 0 applicability; degraded re-anchor **withdrawn by 0116**; coordinate vs interval **refined by 0119** | NAVI_EWO |
 | [0113](decisions/0113-the-navi-ewo-hall-reference-is-spatial-and-is-replaced-from-the-leading-field-boundary.md) | Spatial Hall reference | NAVI_EWO |
 | [0114](decisions/0114-ewo-boot-reference-uses-five-observed-pulse-positions.md) | Historical five-position startup proposal; superseded/withdrawn | Historical |
 | [0115](decisions/0115-ewo-provisional-single-sample-boot-reference-and-missed-magnet-origin.md) | Provisional single-sample boot reference; physical origin retained across Missed Magnets | NAVI_EWO |
 | [0116](decisions/0116-ewo-ir-distance-is-authoritative-and-hall-only-navigation-is-withdrawn.md) | Health observes; IR distance required; no Hall-only confirmation; reversals retain coherent frames; true frame loss requires redeclaration | NAVI_EWO |
+| [0117](decisions/0117-first-target-after-declaration-accepts-any-onset-within-interval-plus-15-percent.md) | Historical first-target upper-bound rule; superseded by 0118 | Historical |
+| [0118](decisions/0118-first-target-after-declaration-is-found-by-hall-onset-without-a-distance-window.md) | First target: applicable positive IR travel and Hall onset, no distance window or miss | NAVI_EWO |
+| [0119](decisions/0119-pwm-zero-ir-movement-retains-interval-and-reacquires-coordinate.md) | PWM-zero displacement retains interval; only IR coordinate unknown; powered IR + Hall landmark reacquisition | NAVI_EWO |
 
 Related decisions that remain in force and are not changed here: 0101
 (position determines local operating requirements) and 0100. 0093 remains
@@ -68,9 +71,10 @@ NAVI_COHERENCE prior art; its EWO extension by 0111 is withdrawn by 0116.
 - [`NAVI_SYNC_NATIVE_HALL_IR_RECORDER_20260927.md`](NAVI_SYNC_NATIVE_HALL_IR_RECORDER_20260927.md)
   (recorder)
 
-The prior integrated candidate was flashed to Otto and field tested on
-2026-09-29/30. The 0116 correction is a new, unflashed candidate; this
-directory does not authorize flashing (AGENTS.md section 2).
+The FT2 build `ab0938b` was flashed to Otto with David's explicit approval on
+2026-10-02. The 0119 correction is a new, unflashed candidate; see
+[change log](NAVI_EWO_PWM_ZERO_LOCALIZATION_20261002.md). This directory does not
+authorize flashing or deployment (AGENTS.md section 2).
 
 ## 6. Historical prior art (kept, not deleted, not authoritative for EWO)
 
@@ -94,7 +98,9 @@ conflicting assumptions are superseded for NAVI_EWO as follows.
 | 650-ms degraded Hall-only EWO confirmation or re-anchor | Withdrawn; no IR distance means hold MM/target, not Hall-only progress | 0116 (supersedes EWO extension of 0093 and part of 0111/0112) |
 | Reversal as an automatic IR/map frame break | Preserve coherent frame, capture cumulative reversal origin, and require Hall+IR confirmation | 0116 |
 | Genuine IR frame loss recoverable at next timed Hall field | Hold position/context; operator redeclaration restores the mapping | 0116 |
-| IR displacement at PWM = 0 is not real and must not touch the MM/IR relationship (0106) | Accepted as factual; relationship marked unreliable | 0112 |
+| IR displacement at PWM = 0 is not real and must not touch the MM/IR relationship (0106) | Factual wheel movement, not signed route travel; retain interval/MM/target/direction/reference; lose only within-interval coordinate | 0112 refined by 0119 |
+| PWM-zero displacement automatically requires redeclaration (0116) | Powered IR progression + fresh appropriate Hall onset reacquires coordinate; no miss while unknown | 0119 |
+| Declaration supplies a marker-distance origin / first-target upper bound (0117) | Hall onset with positive applicable IR travel; no first-target window or miss | 0118 |
 | Stationary boot reference (0107 allowance), then first-10-mm startup (0113) | One provisional native Hall ADC at boot; 0113 spatial replacement remains | 0115 |
 | Refusal-and-stop on a missing magnet (0056) | Missed Magnet continuity with applicable IR | 0109 (confirmed 2026-09-29) |
 
