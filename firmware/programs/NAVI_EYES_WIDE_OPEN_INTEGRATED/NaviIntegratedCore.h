@@ -57,6 +57,8 @@ class NaviIntegratedCore {
     firstTargetAfterDeclare_ = true;
     firstTargetSupportAbsent_ = false;
     chooseTarget();
+    // Until the first Hall confirmation, this records movement since declaration,
+    // not a known marker position or an expected first-target distance.
     physicalOriginUm_ = irApplicable(nowUs) ? latestIr_.nominalUm : 0;
     expectedCumulativeUm_ = irApplicable(nowUs) ?
         uint64_t(target_.distanceMm) * 1000 : 0;
@@ -258,8 +260,8 @@ class NaviIntegratedCore {
       if (reverseTarget_ && traveled == 0) return;
       if (firstTargetAfterDeclare_) {
         if (!firstTargetSupportAbsent_ || traveled == 0) return;
-      } else if (traveled + tolerance < expectedCumulativeUm_) return;
-      if (traveled > expectedCumulativeUm_ + tolerance) return;
+      } else if (traveled + tolerance < expectedCumulativeUm_ ||
+                 traveled > expectedCumulativeUm_ + tolerance) return;
     } else return;  // No measured distance means no MM confirmation.
     confirm(*landmark);
   }
@@ -471,7 +473,7 @@ class NaviIntegratedCore {
     }
   }
   void evaluateMissing(uint64_t nowUm) {
-    if (!declared_ || !initialReferenceReady_ ||
+    if (!declared_ || firstTargetAfterDeclare_ || !initialReferenceReady_ ||
         spatialPhase_ != SpatialPhase::None || !relationshipReliable_ ||
         !targetOriginValid_ || !irApplicable(decisionUs_) ||
         nowUm < physicalOriginUm_) return;
@@ -482,7 +484,6 @@ class NaviIntegratedCore {
       mm_ = static_cast<uint8_t>(target_.sequence);
       reverseTarget_ = false;
       ++missedCount_;
-      firstTargetAfterDeclare_ = false;
       push(EwoEventKind::MissedMagnet);
       chooseTarget();
       resetTargetEvidence();

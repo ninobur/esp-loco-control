@@ -1,6 +1,7 @@
 # 0117 — First target after declaration accepts any onset within (0, interval + 15%]
 
-Status: Accepted rule, 2026-10-02; implementation NOT field accepted.
+Status: Startup rule superseded by [0118](0118-first-target-after-declaration-is-found-by-hall-onset-without-a-distance-window.md),
+2026-10-02. Original decision preserved below; implementation NOT field accepted.
 Decided by: David, in the scoped first-target change instruction.
 
 ## Decision

@@ -1,43 +1,53 @@
-# NAVI_EYES_WIDE_OPEN_INTEGRATED_R2 — first-target-after-declaration candidate
+# NAVI_EYES_WIDE_OPEN_INTEGRATED_R2_FT2 — first-target Hall-onset candidate
 
-This scoped 2026-10-02 revision starts from `origin/codex/ewo-ir-authoritative`
-at **`d0185be25ec51f9ba6d58567458a59d3f1c289ca` (rollback point)**, the build David
-identifies as currently on Otto. Task branch: `codex/ewo-first-target-after-declare`.
+This scoped 2026-10-02 revision replaces the first-target rule at
+**`c3c925ac10c55bf3a9be1ed4a1a31d0f4af117f1` (immediate rollback point)**.
+**`d0185be25ec51f9ba6d58567458a59d3f1c289ca`** remains the rollback point for
+the build David identifies as currently on Otto. The task branch remains
+`codex/ewo-first-target-after-declare`.
 **NOT field accepted. This revision has not been flashed.** David reviews the
 commit and decides whether to flash and run one CW and one CCW lap with NSR1
 recording enabled. No running Pi service is changed.
 Full scope and verification: [change log](../../../docs/NAVI_EWO_FIRST_TARGET_CHANGELOG_20261002.md).
 
-## Scoped declaration rule (0117)
+## Scoped declaration rule (0118, supersedes 0117)
 
-The first target after declaration accepts an onset within
-**`0 < traveled <= interval + 15%`**, using applicable IR distance. A full
+The first target after declaration is found by target-polarity Hall onset,
+with **applicable IR and positive travel, but no distance window or upper bound**. A full
 median-of-five window made from actionable Hall samples acquired strictly
 after the declaration must first show support absent, then a later window
 must show support present. An initially supported field does not qualify:
 it must drop and return. The default/reset false support value is not evidence
 of absence. Pre-declaration queued samples cannot establish that onset.
 
-The exception clears on confirmation, on a recorded Missed Magnet, or on
-reversal. Subsequent targets use the unchanged cumulative-distance window and
-interval-local ±15% tolerance. The first target is still missed only when IR
-passes the unchanged upper bound (not at equality). Polarity, ±70 threshold,
+**No MISSED_MAGNET is ruled for the first target, regardless of travel.**
+The declaration IR position establishes only whether positive travel occurred;
+it does not locate the first magnet. The unknown starting point within the
+interval makes a first-target distance window or missed ruling unsound: its
+unknown offset would carry into later expected positions and cascade misses.
+The first confirmation establishes the physical IR origin at the observed
+landmark exactly as before. The exception clears on confirmation or reversal.
+Subsequent targets use the unchanged cumulative-distance window,
+interval-local ±15% tolerance and missed-magnet policy. Polarity, ±70 threshold,
 direction, median-of-five, leading-landmark selection and spatial reference
-cycle remain unchanged. MQTT and NSR1 formats are unchanged; the `.ino` change
-is its version comment only.
+cycle remain unchanged. MQTT and NSR1 formats are unchanged. The `.ino` changes
+are its version comment and `SKETCH_NAME`, now
+`NAVI_EYES_WIDE_OPEN_INTEGRATED_R2_FT2` so logs identify the build.
 
-**Known limit, not fixed:** reversal before the first confirmation still
+**Accepted limit:** if the first magnet is not detected, the next target-polarity
+magnet is accepted as the first, silently, one or more markers off.
+**Other known limit, not fixed:** reversal before the first confirmation still
 computes position from the assumed declaration origin.
 
 Regression `tests/test_first_target_after_declare.cpp` reconstructs David's
 reported Otto 2026-10-02 CCW case (`9950011_20261002_120424.log`): declaration
 45, target 44 at 106 mm, then target 43 at its normal window. This is a
 deterministic reconstruction, not a full-log/native-NSR replay. It also covers
-normal first-target distance in both directions, initially supported fields,
-zero/inclusive-upper bounds, first miss and restored lower bound, wrong
-polarity, queued old samples, redeclaration and reversal. Existing confirmation
-fixtures now supply an observed neutral window after declaration. See
-[decision 0117](../../../docs/decisions/0117-first-target-after-declaration-accepts-any-onset-within-interval-plus-15-percent.md).
+first targets at 10, 300 and 500 mm, no first-target miss over extended travel,
+initially supported fields, zero-travel rejection, normal second-target bounds
+and miss, wrong polarity, queued old samples, redeclaration and reversal.
+Normal missed-magnet fixtures start from a confirmed physical landmark. See
+[decision 0118](../../../docs/decisions/0118-first-target-after-declaration-is-found-by-hall-onset-without-a-distance-window.md).
 
 ## Prior build provenance
 
@@ -66,7 +76,8 @@ the compiler include path; credentials are not part of this candidate.
   recency, applicability, and distance judgment. Invalid wire packets and queue
   loss are counted separately.
 - NAVI: owns a provisional single-sample boot Hall reference (0115); rolling median-of-five in the known
-  target-polarity direction; latest-received applicable IR ±15% target distance;
+  target-polarity direction; latest-received applicable IR ±15% target distance
+  after the first Hall-onset confirmation (0118 startup exception above);
   no Hall-only target confirmation or re-anchor when IR is unavailable; Missed Magnet
   progression only with applicable IR; and the 0–100/100–200 mm spatial Hall
   reference cycle. The leading landmark is the first raw expected-sign ≥70

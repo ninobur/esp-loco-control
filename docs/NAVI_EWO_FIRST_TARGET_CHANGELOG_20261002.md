@@ -1,10 +1,55 @@
-# NAVI EWO R2 — first target after declaration change log
+# NAVI EWO R2 / R2_FT2 — first target after declaration change log
 
 Status: **NOT field accepted; not flashed.** Await David's review.
 Authority: David's scoped 2026-10-02 change instruction and request to document,
 commit and push this change log. Implemented and host-tested by Codex.
 
-## Provenance and rollback
+## FT2 revision — decision 0118 (2026-10-02)
+
+David explicitly replaced 0117's startup window/miss rule. Base and immediate
+rollback: **`c3c925ac10c55bf3a9be1ed4a1a31d0f4af117f1`** on the same branch,
+`codex/ewo-first-target-after-declare`. Otto-build rollback remains
+**`d0185be25ec51f9ba6d58567458a59d3f1c289ca`**.
+
+- Core: no first-target distance window or upper bound; `evaluateMissing()`
+  returns while the first-target flag is set. The absent→present guard,
+  applicable IR, positive travel, polarity, direction and Hall statistic remain.
+  Confirmation anchors the physical origin as before; confirmation/reversal
+  clear the flag. No change to subsequent target windows or missed-origin policy.
+- Sketch: version comment and `SKETCH_NAME` identify
+  **`NAVI_EYES_WIDE_OPEN_INTEGRATED_R2_FT2`**. No MQTT schema or NSR1 format change.
+- Tests: 10/106/300/500-mm first confirmation; no first miss over extended
+  travel; parked-field guard, wrong polarity, normal second-target window/miss,
+  context and reversal. Existing cumulative-miss/reverse-after-miss fixtures now
+  establish a confirmed MM0 first, rather than assuming declaration is a marker.
+- Documentation: current README rule, new decision 0118, supersession notice
+  on 0117 (original text preserved), and this appended history.
+
+Reason: the declaration identifies an interval, not position at its boundary.
+First-target misses based on that fictitious boundary propagate an unknown
+offset through later targets. Hall onset establishes the first physical origin.
+
+**Known accepted risk:** if the first magnet is not detected, the next
+target-polarity magnet is accepted as the first, silently, one or more markers
+off. **Unchanged limit:** reversal before first confirmation still computes
+position from the assumed declaration origin. No adjacent runtime fixes made.
+
+Verification: complete integrated host suite **PASS**, all **9 Python tests PASS**,
+and actual ESP32 compile **PASS**. Flash: **1,011,823 / 1,310,720 bytes (77%)**.
+Static RAM: **57,644 / 327,680 bytes (17%)**, leaving **270,036 bytes** before
+runtime allocations (not a measured free-heap margin). This is 8 flash bytes
+more than c3c925a, with unchanged reported static RAM. `git diff --check` passed.
+Compile command is the same as below, with build directory
+`/private/tmp/ewo-first-target-ft2-esp32-20261002`. The compiled profile remains
+Otto, using ESP32 core 3.3.12 and the existing private credentials include path.
+No flashing or Pi-service changes. **NOT field accepted; stop for David.**
+
+## Historical 0117 implementation — c3c925a (superseded by FT2 above)
+
+The remainder records the original 0117 change and its results, not the current
+startup rule or current compile sizes.
+
+### Provenance and rollback
 
 - Repository: `ninobur/esp-loco-control`.
 - Base: `origin/codex/ewo-ir-authoritative` at
