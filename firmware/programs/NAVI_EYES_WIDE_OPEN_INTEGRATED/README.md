@@ -285,8 +285,9 @@ Deploy matching receiver/decoder tools separately before hardware evaluation.
 Run `sh firmware/programs/NAVI_EYES_WIDE_OPEN_INTEGRATED/run_tests.sh` for
 sanitized host tests and the original EWO regression suite. Compile, without
 upload, with the private repository-root credentials directory on the include
-path: `arduino-cli compile --fqbn esp32:esp32:esp32 --build-path <build-dir>
---build-property compiler.cpp.extra_flags=-I<repo-root>
+path: `arduino-cli compile --fqbn esp32:esp32:esp32 --warnings all
+--build-path <build-dir>
+--build-property 'compiler.cpp.extra_flags=-I<repo-root> -Werror=format'
 firmware/programs/NAVI_EYES_WIDE_OPEN_INTEGRATED`. Python NSR1 tests run with
 `python3 -m unittest tools.tests.test_navi_sync_format tools.tests.test_ewo_integration`.
 The shell suite also runs the shared IR architecture and station-position tests.

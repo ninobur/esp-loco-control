@@ -633,8 +633,8 @@ static void publishStationEvent(const char* event, const char* station,
     "\"rate_factor\":%.2f,\"speed_drop_per_pwm\":%.5f,"
     "\"projected_stop_mm\":%.3f,\"target_stop_mm\":%.3f,"
     "\"judgment\":\"%s\",\"ir_unavailable\":%u}",
-    event, station ? station : "", stPhaseName(stationMachine.phase()), offset,
-    brakePhaseName(demand.phase), unsigned(pwm), actualPwm, commandedPwm,
+    event, station ? station : "", stPhaseName(stationMachine.phase()),
+    brakePhaseName(demand.phase), offset, unsigned(pwm), actualPwm, commandedPwm,
     demand.targetPkph, demand.measuredPkph, demand.distanceMm,
     (unsigned long long)demand.irPulses,
     (unsigned long long)demand.referenceIrUm, demand.nominalDownMs,
