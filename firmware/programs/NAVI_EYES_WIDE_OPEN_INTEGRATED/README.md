@@ -1,45 +1,39 @@
-# NAVI_EYES_WIDE_OPEN_INTEGRATED_R2_FT2 — PWM-zero declaration-required candidate
+# NAVI_EYES_WIDE_OPEN_INTEGRATED_R2_FT2 — adaptive station-brake candidate
 
-This scoped 2026-10-02 correction replaces automatic recovery in
-**`b146815b4431f1519046a2706abdfbfd11ffabc4`** (prior unflashed candidate).
-**`ab0938b0f01531a38ce4d8a1d9d932ffad4f0334`** remains the FT2 build flashed to
-Otto and deployed rollback point. Earlier points remain `c3c925a` and `d0185be`.
+This candidate is based on the exact EWO R2 FT2 source and is intended for
+review and compile/test only. It has not been flashed, deployed, or merged.
 Task branch: `codex/ewo-pwm-zero-localization`.
-**NOT field accepted. This correction has not been flashed, deployed or merged.**
-Stop for David and Sam's review; no running Pi service is changed.
-Full scope and verification: [correction change log](../../../docs/NAVI_EWO_PWM_ZERO_DECLARATION_20261002.md).
-The [FT2 change log](../../../docs/NAVI_EWO_FIRST_TARGET_CHANGELOG_20261002.md)
-is retained as prior-build history. The runtime sketch name remains
-`NAVI_EYES_WIDE_OPEN_INTEGRATED_R2_FT2`; use the candidate commit to distinguish
-this correction from the flashed FT2 build.
 
-## Corrected measured-speed station stop
+## Adaptive station approach and brake
 
-The R2 FT2 source already contained station lifecycle code, but its
-`Stations.h` `ZERO_RAMP` order was an open-loop PWM stop: station-specific MM
-offsets requested PWM 0 and `DWELL_BEGIN` followed `actualPwm == 0`. That order
-is no longer an actuator authority in EWO.
+`EwoStationStop.h` replaces the old station `ZERO_RAMP` actuator authority with
+one continuous, adaptive down-ramp:
 
-`EwoStationStop.h` supplies the scoped replacement. From Station −5 through
-Station +2, the speed target is continuously interpolated between successive
-accepted MM positions:
+* Station −10 begins one continuous approach ramp from the measured entry
+  speed toward 25 pKPH. Station −5 through Station 0 holds the station-speed
+  actuator behavior at approximately 25 pKPH; there are no intermediate
+  40/35/30/... PWM steps.
+* The accepted Hall event at Station 0 establishes the final IR reference.
+  Type-5 distance is `completedPulses * pitchUm`; the normal pitch is 9.652 mm
+  per completed pulse. The final target is `5 * (1 - distance / 337.82)` pKPH,
+  clamped to zero at 35 pulses / 337.82 mm.
+* The speed target is telemetry and trajectory evidence. PWM is changed only by
+  the existing one-count actuator ramp. IR movement observations adjust its
+  down-ramp rate by ±5% within 0.80–1.20 of the nominal manual 400 ms/count
+  rate. During final braking the requested PWM can only decrease or hold.
+* A fresh Type-5 stationary snapshot (zero measured IR speed and no new pulses)
+  completes the stop even if physical motion ends before 337.82 mm and while
+  residual PWM remains. The controller requests PWM 0 and releases the retained
+  station lifecycle into dwell immediately; Station +3 is not required.
+* Missing or stale IR is published as `IR_EVIDENCE_UNAVAILABLE_NOMINAL_RAMP`.
+  The nominal monotonic brake continues without a Hall-speed, PWM, or invented
+  distance fallback. The existing StationMachine remains responsible for visit
+  discovery, dwell timing, and departure bookkeeping; its old `ZERO_RAMP` order
+  no longer has braking authority.
 
-```text
-40 → 35 → 30 → 25 → 20 → 15 → 10 → 5 pKPH
-```
-
-The target is controlled from NAVI's current valid Type-5 IR speed; PWM remains
-only the actuator command. An accepted Hall confirmation at Station +2 supplies
-the final IR reference. NAVI then continuously targets 5 → 0 pKPH over 150 mm
-of cumulative IR travel. Station +3 is not needed. Dwell is released only
-after the final distance is reached, the measured IR speed is zero, and the
-actuator has reached PWM 0.
-
-If required IR speed or distance becomes unavailable, EWO publishes the
-condition and withdraws AUTO. It does not substitute Hall speed, PWM, or a
-predetermined PWM stop table. The existing station lifecycle remains in place
-for visit discovery, dwell timing, and departure; its old zero-ramp PWM orders
-are ignored by EWO.
+Station telemetry includes the brake phase, IR pulse count/reference, distance,
+measured and target pKPH, actual/commanded PWM, nominal/applied down-ramp,
+adaptive rate, response estimate, projected/target stop distance, and judgment.
 
 ## PWM-zero movement requires declaration (0120, supersedes 0119)
 

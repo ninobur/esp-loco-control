@@ -410,7 +410,8 @@ static void publishEvents() {
     recorded.irSequence = e.irSequence;
     recorder->addNavi(recorded, recorderContext());
     if (e.kind == EwoEventKind::TargetConfirmed)
-      measuredStationStop.noteAcceptedHall(e.mm, e.openingIrUm);
+      measuredStationStop.noteAcceptedHall(e.mm, e.openingIrUm,
+                                           navi.latestIr().pitchUm);
     if (e.kind == EwoEventKind::TargetConfirmed || e.kind == EwoEventKind::MissedMagnet)
       pub("mm/marker", payload);
     if (e.kind == EwoEventKind::PwmZeroDisplacement && navi.pwmZeroMovementRequiresDeclaration())
@@ -621,22 +622,34 @@ static void serviceBattery() {
 static void publishStationEvent(const char* event, const char* station,
                                 int16_t offset, const EwoStationStopDemand& demand,
                                 uint8_t pwm) {
-  char payload[384];
+  char payload[900];
   snprintf(payload, sizeof(payload),
     "{\"event\":\"%s\",\"station\":\"%s\",\"phase\":\"%s\","
-    "\"off\":%d,\"pwm\":%u,\"target_pkph\":%.3f,"
-    "\"measured_pkph\":%.3f,\"ir_travel_mm\":%.1f,\"ir_reference_um\":%llu}",
+    "\"brake_phase\":\"%s\",\"off\":%d,\"pwm\":%u,"
+    "\"actual_pwm\":%d,\"commanded_pwm\":%d,\"target_pkph\":%.3f,"
+    "\"measured_pkph\":%.3f,\"distance_mm\":%.3f,"
+    "\"ir_pulses\":%llu,\"reference_ir_um\":%llu,"
+    "\"nominal_down_ms\":%.1f,\"applied_down_ms\":%.1f,"
+    "\"rate_factor\":%.2f,\"speed_drop_per_pwm\":%.5f,"
+    "\"projected_stop_mm\":%.3f,\"target_stop_mm\":%.3f,"
+    "\"judgment\":\"%s\",\"ir_unavailable\":%u}",
     event, station ? station : "", stPhaseName(stationMachine.phase()), offset,
-    unsigned(pwm), demand.targetPkph, demand.measuredPkph, demand.travelMm,
-    (unsigned long long)measuredStationStop.finalReferenceUm());
+    brakePhaseName(demand.phase), unsigned(pwm), actualPwm, commandedPwm,
+    demand.targetPkph, demand.measuredPkph, demand.distanceMm,
+    (unsigned long long)demand.irPulses,
+    (unsigned long long)demand.referenceIrUm, demand.nominalDownMs,
+    demand.appliedDownMs, demand.rateFactor, demand.speedDropPerPwm,
+    demand.projectedStopMm, demand.targetStopMm,
+    brakeJudgmentName(demand.judgment), demand.irUnavailable ? 1 : 0);
   pub("state/station", payload);
   recordAction(navi_sync::ActionKind::StationOrder, station ? station : "", event);
 }
 
 static void serviceStation() {
+  static bool irUnavailableReported = false;
   const uint32_t now = millis();
   stationMachine.setRunning(autoRunning, now);
-  if (!autoRunning) return;
+  if (!autoRunning) { irUnavailableReported = false; return; }
   if (!navi.declared() || !navi.positionReliable()) {
     withdraw("Position relationship unreliable; AUTO withdrawn. Manual available.");
     return;
@@ -669,14 +682,23 @@ static void serviceStation() {
                           order.pwm);
     }
     measuredStationStop.reset();
+    irUnavailableReported = false;
     if (rampTarget != cruise) requestPwm(cruise, AUTO_STEP_UP_MS, AUTO_STEP_DOWN_MS);
     return;
   }
 
   const StationDefinition& station = STATIONS[stationIndex];
+  const uint64_t nowUs = esp_timer_get_time();
+  const auto latestIr = navi.latestIr();
+  const bool irDistanceValid = navi.irApplicable(nowUs);
+  const bool irSpeedValid = navi.irSpeedAvailable(nowUs);
   if (!measuredStationStop.activeFor(station.centre, direction)) {
     measuredStationStop.begin(station.centre, direction, currentMm,
-                              navi.latestIr().nominalUm);
+                              latestIr.nominalUm, latestIr.completedPulses,
+                              actualPwm,
+                              irSpeedValid ? navi.irSpeedMmS() / EWO_PKPH_MM_PER_SEC : 0.0,
+                              BRAKE_STEP_COAST_MS, stationPwm(station, direction),
+                              STATION_STOP_STEP_MS, latestIr.capturedUs);
   }
 
   // Once the measured stop has entered DWELL or DEPART, preserve the existing
@@ -695,16 +717,13 @@ static void serviceStation() {
     return;
   }
 
-  const uint64_t nowUs = esp_timer_get_time();
-  const bool irDistanceValid = navi.irApplicable(nowUs);
-  const bool irSpeedValid = navi.irSpeedAvailable(nowUs);
   EwoStationStopDemand demand = measuredStationStop.demand(
-      currentMm, navi.latestIr().nominalUm, irDistanceValid, irSpeedValid,
-      navi.irSpeedMmS(), actualPwm);
+      currentMm, latestIr.nominalUm, latestIr.completedPulses, latestIr.capturedUs,
+      irDistanceValid, irSpeedValid, navi.irSpeedMmS(), actualPwm);
   if (!demand.available) {
     const char* reason = demand.referenceRequired
-        ? "Station +2 Hall reference unavailable; AUTO withdrawn. No Station +3 fallback."
-        : "Station measured-speed stop requires valid IR speed/distance; AUTO withdrawn. No PWM/Hall fallback.";
+        ? "Station 0 Hall reference unavailable; AUTO withdrawn. No later-marker fallback."
+        : "Station adaptive stop coordinate unavailable; AUTO withdrawn. No PWM/Hall fallback.";
     publishStationEvent(demand.reason, station.name,
                         ewoStationOffsetToCentre(currentMm, direction, station.centre),
                         demand, static_cast<uint8_t>(actualPwm));
@@ -712,13 +731,19 @@ static void serviceStation() {
     return;
   }
 
-  const uint16_t up = demand.pwmTarget >= actualPwm ? AUTO_STEP_UP_MS : AUTO_STEP_DOWN_MS;
-  const uint16_t down = demand.pwmTarget < actualPwm ? AUTO_STEP_DOWN_MS : AUTO_STEP_UP_MS;
-  requestPwm(demand.pwmTarget, up, down);
+  if (demand.irUnavailable != irUnavailableReported) {
+    irUnavailableReported = demand.irUnavailable;
+    publishStationEvent(demand.reason, station.name,
+                        ewoStationOffsetToCentre(currentMm, direction, station.centre),
+                        demand, static_cast<uint8_t>(demand.pwmTarget));
+  }
 
-  // Suppress the old Station +1/offset ZERO_RAMP publication. The first
-  // final-stop event is emitted only when accepted Hall +2 has supplied the
-  // physical IR reference.
+  // During approach/final braking the controller changes only the requested
+  // down-ramp timing. It never converts a speed target directly to PWM.
+  requestPwm(demand.pwmTarget, demand.pwmUpMs, demand.pwmDownMs);
+
+  // Suppress the old station-offset ZERO_RAMP publication. The final-stop
+  // event is emitted only after the candidate's accepted Station 0 reference.
   if (order.event && strcmp(order.event, "ZERO_RAMP"))
     publishStationEvent(order.event, station.name, order.offset, demand,
                         static_cast<uint8_t>(demand.pwmTarget));
@@ -726,10 +751,16 @@ static void serviceStation() {
     publishStationEvent("FINAL_IR_RAMP", station.name,
                         ewoStationOffsetToCentre(currentMm, direction, station.centre),
                         demand, static_cast<uint8_t>(demand.pwmTarget));
+  if (demand.newIrObservation)
+    publishStationEvent("BRAKE_OBSERVATION", station.name,
+                        ewoStationOffsetToCentre(currentMm, direction, station.centre),
+                        demand, static_cast<uint8_t>(demand.pwmTarget));
 
   if (demand.stopReached) {
-    // Only the measured IR stop may release the retained station lifecycle
-    // into DWELL. The old zero-ramp order above has no path to do so.
+    // Physical stop is allowed with residual actuator PWM. Remove actuator
+    // output and release the retained lifecycle into DWELL immediately; do
+    // not wait for target distance or for actualPwm to reach zero first.
+    requestPwm(0, 0, demand.pwmDownMs);
     order = stationMachine.tick(currentMm, direction, 0, cruise, now);
     if (order.event && (!strcmp(order.event, "MISSED") ||
                         !strcmp(order.event, "PHASE_TIMEOUT"))) {
@@ -738,6 +769,8 @@ static void serviceStation() {
     }
     if (order.event && strcmp(order.event, "ZERO_RAMP"))
       publishStationEvent(order.event, station.name, order.offset, demand, 0);
+    if (measuredStationStop.takeStopped())
+      publishStationEvent("BRAKE_STOP", station.name, order.offset, demand, 0);
   }
 }
 
