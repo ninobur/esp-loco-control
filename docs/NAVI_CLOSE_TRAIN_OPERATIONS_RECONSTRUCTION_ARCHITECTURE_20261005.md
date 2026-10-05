@@ -2,6 +2,14 @@
 
 ## Architectural Understanding for NAVI Close Train Operations Reconstruction
 
+## Scope and relationship to legacy CTO2
+
+Legacy CTO2/LL-Auto and NAVI Close Train Operations are separate implementations. NAVI CTO does not extend, modify, or supersede the CTO2 implementation or protocol. It inherits selected proven behavioral concepts from CTO and Circuit Express, as documented in NAVI_CLOSE_TRAIN_OPERATIONS_RECONSTRUCTION_ARCHITECTURE_20261005.md, and reimplements those concepts using NAVI’s current capabilities, including DNA/MM position and IR movement measurement. Legacy CTO2 packet structures, protocol constraints, block logic, and implementation rules do not govern NAVI CTO unless explicitly adopted. Legacy CTO2 remains frozen independently.
+
+### Coexistence boundary
+
+Legacy CTO2 and NAVI CTO may coexist on the railway. Future NAVI CTO peer messaging must therefore be unambiguously distinguishable from legacy CTO2 peer traffic. Legacy CTO2 firmware must not interpret NAVI CTO packets as CtoPeerPacket traffic, and NAVI CTO must not interpret legacy CTO2 packets as NAVI peer-position messages. This is a compatibility requirement for future NAVI CTO protocol design, not authorization to modify the legacy CTO2 protocol now.
+
 ## Purpose
 
 This document records the operating concepts behind the successful Lowline Close Train Operations (CTO) and Circuit Express (CE) systems that should guide reconstruction using NAVI.

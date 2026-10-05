@@ -34,6 +34,17 @@ Specifically, unless a spec explicitly says otherwise:
 - E-stop, low-voltage cutoff, and Manual authority always take precedence
   over any automatic mode.
 
+**Scope: legacy CTO2 versus NAVI CTO.** The CTO2 packet, protocol, and LL-Auto
+rules above govern the legacy CTO2 implementation, which remains frozen. NAVI
+Close Train Operations is a separate implementation: it does not extend,
+modify, or supersede CTO2, and legacy CTO2 packet structures, protocol
+constraints, block logic, and implementation rules do not govern it unless
+explicitly adopted. The two may coexist on the railway, so future NAVI CTO peer
+messaging must be unambiguously distinguishable from legacy CTO2 peer traffic
+in both directions — a compatibility requirement for future NAVI CTO protocol
+design, not authorization to modify the legacy CTO2 protocol. See
+[`NAVI_CLOSE_TRAIN_OPERATIONS_RECONSTRUCTION_ARCHITECTURE_20261005.md`](NAVI_CLOSE_TRAIN_OPERATIONS_RECONSTRUCTION_ARCHITECTURE_20261005.md).
+
 ---
 
 ## Files
