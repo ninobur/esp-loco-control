@@ -13,6 +13,34 @@ is retained as prior-build history. The runtime sketch name remains
 `NAVI_EYES_WIDE_OPEN_INTEGRATED_R2_FT2`; use the candidate commit to distinguish
 this correction from the flashed FT2 build.
 
+## Corrected measured-speed station stop
+
+The R2 FT2 source already contained station lifecycle code, but its
+`Stations.h` `ZERO_RAMP` order was an open-loop PWM stop: station-specific MM
+offsets requested PWM 0 and `DWELL_BEGIN` followed `actualPwm == 0`. That order
+is no longer an actuator authority in EWO.
+
+`EwoStationStop.h` supplies the scoped replacement. From Station −5 through
+Station +2, the speed target is continuously interpolated between successive
+accepted MM positions:
+
+```text
+40 → 35 → 30 → 25 → 20 → 15 → 10 → 5 pKPH
+```
+
+The target is controlled from NAVI's current valid Type-5 IR speed; PWM remains
+only the actuator command. An accepted Hall confirmation at Station +2 supplies
+the final IR reference. NAVI then continuously targets 5 → 0 pKPH over 150 mm
+of cumulative IR travel. Station +3 is not needed. Dwell is released only
+after the final distance is reached, the measured IR speed is zero, and the
+actuator has reached PWM 0.
+
+If required IR speed or distance becomes unavailable, EWO publishes the
+condition and withdraws AUTO. It does not substitute Hall speed, PWM, or a
+predetermined PWM stop table. The existing station lifecycle remains in place
+for visit discovery, dwell timing, and departure; its old zero-ramp PWM orders
+are ignored by EWO.
+
 ## PWM-zero movement requires declaration (0120, supersedes 0119)
 
 IR wheel movement at PWM=0 is factual but is **not signed route travel**.

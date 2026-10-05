@@ -24,6 +24,8 @@ flags='-std=c++17 -Wall -Wextra -Werror -fsanitize=address,undefined'
 "$build_dir/first_target"
 "$cxx" $flags "$here/tests/test_pwm_zero_localization.cpp" -o "$build_dir/pwm_zero"
 "$build_dir/pwm_zero"
+"$cxx" $flags "$here/tests/test_measured_station_stop.cpp" -o "$build_dir/measured_station_stop"
+"$build_dir/measured_station_stop"
 ir="$here/../../reference/NAVI_COHERENCE/IR_ARCHITECTURE_0_4"
 "$cxx" $flags -I"$ir" "$ir/tests/test_ir_architecture.cpp" -o "$build_dir/ir"
 "$build_dir/ir"

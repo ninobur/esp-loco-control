@@ -29,6 +29,7 @@
 #include "credentials.h"
 #include "../NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_HEALTH/Ops.h"
 #include "../NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_HEALTH/Stations.h"
+#include "EwoStationStop.h"
 #include "NaviIntegratedCore.h"
 #include "NaviEstop.h"
 #include "NaviCompatibility.h"
@@ -64,6 +65,7 @@ struct CmdMsg { char topic[72]; char payload[64]; uint64_t order; uint64_t recei
 
 static NaviIntegratedCore navi;
 static StationMachine stationMachine;
+static EwoStationStopProfile measuredStationStop;
 // The recorder owns large fixed native Hall/IR/NAVI rings. Keep the pointer
 // small in internal DRAM so ESP-IDF can create the Arduino app task; allocate
 // the unchanged recorder after setup() begins.
@@ -407,6 +409,8 @@ static void publishEvents() {
     recorded.consumptionId = e.consumptionId;
     recorded.irSequence = e.irSequence;
     recorder->addNavi(recorded, recorderContext());
+    if (e.kind == EwoEventKind::TargetConfirmed)
+      measuredStationStop.noteAcceptedHall(e.mm, e.openingIrUm);
     if (e.kind == EwoEventKind::TargetConfirmed || e.kind == EwoEventKind::MissedMagnet)
       pub("mm/marker", payload);
     if (e.kind == EwoEventKind::PwmZeroDisplacement && navi.pwmZeroMovementRequiresDeclaration())
@@ -435,6 +439,7 @@ static void declarePosition(uint8_t mm, int8_t direction, const char* interval) 
               actualPwm, commandedPwm, direction);
   navi.declare(mm, direction, now);
   stationMachine.reset();
+  measuredStationStop.reset();
   warnSticky = false; pub("state/warning", "", true);
   char value[20]; snprintf(value, sizeof(value), "%u", mm);
   pub("state/start_mm", value, true);
@@ -454,6 +459,7 @@ static void reversePosition(int8_t direction) {
               direction > 0 ? 1 : 2, actualPwm, commandedPwm, direction);
   navi.reverse(direction, now);
   stationMachine.reset();
+  measuredStationStop.reset();
 }
 static void onMqtt(char* topic, byte* payload, unsigned length) {
   CmdMsg command{};
@@ -612,6 +618,21 @@ static void serviceBattery() {
   snprintf(text, sizeof(text), "%.2f", double(busW)); pub("telem/power", text, true);
 }
 
+static void publishStationEvent(const char* event, const char* station,
+                                int16_t offset, const EwoStationStopDemand& demand,
+                                uint8_t pwm) {
+  char payload[384];
+  snprintf(payload, sizeof(payload),
+    "{\"event\":\"%s\",\"station\":\"%s\",\"phase\":\"%s\","
+    "\"off\":%d,\"pwm\":%u,\"target_pkph\":%.3f,"
+    "\"measured_pkph\":%.3f,\"ir_travel_mm\":%.1f,\"ir_reference_um\":%llu}",
+    event, station ? station : "", stPhaseName(stationMachine.phase()), offset,
+    unsigned(pwm), demand.targetPkph, demand.measuredPkph, demand.travelMm,
+    (unsigned long long)measuredStationStop.finalReferenceUm());
+  pub("state/station", payload);
+  recordAction(navi_sync::ActionKind::StationOrder, station ? station : "", event);
+}
+
 static void serviceStation() {
   const uint32_t now = millis();
   stationMachine.setRunning(autoRunning, now);
@@ -620,27 +641,103 @@ static void serviceStation() {
     withdraw("Position relationship unreliable; AUTO withdrawn. Manual available.");
     return;
   }
-  const uint8_t cruise = cruisePwmAt(navi.mm(), navi.direction(), NAVI_AUTO_CRUISE_PWM);
-  const StationOrder order = stationMachine.tick(navi.mm(), navi.direction(),
-                                     static_cast<uint8_t>(actualPwm), cruise, now);
+
+  const uint8_t currentMm = navi.mm();
+  const int8_t direction = navi.direction();
+  const uint8_t cruise = cruisePwmAt(currentMm, direction, NAVI_AUTO_CRUISE_PWM);
+  const StPhase phaseBefore = stationMachine.phase();
+
+  // The legacy station machine remains responsible for identifying the visit,
+  // dwell timing and ordinary departure. Its ZERO_RAMP order is deliberately
+  // made non-authoritative here: a fake nonzero actuator value prevents that
+  // phase from entering DWELL, and its PWM=0 order is never applied.
+  const uint8_t lifecyclePwm = phaseBefore == StPhase::Ramp ? 1 :
+                               static_cast<uint8_t>(actualPwm);
+  StationOrder order = stationMachine.tick(currentMm, direction, lifecyclePwm,
+                                            cruise, now);
   if (order.event && (!strcmp(order.event, "MISSED") ||
                       !strcmp(order.event, "PHASE_TIMEOUT"))) {
     withdraw("Station approach failed: controlled stop; Manual available.");
     return;
   }
-  if (order.setThrottle)
-    requestPwm(order.pwm, order.stepMs ? order.stepMs : AUTO_STEP_UP_MS,
-               order.stepMs ? order.stepMs : AUTO_STEP_DOWN_MS);
-  else if (stationMachine.phase() == StPhase::Idle && rampTarget != cruise)
-    requestPwm(cruise, AUTO_STEP_UP_MS, AUTO_STEP_DOWN_MS);
-  if (order.event) {
-    char payload[256];
-    snprintf(payload, sizeof(payload),
-      "{\"event\":\"%s\",\"station\":\"%s\",\"phase\":\"%s\",\"off\":%d,\"pwm\":%u}",
-      order.event, order.station, stPhaseName(stationMachine.phase()),
-      order.offset, order.pwm);
-    pub("state/station", payload);
-    recordAction(navi_sync::ActionKind::StationOrder, order.station, order.event);
+
+  const int8_t stationIndex = stationMachine.stationIdx();
+  if (stationMachine.phase() == StPhase::Idle || stationIndex < 0) {
+    if (order.event && strcmp(order.event, "ZERO_RAMP")) {
+      EwoStationStopDemand noDemand;
+      publishStationEvent(order.event, order.station, order.offset, noDemand,
+                          order.pwm);
+    }
+    measuredStationStop.reset();
+    if (rampTarget != cruise) requestPwm(cruise, AUTO_STEP_UP_MS, AUTO_STEP_DOWN_MS);
+    return;
+  }
+
+  const StationDefinition& station = STATIONS[stationIndex];
+  if (!measuredStationStop.activeFor(station.centre, direction)) {
+    measuredStationStop.begin(station.centre, direction, currentMm,
+                              navi.latestIr().nominalUm);
+  }
+
+  // Once the measured stop has entered DWELL or DEPART, preserve the existing
+  // lifecycle behavior. The measured profile owns only approach and stopping.
+  if (stationMachine.phase() == StPhase::Dwell ||
+      stationMachine.phase() == StPhase::Depart) {
+    if (order.setThrottle)
+      requestPwm(order.pwm, order.stepMs ? order.stepMs : AUTO_STEP_UP_MS,
+                 order.stepMs ? order.stepMs : AUTO_STEP_DOWN_MS);
+    if (order.event && strcmp(order.event, "ZERO_RAMP")) {
+      EwoStationStopDemand noDemand;
+      publishStationEvent(order.event, station.name, order.offset, noDemand,
+                          order.pwm);
+    }
+    if (stationMachine.phase() == StPhase::Idle) measuredStationStop.reset();
+    return;
+  }
+
+  const uint64_t nowUs = esp_timer_get_time();
+  const bool irDistanceValid = navi.irApplicable(nowUs);
+  const bool irSpeedValid = navi.irSpeedAvailable(nowUs);
+  EwoStationStopDemand demand = measuredStationStop.demand(
+      currentMm, navi.latestIr().nominalUm, irDistanceValid, irSpeedValid,
+      navi.irSpeedMmS(), actualPwm);
+  if (!demand.available) {
+    const char* reason = demand.referenceRequired
+        ? "Station +2 Hall reference unavailable; AUTO withdrawn. No Station +3 fallback."
+        : "Station measured-speed stop requires valid IR speed/distance; AUTO withdrawn. No PWM/Hall fallback.";
+    publishStationEvent(demand.reason, station.name,
+                        ewoStationOffsetToCentre(currentMm, direction, station.centre),
+                        demand, static_cast<uint8_t>(actualPwm));
+    withdraw(reason);
+    return;
+  }
+
+  const uint16_t up = demand.pwmTarget >= actualPwm ? AUTO_STEP_UP_MS : AUTO_STEP_DOWN_MS;
+  const uint16_t down = demand.pwmTarget < actualPwm ? AUTO_STEP_DOWN_MS : AUTO_STEP_UP_MS;
+  requestPwm(demand.pwmTarget, up, down);
+
+  // Suppress the old Station +1/offset ZERO_RAMP publication. The first
+  // final-stop event is emitted only when accepted Hall +2 has supplied the
+  // physical IR reference.
+  if (order.event && strcmp(order.event, "ZERO_RAMP"))
+    publishStationEvent(order.event, station.name, order.offset, demand,
+                        static_cast<uint8_t>(demand.pwmTarget));
+  if (measuredStationStop.takeFinalStart())
+    publishStationEvent("FINAL_IR_RAMP", station.name,
+                        ewoStationOffsetToCentre(currentMm, direction, station.centre),
+                        demand, static_cast<uint8_t>(demand.pwmTarget));
+
+  if (demand.stopReached) {
+    // Only the measured IR stop may release the retained station lifecycle
+    // into DWELL. The old zero-ramp order above has no path to do so.
+    order = stationMachine.tick(currentMm, direction, 0, cruise, now);
+    if (order.event && (!strcmp(order.event, "MISSED") ||
+                        !strcmp(order.event, "PHASE_TIMEOUT"))) {
+      withdraw("Station approach failed: controlled stop; Manual available.");
+      return;
+    }
+    if (order.event && strcmp(order.event, "ZERO_RAMP"))
+      publishStationEvent(order.event, station.name, order.offset, demand, 0);
   }
 }
 

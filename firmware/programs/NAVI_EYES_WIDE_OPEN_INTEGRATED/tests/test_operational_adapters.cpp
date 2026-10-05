@@ -5,6 +5,7 @@
 #define NAVI_APPROACH_MARKER_MS {1390,1539,1725,1960,2271}
 #include "../../NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_HEALTH/Ops.h"
 #include "../../NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_HEALTH/Stations.h"
+#include "../EwoStationStop.h"
 #include "../NaviIntegratedCore.h"
 
 using namespace navi_one;
@@ -44,6 +45,14 @@ int main() {
       order = machine.tick(stop, direction, stationPwm(station, direction), 90, 200);
       assert(order.setThrottle && order.pwm == 0 &&
              order.event && !std::strcmp(order.event, "ZERO_RAMP"));
+      // The retained lifecycle machine still describes its historical ramp,
+      // but EWO's scoped controller does not treat that order as stop
+      // authority. At the same MM offset it continues the measured profile.
+      EwoStationStopProfile measured;
+      measured.begin(station.centre, direction, stop, 1000000);
+      const auto demand = measured.demand(
+          stop, 1000000, true, true, 10.0 * EWO_PKPH_MM_PER_SEC, 60);
+      assert(demand.available && !demand.finalRamp && demand.pwmTarget != 0);
       order = machine.tick(stop, direction, 0, 90, 300);
       assert(order.event && !std::strcmp(order.event, "DWELL_BEGIN"));
       order = machine.tick(stop, direction, 0, 90, 5300);
