@@ -1,7 +1,13 @@
 # NAVI_EWO governing documents
 
 Directory of the canonical governing set for NAVI_EYES_WIDE_OPEN (EWO), in
-precedence order. Last revised 2026-10-02.
+precedence order. Last revised 2026-10-05.
+
+**Before beginning NAVI Close Train Operations (CTO) or Circuit Express
+reconstruction, read first:**
+[`CTO and Circuit Express — reconstruction architecture`](NAVI_CLOSE_TRAIN_OPERATIONS_RECONSTRUCTION_ARCHITECTURE_20261005.md).
+This preserves the settled architecture and the relationship to legacy CTO2;
+it does not authorize implementation.
 
 This page is a directory and a supersession ledger. It authorizes nothing
 (`/AGENTS.md` section 2), and no decision record authorizes an agent to act
