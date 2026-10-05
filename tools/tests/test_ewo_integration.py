@@ -152,7 +152,7 @@ static void warn(const char* message, bool sticky) { assert(sticky); warning = m
 static void ir(uint32_t seq, uint64_t pulses, uint8_t pwm) {
   ir_movement::WireSnapshot w;
   w.bootId = 42; w.sequence = seq; w.capturedUs = uint64_t(seq) * 100000;
-  w.completedPulses = w.observedRises = pulses; w.pitchUm = 1000;
+  w.completedPulses = w.observedRises = pulses;
   w.nominalUm = pulses * w.pitchUm; w.opticalReason = ir_movement::TRACKING;
   navi.observeIr(w, w.capturedUs, pwm);
 }
@@ -184,6 +184,110 @@ int main() {
         path = self.root/'actual_pwm_zero_shell.cpp'
         path.write_text(cpp)
         exe = self.root/'actual_pwm_zero_shell'
+        subprocess.run(['c++', '-std=c++17', '-Wall', '-Wextra', '-Werror',
+                        '-fsanitize=address,undefined', str(path), '-o', str(exe)], check=True)
+        subprocess.run([str(exe)], check=True)
+
+    def test_actual_type5_ingress_preserves_validity_without_reconfiguration(self):
+        source = (TESTS.parent/'NAVI_EYES_WIDE_OPEN_INTEGRATED.ino').read_text()
+        functions = [re.search(r'^static (?:void|uint16_t) ' + name +
+                               r'\([^\{]*\{.*?^\}', source, re.M | re.S).group()
+                     for name in ('movementCrc', 'serviceIrIngress')]
+        cpp = '#include "' + str(TESTS.parent/'NaviIntegratedCore.h') + '"\n'
+        cpp += r'''
+#include <cassert>
+#include <cstring>
+#include <deque>
+using namespace navi_eyes;
+namespace navi_sync { enum class InputKind { Ir }; }
+struct TestContext { int8_t navDir = 1; };
+struct IrRx {
+  uint8_t mac[6] = {1,2,3,4,5,6}; uint64_t receivedUs = 0;
+  uint16_t length = 110; uint8_t bytes[110]{};
+  uint8_t pwmAtReceive = 40, commandedAtReceive = 40;
+  TestContext contextAtReceive;
+};
+static NaviIntegratedCore navi;
+static int irQ = 1;
+static constexpr int pdTRUE = 1;
+static uint32_t seenIrFrames = 0, irPacketInvalid = 0, inputs = 0;
+static uint64_t nowUs = 100000;
+static std::deque<IrRx> queue;
+static int xQueueReceive(int, IrRx* rx, int) {
+  if (queue.empty()) return 0;
+  *rx = queue.front(); queue.pop_front(); return pdTRUE;
+}
+static void serviceObservationLoss() {}
+static uint64_t esp_timer_get_time() { return nowUs; }
+template<class... Args> static void recordInput(Args...) { ++inputs; }
+struct Recorder {
+  unsigned count = 0;
+  template<class... Args> void addIr(Args...) { ++count; }
+};
+static Recorder recording;
+static Recorder* recorder = &recording;
+'''
+        # The write-only MAC is removed in Document B's second cleanup group.
+        if 'memcpy(lastSeenMac,' in functions[1]:
+            cpp += 'static uint8_t lastSeenMac[6]{};\n'
+        cpp += '\n'.join(functions)
+        cpp += r'''
+static ir_movement::WireSnapshot packet(uint32_t seq) {
+  ir_movement::WireSnapshot w;
+  w.bootId = 42; w.sequence = seq; w.capturedUs = uint64_t(seq) * 100000;
+  w.completedPulses = w.observedRises = seq;
+  w.nominalUm = w.completedPulses * w.pitchUm;
+  w.opticalReason = ir_movement::TRACKING;
+  return w;
+}
+static void deliver(ir_movement::WireSnapshot w, bool badCrc = false, bool shortPacket = false) {
+  w.crc = movementCrc(reinterpret_cast<const uint8_t*>(&w), offsetof(ir_movement::WireSnapshot, crc));
+  if (badCrc) ++w.crc;
+  IrRx rx; rx.receivedUs = nowUs += 100000;
+  if (shortPacket) --rx.length;
+  memcpy(rx.bytes, &w, sizeof(w)); queue.push_back(rx); serviceIrIngress();
+}
+int main() {
+  deliver(packet(1)); navi.declare(0, 1, nowUs + 1);
+  const auto epoch = navi.irMeasurementEpochId();
+  for (unsigned fault = 0; fault < 12; ++fault) {
+    auto w = packet(fault + 2);
+    switch (fault) {
+      case 0: w.magic = 0; break;
+      case 1: ++w.version; break;
+      case 2: w.type = 1; break;
+      case 3: w.bootId = 0; break;
+      case 4: w.pitchUm = 0; w.nominalUm = 0; break;
+      case 5: ++w.pitchUm; w.nominalUm = w.completedPulses * w.pitchUm; break;
+      case 6: w.distanceValidated = 1; break;
+      case 7: w.opticalReason = 255; break;
+      case 8: w.observedRises = w.completedPulses - 1; break;
+      case 9: ++w.nominalUm; break;
+      case 10:
+        w.completedPulses = w.observedRises = UINT64_MAX / w.pitchUm + 1;
+        w.nominalUm = w.completedPulses * w.pitchUm;
+        break;
+      case 11: break; // valid shape, bad CRC
+    }
+    deliver(w, fault == 11);
+    assert(irPacketInvalid == fault + 1 && navi.irObservationCount() == 1);
+    assert(navi.irMeasurementEpochId() == epoch && navi.relationshipReliable());
+  }
+  deliver(packet(20), false, true);
+  assert(irPacketInvalid == 13 && inputs == 1 && recording.count == 1);
+  assert(!navi.irApplicable(nowUs)); // invalid evidence cannot refresh the source
+  auto w = packet(21); w.calibrationId = 99; deliver(w);
+  assert(navi.irApplicable(nowUs) && navi.irMeasurementEpochId() == epoch);
+  assert(navi.latestIr().calibrationId == 99 && navi.relationshipReliable());
+  w.calibrationId = 100; deliver(w); // same sequence/time cannot become a new frame
+  assert(navi.irHealthFault() == uint8_t(ngr_nav::IrHealthFault::OrderFault));
+  assert(!navi.irMeasurementEpochActive() && !navi.relationshipReliable());
+  assert(inputs == 3 && recording.count == 3 && seenIrFrames == 16);
+}
+'''
+        path = self.root/'actual_type5_ingress.cpp'
+        path.write_text(cpp)
+        exe = self.root/'actual_type5_ingress'
         subprocess.run(['c++', '-std=c++17', '-Wall', '-Wextra', '-Werror',
                         '-fsanitize=address,undefined', str(path), '-o', str(exe)], check=True)
         subprocess.run([str(exe)], check=True)

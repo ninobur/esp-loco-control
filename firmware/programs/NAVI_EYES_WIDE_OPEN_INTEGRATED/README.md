@@ -16,6 +16,24 @@ MM053-approach correction has only been compiled and host-tested, not flashed.
 It is not field accepted or merged. Task branch:
 `codex/ewo-pwm-zero-localization`.
 
+## Document B configuration cleanup — 2026-10-05
+
+Type-5 wheel pitch is installed configuration: **9652 µm/pulse**. Ingress
+rejects zero or different pitch, overflowing pulse products and inconsistent
+nominal distance through its existing invalid-packet path. The 110-byte wire
+layout and calibration ID field are unchanged. Calibration ID is raw metadata,
+not a runtime calibration lifecycle, ordering exemption or epoch cause.
+
+Measurement continuity follows source/boot identity and ordered sequence,
+capture time, completed pulses and local receive time. True discontinuities
+retain the existing frame-loss behavior. Malformed core input is
+`PACKET_INVALID`; the retired calibration-fault number is not reused.
+Freshness still suspends applicability without erasing a cumulative epoch.
+No new recovery, fallback or warning state is introduced.
+
+See [decision 0122](../../../docs/decisions/0122-type5-pitch-is-configuration-and-calibration-metadata-has-no-runtime-authority.md).
+Document C's station/position-overlay implementation is a separate pass.
+
 ## Adaptive station approach and brake
 
 `EwoStationStop.h` replaces the old station `ZERO_RAMP` actuator authority with
@@ -208,9 +226,10 @@ gaps, pulse aborts and reacquisition—continue through NSR1, loop status and
 IR telemetry. They do not veto a coherent cumulative counter. A stationary
 diagnostic with no pulse progress is provisionally STOPPED. PWM >60 with a
 measured zero speed raises a diagnostic warning, not a movement judgment.
-Packets with incompatible boot/source/calibration/pitch, counter reversal or
-unusable ordering break the mapped frame. `IR_DISTANCE_HOLD` reports that
-condition; there is no degraded Hall navigation mode.
+Source/boot changes, counter reversal or unusable ordering break the mapped
+frame. Pitch mismatch is rejected as invalid data; calibration metadata has no
+continuity authority. `IR_DISTANCE_HOLD` reports an invalidated relationship;
+there is no degraded Hall navigation mode.
 
 Normal reversal keeps the frame: NAVI captures the latest received cumulative
 IR count as a new directional origin, computes the signed position relative
@@ -315,7 +334,12 @@ path: `arduino-cli compile --fqbn esp32:esp32:esp32 --warnings all
 --build-property 'compiler.cpp.extra_flags=-I<repo-root> -Werror=format'
 firmware/programs/NAVI_EYES_WIDE_OPEN_INTEGRATED`. Python NSR1 tests run with
 `python3 -m unittest tools.tests.test_navi_sync_format tools.tests.test_ewo_integration`.
-The shell suite also runs the shared IR architecture and station-position tests.
+The shell suite runs the active EWO configuration/continuity and shared
+station-position tests. Historical `IR_ARCHITECTURE_0_4` epoch tests remain
+standalone reference tests; their configuration transitions and optical-health
+epoch breaks are not EWO requirements. Navigation fixtures use completed
+9652-µm pulses, including the nearest observable pulse on each side of distance
+bounds, rather than artificial 1-µm or 1-mm wheel pitches.
 
 ## Review limits
 

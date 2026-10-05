@@ -147,7 +147,8 @@ static void onReceive(const esp_now_recv_info_t *info,const uint8_t *data,int le
 
 static void sampler(void*) {
   Packet p{}; p.magic=MAGIC;p.version=VERSION;p.type=1;p.sid=sid;
-  // Calibration id stays zero until the installed wheel is confirmed.
+  // Installed wheel pitch is settled at 9.652 mm/pulse. Calibration ID zero
+  // is retained in the Type-5 wire contract; no runtime calibration occurs.
   ir_movement::Measurement measurement(movementBoot,0,9.652,true);
   uint64_t nextReport=0; uint32_t movementSequence=0;
   ir_movement::Reason lastReason=ir_movement::PRIMING;

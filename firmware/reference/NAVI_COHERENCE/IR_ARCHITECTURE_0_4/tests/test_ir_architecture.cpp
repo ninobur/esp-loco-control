@@ -36,7 +36,7 @@ static void classification() {
   auto w=sample(1000,0,255);
   assert(classifyIrInstrument(w).fault==IrHealthFault::PacketInvalid);
   w=sample(1000,0);w.bootId=0;
-  assert(classifyIrInstrument(w).fault==IrHealthFault::CalibrationFault);
+  assert(classifyIrInstrument(w).fault==IrHealthFault::PacketInvalid);
   w=sample(1000,0);w.calibrationId=0;
   assert(classifyIrInstrument(w).measurementReady());
   w=sample(1000,0);w.pitchUm=0;

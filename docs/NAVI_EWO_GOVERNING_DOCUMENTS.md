@@ -67,6 +67,7 @@ This page is a directory and a supersession ledger. It authorizes nothing
 | [0119](decisions/0119-pwm-zero-ir-movement-retains-interval-and-reacquires-coordinate.md) | Automatic coordinate reacquisition **superseded by 0120** | Historical |
 | [0120](decisions/0120-pwm-zero-movement-requires-operator-position-verification-and-declaration.md) | Zero-movement dwell preserves localization; PWM-zero movement holds navigation/withdraws AUTO until operator verification and declaration; no automatic recovery | NAVI_EWO |
 | [0121](decisions/0121-current-position-direction-and-overlay-determine-navi-operating-authority.md) | Current MM interval + direction + overlay determine operating requirements; historical station procedure has no operating authority | NAVI operating/station architecture |
+| [0122](decisions/0122-type5-pitch-is-configuration-and-calibration-metadata-has-no-runtime-authority.md) | Installed Type-5 pitch is configuration; calibration metadata has no runtime authority; real validity and continuity remain | NAVI_EWO Document B implementation |
 
 Decision 0101's current-position principle remains foundational. Its retained
 procedural station mechanisms, including completed-visit suppression, pause
@@ -116,6 +117,7 @@ conflicting assumptions are superseded for NAVI_EWO as follows.
 
 | Older assumption | Now | By |
 |---|---|---|
+| Runtime pitch/calibration changes identify a new measurement frame or exempt a report from ordering checks | Validate installed pitch; calibration ID is raw evidence; only real continuity boundaries separate epochs | Document B; 0122 |
 | Station ARMED admission, persistent phases, completed-visit suppression, and historical station procedure across STOP/GO (0068, 0090, 0101 and POSITION_STATIONS_R1) | Current MM interval + direction + overlay determine the requirement; 0101's current-position principle survives | 0121; Position/Overlay Operating Architecture §§1–13 |
 | Station-procedure MISSED, PHASE_TIMEOUT, procedural overshoot/late-entry failure, and marker/PWM sequences as operating authority | No historical station-procedure authority; current geographic boundaries remain legitimate and PWM is an actuator output | 0121; Position/Overlay Operating Architecture §§14–17 |
 | An existing execution state keeps the old instruction authoritative after an overlay change | Execution state serves only a currently applicable instruction; physical maneuver and dwell state remain allowed | 0121; Position/Overlay Operating Architecture §§18–19 |

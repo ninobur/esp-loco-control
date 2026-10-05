@@ -20,7 +20,8 @@ struct Run {
   ir_movement::WireSnapshot packet(uint64_t um) {
     ir_movement::WireSnapshot w;
     w.bootId = 42; w.sequence = ++seq; w.capturedUs = uint64_t(seq) * 100000;
-    w.pitchUm = 1; w.completedPulses = w.observedRises = w.nominalUm = um;
+    w.completedPulses = w.observedRises = um / w.pitchUm;
+    w.nominalUm = w.completedPulses * w.pitchUm;
     w.opticalReason = ir_movement::TRACKING;
     return w;
   }
@@ -77,13 +78,13 @@ static void holdUntilDeclaration() {
     assert(r.n.confirmedCount() == 2 && r.n.mm() == 13); // FT2: no upper bound
     const uint64_t origin = r.n.openingIrUm();
     const uint64_t interval = uint64_t(r.n.target().distanceMm) * 1000;
-    r.ir(origin + 100000); r.window(1000); r.ir(origin + 200000);
+    r.ir(origin + 100000); r.window(1000); r.ir(origin + 21 * ir_movement::kInstalledPitchUm);
     r.ir(origin + interval - interval * 15 / 100 - 1); r.window(r.support());
     assert(r.n.confirmedCount() == 2);
     r.ir(origin + interval); r.window(r.support());
     assert(r.n.confirmedCount() == 3);
     const uint64_t next = uint64_t(r.n.target().distanceMm) * 1000;
-    r.ir(r.n.openingIrUm() + next + next * 15 / 100 + 1);
+    r.ir(r.n.openingIrUm() + next + next * 15 / 100 + ir_movement::kInstalledPitchUm);
     assert(r.n.missedCount() == 1); // normal miss authority restored after declaration
   }
 }

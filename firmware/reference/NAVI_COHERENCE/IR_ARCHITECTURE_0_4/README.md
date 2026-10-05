@@ -1,5 +1,15 @@
 # IR Architecture 0.4: independent measurement foundation
 
+> **Historical epoch/reference model — 2026-10-05.** EWO includes only
+> `IrInstrument.h` from this package. Its shared classifier reports malformed
+> metadata as `PACKET_INVALID`; calibration ID zero is valid structural metadata.
+> The epoch engine, MM reference and transition tests below remain historical
+> NAVI_COHERENCE prior art, not current EWO behavior. In particular, the pitch
+> and calibration transitions described below are superseded for EWO by
+> [Document B](../../../../docs/NAVI_VESTIGIAL_CODE_CLEANUP_ARCHITECTURE_20261005.md)
+> and [0122](../../../../docs/decisions/0122-type5-pitch-is-configuration-and-calibration-metadata-has-no-runtime-authority.md).
+> The integrated EWO test runner exercises its own continuity rules.
+
 2026-09-23. Implementation by Codex, continuing Sam's
 `../NAVI_IR_ARCHITECTURE_0_3.zip` and Claude's review. The original ZIP is
 unchanged. This is **architecture package 0.4**, not a new locomotive sketch.

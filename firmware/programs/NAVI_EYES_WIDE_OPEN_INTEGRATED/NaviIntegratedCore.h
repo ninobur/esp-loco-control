@@ -135,16 +135,14 @@ class NaviIntegratedCore {
     const bool hadIr = haveIr_;
     const auto prior = latestIr_;
     const uint64_t priorReceivedUs = latestIrReceivedUs_;
-    const bool sameFrame = hadIr && !sourceChanged && w.bootId == prior.bootId &&
-                           w.calibrationId == prior.calibrationId &&
-                           w.pitchUm == prior.pitchUm;
+    // Source and boot identify the measurement stream. Pitch is installed
+    // configuration; calibrationId is retained raw wire evidence only.
+    const bool sameFrame = hadIr && !sourceChanged && w.bootId == prior.bootId;
     const bool ordered = !hadIr || !sameFrame ||
                          (w.sequence > prior.sequence &&
                           w.capturedUs > prior.capturedUs &&
                           w.completedPulses >= prior.completedPulses);
-    const bool validScale = w.bootId && w.pitchUm &&
-        w.completedPulses <= UINT64_MAX / w.pitchUm &&
-        w.nominalUm == w.completedPulses * w.pitchUm;
+    const bool validScale = w.bootId && ir_movement::validConfiguredDistance(w);
     const bool discontinuity = hadIr &&
         (!sameFrame || !ordered || receivedUs < latestIrReceivedUs_);
     latestIr_ = w;
@@ -155,7 +153,7 @@ class NaviIntegratedCore {
       resetTargetEvidence();
       irContinuity_ = false;
       interpretedHealth_.fault = validScale ? ngr_nav::IrHealthFault::OrderFault :
-                                            ngr_nav::IrHealthFault::CalibrationFault;
+                                            ngr_nav::IrHealthFault::PacketInvalid;
       interpretedHealth_.readiness = ngr_nav::IrReadiness::Unavailable;
       epochActive_ = false;
       clearSpeedHistory();

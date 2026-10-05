@@ -11,16 +11,15 @@ static void check(bool condition, const char* message) {
     std::printf("FAIL: %s\n", message);
   }
 }
-static ir_movement::WireSnapshot ir(uint32_t sequence, uint64_t pulses,
+static ir_movement::WireSnapshot ir(uint32_t sequence, uint64_t distanceMm,
                                     uint8_t reason = ir_movement::TRACKING) {
   ir_movement::WireSnapshot w;
   w.bootId = 42;
   w.sequence = sequence * 10;
   w.capturedUs = uint64_t(sequence) * 100000;
-  w.completedPulses = pulses;
-  w.observedRises = pulses;
-  w.pitchUm = 1000;
-  w.nominalUm = pulses * 1000;
+  // Quantize requested fixture positions to completed installed-wheel pulses.
+  w.completedPulses = w.observedRises = distanceMm * 1000 / w.pitchUm;
+  w.nominalUm = w.completedPulses * w.pitchUm;
   w.opticalReason = reason;
   return w;
 }
@@ -70,7 +69,7 @@ int main() {
       confirmedEventWithMedian = true;
   check(confirmedEventWithMedian && n.confirmedCount() == 1 && n.mm() == 1,
         "inside NAVI, median five plus mapped polarity and IR window confirms target");
-  check(n.openingSerial() == 10 && n.openingIrUm() == 340000 &&
+  check(n.openingSerial() == 10 && n.openingIrUm() == ir(5, 340).nominalUm &&
             n.spatialPhase() == 1,
         "first threshold reading in qualifying population anchors clearance");
   NaviIntegratedCore boundary;
@@ -80,27 +79,27 @@ int main() {
   boundary.observeIr(ir(5, 340), 600000, 40);
   boundary.observeHall(hall(500, 610000, 190));
   boundary.observeHall(hall(501, 611000, 190));
-  boundary.observeIr(ir(6, 342), 612000, 40);
+  boundary.observeIr(ir(6, 350), 612000, 40);
   for (uint32_t i = 0; i < 3; ++i)
     boundary.observeHall(hall(502 + i, 613000 + i * 1000, 190));
   check(boundary.confirmedCount() == 1 && boundary.openingSerial() == 500 &&
-            boundary.openingIrUm() == 340000,
+            boundary.openingIrUm() == ir(5, 340).nominalUm,
         "IR update inside median window does not move the observed leading boundary");
-  boundary.observeIr(ir(7, 732), 700000, 40);
+  boundary.observeIr(ir(7, 740), 700000, 40);
   check(boundary.missedCount() == 1,
         "next target distance uses the leading boundary, not the later median point");
   n.observeIr(ir(6, 439), 700000, 40);
   n.observeHall(hall(15, 710000, 900));
   check(n.activeReference() == 110 && n.spatialPhase() == 1,
         "clearance does not collect or replace reference");
-  n.observeIr(ir(7, 440), 800000, 40);
+  n.observeIr(ir(7, 450), 800000, 40);
   n.observeHall(hall(16, 810000, 120));
   n.observeHall(hall(17, 811000, 900));
   n.observeIr(ir(8, 490), 900000, 40);
   n.observeHall(hall(18, 910000, 130));
   n.observeIr(ir(9, 539), 1000000, 40);
   n.observeHall(hall(19, 1010000, 140));
-  n.observeIr(ir(10, 540), 1100000, 40);
+  n.observeIr(ir(10, 550), 1100000, 40);
   check(n.activeReference() == 130 && n.spatialPhase() == 0,
         "per-location 100-200 mm median replaces reference at 200 mm");
   for (uint32_t i = 0; i < 5; ++i)
@@ -138,12 +137,12 @@ int main() {
   const uint64_t dwellEpoch = longDwell.irMeasurementEpochId();
   longDwell.observeIr(ir(5, 10, ir_movement::INADEQUATE_CONTRAST), 600000, 0);
   longDwell.observeIr(ir(6, 10, ir_movement::INADEQUATE_CONTRAST), 700000, 0);
-  longDwell.observeIr(ir(7, 11), 800000, 40);
+  longDwell.observeIr(ir(7, 20), 800000, 40);
   check(longDwell.irMeasurementEpochId() == dwellEpoch &&
             longDwell.relationshipReliable() && longDwell.irApplicable(800000) &&
             !longDwell.distanceHolding(),
         "repeated stationary contrast diagnostics do not break continuity on restart");
-  stationary.observeIr(ir(7, 11), 700000, 0);
+  stationary.observeIr(ir(7, 20), 700000, 0);
   check(!stationary.relationshipReliable() &&
             stationary.pwmZeroDisplacements() == 1 &&
             stationary.positionReliable() && stationary.mm() == 0,
@@ -174,23 +173,23 @@ int main() {
   // Establish MM0 at an actual Hall landmark before testing normal misses.
   consecutiveMisses.declare(navi_one::nextMarker(0, -1), 1, 250000);
   absentSupport(consecutiveMisses, 250000);
-  consecutiveMisses.observeIr(ir(3, 11), 300000, 40);
+  consecutiveMisses.observeIr(ir(3, 20), 300000, 40);
   const int16_t firstRaw = consecutiveMisses.target().polarity ==
       HallOpeningPolarity::AboveReference ? 200 : 20;
   for (uint32_t i = 0; i < 5; ++i)
     consecutiveMisses.observeHall(hall(10 + i, 310000 + i * 1000, firstRaw));
   check(consecutiveMisses.mm() == 0 && consecutiveMisses.confirmedCount() == 1,
         "normal miss fixture starts from confirmed MM0");
-  consecutiveMisses.observeIr(ir(4, 211), 400000, 40);
+  consecutiveMisses.observeIr(ir(4, 220), 400000, 40);
   // Target 1 (330 mm) and target 2 (340 mm) are missed from the same
   // physical origin. Target 3 is then accepted at the cumulative 990 mm
   // position, with tolerance based only on target 3's 330-mm interval.
   consecutiveMisses.observeIr(ir(5, 400), 600000, 40);
-  consecutiveMisses.observeIr(ir(6, 740), 700000, 40);
+  consecutiveMisses.observeIr(ir(6, 750), 700000, 40);
   check(consecutiveMisses.missedCount() == 2 && consecutiveMisses.mm() == 2 &&
             consecutiveMisses.target().sequence == 3,
         "consecutive Missed Magnets advance mapped target without moving physical origin");
-  consecutiveMisses.observeIr(ir(7, 1001), 800000, 40);
+  consecutiveMisses.observeIr(ir(7, 1010), 800000, 40);
   for (uint32_t i = 0; i < 5; ++i)
     consecutiveMisses.observeHall(hall(80 + i, 810000 + i * 1000, 20));
   check(consecutiveMisses.confirmedCount() == 2 && consecutiveMisses.mm() == 3,
@@ -226,7 +225,7 @@ int main() {
   emptySpatial.observeIr(ir(5, 340), 600000, 40);
   for (uint32_t i = 0; i < 5; ++i)
     emptySpatial.observeHall(hall(75 + i, 610000 + i * 1000, 190));
-  emptySpatial.observeIr(ir(6, 540), 700000, 40);
+  emptySpatial.observeIr(ir(6, 550), 700000, 40);
   bool emptyReported = false;
   while (emptySpatial.takeEvent(event))
     if (event.kind == EwoEventKind::SpatialEmpty) emptyReported = true;
@@ -260,7 +259,7 @@ int main() {
   health.observeIr(ir(6, 10, ir_movement::INADEQUATE_CONTRAST), 700000, 40);
   check(health.irApplicable(700000),
         "inadequate optical contrast alone does not invalidate measured no-change");
-  health.observeIr(ir(7, 11, ir_movement::INADEQUATE_CONTRAST), 800000, 40);
+  health.observeIr(ir(7, 20, ir_movement::INADEQUATE_CONTRAST), 800000, 40);
   check(health.irApplicable(800000) &&
             health.irHealthFault() == static_cast<uint8_t>(ngr_nav::IrHealthFault::InadequateContrast),
         "diagnostic remains visible without vetoing coherent cumulative pulses");

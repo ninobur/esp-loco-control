@@ -7,11 +7,11 @@
 #include <deque>
 using namespace navi_eyes;
 
-static ir_movement::WireSnapshot wire(uint32_t seq, uint64_t pulses, uint64_t boot=42,
-                                      uint32_t pitch=1000) {
+static ir_movement::WireSnapshot wire(uint32_t seq, uint64_t distanceMm, uint64_t boot=42) {
   ir_movement::WireSnapshot w;
   w.sequence=seq; w.bootId=boot; w.capturedUs=uint64_t(seq)*10000;
-  w.completedPulses=w.observedRises=pulses; w.pitchUm=pitch; w.nominalUm=pulses*pitch;
+  w.completedPulses=w.observedRises=distanceMm*1000/w.pitchUm;
+  w.nominalUm=w.completedPulses*w.pitchUm;
   w.opticalReason=ir_movement::TRACKING;
   return w;
 }
@@ -35,7 +35,7 @@ static void first(NaviIntegratedCore& n) {
 static void b1() {
   // After the first confirmation the ordinary lower bound still applies.
   NaviIntegratedCore n; first(n);
-  n.observeIr(wire(9,540),700000,40); // complete spatial cycle, retain reference
+  n.observeIr(wire(9,550),700000,40); // complete spatial cycle, retain reference
   EwoEvent prior; while(n.takeEvent(prior)) {}
   n.observeIr(wire(10,550),1200000,40); // 210 mm, target requires 340 +/- 51
   for(unsigned i=0;i<5;++i) n.observeHall(h(300+i,1190000+i*1000,0),1201000+i*1000);

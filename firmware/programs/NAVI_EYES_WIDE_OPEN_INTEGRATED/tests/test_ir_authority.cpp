@@ -4,16 +4,15 @@
 
 using namespace navi_eyes;
 
-static ir_movement::WireSnapshot ir(uint32_t seq, uint64_t pulses,
+static ir_movement::WireSnapshot ir(uint32_t seq, uint64_t distanceMm,
                                     uint64_t boot = 42,
                                     uint8_t reason = ir_movement::TRACKING) {
   ir_movement::WireSnapshot w;
   w.bootId = boot;
   w.sequence = seq;
   w.capturedUs = uint64_t(seq) * 100000;
-  w.completedPulses = w.observedRises = pulses;
-  w.pitchUm = 1000;
-  w.nominalUm = pulses * w.pitchUm;
+  w.completedPulses = w.observedRises = distanceMm * 1000 / w.pitchUm;
+  w.nominalUm = w.completedPulses * w.pitchUm;
   w.opticalReason = reason;
   return w;
 }
@@ -100,12 +99,12 @@ int main() {
   boot(reverseAfterMiss);
   reverseAfterMiss.declare(navi_one::nextMarker(0, -1), 1, 250000);
   absentSupport(reverseAfterMiss, 250000);
-  reverseAfterMiss.observeIr(ir(3, 11), 300000, 40);
+  reverseAfterMiss.observeIr(ir(3, 20), 300000, 40);
   field(reverseAfterMiss, 420, 310000, 1);
   assert(reverseAfterMiss.mm() == 0 && reverseAfterMiss.confirmedCount() == 1);
-  reverseAfterMiss.observeIr(ir(4, 211), 400000, 40);
+  reverseAfterMiss.observeIr(ir(4, 220), 400000, 40);
   reverseAfterMiss.observeIr(ir(6, 400), 610000, 40);
-  reverseAfterMiss.observeIr(ir(7, 740), 710000, 40);
+  reverseAfterMiss.observeIr(ir(7, 750), 710000, 40);
   assert(reverseAfterMiss.missedCount() == 2 && reverseAfterMiss.mm() == 2);
   reverseAfterMiss.reverse(-1, 720000);
   assert(reverseAfterMiss.relationshipReliable() &&
@@ -138,11 +137,12 @@ int main() {
   NaviIntegratedCore speed;
   boot(speed);
   for (uint32_t seq = 3; seq <= 12; ++seq)
-    speed.observeIr(ir(seq, 10 + 2 * (seq - 2)), uint64_t(seq) * 100000 + 20000, 40);
+    speed.observeIr(ir(seq, (10 + 2 * (seq - 2)) * ir_movement::kInstalledPitchUm / 1000 + 1),
+                    uint64_t(seq) * 100000 + 20000, 40);
   assert(speed.irSpeedAvailable(1220000));
-  assert(speed.irSpeedMmS() > 19.9 && speed.irSpeedMmS() < 20.1);
+  assert(speed.irSpeedMmS() > 193.03 && speed.irSpeedMmS() < 193.05);
   for (uint32_t seq = 13; seq <= 24; ++seq)
-    speed.observeIr(ir(seq, 30, 42, ir_movement::INADEQUATE_CONTRAST),
+    speed.observeIr(ir(seq, 290, 42, ir_movement::INADEQUATE_CONTRAST),
                     uint64_t(seq) * 100000 + 20000, 0);
   assert(speed.irSpeedAvailable(2420000) && speed.irSpeedMmS() == 0);
 

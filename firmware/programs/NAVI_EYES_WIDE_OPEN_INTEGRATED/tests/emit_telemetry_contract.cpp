@@ -11,7 +11,6 @@ static ir_movement::WireSnapshot packet(uint32_t seq, uint64_t pulses,
   w.sequence = seq;
   w.capturedUs = uint64_t(seq) * 100000;
   w.completedPulses = w.observedRises = pulses;
-  w.pitchUm = 1000;
   w.nominalUm = pulses * w.pitchUm;
   w.opticalReason = reason;
   return w;

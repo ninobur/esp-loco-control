@@ -8,7 +8,7 @@ struct Run {
   NaviIntegratedCore n;
   uint64_t now = 100000, declaredAt = 0;
   uint32_t sequence = 0, serial = 0;
-  static constexpr uint64_t origin = 1000000;
+  static constexpr uint64_t origin = 100 * ir_movement::kInstalledPitchUm;
   uint8_t dir = 2;
 
   Run(uint8_t mm = 45, int8_t direction = -1) {
@@ -25,8 +25,9 @@ struct Run {
     ir_movement::WireSnapshot w;
     w.bootId = 42; w.sequence = ++sequence;
     w.capturedUs = uint64_t(sequence) * 100000;
-    // Micrometre fixture scale exercises the exact inclusive/exclusive bounds.
-    w.pitchUm = 1; w.completedPulses = w.observedRises = w.nominalUm = um;
+    // Requested positions are quantized to the installed wheel resolution.
+    w.completedPulses = w.observedRises = um / w.pitchUm;
+    w.nominalUm = w.completedPulses * w.pitchUm;
     w.opticalReason = ir_movement::TRACKING;
     n.observeIr(w, now += 10000, 40);
   }
@@ -60,14 +61,14 @@ static void fieldCase() {
   r.window(r.support());
   assert(r.n.mm() == 44 && r.n.confirmedCount() == 1 && r.n.missedCount() == 0);
   assert(r.n.openingSerial() == leadingSerial &&
-         r.n.openingIrUm() == Run::origin + 106000);
+         r.n.openingIrUm() == Run::origin + 10 * ir_movement::kInstalledPitchUm);
   assert(r.event(EwoEventKind::TargetConfirmed, 44));
 
   const uint64_t secondOrigin = r.n.openingIrUm();
   const uint64_t interval = uint64_t(r.n.target().distanceMm) * 1000;
   assert(r.n.target().sequence == 43);
   r.irAt(secondOrigin + 100000); r.window(1000);
-  r.irAt(secondOrigin + 200000); // finish the unchanged spatial cycle
+  r.irAt(secondOrigin + 21 * ir_movement::kInstalledPitchUm); // finish the unchanged spatial cycle
   r.irAt(secondOrigin + interval - interval * 15 / 100 - 1);
   r.window(r.support());
   assert(r.n.confirmedCount() == 1); // first-target exception was cleared
@@ -86,7 +87,7 @@ static void expectedDistanceAndBounds() {
     r.window(r.support());
     assert(r.n.confirmedCount() == 1 && r.n.mm() == target);
   }
-  for (uint64_t travel : {uint64_t(0), uint64_t(1), uint64_t(10000), uint64_t(300000),
+  for (uint64_t travel : {uint64_t(0), uint64_t(ir_movement::kInstalledPitchUm), uint64_t(10000), uint64_t(300000),
                           uint64_t(345000), uint64_t(345001), uint64_t(500000)}) {
     Run r; r.window(1000); r.irAt(Run::origin + travel); r.window(1100);
     assert(r.n.confirmedCount() == (travel > 0 ? 1u : 0u));
@@ -120,17 +121,17 @@ static void noFirstMiss() {
   // even if physical magnets were not detected. No distance ceiling remains.
   r.window(1100);
   assert(r.n.confirmedCount() == 1 && r.n.mm() == 44);
-  assert(r.n.openingIrUm() == Run::origin + 1000000000);
+  assert(r.n.openingIrUm() == (Run::origin + 1000000000) / ir_movement::kInstalledPitchUm * ir_movement::kInstalledPitchUm);
 }
 
 static void secondMissStillNormal() {
   Run r; r.window(1000); r.irAt(Run::origin + 500000); r.window(1100);
   const uint64_t physicalOrigin = r.n.openingIrUm();
   const uint64_t interval = uint64_t(r.n.target().distanceMm) * 1000;
-  r.irAt(physicalOrigin + 200000); // complete spatial cycle
+  r.irAt(physicalOrigin + 21 * ir_movement::kInstalledPitchUm); // complete spatial cycle
   r.irAt(physicalOrigin + interval + interval * 15 / 100);
   assert(r.n.missedCount() == 0 && r.n.target().sequence == 43);
-  r.irAt(physicalOrigin + interval + interval * 15 / 100 + 1);
+  r.irAt(physicalOrigin + interval + interval * 15 / 100 + ir_movement::kInstalledPitchUm);
   assert(r.n.missedCount() == 1 && r.n.mm() == 43 && r.n.target().sequence == 42);
   assert(r.event(EwoEventKind::MissedMagnet, 43));
 }

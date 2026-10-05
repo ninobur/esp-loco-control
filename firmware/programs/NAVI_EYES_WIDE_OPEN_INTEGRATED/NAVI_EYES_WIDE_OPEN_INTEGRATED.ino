@@ -332,11 +332,10 @@ static void serviceIrIngress() {
     ir_movement::WireSnapshot wire;
     memcpy(&wire, rx.bytes, sizeof(wire));
     if (wire.magic != 0x4952 || wire.version != 1 || wire.type != 5 ||
-        !wire.bootId || !wire.pitchUm || wire.distanceValidated ||
+        !wire.bootId || wire.distanceValidated ||
         wire.opticalReason > ir_movement::TRACKING ||
         wire.completedPulses > wire.observedRises ||
-        wire.completedPulses > UINT64_MAX / wire.pitchUm ||
-        wire.nominalUm != wire.completedPulses * wire.pitchUm ||
+        !ir_movement::validConfiguredDistance(wire) ||
         movementCrc(rx.bytes, offsetof(ir_movement::WireSnapshot, crc)) != wire.crc) {
       ++irPacketInvalid;
       continue;

@@ -4,8 +4,9 @@
 
 namespace ngr_nav {
 enum class IrHealthFault : uint8_t {
-  None, NoSource, LinkStale, PacketInvalid, OrderFault, CalibrationFault,
-  InadequateContrast, Saturation, SampleGap, PulseFault
+  None, NoSource, LinkStale, PacketInvalid, OrderFault,
+  // Keep existing NSR1 diagnostic numbers; retired calibration fault was 5.
+  InadequateContrast = 6, Saturation, SampleGap, PulseFault
 };
 enum class IrReadiness : uint8_t { Ready, Priming, Reacquiring, Unavailable };
 
@@ -16,7 +17,6 @@ inline const char* irHealthName(IrHealthFault value) {
     case IrHealthFault::LinkStale: return "LINK_STALE";
     case IrHealthFault::PacketInvalid: return "PACKET_INVALID";
     case IrHealthFault::OrderFault: return "ORDER_FAULT";
-    case IrHealthFault::CalibrationFault: return "CALIBRATION_FAULT";
     case IrHealthFault::InadequateContrast: return "INADEQUATE_CONTRAST";
     case IrHealthFault::Saturation: return "SATURATION";
     case IrHealthFault::SampleGap: return "SAMPLE_GAP";
@@ -44,10 +44,10 @@ struct IrInstrumentState {
 inline IrInstrumentState classifyIrInstrument(const ir_movement::WireSnapshot& w) {
   IrInstrumentState s;
   s.detectorReason = w.opticalReason;
-  // Zero calibration ID is the deployed TX's nominal, unvalidated scale.
-  // It does not determine optical health or measurement continuity.
+  // The deployed TX retains calibration ID zero in the wire contract. It has
+  // no runtime calibration lifecycle and does not determine optical health.
   if (!w.bootId || !w.pitchUm) {
-    s.fault = IrHealthFault::CalibrationFault;
+    s.fault = IrHealthFault::PacketInvalid;
     return s;
   }
   switch (w.opticalReason) {
