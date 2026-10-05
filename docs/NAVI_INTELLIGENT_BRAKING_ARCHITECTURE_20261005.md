@@ -2,7 +2,19 @@
 
 Status: Governing architecture for NAVI station stopping/braking (2026-10-05).
 
+Revision 2 (2026-10-05): adaptive stopping model. The braking model is adaptive
+during the stop itself and is not station-calibrated. See
+[Superseded concepts](#superseded-concepts) for what this revision replaces.
+
 Related: [`NAVI_CLOSE_TRAIN_OPERATIONS_RECONSTRUCTION_ARCHITECTURE_20261005.md`](NAVI_CLOSE_TRAIN_OPERATIONS_RECONSTRUCTION_ARCHITECTURE_20261005.md) (NAVI position/overlay model, §4–§5).
+
+> **Respect the intelligence of NAVI.**
+>
+> **Sensors provide observations.**
+>
+> **NAVI interprets those observations in context, predicts the physical consequence of its current action, and adjusts its action accordingly.**
+>
+> **For braking: The ramp provides smoothness. IR provides evidence. NAVI provides judgment.**
 
 ## Purpose
 
@@ -31,19 +43,59 @@ Neither sensor is an operating agent.
 
 NAVI is the engineer.
 
-During braking, NAVI should behave similarly to an experienced human operator bringing the locomotive to a stop:
-
-* begin braking at a known location;
-* know approximately how the locomotive normally coasts/decelerates;
-* observe physical progress;
-* judge whether the developing stop is tending long, correct, or short;
-* adjust braking accordingly;
-* continue observing and refining the braking trajectory;
-* accept the physical stop when it occurs.
+Sensors provide observations. NAVI interprets those observations in context, predicts the physical consequence of its current action, and adjusts its action accordingly.
 
 The objective is not to force the locomotive to match a succession of instantaneous speed targets.
 
 The objective is to manage a stopping trajectory.
+
+## Human-engineer model
+
+This architecture is intended to reproduce the essential judgment used by an experienced human operator.
+
+When manually stopping the locomotive, the operator does not continually command an exact instantaneous speed.
+
+Instead, the operator:
+
+1. begins a known smooth deceleration;
+2. observes how rapidly the train is slowing;
+3. observes how much braking is being applied;
+4. observes physical progress toward the desired stopping point;
+5. subconsciously estimates whether the current braking trajectory will stop long, on target, or short;
+6. adjusts the brake accordingly;
+7. observes the response and adjusts again.
+
+In NAVI, there is no separate brake actuator.
+
+Brake modulation means changing the slope of the PWM-down ramp.
+
+IR provides NAVI with the frequent physical observations that the human operator obtains visually.
+
+The operator then accepts the physical stop when it occurs.
+
+## Adaptive model requirement: works anywhere
+
+The braking system must be adaptive during the stop itself.
+
+> **The NAVI braking model must be adaptive rather than station-calibrated.**
+
+NAVI should not depend upon station-specific braking calibrations, direction-specific stopping tables, predetermined stopping PWM values, or a previously learned braking model for a particular location.
+
+The objective is a braking controller that can work anywhere on the railroad because NAVI observes how the locomotive is responding during the braking maneuver currently underway.
+
+Do not design the architecture around:
+
+* Grillers CW braking constants;
+* Arches CCW braking constants;
+* station-specific stopping PWM;
+* direction-specific PWM tables;
+* fixed assumptions about the PWM at which a particular locomotive stops.
+
+Field data from particular locations may be used to evaluate the architecture, but it must not become required location-specific control data unless future evidence demonstrates that such specialization is necessary.
+
+Each braking maneuver provides NAVI with new evidence about the current physical response.
+
+The current stop should help NAVI improve that same stop.
 
 ## Lesson from the first IR-controlled stopping experiment
 
@@ -62,21 +114,39 @@ The fundamental conceptual error was:
 
 > **IR was adjusting speed/PWM rather than informing NAVI how to adjust the braking ramp.**
 
-This architecture supersedes that control concept.
+That architecture is rejected. This architecture supersedes that control concept.
+
+## Ramp control, not speed control
+
+The adaptive model modifies the ramp slope. It does not use IR speed error to change PWM directly.
+
+* If the projected stop is **LONG**: steepen the PWM-down ramp.
+* If **ON_TARGET**: maintain the current ramp slope.
+* If **SHORT**: flatten the PWM-down ramp.
+
+During final braking:
+
+> **PWM itself may hold or decrease. It must not increase.**
+
+NAVI may ease braking by flattening the ramp, but it does not reapply throttle.
 
 ## Braking ramp as the primary mechanism
 
 NAVI uses a smooth PWM-down ramp as the primary braking mechanism.
 
-The existing manual-control deceleration ramp is the starting reference because its physical behavior is already known.
+### Nominal ramp
 
-When operated manually, that ramp produces a smooth coast that tends to carry the locomotive too far unless the human operator applies additional braking.
+The existing manual-control deceleration ramp remains the starting model because its physical behavior is already known.
 
-That is desirable as a starting point.
+Its known characteristic is useful: left substantially unmodified, it tends to produce a smooth but overly long coast. When operated manually, the human operator applies additional braking to stop where intended.
 
-The nominal NAVI braking ramp should therefore be biased somewhat long.
+That is desirable as a nominal starting point because NAVI can apply additional braking as evidence develops.
 
-This gives NAVI room to increase braking as physical observations show how the stop is developing.
+The nominal ramp should therefore aim somewhat long.
+
+NAVI then trims the developing trajectory toward the desired stopping point.
+
+The nominal ramp is a generic starting trajectory, not a station- or direction-specific calibration.
 
 ## What NAVI controls
 
@@ -114,20 +184,86 @@ With the current wheel/sensor geometry:
 
 At each new completed IR pulse, NAVI gains another landmark.
 
-Relevant evidence includes:
+IR observations are necessarily retrospective: a completed pulse reports approximately 9.652 mm of travel that has already occurred.
 
-* distance traveled since the braking reference;
-* current measured IR speed;
-* recent speed history;
-* recent ramp history;
+## Governing adaptive relationship
+
+During braking, NAVI observes two related changing quantities.
+
+**Control action:**
+
+* PWM is declining according to the current braking ramp.
+
+**Physical response:**
+
+* IR-measured locomotive speed is declining in response.
+
+The useful relationship is therefore the recent response of physical speed to the PWM reduction:
+
+```
+Δ IR speed / Δ PWM
+```
+
+This relationship allows NAVI to estimate how the locomotive is responding to the braking effort during this particular stop.
+
+It must not be treated as a universal locomotive constant.
+
+The relationship may differ because of:
+
+* grade;
+* direction;
+* battery condition;
+* consist/load;
+* mechanical condition;
+* track condition;
+* locomotive differences;
+* other physical circumstances.
+
+NAVI does not need to identify which factor caused the difference.
+
+It observes the resulting physical response.
+
+## Forward-looking judgment
+
+The purpose of the adaptive model is not merely to describe past deceleration.
+
+NAVI should use the recent relationship between:
+
 * current PWM;
-* remaining distance to the desired stopping point.
+* PWM ramp slope;
+* current IR speed;
+* recent change in IR speed;
+* recent change in PWM;
+* current IR distance;
+* remaining distance to the desired stop;
 
-NAVI uses this evidence to judge the developing stopping trajectory.
+to answer:
 
-The central question is:
+> **Given my present position, present speed, and the way the locomotive is responding to my current braking ramp, where am I presently tending to stop?**
 
-> **Given where I am, how fast I am moving, and how I have been decelerating, am I presently tending to stop long, approximately on target, or short?**
+That is the fundamental braking judgment.
+
+### Avoid excessive backward-looking filtering
+
+Do not make a median-of-three IR speed estimate the governing basis for braking judgment.
+
+IR observations are already necessarily retrospective because a completed pulse represents approximately 9.652 mm of travel.
+
+A multi-sample median adds further delay.
+
+During a short stopping maneuver, excessive smoothing can make NAVI respond to where the locomotive was rather than where its current trajectory is taking it.
+
+The braking architecture should favor the most recent useful evidence and recent changes.
+
+Noise handling may still be necessary, but it should not destroy responsiveness.
+
+The design objective is:
+
+> **recent evidence used to make a forward-looking prediction**
+
+rather than:
+
+> heavily filtered historical evidence used to describe the past.
 
 ## NAVI braking judgment
 
@@ -163,27 +299,49 @@ NAVI simply removes PWM more slowly.
 
 ## Bounded IR authority
 
-The nominal ramp remains the primary braking trajectory.
+The nominal ramp remains the primary stopping trajectory.
 
-IR provides bounded correction.
+IR allows NAVI to adapt that trajectory modestly to actual physical conditions.
 
-IR-based judgment may alter the nominal ramp rate by no more than:
+IR-informed adjustment is limited to:
 
 ```
-±20% of the nominal/planned ramp rate.
+±20% of the nominal ramp rate.
 ```
 
 This means NAVI may make the braking ramp up to 20% steeper or 20% shallower than nominal.
+
+This limit applies to ramp slope, not PWM magnitude.
 
 It does not mean that IR may command PWM ±20%.
 
 It does not authorize an increase in PWM during final braking.
 
-The adjustment applies to ramp slope.
+## NAVI reasoning cycle
+
+The intended control loop is:
+
+```
+OBSERVE → JUDGE → ADJUST RAMP → OBSERVE AGAIN
+```
+
+More specifically:
+
+1. Begin with the known nominal braking ramp.
+2. Receive a new IR physical observation.
+3. Compare current physical response with recent PWM reduction.
+4. Estimate the developing stopping trajectory.
+5. Judge LONG / ON_TARGET / SHORT.
+6. Adjust ramp slope within the ±20% authority.
+7. Continue the smooth monotonic PWM reduction.
+8. Observe the next physical response.
+9. Repeat until physical stop.
+
+This is transparent judgment, not sensor authority.
 
 ## Station STOP operating profile
 
-The current intended station STOP profile has three regions.
+The current station STOP geography has three regions.
 
 ### Region 1 — approach braking
 
@@ -193,21 +351,19 @@ At:
 Station −10
 ```
 
-NAVI begins a smooth deceleration from cruise speed.
+NAVI begins one continuous approach braking ramp from cruise speed.
 
-The desired result at:
+The desired arrival at:
 
 ```
 Station −5
 ```
 
-is:
+is station speed:
 
 ```
 25 pKPH
 ```
-
-This is one continuous braking ramp from Station −10 to Station −5.
 
 There are no intermediate MM speed steps.
 
@@ -225,7 +381,7 @@ From:
 Station −5 through Station 0
 ```
 
-the locomotive operates at:
+the locomotive maintains approximately:
 
 ```
 25 pKPH
@@ -245,21 +401,21 @@ The accepted Hall observation at:
 Station 0
 ```
 
-starts the final stopping ramp.
+begins the final braking ramp.
 
-The current initial target for field development is:
+The initial field-development stopping target is:
 
 ```
 35 completed IR pulses after Station 0.
 ```
 
-At the current IR pitch:
+At 9.652 mm/pulse:
 
 ```
 35 × 9.652 mm ≈ 337.8 mm
 ```
 
-Thus the initial desired stopping point is approximately 338 mm beyond the Station 0 Hall reference.
+This is a target stopping location, not a mandatory odometer checkpoint.
 
 This value is a field-development target and may later be tuned from operational evidence.
 
@@ -270,15 +426,44 @@ At Station 0:
 1. NAVI establishes the IR distance reference.
 2. NAVI begins the nominal smooth PWM-down braking ramp.
 3. The nominal ramp is intentionally biased somewhat long.
-4. Each useful IR pulse provides new distance and movement evidence.
-5. NAVI evaluates whether the developing stop is LONG, ON TARGET, or SHORT.
-6. NAVI adjusts the ramp slope within ±20% of nominal.
-7. PWM itself may only hold or decrease.
-8. NAVI continues this process until physical movement stops.
+4. Each useful IR observation provides new distance and movement evidence.
+5. NAVI compares the current physical response with the recent PWM reduction and estimates where the locomotive is tending to stop.
+6. NAVI judges whether the developing stop is LONG, ON TARGET, or SHORT.
+7. NAVI adjusts the ramp slope within ±20% of nominal.
+8. PWM itself may only hold or decrease.
+9. NAVI continues this process until physical movement stops.
 
 The desired stopping distance guides the trajectory.
 
 It is not a mandatory odometer checkpoint.
+
+## Predicting physical stop
+
+A locomotive does not provide a positive IR event saying “I have now stopped.”
+
+When movement ceases, new spoke pulses cease.
+
+Therefore physical stop detection is inherently partly based on absence of subsequent movement evidence.
+
+NAVI should not wait until PWM reaches zero to decide that the locomotive has physically stopped.
+
+The locomotive may physically stop while substantial PWM remains—for example, field observation indicates Otto may cease movement around PWM 30 under some conditions.
+
+> **PWM = 0 is not the definition of physical stop.**
+
+The PWM at which movement ceases is itself an observation of the current stop, not a fixed locomotive constant.
+
+Instead, during braking NAVI should already have a forward-looking estimate of where movement is tending to cease.
+
+The recent relationship between declining PWM and declining IR speed can support an estimate of the PWM region and physical position at which IR speed will reach zero.
+
+Conceptually:
+
+```
+current physical response + current braking slope → predicted physical stop
+```
+
+The eventual absence of further IR movement then confirms the prediction.
 
 ## Physical stop is terminal
 
@@ -286,15 +471,14 @@ A locomotive may physically stop before the nominal target distance because PWM 
 
 That is normal physical behavior.
 
-Therefore:
+Once NAVI determines that physical movement has ceased during the final stopping maneuver:
 
-> **If the locomotive physically stops during the final braking maneuver, the stop is complete.**
-
-NAVI must then:
-
-1. accept the physical stop;
+1. the stop is complete;
 2. command PWM 0;
-3. begin the applicable dwell.
+3. begin the applicable dwell;
+4. do not restart the locomotive to reach an exact odometer target.
+
+This remains a governing rule.
 
 NAVI must not:
 
@@ -327,7 +511,8 @@ IR contributes:
 
 * distance;
 * measured movement/speed;
-* repeated physical landmarks approximately every 9.652 mm.
+* repeated physical landmarks approximately every 9.652 mm;
+* the physical response to the current braking ramp.
 
 IR informs NAVI’s judgment.
 
@@ -388,6 +573,7 @@ Useful fields include:
 * IR distance since reference;
 * measured IR speed;
 * current PWM;
+* recent change in IR speed and recent change in PWM (the observed physical response);
 * nominal ramp rate;
 * current adjusted ramp rate;
 * permitted ±20% adjustment range;
@@ -414,6 +600,24 @@ The intended reasoning is simple:
 
 The implementation should preserve that conceptual simplicity unless field evidence demonstrates that additional complexity is necessary.
 
+## Architecture versus implementation
+
+This document defines what NAVI must reason about and what authority each component has.
+
+It deliberately does not define the exact implementation mathematics.
+
+The exact predictive estimator—how NAVI computes the projected stopping location and predicted physical stop from recent PWM and IR evidence—is an implementation design to be reviewed separately against this architecture.
+
+## Superseded concepts
+
+This architecture supersedes any language, prior design, or implementation suggesting that:
+
+* a median-of-three (or other heavily smoothed, multi-sample) IR speed estimate should govern braking judgment;
+* PWM must reach zero before physical stop can be recognized;
+* IR should directly adjust PWM to chase an instantaneous speed target;
+* stopping requires reaching an exact pulse/distance checkpoint;
+* station-specific or direction-specific calibration (stopping PWM, braking constants, or a fixed stall PWM) is the intended long-term braking model.
+
 ## Architectural summary
 
 The station braking architecture is:
@@ -421,11 +625,14 @@ The station braking architecture is:
 ```
 Hall tells NAVI when to begin.
 The ramp provides smooth deceleration.
-IR tells NAVI how the stop is developing.
+IR tells NAVI how the stop is developing and how the locomotive is responding to braking.
+NAVI predicts where the current trajectory will stop.
 NAVI adjusts the ramp slope to converge on the desired stopping point.
 PWM never increases during final braking.
 A physical stop ends the maneuver.
 ```
+
+> **The ramp provides smoothness. IR provides evidence. NAVI provides judgment.**
 
 The design objective remains:
 
