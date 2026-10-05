@@ -7,6 +7,10 @@
 
 using namespace navi_sync;
 
+static_assert(uint8_t(navi_eyes::EwoEventKind::PwmZeroDisplacement) == 13, "NSR1 event ID");
+static_assert(uint8_t(navi_eyes::EwoEventKind::ObservationLoss) == 15, "NSR1 event ID");
+static_assert(uint8_t(navi_eyes::EwoEventKind::SpatialInvalidated) == 16, "NSR1 event ID");
+
 int main() {
   Recorder recorder;
   recorder.begin(9950012, 7, 42);
@@ -59,6 +63,7 @@ int main() {
   ir_movement::WireSnapshot ir;
   ir.bootId = 99;
   ir.sequence = 8;
+  ir.calibrationId = 1234; // raw metadata survives without a calibration lifecycle
   ir.completedPulses = 123;
   ir.nominalUm = ir.completedPulses * ir.pitchUm;
   const uint8_t mac[6] = {2, 3, 4, 5, 6, 7};
@@ -66,6 +71,7 @@ int main() {
   IrWire irRecord;
   assert(recorder.popIr(irRecord));
   assert(irRecord.snapshot.wire.completedPulses == 123 &&
+         irRecord.snapshot.wire.calibrationId == 1234 &&
          irRecord.snapshot.sourceMac[0] == 2 &&
          irRecord.header.crc32 == recordCrc(irRecord.header,
            reinterpret_cast<const uint8_t*>(&irRecord.snapshot),

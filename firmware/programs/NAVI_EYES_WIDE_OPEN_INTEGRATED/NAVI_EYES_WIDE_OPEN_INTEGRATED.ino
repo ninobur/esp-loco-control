@@ -84,7 +84,6 @@ static WiFiClient wifiClient;
 static PubSubClient mqtt(wifiClient);
 static Preferences pairing;
 static uint8_t pairedIrMac[6]{};
-static uint8_t lastSeenMac[6]{};
 static uint32_t seenIrFrames = 0;
 static bool radioReady = false, irCarCoupled = false;
 static bool haveNetReport = false, lastWifiConnected = false, lastMqttConnected = false;
@@ -194,11 +193,7 @@ static void clearWarning() {
   if (!warnSticky) pub("state/warning", "", true);
 }
 static void writePwm(int value) {
-#if ESP_ARDUINO_VERSION_MAJOR >= 3
   ledcWrite(MOTOR_PWM_PIN, value);
-#else
-  ledcWrite(PWM_CHANNEL, value);
-#endif
   static int lastRecorded = -1;
   if (value != lastRecorded) {
     lastRecorded = value;
@@ -323,7 +318,6 @@ static void onIr(const esp_now_recv_info_t* info, const uint8_t* bytes,
 static void serviceIrIngress() {
   IrRx rx;
   while (irQ && xQueueReceive(irQ, &rx, 0) == pdTRUE) {
-    memcpy(lastSeenMac, rx.mac, 6);
     ++seenIrFrames;
     if (rx.length != sizeof(ir_movement::WireSnapshot)) {
       ++irPacketInvalid;
@@ -366,7 +360,6 @@ static const char* eventName(EwoEventKind kind) {
     case EwoEventKind::IrDistanceHold: return "IR_DISTANCE_HOLD";
     case EwoEventKind::IrDistanceReady: return "IR_DISTANCE_READY";
     case EwoEventKind::PwmZeroDisplacement: return "PWM_ZERO_IR_DISPLACEMENT";
-    case EwoEventKind::Reanchored: return "RESERVED_REANCHOR_EVENT";
     case EwoEventKind::ObservationLoss: return "OBSERVATION_LOSS";
     case EwoEventKind::SpatialInvalidated: return "SPATIAL_INVALIDATED";
     default: return "NONE";
@@ -1033,7 +1026,7 @@ void setup() {
   pinMode(MOTOR_PWM_PIN, OUTPUT);
   digitalWrite(MOTOR_PWM_PIN, LOW);
   recorder = new (std::nothrow) navi_sync::Recorder();
-  if (!navi.storageReady() || !recorder || !recorder->storageReady()) {
+  if (!recorder || !recorder->storageReady()) {
     // No PWM peripheral or control task has been enabled yet.
     pinMode(MOTOR_PWM_PIN, OUTPUT); digitalWrite(MOTOR_PWM_PIN, LOW);
     Serial.println("[BOOT] FATAL: bounded evidence storage allocation failed");
@@ -1048,12 +1041,7 @@ void setup() {
   pinMode(HALL_PIN, INPUT);
   pinMode(MOTOR_DIR_PIN, OUTPUT); pinMode(MOTOR_PWM_PIN, OUTPUT);
   digitalWrite(MOTOR_DIR_PIN, HIGH);
-#if ESP_ARDUINO_VERSION_MAJOR >= 3
   ledcAttach(MOTOR_PWM_PIN, PWM_FREQUENCY, PWM_RESOLUTION);
-#else
-  ledcSetup(PWM_CHANNEL, PWM_FREQUENCY, PWM_RESOLUTION);
-  ledcAttachPin(MOTOR_PWM_PIN, PWM_CHANNEL);
-#endif
   writePwm(0);
   Wire.begin(I2C_SDA, I2C_SCL);
   inaReady = ina219.begin();

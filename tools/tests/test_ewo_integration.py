@@ -227,9 +227,6 @@ struct Recorder {
 static Recorder recording;
 static Recorder* recorder = &recording;
 '''
-        # The write-only MAC is removed in Document B's second cleanup group.
-        if 'memcpy(lastSeenMac,' in functions[1]:
-            cpp += 'static uint8_t lastSeenMac[6]{};\n'
         cpp += '\n'.join(functions)
         cpp += r'''
 static ir_movement::WireSnapshot packet(uint32_t seq) {

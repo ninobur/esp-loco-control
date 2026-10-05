@@ -32,6 +32,11 @@ Freshness still suspends applicability without erasing a cumulative epoch.
 No new recovery, fallback or warning state is introduced.
 
 See [decision 0122](../../../docs/decisions/0122-type5-pitch-is-configuration-and-calibration-metadata-has-no-runtime-authority.md).
+The [implementation ledger and validation report](../../../docs/NAVI_VESTIGIAL_CODE_CLEANUP_IMPLEMENTATION_20261005.md)
+records all removals and retained boundaries. The core's constant startup APIs,
+un-emitted re-anchor event, write-only received MAC and unsupported Arduino 2.x
+PWM branches are removed. Current NSR1 event numbers remain stable; the actual
+recorder allocation checks remain. Build this candidate with ESP32 core 3.x.
 Document C's station/position-overlay implementation is a separate pass.
 
 ## Adaptive station approach and brake

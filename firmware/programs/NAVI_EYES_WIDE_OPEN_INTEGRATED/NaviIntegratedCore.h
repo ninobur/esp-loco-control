@@ -17,8 +17,8 @@ enum class EwoEventKind : uint8_t {
   None, Declared, Reversed, HallSupport, TargetConfirmed, MissedMagnet,
   ReferenceReady, SpatialClearance, SpatialCollect, SpatialReady, SpatialEmpty,
   IrDistanceHold, IrDistanceReady, PwmZeroDisplacement,
-  Reanchored,  // reserved NSR1 kind; no Hall-only re-anchor is emitted
-  ObservationLoss,
+  // NSR1 event 14 is retired; retain the existing IDs of current events.
+  ObservationLoss = 15,
   SpatialInvalidated
 };
 
@@ -323,8 +323,6 @@ class NaviIntegratedCore {
     return "HALL_IR_READY";
   }
   bool initialReferenceReady() const { return initialReferenceReady_; }
-  bool storageReady() const { return true; }
-  bool initialCollectionStarted() const { return false; }
   uint64_t consumptionId() const { return consumptionId_; }
   bool irSpeedAvailable(uint64_t nowUs) const { return speedAvailable_ && irApplicable(nowUs); }
   double irSpeedMmS() const { return speedMmS_; }

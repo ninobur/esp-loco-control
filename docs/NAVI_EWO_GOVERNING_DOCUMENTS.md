@@ -96,6 +96,8 @@ extension by 0111 is withdrawn by 0116.
 
 ## 5. Current implementation documentation (candidates, not field accepted)
 
+- [Document B implementation ledger and validation, 2026-10-05](NAVI_VESTIGIAL_CODE_CLEANUP_IMPLEMENTATION_20261005.md)
+  (vestigial cleanup only; Document C/station implementation remains a separate pass)
 - [`../firmware/programs/NAVI_EYES_WIDE_OPEN/README.md`](../firmware/programs/NAVI_EYES_WIDE_OPEN/README.md)
 - [`../firmware/programs/NAVI_EYES_WIDE_OPEN_INTEGRATED/README.md`](../firmware/programs/NAVI_EYES_WIDE_OPEN_INTEGRATED/README.md)
   (the integrated candidate; it carries the 21-item disposition audit)
