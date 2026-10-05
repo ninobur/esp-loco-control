@@ -26,6 +26,23 @@ published. The absent station event in the Pi log is consistent with that path.
 
 The correction swaps those two arguments. The full host suite passed, and the
 ESP32 sketch compiled with `--warnings all` and `-Werror=format`; only three
-pre-existing Adafruit INA219 enum warnings appeared. The correction has not
-been flashed as part of this analysis. The flashed image remains `dd495ab`
-until a later upload is explicitly reported.
+pre-existing Adafruit INA219 enum warnings appeared. The correction had not
+been flashed at the end of this analysis; the subsequent upload is recorded
+below.
+
+## Corrected flash follow-up
+
+David subsequently requested the corrected sketch be flashed. The checkout was
+clean at `4721b64c60f8e351d4a11096977815d70adfc96f`. Before upload, Pi
+telemetry showed PWM 0 and AUTO off. The connected ESP32 MAC was
+`68:09:47:ac:4e:b4`, Otto's recorded identity. A fresh ESP32 3.3.12 build
+passed with `--warnings all` and `-Werror=format`; the application binary SHA-256
+was `64397458f8ef60b0743261f9ba81c511c22f7cf4ad840582ce7858c5a046136e`.
+
+`arduino-cli upload` wrote the bootloader, partition table, boot application
+selector, and corrected application at 115200 baud. The uploader verified the
+hash of each written region. The Pi log
+`/home/david/NGR/telemetry/runs/9950011_20261005_122844.log` reported a new
+boot at 12:38:32.606 with boot ID `07C32E3D48818352`; post-flash telemetry
+showed PWM 0 and AUTO off. No movement or station approach was tested during
+this flash. The IR source was absent in the post-flash idle status snapshot.
