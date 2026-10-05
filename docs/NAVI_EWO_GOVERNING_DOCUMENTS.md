@@ -15,6 +15,10 @@ These cleanup principles are separate from station position/overlay architecture
 station-stop implementation, adaptive braking, and CTO/CE reconstruction.
 Preserving this architecture does not authorize cleanup implementation.
 
+**Before modifying NAVI operating or station architecture, read first:**
+[`NAVI Position/Overlay Operating Architecture`](NAVI_POSITION_OVERLAY_OPERATING_ARCHITECTURE_20261005.md).
+This documentation record does not authorize implementation.
+
 This page is a directory and a supersession ledger. It authorizes nothing
 (`/AGENTS.md` section 2), and no decision record authorizes an agent to act
 (`decisions/README.md`).
