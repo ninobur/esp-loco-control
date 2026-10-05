@@ -1,5 +1,15 @@
 # NAVI unified authority: X22 concept integration, reconciliation plan
 
+> **Station-authority supersession — 2026-10-05.**
+> [Document C](NAVI_POSITION_OVERLAY_OPERATING_ARCHITECTURE_20261005.md) and
+> [decision 0121](decisions/0121-current-position-direction-and-overlay-determine-navi-operating-authority.md) govern operating
+> requirements. The appendix's classification of the station phase watchdog
+> as legitimately temporal is superseded as an architectural endorsement.
+> The StationMachine data-flow and timing inventory remain historical source
+> descriptions; they do not preserve phase authority. Genuine dwell and
+> actuator timing remain possible execution state. Earlier navigation
+> supersession notes and the original inventory are retained.
+
 > **Governing principles:** [`NGR_DECISION_SYSTEM_DESIGN_PRINCIPLES.md`](NGR_DECISION_SYSTEM_DESIGN_PRINCIPLES.md) (enduring) and
 > [`NAVI_DECISION_MODEL.md`](NAVI_DECISION_MODEL.md) (their NAVI application).
 

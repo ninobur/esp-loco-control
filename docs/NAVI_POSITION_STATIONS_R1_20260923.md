@@ -1,5 +1,16 @@
 # NAVI Position-Based Station Requirements R1
 
+> **Historical implementation/design record — superseded in scope, 2026-10-05.**
+> [Decision 0121](decisions/0121-current-position-direction-and-overlay-determine-navi-operating-authority.md) and
+> [Document C](NAVI_POSITION_OVERLAY_OPERATING_ARCHITECTURE_20261005.md) govern NAVI operating authority.
+> The retained station phases and visit identity, completed-visit suppression,
+> pause/resume history, phase watchdog, procedural overshoot/late entry, and
+> marker/PWM sequences below describe R1, not the target operating architecture.
+> ARMED/armed_after and the associated tests are historical compatibility and
+> verification descriptions, not permission to retain those concepts as authority.
+> Current-position reasoning, physical execution needs, and the original
+> settings, evidence, dates, and implementation account are preserved unchanged.
+
 ## Status and Scope
 
 Toby development-control candidate, not a production promotion.

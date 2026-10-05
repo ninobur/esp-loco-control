@@ -1,5 +1,15 @@
 # POSITION_STATIONS_R1 — Independent Review (Claude)
 
+> **Historical review evidence — procedural conclusions superseded in scope,
+> 2026-10-05.** [Decision 0121](decisions/0121-current-position-direction-and-overlay-determine-navi-operating-authority.md) and
+> [Document C](NAVI_POSITION_OVERLAY_OPERATING_ARCHITECTURE_20261005.md) replace the governing role of
+> completed-visit suppression, pause-preserved station phases/watchdogs,
+> MISSED/PHASE_TIMEOUT, procedural late-entry reasoning, and proposed repairs
+> that retain historical procedure as authority.
+> The probes, findings, verdict, and recommendations below remain an unchanged
+> review of the stated R1 build; they are not acceptance criteria for the new
+> position/overlay architecture.
+
 Date: 2026-09-24. Reviewed: `57d34d6` (Stations.h, .ino stationService/GO/
 correction path, tests). Context: audit `5cff759`. No flash, no hardware,
 no code changed by this review.

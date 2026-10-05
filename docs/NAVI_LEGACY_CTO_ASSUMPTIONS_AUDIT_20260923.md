@@ -1,5 +1,14 @@
 # NAVI Legacy CTO Assumptions Audit
 
+> **Scoped supersession of architectural conclusions — 2026-10-05.**
+> [Document C](NAVI_POSITION_OVERLAY_OPERATING_ARCHITECTURE_20261005.md) and
+> [decision 0121](decisions/0121-current-position-direction-and-overlay-determine-navi-operating-authority.md) supersede §5's
+> justification for retaining completed-visit history, and any recommendation
+> below to preserve station phases, pause history, or phase watchdogs as
+> operating authority. Dwell timing and smooth actuation may remain legitimate
+> execution mechanisms for a current instruction. This audit's source findings,
+> field/contract evidence, and original recommendations remain unchanged as history.
+
 ## Scope and Verdict
 
 Read-only control review at `57d34d6`, prompted by David after the

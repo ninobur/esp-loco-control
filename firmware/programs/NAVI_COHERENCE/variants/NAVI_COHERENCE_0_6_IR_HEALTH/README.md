@@ -1,5 +1,13 @@
 # NAVI COHERENCE 0.6 POSITION_STATIONS_R1_20Q3
 
+> **Historical candidate station model — 2026-10-05 clarification.**
+> The R1 visit-memory and pause/phase-watchdog descriptions below remain an
+> account of this implementation. Their use as NAVI operating authority is
+> superseded by [Document C](../../../../../docs/NAVI_POSITION_OVERLAY_OPERATING_ARCHITECTURE_20261005.md) and
+> [decision 0121](../../../../../docs/decisions/0121-current-position-direction-and-overlay-determine-navi-operating-authority.md).
+> Current-position reasoning survives; historical station procedure does not
+> govern the target. The candidate and all recorded build/field evidence are unchanged.
+
 ## Current Candidate: POSITION_STATIONS_R1_20Q3
 
 ### Prepared recorder build: `..._SYNC_R1`

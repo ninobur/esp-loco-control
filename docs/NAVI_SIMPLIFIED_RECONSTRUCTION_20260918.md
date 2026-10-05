@@ -1,5 +1,15 @@
 # NAVI_SIMPLIFIED — reconstructed project record
 
+> **Historical continuation record — station-authority scope superseded,
+> 2026-10-05.** The station-phase/skip-stop obligations in the open engineering
+> work below do not govern the current NAVI/EWO operating architecture.
+> [Document C](NAVI_POSITION_OVERLAY_OPERATING_ARCHITECTURE_20261005.md) and
+> [decision 0121](decisions/0121-current-position-direction-and-overlay-determine-navi-operating-authority.md)
+> govern present operating requirements. Physical actuator-transition questions
+> remain distinct from the rejected historical phase authority (Document C §19).
+> The original status, prospectus references, evidence, and earlier work plan
+> remain unchanged as a record of NAVI_SIMPLIFIED development.
+
 **Date reconstructed:** 2026-09-18
 
 **Status:** Controlling continuation record; firmware work paused

@@ -1,5 +1,15 @@
 # NAVI_EYES_WIDE_OPEN_INTEGRATED_R2_FT2 — adaptive station-brake candidate
 
+> **Implementation description versus target architecture — 2026-10-05.**
+> [Document C](../../../docs/NAVI_POSITION_OVERLAY_OPERATING_ARCHITECTURE_20261005.md) and
+> [decision 0121](../../../docs/decisions/0121-current-position-direction-and-overlay-determine-navi-operating-authority.md)
+> govern NAVI operating authority. The retained StationMachine visit discovery,
+> dwell/departure bookkeeping, and lifecycle descriptions below report the
+> candidate's implemented state; they do not grant historical phase or visit
+> state authority in the target architecture. Legitimate current-instruction
+> execution state remains allowed. This documentation reconciliation changes
+> neither the candidate nor its separate adaptive-braking implementation.
+
 This candidate is based on the exact EWO R2 FT2 source. The earlier `4721b64`
 revision was flashed to Otto for a supervised field test; the present
 MM053-approach correction has only been compiled and host-tested, not flashed.

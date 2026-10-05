@@ -1,5 +1,14 @@
 # NAVI_SIMPLIFIED — response to Claude review
 
+> **Historical disposition — station-procedure expectations superseded in scope,
+> 2026-10-05.** The missed-stop/phase-timeout handback and historical
+> station-phase expectations in rows 1 and 13 are not requirements for the
+> current NAVI operating architecture. See
+> [Document C](NAVI_POSITION_OVERLAY_OPERATING_ARCHITECTURE_20261005.md) and
+> [decision 0121](decisions/0121-current-position-direction-and-overlay-determine-navi-operating-authority.md).
+> Physical actuator correctness, unrelated findings, and the original accepted/open
+> dispositions remain historical evidence; no proposed firmware correction is applied.
+
 **Status:** Reconstructed disposition record. No firmware corrections are included in this document.
 
 | # | Disposition | Required correction and verification | Status |

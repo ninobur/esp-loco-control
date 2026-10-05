@@ -1,5 +1,15 @@
 # 0068 — Station stops return, with stopping points tunable per station and per direction
 
+> **Status update — superseded in scope by [0121](0121-current-position-direction-and-overlay-determine-navi-operating-authority.md), 2026-10-05.**
+> For NAVI operating authority, the station arming at −10, persistent
+> Idle/Approach/Zone/Ramp/Dwell/Depart authority, phase-controlled throttle
+> ownership, procedural overshoot at +5, 120-second phase timeout, and
+> marker/PWM sequences as operating requirements are superseded by
+> [Document C](../NAVI_POSITION_OVERLAY_OPERATING_ARCHITECTURE_20261005.md).
+> Physical stopping geography and legitimate ramp/dwell execution state are
+> not rejected by this notice. The original status, reasoning, settings,
+> alternatives, and verification record follow unchanged.
+
 Status: Proposed  (2026-09-01)
 
 ## Decision

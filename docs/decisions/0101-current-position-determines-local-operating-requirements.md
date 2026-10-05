@@ -1,5 +1,14 @@
 # 0101 - Current position determines local operating requirements
 
+> **Status update — partially superseded by [0121](0121-current-position-direction-and-overlay-determine-navi-operating-authority.md), 2026-10-05.**
+> The current-position principle remains foundational. Completed-visit
+> suppression, preservation of historical station procedure across pauses,
+> and phase-watchdog authority are superseded by
+> [Document C](../NAVI_POSITION_OVERLAY_OPERATING_ARCHITECTURE_20261005.md).
+> Current instruction-driven maneuver and dwell execution state remain
+> legitimate; they do not preserve old operating authority across STOP/GO.
+> The original status, operator quotation, reasoning, and evidence follow unchanged.
+
 Status: Operator principle accepted (2026-09-23). First implementation prepared;
 independent review and field acceptance pending. No deployment authorization implied.
 

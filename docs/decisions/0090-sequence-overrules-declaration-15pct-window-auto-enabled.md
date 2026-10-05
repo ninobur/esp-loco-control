@@ -1,5 +1,14 @@
 # 0090 - A 10-magnet sequence overrules a bad declaration; IR window 15%; AUTO enabled
 
+> **Status update — station-authority claims superseded in scope by
+> [0121](0121-current-position-direction-and-overlay-determine-navi-operating-authority.md), 2026-10-05.**
+> The exact −10 station-arming requirement, `armAfterCorrection` workaround,
+> retained phase as station authority, and overshoot → MISSED → cruise
+> consequence are not governing NAVI operating architecture; see
+> [Document C](../NAVI_POSITION_OVERLAY_OPERATING_ARCHITECTURE_20261005.md).
+> This notice does not reopen the navigation/IR decisions or alter their
+> existing supersession notices. The original status and record follow unchanged.
+
 **Whole-route recovery implementation superseded by0098** (2026-09-23).
 The historical AUTO/15% rulings below are retained; global matching is removed
 from the PROXIMAL_R1 candidate after the documented MM65->166 failure.

@@ -1,5 +1,14 @@
 # Firmware catalog
 
+> **NAVI operating-authority clarification — 2026-10-05.**
+> The NAVI station/visit/phase descriptions and their controlling-record links
+> below describe the catalogued implementations and their evidence status.
+> Where those descriptions retain historical station-procedure authority,
+> [Document C](../docs/NAVI_POSITION_OVERLAY_OPERATING_ARCHITECTURE_20261005.md) and
+> [decision 0121](../docs/decisions/0121-current-position-direction-and-overlay-determine-navi-operating-authority.md)
+> govern the target architecture. See the [NAVI_EWO governing index](../docs/NAVI_EWO_GOVERNING_DOCUMENTS.md)
+> for the separate A/B/C records. No sketch or validation status changes here.
+
 This is the authoritative index of runnable Arduino sketches in this
 repository. All runnable sketches are development, diagnostic, or experimental
 programs; there is currently no designated production program. It answers two

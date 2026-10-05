@@ -1,5 +1,15 @@
 # NAVI_CTO — architecture and provenance report
 
+> **Historical proposal — station-policy claims superseded in scope, 2026-10-05.**
+> The requirement in §7 to inherit StationMachine and its phase/arming policy
+> unchanged does not govern NAVI operating authority; see
+> [Document C](NAVI_POSITION_OVERLAY_OPERATING_ARCHITECTURE_20261005.md) and
+> [decision 0121](decisions/0121-current-position-direction-and-overlay-determine-navi-operating-authority.md).
+> Physical execution evidence and the historical proposal remain preserved.
+> Future CTO/CE reconstruction is separately governed by
+> [Document A](NAVI_CLOSE_TRAIN_OPERATIONS_RECONSTRUCTION_ARCHITECTURE_20261005.md);
+> this notice does not merge that project with station cleanup or change protocols.
+
 **Date:** 2026-09-09
 **Branch:** `agent/toby-1-13-flash`
 **Status: proposal. No firmware written, no image built, no hardware touched.**
