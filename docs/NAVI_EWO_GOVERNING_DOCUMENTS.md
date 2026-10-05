@@ -9,6 +9,12 @@ reconstruction, read first:**
 This preserves the settled architecture and the relationship to legacy CTO2;
 it does not authorize implementation.
 
+**Before reviewing or cleaning the production NAVI/EWO lineage, read first:**
+[`NAVI Vestigial Code Cleanup`](NAVI_VESTIGIAL_CODE_CLEANUP_ARCHITECTURE_20261005.md).
+These cleanup principles are separate from station position/overlay architecture,
+station-stop implementation, adaptive braking, and CTO/CE reconstruction.
+Preserving this architecture does not authorize cleanup implementation.
+
 This page is a directory and a supersession ledger. It authorizes nothing
 (`/AGENTS.md` section 2), and no decision record authorizes an agent to act
 (`decisions/README.md`).
