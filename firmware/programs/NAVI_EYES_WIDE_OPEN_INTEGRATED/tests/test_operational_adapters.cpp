@@ -47,16 +47,28 @@ int main() {
              order.event && !std::strcmp(order.event, "ZERO_RAMP"));
       // The retained lifecycle machine still describes its historical ramp,
       // but EWO's scoped controller does not treat that order as stop
-      // authority. At the same MM offset it continues the measured profile.
+      // authority. The measured profile follows its own accepted references.
       EwoStationStopProfile measured;
       const uint8_t approach = routeMod(int(station.centre) - 10 * direction);
       measured.noteAcceptedHall(approach, 1000000, EWO_IR_PITCH_UM);
-      measured.begin(station.centre, direction, stop, 1000000, 100, 60,
+      measured.begin(station.centre, direction, approach, 1000000, 100, 60,
                      10.0, 400.0, stationPwm(station, direction), 200, 1000000);
-      const auto demand = measured.demand(
-          stop, 1000000, 100, 1000000, true, true,
+      auto demand = measured.demand(
+          approach, 1000000, 100, 1000000, true, true,
           10.0 * EWO_PKPH_MM_PER_SEC, 60);
       assert(demand.available && demand.approachRamp && demand.pwmTarget != 0);
+      if (stopOffsetFor(station, direction) < 0) {
+        const uint8_t zone = routeMod(int(station.centre) - 5 * direction);
+        measured.noteAcceptedHall(zone, 2000000, EWO_IR_PITCH_UM);
+      } else {
+        measured.noteAcceptedHall(station.centre, 2000000, EWO_IR_PITCH_UM);
+      }
+      demand = measured.demand(stop, 2000000, 207, 2000000, true, true,
+                               10.0 * EWO_PKPH_MM_PER_SEC, 60);
+      assert(demand.available &&
+             (stopOffsetFor(station, direction) < 0
+                  ? demand.stationHold && demand.pwmTarget != 0
+                  : demand.finalRamp && measured.finalReferenceValid()));
       order = machine.tick(stop, direction, 0, 90, 300);
       assert(order.event && !std::strcmp(order.event, "DWELL_BEGIN"));
       order = machine.tick(stop, direction, 0, 90, 5300);

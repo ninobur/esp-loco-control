@@ -46,3 +46,32 @@ hash of each written region. The Pi log
 boot at 12:38:32.606 with boot ID `07C32E3D48818352`; post-flash telemetry
 showed PWM 0 and AUTO off. No movement or station approach was tested during
 this flash. The IR source was absent in the post-flash idle status snapshot.
+
+## Subsequent short run: AUTO withdrawal, not another reboot
+
+The subsequent Otto CW run in the same Pi log used corrected source `4721b64`
+and boot ID `C7707E90EC82EC78` from 12:40:46.790. This run reached MM052
+at 12:41:30.841 and MM053 at 12:41:32.057. Both were ruled `MISSED_MAGNET`;
+nevertheless, NAVI reported `position_reliable=1`, and the MM053 report had
+applicable IR at 383 completed pulses and measured speed 47.901 pKPH.
+
+At 12:41:32.058, the first Grillers approach event was
+`STATION_ZERO_HALL_REQUIRED` with `off=-10`, `brake_phase=WAITING`, PWM 90,
+`reference_ir_um=0`, and `ir_unavailable=0`. AUTO withdrew immediately. The
+ordinary withdrawal ramp then took PWM to 85 by 12:41:32.203, 52 by
+12:41:33.194, 20 by 12:41:34.204, and 0 by 12:41:35.201, still at MM053.
+There was no reboot at this failure point; the corrected station-event
+formatter published valid telemetry. This is a separate control-flow defect
+from the earlier `snprintf` crash.
+
+Source inspection shows that `StationMachine` discovers Grillers from NAVI's
+MM053 position, but `EwoStationStopProfile` remained in `WAITING` unless the
+−10 marker had an accepted Hall event. The missed MM053 therefore caused an
+inaccurate Station 0 Hall warning and AUTO withdrawal before approach braking.
+The follow-up source correction permits the −10 approach to begin from valid
+NAVI position plus valid IR distance/speed; it does **not** treat the missed
+marker as accepted Hall or let the final brake start without accepted Station 0
+Hall. It also makes missing Station 0 Hall while already in approach/hold a
+clear withdrawal, and fixes CCW surveyed approach-distance accumulation.
+Host tests and ESP32 compilation passed. This follow-up correction has **not**
+been flashed or field tested.

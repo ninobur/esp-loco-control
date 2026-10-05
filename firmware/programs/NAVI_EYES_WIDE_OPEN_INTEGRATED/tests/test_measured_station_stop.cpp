@@ -42,6 +42,65 @@ int main() {
                        true, true, 39.5 * EWO_PKPH_MM_PER_SEC, 89);
   assert(demand.newIrObservation && demand.pwmTarget <= 89);
 
+  // Otto's observed Grillers CW entry: MM053 (-10) was a missed magnet,
+  // although NAVI position, IR distance, and IR speed remained valid. The
+  // approach may use that NAVI/IR position without inventing a Hall event.
+  EwoStationStopProfile missedApproachHall;
+  const uint64_t missedEntryIr = umPerPulse(383);
+  missedApproachHall.begin(63, 1, 53, missedEntryIr, 383, 90, 47.9,
+                           400.0, 60, 200, 1000000);
+  demand = missedApproachHall.demand(
+      53, missedEntryIr, 383, 1000000, true, true,
+      47.9 * EWO_PKPH_MM_PER_SEC, 90);
+  assert(demand.available && demand.approachRamp && !demand.referenceRequired);
+  assert(demand.referenceIrUm == missedEntryIr && demand.pwmTarget == 60);
+  assert(near(demand.targetPkph, 47.9));
+  assert(!missedApproachHall.finalReferenceValid());
+
+  // Station 0 is still Hall-gated. Neither the IR-positioned approach nor
+  // station-speed hold can silently authorize the final brake.
+  const uint64_t zoneIr = umPerPulse(540);
+  missedApproachHall.noteAcceptedHall(58, zoneIr, EWO_IR_PITCH_UM);
+  demand = missedApproachHall.demand(
+      58, zoneIr, 540, 2000000, true, true,
+      25.0 * EWO_PKPH_MM_PER_SEC, 60);
+  assert(demand.available && demand.stationHold);
+  demand = missedApproachHall.demand(
+      63, umPerPulse(700), 700, 3000000, true, true,
+      25.0 * EWO_PKPH_MM_PER_SEC, 60);
+  assert(!demand.available && demand.referenceRequired &&
+         !std::strcmp(demand.reason, "STATION_ZERO_HALL_REQUIRED"));
+  missedApproachHall.noteAcceptedHall(63, umPerPulse(700), EWO_IR_PITCH_UM);
+  demand = missedApproachHall.demand(
+      63, umPerPulse(700), 700, 3000000, true, true,
+      25.0 * EWO_PKPH_MM_PER_SEC, 60);
+  assert(demand.available && demand.finalRamp &&
+         missedApproachHall.finalReferenceValid());
+
+  EwoStationStopProfile noEntryIr;
+  noEntryIr.begin(63, 1, 53, missedEntryIr, 383, 90, 0.0,
+                  400.0, 60, 200, 1000000);
+  demand = noEntryIr.demand(53, missedEntryIr, 383, 1000000, false, false,
+                            0.0, 90);
+  assert(!demand.available && demand.referenceRequired &&
+         !std::strcmp(demand.reason, "STATION_APPROACH_IR_REQUIRED"));
+
+  // CCW approach distance must accumulate surveyed spans in the actual
+  // direction of travel, rather than summing the CW-side station markers.
+  EwoStationStopProfile ccw;
+  const uint64_t ccwIr = umPerPulse(200);
+  ccw.begin(0, -1, 10, ccwIr, 200, 90, 40.0, 400.0, 60, 200, 1000000);
+  demand = ccw.demand(10, ccwIr, 200, 1000000, true, true,
+                      40.0 * EWO_PKPH_MM_PER_SEC, 90);
+  assert(demand.available && demand.approachRamp);
+  uint64_t ccwApproachUm = 0;
+  for (int mm = 10; mm > 5; --mm)
+    ccwApproachUm += uint64_t(navi_one::spanMm(mm, -1)) * 1000;
+  demand = ccw.demand(5, ccwIr + ccwApproachUm, 360, 2000000,
+                      true, true, 25.0 * EWO_PKPH_MM_PER_SEC, 60);
+  assert(demand.available && demand.approachRamp &&
+         near(demand.targetPkph, EWO_APPROACH_TARGET_PKPH));
+
   // Station -5 through 0 is one station-speed hold, not a sequence of
   // intermediate speed or PWM targets.
   stop.noteAcceptedHall(103, approachIr + 50000, EWO_IR_PITCH_UM);
@@ -109,5 +168,5 @@ int main() {
   assert(!demand.available && demand.referenceRequired &&
          !std::strcmp(demand.reason, "STATION_ZERO_HALL_REQUIRED"));
 
-  std::puts("PASS: adaptive approach/hold, Station 0 IR brake, pulse resolution, nominal fallback visibility, physical stop");
+  std::puts("PASS: adaptive approach/hold, missed -10 Hall IR entry, accepted Station 0 brake, CCW surveyed distance, nominal fallback visibility, physical stop");
 }

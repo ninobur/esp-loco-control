@@ -721,9 +721,13 @@ static void serviceStation() {
       currentMm, latestIr.nominalUm, latestIr.completedPulses, latestIr.capturedUs,
       irDistanceValid, irSpeedValid, navi.irSpeedMmS(), actualPwm);
   if (!demand.available) {
-    const char* reason = demand.referenceRequired
-        ? "Station 0 Hall reference unavailable; AUTO withdrawn. No later-marker fallback."
-        : "Station adaptive stop coordinate unavailable; AUTO withdrawn. No PWM/Hall fallback.";
+    const char* reason = !strcmp(demand.reason, "STATION_APPROACH_IR_REQUIRED")
+        ? "Station approach IR reference unavailable; AUTO withdrawn."
+        : !strcmp(demand.reason, "STATION_APPROACH_ENTRY_MISSED")
+            ? "Station approach entry missed; AUTO withdrawn."
+            : demand.referenceRequired
+                ? "Station 0 Hall reference unavailable; AUTO withdrawn. No later-marker fallback."
+                : "Station adaptive stop coordinate unavailable; AUTO withdrawn. No PWM/Hall fallback.";
     publishStationEvent(demand.reason, station.name,
                         ewoStationOffsetToCentre(currentMm, direction, station.centre),
                         demand, static_cast<uint8_t>(actualPwm));

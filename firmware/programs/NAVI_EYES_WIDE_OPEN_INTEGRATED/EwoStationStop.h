@@ -162,7 +162,8 @@ class EwoStationStopProfile {
   }
 
   // This is called only for an accepted TargetConfirmed event. A late or
-  // missed-magnet event cannot establish either the approach or final anchor.
+  // missed-magnet event cannot establish a Hall anchor. A valid NAVI/IR
+  // position may separately start the approach at -10, never the final brake.
   void noteAcceptedHall(uint8_t mm, uint64_t irUm, uint32_t pitchUm = 0) {
     lastConfirmedMm_ = mm;
     lastConfirmedIrUm_ = irUm;
@@ -208,12 +209,31 @@ class EwoStationStopProfile {
                             ? finalReferenceUm_ : approachReferenceUm_;
     out.irPulses = currentPulses;
     activatePendingHall(actualPwm, out.measuredPkph, capturedUs);
+    const int16_t offset = ewoStationOffsetToCentre(currentMm, direction_, centre_);
+    if (phase_ == EwoBrakePhase::Waiting && offset == -10 &&
+        irDistanceValid && irSpeedValid) {
+      // Station discovery can be IR-positioned when the -10 magnet is missed.
+      // Do not promote that observation into an accepted Hall reference: the
+      // final brake still starts only at an accepted Station 0 Hall event.
+      startApproach(currentIrUm, currentPulses, actualPwm, out.measuredPkph,
+                    capturedUs);
+    }
     out.phase = phase_;
     out.referenceIrUm = phase_ == EwoBrakePhase::Final ||
                         phase_ == EwoBrakePhase::Stopped
                             ? finalReferenceUm_ : approachReferenceUm_;
 
     if (phase_ == EwoBrakePhase::Waiting) {
+      out.referenceRequired = true;
+      out.reason = offset == -10 ? "STATION_APPROACH_IR_REQUIRED"
+                   : offset < 0 ? "STATION_APPROACH_ENTRY_MISSED"
+                                : "STATION_ZERO_HALL_REQUIRED";
+      return out;
+    }
+    if (offset >= 0 && phase_ != EwoBrakePhase::Final &&
+        phase_ != EwoBrakePhase::Stopped) {
+      // An IR-positioned approach does not authorize final braking. Do not
+      // keep station-speed hold through Station 0 when its Hall was missed.
       out.referenceRequired = true;
       out.reason = "STATION_ZERO_HALL_REQUIRED";
       return out;
@@ -346,6 +366,19 @@ class EwoStationStopProfile {
     brake_.judgment = 0;
   }
 
+  void startApproach(uint64_t referenceIrUm, uint64_t referencePulses,
+                     int actualPwm, double measuredPkph,
+                     uint64_t capturedUs) {
+    phase_ = EwoBrakePhase::Approach;
+    approachReferenceUm_ = referenceIrUm;
+    approachReferencePulses_ = referencePulses;
+    approachDistanceUm_ = routeDistanceUm(-10, -5);
+    startPkph_ = measuredPkph > EWO_APPROACH_TARGET_PKPH
+                     ? measuredPkph : EWO_APPROACH_TARGET_PKPH;
+    initializeBrake(approachReferenceUm_, approachReferencePulses_, actualPwm,
+                    measuredPkph, capturedUs, approachDistanceUm_);
+  }
+
   void activatePendingHall(int actualPwm, double measuredPkph,
                            uint64_t capturedUs) {
     if (!active_ || hallRevision_ == processedHallRevision_) return;
@@ -354,14 +387,8 @@ class EwoStationStopProfile {
     const int16_t offset = ewoStationOffsetToCentre(
         lastConfirmedMm_, direction_, centre_);
     if (offset == -10 && phase_ == EwoBrakePhase::Waiting) {
-      phase_ = EwoBrakePhase::Approach;
-      approachReferenceUm_ = lastConfirmedIrUm_;
-      approachReferencePulses_ = lastConfirmedPulses_;
-      approachDistanceUm_ = routeDistanceUm(-10, -5);
-      startPkph_ = measuredPkph > EWO_APPROACH_TARGET_PKPH
-                       ? measuredPkph : EWO_APPROACH_TARGET_PKPH;
-      initializeBrake(approachReferenceUm_, approachReferencePulses_, actualPwm,
-                      measuredPkph, capturedUs, approachDistanceUm_);
+      startApproach(lastConfirmedIrUm_, lastConfirmedPulses_, actualPwm,
+                    measuredPkph, capturedUs);
       return;
     }
     if (offset >= -5 && offset < 0 &&
@@ -387,7 +414,8 @@ class EwoStationStopProfile {
   uint64_t routeDistanceUm(int16_t fromOffset, int16_t toOffset) const {
     uint64_t total = 0;
     for (int16_t offset = fromOffset; offset < toOffset; ++offset) {
-      const uint8_t marker = navi_one::routeMod(int32_t(centre_) + offset);
+      const uint8_t marker = navi_one::routeMod(
+          int32_t(centre_) + int32_t(offset) * direction_);
       total += uint64_t(navi_one::spanMm(marker, direction_)) * 1000;
     }
     return total;

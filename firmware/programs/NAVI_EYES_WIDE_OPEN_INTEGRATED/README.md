@@ -1,8 +1,10 @@
 # NAVI_EYES_WIDE_OPEN_INTEGRATED_R2_FT2 — adaptive station-brake candidate
 
-This candidate is based on the exact EWO R2 FT2 source and is intended for
-review and compile/test only. It has not been flashed, deployed, or merged.
-Task branch: `codex/ewo-pwm-zero-localization`.
+This candidate is based on the exact EWO R2 FT2 source. The earlier `4721b64`
+revision was flashed to Otto for a supervised field test; the present
+MM053-approach correction has only been compiled and host-tested, not flashed.
+It is not field accepted or merged. Task branch:
+`codex/ewo-pwm-zero-localization`.
 
 ## Adaptive station approach and brake
 
@@ -10,10 +12,16 @@ Task branch: `codex/ewo-pwm-zero-localization`.
 one continuous, adaptive down-ramp:
 
 * Station −10 begins one continuous approach ramp from the measured entry
-  speed toward 25 pKPH. Station −5 through Station 0 holds the station-speed
+  speed toward 25 pKPH. A valid NAVI position plus valid IR distance and speed
+  can start this approach even if the −10 Hall marker was missed; this does
+  not create an accepted Hall reference. Without that IR evidence at a missed
+  −10 entry, AUTO withdraws and reports `STATION_APPROACH_IR_REQUIRED`.
+  Station −5 through Station 0 holds the station-speed
   actuator behavior at approximately 25 pKPH; there are no intermediate
   40/35/30/... PWM steps.
 * The accepted Hall event at Station 0 establishes the final IR reference.
+  If Station 0 is reached without its accepted Hall, AUTO withdraws rather
+  than continuing station-speed hold into the platform.
   Type-5 distance is `completedPulses * pitchUm`; the normal pitch is 9.652 mm
   per completed pulse. The final target is `5 * (1 - distance / 337.82)` pKPH,
   clamped to zero at 35 pulses / 337.82 mm.
@@ -30,6 +38,12 @@ one continuous, adaptive down-ramp:
   distance fallback. The existing StationMachine remains responsible for visit
   discovery, dwell timing, and departure bookkeeping; its old `ZERO_RAMP` order
   no longer has braking authority.
+
+The field trigger for the current correction was Otto's post-`4721b64` run:
+MM053 CW (Grillers −10) was ruled `MISSED_MAGNET` while NAVI position and IR
+remained valid. The earlier profile wrongly required an accepted Hall event
+at −10 and withdrew AUTO before the approach could begin. See
+[`20261005_OTTO_EWO_MM053_REBOOT.md`](../../../field-records/20261005_OTTO_EWO_MM053_REBOOT.md).
 
 Station telemetry includes the brake phase, IR pulse count/reference, distance,
 measured and target pKPH, actual/commanded PWM, nominal/applied down-ramp,
@@ -114,9 +128,10 @@ Normal missed-magnet fixtures start from a confirmed physical landmark. See
 
 Authorized correction of integrated candidate `cd55929`, based on governing
 documentation `612b791`. The stale pre-integration `638c635` is not this build.
-**This corrected candidate is not field accepted and has not been flashed.
-Otto's earlier supervised diagnostic flash was authorized by the operator;
-do not flash Otto or Toby from this branch pending David/Sam review.** See
+At the time of that 2026-09-29 review, the corrected candidate was not field
+accepted or flashed, and Otto/Toby flashing awaited David/Sam review. Later
+Otto-specific flashes are recorded separately; the current correction remains
+unflashed. See
 [`NAVI_EWO_REVIEW_CORRECTIONS_20260929.md`](../../../docs/NAVI_EWO_REVIEW_CORRECTIONS_20260929.md).
 The Otto Wi-Fi diagnosis and supervised flash are recorded in
 [`20260929_OTTO_EWO_WIFI_DIAGNOSIS_AND_FLASH.md`](../../../field-records/20260929_OTTO_EWO_WIFI_DIAGNOSIS_AND_FLASH.md).
