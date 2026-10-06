@@ -1,16 +1,20 @@
 /*
- * IR_SCOPE_ESPNOW_ACTIVE_TX_1_6_R2 — 1 kHz IR waveform transmitter plus
+ * IR_SCOPE_ESPNOW_PULSE_EVENT_TX_1_7_TEST — 1 kHz IR waveform transmitter plus
  * read-only QUORUM/TEMPLATES CtoPeerPacket v3 receiver and onboard interval
  * comparison. Samples GPIO34; no local navigation or motor authority.
  * NAVI consumes its evidence, so detector changes can affect navigation.
  * R2: quiet-only retention, agreeing-cycle reference, visible continuity loss.
- * Independent review and supervised bench acceptance required before use.
+ * 1.7: additive type-6 completed-pulse evidence; no detector/filter changes.
+ * Spec: docs/NAVI_IR_PULSE_EVENT_PHYSICAL_EVIDENCE_20261006.md.
+ * Built/reviewed diagnostic candidate; hardware acceptance pending. No flash
+ * or NAV/AUTO authority follows from this instrumentation experiment.
  */
 #include <Arduino.h>
 #include <WiFi.h>
 #include <esp_now.h>
 #include <esp_wifi.h>
-#include "../../../../common/IrMovementWire.h"
+#include "PulseEventEvidence.h"
+#include <atomic>
 
 static const uint8_t CHANNEL=11;
 static const int SENSOR_PIN=34;
@@ -38,7 +42,6 @@ struct __attribute__((packed)) Packet {
   uint16_t crc;
 };
 static_assert(sizeof(Packet)<=250,"ESP-NOW packet too large");
-
 struct __attribute__((packed)) CtoPeerPacket {
   uint8_t magic,version; uint32_t senderId,sequence;
   uint8_t hallMm,frontBoundaryMm,rearBoundaryMm; int8_t mapDir;
@@ -114,9 +117,16 @@ static RetainedFusion retained[RETAINED_INTERVALS];
 static bool haveCto=false; static uint32_t lastCtoSequence=0,lastCtoTxAttempts=0;
 static bool haveAnchor=false; static uint8_t anchorMm=0,anchorTruth=0; static int8_t anchorDir=0;
 static uint32_t anchorMs=0,anchorSample=0,anchorPulses=0,anchorMissing=0,anchorReboots=0,anchorSampleMissed=0;
-static volatile bool sendDone=true; static volatile esp_now_send_status_t sendStatus=ESP_NOW_SEND_FAIL;
+static std::atomic<bool> sendDone{true};
+static esp_now_send_status_t sendStatus=ESP_NOW_SEND_FAIL;
+static std::atomic<uint32_t> radioTimeouts{0},radioBusyDrops{0};
 static int runMin=0,runMax=0;
-static QueueHandle_t movementQueue;
+static constexpr unsigned PULSE_QUEUE_DEPTH=32,PULSE_LOG_DEPTH=64;
+struct PulseLogItem { PulseEventPacket event; bool queued; };
+static QueueHandle_t movementQueue,pulseEventQueue,pulseLogQueue;
+static std::atomic<uint32_t> pulseEventGenerated{0},pulseEventDrops{0},pulseEventSent{0};
+static std::atomic<uint32_t> pulseEventFailed{0},pulseLogDrops{0},pulseQueueHigh{0};
+static std::atomic<uint32_t> pulseSendLagMaxUs{0};
 static portMUX_TYPE movementMux=portMUX_INITIALIZER_UNLOCKED;
 static ir_movement::WireSnapshot latestMovement;
 static uint64_t movementBoot;
@@ -147,10 +157,10 @@ static void onReceive(const esp_now_recv_info_t *info,const uint8_t *data,int le
 
 static void sampler(void*) {
   Packet p{}; p.magic=MAGIC;p.version=VERSION;p.type=1;p.sid=sid;
-  // Installed wheel pitch is settled at 9.652 mm/pulse. Calibration ID zero
-  // is retained in the Type-5 wire contract; no runtime calibration occurs.
+  // Installed 9.652-mm pitch is settled; legacy calibration ID remains zero.
   ir_movement::Measurement measurement(movementBoot,0,9.652,true);
   uint64_t nextReport=0; uint32_t movementSequence=0;
+  PulseEventEvidence pulseEvidence;
   ir_movement::Reason lastReason=ir_movement::PRIMING;
   TickType_t wake=xTaskGetTickCount(); uint64_t t0=esp_timer_get_time();
   for(;;){
@@ -161,6 +171,19 @@ static void sampler(void*) {
     measurement.sample(us,raw);
     const auto& detector=measurement.detector();
     const auto snapshot=measurement.snapshot();
+    PulseLogItem log{};
+    if(pulseEvidence.observe(snapshot,detector,sid,log.event)){
+      auto& e=log.event;
+      e.crc=crc16((const uint8_t*)&e,offsetof(PulseEventPacket,crc));
+      pulseEventGenerated++;
+      log.queued=xQueueSend(pulseEventQueue,&e,0)==pdTRUE;
+      if(!log.queued)pulseEventDrops++;
+      const uint32_t depth=uxQueueMessagesWaiting(pulseEventQueue);
+      if(depth>pulseQueueHigh.load())pulseQueueHigh=depth;
+      // A separate FIFO preserves native intervals even when radio is congested.
+      // Serial runs in loop(), never in this 1-kHz sampling task.
+      if(xQueueSend(pulseLogQueue,&log,0)!=pdTRUE)pulseLogDrops++;
+    }
     runMin=detector.low; runMax=detector.high;
     // Legacy type-1/fusion counters retain observed-rise semantics.
     pulses=(uint32_t)detector.rises; latches=(uint32_t)detector.aborts;
@@ -187,17 +210,30 @@ static void sampler(void*) {
 }
 
 static bool radioSend(const uint8_t *data,size_t len){
+  // A timed-out accepted send still owns the next callback. Never submit
+  // another frame until it arrives; otherwise its result could be misattributed.
+  if(!sendDone.load()){radioBusyDrops++;sendErrors++;return false;}
   sendDone=false;esp_err_t e=esp_now_send(BROADCAST,data,len);
   if(e!=ESP_OK){sendErrors++;sendDone=true;return false;}
   uint32_t start=millis();while(!sendDone&&millis()-start<100)vTaskDelay(pdMS_TO_TICKS(1));
-  if(!sendDone||sendStatus!=ESP_NOW_SEND_SUCCESS){sendErrors++;return false;}return true;
+  if(!sendDone.load()){radioTimeouts++;sendErrors++;return false;}
+  if(sendStatus!=ESP_NOW_SEND_SUCCESS){sendErrors++;return false;}return true;
 }
 
 static void radio(void*){
   Packet p; CtoObservationPacket o; FusionIntervalPacket f;
   for(;;){
     uint32_t ackSequence;
-    ir_movement::WireSnapshot movement;
+    ir_movement::WireSnapshot movement; PulseEventPacket pulseEvent;
+    if(xQueueReceive(pulseEventQueue,&pulseEvent,0)==pdTRUE){
+      const uint64_t lag=uint64_t(esp_timer_get_time())-pulseEvent.completedUs;
+      const uint32_t boundedLag=lag>UINT32_MAX?UINT32_MAX:uint32_t(lag);
+      if(boundedLag>pulseSendLagMaxUs.load())pulseSendLagMaxUs=boundedLag;
+      if(radioSend((uint8_t*)&pulseEvent,sizeof(pulseEvent)))pulseEventSent++;
+      else pulseEventFailed++;
+      // One pulse per pass gives Type-5 and existing diagnostics service too.
+
+    }
     if(xQueueReceive(movementQueue,&movement,0)==pdTRUE)
       radioSend((uint8_t*)&movement,sizeof(movement));
     while(xQueueReceive(fusionAckQueue,&ackSequence,0)==pdTRUE){
@@ -216,19 +252,22 @@ static void radio(void*){
       r.attempts++;r.nextSendMs=millis()+(r.attempts<4?250UL*r.attempts:5000UL);continue;
     }
     if(xQueueReceive(observationQueue,&o,0)==pdTRUE){if(radioSend((uint8_t*)&o,sizeof(o)))observationSent++;continue;}
-    if(xQueueReceive(q,&p,pdMS_TO_TICKS(20))==pdTRUE){if(radioSend((uint8_t*)&p,sizeof(p)))sent++;}
+    if(xQueueReceive(q,&p,0)==pdTRUE){if(radioSend((uint8_t*)&p,sizeof(p)))sent++;}
+    vTaskDelay(pdMS_TO_TICKS(1)); // Yield only; pulse production is event-driven.
   }
 }
 
 void setup(){
   Serial.begin(115200);delay(300);analogReadResolution(12);pinMode(SENSOR_PIN,INPUT);sid=esp_random();q=xQueueCreate(30,sizeof(Packet));ctoRxQueue=xQueueCreate(16,sizeof(CtoRxItem));observationQueue=xQueueCreate(16,sizeof(CtoObservationPacket));fusionQueue=xQueueCreate(32,sizeof(FusionIntervalPacket));fusionAckQueue=xQueueCreate(32,sizeof(uint32_t));if(!q||!ctoRxQueue||!observationQueue||!fusionQueue||!fusionAckQueue){Serial.println("FATAL queue");while(1)delay(1000);}
   movementBoot=((uint64_t)esp_random()<<32)|sid;if(!movementBoot)movementBoot=1;
-  movementQueue=xQueueCreate(1,sizeof(ir_movement::WireSnapshot));
-  if(!movementQueue){Serial.println("FATAL movement queue");while(1)delay(1000);}
+  movementQueue=xQueueCreate(1,sizeof(ir_movement::WireSnapshot));pulseEventQueue=xQueueCreate(PULSE_QUEUE_DEPTH,sizeof(PulseEventPacket));
+  pulseLogQueue=xQueueCreate(PULSE_LOG_DEPTH,sizeof(PulseLogItem));
+  if(!movementQueue||!pulseEventQueue||!pulseLogQueue){Serial.println("FATAL movement/pulse queue");while(1)delay(1000);}
   WiFi.mode(WIFI_STA);WiFi.disconnect(false,true);esp_wifi_set_channel(CHANNEL,WIFI_SECOND_CHAN_NONE);
   if(esp_now_init()!=ESP_OK){Serial.println("FATAL esp_now_init");while(1)delay(1000);}esp_now_register_send_cb(onSent);esp_now_register_recv_cb(onReceive);
   esp_now_peer_info_t peer{};memcpy(peer.peer_addr,BROADCAST,6);peer.channel=CHANNEL;peer.encrypt=false;if(esp_now_add_peer(&peer)!=ESP_OK){Serial.println("FATAL add_peer");while(1)delay(1000);}
-  Serial.printf("READY IR_SCOPE_ESPNOW_ACTIVE_TX_1_6_R2 sid=%08lx pin=%d rate=1000 env=%d update=%lu prime=%d mingate=%d channel=%u raw=%u cto=%u obs=%u fusion=%u retained=%u target=%lu mac=%s\n",(unsigned long)sid,SENSOR_PIN,ENV_N,(unsigned long)ENV_UPDATE_MS,PRIME_N,MIN_SPAN,CHANNEL,(unsigned)sizeof(Packet),(unsigned)sizeof(CtoPeerPacket),(unsigned)sizeof(CtoObservationPacket),(unsigned)sizeof(FusionIntervalPacket),(unsigned)RETAINED_INTERVALS,(unsigned long)TOBY_ID,WiFi.macAddress().c_str());
+  Serial.printf("READY IR_SCOPE_ESPNOW_PULSE_EVENT_TX_1_7_TEST sid=%08lx pin=%d rate=1000 env=%d update=%lu prime=%d mingate=%d channel=%u raw=%u cto=%u obs=%u fusion=%u retained=%u target=%lu mac=%s\n",(unsigned long)sid,SENSOR_PIN,ENV_N,(unsigned long)ENV_UPDATE_MS,PRIME_N,MIN_SPAN,CHANNEL,(unsigned)sizeof(Packet),(unsigned)sizeof(CtoPeerPacket),(unsigned)sizeof(CtoObservationPacket),(unsigned)sizeof(FusionIntervalPacket),(unsigned)RETAINED_INTERVALS,(unsigned long)TOBY_ID,WiFi.macAddress().c_str());
+  Serial.printf("PULSE FORMAT boot=%016llx type=6 version=1 bytes=%u pitch_um=%lu radio_capacity=%u log_capacity=%u interval_zero=unavailable\n",(unsigned long long)movementBoot,(unsigned)sizeof(PulseEventPacket),(unsigned long)ir_movement::kInstalledPitchUm,PULSE_QUEUE_DEPTH,PULSE_LOG_DEPTH);
   xTaskCreatePinnedToCore(sampler,"sample",4096,nullptr,2,nullptr,0);xTaskCreatePinnedToCore(radio,"radio",4096,nullptr,1,nullptr,1);
 }
 static uint32_t statusAt = 0;
@@ -237,12 +276,35 @@ void loop(){
   if(millis()-movementStatusAt>=5000){
     movementStatusAt=millis();ir_movement::WireSnapshot m;
     portENTER_CRITICAL(&movementMux);m=latestMovement;portEXIT_CRITICAL(&movementMux);
-    Serial.printf("MOVE TX_1_6_R2 boot=%016llx t_us=%llu rises=%llu completed=%llu nominal_um=%llu reason=%u span=%u unreliable=%llu gaps=%llu sat=%llu distance_valid=0\n",
+    Serial.printf("MOVE TX_1_7_TEST boot=%016llx t_us=%llu rises=%llu completed=%llu nominal_um=%llu reason=%u span=%u unreliable=%llu gaps=%llu sat=%llu distance_valid=0\n",
       (unsigned long long)m.bootId,(unsigned long long)m.capturedUs,
       (unsigned long long)m.observedRises,(unsigned long long)m.completedPulses,
       (unsigned long long)m.nominalUm,m.opticalReason,m.span,
       (unsigned long long)m.unreliableSamples,(unsigned long long)m.sampleGaps,
       (unsigned long long)m.saturatedSamples);
+  }
+  PulseLogItem pulseLog;
+  // Bound each drain so historical CTO processing also gets loop time.
+  for(unsigned n=0;n<8 && xQueueReceive(pulseLogQueue,&pulseLog,0)==pdTRUE;++n){
+    const auto& e=pulseLog.event;
+    const double pkph=e.intervalUs?double(e.pitchUm)*1000.0/double(e.intervalUs)/5.37325:NAN;
+    Serial.printf("PULSE seq=%lu completed=%llu t_us=%llu dt_us=%llu pkph=%.3f nominal_um=%llu span=%u reason=%u queued=%u sent=%lu fail=%lu drop=%lu logdrop=%lu q=%u\n",
+      (unsigned long)e.sequence,(unsigned long long)e.completedPulses,(unsigned long long)e.completedUs,
+      (unsigned long long)e.intervalUs,pkph,(unsigned long long)e.nominalUm,e.span,e.opticalReason,
+      (unsigned)pulseLog.queued,(unsigned long)pulseEventSent.load(),(unsigned long)pulseEventFailed.load(),
+      (unsigned long)pulseEventDrops.load(),(unsigned long)pulseLogDrops.load(),
+      (unsigned)uxQueueMessagesWaiting(pulseEventQueue));
+  }
+  static uint32_t pulseStatusAt=0;
+  if(millis()-pulseStatusAt>=1000){
+    pulseStatusAt=millis();
+    Serial.printf("PULSE_STAT boot=%016llx generated=%lu sent=%lu fail=%lu drop=%lu logdrop=%lu q=%u qhigh=%lu logq=%u lag_max_us=%lu timeout=%lu busy_drop=%lu\n",
+      (unsigned long long)movementBoot,(unsigned long)pulseEventGenerated.load(),
+      (unsigned long)pulseEventSent.load(),(unsigned long)pulseEventFailed.load(),
+      (unsigned long)pulseEventDrops.load(),(unsigned long)pulseLogDrops.load(),
+      (unsigned)uxQueueMessagesWaiting(pulseEventQueue),(unsigned long)pulseQueueHigh.load(),
+      (unsigned)uxQueueMessagesWaiting(pulseLogQueue),(unsigned long)pulseSendLagMaxUs.load(),
+      (unsigned long)radioTimeouts.load(),(unsigned long)radioBusyDrops.load());
   }
   CtoRxItem item;
   while(xQueueReceive(ctoRxQueue,&item,0)==pdTRUE){
