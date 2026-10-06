@@ -1,0 +1,15 @@
+[Unit]
+Description=NGR continuous raw ESP-NOW serial recorder
+After=local-fs.target
+
+[Service]
+Type=simple
+User=david
+Group=dialout
+WorkingDirectory=/home/david/NGR/ir_espnow
+ExecStart=/usr/bin/python3 /home/david/NGR/ir_scope_serial_record.py --port /dev/serial/by-id/usb-Silicon_Labs_CP2102_USB_to_UART_Bridge_Controller_0001-if00-port0 --baud 921600 --outdir /home/david/NGR/ir_espnow
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

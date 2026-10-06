@@ -241,6 +241,15 @@ the `type` byte:
 | 2 | 72 | TX | Observation of one accepted Toby CTO v3 status packet |
 | 3 | 86 | TX | IR pulse and health summary for an observed Hall-MM interval |
 | 4 | 14 | RX | Unicast acknowledgment containing TX `sid` and type-3 `reportSequence` |
+| 5 | 110 | TX | Existing cumulative movement snapshot; `firmware/common/IrMovementWire.h` |
+| 6 | 61 | TX | Native completed-pulse event; `PulseEventEvidence.h` |
+| 7 | 70 | TX | One-second cumulative transmitter transport diagnostics; `PulseTransportStatus.h` |
+
+Types 6 and 7 and the later detector semantics are specified in
+[`NAVI_IR_PULSE_EVENT_PHYSICAL_EVIDENCE_20261006.md`](NAVI_IR_PULSE_EVENT_PHYSICAL_EVIDENCE_20261006.md).
+The Type-7 Pi logger preserves the raw RX line and appends a timestamped
+`PULSE_TRANSPORT` JSON row. Sections describing TX 1.2 below are historical.
+
 
 TX 1.2 retains up to 192 type-3 reports in volatile RAM. It retries each
 report until RX 1.1 acknowledges it; if the table fills, the oldest

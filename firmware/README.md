@@ -70,18 +70,19 @@ Controlling records: decisions 0109–0114 and
 `../docs/NAVI_EWO_REVIEW_CORRECTIONS_20260929.md`. No operational promotion and
 no Otto build claim. Await David and Sam's review and separate hardware authority.
 
-**2026-10-06 IR pulse-event experiment:**
+**2026-10-06 IR pulse transport diagnostics (TX 1.8):**
 `programs/IR_SCOPE_ESPNOW/variants/IR_SCOPE_ESPNOW_TX/IR_SCOPE_ESPNOW_TX.ino`
-now identifies as **IR_SCOPE_ESPNOW_PULSE_EVENT_TX_1_7_TEST**. Diagnostic physical
-evidence source; additive 61-byte Type-6 v1 completed-pulse events, per-event
-serial telemetry and visible transport loss. Existing Type-5 and detector
-semantics remain unchanged. **Built for ESP32 core 3.3.12, source-reviewed and
-host-tested; NOT flashed or field accepted.** No NAVI/control changes or
-promotion. David's supplied 1.7 candidate is the provenance; controlling spec,
-review findings and field protocol:
+identifies as **IR_SCOPE_ESPNOW_PULSE_EVENT_TX_1_8_TRANSPORT_TEST**. Diagnostic
+physical evidence source with additive 70-byte Type-7 v1 cumulative transport
+status at a nominal one-second cadence. Type-6, Type-5 and detector semantics
+are unchanged; no NAVI/control authority. The preceding 1.7 build was flashed
+and field-tested: promising native timing, but approximately 32% receiver-observed
+Type-6 discontinuity. Type-7 localizes that transport question; it does not filter
+physical evidence. **TX 1.8 built/reviewed and host-tested; NOT flashed or field
+accepted; Pi logger changes NOT deployed.** Candidate provenance:
+`IR_PULSE_TRANSPORT_STATUS_TYPE7.patch`; controlling specification, corrections,
+validation and the preserved 1.7 experimental history:
 [`NAVI_IR_PULSE_EVENT_PHYSICAL_EVIDENCE_20261006.md`](../docs/NAVI_IR_PULSE_EVENT_PHYSICAL_EVIDENCE_20261006.md).
-The R2 evidence and limitations below remain historical context, not resolved
-by this instrumentation experiment.
 
 **2026-09-23 IR stop-retention revision:**
 `programs/IR_SCOPE_ESPNOW/variants/IR_SCOPE_ESPNOW_TX/IR_SCOPE_ESPNOW_TX.ino`

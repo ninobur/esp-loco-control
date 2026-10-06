@@ -1,10 +1,11 @@
 /*
- * IR_SCOPE_ESPNOW_PULSE_EVENT_TX_1_7_TEST — 1 kHz IR waveform transmitter plus
+ * IR_SCOPE_ESPNOW_PULSE_EVENT_TX_1_8_TRANSPORT_TEST — 1 kHz IR waveform transmitter plus
  * read-only QUORUM/TEMPLATES CtoPeerPacket v3 receiver and onboard interval
  * comparison. Samples GPIO34; no local navigation or motor authority.
  * NAVI consumes its evidence, so detector changes can affect navigation.
  * R2: quiet-only retention, agreeing-cycle reference, visible continuity loss.
  * 1.7: additive type-6 completed-pulse evidence; no detector/filter changes.
+ * 1.8: one-second Type-7 cumulative transport diagnostics; no evidence changes.
  * Spec: docs/NAVI_IR_PULSE_EVENT_PHYSICAL_EVIDENCE_20261006.md.
  * Built/reviewed diagnostic candidate; hardware acceptance pending. No flash
  * or NAV/AUTO authority follows from this instrumentation experiment.
@@ -14,6 +15,7 @@
 #include <esp_now.h>
 #include <esp_wifi.h>
 #include "PulseEventEvidence.h"
+#include "PulseTransportStatus.h"
 #include <atomic>
 
 static const uint8_t CHANNEL=11;
@@ -109,7 +111,8 @@ struct RetainedFusion {
 
 static QueueHandle_t q,ctoRxQueue,observationQueue,fusionQueue,fusionAckQueue;
 static uint32_t sid, sampleSeq=0, batchSeq=0, pendingMiss=0;
-static volatile uint32_t lateTotal=0,missedTotal=0,queueDrops=0,sendErrors=0,pulses=0,latches=0,closs=0,saturatedSamples=0,sent=0;
+static volatile uint32_t lateTotal=0,missedTotal=0,queueDrops=0,pulses=0,latches=0,closs=0,saturatedSamples=0,sent=0;
+static std::atomic<uint32_t> sendErrors{0};
 static volatile uint32_t ctoCallbackAccepted=0,ctoRxQueueDrops=0,ctoBadLength=0,ctoBadVersion=0,ctoBadSender=0,ctoEchoes=0;
 static uint32_t ctoAccepted=0,ctoMissing=0,ctoReboots=0,ctoReportSequence=0,observationDrops=0,observationSent=0;
 static uint32_t fusionReportSequence=0,fusionDrops=0,fusionSent=0,fusionAcked=0,fusionRetries=0,fusionEvicted=0;
@@ -127,6 +130,8 @@ static QueueHandle_t movementQueue,pulseEventQueue,pulseLogQueue;
 static std::atomic<uint32_t> pulseEventGenerated{0},pulseEventDrops{0},pulseEventSent{0};
 static std::atomic<uint32_t> pulseEventFailed{0},pulseLogDrops{0},pulseQueueHigh{0};
 static std::atomic<uint32_t> pulseSendLagMaxUs{0};
+// Owned exclusively by the radio task, independent of serial output/speed.
+static uint32_t pulseStatusSequence=0,pulseStatusAt=0;
 static portMUX_TYPE movementMux=portMUX_INITIALIZER_UNLOCKED;
 static ir_movement::WireSnapshot latestMovement;
 static uint64_t movementBoot;
@@ -220,6 +225,27 @@ static bool radioSend(const uint8_t *data,size_t len){
   if(sendStatus!=ESP_NOW_SEND_SUCCESS){sendErrors++;return false;}return true;
 }
 
+static void servicePulseTransportStatus(){
+  const uint32_t now=millis();
+  if(uint32_t(now-pulseStatusAt)<1000)return;
+  pulseStatusAt=now; // No catch-up burst or retry; the next report is cumulative.
+  PulseTransportStatusPacket st{};
+  st.magic=MAGIC;st.version=VERSION;st.type=7;st.sid=sid;
+  st.sequence=++pulseStatusSequence;st.bootId=movementBoot;
+  // Individually safe reads, not a transactional cross-task snapshot.
+  st.generated=pulseEventGenerated.load();st.sent=pulseEventSent.load();
+  st.failed=pulseEventFailed.load();st.dropped=pulseEventDrops.load();
+  st.logDropped=pulseLogDrops.load();
+  st.queueDepth=uxQueueMessagesWaiting(pulseEventQueue);
+  st.queueHigh=pulseQueueHigh.load();st.logQueueDepth=uxQueueMessagesWaiting(pulseLogQueue);
+  st.lagMaxUs=pulseSendLagMaxUs.load();st.timeouts=radioTimeouts.load();
+  st.busyDrops=radioBusyDrops.load();st.sendErrors=sendErrors.load();
+  st.crc=crc16((const uint8_t*)&st,offsetof(PulseTransportStatusPacket,crc));
+  // Same serialized send/100-ms bound as existing traffic. Status failures
+  // affect radio-wide counters only, never Type-6 sent/failed/dropped.
+  radioSend((const uint8_t*)&st,sizeof(st));
+}
+
 static void radio(void*){
   Packet p; CtoObservationPacket o; FusionIntervalPacket f;
   for(;;){
@@ -236,6 +262,9 @@ static void radio(void*){
     }
     if(xQueueReceive(movementQueue,&movement,0)==pdTRUE)
       radioSend((uint8_t*)&movement,sizeof(movement));
+    // One Type-6 and the latest Type-5 get service before each status check.
+    // No status queue, sampler work, speed dependency or serial-loop dependency.
+    servicePulseTransportStatus();
     while(xQueueReceive(fusionAckQueue,&ackSequence,0)==pdTRUE){
       for(size_t i=0;i<RETAINED_INTERVALS;i++)if(retained[i].occupied&&retained[i].packet.reportSequence==ackSequence){retained[i].occupied=false;fusionAcked++;break;}
     }
@@ -266,8 +295,9 @@ void setup(){
   WiFi.mode(WIFI_STA);WiFi.disconnect(false,true);esp_wifi_set_channel(CHANNEL,WIFI_SECOND_CHAN_NONE);
   if(esp_now_init()!=ESP_OK){Serial.println("FATAL esp_now_init");while(1)delay(1000);}esp_now_register_send_cb(onSent);esp_now_register_recv_cb(onReceive);
   esp_now_peer_info_t peer{};memcpy(peer.peer_addr,BROADCAST,6);peer.channel=CHANNEL;peer.encrypt=false;if(esp_now_add_peer(&peer)!=ESP_OK){Serial.println("FATAL add_peer");while(1)delay(1000);}
-  Serial.printf("READY IR_SCOPE_ESPNOW_PULSE_EVENT_TX_1_7_TEST sid=%08lx pin=%d rate=1000 env=%d update=%lu prime=%d mingate=%d channel=%u raw=%u cto=%u obs=%u fusion=%u retained=%u target=%lu mac=%s\n",(unsigned long)sid,SENSOR_PIN,ENV_N,(unsigned long)ENV_UPDATE_MS,PRIME_N,MIN_SPAN,CHANNEL,(unsigned)sizeof(Packet),(unsigned)sizeof(CtoPeerPacket),(unsigned)sizeof(CtoObservationPacket),(unsigned)sizeof(FusionIntervalPacket),(unsigned)RETAINED_INTERVALS,(unsigned long)TOBY_ID,WiFi.macAddress().c_str());
+  Serial.printf("READY IR_SCOPE_ESPNOW_PULSE_EVENT_TX_1_8_TRANSPORT_TEST sid=%08lx pin=%d rate=1000 env=%d update=%lu prime=%d mingate=%d channel=%u raw=%u cto=%u obs=%u fusion=%u retained=%u target=%lu mac=%s\n",(unsigned long)sid,SENSOR_PIN,ENV_N,(unsigned long)ENV_UPDATE_MS,PRIME_N,MIN_SPAN,CHANNEL,(unsigned)sizeof(Packet),(unsigned)sizeof(CtoPeerPacket),(unsigned)sizeof(CtoObservationPacket),(unsigned)sizeof(FusionIntervalPacket),(unsigned)RETAINED_INTERVALS,(unsigned long)TOBY_ID,WiFi.macAddress().c_str());
   Serial.printf("PULSE FORMAT boot=%016llx type=6 version=1 bytes=%u pitch_um=%lu radio_capacity=%u log_capacity=%u interval_zero=unavailable\n",(unsigned long long)movementBoot,(unsigned)sizeof(PulseEventPacket),(unsigned long)ir_movement::kInstalledPitchUm,PULSE_QUEUE_DEPTH,PULSE_LOG_DEPTH);
+  Serial.printf("TRANSPORT FORMAT type=7 version=1 bytes=%u period_ms=1000 authority=DIAGNOSTIC_ONLY\n",(unsigned)sizeof(PulseTransportStatusPacket));
   xTaskCreatePinnedToCore(sampler,"sample",4096,nullptr,2,nullptr,0);xTaskCreatePinnedToCore(radio,"radio",4096,nullptr,1,nullptr,1);
 }
 static uint32_t statusAt = 0;
@@ -276,7 +306,7 @@ void loop(){
   if(millis()-movementStatusAt>=5000){
     movementStatusAt=millis();ir_movement::WireSnapshot m;
     portENTER_CRITICAL(&movementMux);m=latestMovement;portEXIT_CRITICAL(&movementMux);
-    Serial.printf("MOVE TX_1_7_TEST boot=%016llx t_us=%llu rises=%llu completed=%llu nominal_um=%llu reason=%u span=%u unreliable=%llu gaps=%llu sat=%llu distance_valid=0\n",
+    Serial.printf("MOVE TX_1_8_TRANSPORT_TEST boot=%016llx t_us=%llu rises=%llu completed=%llu nominal_um=%llu reason=%u span=%u unreliable=%llu gaps=%llu sat=%llu distance_valid=0\n",
       (unsigned long long)m.bootId,(unsigned long long)m.capturedUs,
       (unsigned long long)m.observedRises,(unsigned long long)m.completedPulses,
       (unsigned long long)m.nominalUm,m.opticalReason,m.span,
