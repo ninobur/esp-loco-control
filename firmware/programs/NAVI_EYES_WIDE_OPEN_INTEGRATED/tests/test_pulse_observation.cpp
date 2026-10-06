@@ -18,6 +18,16 @@ static Rx rx(PulseEventPacket e,uint32_t loss=0,uint8_t source=1,bool corrupt=fa
   Rx r{};r.mac[0]=source;r.receivedUs=e.completedUs+1000000;
   r.length=sizeof(e);r.queueDrops=loss;std::memcpy(r.bytes,&e,sizeof(e));return r;
 }
+static PulseTransportStatusPacket status(uint64_t boot=42,uint32_t seq=1,
+                                         uint32_t generated=0,uint32_t sent=0){
+  PulseTransportStatusPacket p{};p.magic=0x4952;p.version=1;p.type=7;
+  p.sid=uint32_t(boot);p.sequence=seq;p.bootId=boot;p.generated=generated;p.sent=sent;
+  return p;
+}
+static StatusRx statusRx(PulseTransportStatusPacket p,bool corrupt=false){
+  p.crc=crc(reinterpret_cast<uint8_t*>(&p),offsetof(PulseTransportStatusPacket,crc));
+  if(corrupt)++p.crc;StatusRx r{};r.length=sizeof(p);std::memcpy(r.bytes,&p,sizeof(p));return r;
+}
 static void prime(Observation& o){o.receive(rx(event()));assert(!o.state().eventValid);
   o.receive(rx(event(2,2,80000)));assert(o.state().eventValid);}
 int main(int argc,char**){
@@ -85,6 +95,29 @@ int main(int argc,char**){
   Observation duplicate;prime(duplicate);duplicate.receive(rx(event(2,2,80000)));
   assert(duplicate.state().invalid==1 && !duplicate.state().eventValid &&
     (duplicate.state().flags&SEQUENCE_ORDER));
+  // Exact receipt ledger: count absent values, never manufacture their evidence.
+  Observation ledger;ledger.receive(rx(event(100,100,4000000)));
+  ledger.receive(rx(event(101,101,4040000)));
+  assert(ledger.state().missing==0 && ledger.state().ledgerReceived==2);
+  ledger.receive(rx(event(110,110,4400000)));
+  assert(ledger.state().missing==8 && ledger.state().lastSequence==110);
+  Observation exact;exact.receive(rx(event(100,100,4000000)));
+  exact.receive(rx(event(110,110,4400000)));
+  assert(exact.state().missing==9 && exact.state().ledgerReceived==2);
+  exact.receive(rx(event(110,110,4400000)));assert(exact.state().duplicates==1);
+  exact.receive(rx(event(105,105,4200000)));assert(exact.state().outOfOrder==1 &&
+    exact.state().lastSequence==110);
+  auto newBoot=event(1,1,40000);newBoot.bootId=newBoot.sid=77;exact.receive(rx(newBoot));
+  assert(exact.state().ledgerBootId==77 && exact.state().firstSequence==1 &&
+    exact.state().lastSequence==1 && exact.state().ledgerReceived==1 && exact.state().missing==0);
+  // Type-7 is independently validated and cannot alter Type-6 state.
+  TransportObservation transportObservation;auto good=status(42,1,110,109);transportObservation.receive(statusRx(good));
+  assert(transportObservation.state().valid && transportObservation.state().status.sent==109 && sizeof(PulseTransportStatusPacket)==70);
+  transportObservation.receive(statusRx(good,true));assert(!transportObservation.state().valid && transportObservation.state().invalid==1);
+  transportObservation.receive(statusRx(status(42,1)));assert(transportObservation.state().orderFaults==1);
+  const bool wrongBoot=transportObservation.state().valid && transportObservation.state().status.bootId==exact.state().ledgerBootId;
+  assert(!wrongBoot);transportObservation.receive(statusRx(status(77,2,200,199)));
+  assert(transportObservation.state().valid && transportObservation.state().status.bootId==exact.state().ledgerBootId);
   Observation fallback;auto zeroSid=event();zeroSid.sid=0;zeroSid.bootId=1;
   fallback.receive(rx(zeroSid));assert(fallback.state().accepted==1);
   zeroSid.sequence=2;zeroSid.completedPulses=2;zeroSid.nominalUm=19304;zeroSid.completedUs=80000;

@@ -78,8 +78,9 @@ static EwoStationStopProfile measuredStationStop;
 static navi_sync::Recorder* recorder = nullptr;
 static QueueHandle_t hallQ = nullptr, irQ = nullptr, pubQ = nullptr, cmdQ = nullptr;
 // Experimental loss never enters irQueueDrops/serviceObservationLoss or NAVI.
-static QueueHandle_t pulseQ=nullptr,pulseLogQ=nullptr,pulseStatusQ=nullptr;
+static QueueHandle_t pulseQ=nullptr,pulseTransportQ=nullptr,pulseLogQ=nullptr,pulseStatusQ=nullptr;
 static navi_pulse::Observation pulseObservation;
+static navi_pulse::TransportObservation pulseTransportObservation;
 static std::atomic<uint32_t> pulseRxDrops{0},pulseLogDrops{0},pulseMqttDrops{0};
 static volatile uint32_t hallQueueDrops = 0, irQueueDrops = 0;
 static uint32_t reportedHallDrops = 0, reportedIrDrops = 0;
@@ -314,6 +315,14 @@ static void hallTask(void*) {
 static void onIr(const esp_now_recv_info_t* info, const uint8_t* bytes,
                  int length) {
   if (!info || !bytes) return;
+  if(navi_pulse::isPulseStatusFrame(bytes,length)){
+    navi_pulse::StatusRx status{};
+    memcpy(status.mac,info->src_addr,6);status.receivedUs=esp_timer_get_time();
+    status.length=length<0?0:static_cast<uint16_t>(length);
+    if(length==int(sizeof(status.bytes)))memcpy(status.bytes,bytes,length);
+    if(pulseTransportQ)xQueueOverwrite(pulseTransportQ,&status);
+    return;
+  }
   if (navi_pulse::isPulseFrame(bytes,length)) {
     navi_pulse::Rx pulse{};
     memcpy(pulse.mac,info->src_addr,6); pulse.receivedUs=esp_timer_get_time();
@@ -367,6 +376,7 @@ static void serviceIrIngress() {
 // Loop-owned observation and comparison snapshots. Only read-only NAVI access.
 static navi_pulse::Report pulseReport() {
   navi_pulse::Report r{}; r.pulse=pulseObservation.state();
+  r.transport=pulseTransportObservation.state();
   r.comparedUs=esp_timer_get_time(); r.legacyValid=navi.irSpeedAvailable(r.comparedUs);
   r.legacyPkph=r.legacyValid?navi.irSpeedMmS()/EWO_PKPH_MM_PER_SEC:0;
   r.legacyBoot=navi.latestIr().bootId; r.coupled=irCarCoupled;
@@ -375,6 +385,9 @@ static navi_pulse::Report pulseReport() {
   return r;
 }
 static void servicePulseIngress() {
+  navi_pulse::StatusRx statusRx;
+  if(pulseTransportQ && xQueueReceive(pulseTransportQ,&statusRx,0)==pdTRUE)
+    pulseTransportObservation.receive(statusRx);
   navi_pulse::Rx rx;
   // Bounded diagnostic work AFTER existing control services; no serial/MQTT wait.
   for(unsigned i=0;i<4 && pulseQ && xQueueReceive(pulseQ,&rx,0)==pdTRUE;++i){
@@ -903,6 +916,19 @@ static void servicePulseTelemetry() {
       (unsigned long long)(p.have && nowUs>=p.receivedUs?(nowUs-p.receivedUs)/1000:0),
       (unsigned long)p.flags,(unsigned long)p.discontinuities,(unsigned long)p.invalid,
       (unsigned long)rxDrops,(unsigned long)logDrops,(unsigned long)pulseMqttDrops.load());
+    if(kind==1){
+      const auto& tx=report.transport;
+      const bool sameBoot=tx.valid && p.ledgerActive && tx.status.bootId==p.ledgerBootId;
+      const double reception=(sameBoot && tx.status.sent)
+        ? 100.0*double(p.ledgerReceived)/double(tx.status.sent) : NAN;
+      Serial.printf("[IR_LEDGER] boot=%016llx first=%lu last=%lu received=%lu missing=%llu duplicate=%lu out_of_order=%lu rxdrop=%lu invalid=%lu tx_valid=%u generated=%lu sent=%lu fail=%lu drop=%lu reception_pct=%.3f authority=OBSERVATION_ONLY\n",
+        (unsigned long long)p.ledgerBootId,(unsigned long)p.firstSequence,
+        (unsigned long)p.lastSequence,(unsigned long)p.ledgerReceived,
+        (unsigned long long)p.missing,(unsigned long)p.duplicates,
+        (unsigned long)p.outOfOrder,(unsigned long)rxDrops,(unsigned long)p.invalid,
+        unsigned(sameBoot),(unsigned long)tx.status.generated,(unsigned long)tx.status.sent,
+        (unsigned long)tx.status.failed,(unsigned long)tx.status.dropped,reception);
+    }
   }
 }
 
@@ -1124,15 +1150,16 @@ void setup() {
   pubQ = xQueueCreate(PUB_QUEUE_DEPTH, sizeof(PubMsg));
   cmdQ = xQueueCreate(16, sizeof(CmdMsg));
   pulseQ=xQueueCreate(32,sizeof(navi_pulse::Rx));
+  pulseTransportQ=xQueueCreate(1,sizeof(navi_pulse::StatusRx));
   pulseLogQ=xQueueCreate(16,sizeof(navi_pulse::Report));
   pulseStatusQ=xQueueCreate(1,sizeof(navi_pulse::Report));
-  Serial.printf("[IR_PULSE] queues rx=%u log=%u status=%u authority=OBSERVATION_ONLY\n",
-    pulseQ!=nullptr,pulseLogQ!=nullptr,pulseStatusQ!=nullptr);
-  Serial.printf("[BOOT] queues hall=%u ir=%u pub=%u cmd=%u pub_depth=%u heap=%lu max_block=%lu\n",
+  Serial.printf("[IR_PULSE] queues rx=%u transport=%u log=%u status=%u authority=OBSERVATION_ONLY\n",
+    pulseQ!=nullptr,pulseTransportQ!=nullptr,pulseLogQ!=nullptr,pulseStatusQ!=nullptr);
+  Serial.printf("[BOOT] queues hall=%u ir=%u pub=%u cmd=%u pub_depth=%u\n",
                 hallQ != nullptr, irQ != nullptr, pubQ != nullptr, cmdQ != nullptr,
-                PUB_QUEUE_DEPTH, (unsigned long)ESP.getFreeHeap(),
-                (unsigned long)ESP.getMaxAllocHeap());
-  if (!hallQ || !irQ || !pubQ || !cmdQ) {
+                PUB_QUEUE_DEPTH);
+  if (!hallQ || !irQ || !pubQ || !cmdQ || !pulseQ || !pulseTransportQ ||
+      !pulseLogQ || !pulseStatusQ) {
     Serial.println("[BOOT] FATAL: queue allocation failed");
     writePwm(0); for (;;) delay(1000);
   }
