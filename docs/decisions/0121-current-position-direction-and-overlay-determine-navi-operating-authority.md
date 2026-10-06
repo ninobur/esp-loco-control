@@ -27,8 +27,15 @@ claims**: 0101's completed-visit suppression and preserved station procedure;
 overshoot/watchdog and marker/PWM sequences as operating authority; and 0090's
 station-arming workaround and phase/overshoot-based MISSED consequence.
 Their reasoning, original statuses, dates, and evidence remain intact.
-This does not reopen unrelated navigation decisions, physical stopping
+This authority ruling does not reopen unrelated navigation decisions, physical stopping
 geography, legacy protocols, or the separate adaptive-braking architecture.
+
+The expanded [Document C](../NAVI_POSITION_OVERLAY_OPERATING_ARCHITECTURE_20261005.md)
+now specifies the speed-control and physical-execution architecture, including
+glide paths, steady-speed homeostasis, and terminus dwell/restart and cold-entry
+rules. This record's central authority ruling and scoped supersession remain
+unchanged. Document C implementation is paused for review; preserving the
+revised architecture does not implement or authorize firmware changes.
 
 ## Consequences
 
@@ -56,6 +63,6 @@ different requirements. Document C explicitly rejects that model.
 
 ## References
 
-- [Position/Overlay Operating Architecture (Document C)](../NAVI_POSITION_OVERLAY_OPERATING_ARCHITECTURE_20261005.md): full architecture and acceptance questions.
+- [Position/Overlay and Speed-Control Operating Architecture (Document C)](../NAVI_POSITION_OVERLAY_OPERATING_ARCHITECTURE_20261005.md): expanded architecture and the same-present-state authority rule.
 - [Documentation reconciliation](../NAVI_POSITION_OVERLAY_DOCUMENTATION_RECONCILIATION_20261005.md): exact older claims, classification, and disposition.
-- [NAVI_EWO governing documents](../NAVI_EWO_GOVERNING_DOCUMENTS.md): separate read-first records for CTO/CE (A), vestigial-code cleanup (B), and position/overlay authority (C).
+- [NAVI_EWO governing documents](../NAVI_EWO_GOVERNING_DOCUMENTS.md): separate read-first records for CTO/CE (A), vestigial-code cleanup (B), and position/overlay and speed-control architecture (C).

@@ -16,13 +16,18 @@ station-stop implementation, adaptive braking, and CTO/CE reconstruction.
 Preserving this architecture does not authorize cleanup implementation.
 
 **Before modifying NAVI operating or station architecture, read first:**
-[`NAVI Position/Overlay Operating Architecture`](NAVI_POSITION_OVERLAY_OPERATING_ARCHITECTURE_20261005.md).
+[`NAVI Position/Overlay and Speed-Control Operating Architecture`](NAVI_POSITION_OVERLAY_OPERATING_ARCHITECTURE_20261005.md).
 This documentation record does not authorize implementation.
 Decision [0121](decisions/0121-current-position-direction-and-overlay-determine-navi-operating-authority.md)
 records this operating-authority decision and its scoped supersession of older
 procedural claims. A governs future CTO/CE reconstruction, B governs vestigial
-concept cleanup, and C governs position/overlay operating authority; their scopes
-remain separate.
+concept cleanup, and C governs position/overlay operating authority and physical
+speed control; their scopes remain separate. The expanded C covers 45-pKPH
+cruise, 20-pKPH station speed, glide paths, steady-speed homeostasis, and terminus
+dwell/restart and cold-entry rules. Its firmware implementation is paused for
+review. The implementation baseline remains
+`0116518b6d5d429fce3281505611d4fa17e2a350` (Document B completed); no Document C
+implementation changes are included in this documentation revision.
 
 This page is a directory and a supersession ledger. It authorizes nothing
 (`/AGENTS.md` section 2), and no decision record authorizes an agent to act
@@ -72,7 +77,7 @@ This page is a directory and a supersession ledger. It authorizes nothing
 Decision 0101's current-position principle remains foundational. Its retained
 procedural station mechanisms, including completed-visit suppression, pause
 preservation and phase-watchdog behavior, are superseded by the October 5
-[Position/Overlay Operating Architecture](NAVI_POSITION_OVERLAY_OPERATING_ARCHITECTURE_20261005.md)
+[Position/Overlay and Speed-Control Operating Architecture](NAVI_POSITION_OVERLAY_OPERATING_ARCHITECTURE_20261005.md)
 and [0121](decisions/0121-current-position-direction-and-overlay-determine-navi-operating-authority.md).
 Decision 0100 remains in force. 0093 remains NAVI_COHERENCE prior art; its EWO
 extension by 0111 is withdrawn by 0116.
@@ -120,9 +125,9 @@ conflicting assumptions are superseded for NAVI_EWO as follows.
 | Older assumption | Now | By |
 |---|---|---|
 | Runtime pitch/calibration changes identify a new measurement frame or exempt a report from ordering checks | Validate installed pitch; calibration ID is raw evidence; only real continuity boundaries separate epochs | Document B; 0122 |
-| Station ARMED admission, persistent phases, completed-visit suppression, and historical station procedure across STOP/GO (0068, 0090, 0101 and POSITION_STATIONS_R1) | Current MM interval + direction + overlay determine the requirement; 0101's current-position principle survives | 0121; Position/Overlay Operating Architecture §§1–13 |
-| Station-procedure MISSED, PHASE_TIMEOUT, procedural overshoot/late-entry failure, and marker/PWM sequences as operating authority | No historical station-procedure authority; current geographic boundaries remain legitimate and PWM is an actuator output | 0121; Position/Overlay Operating Architecture §§14–17 |
-| An existing execution state keeps the old instruction authoritative after an overlay change | Execution state serves only a currently applicable instruction; physical maneuver and dwell state remain allowed | 0121; Position/Overlay Operating Architecture §§18–19 |
+| Station ARMED admission, persistent phases, completed-visit suppression, and historical station procedure across STOP/GO (0068, 0090, 0101 and POSITION_STATIONS_R1) | Current MM interval + direction + overlay determine the requirement; 0101's current-position principle survives | 0121; Document C §§5, 25–26 |
+| Station-procedure MISSED, PHASE_TIMEOUT, procedural overshoot/late-entry failure, and marker/PWM sequences as operating authority | No historical station-procedure authority; current geographic boundaries remain legitimate and PWM is an actuator output | 0121; Document C §§2, 5 |
+| An existing execution state keeps the old instruction authoritative after an overlay change | Execution state serves only a currently applicable instruction; physical maneuver and dwell state remain allowed | 0121; Document C §§3–4, 22–25 |
 | X22/X22R as a detector that decides which Hall observations NAVI sees; upstream gating (400 ms window, PWM-zero and old-field holds, cadence, MOVING/STOPPED, readiness) | NAVI receives every native observation; there is no upstream gate | 0102, 0110, 0112 |
 | X22/X22R baseline, lock, settle and quiet mechanisms as the Hall reference | Spatial reference owned by NAVI | 0113 |
 | Upstream Hall median or evidence selection | NAVI-owned median-of-five | 0110 |
