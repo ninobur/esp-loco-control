@@ -1,4 +1,6 @@
 /* EWO integrated working-sketch candidate. NOT FIELD ACCEPTED.
+ * Type-6 pulse evidence is observation-only; Type-5/control unchanged.
+ * Spec: docs/NAVI_PULSE_EVENT_PHYSICAL_SPEED_OBSERVATION_20261006.md.
  * PWM-zero movement requires operator declaration, 2026-10-02 (0120 supersedes 0119).
  * Rollback: ab0938b (R2_FT2 flashed to Otto); earlier c3c925a, d0185be.
  * No flashing/deployment authorized by this change; await David/Sam review.
@@ -33,6 +35,7 @@
 #include "NaviIntegratedCore.h"
 #include "NaviEstop.h"
 #include "NaviCompatibility.h"
+#include "NaviPulseTelemetry.h"
 
 static portMUX_TYPE recorderMux = portMUX_INITIALIZER_UNLOCKED;
 #define NAVI_SYNC_ENTER_CRITICAL() portENTER_CRITICAL(&recorderMux)
@@ -42,7 +45,7 @@ static portMUX_TYPE recorderMux = portMUX_INITIALIZER_UNLOCKED;
 using namespace navi_one;
 using namespace navi_eyes;
 
-static constexpr char SKETCH_NAME[] = "NAVI_EYES_WIDE_OPEN_INTEGRATED_R2_FT2";
+static constexpr char SKETCH_NAME[] = "NAVI_EYES_WIDE_OPEN_INTEGRATED_PULSE_EVENT_TEST";
 static constexpr char BUILD_CLASS[] = "INTEGRATION_CANDIDATE_NOT_FIELD_ACCEPTED";
 static constexpr uint8_t HALL_PIN = 33;
 static constexpr uint8_t I2C_SDA = 21, I2C_SCL = 22;
@@ -60,6 +63,9 @@ static constexpr uint8_t PUB_QUEUE_DEPTH = 16;
 struct IrRx { uint8_t mac[6]; uint64_t receivedUs; uint16_t length;
   uint8_t pwmAtReceive, commandedAtReceive; navi_sync::Context contextAtReceive;
   uint8_t bytes[110]; };
+static_assert(sizeof(PulseEventPacket)==61,"Type-6 contract changed");
+static_assert(sizeof(PulseEventPacket)<=sizeof(IrRx::bytes),"Type-6 exceeds legacy ingress buffer");
+static_assert(sizeof(navi_pulse::Rx::bytes)==sizeof(PulseEventPacket),"pulse ingress size");
 struct PubMsg { char topic[72]; char payload[1200]; bool retain; };
 struct CmdMsg { char topic[72]; char payload[64]; uint64_t order; uint64_t receivedUs; };
 
@@ -71,6 +77,10 @@ static EwoStationStopProfile measuredStationStop;
 // the unchanged recorder after setup() begins.
 static navi_sync::Recorder* recorder = nullptr;
 static QueueHandle_t hallQ = nullptr, irQ = nullptr, pubQ = nullptr, cmdQ = nullptr;
+// Experimental loss never enters irQueueDrops/serviceObservationLoss or NAVI.
+static QueueHandle_t pulseQ=nullptr,pulseLogQ=nullptr,pulseStatusQ=nullptr;
+static navi_pulse::Observation pulseObservation;
+static std::atomic<uint32_t> pulseRxDrops{0},pulseLogDrops{0},pulseMqttDrops{0};
 static volatile uint32_t hallQueueDrops = 0, irQueueDrops = 0;
 static uint32_t reportedHallDrops = 0, reportedIrDrops = 0;
 static uint32_t irPacketInvalid = 0, pubDrops = 0, cmdDrops = 0;
@@ -304,6 +314,15 @@ static void hallTask(void*) {
 static void onIr(const esp_now_recv_info_t* info, const uint8_t* bytes,
                  int length) {
   if (!info || !bytes) return;
+  if (navi_pulse::isPulseFrame(bytes,length)) {
+    navi_pulse::Rx pulse{};
+    memcpy(pulse.mac,info->src_addr,6); pulse.receivedUs=esp_timer_get_time();
+    pulse.length=length<0?0:static_cast<uint16_t>(length);
+    pulse.queueDrops=pulseRxDrops.load();
+    if(length==int(sizeof(pulse.bytes)))memcpy(pulse.bytes,bytes,length);
+    if(!pulseQ || xQueueSend(pulseQ,&pulse,0)!=pdTRUE)++pulseRxDrops;
+    return;
+  }
   IrRx rx{};
   memcpy(rx.mac, info->src_addr, 6);
   rx.receivedUs = esp_timer_get_time();
@@ -342,6 +361,31 @@ static void serviceIrIngress() {
     recorder->addIr(rx.receivedUs, rx.mac, 1, wire,
                    navi.irHealthFault(), navi.irReadiness(),
                    rx.pwmAtReceive, rx.commandedAtReceive, rx.contextAtReceive);
+  }
+}
+
+// Loop-owned observation and comparison snapshots. Only read-only NAVI access.
+static navi_pulse::Report pulseReport() {
+  navi_pulse::Report r{}; r.pulse=pulseObservation.state();
+  r.comparedUs=esp_timer_get_time(); r.legacyValid=navi.irSpeedAvailable(r.comparedUs);
+  r.legacyPkph=r.legacyValid?navi.irSpeedMmS()/EWO_PKPH_MM_PER_SEC:0;
+  r.legacyBoot=navi.latestIr().bootId; r.coupled=irCarCoupled;
+  r.legacySameSource=r.pulse.have && r.legacyBoot==r.pulse.event.bootId &&
+    memcmp(navi.latestIrMac(),r.pulse.mac,6)==0;
+  return r;
+}
+static void servicePulseIngress() {
+  navi_pulse::Rx rx;
+  // Bounded diagnostic work AFTER existing control services; no serial/MQTT wait.
+  for(unsigned i=0;i<4 && pulseQ && xQueueReceive(pulseQ,&rx,0)==pdTRUE;++i){
+    pulseObservation.receive(rx);
+    const auto report=pulseReport();
+    if(!pulseLogQ || xQueueSend(pulseLogQ,&report,0)!=pdTRUE)++pulseLogDrops;
+  }
+  static uint32_t lastStatus=0;
+  if(millis()-lastStatus>=1000){
+    lastStatus=millis(); const auto report=pulseReport();
+    if(pulseStatusQ)xQueueOverwrite(pulseStatusQ,&report); // Summary only.
   }
 }
 
@@ -833,6 +877,35 @@ static void syncDrain() {
       lastStatus, status.tUs, recorderContext(), status);
   syncSend(&wire, sizeof(wire));
 }
+// Network-task only. Compact queues keep experimental traffic out of pubQ.
+// One event/pass and a separate status snapshot; no retry/backlog replay promise.
+static void servicePulseTelemetry() {
+  navi_pulse::Report report;
+  for(unsigned kind=0;kind<2;++kind){
+    QueueHandle_t queue=kind==0?pulseLogQ:pulseStatusQ;
+    if(!queue || xQueueReceive(queue,&report,0)!=pdTRUE)continue;
+    const uint64_t nowUs=esp_timer_get_time();
+    const uint32_t rxDrops=pulseRxDrops.load(),logDrops=pulseLogDrops.load();
+    char payload[1200],topic[72];
+    const int size=navi_pulse::format(payload,sizeof(payload),report,nowUs,
+      NaviIntegratedCore::kIrFreshUs,EWO_PKPH_MM_PER_SEC,kind==0,
+      rxDrops,logDrops,pulseMqttDrops.load());
+    snprintf(topic,sizeof(topic),"ngr/loco/%s/telem/ir_pulse",LOCO_NAME);
+    if(size<=0 || size>=int(sizeof(payload)) || !mqtt.connected() ||
+       !mqtt.publish(topic,payload,false))++pulseMqttDrops;
+    const auto& p=report.pulse;const auto& e=p.event;
+    const bool fresh=p.have && nowUs>=p.receivedUs && nowUs-p.receivedUs<=NaviIntegratedCore::kIrFreshUs;
+    Serial.printf("[IR_PULSE] kind=%s valid=%u event_valid=%u same_source=%u boot=%016llx seq=%lu completed=%llu t_us=%llu dt_us=%llu pkph=%.3f legacy_valid=%u legacy_pkph=%.3f age_ms=%llu flags=%lu disc=%lu invalid=%lu rxdrop=%lu logdrop=%lu mqttdrop=%lu authority=OBSERVATION_ONLY\n",
+      kind==0?"EVENT":"STATUS",unsigned(p.eventValid && fresh && rxDrops==p.queueDrops),unsigned(p.eventValid),
+      unsigned(report.legacySameSource),(unsigned long long)e.bootId,(unsigned long)e.sequence,(unsigned long long)e.completedPulses,(unsigned long long)e.completedUs,
+      (unsigned long long)e.intervalUs,p.eventValid?p.mmps/EWO_PKPH_MM_PER_SEC:NAN,
+      unsigned(report.legacyValid),report.legacyValid?report.legacyPkph:NAN,
+      (unsigned long long)(p.have && nowUs>=p.receivedUs?(nowUs-p.receivedUs)/1000:0),
+      (unsigned long)p.flags,(unsigned long)p.discontinuities,(unsigned long)p.invalid,
+      (unsigned long)rxDrops,(unsigned long)logDrops,(unsigned long)pulseMqttDrops.load());
+  }
+}
+
 static void networkTask(void*) {
   uint32_t nextConnect = 0, wifiDownSince = 0, nextIrInitAttempt = 0;
   for (;;) {
@@ -922,6 +995,7 @@ static void networkTask(void*) {
       while (pubQ && xQueueReceive(pubQ, &message, 0) == pdTRUE)
         if (!mqtt.publish(message.topic, message.payload, message.retain)) ++pubDrops;
     }
+    servicePulseTelemetry(); // Existing MQTT/command/NSR work gets first service.
     vTaskDelay(10);
   }
 }
@@ -1049,6 +1123,11 @@ void setup() {
   irQ = xQueueCreate(32, sizeof(IrRx));
   pubQ = xQueueCreate(PUB_QUEUE_DEPTH, sizeof(PubMsg));
   cmdQ = xQueueCreate(16, sizeof(CmdMsg));
+  pulseQ=xQueueCreate(32,sizeof(navi_pulse::Rx));
+  pulseLogQ=xQueueCreate(16,sizeof(navi_pulse::Report));
+  pulseStatusQ=xQueueCreate(1,sizeof(navi_pulse::Report));
+  Serial.printf("[IR_PULSE] queues rx=%u log=%u status=%u authority=OBSERVATION_ONLY\n",
+    pulseQ!=nullptr,pulseLogQ!=nullptr,pulseStatusQ!=nullptr);
   Serial.printf("[BOOT] queues hall=%u ir=%u pub=%u cmd=%u pub_depth=%u heap=%lu max_block=%lu\n",
                 hallQ != nullptr, irQ != nullptr, pubQ != nullptr, cmdQ != nullptr,
                 PUB_QUEUE_DEPTH, (unsigned long)ESP.getFreeHeap(),
@@ -1115,5 +1194,6 @@ void loop() {
   serviceRamp();
   serviceBattery();
   serviceStatus();
+  servicePulseIngress();
   delay(1);
 }

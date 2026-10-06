@@ -50,6 +50,17 @@ or a successful build.
 
 ## Current catalog
 
+**2026-10-06 NAVI pulse observation experiment:**
+`programs/NAVI_EYES_WIDE_OPEN_INTEGRATED/NAVI_EYES_WIDE_OPEN_INTEGRATED.ino`
+identifies as **NAVI_EYES_WIDE_OPEN_INTEGRATED_PULSE_EVENT_TEST**. Development
+control lineage with a separate observation-only Type-6 receiver and per-event
+pulse/legacy-speed comparison. Type-5 and existing control behavior are retained.
+**Built for Otto 9950011 / ESP32 core 3.3.12; source-reviewed and host-tested;
+NOT flashed or field accepted.** No promotion or new control authority.
+Provenance: David's `NAVI_PULSE_EVENT_TEST_0116518.patch`, reconciled to IR commit
+`65210f3`. Spec, corrections, validation and field protocol:
+[`NAVI_PULSE_EVENT_PHYSICAL_SPEED_OBSERVATION_20261006.md`](../docs/NAVI_PULSE_EVENT_PHYSICAL_SPEED_OBSERVATION_20261006.md).
+
 **2026-09-29 EWO audit corrections:**
 `programs/NAVI_EYES_WIDE_OPEN_INTEGRATED/NAVI_EYES_WIDE_OPEN_INTEGRATED.ino`
 identifies as **NAVI_EYES_WIDE_OPEN_INTEGRATED_R2**. Development control candidate;

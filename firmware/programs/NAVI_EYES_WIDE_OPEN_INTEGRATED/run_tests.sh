@@ -28,6 +28,8 @@ flags='-std=c++17 -Wall -Wextra -Werror -fsanitize=address,undefined'
 "$build_dir/measured_station_stop"
 "$cxx" $flags "$here/tests/test_ir_configuration.cpp" -o "$build_dir/ir"
 "$build_dir/ir"
+"$cxx" $flags "$here/tests/test_pulse_observation.cpp" -o "$build_dir/pulse"
+"$build_dir/pulse"
 stations="$here/../NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_HEALTH"
 "$cxx" $flags -I"$stations" "$stations/tests/test_station_position.cpp" -o "$build_dir/stations"
 "$build_dir/stations"

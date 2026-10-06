@@ -399,3 +399,16 @@ bounds, rather than artificial 1-µm or 1-mm wheel pitches.
 
 Historical files are not deleted, but none of the excluded navigation and
 detector mechanisms is an active dependency of this sketch.
+
+
+## 2026-10-06 pulse-event observation experiment
+
+The working sketch now identifies as `NAVI_EYES_WIDE_OPEN_INTEGRATED_PULSE_EVENT_TEST`.
+It receives the committed 61-byte Type-6 pulse stream in an isolated diagnostic
+queue and reports native pulse speed beside the unchanged Type-5 legacy speed.
+No Type-6 evidence or loss enters NAVI/control authority. Pairing remains
+provenance-only; source/boot changes and mismatched comparison sources are visible.
+`telem/ir_pulse` is a new, non-retained event/status topic; existing telemetry
+contracts and the Type-5 path remain unchanged. Built for Otto; not flashed or
+field accepted. See the [technical specification](../../../docs/NAVI_PULSE_EVENT_PHYSICAL_SPEED_OBSERVATION_20261006.md)
+for continuity rules, loss/freshness semantics, validation and the field protocol.
