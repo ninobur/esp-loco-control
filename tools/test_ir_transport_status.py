@@ -90,74 +90,42 @@ class StatusTests(unittest.TestCase):
             self.assertEqual(health['bytes'], len(raw))
 
     def test_actual_firmware_builder_and_cadence(self):
+        from test_ir_pulse_transport import compile_run
         harness = r'''
 #include <atomic>
 #include <cassert>
-#include <cstdio>
 #include <cstring>
-#include "PulseTransportStatus.h"
+#include "ReliablePulseTransport.h"
+static bool naviAccepted=false,radioInFlight=false;
 static uint32_t clockMs=0,pulseStatusAt=0,pulseStatusSequence=0,calls=0;
-static uint16_t MAGIC=0x4952;static uint8_t VERSION=1;
-static uint32_t sid=42;static uint64_t movementBoot=123;
-static bool naviPeerReady=false;
-static uint8_t naviPeerMac[6]={1,2,3,4,5,6};
-static std::atomic<uint32_t> pulseEventGenerated{101},pulseEventSent{102},
-  pulseEventFailed{103},pulseEventDrops{104},pulseLogDrops{105},pulseQueueHigh{107},
-  pulseSendLagMaxUs{109},radioTimeouts{110},radioBusyDrops{111},sendErrors{112};
-static unsigned pulseEventQueue=106,pulseLogQueue=108;
+static uint64_t naviHelloBoot=99,movementBoot=42;
+static uint8_t naviPeerMac[6]={2,1,2,3,4,5};
+static std::atomic<uint32_t> pulseEventGenerated{101},pulseEventDrops{4},pulseEventSent{102},pulseEventFailed{3},
+ pulseOutstanding{7},pulseQueueHigh{8},radioTimeouts{9};
+static ir_link::Transmitter pulseTransport;
 static uint32_t millis(){return clockMs;}
-static unsigned uxQueueMessagesWaiting(unsigned q){return q;}
-static PulseTransportStatusPacket last;
-static uint8_t lastDestination[6]{};
-static bool radioSendTo(const uint8_t* destination,const uint8_t* data,size_t size){
-  assert(size==70);std::memcpy(lastDestination,destination,sizeof(lastDestination));std::memcpy(&last,data,size);++calls;return false;
+static uint64_t esp_timer_get_time(){return uint64_t(clockMs)*1000;}
+static ir_link::Status last{};
+static bool radioSendTo(const uint8_t* mac,const uint8_t* bytes,size_t length){
+ assert(length==sizeof(last) && ir_link::sameMac(mac,naviPeerMac));std::memcpy(&last,bytes,length);++calls;return true;
 }
 '''
-        harness += function(SOURCE, 'crc16(') + '\n'
         harness += function(SOURCE, 'servicePulseTransportStatus(')
         harness += r'''
 int main(){
-  assert(sizeof(PulseTransportStatusPacket)==70);
-  assert(offsetof(PulseTransportStatusPacket,sid)==4);
-  assert(offsetof(PulseTransportStatusPacket,sequence)==8);
-  assert(offsetof(PulseTransportStatusPacket,sendErrors)==64);
-  servicePulseTransportStatus();assert(calls==0);
-  clockMs=999;servicePulseTransportStatus();assert(calls==0);
-  naviPeerReady=true;
-  clockMs=1000;servicePulseTransportStatus();assert(calls==1 && last.sequence==1);
-  assert(std::memcmp(lastDestination,naviPeerMac,sizeof(naviPeerMac))==0);
-  for(const auto b: *reinterpret_cast<const uint8_t (*)[70]>(&last))std::printf("%02x",b);
-  std::puts("");
-  clockMs=1999;servicePulseTransportStatus();assert(calls==1);
-  clockMs=8000;servicePulseTransportStatus();assert(calls==2 && last.sequence==2);
-  servicePulseTransportStatus();assert(calls==2); // No burst after a stalled radio.
-  assert(last.generated==101 && last.sent==102 && last.failed==103 && last.dropped==104);
-  pulseStatusAt=UINT32_MAX-499;clockMs=500;pulseStatusSequence=UINT32_MAX;
-  servicePulseTransportStatus();assert(calls==3 && last.sequence==0);
-  pulseEventGenerated=UINT32_MAX;pulseEventSent=UINT32_MAX;
-  clockMs+=1000;servicePulseTransportStatus();assert(last.generated==UINT32_MAX);
-  assert(last.crc==crc16((const uint8_t*)&last,68));
+ if(!ir_input::Wireless){naviAccepted=true;clockMs=1000;servicePulseTransportStatus();assert(!calls);return 0;}
+ clockMs=1000;servicePulseTransportStatus();assert(!calls);
+ naviAccepted=true;servicePulseTransportStatus();assert(calls==1 && last.sequence==1);
+ assert(ir_link::valid(last,7) && last.generated==101 && last.overflow==4 && last.macOK==102 && last.macFail==3);
+ assert(last.unresolved==7 && last.high==8 && last.timeouts==9 && last.session==99 && last.txBoot==42);
+ clockMs=8000;servicePulseTransportStatus();assert(calls==2);servicePulseTransportStatus();assert(calls==2);
+ radioInFlight=true;clockMs=9000;servicePulseTransportStatus();assert(calls==2);
+ radioInFlight=false;servicePulseTransportStatus();assert(calls==3);
+ pulseStatusSequence=UINT32_MAX;clockMs=10000;servicePulseTransportStatus();assert(last.sequence==0);
 }
 '''
-        with tempfile.TemporaryDirectory() as tmp:
-            cpp, exe = Path(tmp) / 'status.cpp', Path(tmp) / 'status'
-            cpp.write_text(harness)
-            subprocess.run(['c++', '-std=c++17', '-Wall', '-Wextra', '-Werror',
-                            '-fsanitize=address,undefined', '-I', str(SKETCH),
-                            str(cpp), '-o', str(exe)], check=True)
-            data = bytes.fromhex(subprocess.check_output([str(exe)], text=True).strip())
-        self.assertEqual(data, status())
-        telemetry = TransportTelemetry()
-        stream = io.BytesIO()
-        size = record_line(stream, rx(data), 123.456, telemetry)
-        self.assertEqual(size, len(stream.getvalue()))
-        lines = stream.getvalue().splitlines()
-        self.assertEqual(lines[0], b'123.456000 ' + rx(data).rstrip(b'\n'))
-        row = json.loads(lines[1].split(b' PULSE_TRANSPORT ')[1])
-        self.assertEqual(row['received_epoch'], 123.456)
-        self.assertEqual(row['boot'], '000000000000007b')
-        for field, value in zip(STATUS_FIELDS[6:-1], range(101, 113)):
-            self.assertEqual(row[field], value)
+        compile_run(harness)
+        compile_run('#define NGR_IR_INPUT_PATH NGR_IR_INPUT_DIRECT\n'+harness)
 
     def test_crc_and_schema_rejection(self):
         good = status()
@@ -222,10 +190,12 @@ int main(){
             SKETCH.relative_to(ROOT) / 'IR_SCOPE_ESPNOW_TX.ino')], cwd=ROOT, text=True)
         # Type-6/7 transport is now addressed only after NAVI identity discovery;
         # detector and Type-5 source remain unchanged.
-        self.assertEqual(function(SOURCE, 'sampler('), function(baseline, 'sampler('))
-        self.assertIn('if(naviPeerReady)radioSendTo(naviPeerMac',
+        self.assertEqual(function(SOURCE, 'sampler(').replace('log.queued=enqueuePulse(e);',
+            'log.queued=xQueueSend(pulseEventQueue,&e,0)==pdTRUE;').replace(
+            'if(ir_input::Wireless && !log.queued)', 'if(!log.queued)'), function(baseline, 'sampler('))
+        self.assertIn('radioSendTo(naviPeerMac',
                       function(SOURCE, 'servicePulseTransportStatus('))
-        self.assertIn('if(havePendingPulse && naviPeerReady)', function(SOURCE, 'radio(void*)'))
+        self.assertIn('pulseTransport.submit', function(SOURCE, 'radio(void*)'))
         for path in ['firmware/common/IrMovementDetector.h', 'firmware/common/IrMovementContract.h',
                      'firmware/common/IrMovementWire.h', str(SKETCH.relative_to(ROOT) / 'PulseEventEvidence.h')]:
             self.assertEqual((ROOT / path).read_bytes(), subprocess.check_output(

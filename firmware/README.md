@@ -50,6 +50,22 @@ or a successful build.
 
 ## Current catalog
 
+**2026-10-07 IR/NAVI reliable transport candidate:**
+IR `IR_SCOPE_ESPNOW_PULSE_EVENT_TX_1_10_RELIABLE` and Otto
+`NAVI_EYES_WIDE_OPEN_INTEGRATED_IR_RELIABLE_RX_TEST` add a versioned immutable
+Type-6 envelope, selective application ACKs, a 256-event outstanding window,
+explicit MAC admission, and periodic delivery diagnostics. Detector/native
+evidence, Type-5 semantics, and navigation/control authority are preserved.
+`firmware/common/IrPulseInput.h` selects WIRELESS (default) or DIRECT; DIRECT
+disables experimental pulse radio traffic and establishes the shared native
+evidence boundary only. The wired hardware interface is not implemented.
+Fixed channel 11; a NAVI/AP channel mismatch blocks field-test authorization.
+**Uncommitted development candidate; not flashed or field accepted; independent
+review required before commit.** Starting revision `83462fee`; protocol,
+limitations, authority reconciliation, and validation:
+[`NAVI_IR_RELIABLE_TRANSPORT_20261007.md`](../docs/NAVI_IR_RELIABLE_TRANSPORT_20261007.md).
+The earlier entries below preserve previous candidate/field provenance.
+
 **2026-10-06 NAVI pulse observation experiment:**
 `programs/NAVI_EYES_WIDE_OPEN_INTEGRATED/NAVI_EYES_WIDE_OPEN_INTEGRATED.ino`
 identifies as **NAVI_EYES_WIDE_OPEN_INTEGRATED_PULSE_EVENT_TEST**. Development

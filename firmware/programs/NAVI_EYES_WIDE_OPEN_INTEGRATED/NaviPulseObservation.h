@@ -1,7 +1,7 @@
 #pragma once
 #include <cstring>
 // Reuse the exact committed transmitter contract; do not fork its wire layout.
-#include "../IR_SCOPE_ESPNOW/variants/IR_SCOPE_ESPNOW_TX/PulseEventEvidence.h"
+#include "../../common/IrPulseInput.h"
 #include "../IR_SCOPE_ESPNOW/variants/IR_SCOPE_ESPNOW_TX/PulseTransportStatus.h"
 
 namespace navi_pulse {
@@ -92,6 +92,12 @@ class TransportObservation {
 class Observation {
  public:
   const State& state() const { return state_; }
+  // Common observation-only handoff for either input path. No radio or NAVI judgment.
+  void receiveNative(const ir_input::Arrival& input) {
+    Rx rx{};std::memcpy(rx.mac,input.sourceMac,6);rx.receivedUs=input.receivedUs;
+    rx.queueDrops=input.queueDrops;rx.length=sizeof(input.evidence);
+    std::memcpy(rx.bytes,&input.evidence,sizeof(input.evidence));receive(rx);
+  }
   void receive(const Rx& rx) {
     auto& s=state_;
     ++s.received; s.have=true; s.eventValid=false; s.mmps=0; s.flags=0;
@@ -179,5 +185,6 @@ struct Report {
   uint64_t comparedUs=0,legacyBoot=0;
   double legacyPkph=0;
   bool legacyValid=false,legacySameSource=false,coupled=false;
+  bool transportFresh=true; // Diagnostic only; historical event validity is independent.
 };
 } // namespace navi_pulse
