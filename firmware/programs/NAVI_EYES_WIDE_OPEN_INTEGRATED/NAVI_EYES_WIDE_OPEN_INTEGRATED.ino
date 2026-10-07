@@ -45,7 +45,7 @@ static portMUX_TYPE recorderMux = portMUX_INITIALIZER_UNLOCKED;
 using namespace navi_one;
 using namespace navi_eyes;
 
-static constexpr char SKETCH_NAME[] = "NAVI_EYES_WIDE_OPEN_INTEGRATED_PULSE_EVENT_TEST";
+static constexpr char SKETCH_NAME[] = "NAVI_EYES_WIDE_OPEN_INTEGRATED_IR_UNICAST_RX_TEST";
 static constexpr char BUILD_CLASS[] = "INTEGRATION_CANDIDATE_NOT_FIELD_ACCEPTED";
 static constexpr uint8_t HALL_PIN = 33;
 static constexpr uint8_t I2C_SDA = 21, I2C_SCL = 22;
@@ -97,6 +97,8 @@ static Preferences pairing;
 static uint8_t pairedIrMac[6]{};
 static uint32_t seenIrFrames = 0;
 static bool radioReady = false, irCarCoupled = false;
+static const uint8_t IR_LINK_BROADCAST[6]={0xff,0xff,0xff,0xff,0xff,0xff};
+static uint32_t irLinkHelloSequence=0,irLinkHelloAt=0;
 static bool haveNetReport = false, lastWifiConnected = false, lastMqttConnected = false;
 static int lastMqttState = 0;
 static uint32_t lastConnectivityReportMs = 0;
@@ -921,6 +923,22 @@ static void servicePulseTelemetry() {
       const bool sameBoot=tx.valid && p.ledgerActive && tx.status.bootId==p.ledgerBootId;
       const double reception=(sameBoot && tx.status.sent)
         ? 100.0*double(p.ledgerReceived)/double(tx.status.sent) : NAN;
+      char linkPayload[520],linkTopic[72];
+      snprintf(linkPayload,sizeof(linkPayload),
+        "{\"boot\":\"%016llx\",\"first\":%lu,\"last\":%lu,\"received\":%lu,"
+        "\"missing\":%llu,\"duplicate\":%lu,\"out_of_order\":%lu,\"rx_drop\":%lu,"
+        "\"invalid\":%lu,\"age_ms\":%llu,\"tx_valid\":%u,\"tx_generated\":%lu,"
+        "\"tx_sent\":%lu,\"tx_fail\":%lu,\"tx_drop\":%lu,\"reception_pct\":%.3f,"
+        "\"authority\":\"OBSERVATION_ONLY\"}",
+        (unsigned long long)p.ledgerBootId,(unsigned long)p.firstSequence,
+        (unsigned long)p.lastSequence,(unsigned long)p.ledgerReceived,
+        (unsigned long long)p.missing,(unsigned long)p.duplicates,(unsigned long)p.outOfOrder,
+        (unsigned long)rxDrops,(unsigned long)p.invalid,
+        (unsigned long long)(p.have && nowUs>=p.receivedUs?(nowUs-p.receivedUs)/1000:0),
+        unsigned(sameBoot),(unsigned long)tx.status.generated,(unsigned long)tx.status.sent,
+        (unsigned long)tx.status.failed,(unsigned long)tx.status.dropped,reception);
+      snprintf(linkTopic,sizeof(linkTopic),"ngr/loco/%s/telem/ir_link",LOCO_NAME);
+      if(!mqtt.connected() || !mqtt.publish(linkTopic,linkPayload,false))++pulseMqttDrops;
       Serial.printf("[IR_LEDGER] boot=%016llx first=%lu last=%lu received=%lu missing=%llu duplicate=%lu out_of_order=%lu rxdrop=%lu invalid=%lu tx_valid=%u generated=%lu sent=%lu fail=%lu drop=%lu reception_pct=%.3f authority=OBSERVATION_ONLY\n",
         (unsigned long long)p.ledgerBootId,(unsigned long)p.firstSequence,
         (unsigned long)p.lastSequence,(unsigned long)p.ledgerReceived,
@@ -930,6 +948,18 @@ static void servicePulseTelemetry() {
         (unsigned long)tx.status.failed,(unsigned long)tx.status.dropped,reception);
     }
   }
+}
+
+static void serviceIrLinkHello(){
+  if(!radioReady)return;
+  const uint32_t now=millis();
+  if(uint32_t(now-irLinkHelloAt)<1000)return;
+  irLinkHelloAt=now;
+  IrNaviLinkHelloPacket hello{};
+  hello.magic=0x4952;hello.version=1;hello.type=8;
+  hello.locoId=LOCO_ID;hello.sequence=++irLinkHelloSequence;hello.naviBootId=bootId;
+  hello.crc=navi_pulse::crc((const uint8_t*)&hello,offsetof(IrNaviLinkHelloPacket,crc));
+  esp_now_send(IR_LINK_BROADCAST,(const uint8_t*)&hello,sizeof(hello));
 }
 
 static void networkTask(void*) {
@@ -948,11 +978,19 @@ static void networkTask(void*) {
       const esp_err_t initResult = esp_now_init();
       const esp_err_t callbackResult = initResult == ESP_OK
           ? esp_now_register_recv_cb(onIr) : initResult;
-      radioReady = callbackResult == ESP_OK;
+      esp_err_t peerResult=callbackResult;
+      if(callbackResult==ESP_OK){
+        esp_now_peer_info_t peer{};
+        memcpy(peer.peer_addr,IR_LINK_BROADCAST,6);peer.channel=0;peer.encrypt=false;
+        peerResult=esp_now_add_peer(&peer);
+        if(peerResult==ESP_ERR_ESPNOW_EXIST)peerResult=ESP_OK;
+      }
+      radioReady = callbackResult == ESP_OK && peerResult==ESP_OK;
       if (initResult == ESP_OK && !radioReady) esp_now_deinit();
-      Serial.printf("[IR] radio=%s init_error=%d callback_error=%d\n",
-                    radioReady ? "READY" : "FAILED", initResult, callbackResult);
+      Serial.printf("[IR] radio=%s init_error=%d callback_error=%d peer_error=%d\n",
+                    radioReady ? "READY" : "FAILED", initResult, callbackResult, peerResult);
     }
+    serviceIrLinkHello();
     if (wifiConnected && !mqtt.connected() && now >= nextConnect) {
       wifiClient.setConnectionTimeout(3000);
       nextConnect = now + 2000;

@@ -99,6 +99,8 @@ class StatusTests(unittest.TestCase):
 static uint32_t clockMs=0,pulseStatusAt=0,pulseStatusSequence=0,calls=0;
 static uint16_t MAGIC=0x4952;static uint8_t VERSION=1;
 static uint32_t sid=42;static uint64_t movementBoot=123;
+static bool naviPeerReady=false;
+static uint8_t naviPeerMac[6]={1,2,3,4,5,6};
 static std::atomic<uint32_t> pulseEventGenerated{101},pulseEventSent{102},
   pulseEventFailed{103},pulseEventDrops{104},pulseLogDrops{105},pulseQueueHigh{107},
   pulseSendLagMaxUs{109},radioTimeouts{110},radioBusyDrops{111},sendErrors{112};
@@ -106,8 +108,9 @@ static unsigned pulseEventQueue=106,pulseLogQueue=108;
 static uint32_t millis(){return clockMs;}
 static unsigned uxQueueMessagesWaiting(unsigned q){return q;}
 static PulseTransportStatusPacket last;
-static bool radioSend(const uint8_t* data,size_t size){
-  assert(size==70);std::memcpy(&last,data,size);++calls;return false;
+static uint8_t lastDestination[6]{};
+static bool radioSendTo(const uint8_t* destination,const uint8_t* data,size_t size){
+  assert(size==70);std::memcpy(lastDestination,destination,sizeof(lastDestination));std::memcpy(&last,data,size);++calls;return false;
 }
 '''
         harness += function(SOURCE, 'crc16(') + '\n'
@@ -120,7 +123,9 @@ int main(){
   assert(offsetof(PulseTransportStatusPacket,sendErrors)==64);
   servicePulseTransportStatus();assert(calls==0);
   clockMs=999;servicePulseTransportStatus();assert(calls==0);
+  naviPeerReady=true;
   clockMs=1000;servicePulseTransportStatus();assert(calls==1 && last.sequence==1);
+  assert(std::memcmp(lastDestination,naviPeerMac,sizeof(naviPeerMac))==0);
   for(const auto b: *reinterpret_cast<const uint8_t (*)[70]>(&last))std::printf("%02x",b);
   std::puts("");
   clockMs=1999;servicePulseTransportStatus();assert(calls==1);
@@ -215,8 +220,12 @@ int main(){
         self.assertEqual(t.streams, {})
         baseline = subprocess.check_output(['git', 'show', '65210f3:' + str(
             SKETCH.relative_to(ROOT) / 'IR_SCOPE_ESPNOW_TX.ino')], cwd=ROOT, text=True)
+        # Type-6/7 transport is now addressed only after NAVI identity discovery;
+        # detector and Type-5 source remain unchanged.
         self.assertEqual(function(SOURCE, 'sampler('), function(baseline, 'sampler('))
-        self.assertEqual(function(SOURCE, 'radioSend('), function(baseline, 'radioSend('))
+        self.assertIn('if(naviPeerReady)radioSendTo(naviPeerMac',
+                      function(SOURCE, 'servicePulseTransportStatus('))
+        self.assertIn('if(havePendingPulse && naviPeerReady)', function(SOURCE, 'radio(void*)'))
         for path in ['firmware/common/IrMovementDetector.h', 'firmware/common/IrMovementContract.h',
                      'firmware/common/IrMovementWire.h', str(SKETCH.relative_to(ROOT) / 'PulseEventEvidence.h')]:
             self.assertEqual((ROOT / path).read_bytes(), subprocess.check_output(

@@ -17,3 +17,13 @@ static_assert(offsetof(PulseTransportStatusPacket,generated)==20,"status counter
 static_assert(offsetof(PulseTransportStatusPacket,queueDepth)==40,"status queue offset");
 static_assert(offsetof(PulseTransportStatusPacket,crc)==68,"status CRC offset");
 static_assert(sizeof(PulseTransportStatusPacket)<=250,"status exceeds ESP-NOW limit");
+
+// NAVI announces its identity by broadcast; the IR car learns the sender MAC
+// and directs native pulse evidence to that peer. Discovery only: no movement authority.
+struct __attribute__((packed)) IrNaviLinkHelloPacket {
+  uint16_t magic; uint8_t version,type;
+  uint32_t locoId,sequence; uint64_t naviBootId;
+  uint16_t crc;
+};
+static_assert(sizeof(IrNaviLinkHelloPacket)==22,"IR/NAVI hello wire size");
+static_assert(offsetof(IrNaviLinkHelloPacket,crc)==20,"IR/NAVI hello CRC offset");

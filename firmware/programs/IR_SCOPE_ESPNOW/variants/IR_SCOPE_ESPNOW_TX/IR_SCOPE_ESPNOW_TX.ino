@@ -1,11 +1,12 @@
 /*
- * IR_SCOPE_ESPNOW_PULSE_EVENT_TX_1_8_TRANSPORT_TEST — 1 kHz IR waveform transmitter plus
+ * IR_SCOPE_ESPNOW_PULSE_EVENT_TX_1_9_NAVI_UNICAST — 1 kHz IR waveform transmitter plus
  * read-only QUORUM/TEMPLATES CtoPeerPacket v3 receiver and onboard interval
  * comparison. Samples GPIO34; no local navigation or motor authority.
  * NAVI consumes its evidence, so detector changes can affect navigation.
  * R2: quiet-only retention, agreeing-cycle reference, visible continuity loss.
  * 1.7: additive type-6 completed-pulse evidence; no detector/filter changes.
  * 1.8: one-second Type-7 cumulative transport diagnostics; no evidence changes.
+ * 1.9: NAVI identity discovery plus addressed Type-6/Type-7 unicast. Detector unchanged.
  * Spec: docs/NAVI_IR_PULSE_EVENT_PHYSICAL_EVIDENCE_20261006.md.
  * Built/reviewed diagnostic candidate; hardware acceptance pending. No flash
  * or NAV/AUTO authority follows from this instrumentation experiment.
@@ -31,6 +32,8 @@ static const uint32_t DEBOUNCE_US=15000, LATCH_MS=2500;
 static const uint8_t BROADCAST[6]={0xff,0xff,0xff,0xff,0xff,0xff};
 static const uint8_t CTO_MAGIC=0xC4, CTO_VERSION=3, CTO_ECHO_MAGIC=0xC5;
 static const uint32_t TOBY_ID=9950012UL;
+static const uint32_t NAVI_TARGET_ID=9950011UL; // Otto for this field build.
+static const uint8_t LINK_HELLO_TYPE=8;
 static const uint8_t ACK_TYPE=4;
 static const size_t RETAINED_INTERVALS=192;
 
@@ -109,7 +112,8 @@ struct RetainedFusion {
   bool occupied;
 };
 
-static QueueHandle_t q,ctoRxQueue,observationQueue,fusionQueue,fusionAckQueue;
+static QueueHandle_t q,ctoRxQueue,observationQueue,fusionQueue,fusionAckQueue,linkPeerQueue;
+struct LinkPeerUpdate { uint8_t mac[6]; uint32_t helloSequence; uint64_t naviBootId; };
 static uint32_t sid, sampleSeq=0, batchSeq=0, pendingMiss=0;
 static volatile uint32_t lateTotal=0,missedTotal=0,queueDrops=0,pulses=0,latches=0,closs=0,saturatedSamples=0,sent=0;
 static std::atomic<uint32_t> sendErrors{0};
@@ -124,12 +128,17 @@ static std::atomic<bool> sendDone{true};
 static esp_now_send_status_t sendStatus=ESP_NOW_SEND_FAIL;
 static std::atomic<uint32_t> radioTimeouts{0},radioBusyDrops{0};
 static int runMin=0,runMax=0;
-static constexpr unsigned PULSE_QUEUE_DEPTH=32,PULSE_LOG_DEPTH=64;
+static constexpr unsigned PULSE_QUEUE_DEPTH=256,PULSE_LOG_DEPTH=64;
 struct PulseLogItem { PulseEventPacket event; bool queued; };
 static QueueHandle_t movementQueue,pulseEventQueue,pulseLogQueue;
 static std::atomic<uint32_t> pulseEventGenerated{0},pulseEventDrops{0},pulseEventSent{0};
 static std::atomic<uint32_t> pulseEventFailed{0},pulseLogDrops{0},pulseQueueHigh{0};
 static std::atomic<uint32_t> pulseSendLagMaxUs{0};
+static uint8_t naviPeerMac[6]{};
+static bool naviPeerReady=false;
+static uint32_t naviHelloSequence=0;
+static uint64_t naviHelloBoot=0;
+static uint32_t pulseRetryAttempts=0;
 // Owned exclusively by the radio task, independent of serial output/speed.
 static uint32_t pulseStatusSequence=0,pulseStatusAt=0;
 static portMUX_TYPE movementMux=portMUX_INITIALIZER_UNLOCKED;
@@ -140,6 +149,17 @@ static uint16_t crc16(const uint8_t *p,size_t n){uint16_t c=0xffff;while(n--){c^
 static void onSent(const wifi_tx_info_t*,esp_now_send_status_t s){sendStatus=s;sendDone=true;}
 
 static void onReceive(const esp_now_recv_info_t *info,const uint8_t *data,int len){
+  if(len==(int)sizeof(IrNaviLinkHelloPacket) && info){
+    IrNaviLinkHelloPacket hello{};memcpy(&hello,data,sizeof(hello));
+    const uint16_t wireCrc=hello.crc;hello.crc=0;
+    if(hello.magic==MAGIC && hello.version==VERSION && hello.type==LINK_HELLO_TYPE &&
+       hello.locoId==NAVI_TARGET_ID && wireCrc==crc16((uint8_t*)&hello,sizeof(hello)-2)){
+      LinkPeerUpdate update{};memcpy(update.mac,info->src_addr,6);
+      update.helloSequence=hello.sequence;update.naviBootId=hello.naviBootId;
+      if(linkPeerQueue)xQueueOverwrite(linkPeerQueue,&update);
+      return;
+    }
+  }
   if(len==(int)sizeof(FusionAckPacket)){
     FusionAckPacket ack{};memcpy(&ack,data,sizeof(ack));uint16_t wireCrc=ack.crc;ack.crc=0;
     if(ack.magic==MAGIC&&ack.version==VERSION&&ack.type==ACK_TYPE&&wireCrc==crc16((uint8_t*)&ack,sizeof(ack)-2)&&ack.sid==sid){
@@ -214,15 +234,34 @@ static void sampler(void*) {
   }
 }
 
-static bool radioSend(const uint8_t *data,size_t len){
-  // A timed-out accepted send still owns the next callback. Never submit
-  // another frame until it arrives; otherwise its result could be misattributed.
+static bool radioSendTo(const uint8_t *dest,const uint8_t *data,size_t len){
+  // Sends are serialized so each callback belongs to exactly one submission.
   if(!sendDone.load()){radioBusyDrops++;sendErrors++;return false;}
-  sendDone=false;esp_err_t e=esp_now_send(BROADCAST,data,len);
+  sendDone=false;esp_err_t e=esp_now_send(dest,data,len);
   if(e!=ESP_OK){sendErrors++;sendDone=true;return false;}
   uint32_t start=millis();while(!sendDone&&millis()-start<100)vTaskDelay(pdMS_TO_TICKS(1));
   if(!sendDone.load()){radioTimeouts++;sendErrors++;return false;}
   if(sendStatus!=ESP_NOW_SEND_SUCCESS){sendErrors++;return false;}return true;
+}
+static bool radioSend(const uint8_t *data,size_t len){return radioSendTo(BROADCAST,data,len);}
+
+static void serviceNaviPeer(){
+  LinkPeerUpdate update{};
+  if(!linkPeerQueue || xQueueReceive(linkPeerQueue,&update,0)!=pdTRUE)return;
+  if(naviPeerReady && memcmp(naviPeerMac,update.mac,6)==0){
+    naviHelloSequence=update.helloSequence;naviHelloBoot=update.naviBootId;return;
+  }
+  if(naviPeerReady && esp_now_is_peer_exist(naviPeerMac))esp_now_del_peer(naviPeerMac);
+  esp_now_peer_info_t peer{};memcpy(peer.peer_addr,update.mac,6);peer.channel=CHANNEL;peer.encrypt=false;
+  const esp_err_t added=esp_now_add_peer(&peer);
+  if(added==ESP_OK || added==ESP_ERR_ESPNOW_EXIST){
+    memcpy(naviPeerMac,update.mac,6);naviPeerReady=true;
+    naviHelloSequence=update.helloSequence;naviHelloBoot=update.naviBootId;
+    Serial.printf("NAVI_PEER target=%lu mac=%02X:%02X:%02X:%02X:%02X:%02X hello=%lu boot=%016llx\n",
+      (unsigned long)NAVI_TARGET_ID,naviPeerMac[0],naviPeerMac[1],naviPeerMac[2],
+      naviPeerMac[3],naviPeerMac[4],naviPeerMac[5],
+      (unsigned long)naviHelloSequence,(unsigned long long)naviHelloBoot);
+  } else Serial.printf("NAVI_PEER add_failed=%d\n",added);
 }
 
 static void servicePulseTransportStatus(){
@@ -243,22 +282,28 @@ static void servicePulseTransportStatus(){
   st.crc=crc16((const uint8_t*)&st,offsetof(PulseTransportStatusPacket,crc));
   // Same serialized send/100-ms bound as existing traffic. Status failures
   // affect radio-wide counters only, never Type-6 sent/failed/dropped.
-  radioSend((const uint8_t*)&st,sizeof(st));
+  if(naviPeerReady)radioSendTo(naviPeerMac,(const uint8_t*)&st,sizeof(st));
 }
 
 static void radio(void*){
   Packet p; CtoObservationPacket o; FusionIntervalPacket f;
+  PulseEventPacket pendingPulse{};bool havePendingPulse=false;
   for(;;){
+    serviceNaviPeer();
     uint32_t ackSequence;
-    ir_movement::WireSnapshot movement; PulseEventPacket pulseEvent;
-    if(xQueueReceive(pulseEventQueue,&pulseEvent,0)==pdTRUE){
-      const uint64_t lag=uint64_t(esp_timer_get_time())-pulseEvent.completedUs;
+    ir_movement::WireSnapshot movement;
+    if(!havePendingPulse && xQueueReceive(pulseEventQueue,&pendingPulse,0)==pdTRUE)havePendingPulse=true;
+    if(havePendingPulse && naviPeerReady){
+      const uint64_t lag=uint64_t(esp_timer_get_time())-pendingPulse.completedUs;
       const uint32_t boundedLag=lag>UINT32_MAX?UINT32_MAX:uint32_t(lag);
       if(boundedLag>pulseSendLagMaxUs.load())pulseSendLagMaxUs=boundedLag;
-      if(radioSend((uint8_t*)&pulseEvent,sizeof(pulseEvent)))pulseEventSent++;
-      else pulseEventFailed++;
-      // One pulse per pass gives Type-5 and existing diagnostics service too.
-
+      if(radioSendTo(naviPeerMac,(uint8_t*)&pendingPulse,sizeof(pendingPulse))){
+        pulseEventSent++;havePendingPulse=false;
+      } else {
+        pulseEventFailed++;pulseRetryAttempts++;
+        vTaskDelay(pdMS_TO_TICKS(5));
+      }
+      // A failed addressed delivery retains the immutable event for retry.
     }
     if(xQueueReceive(movementQueue,&movement,0)==pdTRUE)
       radioSend((uint8_t*)&movement,sizeof(movement));
@@ -287,7 +332,7 @@ static void radio(void*){
 }
 
 void setup(){
-  Serial.begin(115200);delay(300);analogReadResolution(12);pinMode(SENSOR_PIN,INPUT);sid=esp_random();q=xQueueCreate(30,sizeof(Packet));ctoRxQueue=xQueueCreate(16,sizeof(CtoRxItem));observationQueue=xQueueCreate(16,sizeof(CtoObservationPacket));fusionQueue=xQueueCreate(32,sizeof(FusionIntervalPacket));fusionAckQueue=xQueueCreate(32,sizeof(uint32_t));if(!q||!ctoRxQueue||!observationQueue||!fusionQueue||!fusionAckQueue){Serial.println("FATAL queue");while(1)delay(1000);}
+  Serial.begin(115200);delay(300);analogReadResolution(12);pinMode(SENSOR_PIN,INPUT);sid=esp_random();q=xQueueCreate(30,sizeof(Packet));ctoRxQueue=xQueueCreate(16,sizeof(CtoRxItem));observationQueue=xQueueCreate(16,sizeof(CtoObservationPacket));fusionQueue=xQueueCreate(32,sizeof(FusionIntervalPacket));fusionAckQueue=xQueueCreate(32,sizeof(uint32_t));linkPeerQueue=xQueueCreate(1,sizeof(LinkPeerUpdate));if(!q||!ctoRxQueue||!observationQueue||!fusionQueue||!fusionAckQueue||!linkPeerQueue){Serial.println("FATAL queue");while(1)delay(1000);}
   movementBoot=((uint64_t)esp_random()<<32)|sid;if(!movementBoot)movementBoot=1;
   movementQueue=xQueueCreate(1,sizeof(ir_movement::WireSnapshot));pulseEventQueue=xQueueCreate(PULSE_QUEUE_DEPTH,sizeof(PulseEventPacket));
   pulseLogQueue=xQueueCreate(PULSE_LOG_DEPTH,sizeof(PulseLogItem));
@@ -295,7 +340,7 @@ void setup(){
   WiFi.mode(WIFI_STA);WiFi.disconnect(false,true);esp_wifi_set_channel(CHANNEL,WIFI_SECOND_CHAN_NONE);
   if(esp_now_init()!=ESP_OK){Serial.println("FATAL esp_now_init");while(1)delay(1000);}esp_now_register_send_cb(onSent);esp_now_register_recv_cb(onReceive);
   esp_now_peer_info_t peer{};memcpy(peer.peer_addr,BROADCAST,6);peer.channel=CHANNEL;peer.encrypt=false;if(esp_now_add_peer(&peer)!=ESP_OK){Serial.println("FATAL add_peer");while(1)delay(1000);}
-  Serial.printf("READY IR_SCOPE_ESPNOW_PULSE_EVENT_TX_1_8_TRANSPORT_TEST sid=%08lx pin=%d rate=1000 env=%d update=%lu prime=%d mingate=%d channel=%u raw=%u cto=%u obs=%u fusion=%u retained=%u target=%lu mac=%s\n",(unsigned long)sid,SENSOR_PIN,ENV_N,(unsigned long)ENV_UPDATE_MS,PRIME_N,MIN_SPAN,CHANNEL,(unsigned)sizeof(Packet),(unsigned)sizeof(CtoPeerPacket),(unsigned)sizeof(CtoObservationPacket),(unsigned)sizeof(FusionIntervalPacket),(unsigned)RETAINED_INTERVALS,(unsigned long)TOBY_ID,WiFi.macAddress().c_str());
+  Serial.printf("READY IR_SCOPE_ESPNOW_PULSE_EVENT_TX_1_9_NAVI_UNICAST sid=%08lx pin=%d rate=1000 env=%d update=%lu prime=%d mingate=%d channel=%u raw=%u cto=%u obs=%u fusion=%u retained=%u target=%lu navi_target=%lu mac=%s\n",(unsigned long)sid,SENSOR_PIN,ENV_N,(unsigned long)ENV_UPDATE_MS,PRIME_N,MIN_SPAN,CHANNEL,(unsigned)sizeof(Packet),(unsigned)sizeof(CtoPeerPacket),(unsigned)sizeof(CtoObservationPacket),(unsigned)sizeof(FusionIntervalPacket),(unsigned)RETAINED_INTERVALS,(unsigned long)TOBY_ID,(unsigned long)NAVI_TARGET_ID,WiFi.macAddress().c_str());
   Serial.printf("PULSE FORMAT boot=%016llx type=6 version=1 bytes=%u pitch_um=%lu radio_capacity=%u log_capacity=%u interval_zero=unavailable\n",(unsigned long long)movementBoot,(unsigned)sizeof(PulseEventPacket),(unsigned long)ir_movement::kInstalledPitchUm,PULSE_QUEUE_DEPTH,PULSE_LOG_DEPTH);
   Serial.printf("TRANSPORT FORMAT type=7 version=1 bytes=%u period_ms=1000 authority=DIAGNOSTIC_ONLY\n",(unsigned)sizeof(PulseTransportStatusPacket));
   xTaskCreatePinnedToCore(sampler,"sample",4096,nullptr,2,nullptr,0);xTaskCreatePinnedToCore(radio,"radio",4096,nullptr,1,nullptr,1);
