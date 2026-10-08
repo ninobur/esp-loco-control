@@ -19,6 +19,14 @@ class DestinationRoutingTests(unittest.TestCase):
         self.assertIn("radioSend((uint8_t*)&o,sizeof(o))", source)
         self.assertIn("radioSend((uint8_t*)&p,sizeof(p))", source)
 
+    def test_broadcast_and_otto_peers_are_registered_on_the_ir_channel(self):
+        source = TX.read_text()
+        self.assertIn("memcpy(peer.peer_addr,OTTO_MAC,6)", source)
+        self.assertIn("memcpy(peer.peer_addr,BROADCAST,6)", source)
+        self.assertEqual(source.count("peer.channel=CHANNEL"), 2)
+        self.assertIn('FATAL add Otto peer', source)
+        self.assertIn('FATAL add broadcast peer', source)
+
     def test_type_3_type_4_fusion_exchange_is_unchanged(self):
         source = RX.read_text()
         self.assertIn("FUSION_TYPE = 3, ACK_TYPE = 4", source)
