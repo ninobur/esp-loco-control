@@ -404,11 +404,14 @@ detector mechanisms is an active dependency of this sketch.
 ## 2026-10-06 pulse-event observation experiment
 
 The working sketch now identifies as `NAVI_EYES_WIDE_OPEN_INTEGRATED_PULSE_EVENT_TEST`.
-It receives the committed 61-byte Type-6 pulse stream in an isolated diagnostic
-queue and reports native pulse speed beside the unchanged Type-5 legacy speed.
-No Type-6 evidence or loss enters NAVI/control authority. Pairing remains
-provenance-only; source/boot changes and mismatched comparison sources are visible.
-`telem/ir_pulse` is a new, non-retained event/status topic; existing telemetry
-contracts and the Type-5 path remain unchanged. Built for Otto; not flashed or
-field accepted. See the [technical specification](../../../docs/NAVI_PULSE_EVENT_PHYSICAL_SPEED_OBSERVATION_20261006.md)
-for continuity rules, loss/freshness semantics, validation and the field protocol.
+It receives the committed 61-byte Type-6 pulse stream through a one-slot
+latest-value observational handoff. Each accepted endpoint retains its
+cumulative count/distance and original physical completion timestamp; a forward
+gap is reported and produces an endpoint-average speed, not invented pulse
+events. No Type-6 evidence or loss enters NAVI/control authority. The existing
+Type-5 movement-history/control path is unchanged. The non-retained
+`telem/ir_pulse` status reports the latest endpoint, freshness, discontinuities,
+and Type-5 comparison. Built for Otto; not flashed or field accepted. See the
+[simplification reconciliation](../../../docs/NGR_IR_COMMUNICATION_SIMPLIFICATION_RECONCILIATION_20261007.md)
+and the [technical specification](../../../docs/NAVI_PULSE_EVENT_PHYSICAL_SPEED_OBSERVATION_20261006.md)
+for boundaries, continuity semantics, validation, and field protocol.
