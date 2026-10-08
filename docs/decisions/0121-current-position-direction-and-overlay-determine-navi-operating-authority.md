@@ -40,7 +40,7 @@ revised architecture does not implement or authorize firmware changes.
 ## Consequences
 
 - No station ARMED admission requirement or persistent phase authority.
-- No completed-visit or one-stop-per-visit suppression.
+- No completed-visit or one-stop-per-visit suppression **as independent operating authority**. A designated STOP tile may execute its own stop → dwell → departure instruction; that tile-local execution progress is not permission inherited from a prior visit.
 - STOP/GO reevaluates present position, direction, and overlay.
 - Overlay replacement replaces prior operating authority.
 - Station-procedure MISSED and station PHASE_TIMEOUT are not governing
@@ -54,6 +54,22 @@ The implementation task must distinguish necessary execution state from
 procedural authority carefully. This record does not claim that existing
 firmware already conforms, authorize its cleanup, or choose actuator behavior
 for an overlay transition.
+
+## October 8 clarification — tile-local execution is not historical authority
+
+The October 8 [Document C architectural decision record](../NAVI_DOCUMENT_C_ARCHITECTURAL_DECISIONS_20261008.md) clarifies the distinction:
+
+- The **base station stopping tile** contains stop, five-second dwell, and ramp-to-cruise departure. After a physical stop and completed dwell, **the same tile's active execution instruction becomes departure**. No prior approach, entry event, Hall prerequisite, or station ARMED state grants permission.
+- A **temporary traffic or other mandate** suspends the base instruction without completing it. If the mandate is removed while NAVI is physically stopped on the designated station STOP tile, the base five-second dwell begins **then**; departure follows the dwell. If NAVI is on another tile, that tile's current instruction applies.
+- A **limited overlay** changes only its painted geographic footprint and replaces its previous footprint; a station PASS repaints exactly the final two tiles, leaving the five 20-pKPH tiles unchanged.
+- Current consist-aware traffic restrictions are additional geographic requirements, not a procedural release state. The chosen minimum separation is **600 mm terminal clearance plus the standard stopping distance at the follower's current speed**.
+- Decision **0120** continues to govern movement detected at PWM zero and any resulting localization invalidation; tile execution cannot bypass operator verification/redeclaration.
+
+This clarification **does not reinstate** 0101's completed-visit suppression, persistent station phases, or one-stop-per-visit admission. Only minimal physical execution progress for the **currently applicable tile instruction** is legitimate. A changed overlay or current geographic requirement cannot be overruled by remembered completion of an obsolete instruction. The exact representation/reset of such execution progress remains an implementation-design and test question, not a new operating-authority source.
+
+This is documentation reconciliation only. **No firmware implementation or flashing is authorized.**
+
+---
 
 ## Alternative rejected
 
