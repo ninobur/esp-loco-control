@@ -27,7 +27,8 @@ static const uint16_t FLAG_INPULSE=0x1000, FLAG_RISE=0x2000, FLAG_FALL=0x4000, F
 static const int ENV_N=512, PRIME_N=128, MIN_SPAN=120, BATCH_N=96;
 static const uint32_t ENV_UPDATE_MS=50;
 static const uint32_t DEBOUNCE_US=15000, LATCH_MS=2500;
-static const uint8_t BROADCAST[6]={0xff,0xff,0xff,0xff,0xff,0xff};
+// Fixed Otto receiver, verified from the supplied locomotive configuration.
+static const uint8_t OTTO_MAC[6]={0x68,0x09,0x47,0xAC,0x4E,0xB4};
 static const uint8_t CTO_MAGIC=0xC4, CTO_VERSION=3, CTO_ECHO_MAGIC=0xC5;
 static const uint32_t TOBY_ID=9950012UL;
 static const uint8_t ACK_TYPE=4;
@@ -212,7 +213,7 @@ static bool radioSend(const uint8_t *data,size_t len){
   // A timed-out accepted send still owns the next callback. Never submit
   // another frame until it arrives; otherwise its result could be misattributed.
   if(!sendDone.load()){radioBusyDrops++;sendErrors++;return false;}
-  sendDone=false;esp_err_t e=esp_now_send(BROADCAST,data,len);
+  sendDone=false;esp_err_t e=esp_now_send(OTTO_MAC,data,len);
   if(e!=ESP_OK){sendErrors++;sendDone=true;return false;}
   uint32_t start=millis();while(!sendDone&&millis()-start<100)vTaskDelay(pdMS_TO_TICKS(1));
   if(!sendDone.load()){radioTimeouts++;sendErrors++;return false;}
@@ -224,6 +225,10 @@ static void radio(void*){
   for(;;){
     uint32_t ackSequence;
     ir_movement::WireSnapshot movement; PulseEventPacket pulseEvent;
+    // Preserve the established periodic Type-5 service: a pending Type-6
+    // submission never gets ahead of the newest Type-5 operational snapshot.
+    if(xQueueReceive(movementQueue,&movement,0)==pdTRUE)
+      radioSend((uint8_t*)&movement,sizeof(movement));
     if(xQueueReceive(pulseEventQueue,&pulseEvent,0)==pdTRUE){
       const uint64_t lag=uint64_t(esp_timer_get_time())-pulseEvent.completedUs;
       const uint32_t boundedLag=lag>UINT32_MAX?UINT32_MAX:uint32_t(lag);
@@ -231,10 +236,7 @@ static void radio(void*){
       if(radioSend((uint8_t*)&pulseEvent,sizeof(pulseEvent)))pulseEventSent++;
       else pulseEventFailed++;
       // One pulse per pass gives Type-5 and existing diagnostics service too.
-
     }
-    if(xQueueReceive(movementQueue,&movement,0)==pdTRUE)
-      radioSend((uint8_t*)&movement,sizeof(movement));
     while(xQueueReceive(fusionAckQueue,&ackSequence,0)==pdTRUE){
       for(size_t i=0;i<RETAINED_INTERVALS;i++)if(retained[i].occupied&&retained[i].packet.reportSequence==ackSequence){retained[i].occupied=false;fusionAcked++;break;}
     }
@@ -263,7 +265,7 @@ void setup(){
   if(!movementQueue||!pulseEventQueue){Serial.println("FATAL movement/pulse queue");while(1)delay(1000);}
   WiFi.mode(WIFI_STA);WiFi.disconnect(false,true);esp_wifi_set_channel(CHANNEL,WIFI_SECOND_CHAN_NONE);
   if(esp_now_init()!=ESP_OK){Serial.println("FATAL esp_now_init");while(1)delay(1000);}esp_now_register_send_cb(onSent);esp_now_register_recv_cb(onReceive);
-  esp_now_peer_info_t peer{};memcpy(peer.peer_addr,BROADCAST,6);peer.channel=CHANNEL;peer.encrypt=false;if(esp_now_add_peer(&peer)!=ESP_OK){Serial.println("FATAL add_peer");while(1)delay(1000);}
+  esp_now_peer_info_t peer{};memcpy(peer.peer_addr,OTTO_MAC,6);peer.channel=CHANNEL;peer.encrypt=false;if(esp_now_add_peer(&peer)!=ESP_OK){Serial.println("FATAL add_peer");while(1)delay(1000);}
   Serial.printf("READY IR_SCOPE_ESPNOW_CUMULATIVE_TX sid=%08lx pin=%d rate=1000 env=%d update=%lu prime=%d mingate=%d channel=%u raw=%u cto=%u obs=%u fusion=%u retained=%u target=%lu mac=%s\n",(unsigned long)sid,SENSOR_PIN,ENV_N,(unsigned long)ENV_UPDATE_MS,PRIME_N,MIN_SPAN,CHANNEL,(unsigned)sizeof(Packet),(unsigned)sizeof(CtoPeerPacket),(unsigned)sizeof(CtoObservationPacket),(unsigned)sizeof(FusionIntervalPacket),(unsigned)RETAINED_INTERVALS,(unsigned long)TOBY_ID,WiFi.macAddress().c_str());
   Serial.printf("PULSE FORMAT boot=%016llx type=6 version=1 bytes=%u pitch_um=%lu latest_capacity=%u interval_zero=unavailable\n",(unsigned long long)movementBoot,(unsigned)sizeof(PulseEventPacket),(unsigned long)ir_movement::kInstalledPitchUm,PULSE_QUEUE_DEPTH);
   xTaskCreatePinnedToCore(sampler,"sample",4096,nullptr,2,nullptr,0);xTaskCreatePinnedToCore(radio,"radio",4096,nullptr,1,nullptr,1);

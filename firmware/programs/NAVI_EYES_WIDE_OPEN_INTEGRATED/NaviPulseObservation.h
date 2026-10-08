@@ -35,8 +35,9 @@ class Observation {
  public:
   const State& state() const { return state_; }
   void receive(const Rx& rx) {
-    auto& s=state_; ++s.received; s.current=false;s.speedValid=false;
-    s.distanceAdvancedUm=0;s.physicalIntervalUs=0;s.averageMmps=0;s.flags=0;
+    // Rejections are diagnostic events.  They must never erase the last
+    // accepted physical endpoint or its derived gap-average measurement.
+    auto& s=state_; ++s.received; s.flags=0;
     if(rx.replaced!=replacements_){s.flags|=QUEUE_REPLACED;
       s.queueReplacements+=rx.replaced-replacements_;replacements_=rx.replaced;}
     PulseEventPacket e{};if(rx.length==sizeof(e))std::memcpy(&e,rx.bytes,sizeof(e));
@@ -70,7 +71,9 @@ class Observation {
  private:
   void accept(const PulseEventPacket& e,const Rx& rx) {
     state_.event=e;std::memcpy(state_.mac,rx.mac,6);state_.receivedUs=rx.receivedUs;
-    state_.have=true;state_.current=true;++state_.accepted;prior_=e;
+    state_.have=true;state_.current=true;state_.speedValid=false;
+    state_.distanceAdvancedUm=0;state_.physicalIntervalUs=0;state_.averageMmps=0;
+    ++state_.accepted;prior_=e;
     std::memcpy(priorMac_,rx.mac,6);have_=true;
   }
   State state_{};PulseEventPacket prior_{};uint8_t priorMac_[6]{};

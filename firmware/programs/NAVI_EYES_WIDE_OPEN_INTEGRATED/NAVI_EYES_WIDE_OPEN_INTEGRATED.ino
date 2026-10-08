@@ -80,6 +80,8 @@ static QueueHandle_t hallQ = nullptr, irQ = nullptr, pubQ = nullptr, cmdQ = null
 // Type-6 uses one latest-value slot and never enters operational Type-5/NAVI loss.
 static QueueHandle_t pulseQ=nullptr;
 static navi_pulse::Observation pulseObservation;
+// Verified 2026-10-08 from the attached IR car's ESP32 factory eFuse MAC.
+static constexpr uint8_t IR_CAR_MAC[6]={0x38,0x18,0x2B,0x30,0x8C,0x2C};
 static std::atomic<uint32_t> pulseRxReplacements{0},pulseMqttDrops{0};
 static volatile uint32_t hallQueueDrops = 0, irQueueDrops = 0;
 static uint32_t reportedHallDrops = 0, reportedIrDrops = 0;
@@ -315,6 +317,7 @@ static void onIr(const esp_now_recv_info_t* info, const uint8_t* bytes,
                  int length) {
   if (!info || !bytes) return;
   if (navi_pulse::isPulseFrame(bytes,length)) {
+    if(memcmp(info->src_addr,IR_CAR_MAC,sizeof(IR_CAR_MAC))!=0)return;
     navi_pulse::Rx pulse{};
     memcpy(pulse.mac,info->src_addr,6); pulse.receivedUs=esp_timer_get_time();
     pulse.length=length<0?0:static_cast<uint16_t>(length);
