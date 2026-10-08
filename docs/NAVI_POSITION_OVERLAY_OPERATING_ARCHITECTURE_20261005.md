@@ -764,3 +764,45 @@ The following are architectural acceptance cases, not implemented claims:
 7. No unapproved new governor, cap, PWM restriction, or navigation authority is introduced.
 
 The geographic stopping model must remain reusable at **any** designated stopping point. Firmware implementation, dispatcher message format, intermediate-speed separation, and two-train field activation require separate authorization and validation.
+
+---
+
+## 34. October 8 settled tile and following decisions
+
+This section records the six settled architectural decisions in [the October 8 decision record](NAVI_DOCUMENT_C_ARCHITECTURAL_DECISIONS_20261008.md). It **refines** earlier proposed wording in §§22–23 and 28–33 where they differ. Earlier descriptions of full-cruise **3,600 mm as the entire minimum following separation are superseded** by the explicit 600-mm clearance **plus** standard stopping distance.
+
+### 34.1 The station tile executes stop → dwell → departure
+
+At the designated station STOP tile, NAVI physically stops, dwells **five seconds** under the Four-Station Local base program, and then **changes the active instruction on that same tile** to ramp toward cruise speed. Departure originates on the stopping tile itself. This is execution progress of the tile's current physical instruction, **not** historical station-entry, ARMED, completed-visit suppression, or independent authority to disregard a current overlay.
+
+### 34.2 A temporary stop suspends, but does not complete, the base tile
+
+If a higher-priority traffic/geographic mandate stops NAVI on the designated base stopping tile, the base instruction is suspended. When the mandate is lifted, the base instruction resumes **from the actual stopped position**: begin the full five-second station dwell **at that moment**, then ramp toward cruise. Do not count time spent waiting under the temporary mandate as station dwell. If stopped on an earlier tile, resume that earlier tile's applicable instruction instead. No duplicate physical stop is required.
+
+### 34.3 Overlays repaint only their footprint
+
+An overlay changes only the geographic tiles it names. Its new footprint **completely replaces** its prior footprint; tiles no longer painted revert to the underlying base layer. A station **PASS modifies exactly two tiles**—the final-deceleration and station-stop tiles—into ramp-toward-cruise instructions. The preceding five 20-pKPH station-speed tiles are unchanged. A complete four-station profile is not required to express a single-station PASS.
+
+### 34.4 Initial consist geometry is fixed
+
+For initial implementation, use **450 mm ahead of Hall** and **1,200 mm behind Hall**, total **1,650 mm**, as the chosen fixed geometry. NAVI derives front and rear consist boundaries from geographic Hall position and direction/orientation. Per-consist configuration is deferred. Field verification of physical dimensions remains necessary before two-train activation.
+
+### 34.5 Last-known leader position is retained
+
+When peer position/speed reports cease, NAVI retains the **last known leader position** and **treats the leader as stopped there** for geographic following decisions. Do not extrapolate unobserved motion. A distant retained position may require no immediate intervention; a close position requires the standard stop/restriction early enough. Fresh valid reports replace the retained position and cause immediate reevaluation. Retained evidence must remain distinguishable from fresh evidence.
+
+### 34.6 Minimum separation includes a 600-mm terminal clearance
+
+**Maintain 600 mm plus the distance required for a standard stop at the follower's current speed.**
+
+The **600 mm** is clear distance between the follower's front boundary and leader's rear boundary **after** stopping. NAVI designates a temporary stopping point 600 mm behind the leader's rear and projects the **existing standard stopping maneuver** backward toward the follower. This also applies to the retained last-known leader position after signal loss.
+
+The planned full-cruise standard stopping envelope is 5 MM deceleration + 5 MM reduced speed + 1.5 MM final stop = 11.5 MM, rounded to 12 MM (nominally 3,600 mm). Adding 600 mm terminal clearance yields **nominally 4,200 mm total minimum clear separation at cruise**, subject to actual mapped distances and field validation. Earlier 3,600-mm-only separation statements describe the stopping component, not the complete minimum.
+
+For intermediate speeds, use the **same standard stopping model**; do not invent an unrelated following/braking formula. The precise current-speed-to-standard-stopping-distance mapping and measured performance still require validation. No separate leader-speed release condition, traffic latch, or special restart procedure is needed: the temporary restriction relaxes as observed geography permits, and NAVI follows its current tile.
+
+### 34.7 Implementation and authority boundary
+
+Decision 0121's rejection of historical procedure authority remains binding; Decision 0120's PWM-zero movement/redeclaration requirement remains binding. Tile-local execution progress is legitimate only to carry out the currently applicable stop/dwell/departure instruction, and must not preserve obsolete operating authority after a change in geography, overlay, or manual STOP/GO. Detailed state lifetime/reset behavior must be verified against these requirements before coding.
+
+These decisions specify architecture, **not approval to implement, merge, flash, or activate two-train following**.
