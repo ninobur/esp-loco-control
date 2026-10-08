@@ -27,6 +27,7 @@ static const uint16_t FLAG_INPULSE=0x1000, FLAG_RISE=0x2000, FLAG_FALL=0x4000, F
 static const int ENV_N=512, PRIME_N=128, MIN_SPAN=120, BATCH_N=96;
 static const uint32_t ENV_UPDATE_MS=50;
 static const uint32_t DEBOUNCE_US=15000, LATCH_MS=2500;
+static const uint8_t BROADCAST[6]={0xff,0xff,0xff,0xff,0xff,0xff};
 // Fixed Otto receiver, verified from the supplied locomotive configuration.
 static const uint8_t OTTO_MAC[6]={0x68,0x09,0x47,0xAC,0x4E,0xB4};
 static const uint8_t CTO_MAGIC=0xC4, CTO_VERSION=3, CTO_ECHO_MAGIC=0xC5;
@@ -209,16 +210,20 @@ static void sampler(void*) {
   }
 }
 
-static bool radioSend(const uint8_t *data,size_t len){
+static bool radioSendTo(const uint8_t *destination,const uint8_t *data,size_t len){
   // A timed-out accepted send still owns the next callback. Never submit
   // another frame until it arrives; otherwise its result could be misattributed.
   if(!sendDone.load()){radioBusyDrops++;sendErrors++;return false;}
-  sendDone=false;esp_err_t e=esp_now_send(OTTO_MAC,data,len);
+  sendDone=false;esp_err_t e=esp_now_send(destination,data,len);
   if(e!=ESP_OK){sendErrors++;sendDone=true;return false;}
   uint32_t start=millis();while(!sendDone&&millis()-start<100)vTaskDelay(pdMS_TO_TICKS(1));
   if(!sendDone.load()){radioTimeouts++;sendErrors++;return false;}
   if(sendStatus!=ESP_NOW_SEND_SUCCESS){sendErrors++;return false;}return true;
 }
+// Types 1–3 retain their existing broadcast recorder/fusion consumers.
+static bool radioSend(const uint8_t *data,size_t len){return radioSendTo(BROADCAST,data,len);}
+// Types 5 and 6 are Otto's fixed IR movement interface.
+static bool radioSendOtto(const uint8_t *data,size_t len){return radioSendTo(OTTO_MAC,data,len);}
 
 static void radio(void*){
   Packet p; CtoObservationPacket o; FusionIntervalPacket f;
@@ -228,12 +233,12 @@ static void radio(void*){
     // Preserve the established periodic Type-5 service: a pending Type-6
     // submission never gets ahead of the newest Type-5 operational snapshot.
     if(xQueueReceive(movementQueue,&movement,0)==pdTRUE)
-      radioSend((uint8_t*)&movement,sizeof(movement));
+      radioSendOtto((uint8_t*)&movement,sizeof(movement));
     if(xQueueReceive(pulseEventQueue,&pulseEvent,0)==pdTRUE){
       const uint64_t lag=uint64_t(esp_timer_get_time())-pulseEvent.completedUs;
       const uint32_t boundedLag=lag>UINT32_MAX?UINT32_MAX:uint32_t(lag);
       if(boundedLag>pulseSendLagMaxUs.load())pulseSendLagMaxUs=boundedLag;
-      if(radioSend((uint8_t*)&pulseEvent,sizeof(pulseEvent)))pulseEventSent++;
+      if(radioSendOtto((uint8_t*)&pulseEvent,sizeof(pulseEvent)))pulseEventSent++;
       else pulseEventFailed++;
       // One pulse per pass gives Type-5 and existing diagnostics service too.
     }
