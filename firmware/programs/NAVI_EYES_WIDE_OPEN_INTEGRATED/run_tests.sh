@@ -14,8 +14,9 @@ flags='-std=c++17 -Wall -Wextra -Werror -fsanitize=address,undefined'
 "$build_dir/core"
 "$cxx" $flags "$here/tests/test_recorder.cpp" -o "$build_dir/recorder"
 "$build_dir/recorder"
-"$cxx" $flags "$here/tests/test_operational_adapters.cpp" -o "$build_dir/ops"
-"$build_dir/ops"
+# Retired from the active suite by the legacy station-machinery removal pass.
+# Kept in tests/ as historical evidence of the removed StationMachine and
+# EwoStationStopProfile operating behavior.
 "$cxx" $flags "$here/tests/test_review_regressions.cpp" -o "$build_dir/review"
 "$build_dir/review"
 "$cxx" $flags "$here/tests/test_ir_authority.cpp" -o "$build_dir/authority"
@@ -24,14 +25,9 @@ flags='-std=c++17 -Wall -Wextra -Werror -fsanitize=address,undefined'
 "$build_dir/first_target"
 "$cxx" $flags "$here/tests/test_pwm_zero_localization.cpp" -o "$build_dir/pwm_zero"
 "$build_dir/pwm_zero"
-"$cxx" $flags "$here/tests/test_measured_station_stop.cpp" -o "$build_dir/measured_station_stop"
-"$build_dir/measured_station_stop"
 "$cxx" $flags "$here/tests/test_ir_configuration.cpp" -o "$build_dir/ir"
 "$build_dir/ir"
 "$cxx" $flags "$here/tests/test_pulse_observation.cpp" -o "$build_dir/pulse"
 "$build_dir/pulse"
-stations="$here/../NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_HEALTH"
-"$cxx" $flags -I"$stations" "$stations/tests/test_station_position.cpp" -o "$build_dir/stations"
-"$build_dir/stations"
 
 sh "$here/../NAVI_EYES_WIDE_OPEN/run_tests.sh"

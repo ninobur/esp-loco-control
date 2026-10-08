@@ -1,11 +1,11 @@
 #include "../NaviPulseTelemetry.h"
-#include "../EwoStationStop.h"
 #include "../NaviIntegratedCore.h"
 #include <cassert>
 #include <cmath>
 #include <climits>
 #include <iostream>
 using namespace navi_pulse;
+static constexpr double NAVI_PKPH_MM_PER_SEC = 5.37325;
 static PulseEventPacket event(uint32_t seq=1,uint64_t count=1,uint64_t us=40000){
   PulseEventPacket e{};e.magic=0x4952;e.version=1;e.type=6;e.sid=42;e.bootId=42;
   e.sequence=seq;e.completedPulses=count;e.completedUs=us;e.intervalUs=40000;
@@ -33,7 +33,7 @@ static void prime(Observation& o){o.receive(rx(event()));assert(!o.state().event
 int main(int argc,char**){
   Observation o;prime(o);
   assert(std::abs(o.state().mmps-241.3)<1e-9);
-  assert(std::abs(o.state().mmps/navi_eyes::EWO_PKPH_MM_PER_SEC-44.9076443493)<1e-6);
+  assert(std::abs(o.state().mmps/NAVI_PKPH_MM_PER_SEC-44.9076443493)<1e-6);
   // Arrival jitter has no effect: only physical timestamps determine speed.
   auto jitter=rx(event(3,3,121000));jitter.receivedUs+=30000;
   auto e=event(3,3,121000);e.intervalUs=41000;jitter=rx(e);jitter.receivedUs+=30000;o.receive(jitter);
@@ -136,7 +136,7 @@ int main(int argc,char**){
   if(argc>1){
     Report r{};char buffer[1200];
     auto emit=[&](uint64_t now){int n=format(buffer,sizeof(buffer),r,now,
-      navi_eyes::NaviIntegratedCore::kIrFreshUs,navi_eyes::EWO_PKPH_MM_PER_SEC,true,0,0,0);
+      navi_eyes::NaviIntegratedCore::kIrFreshUs,NAVI_PKPH_MM_PER_SEC,true,0,0,0);
       assert(n>0 && n<int(sizeof(buffer)));std::cout<<buffer<<'\n';};
     emit(0);r.pulse=o.state();r.legacyValid=true;r.legacyPkph=45;emit(r.pulse.receivedUs);
     emit(r.pulse.receivedUs+1000001);
