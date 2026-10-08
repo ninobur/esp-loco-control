@@ -2,6 +2,8 @@
 
 ## Purpose
 
+> **Revision proposed 2026-10-08 — architectural reconciliation candidate.** This document retains the October 5 physical-speed and geographic-control principles while integrating the four-station base program, service overlays, consist envelopes, and dynamic two-train following. The revisions below are design decisions, **not authorization to implement or flash firmware**. Reconcile with decision 0121, the CTO reconstruction architecture, and `NGR_GEOGRAPHIC_CONSIST_AND_MOVEMENT_ARCHITECTURE_20261008.md` before implementation. Experimental parameters and unresolved evidence requirements remain explicitly identified.
+
 NAVI knows where the locomotive is.
 
 The dispatcher tells NAVI what kind of operation is currently required.
@@ -567,51 +569,33 @@ The difference is the terminal speed objective, not the control method.
 
 ---
 
-## 22. Terminus instruction
+## 22. Station terminus tile: stop, dwell, restart
 
-The terminus portion of the stopping overlay contains the complete local instruction:
+The ordinary station STOP tile contains the **complete local station-service instruction**:
 
-from current physical state → complete the final glide path to zero → accept physical stop → dwell → restart
+from current physical state → complete the final geographic glide path to zero → confirm a station stop at the designated station geography → dwell **5 seconds** in the base program → restart using the applicable current geographic instruction and normal ramp.
 
-Physical stop is terminal for the braking portion.
+The base program is the four-station local: **PATIO, BAMBOO, ARCHES, GRILLERS**, all STOP with five-second dwell. An overlay may alter the station instruction or dwell, but does not replace the base geography.
 
-If the locomotive physically stops somewhat before the mathematical endpoint:
+If the locomotive stops somewhat before the mathematical endpoint, NAVI accepts the physical stop; it does not restart solely to seek a precise IR coordinate or Hall marker. However, a **temporary traffic stop behind another consist is not station-service completion** and must not initiate station dwell. The geographic criterion for recognizing a station stop (including reasonable early stopping) requires explicit field-tested definition; do not invent an entry latch to implement it.
 
-accept the physical stop.
-
-Do not restart merely to seek:
-
-* an exact IR-distance target;
-* another Hall marker;
-* the mathematical endpoint.
-
-Once stopped:
-
-begin dwell.
-
-After dwell:
-
-restart.
-
-Restart is part of the terminus instruction.
-
-It does not require the dispatcher to replace the STOP overlay merely to release an ordinary station dwell.
+A completed station dwell permits normal station departure only when manual authority and all current traffic restrictions also permit movement. Restart is part of the station tile; it does not require a new dispatcher release or overlay replacement. Execution memory needed to time a dwell or prevent immediate repeated stopping at the same physical visit is permitted, but it must **never** grant operating authority independently of current geography and overlay.
 
 ---
 
-## 23. Cold start/restart inside the terminus region
+## 23. Cold start, STOP/GO, and temporary traffic interruption
 
-A stationary locomotive starting or resuming AUTO while already within the terminus region is a special case.
+A stationary locomotive starting or resuming AUTO within an ordinary deceleration region gradually approaches that region's applicable terminal speed from its **actual** state, not a presumed earlier phase.
 
-It must not interpret the zero-speed terminal objective as an instruction to remain stopped or perform another station stop.
+A stationary locomotive in the terminus region must distinguish:
+- an ordinary station visit whose station-service stop/dwell has been completed;
+- a station STOP instruction that still applies to an uncompleted visit;
+- a temporary traffic stop imposed over the underlying station geography; and
+- an explicit manual STOP/GO intervention.
 
-Instead:
+When a **temporary traffic restriction** relaxes, NAVI immediately reevaluates the **current tile**, current service overlay, and remaining traffic restrictions. There is no traffic-stop dwell, release latch, or leader-speed threshold. Resumption follows the applicable tile objective with normal ramps. The traffic stop does not count as station arrival.
 
-gradually accelerate toward the applicable 45-pKPH cruise target.
-
-This is the explicit cold/restart rule for the terminus region.
-
-It is intentionally different from cold entry into an ordinary deceleration region.
+Do not treat a cold restart as authority to skip an uncompleted station stop, and do not let an old procedural station phase retain authority across STOP/GO. The precise minimal execution-state representation for completed dwell and current physical visit must be reconciled before implementation; it must not recreate ARMED, entry-gated, or Hall-permission machinery.
 
 ---
 
@@ -701,3 +685,82 @@ The first may be legitimate execution evidence.
 The second recreates procedural admission.
 
 ---
+
+---
+
+## 28. Four-station base program and overlay hierarchy (2026-10-08)
+
+The **underlying program** is Four-Station Local. In either direction, NAVI follows geographic tiles for:
+- 45-pKPH cruise;
+- a **five-MM continuous glide path** from cruise toward 20 pKPH;
+- **five MM** of station-zone 20-pKPH travel;
+- the final approximately **1.5-MM** geographic glide path to a station stop;
+- a **five-second station dwell**, then a normal ramped restart.
+
+These are geographic objectives, not five independent PWM steps. The five-MM station-speed zone applies whether the station is STOP or PASS. The station STOP tile contains its own dwell and restart instructions.
+
+Service overlays change **which station instructions apply**, without changing the underlying geography. Initial overlays include:
+- Four-Station Local: STOP at Patio, Bamboo, Arches, Grillers.
+- Individual station PASS overrides, with other stations retaining base STOP.
+- Circuit Express: PASS at all four stations.
+- Future dwell variations, including random dwell, as separately approved modifications of the base five seconds.
+
+The effective service overlay is a complete, atomically replaced instruction set, not an indefinitely accumulated history of commands. It takes effect **immediately** and NAVI evaluates the current tile and actual physical state. The dispatcher owns service intent; NAVI owns movement execution.
+
+For a station PASS, the five 20-pKPH tiles remain. At the tile otherwise designated for final station deceleration, NAVI instead begins a **ramped return toward 45-pKPH cruise**, continuing through the former stop tile. PASS does not override a dynamic traffic restriction.
+
+## 29. Hall-anchored consist envelope
+
+NAVI's Hall sensor is a geographic anchor, not the whole train. Configured consist geometry, current map position, and direction/orientation yield the **leading and trailing physical boundaries**. Reversal changes which end leads without losing geographic identity.
+
+The previously discussed nominal consist offsets are **450 mm ahead of Hall and 1,200 mm behind Hall** (1,650 mm overall); these are reference dimensions requiring verification for the actual locomotive and cars, not a universal train length.
+
+Separation is measured as **clear track between the follower's leading boundary and the leader's trailing boundary**, not between Hall sensors or block boundaries. Location, direction, geometry, and report age/provenance must be available before applying following instructions.
+
+## 30. Dynamic geographic following overlay
+
+The leading train communicates its **position and speed**, with sufficient consist geometry or boundary data to locate its trailing end. NAVI on the following train derives separation and constructs a **temporary dynamic geographic overlay** across the applicable tiles between the two consists.
+
+The dynamic overlay may lower the permitted speed, impose a distance-defined glide path, or designate a temporary stopping point behind the leader. It is **not** a replacement for the base/service tile instructions; it is an additional restriction. NAVI executes the more restrictive currently applicable physical objective using the same ramp, glide-path, and speed-homeostasis mechanisms.
+
+Following can result in slower movement **without stopping**. If a stop is necessary, its destination defines the approach tiles backward toward NAVI, anywhere on the railroad. There is no entry latch, special station procedure, or traffic release message.
+
+When the leader departs and sufficient geographic separation develops, the dynamic restriction progressively relaxes. NAVI then follows whatever base/service instruction applies **at its present tile**. There is **no requirement that the leader first reach cruise speed**.
+
+A traffic-related stop is analogous to a temporary PAUSE, but is released by **geographic separation**, not a console command. It carries **no station dwell**. The follower may stop behind an occupied platform, then proceed toward the platform as separation permits, and subsequently perform the ordinary station stop/dwell if its station tile still requires STOP.
+
+## 31. Speed-dependent minimum separation
+
+The full-cruise **minimum** clear separation is **12 MM, approximately 3,600 mm behind the rear of the leading consist**. It is a **minimum**, not a maximum and not a command to close a larger gap.
+
+Its derivation is the existing planned stopping sequence:
+- 5 MM to decelerate from 45 to 20 pKPH;
+- 5 MM at 20 pKPH;
+- 1.5 MM for final deceleration to zero;
+- total 11.5 MM, rounded up to 12 MM.
+
+At lower following speeds, the required minimum may be smaller; the same stopping model, not a separate braking theory, must establish the permitted distance. As speed increases, the required buffer expands; NAVI may accelerate only when the available separation permits the higher proposed speed. Speed-limit compliance and following-distance compliance are **independent simultaneous requirements**, analogous to highway driving.
+
+The intermediate-speed separation schedule, locomotive-specific stopping performance, information latency, and behavior under stale or uncertain leader position **remain unresolved and require explicit approval and validation**. The planned 12-MM maneuver is not a proven emergency-braking guarantee. This document does not authorize a new performance limiter or two-train activation.
+
+## 32. No special release or obsolete procedural authority
+
+The current instruction is determined by **current geography + direction + effective service overlay + current dynamic traffic restrictions + actual physical state**. The underlying tile is never erased by a temporary restriction.
+
+A traffic stop is the zero-speed result of a current separation requirement. When that requirement changes, NAVI reevaluates current geography. No separate leader-cruise-speed release condition, station-arrival release message, retained approach latch, or historical phase is needed.
+
+The former alternating station release policy arose because block occupancy did not reveal position **within** a block. With trustworthy consist-aware location and minimum separation, two trains can occupy the same traditional block. The legacy alternation may remain an optional operating style, not a necessary physical-separation rule.
+
+## 33. Verification and implementation boundaries
+
+The following are architectural acceptance cases, not implemented claims:
+
+1. Four-Station Local stops at all four stations with five-second dwell and smooth departure.
+2. Individual PASS and Circuit Express preserve five station-speed tiles and ramp toward cruise over the former final-stop region.
+3. An overlay change applies immediately without a stale phase retaining authority.
+4. A following train slows or stops behind an occupied platform, then advances as geographic separation grows, and makes its own station stop; the temporary stop does **not** count as station dwell.
+5. A moving leader can be followed at reduced speed without unnecessary stopping; minimum clear separation depends on follower speed.
+6. Consist boundaries, reversal, leader-report freshness, STOP/GO, and manual command authority remain coherent.
+7. No unapproved new governor, cap, PWM restriction, or navigation authority is introduced.
+
+The geographic stopping model must remain reusable at **any** designated stopping point. Firmware implementation, dispatcher message format, intermediate-speed separation, and two-train field activation require separate authorization and validation.
