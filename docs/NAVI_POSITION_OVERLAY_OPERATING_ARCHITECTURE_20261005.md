@@ -40,12 +40,14 @@ final reduction aims at PWM **20** at the target. The eventual actual stop may
 be early or late. The geometric target and former station target tolerance are
 **diagnostic**, not required coordinates for stop completion or departure.
 
-For a timed stop, dwell begins when the locomotive actually stops and service
-is complete **when the dwell interval has expired and applied PWM is then
-concurrently zero**. The former station +1 MM moving-clock trigger is
-superseded. There must be a way for the existing actuator ramp to finish at
-PWM zero even if IR pulses cease early; precise mechanics require explicit
-review before implementation. A completed/released overlay does not reissue
+For a timed stop, applied **PWM=0** is NAVI's operational no-motive-
+movement indication and begins the dwell. The stop completes when the
+dwell expires and applied PWM is concurrently zero. No additional
+IR motionless check is required. Unexpected measured PWM-zero movement
+continues to invoke Decision 0120. The former station +1 MM moving
+timer is superseded. The actuator still needs a simple way to reach
+PWM zero if IR pulses cease before the intended geographic target,
+without inventing movement. A completed/released overlay does not reissue
 itself; ramp-up proceeds independent of actual stopping position and the next
 applicable geographic tile supplies the operating instruction.
 
