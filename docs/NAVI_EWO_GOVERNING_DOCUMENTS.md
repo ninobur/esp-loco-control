@@ -1,7 +1,7 @@
 # NAVI_EWO governing documents
 
 Directory of the canonical governing set for NAVI_EYES_WIDE_OPEN (EWO), in
-precedence order. Last revised 2026-10-05.
+precedence order. Last revised 2026-10-09.
 
 **Before beginning NAVI Close Train Operations (CTO) or Circuit Express
 reconstruction, read first:**
@@ -85,6 +85,10 @@ extension by 0111 is withdrawn by 0116.
 
 ## 3. Reconciliation and architectural history
 
+- [NAVI_EWO_0_1 — Architectural Inheritance and Simplification, 2026-10-09](NAVI_EWO_0_1_ARCHITECTURAL_NOTE_20261009.md)
+  (documentation-only proposal; preserves the universal stopping model and
+  geographic PWM precedent while explicitly flagging its unresolved conflict
+  with Document C/Decision 0123 physical-speed control)
 - [Position/overlay documentation reconciliation, 2026-10-05](NAVI_POSITION_OVERLAY_DOCUMENTATION_RECONCILIATION_20261005.md)
   (scoped supersession notices and search classifications; historical evidence
   remains intact; no firmware or test changes)
