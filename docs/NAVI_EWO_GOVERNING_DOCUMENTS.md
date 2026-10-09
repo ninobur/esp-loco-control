@@ -1,7 +1,7 @@
 # NAVI_EWO governing documents
 
 Directory of the canonical governing set for NAVI_EYES_WIDE_OPEN (EWO), in
-precedence order. Last revised 2026-10-05.
+precedence order. Last revised 2026-10-08.
 
 **Before beginning NAVI Close Train Operations (CTO) or Circuit Express
 reconstruction, read first:**
@@ -27,7 +27,8 @@ cruise, 20-pKPH station speed, glide paths, steady-speed homeostasis, and termin
 dwell/restart and cold-entry rules. Its firmware implementation is paused for
 review. The implementation baseline remains
 `0116518b6d5d429fce3281505611d4fa17e2a350` (Document B completed); no Document C
-implementation changes are included in this documentation revision.
+implementation changes are included in this documentation revision. The
+stationless firmware baseline remains unchanged.
 
 This page is a directory and a supersession ledger. It authorizes nothing
 (`/AGENTS.md` section 2), and no decision record authorizes an agent to act
@@ -73,7 +74,7 @@ This page is a directory and a supersession ledger. It authorizes nothing
 | [0120](decisions/0120-pwm-zero-movement-requires-operator-position-verification-and-declaration.md) | Zero-movement dwell preserves localization; PWM-zero movement holds navigation/withdraws AUTO until operator verification and declaration; no automatic recovery | NAVI_EWO |
 | [0121](decisions/0121-current-position-direction-and-overlay-determine-navi-operating-authority.md) | Current MM interval + direction + overlay determine operating requirements; historical station procedure has no operating authority | NAVI operating/station architecture |
 | [0122](decisions/0122-type5-pitch-is-configuration-and-calibration-metadata-has-no-runtime-authority.md) | Installed Type-5 pitch is configuration; calibration metadata has no runtime authority; real validity and continuity remain | NAVI_EWO Document B implementation |
-| [0123](decisions/0123-navi-pass2-uses-geographic-speed-control-and-pwm-ticker-tape.md) | Pass 2 physical-speed control, geographic PWM ticker-tape fallback, and mode-transition telemetry | NAVI Document C / Pass 2; documentation only |
+| [0123](decisions/0123-navi-pass2-uses-geographic-speed-control-and-pwm-ticker-tape.md) | Pass 2 physical-speed control; IR loss holds PWM at steady speed and continues an established monotonic reduction during deceleration; no ticker tape | NAVI Document C / Pass 2; documentation only; Hall-checkpoint semantics remain unresolved |
 
 Decision 0101's current-position principle remains foundational. Its retained
 procedural station mechanisms, including completed-visit suppression, pause
@@ -138,6 +139,7 @@ conflicting assumptions are superseded for NAVI_EWO as follows.
 | Proximal recovery (0098), sequence correction, alternative-position search, map-wide matching, QUORUM recovery, 10-MM AUTO recovery limit | Not authorized. Missed Magnet is the only recovery | 0109 |
 | Shadow "what X22 would have done" and shadow accepted-MM reference mechanisms | Not used. NAVI itself is instrumented | 0102, 0110 |
 | IR as an experimental supplement; stationary `INADEQUATE_CONTRAST` as degradation | IR is a normal sensor; diagnostics cannot veto coherent distance | 0111, 0116 |
+| Geographic PWM ticker-tape recording/playback, historical PWM memory, elapsed-time tape alignment, and missed-pulse prediction during IR loss | Historical Pass 2 proposal; steady speed holds existing PWM, and an established deceleration continues its monotonic PWM reduction without extra control machinery | 0123 |
 | 650-ms degraded Hall-only EWO confirmation or re-anchor | Withdrawn; no IR distance means hold MM/target, not Hall-only progress | 0116 (supersedes EWO extension of 0093 and part of 0111/0112) |
 | Reversal as an automatic IR/map frame break | Preserve coherent frame, capture cumulative reversal origin, and require Hall+IR confirmation | 0116 |
 | Genuine IR frame loss recoverable at next timed Hall field | Hold position/context; operator redeclaration restores the mapping | 0116 |
