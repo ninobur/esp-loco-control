@@ -73,6 +73,7 @@ This page is a directory and a supersession ledger. It authorizes nothing
 | [0120](decisions/0120-pwm-zero-movement-requires-operator-position-verification-and-declaration.md) | Zero-movement dwell preserves localization; PWM-zero movement holds navigation/withdraws AUTO until operator verification and declaration; no automatic recovery | NAVI_EWO |
 | [0121](decisions/0121-current-position-direction-and-overlay-determine-navi-operating-authority.md) | Current MM interval + direction + overlay determine operating requirements; historical station procedure has no operating authority | NAVI operating/station architecture |
 | [0122](decisions/0122-type5-pitch-is-configuration-and-calibration-metadata-has-no-runtime-authority.md) | Installed Type-5 pitch is configuration; calibration metadata has no runtime authority; real validity and continuity remain | NAVI_EWO Document B implementation |
+| [0123](decisions/0123-navi-pass2-uses-geographic-speed-control-and-pwm-ticker-tape.md) | Pass 2 physical-speed control, geographic PWM ticker-tape fallback, and mode-transition telemetry | NAVI Document C / Pass 2; documentation only |
 
 Decision 0101's current-position principle remains foundational. Its retained
 procedural station mechanisms, including completed-visit suppression, pause

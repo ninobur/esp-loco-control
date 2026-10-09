@@ -806,3 +806,131 @@ For intermediate speeds, use the **same standard stopping model**; do not invent
 Decision 0121's rejection of historical procedure authority remains binding; Decision 0120's PWM-zero movement/redeclaration requirement remains binding. Tile-local execution progress is legitimate only to carry out the currently applicable stop/dwell/departure instruction, and must not preserve obsolete operating authority after a change in geography, overlay, or manual STOP/GO. Detailed state lifetime/reset behavior must be verified against these requirements before coding.
 
 These decisions specify architecture, **not approval to implement, merge, flash, or activate two-train following**.
+
+---
+
+## 35. Pass 2 physical-speed control decisions (settled 2026-10-08)
+
+This section records the ten Pass 2 decisions settled after the October 8
+reconciliation. It refines the controller details in §§8–21 without changing
+the governing authority relationship: **current geography, direction, and
+effective overlay determine the physical requirement; NAVI alone navigates; IR
+and Hall are physical evidence; PWM is the actuator.** It also leaves the
+unsettled first-lap and no-IR playback/timing details visibly open in §35.8.
+
+### 35.1 Station terminal and geographic sequence
+
+For both CW and CCW, measured in the direction of travel, the designated
+station stopping point is **Station 0 + 1.5 MM**. Station 0 is a geographic
+reference, not an admission marker or permission to stop.
+
+| Geographic region | Physical requirement |
+|---|---|
+| Station −10 to −5 MM | Continuous glide toward 20 pKPH |
+| Station −5 to 0 MM | Maintain 20 pKPH |
+| Station 0 to +1.5 MM | Continuous final glide toward zero |
+| Station +1.5 MM | Stop, dwell five seconds, then ramp toward cruise |
+
+These boundaries are configurable geographic parameters for future field
+adjustment; they do not license legacy station offsets, entry state, or fixed
+PWM steps.
+
+### 35.2 Steady-speed homeostasis
+
+The initial steady-speed tolerance is **±5%** of the applicable 45- or
+20-pKPH target. A judgment uses the **median of five fresh useful IR speed
+observations**. The existing one-PWM-count correction and five-beat
+post-correction observation moratorium in §§17–19 remain governing.
+
+### 35.3 Glide-path form and correction
+
+The initial 45→20 and 20→0 glide paths use **constant physical deceleration**,
+calculated from actual measured entry speed, remaining geographic distance, and
+terminal target speed. This is an initial field-test model, not a claim that
+the physical railroad has already validated it.
+
+For a glide path, use the same **±5%** target-relative tolerance and require
+**three consecutive useful observations** outside tolerance before changing
+the deceleration ramp. During deceleration, PWM may decrease or remain
+unchanged; it **must never increase**. When judged too slow, NAVI may flatten
+or suspend further PWM reduction, but may not turn that judgment into
+acceleration. These rules apply to both station approach and final stopping
+glides.
+
+### 35.4 Ramp entry and acceleration handoff
+
+Each glide begins from the **actual current PWM**, not a guessed seed. Ordinary
+acceleration uses the established Manual acceleration slope (one PWM count per
+150 ms). That ramp controls acceleration until measured speed reaches **95%**
+of the applicable target, then steady-speed homeostasis takes over. The
+initial deceleration pacing is the established Manual braking behavior, with
+the glide controller allowed to make only the bounded ramp-rate changes above.
+
+### 35.5 Physical station-stop recognition
+
+For Otto and Toby in their established operating conditions, station-stop
+completion requires **actual PWM = 0** and **50 ms without a new IR movement
+pulse**. Then the five-second dwell begins. Decision 0120 is unchanged:
+unexpected measured movement at PWM zero continues to require its
+operator-verification and redeclaration response.
+
+### 35.6 Geographic PWM ticker tape
+
+During normal live-IR control, NAVI records the PWM it actually applies by
+geographic position. The recorder retains a rolling record of **one lap** of
+that behavior; the relevant replay must match the current direction and
+operating maneuver. It is a learned actuator record, not another navigation
+authority or a replacement geographic instruction.
+
+When usable IR speed evidence is unavailable, NAVI may use that recorded
+geographic PWM tape in place of live IR-based PWM adjustment. Hall mile
+markers remain geographic anchors. Between them, elapsed time supplies the
+approximate playback progress when IR fine-distance observations are absent.
+When valid IR returns, live feedback resumes and the tape continues learning.
+
+For an ordinary steady-speed interruption of up to **150 ms**, NAVI holds the
+existing PWM and makes no IR-based correction; it need not consult the tape.
+This tolerance never cancels a currently applicable geographic maneuver.
+
+During an active deceleration, one **missed expected IR pulse** triggers
+transition to geographic PWM tape playback. NAVI does not wait the full 150
+ms, because one wheel-pulse distance is material while approaching a fixed
+stop. It replays the most recent valid stop behavior for the same stopping
+location and direction. On valid IR restoration, it returns to live control.
+
+### 35.7 Mode-transition telemetry
+
+NAVI records **every control-mode transition**, rather than repetitive status
+messages. A transition record includes:
+
+- from and to mode: Live IR, PWM Hold, or Ticker Tape;
+- reason, such as IR timeout, missed expected pulse, or valid IR restored;
+- current MM, direction, and geographic progress;
+- transition time and duration of the prior mode; and
+- actual PWM, target speed, and measured speed when available.
+
+A periodic summary may report the current mode and cumulative transition
+counts. This telemetry is evidence about controller behavior; it neither
+changes NAVI's geographic authority nor makes ticker tape a navigation source.
+
+### 35.8 Explicitly unresolved implementation details
+
+The following are intentionally **not** settled by this document and must not
+be filled in by an implementation default:
+
+1. **First-lap/no-record behavior.** Whether a first traversal without a
+   matching valid tape needs any fallback beyond the already-authorized PWM
+   ramp is unresolved. Historical median values may be retained as evidence,
+   but are not an approved mandatory control layer.
+2. **Playback timing and alignment without IR.** The exact elapsed-time model
+   between Hall anchors, its initialization/re-alignment rules, and the tape
+   index/bin representation are unresolved.
+3. **Missed-expected-pulse calculation.** The detector must account for the
+   increasing pulse interval during normal deceleration, but its exact model
+   and thresholds remain implementation design requiring review.
+4. **Return-to-live blending.** Live IR takes back control on valid recovery;
+   any gradual blending method, if used, is an implementation detail that must
+   preserve the settled recovery rule and be reviewed before adoption.
+
+No firmware, telemetry-wire-contract, test, merge, flash, or activation change
+is authorized by this documentation decision.
