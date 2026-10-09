@@ -1,5 +1,23 @@
 # NAVI Position/Overlay and Speed-Control Operating Architecture
 
+> **Later October 9 operating-arrangement clarification:** the
+> [primary guide §§8–9](NAVI_EWO_0_1_ARCHITECTURAL_NOTE_20261009.md) incorporates
+> [David's CTO bubble / Circuit Express decisions](NAVI_CTO_BUBBLE_AND_CIRCUIT_EXPRESS_DECISIONS_20261009.md).
+> CTO is the negotiated two-train bubble; independent operation is not CTO.
+> CE is a temporary coordinated role-reversal sequence **within CTO**, returning
+> to ordinary CTO. **§28's “Circuit Express: PASS at all four stations” is
+> superseded as a definition or complete specification of CE.** Per-locomotive
+> service instructions do not define the shared relationship. One active PWM
+> overlay is per locomotive; geographic collision protection remains a distinct
+> highest-priority facility available under operating arrangements.
+> §§22–23/30's distinction between a traffic hold and station service survives:
+> the follower still owes its own platform stop after the leader departs and
+> separation permits. The Four-Station Local **base** program is already
+> superseded by cruise-only PWM 60; packaging its whole pattern as one service
+> overlay, with a higher-priority skip exception, remains a proposal. No detailed
+> lower-priority order, bubble algorithm, transition protocol, or new safety cap
+> is adopted. Historical text is preserved below.
+
 ## Current authority — reconciled October 9, 2026
 
 **Mandatory read first:** [NAVI_EWO_0_1 — Architectural Inheritance and

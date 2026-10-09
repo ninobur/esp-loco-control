@@ -41,11 +41,27 @@ early-stop actuator progression to PWM zero remain explicitly undecided.
 
 No firmware, merge, flash, or two-train activation is authorized by this index.
 
+**October 9 operating-arrangement clarification — read with the primary guide:**
+[CTO bubble and Circuit Express: David's settled decisions](NAVI_CTO_BUBBLE_AND_CIRCUIT_EXPRESS_DECISIONS_20261009.md).
+Independent single-train operation is **not CTO**. Normal Operations with
+Collision Control permits independent operation. CTO is Toby and Otto's
+negotiated two-train bubble, including coordinated movement, roles, station
+holding/waiting, release/departure, and synchronized travel. **CE is a temporary
+coordinated sequence within CTO: CTO → CE → role reversal → CTO.** Collision
+protection is distinct and available under operating arrangements; one active
+PWM overlay is a **per-locomotive** execution rule. The follower's traffic hold
+does not consume its owed platform stop. The whole Four-Station Local service
+overlay and higher-priority skip exception remain an architectural proposal,
+without a detailed priority ladder below collision protection. The note is
+incorporated into primary guide §§8–9 and preserves explicit supersessions.
+
 **Before beginning NAVI Close Train Operations (CTO) or Circuit Express
-reconstruction, read first:**
+reconstruction, read that clarification before:**
 [`CTO and Circuit Express — reconstruction architecture`](NAVI_CLOSE_TRAIN_OPERATIONS_RECONSTRUCTION_ARCHITECTURE_20261005.md).
-This preserves the settled architecture and the relationship to legacy CTO2;
-it does not authorize implementation.
+Document A preserves compatible concepts and the relationship to legacy CTO2;
+its new header identifies descriptions superseded by the primary guide and
+October 9 clarification. Historical text remains evidence, not a competing
+definition of CTO/CE. Neither record authorizes implementation.
 
 **Before reviewing or cleaning the production NAVI/EWO lineage, read first:**
 [`NAVI Vestigial Code Cleanup`](NAVI_VESTIGIAL_CODE_CLEANUP_ARCHITECTURE_20261005.md).
@@ -173,6 +189,8 @@ conflicting assumptions are superseded for NAVI_EWO as follows.
 
 | Older assumption | Now | By |
 |---|---|---|
+| CTO means independent operation plus collision avoidance; CE is a peer mode or single-locomotive express | Superseded/rejected. CTO is the negotiated two-train bubble; CE is its temporary coordinated role-reversal sequence, returning to ordinary CTO. Normal Operations can use collision protection independently | Primary guide §§8–9; October 9 CTO/CE decision note |
+| A local PWM overlay defines the shared operating relationship; a traffic stop discharges platform service | Superseded/rejected. One PWM overlay per locomotive executes its instructions; shared coordination is distinct. The follower still owes its platform stop after the traffic hold | Primary guide §§8–9; October 9 CTO/CE decision note |
 | Earlier NAVI architectural documents can govern a conflicting future revision | Mandatory primary guide governs all future NAVI revisions; compatible earlier decisions survive | Primary guide, governing-authority provision; AGENTS.md |
 | Continuous IR speed homeostasis, adaptive glide control, five-beat corrections, 95% handoff, and rejection of geographic PWM as initial controller | Superseded required control architecture; use demonstrated PWM execution and existing ramps | Primary guide §6; reconciled Document C and 0123 |
 | PWM ticker-tape recording/playback, historical PWM memory, missed-pulse prediction, timing/alignment, and automatic return to homeostasis/glide correction | No ticker tape; retain simplified PWM hold and established monotonic reduction; IR recovery restores applicable evidence | `7a31d913`, reconciled under primary guide §6 |

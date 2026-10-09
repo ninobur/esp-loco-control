@@ -39,12 +39,25 @@ The fourteen numbered sections below remain the architectural foundation.
 Sections 4–6, 8–9, 11, and 13–14 incorporate David's later direction:
 ordinary geographic tiles carry PWM cruise (initially 60); *all* exceptional
 movement requirements, including station stops, are temporary overlays.
-Exactly one highest-priority overlay has operating authority at a time.
+Only one highest-priority active overlay per locomotive has PWM authority at a time.
 A universal, destination-anchored **STOP sequence**, invoked through an overlay,
 is to be established and tested **before** any station-specific application. Stop completion is determined by
 elapsed dwell **while applied PWM is concurrently zero**, not attainment of
 the geographic aim point. These later provisions supersede conflicting earlier
 statements in this guide and older documentation.
+
+**Subsequent October 9 clarification — CTO is the negotiated bubble; CE is
+within CTO.** David's [durable operating-arrangement decision note](NAVI_CTO_BUBBLE_AND_CIRCUIT_EXPRESS_DECISIONS_20261009.md)
+is incorporated into this guide, especially §§8–9. Independent single-train
+operation is not CTO. Normal Operations with Collision Control permits
+independent operation; CTO is Toby and Otto's negotiated two-train relationship.
+Circuit Express is a temporary coordinated role-reversal sequence within CTO:
+**CTO → CE → role reversal → CTO**. Geographic collision protection is a
+distinct highest-priority movement protection available under these operating
+arrangements, not CTO's definition. One active PWM overlay **per locomotive**
+does not replace shared negotiation. The note preserves the corrections to
+earlier assistant interpretations and marks the Four-Station Local service
+overlay packaging as a proposal, not a completed design.
 
 ### 1. Purpose
 
@@ -112,12 +125,16 @@ travel.
 
 Applied PWM=0 establishes the operational stop and begins timed dwell.
 When dwell has expired and PWM is concurrently still zero, the timed STOP
-sequence is complete. On authorized release, retire the invoking overlay
+sequence is complete. On authorized release of a stop-scoped overlay, retire it
 and resume the established acceleration ramp regardless of the actual stop
 coordinate. NAVI continues coherent geographic tracking and follows the
 next applicable tile instruction. A collision-prevention overlay may use
 the same STOP sequence but its release remains governed by required
 separation, not by a station timer.
+
+Completion of one STOP invocation must be distinguished from the lifetime of
+the proposed whole-service overlay in §8. The physical STOP sequence does not
+determine the CTO relationship or its coordinated release obligations (§9).
 
 Develop and field-test this generic STOP sequence **first** at a non-station
 target; only afterward apply it to Four-Station Local and then CTO.
@@ -231,7 +248,8 @@ station PASS variations where needed, dispatcher directions, and traffic
 restrictions are all expressed as **temporary overlays**, not persistent base
 STOP tiles.
 
-At any instant **exactly one overlay may command PWM**. Select the highest
+At any instant **at most one active overlay per locomotive may command PWM**;
+when none applies, the cruise base governs. Select the highest
 priority applicable overlay; **geographic collision prevention is always
 highest**. The precise lower-priority order is not decided here and requires
 David's approval. A pending lower-priority request is not automatically
@@ -253,17 +271,60 @@ A temporary geographic collision stop may preempt a station stop. When the
 collision overlay releases because separation permits, NAVI evaluates
 whichever request is **then** geographically applicable and permitted by
 priority. No old station sequence is blindly resumed merely because it was
-previously active. One active authority, not multiple blended PWM commands,
-is the invariant.
+previously active. A follower's traffic stop behind an occupied platform does
+**not** consume its still-owed station stop: after the leader departs and
+separation permits, the follower proceeds to its own platform stop and station
+service. This obligation does not prescribe an admission latch or state machine.
+One active PWM authority per locomotive is the invariant; it is distinct from
+the shared two-train negotiation and coordination in §9.
 
-### 9. Future CTO: highest-priority geographic collision overlay
+**Architectural proposal — whole-service overlay:** the entire Four-Station
+Local station-stop pattern may be one service overlay using the common STOP
+sequence. Under that proposal, skipping a required stop would require a
+higher-priority exception. This does not decide the detailed order below
+collision protection, service-overlay lifetime, or preemption/resumption and
+expiration rules. Completion of one STOP invocation is not automatically
+completion of the whole service pattern; its representation remains open.
+
+### 9. Operating arrangements: Normal Operations, CTO bubble, and CE within CTO
+
+Every locomotive retains the ability to operate independently. **Independent
+single-train operation is not CTO.** In **Normal Operations with Collision
+Control**, locomotives may run independently and use geographic collision
+protection where applicable.
+
+**CTO is the negotiated, coordinated two-locomotive bubble.** Toby and Otto
+mutually coordinate movement, leader/follower roles, station holding/waiting,
+release/departure, and synchronized travel. CTO is not merely independent
+operating programs plus collision avoidance. Geographic collision protection
+is a distinct highest-priority geographic movement protection available under
+operating arrangements; it does not define or replace the CTO relationship.
+
+**Circuit Express (CE) is an integral temporary two-train coordinated variant
+within CTO**, enabling leader/follower role reversal and resolving back into
+ordinary CTO: **CTO → CE → role reversal → CTO**. It is not an independent
+train mode, a mutually exclusive peer of CTO, or single-locomotive express.
+Temporary Express/Local service roles remain part of the shared operation.
+No full bubble algorithm, detailed transition or negotiation protocol is
+specified by this clarification; see the
+[durable decision note](NAVI_CTO_BUBBLE_AND_CIRCUIT_EXPRESS_DECISIONS_20261009.md).
+
+The cruise-only PWM 60 base and portable STOP sequence are common physical
+facilities. Each locomotive executes the resulting instruction through its
+own single active PWM overlay. The STOP sequence supplies the maneuver;
+the governing operation supplies the reason, target, and waiting/release
+condition. STOP does not govern the CTO relationship.
+
+#### Common geographic collision protection and physical execution
 
 The universal STOP sequence is to be established and field-tested **before**
 Four-Station Local or Close Train Operations (CTO) are implemented.
 Once proven, a station service simply supplies its stopping target and timed
-dwell condition. For CTO, a collision-prevention authority instead
-supplies the dynamically relevant geographic target or restriction and a
-separation-dependent release condition.
+dwell condition. A collision-prevention authority, applicable in Normal
+Operations and CTO/CE, supplies the dynamically relevant geographic target or
+restriction and a separation-dependent release condition. Within CTO, shared
+negotiation also governs the pair's operating obligations; the collision
+facility alone is not the bubble.
 
 NAVI eventually needs the geographic boundaries of the whole consist,
 not just the Hall location. The existing CTO architectural rule remains:
@@ -326,16 +387,17 @@ Preserve demonstrated functionality. Add machinery only when it addresses an ide
 
 The development order is **(1) universal STOP sequence → (2) track
 validation and PWM-geography calibration → (3) Four-Station Local service
-through that same overlay → (4) future CTO via prioritized geographic
-restrictions**. Do not begin by rebuilding station machinery.
+using that same STOP sequence under overlay → (4) future CTO via prioritized geographic
+restrictions and negotiated two-train coordination**. CE belongs within that
+future CTO work. Do not begin by rebuilding station machinery.
 
 Before `NAVI_EWO_0_1` is ready for field testing, implementation review must
 verify at least:
 
 1. Ordinary geographic base tiles initially assign cruise PWM 60, with no
    embedded station STOP or dwell.
-2. Exactly one active overlay commands PWM; collision prevention is highest
-   priority when implemented, without inventing unapproved subordinate order.
+2. At most one active overlay per locomotive commands PWM; collision prevention
+   is highest priority when implemented, without inventing unapproved subordinate order.
 3. The STOP sequence can be assigned to any Lowline target and entered
    anywhere in the backward-projected pulse-position PWM assignments, with
    creep PWM 50 and final geographic reduction toward PWM 20.
@@ -378,13 +440,21 @@ not the implementation foundation.
 October 8 geographic-consist architecture, the October 9 primary-guide
 reconciliation, and David's subsequent October 9 cruise-base / single-overlay
 / stop-completion decisions. Historical sources remain intact as evidence.
+The subsequent [CTO bubble and Circuit Express decision note](NAVI_CTO_BUBBLE_AND_CIRCUIT_EXPRESS_DECISIONS_20261009.md)
+records David's settled operating relationships and scoped historical
+corrections. It distinguishes the Four-Station Local overlay proposal from
+those settled decisions.
 
 **Explicit supersession under the updated mandatory guide:**
 
 | Earlier provision | Current governing disposition |
 |---|---|
+| Independent single-train operation is CTO; CTO is merely a collision overlay (including the former §9 framing) | Superseded. Independent operation remains a locomotive capability; Normal Operations with Collision Control can use it. CTO is the negotiated two-train bubble. Collision protection is distinct and available under operating arrangements. |
+| CE is a third peer mode beside Normal Operations and CTO, or just a single-train Express/PASS profile | Superseded/rejected. CE is an integral temporary two-train coordinated sequence within CTO: CTO → CE → role reversal → CTO. |
+| One active overlay removes shared two-train negotiation, or STOP execution governs the relationship | Superseded/rejected. Single PWM authority is per locomotive; shared coordination determines operating obligations, using common physical facilities. |
+| A follower's traffic stop behind an occupied platform completes its station service | Superseded/rejected. The follower still owes its own platform stop once the leader departs and separation permits. |
 | Base layer includes station stops and stop/dwell tiles (earlier guide §8 and Document C station-service examples) | Superseded. Base layer is cruise-only, initially PWM 60. Station service and all deviations from ordinary cruise are overlays. |
-| Multiple potentially simultaneous overlay motor commands or station overlay plus base station STOP | Superseded. Exactly one overlay has PWM authority at a time; geographic collision prevention has highest priority. Lower-priority policy remains open. |
+| Multiple potentially simultaneous overlay motor commands or station overlay plus base station STOP | Superseded. Only one active overlay per locomotive has PWM authority at a time; geographic collision prevention has highest priority. Lower-priority policy remains open. |
 | First prove Four-Station Local and then extract generic stopping (earlier guide §§4/13) | Superseded. Prove the universal STOP sequence at arbitrary non-station destinations *first*; station and CTO use it later. |
 | One PWM per tile or continuous physical-speed-target regulation (Document C; former Decision 0123) | Superseded. Individual IR pulse positions within tiles can carry geographic PWM assignments, with existing actuator ramp and diagnostic IR observations. |
 | Station dwell clock starts at Station +1 MM while still moving (earlier guide §5, §13; Document C reconciliation) | Superseded. Dwell belongs to actual stop; stop service completes when dwell elapsed **AND** applied PWM=0. The target coordinate does not gate completion. |
@@ -426,6 +496,10 @@ coding a material behavior:**
    cruise assignment. David's intent is no repetition of the completed
    stop and compliance with the next tile; implementation representation
    must preserve that intent without hidden latches.
+6. Full bubble algorithms, detailed CTO/CE transitions and negotiation
+   protocol. Their absence does not reopen the settled definition of CTO or
+   CE's place within it. Whole-service overlay packaging remains the proposal
+   in §8; no new safety caps or subordinate priority ladder are adopted here.
 
 No unapproved speed governors, safety/performance restrictions, adaptive
 controllers, sensor thresholds, navigation shortcuts, or firmware changes

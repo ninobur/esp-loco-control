@@ -1,5 +1,18 @@
 # NAVI_CTO — architecture and provenance report
 
+> **October 9, 2026 clarification of current NAVI authority:** read the
+> [primary guide](NAVI_EWO_0_1_ARCHITECTURAL_NOTE_20261009.md) and
+> [David's settled CTO/CE decision note](NAVI_CTO_BUBBLE_AND_CIRCUIT_EXPRESS_DECISIONS_20261009.md).
+> CTO is the negotiated two-train bubble, not independent operation with
+> collision avoidance. CE is a temporary coordinated role-reversal sequence
+> within CTO and resolves back into it. Geographic collision protection is
+> available under operating arrangements and is distinct from that relationship.
+> Any reading of this report's traffic-reduction statement or §6 cap proposal
+> as the definition of CTO is **superseded**. The proposed mechanisms, caps,
+> wire details and staged implementation plan remain historical proposals;
+> this clarification does not adopt them for current NAVI. Historical text,
+> provenance and field evidence are retained below.
+
 > **Historical proposal — station-policy claims superseded in scope, 2026-10-05.**
 > The requirement in §7 to inherit StationMachine and its phase/arming policy
 > unchanged does not govern NAVI operating authority; see

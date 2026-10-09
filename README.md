@@ -63,4 +63,12 @@ what is on the locomotive can always be checked against what is in the repo.
 policy is [`AGENTS.md`](AGENTS.md). The canonical NAVI_EWO governing set is
 listed in [`docs/NAVI_EWO_GOVERNING_DOCUMENTS.md`](docs/NAVI_EWO_GOVERNING_DOCUMENTS.md).
 
+**For CTO and Circuit Express, read David's
+[October 9 operating-arrangement decisions](docs/NAVI_CTO_BUBBLE_AND_CIRCUIT_EXPRESS_DECISIONS_20261009.md)
+with the [primary NAVI guide](docs/NAVI_EWO_0_1_ARCHITECTURAL_NOTE_20261009.md).**
+CTO is the negotiated two-train bubble; independent operation is not CTO.
+CE is a temporary coordinated role-reversal sequence within CTO and returns
+to ordinary CTO. Collision protection and each locomotive's single active PWM
+overlay are distinct from that shared operating relationship.
+
 `docs/ROAD_TO_CTO.md` — the milestone plan and its current state.

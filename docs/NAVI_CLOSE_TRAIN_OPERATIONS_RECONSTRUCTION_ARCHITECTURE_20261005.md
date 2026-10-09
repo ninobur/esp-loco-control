@@ -2,6 +2,31 @@
 
 ## Architectural Understanding for NAVI Close Train Operations Reconstruction
 
+> **Current authority — scoped supersession, October 9, 2026.** Read the
+> [mandatory primary guide](NAVI_EWO_0_1_ARCHITECTURAL_NOTE_20261009.md) and
+> [David's settled CTO/CE decision note](NAVI_CTO_BUBBLE_AND_CIRCUIT_EXPRESS_DECISIONS_20261009.md)
+> before the historical reconstruction below. **CTO is the negotiated two-train
+> bubble; independent operation is not CTO. CE is a temporary coordinated
+> role-reversal sequence within CTO and resolves back into ordinary CTO.**
+> Collision protection is a separate highest-priority geographic facility
+> available under operating arrangements, not the definition of CTO. The
+> single PWM-commanding overlay is per locomotive and does not replace shared
+> negotiation, station holding/waiting, coordinated release/departure, or travel.
+>
+> **Specific supersessions:** §§11–13 and §15 items 9–12 cannot be read as
+> reducing CE to independent service profiles, a peer mode of CTO, or a
+> single-train express program. Their temporary profiles belong to one
+> coordinated operation. §5's whole-tile replacement description and §14's
+> rejection of PWM as the operating language are superseded where they conflict
+> with the guide's cruise-only PWM 60 base and single temporary PWM overlay.
+> The follower's spacing stop in §3 does not consume its later platform stop.
+> Historical speed, skip, release, and recapture descriptions do not establish
+> a newly approved NAVI algorithm or protocol. Compatible relationships and all
+> historical text remain preserved below; no firmware or legacy protocol changes
+> are authorized. This clarification applies the enduring principles by keeping
+> operating judgment distinct from physical execution and evidence distinct
+> from design authority; no departure from those principles is adopted.
+
 ## Relationship to legacy CTO2
 
 Legacy CTO2/LL-Auto and NAVI Close Train Operations are separate implementations.
