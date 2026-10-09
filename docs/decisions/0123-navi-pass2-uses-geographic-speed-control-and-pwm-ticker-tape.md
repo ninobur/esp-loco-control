@@ -13,8 +13,10 @@ prevention is highest priority. The universal STOP overlay is to be proven
 before station service, using individually assigned IR-pulse geographic PWM
 positions, initial moving creep at **50**, and a final profile toward PWM
 **20** at the geographic aim point. Early/late actual stopping is accepted;
-completion of a timed STOP requires dwell expiry with applied PWM **zero**
-concurrently, independent of exact stopping coordinate. The former station
+applied PWM=0 establishes NAVI's no-motive-movement condition and begins
+timed dwell; completion requires dwell expiry with PWM zero concurrently.
+No separate IR movement-absence test or exact geographic stop coordinate
+is required; actual IR-observed motion at PWM zero invokes Decision 0120. The former station
 +1-MM moving timer and base station STOP tiles are superseded. After release,
 the normal ramp-up resumes and the next applicable tile provides the
 instruction. The primary guide §§4–5, 8, 13–14 governs all conflicts;
@@ -53,21 +55,22 @@ geographic progress, re-anchor an IR coordinate, or bypass genuine frame loss or
 a PWM-zero-movement hold. A motionless PWM-zero dwell preserves localization;
 measured PWM-zero movement requires operator verification and declaration.
 
-Geographic tile authority, the universal **DECELERATE → STOP → WAIT → RESTART →
-ACCELERATE** mechanism, and the prohibition on procedural entry latches remain
-binding. Station target +1.5 MM, preferred +1.0 to +1.7, acceptance 0 through +3,
-and five-second base wait follow guide §5. The ordinary clock begins at +1 MM;
-departure requires waiting satisfied **and** completed physical stop, rather
-than the historical rule that starts every dwell only after stop. The
-higher-priority-stop exception in guide §8 survives. Departure targets the
-underlying geographic instruction rather than always cruise.
+Geographic tile authority and the universal
+**DECELERATE → STOP → WAIT → RESTART → ACCELERATE** mechanism remain binding.
+The base tiles direct PWM 60 cruise only, not stations. Stop overlays
+provide the specific target and geographically assigned PWM profile. An
+initial station target of +1.5 MM is an aim point, not completion authority.
+For a timed stop, reaching applied PWM zero begins the dwell; elapsed dwell
+with PWM still zero completes the stop. The prior station +1 MM moving-
+timer trigger is withdrawn, as are position-gated station-stop admission and
+base station STOP instructions. Resume the applicable geographic instruction
+upon overlay release, without repositioning to an exact target.
 
 ## Remaining questions and evidence boundary
 
 Hall-checkpoint scheduling during IR loss remains unresolved. No checkpoint may
 be assumed to supply navigation progress or substitute for coherent IR distance.
-Minimal tile-local execution-state representation/reset, exceptional timer
-initialization, physical-stop recognition during unavailable IR evidence, and
+Minimal overlay-local execution-state representation/reset, interrupted PWM-zero dwell handling, early-stop PWM-zero ramp progression, and
 arbitrary-location braking performance remain open in guide §14. The earlier
 PWM-zero/50-ms-no-pulse recognition criterion is a prior candidate criterion,
 not an invented loss-specific solution. Field validation is still necessary.
