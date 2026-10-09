@@ -22,6 +22,40 @@ Both histories are considered: the primary guide at
 `7a31d913ef2218687b488936a998f82655f5d3c6`. This section governs interpretation of
 all historical Document C sections reproduced below.
 
+### Subsequent governing update: cruise-only base and single STOP overlay (October 9)
+
+Under the mandatory primary guide §§4–5, 8, 13–14, the base geographic tiles
+now direct ordinary PWM **60** cruise only. Station stops, service variants,
+dispatcher restrictions and geographic collision interventions are **temporary
+overlays** rather than ordinary base-layer station STOP instructions.
+Only **one overlay** has PWM operating authority at any time, by explicit
+priority; geographic collision prevention is highest. The relative priority
+and expiration of lower-priority requests are not yet decided.
+
+First develop the generic arbitrary-destination STOP overlay. The intended
+target determines a geographic PWM assignment projected backward to the
+approaching locomotive, at individual IR-wheel-pulse positions within and
+across tiles. The initial creep PWM is **50**; the geographically determined
+final reduction aims at PWM **20** at the target. The eventual actual stop may
+be early or late. The geometric target and former station target tolerance are
+**diagnostic**, not required coordinates for stop completion or departure.
+
+For a timed stop, dwell begins when the locomotive actually stops and service
+is complete **when the dwell interval has expired and applied PWM is then
+concurrently zero**. The former station +1 MM moving-clock trigger is
+superseded. There must be a way for the existing actuator ramp to finish at
+PWM zero even if IR pulses cease early; precise mechanics require explicit
+review before implementation. A completed/released overlay does not reissue
+itself; ramp-up proceeds independent of actual stopping position and the next
+applicable geographic tile supplies the operating instruction.
+
+The old station STOP base tile, simultaneous overlay blending, entry latches,
+continuous IR physical-speed regulation, adaptive glide, and ticker-tape
+fallback have no current architectural authority. All following contradictory
+historical prose remains as prior art only. Decision 0116 and Decision 0120
+still govern coherent NAVI geographic knowledge; this update is not permission
+for Hall-only movement, inferred IR pulses, or unapproved control changes.
+
 ### Operating authority and universal stopping
 
 Current geography, direction, effective base/service tiles, and current
