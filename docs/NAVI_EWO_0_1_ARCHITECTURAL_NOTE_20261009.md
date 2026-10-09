@@ -124,19 +124,25 @@ may be early or late. Do not move or restart simply to correct that error.
 dwell interval has expired and the applied PWM is concurrently zero.**
 
 The timer belongs to the active STOP overlay. For a timed station stop, the
-initial dwell is five seconds. The stop/dwell begins when the locomotive stops;
-its location is recorded with available IR/NAVI position evidence. NAVI does
-not wait to hit the intended coordinate, a Hall marker, or the former Station
-+1 MM timer boundary. The former rule to start station dwell at +1 MM *during
-the moving approach* is superseded.
+initial dwell is five seconds. **Applied PWM=0 establishes NAVI's operating
+criterion for no motive movement and starts the dwell.** Completion requires
+the dwell to have expired **while applied PWM is concurrently still zero**.
+There is **no separate IR pulse-absence, speed-estimation, or position test**
+for recognizing a STOP or starting/completing dwell. The former PWM<25
+STOPPED classification is not equivalent to the required PWM=0.
 
-Physical stopping is distinct from merely crossing the prior PWM<25
-classification: the completion test itself requires **PWM=0**, along with the
-elapsed dwell. The exact sensor-evidence/timestamp rule for marking the start
-of a dwell, particularly during unreliable or unavailable IR, remains an
-explicit design question rather than permission to invent a new threshold.
-Do not make precise stopping-coordinate measurement a condition for waiting,
-completion, or departure.
+IR continues to provide valid position and movement observations when available,
+so NAVI can report where the locomotive stopped and refine PWM geography.
+NAVI does not wait to reach the intended coordinate, a Hall marker, or the
+former Station +1 MM timer boundary. The former moving-approach +1 MM timer
+trigger is superseded. Neither precise stopping position nor availability of
+IR motion evidence gates the PWM-zero dwell.
+
+**Decision 0120 remains binding:** an actual IR observation of displacement
+while PWM=0 is an unexpected-movement event, not evidence that the PWM-zero
+operational definition should be replaced with another stop detector. NAVI
+must apply Decision 0120's hold and operator verification/redeclaration rule.
+This is distinct from the normal stop-completion mechanism.
 
 When the active overlay's completion **and release** requirements are
 satisfied, withdraw that overlay and use the established ramp-up independently
@@ -375,10 +381,12 @@ reconciliation, and David's subsequent October 9 cruise-base / single-overlay
 **Still open — require David's explicit architectural decision before
 coding a material behavior:**
 
-1. The exact determination and timestamp of **dwell start** and reliable
-   physical rest when IR is unavailable. Stop **completion** is already
-   decided: timer expired concurrently with applied PWM zero. Do not
-   silently substitute PWM<25 for PWM=0.
+1. **Resolved by David:** applied PWM=0 is NAVI's no-motive-movement
+   indication and starts timed dwell. Timed STOP completion is dwell expired
+   concurrently with applied PWM still zero; no additional IR-rest test or
+   position gate is permitted. Decision 0120 independently governs actually
+   observed PWM-zero displacement. The handling of interrupted PWM-zero dwell
+   beyond these conditions is not silently invented.
 2. The minimal representation, lifetime and reset of stop-overlay execution
    progress and one-time service consumption needed to prevent reissuing
    a completed stop, without a historical admission latch.
