@@ -35,6 +35,7 @@
 #include "NaviEstop.h"
 #include "NaviCompatibility.h"
 #include "NaviPulseTelemetry.h"
+#include "NaviFourStationLocal.h"
 
 static portMUX_TYPE recorderMux = portMUX_INITIALIZER_UNLOCKED;
 #define NAVI_SYNC_ENTER_CRITICAL() portENTER_CRITICAL(&recorderMux)
@@ -70,6 +71,7 @@ struct PubMsg { char topic[72]; char payload[1200]; bool retain; };
 struct CmdMsg { char topic[72]; char payload[64]; uint64_t order; uint64_t receivedUs; };
 
 static NaviIntegratedCore navi;
+static FourStationLocalController fourStationLocal;
 // The recorder owns large fixed native Hall/IR/NAVI rings. Keep the pointer
 // small in internal DRAM so ESP-IDF can create the Arduino app task; allocate
 // the unchanged recorder after setup() begins.
@@ -616,6 +618,9 @@ static void handleCommand(const CmdMsg& command) {
     clearWarning();
   } else if (!strcmp(leaf, "stop") || (dispatcher && strstr(command.topic, "/stop/"))) {
     autoRunning = false;
+    // A later GO reevaluates the current tile from physical state; it does not
+    // resume a paused local dwell or glide as retained operating authority.
+    fourStationLocal.reset();
     requestPwm(0, 0, AUTO_STEP_DOWN_MS);
   } else if (!strcmp(leaf, "throttle")) {
     if (Refusal reason = admitThrottle(o)) { warn(reason); return; }
@@ -668,11 +673,16 @@ static void serviceAutoCruise() {
     return;
   }
 
-  const uint8_t currentMm = navi.mm();
-  const int8_t direction = navi.direction();
-  const uint8_t cruise = cruisePwmAt(currentMm, direction, NAVI_AUTO_CRUISE_PWM);
-  if (rampTarget != cruise)
-    requestPwm(cruise, AUTO_STEP_UP_MS, AUTO_STEP_DOWN_MS);
+  const uint64_t nowUs = esp_timer_get_time();
+  LocalControlInput input;
+  input.nowUs = nowUs; input.irUm = navi.latestIr().nominalUm;
+  input.irSequence = navi.latestIr().sequence; input.mm = navi.mm();
+  input.direction = navi.direction(); input.actualPwm = actualPwm;
+  input.irSpeedValid = navi.irSpeedAvailable(nowUs);
+  input.speedPkph = input.irSpeedValid ? navi.irSpeedMmS() / NAVI_PKPH_MM_PER_SEC : 0;
+  const LocalControlOutput order = fourStationLocal.tick(input, NAVI_AUTO_CRUISE_PWM);
+  if (order.pwmTarget >= 0)
+    requestPwm(order.pwmTarget, order.upMs, order.downMs);
 }
 
 static bool syncSend(const void* bytes, size_t length) {

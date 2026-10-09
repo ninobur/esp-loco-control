@@ -29,5 +29,7 @@ flags='-std=c++17 -Wall -Wextra -Werror -fsanitize=address,undefined'
 "$build_dir/ir"
 "$cxx" $flags "$here/tests/test_pulse_observation.cpp" -o "$build_dir/pulse"
 "$build_dir/pulse"
+"$cxx" $flags "$here/tests/test_four_station_local.cpp" -o "$build_dir/four_station_local"
+"$build_dir/four_station_local"
 
 sh "$here/../NAVI_EYES_WIDE_OPEN/run_tests.sh"
