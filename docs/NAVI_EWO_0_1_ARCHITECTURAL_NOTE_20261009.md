@@ -323,19 +323,19 @@ verify at least:
    embedded station STOP or dwell.
 2. Exactly one active overlay commands PWM; collision prevention is highest
    priority when implemented, without inventing unapproved subordinate order.
-2. STOP can be assigned to any coherent between-magnet geographic target
+3. STOP can be assigned to any coherent between-magnet geographic target
    and projected backward into pulse-position PWM assignments, with
    creep PWM 50 and final geographic reduction toward PWM 20.
-3. Existing PWM actuator ramps remain the sole physical executor, and the
+4. Existing PWM actuator ramps remain the sole physical executor, and the
    commanded stop reaches applied PWM zero.
-4. A locomotive entering or restarting midway through the overlay executes
+5. A locomotive entering or restarting midway through the overlay executes
    the current instruction without any ARMED/StationMachine admission or
    prior-event dependence.
-5. Applied **PWM=0** establishes the stop condition and begins timed
+6. Applied **PWM=0** establishes the stop condition and begins timed
    dwell; expiration with concurrently applied PWM=0 completes the timed STOP.
    IR-based immobility confirmation is not required. Actual stopping position
    is measured/reported, not made a completion gate.
-6. A completed/released overlay cannot reissue the same stop before the
+7. A completed/released overlay cannot reissue the same stop before the
    next relevant instruction; the established ramp-up resumes independently
    of stop coordinate.
 8. NAVI Hall/IR geographic authority, Decisions 0116/0120, manual/MQTT
