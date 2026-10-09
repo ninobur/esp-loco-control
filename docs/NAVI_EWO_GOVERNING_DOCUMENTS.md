@@ -24,6 +24,21 @@ IR-loss fallback). It retains PWM hold at steady speed and continued established
 monotonic PWM reduction in deceleration; continuous homeostasis, adaptive glide
 control, and ticker-tape recording/playback requirements are superseded.
 IR recovery restores applicable evidence, not the superseded speed controllers.
+**Further October 9 governing update (primary guide):** ordinary base tiles
+assign cruise PWM **60**; station stopping and all exceptional operating
+requirements are **temporary overlays**. NAVI has **one active PWM-authority
+overlay at a time**, selected by priority, with geographic collision prevention
+highest. A universal arbitrary-destination STOP overlay is developed **before**
+Four-Station Local. Its geographic PWM ramp is resolved at IR-pulse positions,
+using creep PWM **50** and a final approach toward PWM **20** at the target;
+stop accuracy is measured, not an execution gate. For timed service,
+completion requires **elapsed dwell and concurrently applied PWM=0**. The old
+Station +1-MM moving-clock trigger and base station-stop tiles are superseded.
+After release, ramp up independently of actual stop location; follow the
+next valid geographic tile instruction. See the mandatory primary guide
+§§4–5, 8, 13–14. Lower priority, overlay-consumption representation and
+early-stop actuator progression to PWM zero remain explicitly undecided.
+
 No firmware, merge, flash, or two-train activation is authorized by this index.
 
 **Before beginning NAVI Close Train Operations (CTO) or Circuit Express
@@ -161,8 +176,8 @@ conflicting assumptions are superseded for NAVI_EWO as follows.
 | Earlier NAVI architectural documents can govern a conflicting future revision | Mandatory primary guide governs all future NAVI revisions; compatible earlier decisions survive | Primary guide, governing-authority provision; AGENTS.md |
 | Continuous IR speed homeostasis, adaptive glide control, five-beat corrections, 95% handoff, and rejection of geographic PWM as initial controller | Superseded required control architecture; use demonstrated PWM execution and existing ramps | Primary guide §6; reconciled Document C and 0123 |
 | PWM ticker-tape recording/playback, historical PWM memory, missed-pulse prediction, timing/alignment, and automatic return to homeostasis/glide correction | No ticker tape; retain simplified PWM hold and established monotonic reduction; IR recovery restores applicable evidence | `7a31d913`, reconciled under primary guide §6 |
-| Ordinary station dwell must start only after stop; always depart toward cruise | Clock starts at +1 MM; departure requires satisfied wait and physical stop and follows current underlying instruction; temporary-mandate dwell exception survives | Primary guide §§5, 8 |
-| Geographic station-stop acceptance range still unspecified | +1.5 target; +1.0 to +1.7 preferred; 0 through +3 accepted; no coordinate-seeking restart | Primary guide §5 |
+| Station dwell begins at Station +1 MM before physical stop; departure uses base station STOP tile | Superseded: base cruise PWM 60 has no station STOP; timed dwell begins at actual stop, and service completes with elapsed dwell concurrently with applied PWM=0. After release depart irrespective of stopping coordinate and follow the next applicable tile | Primary guide §§4–5, 8, 14 |
+| Geographic station-stop acceptance region gates completion | Superseded: Station +1.5 is an *aim point*; prior +1.0–+1.7 and 0–+3 are diagnostic only. Actual early/late stop does not veto completion or demand corrective movement | Primary guide §§4–5, 14 |
 | Runtime pitch/calibration changes identify a new measurement frame or exempt a report from ordering checks | Validate installed pitch; calibration ID is raw evidence; only real continuity boundaries separate epochs | Document B; 0122 |
 | Station ARMED admission, persistent phases, completed-visit suppression, and historical station procedure across STOP/GO (0068, 0090, 0101 and POSITION_STATIONS_R1) | Current MM interval + direction + overlay determine the requirement; 0101's current-position principle survives | 0121; Document C §§5, 25–26 |
 | Station-procedure MISSED, PHASE_TIMEOUT, procedural overshoot/late-entry failure, and marker/PWM sequences as operating authority | No historical station-procedure authority; current geographic boundaries remain legitimate and PWM is an actuator output | 0121; Document C §§2, 5 |
