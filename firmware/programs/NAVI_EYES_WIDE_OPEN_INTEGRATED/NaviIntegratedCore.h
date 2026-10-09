@@ -42,6 +42,16 @@ struct EwoEvent {
   uint32_t hallQueueDrops = 0, irQueueDrops = 0;
 };
 
+// Read-only geographic coordinate for physical controllers.  NAVI remains the
+// sole owner of the Hall/IR relationship and of all navigation judgment.
+struct GeographicPosition {
+  uint8_t marker = 0;
+  int8_t direction = 0;
+  uint64_t markerIrUm = 0;
+  uint64_t currentIrUm = 0;
+  bool valid = false;
+};
+
 // NAVI's working target-only authority. Acquisition delivers each ADC result
 // and each decoded type-5 IR snapshot; neither source selects NAVI evidence.
 class NaviIntegratedCore {
@@ -56,6 +66,9 @@ class NaviIntegratedCore {
     positionReliable_ = true;
     mm_ = mm;
     direction_ = direction;
+    geographicMarker_ = mm;
+    geographicMarkerIrUm_ = irApplicable(nowUs) ? latestIr_.nominalUm : 0;
+    geographicMarkerValid_ = irApplicable(nowUs);
     reverseTarget_ = false;
     firstTargetAfterDeclare_ = true;
     firstTargetSupportAbsent_ = false;
@@ -105,6 +118,10 @@ class NaviIntegratedCore {
     contextSinceUs_ = nowUs;
     firstTargetAfterDeclare_ = false;
     direction_ = direction;
+    // The existing reversal judgment retains navigation coherence, but its
+    // current public coordinate has no marker-local IR origin in this direction
+    // until the next normal confirmation.  Do not manufacture one here.
+    geographicMarkerValid_ = false;
     reverseTarget_ = seekCurrentMm;
     chooseTarget();
     if (reversible) {
@@ -347,6 +364,17 @@ class NaviIntegratedCore {
   bool distanceHolding() const { return distanceHolding_; }
   uint32_t openingSerial() const { return openingSerial_; }
   uint64_t openingIrUm() const { return openingIrUm_; }
+  GeographicPosition geographicPosition(uint64_t nowUs) const {
+    GeographicPosition out;
+    out.marker = geographicMarker_;
+    out.direction = direction_;
+    out.markerIrUm = geographicMarkerIrUm_;
+    out.currentIrUm = latestIr_.nominalUm;
+    out.valid = geographicMarkerValid_ && irApplicable(nowUs) &&
+                relationshipReliable_ && targetOriginValid_ &&
+                latestIr_.nominalUm >= geographicMarkerIrUm_;
+    return out;
+  }
 
  private:
   struct HallPoint {
@@ -427,6 +455,9 @@ class NaviIntegratedCore {
     // The field's observed leading boundary, not the later median decision,
     // is the physical landmark for both mapped distance and Function 4.
     physicalOriginUm_ = landmark.irUm;
+    geographicMarker_ = mm_;
+    geographicMarkerIrUm_ = landmark.irUm;
+    geographicMarkerValid_ = true;
     expectedCumulativeUm_ = uint64_t(navi_one::spanMm(mm_, direction_)) * 1000;
     targetOriginValid_ = true;
     relationshipReliable_ = true;
@@ -487,7 +518,9 @@ class NaviIntegratedCore {
       const uint64_t interval = uint64_t(target_.distanceMm) * 1000;
       if (nowUm - physicalOriginUm_ <= expectedCumulativeUm_ + interval * 15 / 100) break;
       expectedCumulativeUm_ += uint64_t(navi_one::spanMm(target_.sequence, direction_)) * 1000;
+      geographicMarkerIrUm_ += uint64_t(navi_one::spanMm(mm_, direction_)) * 1000;
       mm_ = static_cast<uint8_t>(target_.sequence);
+      geographicMarker_ = mm_;
       reverseTarget_ = false;
       ++missedCount_;
       push(EwoEventKind::MissedMagnet);
@@ -535,6 +568,9 @@ class NaviIntegratedCore {
   bool frameLost_ = false;
   bool pwmZeroMovementRequiresDeclaration_ = false;
   uint64_t physicalOriginUm_ = 0, expectedCumulativeUm_ = 0;
+  uint8_t geographicMarker_ = 0;
+  uint64_t geographicMarkerIrUm_ = 0;
+  bool geographicMarkerValid_ = false;
   bool haveIr_ = false, irContinuity_ = false, distanceHolding_ = true;
   ir_movement::WireSnapshot latestIr_{};
   uint8_t latestIrMac_[6]{};

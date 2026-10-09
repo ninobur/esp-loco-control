@@ -678,6 +678,10 @@ static void serviceAutoCruise() {
   input.nowUs = nowUs; input.irUm = navi.latestIr().nominalUm;
   input.irSequence = navi.latestIr().sequence; input.mm = navi.mm();
   input.direction = navi.direction(); input.actualPwm = actualPwm;
+  const GeographicPosition position = navi.geographicPosition(nowUs);
+  input.coordinateMarker = position.marker;
+  input.markerIrUm = position.markerIrUm;
+  input.coordinateValid = position.valid;
   input.irSpeedValid = navi.irSpeedAvailable(nowUs);
   input.speedPkph = input.irSpeedValid ? navi.irSpeedMmS() / NAVI_PKPH_MM_PER_SEC : 0;
   const LocalControlOutput order = fourStationLocal.tick(input, NAVI_AUTO_CRUISE_PWM);
