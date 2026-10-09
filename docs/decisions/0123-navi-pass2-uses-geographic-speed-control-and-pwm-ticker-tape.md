@@ -5,6 +5,23 @@ David's explicit documentation-reconciliation instruction.
 The original record and simplified-fallback revision are retained below as
 history. File name is retained for existing references.
 
+**Further October 9 supersession:** the mandatory primary guide now defines
+the ordinary base layer as cruise-only geographic PWM **60**, with all station
+and traffic operating modifications supplied by temporary overlays.
+Exactly one overlay has PWM authority at a time; geographic collision
+prevention is highest priority. The universal STOP overlay is to be proven
+before station service, using individually assigned IR-pulse geographic PWM
+positions, initial moving creep at **50**, and a final profile toward PWM
+**20** at the geographic aim point. Early/late actual stopping is accepted;
+completion of a timed STOP requires dwell expiry with applied PWM **zero**
+concurrently, independent of exact stopping coordinate. The former station
++1-MM moving timer and base station STOP tiles are superseded. After release,
+the normal ramp-up resumes and the next applicable tile provides the
+instruction. The primary guide §§4–5, 8, 13–14 governs all conflicts;
+older text below is retained as historical context. The detailed
+early-stop PWM-zero actuator progression and subordinate overlay priority
+require explicit decision before coding.
+
 ## Current governing decision
 
 [NAVI_EWO_0_1 — Architectural Inheritance and
