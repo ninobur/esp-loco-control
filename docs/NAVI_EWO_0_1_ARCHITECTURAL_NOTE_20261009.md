@@ -387,11 +387,19 @@ coding a material behavior:**
 4. How an already-established geographical PWM decel behaves across
    gaps in usable IR-position evidence without inventing Hall-only progress,
    consistent with 0116 and 0120.
-5. The field-measured PWM profiles, stop distance and consist-dependent
+5. **Early-stop actuator progression:** when the train ceases IR wheel pulses
+   *before* the geographic PWM profile has reached the point assigned PWM 20,
+   a purely pulse-triggered ramp would no longer progress. Specify a simple
+   means for the established actuator to continue toward required PWM zero
+   **without** a new positional correction, fabricated IR travel, automatic
+   speed regulator, or hidden completion latch. This must be resolved before
+   implementation, since elapsed dwell alone does not complete a stop unless
+   applied PWM is concurrently zero.
+6. The field-measured PWM profiles, stop distance and consist-dependent
    stopping envelope across grades, directions and requested speeds.
    Do not mistake PWM target 20 for proof of physical rest or guaranteed
    positional stop accuracy.
-6. Whether departure ramp authority, after release, holds until the next
+7. Whether departure ramp authority, after release, holds until the next
    applicable tile boundary or yields immediately to the current base
    cruise assignment. David's intent is no repetition of the completed
    stop and compliance with the next tile; implementation representation
