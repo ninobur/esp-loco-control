@@ -60,36 +60,36 @@ for Hall-only movement, inferred IR pulses, or unapproved control changes.
 
 ### Operating authority and universal stopping
 
-Current geography, direction, effective base/service tiles, and current
-temporary restrictions determine the operating requirement. NAVI executes it
-from the locomotive's current physical state. There is no approach-entry latch,
-ARMED prerequisite, terminal Hall permission, or retained historical phase.
-Minimal execution progress serves only the currently applicable stop/wait/departure
-instruction and cannot overrule a changed geographic requirement.
+Current coherent geography and direction determine which base tile and
+highest-priority applicable temporary overlay governs. The base tile normally
+commands PWM **60** cruise. Exactly one overlay at a time may supersede the
+base PWM assignment. Geographic collision prevention is highest priority.
+No approach-entry latch, ARMED prerequisite, terminal Hall permission,
+historical station phase, or secondary motor controller has authority.
 
-One universal maneuver supplies **DECELERATE → STOP → WAIT → RESTART → ACCELERATE**.
-Its instruction supplies a destination, physical stopping profile, waiting
-condition, and requirement after release. Four-Station Local is the first
-application. Departure accelerates toward the **underlying current geographic
-requirement**, which may be cruise or another objective.
+The reusable maneuver is **DECELERATE → STOP → WAIT → RESTART → ACCELERATE**.
+First prove the universal STOP overlay at an arbitrary non-station target.
+The destination anchors a pulse-resolution geographic PWM approach that
+extends backward toward the locomotive. Initial moving creep PWM **50**
+precedes a final geographic reduction toward PWM **20** at the aim point.
+The target does **not** specify where physical PWM-zero stop must occur.
 
-For station service, measured in the direction of travel:
+For eventual Four-Station Local, station +1.5 MM is only the nominal aim
+point and the old +1.0–+1.7 and 0–+3 intervals are **diagnostic**. Once
+applied PWM reaches **0**, NAVI treats the locomotive as stopped for operating
+purposes and begins its five-second timed dwell. A timed STOP completes
+when the five seconds elapse **while applied PWM is concurrently zero**.
+No IR pulse-absence test or target-coordinate gate is required. IR still
+tracks valid geographic evidence; actual movement at PWM zero invokes
+Decision 0120.
 
-| Property | Governing requirement |
-|---|---|
-| Intended destination | Station +1.5 MM |
-| Preferred stopping range | Station +1.0 to +1.7 MM |
-| Accepted completed station stop | Station 0 through +3 MM |
-| Base wait | Five seconds |
-| Ordinary waiting-clock initiation | Station +1 MM |
-| Departure | Waiting requirement satisfied **and** physical stop completed |
-
-The preferred range is a performance objective, not admission. Do not restart
-solely to reach an exact coordinate or another Hall marker. A higher-priority
-temporary stop does not complete station service; if it is lifted while NAVI is
-stopped on the base station stopping tile, the base five-second dwell begins
-then. Temporary restrictions preserve the base geography and relax according to
-the current geographic requirement.
+Upon completion and release, retire the overlay and ramp up without
+repositioning. NAVI follows the next applicable geographic tile instruction.
+Do not leave a station STOP instruction in the base layer and do not reissue
+a completed overlay during the same passage. A geographic collision hold is
+released by the higher-priority separation requirement, **not** by a fixed
+station dwell. Precise lower-priority ordering and request/consumption
+representation remain open for explicit decision.
 
 ### Physical execution and simplified IR-loss fallback
 
@@ -123,8 +123,8 @@ decided.
 |---|---|
 | §§6–21; §§35.2–35.4: required IR speed regulation, five-beat homeostasis, adaptive constant-deceleration glide correction, 95% handoff, and fixed-PWM rejection | Superseded as required control architecture; primary guide §6 governs demonstrated PWM execution. Smooth physical objectives and admission-free cold entry survive. |
 | Original §35.6 at `b646cab5995124ff84ae2173c0d9912c84357815`: ticker tape | Superseded by `7a31d913`; retain its simplified hold/monotonic-ramp fallback, but supersede recovery wording that reactivates homeostasis or glide correction. |
-| §§22, 34.1, 35.5: dwell starts only after stop | Superseded by +1-MM ordinary clock initiation with independent completed-stop requirement; §34.2's higher-priority-stop dwell exception survives. |
-| §22: station acceptance geography unspecified | Primary guide §5 supplies target, preferred range, and acceptance region. |
+| §§22, 34.1, 35.5: earlier stop/dwell rules and +1-MM timer trigger | Superseded: applied PWM zero begins timed dwell, and dwell expiration while PWM remains zero completes timed STOP. An exact coordinate and IR no-motion evidence are not admission conditions; Decision 0120 still applies to actual movement. |
+| §22: station-stop coordinate acceptance required to authorize departure | Superseded: geographic target and former preferred/acceptance bands provide diagnostic accuracy only, not stop/departure authority. |
 | §§28, 30, 34.1–34.2, 35.1: glide/homeostasis mechanisms or universal cruise departure | Universal stopping uses the PWM precedent; departure follows the underlying current tile objective. |
 | §§22–23: physical visit or completed dwell memory | Only minimal execution progress for the current instruction survives; representation/reset remain open. No procedural admission or independent visit authority. |
 | §31: 3,600 mm as complete following separation | Already superseded by §34.6: 600 mm terminal clearance **plus** standard stopping distance at follower speed. |
@@ -137,14 +137,16 @@ is a later, separately authorized task.
 
 ### Questions preserved for explicit reconciliation
 
-The guide §14 lists unresolved Hall-checkpoint scheduling during IR loss,
-minimal stop/wait/departure execution-state lifetime/reset, timer initialization
-for cold entry beyond +1 or an accepted stop before +1, physical-stop confirmation
-without usable IR evidence, and arbitrary-destination stopping-distance mapping.
-The earlier PWM-zero plus 50-ms-no-new-pulse criterion remains a prior candidate
-criterion; absence of usable feedback is not itself proof of a physical stop.
-No new threshold, reset policy, coordinate estimator, or interpolation formula
-is supplied.
+The mandatory primary guide §14 retains the genuinely undecided
+implementation issues: the minimal overlay progress and service-consumption
+representation; lower-priority ordering; actuator progression to PWM zero
+if IR wheel pulses cease early; actuator continuity without manufactured
+travel during IR loss; interrupted dwell behavior; and calibration of
+geographic stopping distances. **No further IR-based physical-rest detector
+is required:** applied PWM zero establishes NAVI's operating stop condition.
+Actual movement detected at PWM zero remains separately governed by
+Decision 0120. No new thresholds, reset policy, navigation shortcut, or
+control formula is authorized here.
 
 ## Historical Document C record — retained as evidence
 
