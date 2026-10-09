@@ -1,4 +1,73 @@
-# 0123 — NAVI Pass 2 uses geographic physical-speed control with a recorded PWM ticker-tape fallback
+# 0123 — Reconciled under the mandatory NAVI architectural guide
+
+**Current status:** Partially superseded and reconciled October 9, 2026, on
+David's explicit documentation-reconciliation instruction.
+The original record and simplified-fallback revision are retained below as
+history. File name is retained for existing references.
+
+## Current governing decision
+
+[NAVI_EWO_0_1 — Architectural Inheritance and
+Simplification](../NAVI_EWO_0_1_ARCHITECTURAL_NOTE_20261009.md) is the mandatory
+primary architectural guide for all future NAVI firmware revisions.
+Compatible earlier decisions remain binding. Proposed departures require
+David's explicit approval; every review must assess guide compliance and the
+Necessity and Simplicity Test.
+
+Required continuous speed homeostasis, adaptive glide control, the 95% handoff,
+and rejection of geographic PWM as the initial physical controller are
+**superseded**. Use the guide's demonstrated geographic PWM physical-control
+precedent and existing actuator ramps. The original ticker-tape requirement was
+superseded by `7a31d913` and remains superseded; no recording/playback,
+historical PWM memory, missed-pulse prediction, or recovery controller is required.
+
+**The simplified IR-loss fallback survives:**
+
+- At steady speed with valid IR feedback unavailable, hold existing PWM.
+- During established deceleration, continue the already-established monotonic
+  PWM reduction, with no new feedback correction while IR is unavailable.
+- Current geographic requirements retain authority. Recovery restores
+  applicable IR evidence under existing validity and continuity rules; it does
+  not restart the superseded homeostasis or adaptive glide controller.
+
+Decisions **0116 and 0120 are preserved unchanged**. The fallback provides
+actuator continuity only; it cannot advance navigation by Hall alone, manufacture
+geographic progress, re-anchor an IR coordinate, or bypass genuine frame loss or
+a PWM-zero-movement hold. A motionless PWM-zero dwell preserves localization;
+measured PWM-zero movement requires operator verification and declaration.
+
+Geographic tile authority, the universal **DECELERATE → STOP → WAIT → RESTART →
+ACCELERATE** mechanism, and the prohibition on procedural entry latches remain
+binding. Station target +1.5 MM, preferred +1.0 to +1.7, acceptance 0 through +3,
+and five-second base wait follow guide §5. The ordinary clock begins at +1 MM;
+departure requires waiting satisfied **and** completed physical stop, rather
+than the historical rule that starts every dwell only after stop. The
+higher-priority-stop exception in guide §8 survives. Departure targets the
+underlying geographic instruction rather than always cruise.
+
+## Remaining questions and evidence boundary
+
+Hall-checkpoint scheduling during IR loss remains unresolved. No checkpoint may
+be assumed to supply navigation progress or substitute for coherent IR distance.
+Minimal tile-local execution-state representation/reset, exceptional timer
+initialization, physical-stop recognition during unavailable IR evidence, and
+arbitrary-location braking performance remain open in guide §14. The earlier
+PWM-zero/50-ms-no-pulse recognition criterion is a prior candidate criterion,
+not an invented loss-specific solution. Field validation is still necessary.
+
+This reconciliation considers guide commit
+`db329782d422559dcb886f93db8c1f3e3922a7ab` and fallback commit
+`7a31d913ef2218687b488936a998f82655f5d3c6`.
+It authorizes no firmware changes, merge, flashing, or field activation.
+
+## Historical Decision 0123 — simplified-fallback revision at 7a31d913
+
+**Historical text follows.** Homeostasis, adaptive glide correction, their
+return-on-recovery wording, mandatory speed-controller architecture, and
+stop-first dwell initiation below are superseded by the current decision above.
+The remaining compatible fallback and navigation constraints survive.
+The original ticker-tape proposal is retained in
+`b646cab5995124ff84ae2173c0d9912c84357815`; it is historical evidence only.
 
 Status: Accepted (2026-10-08). Documentation only; implementation, merge,
 flashing, and field activation are not authorized.
@@ -24,25 +93,31 @@ A station stop is complete at actual PWM zero plus 50 ms without a new IR
 movement pulse. Decision 0120 remains fully binding for unexpected
 PWM-zero movement.
 
-NAVI records one rolling lap of actually applied PWM by geography, direction,
-and applicable maneuver. This geographic PWM **ticker tape** is an actuator
-fallback, not a geographic or navigation authority. A steady-speed IR outage
-of up to 150 ms holds PWM without correction. During deceleration, one missed
-expected IR pulse switches to the matching recorded tape; Hall anchors and
-elapsed time locate approximate playback progress. Valid IR restores live
-control and tape recording.
+The earlier geographic PWM ticker-tape proposal is superseded. NAVI records no
+tape and keeps no historical PWM memory. It has no tape playback, missed-pulse
+prediction subsystem, elapsed-time alignment, or added recovery controller.
 
-Every transition among Live IR, PWM Hold, and Ticker Tape records its reason,
-location/progress, prior-mode duration, actual PWM, target speed, and measured
-speed when available.
+When valid IR feedback is unavailable at steady speed, NAVI holds the existing
+PWM and suspends feedback corrections. The current geographic instruction
+remains in force. When valid IR returns, the existing homeostasis corrections
+resume.
+
+During an established deceleration, NAVI continues the existing monotonic PWM
+reduction. It does not add a feedback correction while IR is unavailable. Hall
+geographic checkpoints may be used only where compatible with Decision 0116;
+they may not advance NAVI's position, re-anchor the IR/MM relationship,
+manufacture geographic progress, or create Hall-only navigation or control
+authority. When valid IR returns, the existing glide-path correction resumes
+through its established ramp.
 
 ## Context
 
 The October 8 reconciliation settled the numerical and behavioral questions
 needed to make Document C's physical-speed architecture concrete, while
 preserving NAVI as the sole navigation authority and current geography as the
-source of operating requirements. The ticker tape supplies previously
-successful actuator behavior when feedback is unavailable; it cannot replace
+source of operating requirements. Subsequent agreement removed the ticker-tape
+fallback: continuity of the already-established PWM behavior is sufficient
+without recording, playback, or prediction machinery. No fallback may replace
 the stop, speed, direction, or overlay instruction that NAVI is executing.
 
 ## Alternatives considered
@@ -51,24 +126,33 @@ the stop, speed, direction, or overlay instruction that NAVI is executing.
   not a presumed PWM, is the operating objective.
 - Proportional PWM chasing and rapid repeated correction were rejected in favor
   of sparse, evidence-based homeostasis and bounded ramp adjustment.
-- A 150-ms deceleration delay was rejected: a missed wheel pulse is too much
-  distance near a fixed stopping point.
-- A second fallback navigation controller was rejected: the tape replaces
-  unavailable speed feedback only.
+- Recorded PWM playback, historical PWM memory, and missed-pulse prediction
+  were rejected: they add actuator-history machinery without changing the
+  applicable geographic instruction.
+- Hall-only navigation or control recovery was rejected: Decision 0116
+  continues to require coherent IR distance for navigation advancement.
 
 ## Consequences
 
 Implementation must preserve Decisions 0102, 0116, 0120, and 0121: NAVI owns
 navigation; valid IR distance remains required for its normal navigation
 relationship; PWM-zero movement requires operator intervention; and historical
-station procedure cannot retain authority. The exact first-lap/no-record
-response, no-IR tape timing/alignment and indexing, missed-pulse calculation,
-and any return-to-live blend are deliberately unresolved. They require review
-before implementation and must not be invented as defaults.
+station procedure cannot retain authority. First-lap/no-record response,
+no-IR tape timing/alignment and indexing, missed-pulse calculation, and
+return-to-live blending are not implementation questions: the ticker-tape
+architecture that required them has been removed.
 
-Telemetry must make changes between control modes explainable without emitting
-repetitive status traffic. Field testing remains the evidence for physical
-stopping and fallback behavior.
+**Unresolved Hall-checkpoint semantics:** the agreement permits Hall geographic
+checkpoints during deceleration only where compatible with Decision 0116. It
+does not decide which, if any, checkpoint can help continue the
+already-established monotonic PWM reduction without becoming Hall-only
+navigation advancement or an IR-coordinate substitute. That boundary must be
+explicitly decided before implementation; no exception is implied here.
+
+Telemetry may record IR loss/recovery and relevant current values without a
+new mode-history subsystem or repetitive status traffic. Field testing remains
+the evidence for physical stopping and this fallback behavior. The stationless
+firmware baseline is unchanged.
 
 ## References
 

@@ -3,10 +3,37 @@
 ## NAVI_EWO_0_1 — Architectural Inheritance and Simplification
 
 **Date:** October 9, 2026  
-**Status:** Governing design proposal for reconciliation before implementation; documentation only.  
+**Status:** Mandatory primary architectural guide for all future NAVI firmware revisions, established by David's October 9, 2026 documentation-reconciliation instruction; documentation only.
 **Scope:** NAVI navigation, geographic operating instructions, universal stopping, physical control, and future CTO operations.
 
 This note applies the enduring decision-system principles by retaining NAVI's navigation judgment, keeping observation distinct from actuator action, and requiring evidence before additional control complexity. It does not authorize firmware changes, merging, flashing, or two-train activation.
+
+### Governing authority and document precedence
+
+Every NAVI firmware revision must begin by reading this guide and reconciling
+the proposed work against its applicable requirements. This requirement applies
+to CODEX, Claude, and every other developer, beyond `NAVI_EWO_0_1`.
+
+This guide supersedes earlier architectural documents, implementation
+instructions, and decisions wherever their provisions conflict with its
+principles. Compatible earlier decisions remain binding, particularly Decisions
+0116 and 0120. Report conflicts explicitly; do not restore superseded mechanisms
+by relying on an older record. Any proposed departure requires David's explicit
+approval before implementation. Every implementation review must assess
+compliance with this guide and its Necessity and Simplicity Test.
+
+Architectural precedence is:
+
+`This guide → compatible existing NAVI decisions → implementation specifications → historical documentation`
+
+The standing agent policy in `AGENTS.md` governs work authorization and
+deployment. Mandatory architectural reference does not itself authorize
+implementation, merging, flashing, or two-train activation.
+
+This reconciliation considers both source histories:
+`db329782d422559dcb886f93db8c1f3e3922a7ab` (the 14-section note) and
+`7a31d913ef2218687b488936a998f82655f5d3c6` (simplified IR-loss fallback).
+The fourteen numbered sections below remain the architectural foundation.
 
 ### 1. Purpose
 
@@ -69,7 +96,32 @@ The historical station state machine is not reusable operating authority. These 
 
 **PWM executes the maneuver. IR measures its physical progress.**
 
-Continuous IR speed homeostasis, adaptive glide-path correction, and ticker-tape playback are not prerequisites for `NAVI_EWO_0_1`.
+Continuous IR speed homeostasis, adaptive glide-path correction, and PWM
+ticker-tape recording/playback are superseded requirements. They must not be
+carried into future NAVI revisions through older documentation. Geographic PWM
+execution uses the demonstrated actuator behavior; IR remains physical evidence,
+including navigation distance, rather than a mandatory continuous speed regulator.
+
+**Simplified IR-loss fallback, retained from `7a31d913`:**
+
+- At steady speed, hold the existing PWM while valid IR feedback is unavailable.
+- During an established deceleration, continue the already-established monotonic
+  PWM reduction, without introducing a new feedback correction.
+- A currently applicable geographic instruction retains authority. The fallback
+  supplies actuator continuity; it does not establish position, stop completion,
+  or permission to depart.
+- On valid IR recovery, applicable IR evidence resumes under the existing
+  validity and continuity rules. Recovery does not activate the superseded
+  homeostasis or adaptive glide controller.
+- No ticker tape, historical PWM memory, playback alignment, missed-pulse
+  prediction subsystem, blending controller, or new mode-history subsystem is
+  required or authorized by this fallback.
+
+Decision 0116 still prohibits Hall-only navigation advancement, manufactured
+geographic progress, and Hall-only re-anchoring. Temporary feedback loss must not
+be confused with a genuine IR frame/source/scale/order break or Decision 0120's
+PWM-zero movement hold. Hall-checkpoint scheduling during IR loss remains
+unresolved; no exception to either decision is implied.
 
 ### 7. NAVI owns continuous geographic position
 
@@ -144,12 +196,42 @@ Document C; Decisions 0116, 0120, 0121, and 0123; and the October 8 architectura
 **Discarded experimental implementation:**  
 `22b05a22d30d0ab76f5feb654a3e6f57a005545c` — closed-loop Pass 2 glide-control candidate, retained as historical development evidence and not the implementation foundation.
 
-The following conflicts are intentional and unresolved; this note does not silently change the governing record:
+**October 9 reconciliation and explicit supersession**
 
-| Governing record | Conflict requiring explicit reconciliation |
+| Earlier provision | Disposition under this mandatory guide |
 |---|---|
-| Document C §§6–21 and Decision 0123 | They require IR-measured physical-speed control, steady-speed homeostasis, adaptive glide-path adjustment, and ticker-tape fallback. This note proposes geographic PWM physical control as the initial `NAVI_EWO_0_1` precedent and says those mechanisms are not prerequisites. A later operator decision must decide whether this note supersedes, narrows, or is rejected in favor of those provisions. |
-| Document C §§22–23 / October 8 Decision 1 | They allow minimal execution progress for a station stop/dwell/departure but leave its representation and reset conditions to reconciliation. This note relies on that same minimal progress for “completed stop” departure; it does not define the state representation. |
+| Document C §§6–21 and §§35.2–35.4; Decision 0123: continuous speed homeostasis, adaptive glide correction, and fixed-geographic-PWM rejection | Superseded as required physical-control architecture. Use demonstrated geographic PWM behavior and the existing actuator ramps under §6. Physical operating objectives and smooth execution remain compatible. |
+| Original Document C §35.6 and Decision 0123 at `b646cab5995124ff84ae2173c0d9912c84357815`: ticker-tape recording/playback | Superseded by `7a31d913`; simplified steady PWM hold and continued established monotonic deceleration survive. Any recovery wording that restarts homeostasis or adaptive glide correction is superseded by this guide. |
+| Document C §§22, 34.1 and 35.5; Decision 0123: dwell begins only after a physical stop | Superseded for ordinary station service: the clock begins at +1 MM; departure requires both the waiting requirement and completed physical stop. Section 8's higher-priority-stop exception remains: base station dwell begins when the mandate is lifted on the stopping tile. |
+| Document C §22: geographic stop-acceptance region not yet defined | Section 5 supplies the +1.5 target, +1.0 to +1.7 preferred range, and 0 through +3 acceptance region. Do not restart solely to reach the exact target or a Hall marker. |
+| Document C §§34.1–34.2 and §35.1: departure always targets cruise | Departure targets the underlying current geographic operating requirement under §§8–9. Cruise is appropriate only when that requirement calls for it. |
+| Document C §§22–23 and October 8 Decision 1: minimal tile-local execution progress | Compatible in principle. Representation, lifetime, and reset conditions remain unresolved; no procedural entry latch or remembered visit may become independent operating authority. |
+| Earlier adaptive recording/backup proposals, including the October 7 proposal at `ec1d62c0398af26018c8d03d3949894f5e38458c` | Historical design evidence; their recording/playback and continuous adaptive-control requirements do not override this guide. |
+
+Historical source text and commits remain evidence of prior reasoning and
+observations. Supersession does not rewrite physical evidence or establish that
+a proposed implementation has been field accepted.
+
+**Remaining architectural questions — do not invent implementation defaults**
+
+1. Which, if any, Hall checkpoint may schedule an already-established monotonic
+   PWM ramp during IR loss without becoming navigation progress or an IR
+   coordinate substitute (the open boundary retained from `7a31d913`).
+2. The representation, lifetime, and reset of minimal execution progress for the
+   currently applicable stop/wait/departure instruction.
+3. How to initiate the +1-MM waiting rule for cold entry beyond +1 or for an
+   accepted early stop between Station 0 and +1. The geographic acceptance range
+   does not itself answer timer initialization in those cases.
+4. How physical stop completion is established while usable IR evidence is
+   unavailable. The earlier PWM-zero plus 50-ms-without-a-pulse criterion is
+   retained as a prior candidate criterion, not proof of a physical stop during
+   information loss; no new loss-specific criterion is decided here.
+5. The physical stopping profile and current-speed-to-stopping-distance mapping
+   for arbitrary destinations, grades, speeds, and consists. Field validation
+   and the existing future-CTO evidence requirements remain necessary.
+
+No new IR validity threshold, timing/alignment model, interpolation formula,
+fallback navigation authority, or stop-detection algorithm is decided here.
 
 **Central principle**
 

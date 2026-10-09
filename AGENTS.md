@@ -6,6 +6,23 @@ precedence over other instructions in this repository, including
 `docs/CLAUDE.md`, and over an agent's or environment's default working habits,
 wherever they conflict.
 
+## Mandatory NAVI architectural reference
+
+Before every future NAVI firmware revision, CODEX, Claude, and other developers
+must read [the NAVI architectural guide](docs/NAVI_EWO_0_1_ARCHITECTURAL_NOTE_20261009.md)
+and reconcile proposed work against it. The guide is the primary architectural
+authority for all NAVI revisions. It supersedes conflicting earlier architectural
+documents, implementation instructions, and decisions; compatible decisions,
+especially 0116 and 0120, remain binding.
+
+Explicitly identify superseded provisions rather than treating historical
+documents or firmware as current authority. Any proposed departure requires
+David's explicit approval before implementation. Every implementation review
+must verify guide compliance, including the Necessity and Simplicity Test.
+This precedence governs architecture; this standing policy continues to govern
+work authorization and deployment. Reading the guide is mandatory and does not
+require renewed permission merely to apply its established requirements.
+
 For NGR project context — hardware, the MQTT integration constraint, firmware
 organization, and decision records — read `docs/CLAUDE.md`.
 

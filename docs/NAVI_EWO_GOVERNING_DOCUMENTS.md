@@ -3,6 +3,29 @@
 Directory of the canonical governing set for NAVI_EYES_WIDE_OPEN (EWO), in
 precedence order. Last revised 2026-10-09.
 
+## Mandatory primary guide for every NAVI firmware revision
+
+**Read first:** [NAVI_EWO_0_1 — Architectural Inheritance and
+Simplification](NAVI_EWO_0_1_ARCHITECTURAL_NOTE_20261009.md). This is the mandatory
+primary architectural authority for **all future NAVI firmware revisions**.
+It supersedes conflicting earlier architectural documents, implementation
+instructions, and decisions. Compatible earlier decisions remain binding,
+particularly 0116 and 0120. Proposed departures require David's explicit approval.
+Every implementation review must verify compliance with the guide and its
+Necessity and Simplicity Test.
+
+Architectural precedence:
+`Primary guide → compatible existing NAVI decisions → implementation specifications → historical documentation`.
+`AGENTS.md` continues to govern work authorization and deployment.
+
+The reconciliation considers both `db329782d422559dcb886f93db8c1f3e3922a7ab`
+(the guide) and `7a31d913ef2218687b488936a998f82655f5d3c6` (simplified
+IR-loss fallback). It retains PWM hold at steady speed and continued established
+monotonic PWM reduction in deceleration; continuous homeostasis, adaptive glide
+control, and ticker-tape recording/playback requirements are superseded.
+IR recovery restores applicable evidence, not the superseded speed controllers.
+No firmware, merge, flash, or two-train activation is authorized by this index.
+
 **Before beginning NAVI Close Train Operations (CTO) or Circuit Express
 reconstruction, read first:**
 [`CTO and Circuit Express — reconstruction architecture`](NAVI_CLOSE_TRAIN_OPERATIONS_RECONSTRUCTION_ARCHITECTURE_20261005.md).
@@ -15,19 +38,20 @@ These cleanup principles are separate from station position/overlay architecture
 station-stop implementation, adaptive braking, and CTO/CE reconstruction.
 Preserving this architecture does not authorize cleanup implementation.
 
-**Before modifying NAVI operating or station architecture, read first:**
-[`NAVI Position/Overlay and Speed-Control Operating Architecture`](NAVI_POSITION_OVERLAY_OPERATING_ARCHITECTURE_20261005.md).
-This documentation record does not authorize implementation.
-Decision [0121](decisions/0121-current-position-direction-and-overlay-determine-navi-operating-authority.md)
-records this operating-authority decision and its scoped supersession of older
-procedural claims. A governs future CTO/CE reconstruction, B governs vestigial
-concept cleanup, and C governs position/overlay operating authority and physical
-speed control; their scopes remain separate. The expanded C covers 45-pKPH
-cruise, 20-pKPH station speed, glide paths, steady-speed homeostasis, and terminus
-dwell/restart and cold-entry rules. Its firmware implementation is paused for
-review. The implementation baseline remains
-`0116518b6d5d429fce3281505611d4fa17e2a350` (Document B completed); no Document C
-implementation changes are included in this documentation revision.
+**After the primary guide, consult compatible operating architecture in:**
+[Document C](NAVI_POSITION_OVERLAY_OPERATING_ARCHITECTURE_20261005.md) and
+[Decision 0121](decisions/0121-current-position-direction-and-overlay-determine-navi-operating-authority.md).
+Document C's October 9 reconciliation identifies superseded control,
+dwell-clock, and departure provisions. A governs compatible CTO/CE reconstruction;
+B governs compatible vestigial cleanup; C preserves geographic tile/overlay
+authority beneath the primary guide. Historical physical-speed-control
+requirements do not regain authority through those scope labels.
+
+The stationless firmware baseline remains
+`c7c21163b016e443524eb9fa483f8b706ce76e22`; the demonstrated PWM physical-control
+reference remains `ab0938b0f01531a38ce4d8a1d9d932ffad4f0334`.
+Neither is an implemented or field-accepted `NAVI_EWO_0_1` candidate.
+This revision changes documentation only.
 
 This page is a directory and a supersession ledger. It authorizes nothing
 (`/AGENTS.md` section 2), and no decision record authorizes an agent to act
@@ -42,13 +66,13 @@ This page is a directory and a supersession ledger. It authorizes nothing
 | **Implementation documentation** | Says what a candidate does today | No. Where it differs from a decision, the decision governs and the difference is a finding |
 | **Historical prior art** | Says what earlier systems did and why | No. Kept as evidence; conflicts resolve to the newer canonical decision |
 
-## 1. Design principles (canonical, enduring)
+## 1. Compatible design principles (canonical, enduring)
 
 1. [`NGR_DECISION_SYSTEM_DESIGN_PRINCIPLES.md`](NGR_DECISION_SYSTEM_DESIGN_PRINCIPLES.md)
 2. [`NAVI_DECISION_MODEL.md`](NAVI_DECISION_MODEL.md) (its index covers 0102-0107 and
    0108; the EWO decisions below extend it)
 
-## 2. Canonical decisions (in numerical order; later governs where they conflict)
+## 2. Compatible decisions (numerical order; subject to the primary guide)
 
 | No. | Decision | Scope |
 |---|---|---|
@@ -73,7 +97,7 @@ This page is a directory and a supersession ledger. It authorizes nothing
 | [0120](decisions/0120-pwm-zero-movement-requires-operator-position-verification-and-declaration.md) | Zero-movement dwell preserves localization; PWM-zero movement holds navigation/withdraws AUTO until operator verification and declaration; no automatic recovery | NAVI_EWO |
 | [0121](decisions/0121-current-position-direction-and-overlay-determine-navi-operating-authority.md) | Current MM interval + direction + overlay determine operating requirements; historical station procedure has no operating authority | NAVI operating/station architecture |
 | [0122](decisions/0122-type5-pitch-is-configuration-and-calibration-metadata-has-no-runtime-authority.md) | Installed Type-5 pitch is configuration; calibration metadata has no runtime authority; real validity and continuity remain | NAVI_EWO Document B implementation |
-| [0123](decisions/0123-navi-pass2-uses-geographic-speed-control-and-pwm-ticker-tape.md) | Pass 2 physical-speed control, geographic PWM ticker-tape fallback, and mode-transition telemetry | NAVI Document C / Pass 2; documentation only |
+| [0123](decisions/0123-navi-pass2-uses-geographic-speed-control-and-pwm-ticker-tape.md) | Reconciled simplified IR-loss PWM hold/monotonic-ramp behavior; continuous homeostasis, adaptive glide control, and ticker tape superseded | Subordinate to primary guide; documentation only; Hall-checkpoint semantics unresolved |
 
 Decision 0101's current-position principle remains foundational. Its retained
 procedural station mechanisms, including completed-visit suppression, pause
@@ -85,10 +109,15 @@ extension by 0111 is withdrawn by 0116.
 
 ## 3. Reconciliation and architectural history
 
-- [NAVI_EWO_0_1 — Architectural Inheritance and Simplification, 2026-10-09](NAVI_EWO_0_1_ARCHITECTURAL_NOTE_20261009.md)
-  (documentation-only proposal; preserves the universal stopping model and
-  geographic PWM precedent while explicitly flagging its unresolved conflict
-  with Document C/Decision 0123 physical-speed control)
+- The [mandatory primary guide](NAVI_EWO_0_1_ARCHITECTURAL_NOTE_20261009.md),
+  §14, records the October 9 supersessions and remaining questions. Its prior
+  proposal status at `db329782` is superseded by David's current instruction.
+- [Document C reconciliation](NAVI_POSITION_OVERLAY_OPERATING_ARCHITECTURE_20261005.md)
+  and [Decision 0123 reconciliation](decisions/0123-navi-pass2-uses-geographic-speed-control-and-pwm-ticker-tape.md)
+  retain the `7a31d913` historical texts with explicit current dispositions.
+  Original ticker-tape requirements remain historical in `b646cab`; the
+  October 7 adaptive-recording proposal at `ec1d62c` is historical proposal
+  evidence and cannot override the guide.
 - [Position/overlay documentation reconciliation, 2026-10-05](NAVI_POSITION_OVERLAY_DOCUMENTATION_RECONCILIATION_20261005.md)
   (scoped supersession notices and search classifications; historical evidence
   remains intact; no firmware or test changes)
@@ -129,6 +158,11 @@ conflicting assumptions are superseded for NAVI_EWO as follows.
 
 | Older assumption | Now | By |
 |---|---|---|
+| Earlier NAVI architectural documents can govern a conflicting future revision | Mandatory primary guide governs all future NAVI revisions; compatible earlier decisions survive | Primary guide, governing-authority provision; AGENTS.md |
+| Continuous IR speed homeostasis, adaptive glide control, five-beat corrections, 95% handoff, and rejection of geographic PWM as initial controller | Superseded required control architecture; use demonstrated PWM execution and existing ramps | Primary guide §6; reconciled Document C and 0123 |
+| PWM ticker-tape recording/playback, historical PWM memory, missed-pulse prediction, timing/alignment, and automatic return to homeostasis/glide correction | No ticker tape; retain simplified PWM hold and established monotonic reduction; IR recovery restores applicable evidence | `7a31d913`, reconciled under primary guide §6 |
+| Ordinary station dwell must start only after stop; always depart toward cruise | Clock starts at +1 MM; departure requires satisfied wait and physical stop and follows current underlying instruction; temporary-mandate dwell exception survives | Primary guide §§5, 8 |
+| Geographic station-stop acceptance range still unspecified | +1.5 target; +1.0 to +1.7 preferred; 0 through +3 accepted; no coordinate-seeking restart | Primary guide §5 |
 | Runtime pitch/calibration changes identify a new measurement frame or exempt a report from ordering checks | Validate installed pitch; calibration ID is raw evidence; only real continuity boundaries separate epochs | Document B; 0122 |
 | Station ARMED admission, persistent phases, completed-visit suppression, and historical station procedure across STOP/GO (0068, 0090, 0101 and POSITION_STATIONS_R1) | Current MM interval + direction + overlay determine the requirement; 0101's current-position principle survives | 0121; Document C §§5, 25–26 |
 | Station-procedure MISSED, PHASE_TIMEOUT, procedural overshoot/late-entry failure, and marker/PWM sequences as operating authority | No historical station-procedure authority; current geographic boundaries remain legitimate and PWM is an actuator output | 0121; Document C §§2, 5 |
@@ -169,6 +203,14 @@ conflicting assumptions are superseded for NAVI_EWO as follows.
   `NGR_DECISION_SYSTEM_DESIGN_PRINCIPLES.md`.
 
 ## Open points (not settled; do not treat any as decided)
+
+The primary guide §14 additionally preserves unresolved Hall-checkpoint use
+during IR loss, tile-local execution-state lifetime/reset, exceptional dwell
+clock initialization, physical-stop recognition without usable IR evidence,
+and arbitrary-destination stopping-distance mapping. Ticker-tape first-lap,
+playback alignment, and blending questions are retired with that architecture;
+they must not be supplied as implementation defaults.
+
 
 1. **CRM challenge:** no threshold or mechanism for telling the operator that the
    encountered MM are inconsistent with the declaration (0109).
