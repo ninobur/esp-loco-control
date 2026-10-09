@@ -40,8 +40,8 @@ Sections 4–6, 8–9, 11, and 13–14 incorporate David's later direction:
 ordinary geographic tiles carry PWM cruise (initially 60); *all* exceptional
 movement requirements, including station stops, are temporary overlays.
 Exactly one highest-priority overlay has operating authority at a time.
-A generic, destination-anchored STOP overlay is to be established and tested
-**before** any station-specific application. Stop completion is determined by
+A universal, destination-anchored **STOP sequence**, invoked through an overlay,
+is to be established and tested **before** any station-specific application. Stop completion is determined by
 elapsed dwell **while applied PWM is concurrently zero**, not attainment of
 the geographic aim point. These later provisions supersede conflicting earlier
 statements in this guide and older documentation.
@@ -72,44 +72,55 @@ The same location and physical circumstances should produce the same operating r
 
 **A stopping maneuver is a sequence of geographic objectives, not a procedure that must be entered at its beginning.**
 
-### 4. One universal STOP overlay and reusable physical maneuver
+### 4. Universal STOP sequence
 
-The standardized stopping maneuver is:
+**STOP sequence** is the name of the universal stopping maneuver. Every stop
+is geographic; no geographic qualifier is necessary. Unlike the legacy
+station-stop procedure, this sequence is **assignable to any target point
+on the Lowline** and **permits entry at any point within the sequence**.
+Its execution cannot depend on passing a starting marker, triggering an
+admission latch, or completing an earlier procedural phase.
+
+The STOP sequence is invoked under the **one active temporary overlay**.
+The overlay supplies operating authority, the intended target and the
+waiting/release condition. The STOP sequence supplies the reusable physical
+maneuver:
 
 **DECELERATE → STOP → WAIT → RESTART → ACCELERATE**
 
-Develop and validate the **universal STOP overlay first**, at an arbitrary
-non-station geographic target, *before* installing station service. The overlay
-is temporary geographic operating authority. The motor actuator is a reusable
-execution capability, not a station machine. A stop request provides an
-intended target, a geographically defined PWM profile constructed backward
-from that target, and its waiting/release condition.
+The target anchors a PWM approach constructed **backward toward the approaching
+locomotive**. A geographic tile may contain many IR wheel-pulse positions,
+each with its own PWM assignment (nominal installed pulse spacing ~9.652 mm).
+The currently applicable pulse-position instruction determines the PWM
+target, regardless of where the locomotive entered the sequence.
 
-Every geographic tile consists of IR wheel-pulse positions (~9.652 mm nominal
-per installed wheel pulse). **Each pulse position may carry its own PWM
-assignment.** A STOP profile can cross several tiles; the relevant instruction
-is simply that for NAVI's current geographic position. NAVI does not have to
-cross the beginning of a ramp to enter it, and never needs an ARMED,
-station-admission, prior-marker, or completed-visit latch.
+The initial design uses PWM 60 cruise in the base layer; the STOP sequence
+uses moving creep at PWM 50 followed by a geographic final ramp toward
+PWM 20 at its aim point. Actual stop location may differ from the target.
+The target is not a stop-completion condition, and the locomotive does not
+correct its position merely to reach the target.
 
-For the initial design, the ordinary cruise assignment is PWM 60; the
-approach uses PWM 50 as a moving creep speed, followed by a geographic
-deceleration assignment descending from PWM 50 toward PWM 20 at the *intended*
-stop point. Actual profile shape and PWM values outside these initial decisions
-require calibration from field results, not guessed timing or control laws.
-The established actuator ramp remains the sole way of applying changes in
-motor PWM.
+**The established time-based PWM actuator ramp carries out its existing
+command independently of further IR pulse arrivals.** When wheel pulses cease
+before the geographic aim point, an already-established PWM ramp continues
+toward zero; the STOP sequence does not need fabricated position, another
+IR-based speed controller, or an entry latch. Mile-marker observations provide
+geographic checkpoints and IR observations provide finer distance evidence.
+Both inform NAVI's sole position judgment; their complementarity does
+**not** revoke Decisions 0116 or 0120 or authorize Hall-only manufactured
+travel.
 
-The locomotive may stop before or after the geographic target. NAVI records
-where it actually stopped; no exact-coordinate arrival is required. As part
-of the stop, the actuator must reach PWM zero. Physical execution and the
-waiting requirement determine completion (section 5).
+Applied PWM=0 establishes the operational stop and begins timed dwell.
+When dwell has expired and PWM is concurrently still zero, the timed STOP
+sequence is complete. On authorized release, retire the invoking overlay
+and resume the established acceleration ramp regardless of the actual stop
+coordinate. NAVI continues coherent geographic tracking and follows the
+next applicable tile instruction. A collision-prevention overlay may use
+the same STOP sequence but its release remains governed by required
+separation, not by a station timer.
 
-The same STOP overlay is subsequently requested by Four-Station Local,
-dispatcher holds, and collision-prevention geographic restrictions. The
-requesting service supplies the destination and waiting/release condition;
-there is **one** stopping executor, not parallel stop controllers. Collision
-restriction release is governed by separation, not by a station timer.
+Develop and field-test this generic STOP sequence **first** at a non-station
+target; only afterward apply it to Four-Station Local and then CTO.
 
 ### 5. Stop completion, dwell, and geographic accuracy
 
@@ -123,7 +134,7 @@ may be early or late. Do not move or restart simply to correct that error.
 **Governing completion rule (David, October 9): a STOP is complete when its
 dwell interval has expired and the applied PWM is concurrently zero.**
 
-The timer belongs to the active STOP overlay. For a timed station stop, the
+The timer belongs to the active overlay that invokes the STOP sequence. For a timed station stop, the
 initial dwell is five seconds. **Applied PWM=0 establishes NAVI's operating
 criterion for no motive movement and starts the dwell.** Completion requires
 the dwell to have expired **while applied PWM is concurrently still zero**.
@@ -177,7 +188,7 @@ deliberate firmware/configuration revision, not automatic adaptation.
 IR pulse observations remain navigation evidence under NAVI, and allow
 reporting pulse-resolved progress, actual speed, and actual stop location.
 No separate geographic position estimator or IR homeostasis PID/step feedback
-controller belongs to the STOP overlay.
+controller belongs to the STOP sequence.
 
 Continuous IR speed homeostasis, adaptive glide-path correction, the
 95-percent controller handoff, and PWM ticker-tape recording/playback are
@@ -190,8 +201,10 @@ Continuous IR speed homeostasis, adaptive glide-path correction, the
 - During an established monotonic deceleration, continue its already
   established actuator PWM reduction without initiating speed correction.
   Do not fabricate intervening pulse positions while IR distance is absent.
-- The fallback preserves only actuator continuity; it cannot establish
-  navigation position, stop completion, or authorization to depart.
+- The fallback preserves actuator continuity; the established time-based PWM ramp
+  proceeds toward its already-commanded target without requiring further
+  IR pulses. This cannot establish navigation position, stop completion, or
+  authorization to depart.
 - On recovery, applicable IR evidence resumes under existing validity and
   continuity rules. No ticker-tape, historical replay, or adaptive
   correction machinery is reinstated.
@@ -245,7 +258,7 @@ is the invariant.
 
 ### 9. Future CTO: highest-priority geographic collision overlay
 
-The universal STOP overlay is to be established and field-tested **before**
+The universal STOP sequence is to be established and field-tested **before**
 Four-Station Local or Close Train Operations (CTO) are implemented.
 Once proven, a station service simply supplies its stopping target and timed
 dwell condition. For CTO, a collision-prevention authority instead
@@ -311,7 +324,7 @@ Preserve demonstrated functionality. Add machinery only when it addresses an ide
 
 ### 13. Implementation sequence and acceptance criteria
 
-The development order is **(1) generic geographic STOP overlay → (2) track
+The development order is **(1) universal STOP sequence → (2) track
 validation and PWM-geography calibration → (3) Four-Station Local service
 through that same overlay → (4) future CTO via prioritized geographic
 restrictions**. Do not begin by rebuilding station machinery.
@@ -323,13 +336,13 @@ verify at least:
    embedded station STOP or dwell.
 2. Exactly one active overlay commands PWM; collision prevention is highest
    priority when implemented, without inventing unapproved subordinate order.
-3. STOP can be assigned to any coherent between-magnet geographic target
-   and projected backward into pulse-position PWM assignments, with
+3. The STOP sequence can be assigned to any Lowline target and entered
+   anywhere in the backward-projected pulse-position PWM assignments, with
    creep PWM 50 and final geographic reduction toward PWM 20.
 4. Existing PWM actuator ramps remain the sole physical executor, and the
    commanded stop reaches applied PWM zero.
-5. A locomotive entering or restarting midway through the overlay executes
-   the current instruction without any ARMED/StationMachine admission or
+5. A locomotive entering or restarting midway through the STOP sequence
+   executes the current instruction without any ARMED/StationMachine admission or
    prior-event dependence.
 6. Applied **PWM=0** establishes the stop condition and begins timed
    dwell; expiration with concurrently applied PWM=0 completes the timed STOP.
@@ -345,7 +358,7 @@ verify at least:
    positioning rather than relying solely on synthetic demonstrations.
 
 Station-specific dwell and PASS overlays are **subsequent applications**, not
-prerequisites for proving the universal STOP overlay. No implementation or
+prerequisites for proving the universal STOP sequence. No implementation or
 flashing is authorized by this guide.
 
 ### 14. Historical references, supersession, and open questions
@@ -372,13 +385,19 @@ reconciliation, and David's subsequent October 9 cruise-base / single-overlay
 |---|---|
 | Base layer includes station stops and stop/dwell tiles (earlier guide §8 and Document C station-service examples) | Superseded. Base layer is cruise-only, initially PWM 60. Station service and all deviations from ordinary cruise are overlays. |
 | Multiple potentially simultaneous overlay motor commands or station overlay plus base station STOP | Superseded. Exactly one overlay has PWM authority at a time; geographic collision prevention has highest priority. Lower-priority policy remains open. |
-| First prove Four-Station Local and then extract generic stopping (earlier guide §§4/13) | Superseded. Prove the universal STOP overlay at arbitrary non-station destinations *first*; station and CTO use it later. |
+| First prove Four-Station Local and then extract generic stopping (earlier guide §§4/13) | Superseded. Prove the universal STOP sequence at arbitrary non-station destinations *first*; station and CTO use it later. |
 | One PWM per tile or continuous physical-speed-target regulation (Document C; former Decision 0123) | Superseded. Individual IR pulse positions within tiles can carry geographic PWM assignments, with existing actuator ramp and diagnostic IR observations. |
 | Station dwell clock starts at Station +1 MM while still moving (earlier guide §5, §13; Document C reconciliation) | Superseded. Dwell belongs to actual stop; stop service completes when dwell elapsed **AND** applied PWM=0. The target coordinate does not gate completion. |
 | Preferred stop target and acceptance window function as required geographic stopping gates | Superseded. Any prescribed aim point, including Station +1.5 MM, guides the decel geography only. Stop location and error are recorded diagnostically. |
 | Following PWM commands must retain procedural station sequence, entry latch, or destination acquisition | Superseded. Retire completed overlay and ramp up independent of stopping coordinate; obey the next applicable geographic tile instruction. |
 | Continuous IR speed homeostasis, adaptive glide, controller 95% handoff, PWM ticker-tape | Superseded. Keep geographic PWM-first operation and simplified existing actuator continuity on temporary IR feedback loss, without violating 0116/0120. |
 | Station service dwell release and collision hold release are identical | Superseded. Collision prevention remains controlled by geographic separation; timed service stop is released only after its own completion and applicable authorization. |
+
+**Resolved by David:** a previously established time-based PWM ramp
+continues even if IR pulses cease before the geographic target. MM provides
+geographic checkpoints, IR provides finer measurements, and NAVI retains
+sole navigation judgment under Decisions 0116 and 0120. Neither sensor
+must continually authorize the already-established PWM ramp.
 
 **Resolved by David:** applied PWM=0 is NAVI's no-motive-movement
 indication and starts timed dwell. Timed STOP completion is dwell expired
@@ -397,19 +416,12 @@ coding a material behavior:**
 3. How an already-established geographical PWM decel behaves across
    gaps in usable IR-position evidence without inventing Hall-only progress,
    consistent with 0116 and 0120.
-4. **Early-stop actuator progression:** when the train ceases IR wheel pulses
-   *before* the geographic PWM profile has reached the point assigned PWM 20,
-   a purely pulse-triggered ramp would no longer progress. Specify a simple
-   means for the established actuator to continue toward required PWM zero
-   **without** a new positional correction, fabricated IR travel, automatic
-   speed regulator, or hidden completion latch. This must be resolved before
-   implementation, since elapsed dwell alone does not complete a stop unless
-   applied PWM is concurrently zero.
-5. The field-measured PWM profiles, stop distance and consist-dependent
+
+4. The field-measured PWM profiles, stop distance and consist-dependent
    stopping envelope across grades, directions and requested speeds.
    Do not mistake PWM target 20 for proof of physical rest or guaranteed
    positional stop accuracy.
-6. Whether departure ramp authority, after release, holds until the next
+5. Whether departure ramp authority, after release, holds until the next
    applicable tile boundary or yields immediately to the current base
    cruise assignment. David's intent is no repetition of the completed
    stop and compliance with the next tile; implementation representation
@@ -424,7 +436,8 @@ are established by this documentation update.
 > NAVI navigates and supplies the current geographic instruction.
 > The base layer is ordinary cruise. The single highest-priority
 > overlay, when present, modifies that instruction. A universal
-> destination-anchored PWM stop overlay achieves the physical maneuver,
+> destination-anchored **STOP sequence** executes the physical maneuver
+> through the single active overlay,
 > accepts early or late stops, and completes timed service at dwell expiry
 > with applied PWM concurrently zero. Upon release, ramp up without
 > repositioning and follow the next applicable geographic tile.
