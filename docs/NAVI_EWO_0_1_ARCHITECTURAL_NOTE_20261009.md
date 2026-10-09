@@ -423,6 +423,14 @@ Station-specific dwell and PASS overlays are **subsequent applications**, not
 prerequisites for proving the universal STOP sequence. No implementation or
 flashing is authorized by this guide.
 
+**Initial test target, October 9:** David selected the vicinity of MM045 and
+authorized choosing one point for approaches from both directions. The
+[bidirectional STOP test definition](NAVI_STOP_MM045_BIDIRECTIONAL_TEST_DEFINITION_20261009.md)
+places it at the midpoint of MM045–MM046: 150 mm from either marker along that
+interval. It is one physical target, with the approach projected backward in
+each direction; neither marker is a required admission trigger. This test
+selection does not limit STOP's applicability anywhere on the Lowline.
+
 ### 14. Historical references, supersession, and open questions
 
 **Physical-control evidence:** `ab0938b0f01531a38ce4d8a1d9d932ffad4f0334`

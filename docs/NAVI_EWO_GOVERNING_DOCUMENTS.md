@@ -84,6 +84,13 @@ reference remains `ab0938b0f01531a38ce4d8a1d9d932ffad4f0334`.
 Neither is an implemented or field-accepted `NAVI_EWO_0_1` candidate.
 This revision changes documentation only.
 
+**First universal STOP demonstration:** the
+[MM045 bidirectional test definition](NAVI_STOP_MM045_BIDIRECTIONAL_TEST_DEFINITION_20261009.md)
+records David's chosen vicinity and CODEX's selected midpoint of MM045–MM046.
+Both directions target the same geographic point; entry anywhere in the
+approach remains required. The note verifies the stationless source reference
+and distinguishes target selection from the remaining implementation decisions.
+
 This page is a directory and a supersession ledger. It authorizes nothing
 (`/AGENTS.md` section 2), and no decision record authorizes an agent to act
 (`decisions/README.md`).
