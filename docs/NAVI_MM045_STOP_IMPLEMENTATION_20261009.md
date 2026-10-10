@@ -248,3 +248,20 @@ the STOP restart rate. Manual acceleration is unchanged.
 Validation: STOP host regression suite passed; actual-sketch actuator test
 passed with explicit150 ms up and310 ms final-down checks. Final ESP32 build
 passed:1,018,875 bytes flash and58,124 bytes RAM. No upload performed.
+
+## Superseding field profile — October 9
+
+David reported another landing in044–045 and requested PWM50→35 over044–045
+CW, followed by a300 ms/count continuous35→0 ramp beginning at045.
+This supersedes the former43.5–44.5 penultimate section and310 ms final timing.
+Target remains045.5. CCW mirrors the distances:50→35 over047–046, final at046.
+The50 plateau consequently extends to044 CW (5.5MM after38.5), superseding
+its former exact five-MM length. Final geography spans the remaining halfMM;
+its PWM lookup is an aim, not a gate on the timed ramp. Nominal ramp10.5s;
+actual landing requires track observation. Dwell5s, up150 ms/count unchanged.
+Rollback:93d5226. Changed profile header, sketch timing, README and relevant
+geometry/actual-actuator tests; no navigation or firmware deployment changes.
+
+Validation of revised profile: host STOP suite and actual-actuator timing test
+passed. ESP32 compile passed:1,018,831 bytes flash,58,124 bytes RAM.
+No upload performed.

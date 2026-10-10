@@ -51,7 +51,7 @@ struct StopGeography {
 };
 
 // Pure lookup. Any point in the eleven-MM footprint is a valid entry point.
-// The final geographic 30/20/0 values are calibration aims; the operator
+// The final geographic 35/0 values are calibration aims; the operator
 // authorized a continuous time-based final ramp, independent of more pulses.
 inline StopGeography stopGeography(int32_t position, int32_t target,
                                    int8_t direction) {
@@ -63,17 +63,15 @@ inline StopGeography stopGeography(int32_t position, int32_t target,
   if (d > 7 * kStopMm) {
     out.section = StopSection::Approach;
     out.pwm = uint8_t(50 + (10 * (d - 7 * kStopMm) + kStopMm - 1) / kStopMm);
-  } else if (d > 2 * kStopMm) {
+  } else if (d > 3 * kStopMm / 2) {
     out.section = StopSection::Fifty;
     out.pwm = 50;
-  } else if (d > kStopMm) {
+  } else if (d > kStopMm / 2) {
     out.section = StopSection::Penultimate;
-    out.pwm = uint8_t(30 + (20 * (d - kStopMm) + kStopMm - 1) / kStopMm);
+    out.pwm = uint8_t(35 + (15 * (d - kStopMm / 2) + kStopMm - 1) / kStopMm);
   } else {
     out.section = StopSection::Final;
-    out.pwm = d > kStopMm / 2
-        ? uint8_t(20 + (20 * (d - kStopMm / 2) + kStopMm - 1) / kStopMm)
-        : uint8_t((40 * d + kStopMm - 1) / kStopMm);
+    out.pwm = uint8_t((70 * d + kStopMm - 1) / kStopMm);
   }
   return out;
 }

@@ -217,12 +217,12 @@ int main() {
   }
   // Final braking uses the actual actuator and finishes without any IR input.
   stopOverlay.reset(); navi.declare(45, 1, ++clockMs * 1000ULL);
-  actualPwm = 30; rampTarget = commandedPwm = 30;
+  actualPwm = 35; rampTarget = commandedPwm = 35;
   serviceAutoCruise(); assert(rampTarget == 0);
-  assert(rampDownMs == 310); // Dedicated calibrated final decrement.
+  assert(rampDownMs == 300); // Dedicated calibrated final decrement.
   lastRampStepMs = clockMs; // Check full subsequent intervals independently of prior ramp phase.
-  for (int pwm = 29; pwm >= 0; --pwm) {
-    clockMs += 309; serviceRamp(); serviceAutoCruise();
+  for (int pwm = 34; pwm >= 0; --pwm) {
+    clockMs += 299; serviceRamp(); serviceAutoCruise();
     assert(actualPwm == pwm + 1);
     ++clockMs; serviceRamp(); serviceAutoCruise();
     assert(actualPwm == pwm && rampTarget == 0);

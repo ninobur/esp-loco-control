@@ -59,9 +59,9 @@ static constexpr uint8_t HALL_PIN = 33;
 static constexpr uint8_t I2C_SDA = 21, I2C_SCL = 22;
 static constexpr uint16_t AUTO_STEP_UP_MS = 150, AUTO_STEP_DOWN_MS = 31;
 static constexpr uint16_t STOP_RESTART_STEP_UP_MS = 150;
-// Initial track calibration: 2 * 300 mm / 64 mm/s / 30 PWM counts.
+// David: final 35-to-zero ramp starts at MM045 CW (MM046 CCW).
 // Continuous final braking completes even when movement pulses cease.
-static constexpr uint16_t STOP_FINAL_STEP_DOWN_MS = 310;
+static constexpr uint16_t STOP_FINAL_STEP_DOWN_MS = 300;
 static constexpr uint16_t MANUAL_STEP_UP_MS = 150;
 static constexpr uint16_t BRAKE_STEP_COAST_MS = 400, BRAKE_STEP_HARD_MS = 15;
 static constexpr double NAVI_PKPH_MM_PER_SEC = 5.37325;

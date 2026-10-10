@@ -12,7 +12,7 @@ static StopGeography remaining(int32_t distance, int8_t direction = 1,
 
 int main() {
   // These are operator-specified values at independent positions, including
-  // the two different slopes in the final MM. The plateau is exactly five MM.
+  // the revised 044-to-045 controlled decrease and final ramp at045 CW.
   struct Point { int32_t distance; uint8_t pwm; StopSection section; };
   const Point points[] = {
     {11000000,90,StopSection::Approach}, {10900000,89,StopSection::Approach},
@@ -21,9 +21,9 @@ int main() {
     {7000000,50,StopSection::Fifty}, {6500000,50,StopSection::Fifty},
     {5500000,50,StopSection::Fifty}, {4500000,50,StopSection::Fifty},
     {3500000,50,StopSection::Fifty}, {2500000,50,StopSection::Fifty},
-    {2000000,50,StopSection::Penultimate}, {1500000,40,StopSection::Penultimate},
-    {1000000,30,StopSection::Final}, {750000,25,StopSection::Final},
-    {500000,20,StopSection::Final}, {250000,10,StopSection::Final},
+    {2000000,50,StopSection::Fifty}, {1500000,50,StopSection::Penultimate},
+    {1000000,43,StopSection::Penultimate}, {750000,39,StopSection::Penultimate},
+    {500000,35,StopSection::Final}, {250000,18,StopSection::Final},
     {0,0,StopSection::Final},
   };
   for (int8_t dir : {int8_t(1), int8_t(-1)}) {
@@ -64,7 +64,7 @@ int main() {
   held = stop.command({}, false, 1, 90, 78, 75, 1, true);
   assert(held.overlay && held.pwm == 75); // An IR gap preserves authority as well as the command.
   stop.reset();
-  const auto final = remaining(750000);
+  const auto final = remaining(500000);
   auto command = stop.command(final, true, 1, 90, 25, 25, 100, true);
   assert(command.overlay && command.pwm == 0);
   // Loss of geography does not interrupt an established final ramp.
