@@ -1,4 +1,20 @@
-# NAVI_EYES_WIDE_OPEN_INTEGRATED_R2_FT2 — adaptive station-brake candidate
+# NAVI_EWO_0_1_CRUISE_BASE — ordinary cruise with geographic grades
+
+**Current candidate, October 9, 2026:** based on stationless `c7c21163`.
+Ordinary AUTO cruise is PWM 60; David explicitly retained the existing
+geographic grade settings and transitions. The existing actuator ramps and
+operator/navigation protections remain. There is no station service or STOP
+overlay in this increment.
+
+**Built for Otto 9950011 and host-tested; awaiting independent review and track
+validation. Not flashed, merged, or field accepted.** See the
+[implementation report and governing guide reference](../../../docs/NAVI_EWO_0_1_CRUISE_BASE_IMPLEMENTATION_20261009.md).
+
+## Historical R2_FT2 adaptive station-brake description
+
+The material below is retained as historical evidence. Its StationMachine and
+adaptive-stopping descriptions do not describe this stationless cruise-base
+candidate and are not authority to restore those mechanisms.
 
 > **Implementation description versus target architecture — 2026-10-05.**
 > [Document C](../../../docs/NAVI_POSITION_OVERLAY_OPERATING_ARCHITECTURE_20261005.md) and

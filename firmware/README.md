@@ -50,6 +50,19 @@ or a successful build.
 
 ## Current catalog
 
+**2026-10-09 NAVI cruise base — current integrated candidate:**
+`programs/NAVI_EYES_WIDE_OPEN_INTEGRATED/NAVI_EYES_WIDE_OPEN_INTEGRATED.ino`
+identifies as **NAVI_EWO_0_1_CRUISE_BASE**. Stationless source `c7c21163` with
+ordinary cruise PWM 60 and the established geographic grade settings retained
+at David's explicit instruction. Existing ramps, navigation, operator controls
+and wire contracts are unchanged. The universal STOP overlay is pending.
+**Built for Otto 9950011 / ESP32 core 3.3.12; host-tested; awaiting independent
+review and track validation. NOT flashed, merged, or field accepted.**
+Controlling guide, provenance, source rollback, changes and validation:
+[cruise-base implementation report](../docs/NAVI_EWO_0_1_CRUISE_BASE_IMPLEMENTATION_20261009.md).
+The older integrated-sketch entries below remain historical evidence, not
+current build identities or proof of this candidate's field performance.
+
 **2026-10-06 NAVI pulse observation experiment:**
 `programs/NAVI_EYES_WIDE_OPEN_INTEGRATED/NAVI_EYES_WIDE_OPEN_INTEGRATED.ino`
 identifies as **NAVI_EYES_WIDE_OPEN_INTEGRATED_PULSE_EVENT_TEST**. Development

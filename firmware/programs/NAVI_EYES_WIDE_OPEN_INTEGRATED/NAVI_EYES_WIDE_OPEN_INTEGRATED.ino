@@ -1,5 +1,8 @@
 /* EWO integrated working-sketch candidate. NOT FIELD ACCEPTED.
- * Type-6 pulse evidence is observation-only; Type-5/control unchanged.
+ * 2026-10-09: cruise-only base PWM 60, retaining established geographic grades.
+ * Stationless starting point: c7c21163; STOP overlay is the next increment.
+ * Authority: October 9 primary guide plus David's later grade-retention ruling.
+ * Type-6 pulse evidence is observation-only; Type-5 navigation/wire unchanged.
  * Spec: docs/NAVI_PULSE_EVENT_PHYSICAL_SPEED_OBSERVATION_20261006.md.
  * PWM-zero movement requires operator declaration, 2026-10-02 (0120 supersedes 0119).
  * Rollback: ab0938b (R2_FT2 flashed to Otto); earlier c3c925a, d0185be.
@@ -44,8 +47,9 @@ static portMUX_TYPE recorderMux = portMUX_INITIALIZER_UNLOCKED;
 using namespace navi_one;
 using namespace navi_eyes;
 
-static constexpr char SKETCH_NAME[] = "NAVI_EYES_WIDE_OPEN_INTEGRATED_PULSE_EVENT_TEST";
+static constexpr char SKETCH_NAME[] = "NAVI_EWO_0_1_CRUISE_BASE";
 static constexpr char BUILD_CLASS[] = "INTEGRATION_CANDIDATE_NOT_FIELD_ACCEPTED";
+static constexpr uint8_t NAVI_BASE_CRUISE_PWM = 60;
 static constexpr uint8_t HALL_PIN = 33;
 static constexpr uint8_t I2C_SDA = 21, I2C_SCL = 22;
 static constexpr uint16_t AUTO_STEP_UP_MS = 62, AUTO_STEP_DOWN_MS = 31;
@@ -668,9 +672,11 @@ static void serviceAutoCruise() {
     return;
   }
 
-  const uint8_t currentMm = navi.mm();
-  const int8_t direction = navi.direction();
-  const uint8_t cruise = cruisePwmAt(currentMm, direction, NAVI_AUTO_CRUISE_PWM);
+  // Ordinary cruise is 60; retain the established location/direction-dependent
+  // grade settings (David, 2026-10-09). They describe real track conditions.
+  // This base has no station service; future authorized overlays select their
+  // instruction before the one actuator request.
+  const uint8_t cruise = cruisePwmAt(navi.mm(), navi.direction(), NAVI_BASE_CRUISE_PWM);
   if (rampTarget != cruise)
     requestPwm(cruise, AUTO_STEP_UP_MS, AUTO_STEP_DOWN_MS);
 }
