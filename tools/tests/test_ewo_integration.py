@@ -119,7 +119,7 @@ class EwoIntegration(unittest.TestCase):
         constants = [re.search(r'^static constexpr uint(?:8|16)_t ' + name +
                               r'[^\n]*;', source, re.M).group()
                      for name in ('NAVI_BASE_CRUISE_PWM', 'AUTO_STEP_UP_MS',
-                                  'MANUAL_STEP_UP_MS', 'BRAKE_STEP_COAST_MS')]
+                                  'STOP_RESTART_STEP_UP_MS', 'MANUAL_STEP_UP_MS', 'BRAKE_STEP_COAST_MS')]
         cpp = '#include "' + str(TESTS.parent/'NaviStopOverlay.h') + '"\n'
         cpp += r'''
 #include <cassert>
@@ -224,10 +224,19 @@ int main() {
   }
   clockMs += 4999; serviceAutoCruise(); assert(actualPwm == 0 && rampTarget == 0);
   ++clockMs; serviceAutoCruise(); assert(actualPwm == 0 && rampTarget == 90);
-  for (int pwm = 1; pwm <= 90; ++pwm) {
-    clockMs += AUTO_STEP_UP_MS; serviceRamp(); serviceAutoCruise();
+  assert(rampUpMs == 150); // David's specified restart rate, not ordinary AUTO's 62.
+  // The unchanged actuator's clock predates dwell, so its first count can
+  // execute immediately. Subsequent counts must be separated by 150 ms.
+  serviceRamp(); serviceAutoCruise(); assert(actualPwm == 1);
+  const uint32_t firstRestartCountMs = clockMs;
+  clockMs += 149; serviceRamp(); serviceAutoCruise();
+  assert(actualPwm == 1 && rampTarget == 90);
+  ++clockMs; serviceRamp(); serviceAutoCruise(); assert(actualPwm == 2);
+  for (int pwm = 3; pwm <= 90; ++pwm) {
+    clockMs += 150; serviceRamp(); serviceAutoCruise();
     assert(actualPwm == pwm && rampTarget == 90); // Same footprint cannot restop.
   }
+  assert(clockMs - firstRestartCountMs == 13350);
   std::puts(lastStopJson.c_str());
 }
 '''

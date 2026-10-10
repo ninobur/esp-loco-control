@@ -15,6 +15,13 @@ captures are large and constantly changing. `field-records/logs/` is the
 curated exception and is un-ignored there; only logs worth keeping belong
 in it.
 
+## Recent operator observations
+
+- [October 9: first two MM045 CW stop trials](20261009_MM045_CW_FIRST_TWO_STOPS.md):
+  smooth first deceleration; physical landings at MM044–045 and MM054–055,
+  approximate physical-rest-to-restart timing, and the requested 150 ms/count
+  restart correction. Dashboard MM and raw telemetry remain unavailable.
+
 ## Logs
 
 Named from content, not from the filename they arrived with: the date is the

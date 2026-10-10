@@ -8,10 +8,10 @@
 |---|---|
 | Open this sketch | [NAVI_EWO_0_1_MM045_STOP.ino](programs/NAVI_EWO_0_1_MM045_STOP/NAVI_EWO_0_1_MM045_STOP.ino) |
 | Reported name | `NAVI_EWO_0_1_MM045_STOP` |
-| Purpose | Cruise 90 with existing grades; bidirectional MM045 STOP, five-second dwell, restart and repeat |
+| Purpose | Cruise 90 with existing grades; bidirectional MM045 STOP, five-second applied-zero dwell, restart at 150 ms/count and repeat |
 | Selected profile | Otto 9950011 |
-| Evidence | Host-tested, built for ESP32 core 3.3.12, independently reviewed; track calibration pending |
-| Deployment | Not flashed, merged or field accepted |
+| Evidence | Host-tested, built for ESP32 core 3.3.12; prior source independently reviewed. The 150 ms/count restart correction is compiled and actuator-tested; track calibration pending |
+| Deployment | First CW trials reported on the preceding version; corrected running image not verified. Not merged or field accepted |
 | Decisions, tests and rollback | [Implementation report](../docs/NAVI_MM045_STOP_IMPLEMENTATION_20261009.md) |
 
 This was previously stored as `NAVI_EYES_WIDE_OPEN_INTEGRATED`. The old

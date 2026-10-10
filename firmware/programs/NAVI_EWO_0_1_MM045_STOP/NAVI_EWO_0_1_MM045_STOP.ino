@@ -58,6 +58,7 @@ static constexpr uint8_t NAVI_BASE_CRUISE_PWM = 90;
 static constexpr uint8_t HALL_PIN = 33;
 static constexpr uint8_t I2C_SDA = 21, I2C_SCL = 22;
 static constexpr uint16_t AUTO_STEP_UP_MS = 62, AUTO_STEP_DOWN_MS = 31;
+static constexpr uint16_t STOP_RESTART_STEP_UP_MS = 150;
 static constexpr uint16_t MANUAL_STEP_UP_MS = 150;
 static constexpr uint16_t BRAKE_STEP_COAST_MS = 400, BRAKE_STEP_HARD_MS = 15;
 static constexpr double NAVI_PKPH_MM_PER_SEC = 5.37325;
@@ -734,8 +735,11 @@ static void serviceAutoCruise() {
   const StopView view = stopView(navi, targetUm, nowUs);
   const StopCommand command = stopOverlay.command(view.geography, view.available,
       navi.direction(), cruise, actualPwm, rampTarget, nowMs, true);
-  if (rampTarget != command.pwm)
-    requestPwm(command.pwm, AUTO_STEP_UP_MS, AUTO_STEP_DOWN_MS);
+  if (rampTarget != command.pwm) {
+    const uint16_t upMs = command.execution == StopExecution::Released
+        ? STOP_RESTART_STEP_UP_MS : AUTO_STEP_UP_MS;
+    requestPwm(command.pwm, upMs, AUTO_STEP_DOWN_MS);
+  }
   recordStop(view, command, nowUs, targetUm);
 }
 

@@ -4,7 +4,10 @@ Open **[NAVI_EWO_0_1_MM045_STOP.ino](NAVI_EWO_0_1_MM045_STOP.ino)** in Arduino I
 The folder, filename and reported sketch name are identical.
 
 **Status:** host-tested, built for Otto 9950011, independently reviewed.
-Track calibration remains pending. Not flashed, merged or field accepted.
+Track calibration remains pending. First CW trials are operator-reported;
+see the [field observations](../../../field-records/20261009_MM045_CW_FIRST_TWO_STOPS.md).
+The running image/device is not independently verified. Not merged or field accepted.
+The independent review predates the later restart-rate correction.
 
 ## What it does
 
@@ -13,7 +16,8 @@ geographic grade settings. A repeating eleven-MM STOP profile approaches the
 same point from either direction: 150 mm CW from MM045, midway to MM046.
 It holds five MM sections at PWM 50, uses the settled penultimate reduction,
 then ramps continuously to zero. Five seconds at applied PWM zero releases
-back to cruise through the existing acceleration ramp. It repeats on the next
+back to cruise through the existing actuator at **150 ms per PWM count**
+for restart (approximately 13.5 seconds from zero to PWM 90). It repeats on the next
 circuit.
 
 Established IR location remains valid on entry and STOP/GO. Only a new start or

@@ -10,7 +10,7 @@ in Arduino IDE. The folder, filename and name reported by the locomotive match.
 
 | Program | Purpose | Selected locomotive | Status |
 |---|---|---|---|
-| **NAVI_EWO_0_1_MM045_STOP** | Repeating stop near MM045 from either direction; five-second dwell and restart; cruise 90 with grades retained | Otto 9950011 | Host-tested, ESP32-built, independently reviewed; track calibration pending. Not flashed or field accepted. |
+| **NAVI_EWO_0_1_MM045_STOP** | Repeating stop near MM045 from either direction; five-second dwell and restart; cruise 90 with grades retained | Otto 9950011 | Host-tested and ESP32-built; prior source independently reviewed. Restart corrected to 150 ms/count; first CW trials reported on the preceding version. Track calibration pending; not field accepted. |
 
 The [sketch README](firmware/programs/NAVI_EWO_0_1_MM045_STOP/README.md) explains
 the trial and build requirements. The [implementation report](docs/NAVI_MM045_STOP_IMPLEMENTATION_20261009.md)

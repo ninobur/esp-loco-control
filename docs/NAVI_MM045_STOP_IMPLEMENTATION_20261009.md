@@ -107,8 +107,13 @@ David expressly allowed PWM 20 at the halfway point to be an aim rather than
 a position gate. The ramp continues even with no further IR arrivals. No speed
 feedback attempts to force agreement with the geographic aims.
 
-Release uses the existing **62 ms per PWM count** acceleration ramp. Actual
-stop position and available position evidence do not gate dwell completion.
+Release uses **150 ms per PWM count** for STOP restart, as David corrected
+on October 9 after the first trials. The previous implementation incorrectly
+used ordinary AUTO's 62 ms/count. The existing actuator can execute its first
+count immediately after dwell; subsequent counts are 150 ms apart, nominally
+about 13.5 seconds from zero toward PWM 90. Ordinary AUTO acceleration remains
+62 ms/count and the final decrement remains 31 ms/count. Actual stop position
+and available position evidence do not gate dwell completion.
 An early stop is not corrected by additional movement. Existing Decision 0120
 still withdraws AUTO on actually observed displacement at PWM zero and requires
 operator verification/redeclaration.
@@ -194,3 +199,31 @@ entry, entry within the 50/penultimate/final portions, STOP/GO during the sequen
 and subsequent-circuit repeat. Distinguish an established run from a new start
 or physical reposition. No Four-Station Local service, collision overlay, or
 CTO/CE coordination is implemented by this single-target trial.
+
+## First CW trials and restart-rate correction — October 9
+
+David reported smooth deceleration on the first CW trial, with the Hall sensor
+physically midway between MM044 and MM045. Automatic restart occurred about
+three seconds after physical rest. On the second CW round, he reported a
+landing between MM054 and MM055. Both rounds have the same programmed target,
+midway between MM045 and MM046; there is no second programmed stop at MM054.
+The [operator field record](../field-records/20261009_MM045_CW_FIRST_TWO_STOPS.md)
+preserves both observations and the unavailable provenance/telemetry.
+
+David then corrected the restart ramp to 150. The STOP restart request now
+uses 150 ms/count; PWM 90, grade settings, stopping geometry, deceleration,
+five-second applied-zero dwell, and the actuator itself are unchanged. This
+is a requested parameter correction, not a diagnosis or retuning of the
+landing discrepancy. The pre-correction source is `557de9a`.
+
+The actual-sketch/actuator integration check passes at 150 ms/count, including
+no second count at 149 ms and a count at 150 ms, departure suppression, retained
+ordinary AUTO ramps, grades, Manual/E-stop/low-voltage behavior and dwell.
+An initial timing assertion incorrectly assumed the existing actuator delayed
+its first count after dwell. Source inspection showed that its clock predates
+dwell; the test now checks that immediate first count and the requested 150 ms
+spacing thereafter. No actuator implementation was changed to satisfy the test.
+Otto/core 3.3.12 compilation with local credentials passes: flash 1,018,871 bytes,
+static RAM 58,124 bytes. The earlier independent review covered `f40e388b`, not
+this later correction. The running locomotive is not updated by editing this
+file; an operator upload is separate. No upload was performed by the agent.
