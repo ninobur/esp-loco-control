@@ -1,66 +1,68 @@
-# Ninobur Garden Railway — locomotive control
+# Ninobur Garden Railway — start here
 
-G-scale outdoor railway, 171 magnetic markers, ESP32 locomotives coordinating
-over MQTT and ESP-NOW.
+## Current NAVI sketch
 
-## Layout
+**[NAVI_EWO_0_1_MM045_STOP](firmware/programs/NAVI_EWO_0_1_MM045_STOP/)**
+is the current MM045 STOP review candidate on this branch.
 
-```
-firmware/programs/               all runnable development and experimental sketches
-firmware/programs/QUORUM/        current QUORUM-lineage development sketch
-firmware/reference/              non-runnable architecture and package material
-firmware/README.md               authoritative sketch roles and validation-status catalog
-firmware/config/        shared headers, symlinked into each sketch folder
-server/                 Raspberry Pi — Flask dashboard, dispatcher, loggers
-tools/                  align_markers.py and other analysis run by hand
-docs/                   plans, specs and review notes
-archive/                superseded versions, kept for the record
-```
+Open **[NAVI_EWO_0_1_MM045_STOP.ino](firmware/programs/NAVI_EWO_0_1_MM045_STOP/NAVI_EWO_0_1_MM045_STOP.ino)**
+in Arduino IDE. The folder, filename and name reported by the locomotive match.
 
-## Building
+| Program | Purpose | Selected locomotive | Status |
+|---|---|---|---|
+| **NAVI_EWO_0_1_MM045_STOP** | Repeating stop near MM045 from either direction; five-second dwell and restart; cruise 90 with grades retained | Otto 9950011 | Host-tested, ESP32-built, independently reviewed; track calibration pending. Not flashed or field accepted. |
 
-Point the Arduino IDE at this repository once:
+The [sketch README](firmware/programs/NAVI_EWO_0_1_MM045_STOP/README.md) explains
+the trial and build requirements. The [implementation report](docs/NAVI_MM045_STOP_IMPLEMENTATION_20261009.md)
+links the governing architectural decisions, validation and rollback points.
 
-**Settings → Sketchbook location → `<repo>/firmware`**
+## Find a program or record
 
-`QUORUM` — and the sketches under `programs` — then appear under
-**File → Sketchbook** and compile in place. There is no second copy anywhere, so what you edit is what you flash.
+| What you need | Open |
+|---|---|
+| Current programs and diagnostic tools | [Firmware index](firmware/README.md) |
+| Older builds, deployment records and previous names | [Firmware history](firmware/HISTORY.md) |
+| Non-runnable reference packages | [Firmware reference](firmware/reference/) |
+| Superseded source retained for evidence | [Archive](archive/) |
+| Architectural decisions and specifications | [Documents](docs/) |
+| Railway observations and logs | [Field records](field-records/) |
+| Raspberry Pi dashboard and services | [Server](server/) |
+| Analysis and test utilities | [Tools](tools/) |
 
-**Upload Speed must be 115200.** The default 921600 fails on this adapter, and
-the setting reverts whenever the board selection changes.
+## Where to find this checkout on David's Mac
 
-`credentials.h` is not in the repository. Copy `firmware/config/credentials_template.h`
-into each sketch folder as `credentials.h` and fill it in.
+The visible review checkout is **`/Users/davidbrown/esp-loco-control/CURRENT`**.
+In Finder: **davidbrown → esp-loco-control → CURRENT → firmware → programs →
+NAVI_EWO_0_1_MM045_STOP**.
 
-## Versions
+`CURRENT` contains a complete checkout, including the shared headers needed to
+build. The enclosing `esp-loco-control` checkout contains other work in progress;
+its existing edits and branch are preserved. Use `CURRENT` for this candidate.
+Do not copy just the `.ino` out of the repository.
 
-The filename does not carry the version. `QUORUM.ino` is always current;
-versions are git tags. (Tags up to v2.22 predate the rename and hold the
-sketch at `firmware/SOLONAV/SOLONAV.ino` — use that path when diffing them.)
+On GitHub this candidate is on **`codex/navi-cruise-stop-20261009`**, in
+[PR #9](https://github.com/ninobur/esp-loco-control/pull/9). It is not merged into
+the base branch. A different branch can legitimately contain older programs.
 
-“Current source” and “field-tested evidence” are deliberately different
-concepts. There is currently no designated production program. See
-`firmware/README.md` before selecting a sketch to flash or describing a
-capability as ready for operation.
+## Naming and handoff rules
 
-```bash
-git tag -a v2.17 -m "what changed and why"
-git diff v2.16 v2.17 -- firmware/SOLONAV/SOLONAV.ino
-git checkout v2.16 -- firmware/SOLONAV/SOLONAV.ino
-```
+- For a new or explicitly renamed sketch, use the same program identity for the
+  directory, primary `.ino` basename and runtime `SKETCH_NAME`.
+- Name a distinct trial for its purpose, as with `NAVI_EWO_0_1_MM045_STOP`.
+  Use commits to distinguish revisions of that trial; do not duplicate editable
+  sketches for each small change.
+- Keep the current-program list short. Put superseded descriptions in history,
+  retaining the source commit and field evidence. Historical naming exceptions
+  remain visible in the history; they are not silently renamed en masse.
+- Each handoff must identify the exact sketch, a usable visible local path,
+  branch/commit, selected locomotive and evidence status. A build or code review
+  does not establish physical field acceptance.
 
-Tag only what gets flashed. Untagged commits are drafts.
+## Project authority
 
-The running firmware publishes its identity to `ngr/loco/<id>/state/bootid`, so
-what is on the locomotive can always be checked against what is in the repo.
-
-## Where to start
-
-**Before proposing any architecture or implementation**, read
-[`docs/NGR_DECISION_SYSTEM_DESIGN_PRINCIPLES.md`](docs/NGR_DECISION_SYSTEM_DESIGN_PRINCIPLES.md)
-(the enduring decision-system design principles) and, for navigation work,
-[`docs/NAVI_DECISION_MODEL.md`](docs/NAVI_DECISION_MODEL.md). Agent operating
-policy is [`AGENTS.md`](AGENTS.md). The canonical NAVI_EWO governing set is
-listed in [`docs/NAVI_EWO_GOVERNING_DOCUMENTS.md`](docs/NAVI_EWO_GOVERNING_DOCUMENTS.md).
-
-`docs/ROAD_TO_CTO.md` — the milestone plan and its current state.
+[AGENTS.md](AGENTS.md) governs agent work. Read the
+[decision-system principles](docs/NGR_DECISION_SYSTEM_DESIGN_PRINCIPLES.md),
+[NAVI decision model](docs/NAVI_DECISION_MODEL.md), and
+[NAVI_EWO governing index](docs/NAVI_EWO_GOVERNING_DOCUMENTS.md) before proposing
+navigation changes. For this candidate, the implementation report links the
+October 9 governing guide and David's final STOP decisions.

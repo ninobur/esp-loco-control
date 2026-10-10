@@ -1,7 +1,62 @@
 # NAVI MM045 repeating STOP implementation
 
 **October 9, 2026 — review candidate, not flashed, merged, or field accepted.**
-Runtime identity: `NAVI_EWO_0_1_MM045_STOP`, in the existing integrated sketch.
+Folder, primary sketch and runtime identity: **`NAVI_EWO_0_1_MM045_STOP`**.
+Open [NAVI_EWO_0_1_MM045_STOP.ino](../firmware/programs/NAVI_EWO_0_1_MM045_STOP/NAVI_EWO_0_1_MM045_STOP.ino).
+
+## Sketch naming and location — October 9 cleanup
+
+David approved matching sketch names and a clear repository index after the
+former generic filename made this candidate difficult to locate. The package
+was renamed from `NAVI_EYES_WIDE_OPEN_INTEGRATED` to
+`NAVI_EWO_0_1_MM045_STOP`; its firmware source is preserved byte for byte from
+reviewed commit `f40e388b5fcfa5d6be8cba8aab6dc02d07a21312`. Test consumers use
+the new path. The old directory contains only a signpost.
+
+The short [repository opening page](../README.md) and [firmware index](../firmware/README.md)
+separate this current candidate from diagnostics and historical evidence. The
+complete previous [catalog](../firmware/HISTORY.md) and
+[sketch README](../firmware/programs/NAVI_EWO_0_1_MM045_STOP/HISTORY.md) are preserved.
+No control, navigation, PWM, grade, radio, server or configuration behavior is
+changed by the naming cleanup. No historical Git structure is rewritten.
+
+David's visible working location is
+`/Users/davidbrown/esp-loco-control/CURRENT/firmware/programs/NAVI_EWO_0_1_MM045_STOP/`.
+The full review checkout keeps sibling dependencies together. The enclosing
+checkout's branch, uncommitted changes and other working copies are preserved.
+The code rollback point for the rename is `f40e388b`; prior behavior rollback
+points below remain unchanged.
+
+### Naming cleanup validation
+
+- All **25** moved source/test files compare byte for byte with their pre-rename
+  counterparts at `f40e388b`; all three executable test consumers change paths
+  only. Folder, primary filename and runtime identity match.
+- Both historical documents retain the complete original text verbatim after
+  an explanatory banner. Current index/readme/report relative links resolve.
+- **PASS:** all 12 host executables with ASan/UBSan from the visible `CURRENT`
+  checkout. The 12 MM045 integration/format tests pass again, as does the pulse
+  JSON serialization test.
+- **PASS:** ESP32 / Otto 9950011 compilation from the renamed visible path,
+  core 3.3.12, placeholder credentials and `-Werror=format`. Flash remains
+  **1,018,883 / 1,310,720 bytes**, static RAM **58,124 / 327,680 bytes**.
+  Only the same three Adafruit INA219 enum-deprecation warnings occurred.
+- **Two additional pre-existing test-fixture failures remain.** The broader
+  tool run passes 13 of 14 tests; `test_actual_callback_and_queues_cannot_feed_pulse_loss_to_navi`
+  in `tools/tests/test_navi_pulse.py` fails to compile its test scaffold because
+  it does not declare `pulseTransportQ`, `pulseTransportObservation` and
+  `NAVI_PKPH_MM_PER_SEC`. Separately,
+  `server/tests/test_ir_speed_dashboard.py::SpeedTest::test_actual_ewo_firmware_payloads`
+  expects four emitted rows and receives more. Both identical failures were
+  reproduced against an untouched `git archive` of `f40e388b`, using the old
+  paths. No test assertion, firmware behavior or server implementation was
+  changed to hide these failures. Fixing those older fixtures is separate work.
+- The enclosing `/Users/davidbrown/esp-loco-control` remains on its original
+  branch/commit with all six pending-work paths and their contents unchanged.
+  Its local Git exclusion list ignores only `/CURRENT/`, so the separate review
+  checkout cannot accidentally enter that checkout's commits. The existing
+  review worktree was moved into `CURRENT`; no duplicate editable MM045 copy
+  was made. No hardware action was performed.
 
 ## Authority and provenance
 
@@ -127,8 +182,14 @@ Legacy station machinery remains retired.
 - **PASS:** whitespace and source-boundary review. These are implementation
   checks, not independent review or physical evidence.
 
-Independent review and David's authorized track testing remain necessary to
-calibrate the final ramp and measure stop error in each direction. Test normal
+An independent Codex review of `f40e388b` against `c7c21163`, using the governing
+documents at `c5fcef1c`, completed October 9 with **no actionable findings**.
+The reviewer independently passed all 12 host executables and all 12
+integration/format tests, checked geometry, IR continuity/startup, interruption,
+dwell/repeat and grade/control authority, and did not rerun the ESP32 build.
+
+David's authorized track testing remains necessary to calibrate the final ramp
+and measure stop error in each direction. Test normal
 entry, entry within the 50/penultimate/final portions, STOP/GO during the sequence,
 and subsequent-circuit repeat. Distinguish an established run from a new start
 or physical reposition. No Four-Station Local service, collision overlay, or

@@ -7,7 +7,7 @@ import tempfile
 import unittest
 
 ROOT = Path(__file__).resolve().parents[2]
-SKETCH = ROOT / 'firmware/programs/NAVI_EYES_WIDE_OPEN_INTEGRATED'
+SKETCH = ROOT / 'firmware/programs/NAVI_EWO_0_1_MM045_STOP'
 
 
 class PulseIntegration(unittest.TestCase):
@@ -39,7 +39,7 @@ class PulseIntegration(unittest.TestCase):
         print('pulse JSON maximum exercised bytes:', max(map(len, lines)))
 
     def test_actual_callback_and_queues_cannot_feed_pulse_loss_to_navi(self):
-        source = (SKETCH/'NAVI_EYES_WIDE_OPEN_INTEGRATED.ino').read_text()
+        source = (SKETCH/'NAVI_EWO_0_1_MM045_STOP.ino').read_text()
         def function(name):
             return re.search(r'^static [^\n]+\b' + name + r'\([^\{]*\{.*?^\}',
                              source, re.M | re.S).group()

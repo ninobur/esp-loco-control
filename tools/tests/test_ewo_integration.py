@@ -12,7 +12,7 @@ from tools import navi_sync_format as F
 from tools.tests.test_navi_sync_format import datagram
 
 ROOT = Path(__file__).resolve().parents[2]
-TESTS = ROOT / 'firmware/programs/NAVI_EYES_WIDE_OPEN_INTEGRATED/tests'
+TESTS = ROOT / 'firmware/programs/NAVI_EWO_0_1_MM045_STOP/tests'
 
 
 class EwoIntegration(unittest.TestCase):
@@ -110,7 +110,7 @@ class EwoIntegration(unittest.TestCase):
         subprocess.run([node, '-e', js], check=True)
 
     def test_actual_cruise_base_and_actuator_authority(self):
-        source = (TESTS.parent/'NAVI_EYES_WIDE_OPEN_INTEGRATED.ino').read_text()
+        source = (TESTS.parent/'NAVI_EWO_0_1_MM045_STOP.ino').read_text()
         # Compile the actual operating decision and actuator, not a second model.
         functions = [re.search(r'^static (?:void|uint16_t) ' + name +
                               r'\([^)]*\) \{.*?^\}', source, re.M | re.S).group()
@@ -246,7 +246,7 @@ int main() {
         self.assertEqual(stop['release'], 'DWELL_5S_PWM_ZERO')
 
     def test_actual_sketch_pwm_zero_auto_withdrawal_and_admission(self):
-        source = (TESTS.parent/'NAVI_EYES_WIDE_OPEN_INTEGRATED.ino').read_text()
+        source = (TESTS.parent/'NAVI_EWO_0_1_MM045_STOP.ino').read_text()
         # Compile the actual shell functions with output-only hardware stubs.
         functions = []
         for name in ('withdraw', 'servicePwmZeroMovementHold', 'opsNow'):
@@ -325,7 +325,7 @@ int main() {
         subprocess.run([str(exe)], check=True)
 
     def test_actual_type5_ingress_preserves_validity_without_reconfiguration(self):
-        source = (TESTS.parent/'NAVI_EYES_WIDE_OPEN_INTEGRATED.ino').read_text()
+        source = (TESTS.parent/'NAVI_EWO_0_1_MM045_STOP.ino').read_text()
         functions = [re.search(r'^static (?:void|uint16_t) ' + name +
                                r'\([^\{]*\{.*?^\}', source, re.M | re.S).group()
                      for name in ('movementCrc', 'serviceIrIngress')]
