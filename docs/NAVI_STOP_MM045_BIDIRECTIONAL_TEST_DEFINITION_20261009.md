@@ -58,7 +58,7 @@ no new stopping tolerance, performance claim, controller, or safety cap.
 David explicitly commissioned the code: **“Let's move forward. Please write
 the code or commission CODEX for the job.”** He then retained geographic
 grade compensation: **“The grade dependent cruise setting should stay. The
-grade is still there.”** Ordinary cruise is PWM 60; the existing geographic
+grade is still there.”** Ordinary cruise is PWM 90 after his final clarification below; the existing geographic
 grade settings remain, as recorded in the primary guide.
 
 For this STOP trial, David subsequently specified:
@@ -68,17 +68,23 @@ For this STOP trial, David subsequently specified:
   sequence.” Entry partway through the approach is therefore an explicit
   commissioning test, not a future option.
 - **Five seconds at applied PWM zero, then restart:** “Yes: five seconds, then
-  ramp to 60”. Release uses the existing acceleration ramp and the cruise base;
-  the existing geographic grade settings remain applicable elsewhere.
+  ramp to 60”. **The 60 value is superseded by the subsequent correction below.**
+  Five seconds and the existing acceleration ramp remain approved; release
+  returns to the corrected ordinary cruise of 90. The geographic grades remain.
 - **Profile values, exactly as supplied:** `90,80,70,60,50,50,50,50,50,20,0`.
+
+**Latest correction:** David then stated: **“Ordinary cruise is 90PWM (the
+previous value) 50 is the in station speed.”** Ordinary cruise and restart
+therefore return to 90, with geographic grade compensation retained. PWM 50
+is the in-station setting. The apparent conflict between cruise 60 and a
+profile beginning at 90 is resolved; no new clamp or acceleration exception
+is introduced.
 
 These decisions replace the earlier unanswered choice between a one-time
 enrollment trial and a repeating sequence, and settle the trial dwell and
-departure destination. They do not by themselves specify the distance between
-profile entries or whether an approach beginning at 90 should accelerate a
-train already cruising at 60. Those two questions were returned to David for
-clarification before implementing the profile. Preserve the supplied values;
-do not silently clamp or reinterpret them.
+departure destination. The distance between the supplied profile entries
+remains a question for David; the proposed one-MM spacing with zero at the
+target has not yet been confirmed. Preserve the supplied values exactly.
 
 The code commission remains a single-locomotive generic STOP demonstration.
 It does not authorize CTO/CE algorithms, deployment, or a new safety cap.
@@ -94,7 +100,7 @@ whose MM045–MM046 interval is 300 mm. Recheck the live source before coding;
 the documentation branch is not the stationless firmware starting branch.
 
 The [primary guide](NAVI_EWO_0_1_ARCHITECTURAL_NOTE_20261009.md) governs the
-cruise-only base (default PWM 60 with established geographic grade settings
+cruise-only base (default PWM 90 with established geographic grade settings
 retained) and universal STOP overlay. The subsequent decisions above settle
 repeatability, trial dwell, and ramped departure to ordinary cruise. The
 geographic profile mapping and instructions across gaps in usable IR position

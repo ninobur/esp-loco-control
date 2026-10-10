@@ -25,8 +25,10 @@ monotonic PWM reduction in deceleration; continuous homeostasis, adaptive glide
 control, and ticker-tape recording/playback requirements are superseded.
 IR recovery restores applicable evidence, not the superseded speed controllers.
 **Further October 9 governing update (primary guide):** ordinary base tiles
-assign default cruise PWM **60**, retaining established geographic grade
-settings and transitions under David's later October 9 correction; station stopping and exceptional service
+assign default cruise PWM **90**, retaining established geographic grade
+settings and transitions under David's later October 9 corrections. Ordinary
+cruise and restart are 90; in-station speed is 50; the earlier base value of 60
+is superseded; station stopping and exceptional service
 requirements are **temporary overlays**. NAVI has **one active PWM-authority
 overlay at a time**, selected by priority, with geographic collision prevention
 highest. A universal arbitrary-destination STOP overlay is developed **before**
@@ -197,13 +199,13 @@ conflicting assumptions are superseded for NAVI_EWO as follows.
 
 | Older assumption | Now | By |
 |---|---|---|
-| Default PWM 60 removes geographic grade compensation | Superseded. David explicitly retained the established location/direction-dependent grade values and transitions; 60 is ordinary cruise elsewhere | Primary guide §1 correction, §§6/8/13 |
+| Default PWM 60 removes geographic grade compensation | Superseded. David explicitly retained the established location/direction-dependent grade values and transitions; his subsequent clarification restores 90 as ordinary cruise and identifies 50 as in-station speed | Primary guide §1 correction, §§6/8/13 |
 | CTO means independent operation plus collision avoidance; CE is a peer mode or single-locomotive express | Superseded/rejected. CTO is the negotiated two-train bubble; CE is its temporary coordinated role-reversal sequence, returning to ordinary CTO. Normal Operations can use collision protection independently | Primary guide §§8–9; October 9 CTO/CE decision note |
 | A local PWM overlay defines the shared operating relationship; a traffic stop discharges platform service | Superseded/rejected. One PWM overlay per locomotive executes its instructions; shared coordination is distinct. The follower still owes its platform stop after the traffic hold | Primary guide §§8–9; October 9 CTO/CE decision note |
 | Earlier NAVI architectural documents can govern a conflicting future revision | Mandatory primary guide governs all future NAVI revisions; compatible earlier decisions survive | Primary guide, governing-authority provision; AGENTS.md |
 | Continuous IR speed homeostasis, adaptive glide control, five-beat corrections, 95% handoff, and rejection of geographic PWM as initial controller | Superseded required control architecture; use demonstrated PWM execution and existing ramps | Primary guide §6; reconciled Document C and 0123 |
 | PWM ticker-tape recording/playback, historical PWM memory, missed-pulse prediction, timing/alignment, and automatic return to homeostasis/glide correction | No ticker tape; retain simplified PWM hold and established monotonic reduction; IR recovery restores applicable evidence | `7a31d913`, reconciled under primary guide §6 |
-| Station dwell begins at Station +1 MM before the locomotive stops; base includes station STOP | Superseded: base cruise PWM 60 has no station STOP. Applied PWM=0 is the no-motive-movement indication and starts dwell; stop completes after dwell with PWM still zero. IR does not provide an additional stop-admission test. Observed movement at PWM zero remains governed by 0120. Resume independently of stop coordinate | Primary guide §§4–5, 8, 14 |
+| Station dwell begins at Station +1 MM before the locomotive stops; base includes station STOP | Superseded: base cruise PWM 90 has no station STOP. Applied PWM=0 is the no-motive-movement indication and starts dwell; stop completes after dwell with PWM still zero. IR does not provide an additional stop-admission test. Observed movement at PWM zero remains governed by 0120. Resume independently of stop coordinate | Primary guide §§4–5, 8, 14 |
 | Geographic station-stop acceptance region gates completion | Superseded: Station +1.5 is an *aim point*; prior +1.0–+1.7 and 0–+3 are diagnostic only. Actual early/late stop does not veto completion or demand corrective movement | Primary guide §§4–5, 14 |
 | Runtime pitch/calibration changes identify a new measurement frame or exempt a report from ordering checks | Validate installed pitch; calibration ID is raw evidence; only real continuity boundaries separate epochs | Document B; 0122 |
 | Station ARMED admission, persistent phases, completed-visit suppression, and historical station procedure across STOP/GO (0068, 0090, 0101 and POSITION_STATIONS_R1) | Current MM interval + direction + overlay determine the requirement; 0101's current-position principle survives | 0121; Document C §§5, 25–26 |

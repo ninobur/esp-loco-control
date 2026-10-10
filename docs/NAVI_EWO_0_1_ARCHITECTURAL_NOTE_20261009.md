@@ -37,7 +37,8 @@ The fourteen numbered sections below remain the architectural foundation.
 
 **Subsequent October 9 design decision — base cruise and single-overlay execution.**
 Sections 4–6, 8–9, 11, and 13–14 incorporate David's later direction:
-ordinary geographic tiles carry PWM cruise (initially 60); *all* exceptional
+ordinary geographic tiles carry PWM cruise (initially recorded as 60, corrected
+to 90 by David below); *all* exceptional
 movement requirements, including station stops, are temporary overlays.
 Only one highest-priority active overlay per locomotive has PWM authority at a time.
 A universal, destination-anchored **STOP sequence**, invoked through an overlay,
@@ -61,12 +62,16 @@ overlay packaging as a proposal, not a completed design.
 
 ### 1. Purpose
 
-**Later October 9 correction — preserve geographic grade settings.** During
-the coding commission, David clarified: **“The grade dependent cruise setting
-should stay. The grade is still there.”** PWM 60 is the ordinary cruise default;
-the established location- and direction-dependent grade settings and their
-transitions remain. Earlier wording requiring PWM 60 at every base tile is
-superseded to that extent. Grade compensation is part of geographic cruise,
+**Latest October 9 correction — ordinary cruise is PWM 90; in-station speed
+is PWM 50.** David clarified: **“Ordinary cruise is 90PWM (the previous value)
+50 is the in station speed.”** This supersedes the earlier PWM-60 ordinary
+cruise assumption, including the prior trial instruction to restart to 60.
+Timed release returns through the existing ramp to ordinary cruise at 90.
+
+His preceding instruction also remains binding: **“The grade dependent cruise
+setting should stay. The grade is still there.”** The established location-
+and direction-dependent grade settings and their transitions remain. Earlier
+wording requiring PWM 60 at every base tile is superseded. Grade compensation is part of geographic cruise,
 not station service or a newly invented overlay priority. No automatic speed
 controller, new grade profile, or new safety cap follows from this correction.
 
@@ -116,7 +121,7 @@ each with its own PWM assignment (nominal installed pulse spacing ~9.652 mm).
 The currently applicable pulse-position instruction determines the PWM
 target, regardless of where the locomotive entered the sequence.
 
-The initial design uses PWM 60 cruise in the base layer; the STOP sequence
+The corrected design uses PWM 90 cruise in the base layer; the STOP sequence
 uses moving creep at PWM 50 followed by a geographic final ramp toward
 PWM 20 at its aim point. Actual stop location may differ from the target.
 The target is not a stop-completion condition, and the locomotive does not
@@ -204,7 +209,7 @@ PWM-zero stops, and automatic departures. The legacy `StationMachine` is
 
 **Geographic PWM assignments are the commands; IR motion and speed are the
 measurements.** The system does not continuously regulate PWM to enforce a
-physical-speed target. The cruise layer assigns default PWM 60 while retaining
+physical-speed target. The cruise layer assigns default PWM 90 while retaining
 the established geographic grade settings (David's later October 9 correction), and a
 STOP overlay initially includes moving creep at PWM 50 and a final decrease
 toward PWM 20 at the aim point. Applied PWM reaches zero to complete the
@@ -249,7 +254,7 @@ The stopping mechanism consumes NAVI's existing geographic judgment through a re
 
 ### 8. Cruise base layer and single prioritized overlay
 
-The **base geographic layer is ordinary cruise only**, with default PWM **60**
+The **base geographic layer is ordinary cruise only**, with default PWM **90**
 outside the established location- and direction-dependent grade settings.
 Those settings and their transitions remain in the base. It contains **no station stopping, dwell, or compulsory
 service procedure**. Tiles retain geographic identity and pulse-position
@@ -320,7 +325,7 @@ No full bubble algorithm, detailed transition or negotiation protocol is
 specified by this clarification; see the
 [durable decision note](NAVI_CTO_BUBBLE_AND_CIRCUIT_EXPRESS_DECISIONS_20261009.md).
 
-The cruise-only base (default PWM 60 with established grade settings) and portable STOP sequence are common physical
+The cruise-only base (default PWM 90 with established grade settings) and portable STOP sequence are common physical
 facilities. Each locomotive executes the resulting instruction through its
 own single active PWM overlay. The STOP sequence supplies the maneuver;
 the governing operation supplies the reason, target, and waiting/release
@@ -405,7 +410,7 @@ future CTO work. Do not begin by rebuilding station machinery.
 Before `NAVI_EWO_0_1` is ready for field testing, implementation review must
 verify at least:
 
-1. Ordinary geographic base tiles assign cruise PWM 60 outside the established
+1. Ordinary geographic base tiles assign cruise PWM 90 outside the established
    geographic grade settings, which are retained. There is no embedded station
    STOP or dwell.
 2. At most one active overlay per locomotive commands PWM; collision prevention
@@ -469,12 +474,13 @@ those settled decisions.
 
 | Earlier provision | Current governing disposition |
 |---|---|
-| PWM 60 at every base tile means removing established grade-dependent cruise settings | Superseded by David's later October 9 correction. Retain the geographic grade values and transitions; PWM 60 is the default elsewhere. |
+| Ordinary cruise and timed restart are PWM 60 | Superseded by David's latest October 9 correction: ordinary cruise and restart are PWM 90; in-station speed is PWM 50. The existing grade settings remain. |
+| PWM 60 at every base tile means removing established grade-dependent cruise settings | Superseded by David's later October 9 correction. Retain the geographic grade values and transitions; PWM 90 is the corrected default elsewhere. |
 | Independent single-train operation is CTO; CTO is merely a collision overlay (including the former §9 framing) | Superseded. Independent operation remains a locomotive capability; Normal Operations with Collision Control can use it. CTO is the negotiated two-train bubble. Collision protection is distinct and available under operating arrangements. |
 | CE is a third peer mode beside Normal Operations and CTO, or just a single-train Express/PASS profile | Superseded/rejected. CE is an integral temporary two-train coordinated sequence within CTO: CTO → CE → role reversal → CTO. |
 | One active overlay removes shared two-train negotiation, or STOP execution governs the relationship | Superseded/rejected. Single PWM authority is per locomotive; shared coordination determines operating obligations, using common physical facilities. |
 | A follower's traffic stop behind an occupied platform completes its station service | Superseded/rejected. The follower still owes its own platform stop once the leader departs and separation permits. |
-| Base layer includes station stops and stop/dwell tiles (earlier guide §8 and Document C station-service examples) | Superseded. Base layer is cruise-only, initially PWM 60. Station service and all deviations from ordinary cruise are overlays. |
+| Base layer includes station stops and stop/dwell tiles (earlier guide §8 and Document C station-service examples) | Superseded. Base layer is cruise-only, corrected ordinary PWM 90. Station service and all deviations from ordinary cruise are overlays. |
 | Multiple potentially simultaneous overlay motor commands or station overlay plus base station STOP | Superseded. Only one active overlay per locomotive has PWM authority at a time; geographic collision prevention has highest priority. Lower-priority policy remains open. |
 | First prove Four-Station Local and then extract generic stopping (earlier guide §§4/13) | Superseded. Prove the universal STOP sequence at arbitrary non-station destinations *first*; station and CTO use it later. |
 | One PWM per tile or continuous physical-speed-target regulation (Document C; former Decision 0123) | Superseded. Individual IR pulse positions within tiles can carry geographic PWM assignments, with existing actuator ramp and diagnostic IR observations. |

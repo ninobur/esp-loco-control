@@ -31,7 +31,7 @@ leader/follower reversal and resolves back into ordinary CTO.**
 | **Circuit Express (CE)** | An integral, temporary **two-train coordinated variant/sequence within CTO**, for changing/reversing leader/follower roles. It resolves back into ordinary CTO bubble operation. |
 | **Geographic collision protection** | A distinct, highest-priority geographic movement protection available under operating arrangements, including Normal Operations and CTO/CE. It does not define CTO. |
 | **One active PWM overlay per locomotive** | Local motor-command authority, distinct from the shared two-train negotiation and coordination. |
-| **Cruise base and STOP sequence** | Common physical facilities: cruise-only base PWM 60 and a reusable, portable STOP sequence invoked under an overlay. They do not define the operating relationship. |
+| **Cruise base and STOP sequence** | Common physical facilities: cruise-only base PWM 90 with established geographic grade settings retained and a reusable, portable STOP sequence invoked under an overlay. They do not define the operating relationship. |
 
 The conceptual CE sequence is:
 
@@ -64,9 +64,11 @@ Otto can negotiate a shared operating relationship while each NAVI executes
 its own resulting geographic instruction through its own single active overlay.
 The local overlay invariant neither prohibits nor substitutes for cooperation.
 
-The common base is **ordinary cruise only, default PWM 60 with the established
+The common base is **ordinary cruise only, default PWM 90 with the established
 geographic grade settings retained** (David's later October 9 correction in
-the primary guide §1). The portable
+the primary guide §1). His final clarification sets ordinary cruise to 90 and
+in-station speed to 50, superseding the earlier ordinary-cruise value of 60.
+The portable
 **STOP sequence** is invoked under an overlay and supplies the physical
 maneuver **DECELERATE → STOP → WAIT → RESTART → ACCELERATE**. The governing
 operation supplies why/where to stop and the applicable waiting/release
