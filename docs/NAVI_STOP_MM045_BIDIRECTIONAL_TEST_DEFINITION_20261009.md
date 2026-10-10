@@ -2,8 +2,9 @@
 
 **Date:** October 9, 2026
 
-**Status:** Test-target definition for the proposed cruise-base then universal
-STOP coding commission. No firmware, flash, or track operation performed.
+**Status:** Test-target definition and subsequent operator decisions for the
+authorized cruise-base then universal STOP coding commission. This document
+does not authorize flashing or track operation.
 
 David agreed with the proposed development order, reaffirmed that STOP can be
 anywhere, authorized selection of a stopping point approachable from either
@@ -52,6 +53,38 @@ no new stopping tolerance, performance claim, controller, or safety cap.
 
 ## Source and commission boundary
 
+### Subsequent October 9 commissioning decisions
+
+David explicitly commissioned the code: **“Let's move forward. Please write
+the code or commission CODEX for the job.”** He then retained geographic
+grade compensation: **“The grade dependent cruise setting should stay. The
+grade is still there.”** Ordinary cruise is PWM 60; the existing geographic
+grade settings remain, as recorded in the primary guide.
+
+For this STOP trial, David subsequently specified:
+
+- **Repeat the complete sequence:** “If you can write the whole sequence with
+  dwell and restart, make it repeatable. I will also test a start withing the
+  sequence.” Entry partway through the approach is therefore an explicit
+  commissioning test, not a future option.
+- **Five seconds at applied PWM zero, then restart:** “Yes: five seconds, then
+  ramp to 60”. Release uses the existing acceleration ramp and the cruise base;
+  the existing geographic grade settings remain applicable elsewhere.
+- **Profile values, exactly as supplied:** `90,80,70,60,50,50,50,50,50,20,0`.
+
+These decisions replace the earlier unanswered choice between a one-time
+enrollment trial and a repeating sequence, and settle the trial dwell and
+departure destination. They do not by themselves specify the distance between
+profile entries or whether an approach beginning at 90 should accelerate a
+train already cruising at 60. Those two questions were returned to David for
+clarification before implementing the profile. Preserve the supplied values;
+do not silently clamp or reinterpret them.
+
+The code commission remains a single-locomotive generic STOP demonstration.
+It does not authorize CTO/CE algorithms, deployment, or a new safety cap.
+
+### Verified starting source
+
 Verified live on October 9: `codex/navi-ewo-0-1` and
 `codex/navi-station-removal` both point to stationless commit
 `c7c21163b016e443524eb9fa483f8b706ce76e22`. Its integrated sketch no longer
@@ -62,9 +95,9 @@ the documentation branch is not the stationless firmware starting branch.
 
 The [primary guide](NAVI_EWO_0_1_ARCHITECTURAL_NOTE_20261009.md) governs the
 cruise-only base (default PWM 60 with established geographic grade settings
-retained) and universal STOP overlay. This target choice does not
-settle its remaining implementation questions about execution-progress lifetime,
-departure handoff, or geographic instructions across gaps in usable IR position.
-The initial approach distances and test dwell must be explicit in the coding
-brief. It does not require resolving CTO/CE algorithms or the whole-service
+retained) and universal STOP overlay. The subsequent decisions above settle
+repeatability, trial dwell, and ramped departure to ordinary cruise. The
+geographic profile mapping and instructions across gaps in usable IR position
+still need an explicit record; no invented geographic travel is permitted.
+It does not require resolving CTO/CE algorithms or the whole-service
 overlay proposal before the single-stop demonstration.
