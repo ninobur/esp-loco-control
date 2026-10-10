@@ -160,3 +160,69 @@ installed IR build identified. Inspect existing raw optical capture at the same
 time if available. This distinguishes distance scale/count problems from marker
 assignment and exposes both judgment-time and saved-anchor travel. No firmware,
 recording service or hardware configuration was changed in this investigation.
+
+## Completed pulse timestamp check
+
+Used EVENT records in `telem/ir_pulse` from the fullbf95cc4 snapshot, deduplicated
+by sequence within each same-boot window and ordered by TX `completed_us`.
+Log wall-clock timestamps are delivery labels, not precise physical event times.
+No interpolation of unrecorded events was used. Type6 is observational; it
+reports the completed-pulse measurement counter also underlying Type5 distance.
+
+### First run, first error onset:19:05:15–19:05:30
+
+275 retained EVENT records, completed counts5691–6095.130 intermediate events
+are absent from this log. Diagnostic log_drop grows819→930, while seq_breaks,
+pulse_breaks,time_breaks,interval_breaks andrx_drop remainzero. Log omissions
+must not be called missing measured distance: cumulative counts retain them.
+Among usable recorded intervals, median38 ms. Intervals593 ms at19:05:22.069
+(count5925) and549.001 ms at19:05:22.440(count5926) appear near onset.
+The latter has consecutive completed counts and exact matching TX timestamp
+spacing: it is an actual long counted-measurement interval, not a missing
+intermediate log entry. It is followed by increasing optical discontinuities;
+this window alone cannot separate wheel slowdown from uncounted optical cycles.
+
+### First run, following error circuit:19:08:17–19:08:25
+
+116 events cover every completed count9700–9815, no missing intermediate events.
+All interval fields arezero and event_valid false, with optical reason1.
+Source completion timestamps remain present; their largest consecutive spacing
+is338.094 ms during departure. Other large spacings include130.907 and130 ms.
+Acceleration after dwell prevents interpreting these alone as missed spokes.
+No sequence/pulse/time/interval breaks or RX queue drops are recorded. Existing
+optical discontinuities increase3701→3816. The reported scalar interval is
+unavailable, not a measuredzero-duration pulse. Timing cannot cleanly diagnose
+this second onset independently of departure and ongoing acquisition problems.
+
+### Later drifting run:19:50:15–19:50:35
+
+333 retained events, counts29062–29434;40 intermediate events absent from log.
+All333 are event-valid. Median reported interval50 ms,max185 ms. No recorded
+sequence/pulse/time/interval breaks or RX queue drops. Discontinuities remain61.
+Near the first missed marker, these pairs are consecutive in counted distance:
+
+| Log timestamp | Completed counts | TX timestamp difference / reported interval |
+|---|---|---|
+|19:50:23.261|29214→29215|158.999 ms|
+|19:50:23.837|29222→29223|180 ms|
+|19:50:24.411|29230→29231|162 ms|
+|19:50:24.965|29238→29239|171 ms|
+|19:50:25.553|29246→29247|173 ms|
+|19:50:26.095|29254→29255|159 ms|
+|19:50:26.739|29262→29263|185 ms|
+
+Nearby ordinary intervals are approximately55–60 ms. Each long interval ends
+only one counted completion after its predecessor, and repeats eight completed
+counts after the preceding long interval. These are genuine irregularities in
+the counted-measurement timestamps despite healthy contrast. They are not
+explained by MQTT/event-log delivery omissions. No assumption about spokes per
+wheel revolution is needed to establish this eight-count recurrence.
+
+The evidence favors a periodic measurement/wheel issue as a possible trigger,
+rather than transport loss alone. It does not distinguish a wheel slowing,
+slipping or binding from optical cycles failing to count. Independent physical
+motion or raw optical edges are required to prove skipped spokes specifically.
+Healthy contrast does not prove complete pulse counting. This corrects the
+prior incomplete review that had not examined pulse completion timestamps.
+The separate navigation disagreement/identity problem remains; these pulse
+irregularities do not resolve its design implications. No firmware changed.
