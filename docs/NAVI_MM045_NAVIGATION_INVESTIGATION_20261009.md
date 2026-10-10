@@ -96,3 +96,67 @@ near MM024–025 before the first STOP trial. See the field record for the full
 account and its distinction from the logged declaration 025–026. These facts
 make the IR-car setup after replacement relevant to investigation; they do not
 prove that the disturbance caused subsequent distance or Hall-matching errors.
+
+## Independent second-run analysis — continuation
+
+Source: complete snapshot committed asbf95cc4; log interval19:48:05–19:54:40,
+locomotive boot2A0C8220A9F02278. Declaration event at19:49:01.127 is MM040 CW.
+Event totals are71 TARGET_CONFIRMED and104 MISSED_MAGNET, i.e.175 advances from
+040 to044 over one NAVI circuit plus four markers. This is not an independently
+measured physical lap. The first23 confirmations assign041 through063.
+First missed event:19:50:25.292, assignedMM064.
+
+At19:50:24.372, target064 Hall support is present. Cumulative IR travel since
+saved063 anchor is250.952 mm, compared with mapped325 mm; shortfall74.048 mm.
+The normal gate tolerance is48.75 mm. A subsequent support event at19:50:24.559
+remains64.396 mm short. The field is gone by the later missed-marker event.
+Subsequent support events against targets065,066,067,068 are respectively
+128.444,153.536,202.584,227.676 mm short of the current mapped expectations.
+Those target identities are NAVI assignments, not independently identified
+physical magnets. Abort counter remains9265 throughout this onset, optical
+reason6 (TRACKING), with no new gap/saturation. Contrast failure is not needed
+for this observed onset. Counter growth in the earlier run is not its diagnosis.
+
+The mismatch predates the first rejection. Saved anchors assigned045 and063
+are277,051,008 and281,877,008 µm:4,826 mm travel for5,465 mapped mm,639 mm short.
+Saved anchors assigned044 before and after the circuit are276,761,448 and
+327,540,620 µm:50,779.172 mm travel against52,264 mapped mm. These calculations
+use NAVI-assigned identities and must not be called independent wheel accuracy
+measurements or physical circumference measurements.
+
+### Confirmation gate versus saved anchor
+
+The source tests latest IR travel against the distance window, but saves the
+earlier matching Hall point as the origin. The log independently shows18
+confirmations after the initial one whose saved anchor lies outside that
+window relative to the preceding saved anchor and intervening mapped spans.
+Examples:
+
+- MM056: saved-anchor travel231.648 mm versus300 mapped;68.352 mm short,
+  beyond45 mm tolerance. Latest IR is28.956 mm beyond the saved anchor, bringing
+  the tested travel inside the window.
+- MM063: saved-anchor travel250.952 mm versus315 mapped;64.048 mm short,
+  beyond47.25 mm tolerance. Latest IR is19.304 mm beyond the saved anchor.
+
+Total signed saved-anchor/map residual over70 successive confirmations is
+−1,487.188 mm, including−651.804 mm through063. This describes repeated
+coordinate anchoring, not a count of physical markers lost. It cannot alone
+explain the independently reported15–16-marker discrepancy. No correction to
+pitch or position is inferred from it. The gate/anchor inconsistency is concrete;
+whether changing it is architecturally appropriate remains David's decision.
+
+Later confirmed streaks do not prove recovery of physical identity: source
+logic checks only current target polarity and distance; it does not identify
+a unique multi-marker physical sequence. Target-only HALL_SUPPORT logs omit
+opposite-polarity observations and the full waveform. Therefore this snapshot
+cannot prove which later confirmations were mislabeled. Similarly, nearest
+one-second speeds (approximately150/182/225 mm/s in sample problematic events)
+are themselves IR-derived; no independent speed is available to establish a
+speed-dependent distance bias. Do not present such a correlation as established.
+
+Next bounded evidence needed: retain native raw Hall and accepted cumulative IR
+records during an independently identified physical marker interval, with the
+installed IR build identified. Inspect existing raw optical capture at the same
+time if available. This distinguishes distance scale/count problems from marker
+assignment and exposes both judgment-time and saved-anchor travel. No firmware,
+recording service or hardware configuration was changed in this investigation.
