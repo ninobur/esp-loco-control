@@ -1,4 +1,4 @@
-# MM045 STOP — first two reported CW landings
+# MM045 STOP — reported CW landings and location discrepancy
 
 **October 9, 2026. Source: David's direct field reports in this conversation.**
 Preserve the operator observations independently of the programmed location and
@@ -52,11 +52,35 @@ David later reported that Otto appeared to be off by “20 mm now” and was
 mile markers, so the apparent offset is recorded as approximately 20 marker
 indices, not a measured 20-millimetre distance. This is the operator's provisional
 assessment, not a verified NAVI/physical coordinate comparison. He said he could
-provide the dashboard MM for the third stop; no third physical interval or
-numeric dashboard reading has yet been supplied.
+provide the dashboard MM for the third stop; at that point no third physical interval or numeric dashboard reading had
+yet been supplied. The subsequent comparison is recorded below.
 
 The reported lap-to-lap growth warrants comparing physical Hall-sensor location
 and dashboard MM before any reposition/redeclaration. The agent recommended
 pausing AUTO and did not shift the STOP target or alter the navigation algorithm
 in response. The separately requested 150 ms restart correction was committed
 as `6bf81a1`; it does not diagnose or resolve this reported location discrepancy.
+
+## Third reported stop — physical location versus dashboard
+
+David reported: “The Dashboard is correct for the maneuver, wrong for the
+location. Now he is stopping at Grillers, around 062.5. thinks he is past 44.
+Did not bother to restart.”
+
+Physical location is approximately MM062.5 at Grillers; NAVI/dashboard location
+is reported as past MM044, with no exact fraction supplied. This establishes a
+substantial discrepancy, roughly 18 marker indices, rather than merely a
+physical landing difference from the programmed target. The approximate pair
+does not establish an exact per-lap loss or its cause. This follows the two CW
+reports; a separate direction confirmation for this stop was not supplied.
+
+“Did not bother to restart” is preserved without interpreting it as either an
+operator decision or an automatic restart failure. Raw telemetry and the
+running build identity remain unavailable. AUTO was recommended paused.
+
+Bounded source inspection found that the STOP overlay does not directly change
+NAVI's marker count. Declaration, Hall confirmation and IR-distance-based
+missed-marker advancement are the sources of marker changes. Hall and IR inputs
+continue to be serviced in the main loop. These facts do not identify which
+input or calculation caused the observed discrepancy. No navigation change or
+stop-target compensation was made.
