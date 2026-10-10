@@ -120,3 +120,15 @@ latest statement. Do not infer its exact lap boundary or assign it to the new
 50→35 profile. That profile was committed as0fdc6c9 for a subsequent bench
 reflash; the running image is not independently identified by a Git revision.
 The report shows the accumulating location discrepancy remains unresolved.
+
+### Paired location supplied for the later stop
+
+David clarified: “stopped at 059-060. said he was at 044”. The physical
+Hall-sensor stop is between MM059 and MM060, fractional position unspecified;
+the reported dashboard marker is MM044. This pair indicates approximately
+15–16 marker indices of discrepancy at this stop. Preserve the preceding
+“lost20 MM this round” as his earlier assessment; do not silently replace it
+or manufacture an exact20-marker difference from the supplied pair. The
+reported dashboard marker alone supplies no fine physical offset. This is
+further evidence of location disagreement, not a measurement of final braking
+error relative to the target. No code or calibration change follows from it.
