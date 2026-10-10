@@ -86,3 +86,13 @@ Do not change pitch, target location, distance gates or Hall thresholds from
 this summary evidence. Any code modification requires a concrete proposal and
 David's approval under AGENTS.md; recording/deployment changes also require
 separate authorization. No proposed fix is represented as already approved.
+
+## Subsequent operator context
+
+David confirmed an obstruction near MM149 and deliberate power cycle, resolving
+the earlier session break as an operator intervention. He also reported an
+accidental IR-car disturbance, replacement while stopped and location reset
+near MM024–025 before the first STOP trial. See the field record for the full
+account and its distinction from the logged declaration 025–026. These facts
+make the IR-car setup after replacement relevant to investigation; they do not
+prove that the disturbance caused subsequent distance or Hall-matching errors.

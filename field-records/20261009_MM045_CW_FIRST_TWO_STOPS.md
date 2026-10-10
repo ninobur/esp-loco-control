@@ -87,3 +87,25 @@ missed-marker advancement are the sources of marker changes. Hall and IR inputs
 continue to be serviced in the main loop. These facts do not identify which
 input or calculation caused the observed discrepancy. No navigation change or
 stop-target compensation was made.
+
+## Operator clarification — obstruction, IR-car disturbance and power cycle
+
+David reported that he stopped Otto for a track obstruction and dislodged the
+IR car with his foot. He subsequently replaced the IR car while the locomotive
+was stopped and reset the location near MM024–025, before the first reported
+STOP trial. Preserve that approximate physical location independently of the
+log's declared interval 025–026; they are not silently reconciled.
+
+David relayed Claude's observation that the preceding session went silent at
+18:58:56 at MM149 while running and rebooted at 19:00:54. Asked whether this was
+the obstruction stop and whether he power-cycled Otto, David confirmed:
+“Yes. Around MM149. I power cycled Otto.” The obstruction location and deliberate
+power cycle are therefore operator-confirmed. Claude's exact silence time is
+attributed to the relayed analysis, not independently reverified here.
+
+The earlier session break is consistent with the reported intervention and is
+not treated as evidence of an unexplained spontaneous reboot. The later trials
+follow the power cycle, IR-car replacement and location redeclaration. That
+redeclaration supplies a new location starting point; it does not independently
+validate optical acquisition or IR distance after replacement. Possible changes
+to IR-car placement/alignment remain hypotheses, not a confirmed cause of drift.
