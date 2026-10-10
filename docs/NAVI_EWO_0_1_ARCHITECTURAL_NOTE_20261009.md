@@ -142,8 +142,9 @@ The currently applicable pulse-position instruction determines the PWM
 target, regardless of where the locomotive entered the sequence.
 
 The corrected design uses PWM 90 cruise in the base layer; the STOP sequence
-uses moving creep at PWM 50 followed by a geographic final ramp toward
-PWM 20 at its aim point. Actual stop location may differ from the target.
+uses five MM sections at PWM 50, a penultimate reduction to 30, then a
+continuous final ramp to zero. PWM 20 halfway through the final MM is a
+calibration aim, not a position gate. Actual stop location may differ from the target.
 The target is not a stop-completion condition, and the locomotive does not
 correct its position merely to reach the target.
 
@@ -231,9 +232,9 @@ PWM-zero stops, and automatic departures. The legacy `StationMachine` is
 measurements.** The system does not continuously regulate PWM to enforce a
 physical-speed target. The cruise layer assigns default PWM 90 while retaining
 the established geographic grade settings (David's later October 9 correction), and a
-STOP overlay initially includes moving creep at PWM 50 and a final decrease
-toward PWM 20 at the aim point. Applied PWM reaches zero to complete the
-stop. Geographic assignments can later be tuned from observations of
+STOP overlay includes the settled five-MM PWM-50 section and final continuous
+ramp to zero. Its halfway PWM-20 assignment is a calibration aim. Applied PWM
+reaches zero to begin dwell. Geographic assignments can later be tuned from observations of
 overspeed, underspeed, grades, and early/late stops; adjustments require
 deliberate firmware/configuration revision, not automatic adaptation.
 
@@ -437,7 +438,8 @@ verify at least:
    is highest priority when implemented, without inventing unapproved subordinate order.
 3. The STOP sequence can be assigned to any Lowline target and entered
    anywhere in the backward-projected pulse-position PWM assignments, with
-   creep PWM 50 and final geographic reduction toward PWM 20.
+   five MM sections at PWM 50 and the settled final 30/20/0 calibration profile,
+   executed by the continuous time-based ramp to zero.
 4. Existing PWM actuator ramps remain the sole physical executor, and the
    commanded stop reaches applied PWM zero.
 5. A locomotive entering or restarting midway through the STOP sequence
@@ -525,24 +527,25 @@ observed PWM-zero displacement.
 **Still open — require David's explicit architectural decision before
 coding a material behavior:**
 
-1. The minimal representation, lifetime and reset of stop-overlay execution
-   progress and one-time service consumption needed to prevent reissuing
-   a completed stop, without a historical admission latch.
+1. General multi-stop/service-overlay execution progress and request lifetimes.
+   The MM045 trial is settled: repeat after departure leaves the completed
+   footprint; do not reissue the stop during departure; explicit new declaration
+   starts a new operation. Entry/resume retains established IR location.
 2. The priority **below** geographic collision prevention; pending request
    expiration and preemption/resumption semantics. Do not invent this order.
-3. How an already-established geographical PWM decel behaves across
-   gaps in usable IR-position evidence without inventing Hall-only progress,
-   consistent with 0116 and 0120.
+3. Broader overlay behavior across evidence gaps. For this trial, preserve the
+   established instruction; final braking continues to zero without requiring
+   further pulses. New starts/repositions use declaration truth until the first
+   MM contact; an established location is not reset merely by sequence entry.
 
 4. The field-measured PWM profiles, stop distance and consist-dependent
    stopping envelope across grades, directions and requested speeds.
    Do not mistake PWM target 20 for proof of physical rest or guaranteed
    positional stop accuracy.
-5. Whether departure ramp authority, after release, holds until the next
-   applicable tile boundary or yields immediately to the current base
-   cruise assignment. David's intent is no repetition of the completed
-   stop and compliance with the next tile; implementation representation
-   must preserve that intent without hidden latches.
+5. Release semantics for later shared/service overlays. For the MM045 timed
+   trial, five seconds at zero releases directly to the current cruise base
+   through the existing acceleration ramp, with ordinary cruise restored to 90
+   and geographic grades retained.
 6. Full bubble algorithms, detailed CTO/CE transitions and negotiation
    protocol. Their absence does not reopen the settled definition of CTO or
    CE's place within it. Whole-service overlay packaging remains the proposal
