@@ -44,3 +44,19 @@ ordinary cruise 90 and grades, stopping geometry, decrement and applied-zero
 dwell. See the [implementation record](../docs/NAVI_MM045_STOP_IMPLEMENTATION_20261009.md#first-cw-trials-and-restart-rate-correction--october-9).
 No landing-position adjustment or navigation-algorithm change follows from
 these observations. This is not field acceptance.
+
+## Subsequent operator report — provisional accumulating offset
+
+David later reported that Otto appeared to be off by “20 mm now” and was
+“loosing 10 mile markers each lap.” The surrounding statement explicitly uses
+mile markers, so the apparent offset is recorded as approximately 20 marker
+indices, not a measured 20-millimetre distance. This is the operator's provisional
+assessment, not a verified NAVI/physical coordinate comparison. He said he could
+provide the dashboard MM for the third stop; no third physical interval or
+numeric dashboard reading has yet been supplied.
+
+The reported lap-to-lap growth warrants comparing physical Hall-sensor location
+and dashboard MM before any reposition/redeclaration. The agent recommended
+pausing AUTO and did not shift the STOP target or alter the navigation algorithm
+in response. The separately requested 150 ms restart correction was committed
+as `6bf81a1`; it does not diagnose or resolve this reported location discrepancy.
