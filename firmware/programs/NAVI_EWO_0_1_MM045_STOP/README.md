@@ -15,7 +15,9 @@ Under the existing AUTO/GO controls, ordinary cruise is PWM 90 with the existing
 geographic grade settings. A repeating eleven-MM STOP profile approaches the
 same point from either direction: 150 mm CW from MM045, midway to MM046.
 It holds five MM sections at PWM 50, uses the settled penultimate reduction,
-then ramps continuously to zero. Five seconds at applied PWM zero releases
+then ramps continuously to zero at **310 ms per PWM count** (initial track
+calibration; about 9.3 seconds from PWM30). Ordinary AUTO acceleration and
+STOP restart both use **150 ms per PWM count**. Five seconds at applied PWM zero releases
 back to cruise through the existing actuator at **150 ms per PWM count**
 for restart (approximately 13.5 seconds from zero to PWM 90). It repeats on the next
 circuit.

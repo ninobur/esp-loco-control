@@ -119,7 +119,7 @@ class EwoIntegration(unittest.TestCase):
         constants = [re.search(r'^static constexpr uint(?:8|16)_t ' + name +
                               r'[^\n]*;', source, re.M).group()
                      for name in ('NAVI_BASE_CRUISE_PWM', 'AUTO_STEP_UP_MS',
-                                  'STOP_RESTART_STEP_UP_MS', 'MANUAL_STEP_UP_MS', 'BRAKE_STEP_COAST_MS')]
+                                  'STOP_RESTART_STEP_UP_MS', 'STOP_FINAL_STEP_DOWN_MS', 'MANUAL_STEP_UP_MS', 'BRAKE_STEP_COAST_MS')]
         cpp = '#include "' + str(TESTS.parent/'NaviStopOverlay.h') + '"\n'
         cpp += r'''
 #include <cassert>
@@ -210,6 +210,7 @@ int main() {
   stopOverlay.reset(); navi.declare(40, 1, ++clockMs * 1000ULL);
   autoEnrolled = autoRunning = true; actualPwm = 0; rampTarget = commandedPwm = 0;
   serviceAutoCruise(); assert(rampTarget == 50);
+  assert(rampUpMs == 150); // Operator-specified ordinary AUTO acceleration.
   for (int pwm = 1; pwm <= 50; ++pwm) {
     clockMs += AUTO_STEP_UP_MS; serviceRamp(); serviceAutoCruise();
     assert(actualPwm == pwm && rampTarget == 50);
@@ -218,13 +219,17 @@ int main() {
   stopOverlay.reset(); navi.declare(45, 1, ++clockMs * 1000ULL);
   actualPwm = 30; rampTarget = commandedPwm = 30;
   serviceAutoCruise(); assert(rampTarget == 0);
+  assert(rampDownMs == 310); // Dedicated calibrated final decrement.
+  lastRampStepMs = clockMs; // Check full subsequent intervals independently of prior ramp phase.
   for (int pwm = 29; pwm >= 0; --pwm) {
-    clockMs += AUTO_STEP_DOWN_MS; serviceRamp(); serviceAutoCruise();
+    clockMs += 309; serviceRamp(); serviceAutoCruise();
+    assert(actualPwm == pwm + 1);
+    ++clockMs; serviceRamp(); serviceAutoCruise();
     assert(actualPwm == pwm && rampTarget == 0);
   }
   clockMs += 4999; serviceAutoCruise(); assert(actualPwm == 0 && rampTarget == 0);
   ++clockMs; serviceAutoCruise(); assert(actualPwm == 0 && rampTarget == 90);
-  assert(rampUpMs == 150); // David's specified restart rate, not ordinary AUTO's 62.
+  assert(rampUpMs == 150); // David's specified restart rate.
   // The unchanged actuator's clock predates dwell, so its first count can
   // execute immediately. Subsequent counts must be separated by 150 ms.
   serviceRamp(); serviceAutoCruise(); assert(actualPwm == 1);

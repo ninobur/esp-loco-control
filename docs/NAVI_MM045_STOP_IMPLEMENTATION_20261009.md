@@ -227,3 +227,24 @@ Otto/core 3.3.12 compilation with local credentials passes: flash 1,018,871 byte
 static RAM 58,124 bytes. The earlier independent review covered `f40e388b`, not
 this later correction. The running locomotive is not updated by editing this
 file; an operator upload is separate. No upload was performed by the agent.
+
+## Final braking timing correction — October 9
+
+David authorized correction of the approximately 0.9-MM short landing.
+Rollback point: `d06b096`. Final braking now uses a dedicated 310 ms per PWM
+count, replacing the ordinary 31 ms decrement only during STOP BRAKING.
+At PWM30, nominal duration is9.3 seconds. This is an initial fixed track
+calibration estimate using approximately300 mm remaining and64 mm/s measured
+entry speed, with a roughly linear decline in speed. It is not a speed
+controller or a guarantee of distance. PWM20 at halfway remains a calibration
+aim. No geographic progress is invented; braking finishes without further IR.
+Five-second applied-zero dwell,150 ms/count restart,grade cruise,navigation and
+target remain unchanged. A physical stall before entering FINAL is not fixed
+by this timing change. Field reflash and acceptance remain David's work.
+
+David additionally requested ordinary AUTO up-ramp150 ms/count; it now matches
+the STOP restart rate. Manual acceleration is unchanged.
+
+Validation: STOP host regression suite passed; actual-sketch actuator test
+passed with explicit150 ms up and310 ms final-down checks. Final ESP32 build
+passed:1,018,875 bytes flash and58,124 bytes RAM. No upload performed.
