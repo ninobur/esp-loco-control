@@ -19,7 +19,7 @@ with patch("threading.Thread.start"):
 
 class SpeedTest(unittest.TestCase):
     def test_actual_ewo_firmware_payloads(self):
-        source = SERVER.parent / "firmware/programs/NAVI_EYES_WIDE_OPEN_INTEGRATED/tests/emit_telemetry_contract.cpp"
+        source = SERVER.parent / "firmware/programs/NAVI_EWO_0_1_MM045_STOP/tests/emit_telemetry_contract.cpp"
         with tempfile.TemporaryDirectory() as tmp:
             binary = Path(tmp) / "ewo_contract"
             subprocess.run(["c++", "-std=c++17", "-Wall", "-Wextra", "-Werror",

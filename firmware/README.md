@@ -1,249 +1,60 @@
-# Firmware catalog
+# Firmware — current programs and tools
 
-> **NAVI operating-authority clarification — 2026-10-05.**
-> The NAVI station/visit/phase descriptions and their controlling-record links
-> below describe the catalogued implementations and their evidence status.
-> Where those descriptions retain historical station-procedure authority,
-> [Document C](../docs/NAVI_POSITION_OVERLAY_OPERATING_ARCHITECTURE_20261005.md) and
-> [decision 0121](../docs/decisions/0121-current-position-direction-and-overlay-determine-navi-operating-authority.md)
-> govern the target architecture. See the [NAVI_EWO governing index](../docs/NAVI_EWO_GOVERNING_DOCUMENTS.md)
-> for the separate A/B/C records. No sketch or validation status changes here.
+## Current NAVI review candidate
 
-This is the authoritative index of runnable Arduino sketches in this
-repository. All runnable sketches are development, diagnostic, or experimental
-programs; there is currently no designated production program. It answers two
-separate questions for every artifact:
+**[NAVI_EWO_0_1_MM045_STOP](programs/NAVI_EWO_0_1_MM045_STOP/)**
 
-1. **Role:** is it a development program, a diagnostic instrument, or
-   historical/reference material?
-2. **Evidence status:** how far has this particular version been validated?
+| Item | Value |
+|---|---|
+| Open this sketch | [NAVI_EWO_0_1_MM045_STOP.ino](programs/NAVI_EWO_0_1_MM045_STOP/NAVI_EWO_0_1_MM045_STOP.ino) |
+| Reported name | `NAVI_EWO_0_1_MM045_STOP` |
+| Purpose | Cruise 90 with existing grades; bidirectional MM045 STOP, five-second applied-zero dwell, restart at 150 ms/count and repeat |
+| Selected profile | Otto 9950011 |
+| Evidence | Host-tested, built for ESP32 core 3.3.12; prior source independently reviewed. The 150 ms/count restart correction is compiled and actuator-tested; track calibration pending |
+| Deployment | First CW trials reported on the preceding version; corrected running image not verified. Not merged or field accepted |
+| Decisions, tests and rollback | [Implementation report](../docs/NAVI_MM045_STOP_IMPLEMENTATION_20261009.md) |
 
-QUORUM is one control-firmware lineage among the development programs; it is
-not currently designated as production. Its capabilities advance through
-isolated, reviewed commits. Diagnostic sketches measure a question and never
-become operational authority implicitly.
+This was previously stored as `NAVI_EYES_WIDE_OPEN_INTEGRATED`. The old
+directory now contains a signpost; the runnable program exists only under its
+matching MM045 name. The rename does not change locomotive behavior.
 
-## Roles
+## Diagnostic tools
 
-| Role | Location | Rule |
+These are instruments, not alternative versions of the MM045 locomotive sketch.
+Their individual records determine whether a particular version has been tested.
+
+| Instrument | Purpose | Evidence record |
 |---|---|---|
-| **Development program** | `programs/<family>/<variant>/<sketch>.ino` | Runnable firmware under development, including QUORUM-lineage control experiments. No program currently has production status. |
-| **Diagnostic / experiment** | `programs/<purpose>/<purpose>.ino` | A purpose-built measuring instrument or prototype. Not production firmware. |
-| **Reference material** | `reference/` and `../archive/` | Non-runnable packages, architecture snapshots, and superseded artifacts retained for evidence. |
+| [HALL_DIAG](programs/HALL_DIAG/HALL_DIAG.ino) | Hall sensor diagnosis | Sketch header; [catalog history](HISTORY.md) |
+| [IR_DIAG](programs/IR_DIAG/IR_DIAG.ino) | Wheel-sensor evidence | [IR development record](../docs/IR_DEV_REC/); catalog records Diagnostic active |
+| [IR_SCOPE](programs/IR_SCOPE/README.md) | Raw optical waveforms | Instrument README and historical catalog |
+| [IR_USB_BENCH](programs/IR_USB_BENCH/README.md) | USB wheel-sensor bench instrument | Instrument README; historical build/bench record |
+| [IR_SCOPE_ESPNOW TX](programs/IR_SCOPE_ESPNOW/variants/IR_SCOPE_ESPNOW_TX/) / [RX](programs/IR_SCOPE_ESPNOW/variants/IR_SCOPE_ESPNOW_RX/) | IR radio transport experiments | [Transport report](../docs/NAVI_IR_PULSE_EVENT_PHYSICAL_EVIDENCE_20261006.md) and catalog history; separate versions and validation states |
 
-## Evidence statuses
+## Historical programs and references
 
-Use these words consistently in reports and this catalog:
+- **[Complete preserved firmware catalog](HISTORY.md):** older NAVI and QUORUM
+  variants, diagnostics, deployment records and evidence statuses at their
+  recorded commits. An old row saying “current” does not select today's sketch.
+- **[Integrated EWO history](programs/NAVI_EWO_0_1_MM045_STOP/HISTORY.md):** the
+  former long README, including retired station machinery and earlier builds.
+- **[Reference packages](reference/)** and **[archive](../archive/):** retained
+  evidence. Historical source paths identify the corresponding Git revision.
 
-- **Development** — being edited; may be uncommitted or unbuilt.
-- **Built** — compiles for every applicable profile; no field claim.
-- **Reviewed** — source review complete; no field claim.
-- **Ready for field test** — built and reviewed with a defined protocol.
-- **Field accepted** — passed its stated field gate; the operating baseline.
-- **Diagnostic active** — an instrument currently gathering evidence.
-- **Reference only** — retained for comparison; do not flash for operation.
-- **Superseded** — replaced; history only.
+Other program folders retain their existing names and content. This initial
+cleanup renames the MM045 candidate and separates the current index from the
+historical catalog; it does not promote or retire unrelated programs.
 
-More than one status may be useful (`Built; awaiting review`), but **field
-accepted** must never be inferred from “latest,” “current,” a version string,
-or a successful build.
+## Status and naming
 
-## Current catalog
+**Built** means the specified profile compiles. **Reviewed** means source review
+is complete. **Field accepted** requires the stated physical test evidence.
+There is currently no designated production program. Preserve individual
+historical acceptance claims at their recorded versions.
 
-**2026-10-06 NAVI pulse observation experiment:**
-`programs/NAVI_EYES_WIDE_OPEN_INTEGRATED/NAVI_EYES_WIDE_OPEN_INTEGRATED.ino`
-identifies as **NAVI_EYES_WIDE_OPEN_INTEGRATED_PULSE_EVENT_TEST**. Development
-control lineage with a separate observation-only Type-6 receiver and per-event
-pulse/legacy-speed comparison. Type-5 and existing control behavior are retained.
-**Built for Otto 9950011 / ESP32 core 3.3.12; source-reviewed and host-tested;
-NOT flashed or field accepted.** No promotion or new control authority.
-Provenance: David's `NAVI_PULSE_EVENT_TEST_0116518.patch`, reconciled to IR commit
-`65210f3`. Spec, corrections, validation and field protocol:
-[`NAVI_PULSE_EVENT_PHYSICAL_SPEED_OBSERVATION_20261006.md`](../docs/NAVI_PULSE_EVENT_PHYSICAL_SPEED_OBSERVATION_20261006.md).
-
-**2026-09-29 EWO audit corrections:**
-`programs/NAVI_EYES_WIDE_OPEN_INTEGRATED/NAVI_EYES_WIDE_OPEN_INTEGRATED.ino`
-identifies as **NAVI_EYES_WIDE_OPEN_INTEGRATED_R2**. Development control candidate;
-Toby configuration built and host-tested, not flashed, not field accepted.
-Based on reviewed candidate `cd55929` and governing docs `612b791`.
-Controlling records: decisions 0109–0114 and
-`../docs/NAVI_EWO_REVIEW_CORRECTIONS_20260929.md`. No operational promotion and
-no Otto build claim. Await David and Sam's review and separate hardware authority.
-
-**2026-10-06 IR pulse transport diagnostics (TX 1.8):**
-`programs/IR_SCOPE_ESPNOW/variants/IR_SCOPE_ESPNOW_TX/IR_SCOPE_ESPNOW_TX.ino`
-identifies as **IR_SCOPE_ESPNOW_PULSE_EVENT_TX_1_8_TRANSPORT_TEST**. Diagnostic
-physical evidence source with additive 70-byte Type-7 v1 cumulative transport
-status at a nominal one-second cadence. Type-6, Type-5 and detector semantics
-are unchanged; no NAVI/control authority. The preceding 1.7 build was flashed
-and field-tested: promising native timing, but approximately 32% receiver-observed
-Type-6 discontinuity. Type-7 localizes that transport question; it does not filter
-physical evidence. **TX 1.8 built/reviewed and host-tested; NOT flashed or field
-accepted; Pi logger changes NOT deployed.** Candidate provenance:
-`IR_PULSE_TRANSPORT_STATUS_TYPE7.patch`; controlling specification, corrections,
-validation and the preserved 1.7 experimental history:
-[`NAVI_IR_PULSE_EVENT_PHYSICAL_EVIDENCE_20261006.md`](../docs/NAVI_IR_PULSE_EVENT_PHYSICAL_EVIDENCE_20261006.md).
-
-**2026-09-23 IR stop-retention revision:**
-`programs/IR_SCOPE_ESPNOW/variants/IR_SCOPE_ESPNOW_TX/IR_SCOPE_ESPNOW_TX.ino`
-identifies as **IR_SCOPE_ESPNOW_ACTIVE_TX_1_6_R2**. Diagnostic movement source,
-consumed by NAVI (therefore not an observation-only change downstream).
-Original 1.6 candidate at `1de06ae` rejected by independent review `4de40df`.
-R2 at `3887f2a` is built and host-tested, **independent re-review passed for
-supervised IR-car-only bench evaluation; flashed to the verified IR car with
-operator authorization on 2026-09-23, physical bench acceptance pending,
-not approved for NAV/AUTO field use**. Subsequent three-roll bench test failed
-to retain a usable zero at all three stops; see
-`../docs/IR_TX_R2_THREE_STOPS_20260923.md`. Further design review needed.
-See `../docs/IR_TX_1_6_R2_FLASH_20260923.md` and
-`../docs/IR_TX_1_6_R2_INDEPENDENT_REREVIEW_20260923.md`.
-Controlling record: `../docs/IR_TX_1_6_R2_REVIEW_RESPONSE_20260923.md`.
-No promotion or RX wire-format change. The older local Arduino TX copy has
-not been replaced.
-
-**2026-09-23 position-based station candidate:** the same 0.6 sketch folder now
-identifies as **NAVI_COHERENCE_0_6_POSITION_STATIONS_R1**. Development control
-candidate, prepared and tested, **not flashed; independent review and field
-acceptance pending**. Current MM/direction selects station/section requirements
-without an exact-marker entry trigger. Pause/resume preserves visit history;
-GO no longer requests generic cruise first. No PWM/stop/dwell retuning, IR or
-dashboard changes. Toby's installed R3 build below is unchanged.
-Controlling record: decision0101 and
-`../docs/NAVI_POSITION_STATIONS_R1_20260923.md`. No production promotion.
-
-**2026-09-23 NAVI speed interpretation (installed baseline):** the 0.6 sketch identified
-as **NAVI_COHERENCE_0_6_PROXIMAL_R1_IR_SPEED_R3**. Development control sketch;
-new change is display-only: NAVI reports STOPPED after settled commanded/applied
-zero and fresh quiet observations, while preserving raw IR diagnostics and
-odometry. Independently cleared via operator-supplied review; Toby flashed and
-dashboard deployed 2026-09-23, live R3 boot/telemetry verified. Physical roll/stop
-check pending; not field accepted. Includes
-the previously prepared manual-range R2 changes; no additional control changes.
-Controlling record: `../docs/NAVI_STOP_DISPLAY_20260923.md`, decision0100.
-Deployment: `../docs/NAVI_STOP_DISPLAY_CLEARANCE_AND_DEPLOYMENT_20260923.md`.
-No promotion and no IR TX/RX change.
-
-**2026-09-23 recovery revision:**
-`programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_HEALTH/` now identifies
-as **NAVI_COHERENCE_0_6_PROXIMAL_R1**, same Arduino filename/shortcut. Development
-control experiment; built and host-tested, awaiting independent review;
-flashed to Toby at operator request approximately16:14 PDT on2026-09-23, not
-field accepted. Startup confirmed; IR source absent at first check. See
-`docs/NAVI_PROXIMAL_R1_FLASH_20260923.md`. Replaces full-route matching with physical filtering,
-proximal unique-better recovery and retained UNKNOWN history. No longer
-observation-only. Prior CAL0_FIX1 field evidence remains at git89dc369.
-Controlling record: decision0098 and `docs/NAVI_PROXIMAL_R1_IMPLEMENTATION_20260923.md`.
-
-ESP-NOW receiver diagnostic: `programs/IR_SCOPE_ESPNOW/variants/IR_SCOPE_ESPNOW_RX/IR_SCOPE_ESPNOW_RX.ino`.
-Version 1.2: built and flashed to RX; hardware startup checks pass, reception validation pending.
-Adds checked radio startup, without changing packets or ACKs. See
-`../docs/IR_RX_STARTUP_CHECKS_20260920.md`.
-
-USB-only bench instrument: `programs/IR_USB_BENCH/IR_USB_BENCH.ino`.
-Role: diagnostic, GPIO34 raw waveform capture; evidence status: built and bench
-exercised, not field accepted. Current USB version 1.1 and recorder isolation:
-`../docs/IR_USB_BENCH_RELIABILITY_20260920.md` (initial build: 20260919 report).
-Contract and bench acceptance protocol are in its README.
-Companion viewer: `tools/ir_usb_bench.py`. No promotion into QUORUM.
-
-| Artifact | Role | Target and purpose | Evidence status | Controlling record |
-|---|---|---|---|---|
-| `reference/NAVI_COHERENCE/IR_ARCHITECTURE_0_4/` | Independent measurement foundation; not locomotive firmware | Health/readiness, irreversible IR Epochs, timestamped odometry points and NAVI-owned MM reference; successor to Sam's architecture 0.3 ZIP | **Host ASan/UBSan tests and ESP32 compile-only fixture pass, 2026-09-23.** Subsequently integrated for observation only in 0.6 below, not flashed. Existing TX stationary contrast limitation remains explicit | `docs/NAVI_IR_HEALTH_STEP1_20260923.md`; package README; current operator handoff and cyclometer criterion |
-| `programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_HEALTH/NAVI_COHERENCE_0_6_IR_HEALTH.ino` | Toby development control candidate, POSITION_STATIONS_R1 | Position-based station/section requirements and pause/resume continuity; retains proximal navigation, IR health/epochs and NAVI stopped-speed interpretation | **Host ASan/UBSan, integration, JSON and ESP32 build PASS. Not flashed; independent review and field acceptance pending.** Installed baseline remains IR_SPEED_R3. No production promotion | `docs/NAVI_POSITION_STATIONS_R1_20260923.md`; decision0101; sketch README |
-| `programs/NAVI_IR/NAVI_IR.ino` - 0.4 | Diagnostic / control experiment | Toby; NAVI is sole decider over Hall/map/timing/PWM/IR evidence; IR gates physically-too-early Hall events and proposes movement-based relocalization; ONE STRIKE removed as terminal authority. Manual first, AUTO gated | **Operator/Sam patch applied to the working tree and independently host+ESP32 verified 2026-09-20; NOT committed, NOT flashed.** Supersedes 0.1 (unpaired-then-low-contrast field attempt) and 0.2 (fixed the missing-IR-burns-recovery-budget bug; never flashed). Both ESP32 builds clean; test suite updated for the removed `WaitingDistance` API and passes 46 checks + a clean noon replay (513/513 tracking, 0 mismatches) + console-contract cross-check. Two confirmed telemetry-only bugs in `ir_hard_verdict`; two behavioral properties flagged for explicit operator sign-off (silent Hall-only fallback under sustained IR outage; movement-reseed firing on ordinary ambiguity with an over-stated `CONDITIONAL_SEQUENCE` trust label) before flash-ready | `docs/NAVI_IR_0_4_INDEPENDENT_REVIEW_20260920.md`; `docs/NAVI_IR_0_2_INDEPENDENT_REVIEW_20260920.md`; `docs/NAVI_IR_0_1_IMPLEMENTATION_REPORT.md`; decision `0089-navi-ir-joint-evidence.md`; sketch README (stale, still 0.1/0.2) |
-| `programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_4/NAVI_COHERENCE_0_4.ino` | Diagnostic / control experiment | Toby only (single-profile build); NAVI alone decides MM advancement from OPERATOR/DIRECTION/MAP/HISTORY/IR/HALL/TIMING/PWM/STATION_MARKER evidence; point-landmark semantics; ±10% per-interval IR eligibility window reset at each declared MM; no ungated Hall-advance path. 0.4 is a telemetry-format-only correction to 0.3 — no navigation logic changed | **Placed and independently verified 2026-09-21/22; subsequently flashed and field-run in two Manual sessions on 2026-09-22. See `docs/NAVI_COHERENCE_0_4_FIRST_LAP_20260922.md` and `docs/NAVI_COHERENCE_0_4_SECOND_RUN_20260922.md`; not blanket field acceptance. Fixes a `snprintf` format/argument mismatch inherited from 0.2 (0.3 review found it, reproduced an ASan segfault in `publishDecision()`; 0.4 fixes both affected functions, re-verified clean with 0 `-Wformat` warnings and a standalone repro of the fixed strings under the same crash-triggering values). Host suite ASan/UBSan clean; ESP32 build clean, 1,000,571 B (76%)** | `docs/NAVI_COHERENCE_0_4_INDEPENDENT_REVIEW_20260921.md`; `docs/NAVI_COHERENCE_0_3_INDEPENDENT_REVIEW_20260921.md`; `docs/NAVI_COHERENCE_0_2_INDEPENDENT_REVIEW_20260921.md`; `docs/NAVI_COHERENCE_DEVELOPMENT_HISTORY_20260921.md`; sketch README |
-| `programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_5_AUTO_ENABLED/NAVI_COHERENCE_0_5_AUTO_ENABLED.ino` | Control experiment, **AUTO enabled** | Toby only; 0.4 navigator plus operator rulings of 2026-09-22: AUTO enabled, IR window ±15%, a unique 10/10 observed polarity sequence (with ≥2 disagreements at the current position) overrules the position at any time, and station logic follows the corrected position; direction before declaration no longer reports TRACKING at MM0 | **Built/flashed 2026-09-22; first AUTO run documented (run boot F37B52F0930A43B6).** 710 advances, 15 station-stop sequences, one false advance corrected, final interval operator-confirmed; physical platform landings not independently checked. See `docs/NAVI_COHERENCE_0_5_FIRST_AUTO_RUN_20260922.md`. Remains experimental; new Epoch architecture not integrated. **Prior build verification: Host suite ASan/UBSan clean (2,052 offset corrections, 6,840 single-misread holds, 32 post-correction station arms); ESP32 build clean, 0 sketch warnings, 1,002,391 B (76%)** | `docs/decisions/0090-sequence-overrules-declaration-15pct-window-auto-enabled.md`; `docs/NAVI_COHERENCE_0_4_FIRST_LAP_20260922.md`; `docs/NAVI_COHERENCE_0_4_SECOND_RUN_20260922.md`; sketch README |
-| `programs/QUORUM/QUORUM.ino` — 1.8 | Development program | Otto/Toby; Hall baseline adapts only in motion | **Field accepted operating baseline** | decision 0017; QUORUM 1.8 field verdict |
-| `programs/QUORUM/QUORUM.ino` — 1.9 | Development program | Adds Otto-only, Arches-only Station Stop v1 mission filter | **Ready for field test; not field accepted** | `docs/CTO3/station-stop-v1/`; commit `ede7a08` |
-| `programs/QUORUM/QUORUM.ino` — 1.10 | Development program | Adds console-authority firmware items P11/P13/P14 while retaining 1.8 and 1.9 behavior | **Flashed to Otto 2026-08-08 (operator-directed); ready for field test. THE BASE FOR 1.12** (operator ruling 2026-08-08) | `docs/QUORUM_1_10_IMPLEMENTATION_REPORT.md`; commit `c39c439` |
-| `programs/QUORUM/QUORUM.ino` — 1.11 | Development program, **diagnostic stub** | Otto; network-transport instrumentation only ([WIFI] events w/ reasons, 2 s [DIAG] health line, BSSID/channel, queue depths, heap, publish timing, state/netdiag duplicate). No behaviour change over 1.10 | **Retired 2026-08-08 — mission accomplished: caught 10 s publish stalls with zero WiFi loss, leading to the ch5/Deco-40MHz interference diagnosis and the EAP channel move. Superseded aboard by 1.10. A STUB: not a base; evidence in field-records** (operator ruling) | this commit; `FIELD_20260808_INAUGURAL_FINDINGS.md`; CODEX measurement table |
-| `programs/QUORUM/QUORUM.ino` — 1.11B | Development program, **A/B stub** | Otto; spec-T1 Variant B: status drain capped at 1/pass for 10 s after each MQTT connect; otherwise identical to 1.11 (Variant A) | **A/B diagnostic stub — CODEX-approved experiment; not a base; winner implemented in 1.12 from 1.10** | `QUORUM_1_12_TRANSPORT_RESILIENCE_SPEC.md`; `CODEX_APPROVAL_REV4_9ac350c.md` |
-| `programs/QUORUM/QUORUM.ino` — 1.12 | Development program | Otto/Toby; operator speed/ramp tuning on the 1.10 base: CRUISE_PWM 100→90, DEPART_RAMP_MS 2800→5600; Otto profile carries all-stations. 1.11/1.11B stubs contribute nothing and remain history | **Field accepted 2026-08-09 (operator observation, incl. 1.12A stop-ramp): landings hold, notably better on the Grillers grade — the operating baseline.** NOTE: the transport-resilience winner (spec file still titled 1_12) was reserved as 1.13; that number was taken by the advisory build and it now lands as **1.14** | this commit; operator direction 2026-08-09 |
-| `programs/QUORUM/QUORUM.ino` — 1.13 | Development program | Both profiles build; adds the exact-or-silent HARD_BOUND advisory (decision 0023): at HARD_BOUND only, an exact unique 12-window `dnaMatch()` result is recorded on the terminal snapshot as `adv`, with `advw`/`advr`/`advn` for audit. Diagnostic only — proven behaviourally inert against 1.12C by `verify_inert.py`. Also records Otto's all-stations profile in git | **Flashed to Otto 2026-08-11 and field-tested the same day (135.8 min, 2667 markers, 59 departures). Advisory PASSED: three terminal events, correct `adv:null` on every one, no wrong advisory. Its POSITIVE case has never fired outside the harness.** The session's dominant finding is a separate defect — phantoms admitted once per lap because `expectedDt` is predicted from PWM — see the timing-expectation proposal | decision 0023; `field-records/20260811_QUORUM_1_13_beta_verdict.md`; `field-records/logs/20260811_QUORUM_1_13_beta_otto.log`; rollback image `field-records/firmware-images/`; commits `723f0b4`, `bf32f3c`, `411d846` |
-| `programs/QUORUM/QUORUM.ino` — 1.16R_IR_TEST_A | Development program | 1.16Rb plus the IR Test A observation layer (spec: `docs/QUORUM_1_16R_IR_TEST_A_FIRMWARE_SPEC.md`): ESP-NOW IR receiver with 8-step validation, dedicated queue, freshness truth, marker-speed + Hall/IR observation, four telemetry streams, `OBSERVE_ONLY` authority strings. IR gated per profile: Toby on, Otto compiles the layer out entirely | **Built 2026-08-17, NOT flashed, NOT bench-paired.** IR-off build byte-identical to 1.16Rb on 43/43 replays; IR-on nav-identical with only new topics added; 33 deterministic IR assertions in the suite gate; both profiles + sender compile clean. Deviations from spec (base rev, short mm/speed keys) declared in the report | `docs/IR_TEST_A_IMPLEMENTATION_REPORT.md`; decisions 0035-0037, 0036 |
-| `programs/NAVI_ONE/variants/NAVI_ONE/NAVI_ONE.ino` — 1.0X11 "Epiphany" / 1.0X12 "Whole flank" / 1.0X13 "Shape is diagnostic" | Diagnostic / experiment (0018): the magnet-recognizer lineage (NAVI_CL2, 0054) with stations | Toby; one target, physical tests, waveform dumps on refusal. X11 = X10 + median-of-five `hallRead` (0073). X12 = X11 + the discard-branch condition (0075). X13 = X12 + shape and archaeology demoted to diagnostics, stop-episode widening removed (0074) | **X11 railway-run 2026-09-03: shut down at Arches CW MM111 on an amputated-flank WRONG_SHAPE. X12/X13 compiled 2026-09-03; the X13 rule flew as recorder 0.3 on 2026-09-04 and passed its acceptance test (see the recorder row). X13 itself not flashed; rollback X11 (b7a1ff8)** | decisions 0070–0075; `docs/NAVI_ONE_DISCARD_FLANK_FIX_20260903.md`; `docs/NAVI_ONE_1_0X13_SHAPE_IS_DIAGNOSTIC_20260903.md` |
-| `programs/NAVI_ONE/variants/NAVI_ONE_STATION_CURVES/` — 0.1 / 0.2 / 0.3 | Diagnostic / instrument (operator-built from X11) | Toby; X11 behaviour, publishes EVERY completed passage (`diag/waveform` + `diag/wave_meta` JSON with seq, phase mask, station, PWM, verdict). 0.2 = 0075 discard condition; 0.3 = 0074 shape-as-diagnostic with `would_shape_refuse`/`shape_outcome` in `wave_meta` | **0.1 flown 2026-09-03: 1,805 passages, ended in the seq 1805 Arches CW shutdown. 0.3 flown 2026-09-04 (operator's choice over X13): 2 h both directions, 3,303 passages gapless, 76 stops, no shutdown, zero old-rule refusals — first clean multi-lap run of the NAVI_ONE lineage with stations. 0.2 compiled, not flown** | decisions 0072, 0074, 0075; sketch README |
-| `programs/IR_ESPNOW_SENDER/` — IR_TEST_CAR_ESPNOW_1_0 | Diagnostic/instrument (0018) | Stage-A IR speed sender: IR_SPEED_LOCAL_1_2 acquisition unchanged, MQTT/credentials stripped, ESP-NOW unicast ch 11 at 20 Hz, cumulative pulses, STOPPED per 0036, all-zero-MAC transmit refusal | **Built 2026-08-17, NOT flashed.** Compiles standalone (895,956 B). MACs unpaired — placeholders safely disable both directions until bench pairing | `docs/IR_TEST_CAR_ESPNOW_FIRMWARE_SPEC.md`; wire: `firmware/common/IRSpeedWire.h` |
-| `programs/QUORUM/QUORUM.ino` — 1.16R (superseded in tree by IR_TEST_A row above; field-accepted baseline) | Development program | Quarantine (350 ms physical floor + steady-band conjunction + witness-checked successor arbitration with reversible discard), suffix rescue at the hard bound (insertion hypothesis; ambiguity proven impossible on NGR_DNA1), NO_QUORUM self-resolution (route-wide unique match held across 3 consistent matches; SELF_RESOLVED drops AUTO — the resume interlock). Decision 0035 | **Built 2026-08-14, revised same day for CODEX's seven-finding review (all accepted); CODEX approved supervised field testing 2026-08-15 and both locomotives are being flashed. Field verdict pending.** Harness-proven: 10 capture segments diffed old-vs-new with every changed outcome enumerated (re-run post-review); 2026-08-10 goldens incl. input-invariance and the honest mm 87 terminal; 30 synthetics incl. the review adversarials; era-aware suite green in both eras; finding-2 fixture fails on the pre-fix build. 1.14B behaviour changes ride along (also unflashed) | decision 0035; `docs/QUORUM_1_16_IMPLEMENTATION_REPORT.md`; `docs/QUORUM_1_16R_REVIEW_RESPONSE.md`; both enumeration txts |
-| `programs/QUORUM/QUORUM.ino` — 1.14A | Development program | Three operator corrections on the reviewed 1.14 base: leader departure independent of the follower (removes the Arches deadlock), follower hold gap 12→9 markers, CCW station landings one marker earlier. Also commits the 5 s follower dwell flashed 2026-08-13. **No mode layer** — that is 1.15 | **Built 2026-08-14, NOT flashed.** Both profiles compile, replay suite green, echo wire version unchanged at 1 so it pairs with 1.14. Rebuilt from `4b593b6` after CODEX refused the mixture with unreviewed mode code | `docs/QUORUM_1_14_IMPLEMENTATION_REPORT.md`; decisions 0030–0034 |
-| *(branch)* `agent/cto-mode-1-15` | Deferred expansion | CTO mode layer: BUBBLE / UNPAIRED / CE-reserved, echo wire v2 carrying mode, `cmd/cto bubble\|unpaired` | **Deferred to 1.15.** Compiles, suite green, but unreviewed, no decision record, and CODEX found a half-pair defect: a peer changing mode dissolves its own role while the partner's latched role persists | this commit; `4eaea24` |
-| `programs/QUORUM/QUORUM.ino` — 1.14 | Development program | Both profiles build; adds LAYER 5 — CTO3 peer coordination per `docs/CTO3/BUBBLE_V1_SPEC.md`: frozen CtoPeerPacket v3 truth at 2 Hz with producer-applied marker bounds, Q1/Q2 latched roles + 0xC5 role echo, one decel profile as a speed cap (18/12/6 ladder + contact guard), leader hold-for-follower (10 s release), follower 20 s platform dwell, 0031 fleet stop by absence, `state/cto` + `cmd/cto`. CE missions NOT included | **Built 2026-08-13, NOT flashed, NOT field-tested. Full replay suite green — solo behaviour proven unchanged (inert esp_now shim). Two-locomotive behaviour has never executed anywhere. Gate: operator+CODEX review of the implementation report and 0034, then a supervised two-loco session** | `docs/QUORUM_1_14_IMPLEMENTATION_REPORT.md`; decisions 0030–0034; spec + audit |
-| `programs/ESPNOW_REPEATER/ESPNOW_REPEATER.ino` — 1.0 | Diagnostic / instrument (0039) | Third-node ESP-NOW listening post and relay: per-frame record (source, sequence, receive time, RSSI, sender `hallMm`/`mapDir`) plus gap/miss-run/delivery statistics for both locomotives, and optional byte-for-byte relay of `CtoPeerPacket`/`Cto3RoleEcho` under freshness (<=100 ms), novelty (strictly-greater sequence) and rate gates. Modes `listen` / `shadow` / `repeat` on `ngr/survey/<node>/cmd`. No authority, no locomotive command path, wire versions untouched | **Built and flashed to the spare ESP32 2026-08-20; bench-verified in `repeat` on ch 11 (both locomotives heard, 76/76 frames relayed, 0 tx failures). NOT yet deployed at a survey position and NO field verdict** | decision 0039; `docs/ESPNOW_REPEATER_BUILD_REPORT.md`; rollback image `field-records/firmware-images/dispatcher_esp32_pre_ESPNOW_REPEATER.bin.gz` |
-| `programs/ESPNOW_CMD_TX/ESPNOW_CMD_TX.ino` | Diagnostic / instrument | Pi-attached ESP32; dispatcher command-backup TX bridge (Phase A): serial in, encrypted ESP-NOW unicast out, ×5 repeats, heartbeat; fail-closed on placeholder keys | **Built (template keys, fail-closed verified); awaiting real keys+MACs and bench gates** | `NGR_ESPNOW_COMMAND_BACKUP_SPEC.md` Rev 4; approval at `CODEX_APPROVAL_REV4_9ac350c.md` |
-| `programs/HALL_DIAG/HALL_DIAG.ino` | Diagnostic | Hall sensor bench diagnosis; serial only | Diagnostic tool | Header in sketch |
-| `programs/IR_DIAG/IR_DIAG.ino` | Diagnostic | Current QRE1113 wheel-sensor evidence instrument | Diagnostic active | `docs/IR_DEV_REC/`; IR decision records |
-| `programs/IR_SPEED_LOCAL/IR_SPEED_LOCAL.ino` | Diagnostic / prototype | Lean local QRE1113 speed contract; 10-spoke, measured 96.52 mm rolling circumference; 1 Hz latest-speed telemetry and 5 s factual health beat, no per-pulse MQTT | **Built; QC findings addressed; awaiting independent re-review and daylight field gate; not production and not integrated into QUORUM** | decisions 0020/0021/0022; `programs/IR_SPEED_LOCAL/README.md`; `docs/IR_SPEED_LOCAL_QC_REVIEW.md`; synchronized 2026-08-09/10 evidence |
-| `programs/IR_SCOPE/IR_SCOPE.ino` (+ `IR_SCOPE_Plotter.py`, `IR_SCOPE_Replay.py`) | Diagnostic | 1 kHz raw-waveform scope for the merged-pulse question; runs the IR_DIAG detector verbatim and streams every sample with thresholds and state | **CODEX review approved 2026-08-09; clean build and seven synthetic replay scenarios verified; not flashed — awaiting field capture** | PR #3; `programs/IR_SCOPE/README.md`; decision 0019; `docs/IR_DEV_REC/2026-08-09_IR_SCOPE_BUILD.md` |
-| `programs/IR_TEST/IR_TEST.ino` | Diagnostic / prototype | Earlier survey-car IR and network test lineage | Retained diagnostic; check current IR development record before use | `docs/IR_SENSOR_NOTES.md` |
-| `programs/SENSORTEST/SENSORTEST.ino` | Diagnostic | Hall event measurement without a navigation map | Reference diagnostic | Header in sketch |
-| `programs/Spoke_IR_RSSI_survey/Spoke_IR_RSSI_survey.ino` | Diagnostic | Original two-flag IR/RSSI survey | Superseded by the later IR test lineage | `IR_TEST` header and field records |
-| `programs/MANUAL/MANUAL.ino` | Historical reference | Structural audit reference for Manual sovereignty | **Reference only; do not flash to an operating locomotive** | decision 0003 |
-
-### Deployment state (what is actually flashed, 2026-08-11)
-
-The `Otto/Toby` and `Both profiles build` notes above mean the sketch supports
-both profiles. They do **not** mean both locomotives are running it. Flashing is
-stated per row in the status column, and as of 2026-08-11:
-
-| locomotive | running | evidence |
-|---|---|---|
-| Otto 9950011 | **QUORUM_1_13** | retained `state/bootid`; flashed 2026-08-11 from `411d846` |
-| Toby 9950012 | **QUORUM_1_6** | retained `state/bootid` |
-
-Toby is seven versions behind the operating baseline and has not received 1.8
-(Hall baseline adapts only in motion), 1.10 (console authority P11/P13/P14),
-1.12/A/B/C (speed and ramp tuning) or 1.13. Operator principle, 2026-08-11:
-*the firmware should work on Toby if it works on Otto* — that is a design
-requirement, and it is currently untested by deployment rather than by choice.
-Bringing Toby up is a separate, staged exercise: preserve the image, review the
-1.6 → 1.13 delta for Toby-relevant behaviour, then field-test the tuning.
-
-The QUORUM rows describe immutable points in git history even though the path is
-the same. The sketch at repository HEAD may be newer than the field-accepted
-operating baseline.
-
-## Promotion rule
-
-Diagnostic results enter production only through this sequence:
-
-1. State the diagnostic question and expected evidence.
-2. Capture and preserve the raw result with firmware/commit provenance.
-3. Record the conclusion and the production requirement it supports.
-4. Implement only that requirement in `programs/QUORUM/QUORUM.ino` as a separate scoped
-   change; do not promote the diagnostic sketch wholesale.
-5. Build both locomotive profiles when the shared control sketch changes.
-6. Review, field-test against a written gate, and update this catalog.
-
-No behavior is operational merely because it worked in a diagnostic sketch.
-Conversely, a narrow capability inside QUORUM remains part of the production
-lineage even while it awaits field acceptance.
-
-## Naming and lifecycle
-
-- Keep the Arduino sketch filename and folder stable as `programs/QUORUM/QUORUM.ino`.
-- Put the human-readable version in `SKETCH_NAME`; identify immutable versions
-  by commit and, when flashed, by git tag.
-- Name diagnostics for the question or instrument (`IR_DIAG`, `HALL_DIAG`), not
-  as apparent QUORUM releases.
-- Give each non-trivial diagnostic a short README or a complete sketch header
-  stating purpose, hardware, outputs, safety limitations, status, and the
-  operating decision it may inform.
-- Move an artifact to `archive/` only when it is no longer an active tool and its
-  replacement or conclusion is recorded. Do not delete the evidence trail.
-- Never keep a second editable copy of QUORUM under a feature name such as
-  `ONE_STATION.ino`.
-
-## Librarian check for firmware changes
-
-Before a firmware-related commit is considered complete:
-
-- classify every new sketch by role;
-- state its evidence status without overstating it;
-- link its controlling spec, decision, report, or field record;
-- confirm whether anything was promoted into QUORUM;
-- update this catalog when status, replacement, or promotion changes;
-- preserve unrelated and untracked work; never use `git add -A` for a scoped
-  firmware commit.
-
-Decision 0018 governs this catalog. Decision 0003 continues to govern the
-one-control-sketch rule.
+For new or explicitly renamed programs, folder = `.ino` basename = reported
+sketch name. The [repository naming and handoff rules](../README.md#naming-and-handoff-rules)
+govern this cleanup and future handoffs, superseding the older catalog's practice
+of leaving a different build name behind a generic filename. Historical programs
+are not implicitly renamed. Keep evidence, controlling decisions and rollback
+provenance when updating this index.

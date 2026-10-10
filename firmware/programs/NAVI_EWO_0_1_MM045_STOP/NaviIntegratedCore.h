@@ -58,6 +58,7 @@ class NaviIntegratedCore {
     direction_ = direction;
     reverseTarget_ = false;
     firstTargetAfterDeclare_ = true;
+    physicalPositionAnchored_ = false;
     firstTargetSupportAbsent_ = false;
     pwmZeroMovementRequiresDeclaration_ = false;
     chooseTarget();
@@ -309,6 +310,24 @@ class NaviIntegratedCore {
   bool positionReliable() const { return positionReliable_; }
   uint8_t mm() const { return mm_; }
   int8_t direction() const { return direction_; }
+  bool physicalPositionAnchored() const { return physicalPositionAnchored_; }
+  // Read-only physical offset from mm_, signed in the current travel direction.
+  // This exposes the same relationship used by reverse(); it does not advance
+  // NAVI or establish a second position estimate. An interval declaration is
+  // not an exact Hall anchor, including after reversing before the first Hall.
+  bool physicalOffsetUm(uint64_t nowUs, int64_t& offsetUm) const {
+    if (!declared_ || !physicalPositionAnchored_ || !positionReliable_ ||
+        pwmZeroMovementRequiresDeclaration_ || !relationshipReliable_ ||
+        !targetOriginValid_ || !irApplicable(nowUs) ||
+        latestIr_.nominalUm < physicalOriginUm_ ||
+        latestIr_.nominalUm - physicalOriginUm_ > INT64_MAX / 2 ||
+        expectedCumulativeUm_ > INT64_MAX / 2) return false;
+    const int64_t traveled = int64_t(latestIr_.nominalUm - physicalOriginUm_);
+    const int64_t remaining = int64_t(expectedCumulativeUm_) - traveled;
+    offsetUm = reverseTarget_ ? -remaining :
+        int64_t(navi_one::spanMm(mm_, direction_)) * 1000 - remaining;
+    return true;
+  }
   TargetSpec target() const { return target_; }
   bool relationshipReliable() const { return relationshipReliable_; }
   bool pwmZeroMovementRequiresDeclaration() const { return pwmZeroMovementRequiresDeclaration_; }
@@ -417,6 +436,7 @@ class NaviIntegratedCore {
   }
   void confirm(HallPoint landmark) {
     firstTargetAfterDeclare_ = false;
+    physicalPositionAnchored_ = true;
     setDistanceHolding(false);
     openingSerial_ = landmark.serial;
     openingIrUm_ = landmark.irUm;
@@ -527,6 +547,7 @@ class NaviIntegratedCore {
   double speedMmS_ = 0;
   bool declared_ = false, reverseTarget_ = false;
   bool firstTargetAfterDeclare_ = false, firstTargetSupportAbsent_ = false;
+  bool physicalPositionAnchored_ = false;
   bool positionReliable_ = false;
   uint8_t mm_ = 0;
   int8_t direction_ = 0;

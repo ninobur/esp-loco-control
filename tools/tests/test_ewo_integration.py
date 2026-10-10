@@ -12,7 +12,7 @@ from tools import navi_sync_format as F
 from tools.tests.test_navi_sync_format import datagram
 
 ROOT = Path(__file__).resolve().parents[2]
-TESTS = ROOT / 'firmware/programs/NAVI_EYES_WIDE_OPEN_INTEGRATED/tests'
+TESTS = ROOT / 'firmware/programs/NAVI_EWO_0_1_MM045_STOP/tests'
 
 
 class EwoIntegration(unittest.TestCase):
@@ -109,8 +109,158 @@ class EwoIntegration(unittest.TestCase):
         js += "assert.match(line,/VERIFY\\/REPOSITION LOCO AND DECLARE POSITION/);"
         subprocess.run([node, '-e', js], check=True)
 
+    def test_actual_cruise_base_and_actuator_authority(self):
+        source = (TESTS.parent/'NAVI_EWO_0_1_MM045_STOP.ino').read_text()
+        # Compile the actual operating decision and actuator, not a second model.
+        functions = [re.search(r'^static (?:void|uint16_t) ' + name +
+                              r'\([^)]*\) \{.*?^\}', source, re.M | re.S).group()
+                     for name in ('brakeStepMs', 'requestPwm', 'serviceRamp',
+                                  'withdraw', 'recordStop', 'serviceAutoCruise')]
+        constants = [re.search(r'^static constexpr uint(?:8|16)_t ' + name +
+                              r'[^\n]*;', source, re.M).group()
+                     for name in ('NAVI_BASE_CRUISE_PWM', 'AUTO_STEP_UP_MS',
+                                  'STOP_RESTART_STEP_UP_MS', 'STOP_FINAL_STEP_DOWN_MS', 'MANUAL_STEP_UP_MS', 'BRAKE_STEP_COAST_MS')]
+        cpp = '#include "' + str(TESTS.parent/'NaviStopOverlay.h') + '"\n'
+        cpp += r'''
+#include <cassert>
+#include <algorithm>
+#include <cstdio>
+#include <cstring>
+#include <string>
+using namespace navi_one;
+using namespace navi_eyes;
+namespace navi_sync { enum class ActionKind { RequestedPwm }; }
+static NaviIntegratedCore navi;
+static NaviStopOverlay stopOverlay;
+static std::string lastStopJson;
+static bool autoEnrolled = false, autoRunning = false, estopped = false;
+static bool estopAsserted = false, lowVoltage = false;
+static int actualPwm = 0, commandedPwm = 0, rampTarget = 0;
+static uint16_t rampUpMs = 150, rampDownMs = 0;
+static uint8_t brakeValue = 0, motorDirection = 1;
+static uint32_t lastRampStepMs = 0, clockMs = 1000, requests = 0;
+static int physicalPwm = 0;
+static constexpr int NAVI_MAX_OPERATING_PWM = 110;
+static constexpr int MOTOR_DIR_PIN = 2, HIGH = 1, LOW = 0;
+static int constrain(int n, int lo, int hi) { return std::min(hi, std::max(lo, n)); }
+static uint32_t millis() { return clockMs; }
+static uint64_t esp_timer_get_time() { return uint64_t(clockMs) * 1000; }
+static void digitalWrite(int, int) {}
+static void writePwm(int value) { assert(value >= 0 && value <= 255); physicalPwm = value; }
+static void recordAction(navi_sync::ActionKind) { ++requests; }
+static void pub(const char* topic, const char* payload, bool = false) {
+  if (!std::strcmp(topic, "telem/stop")) lastStopJson = payload;
+}
+static void warn(const char*, bool) {}
+'''
+        cpp += '\n'.join(constants + functions)
+        cpp += r'''
+int main() {
+  requestPwm(255, MANUAL_STEP_UP_MS, 0, true);
+  serviceAutoCruise(); assert(rampTarget == 255 && commandedPwm == 255);
+  autoEnrolled = autoRunning = true; // undeclared AUTO still withdraws
+  serviceAutoCruise();
+  assert(!autoRunning && !autoEnrolled && rampTarget == 0);
+  // Independently specified operating cases: ordinary cruise, stations, both
+  // grade boundaries, and every point of the existing CW grade transition.
+  struct Case { uint8_t mm; int8_t direction; uint8_t pwm; };
+  const Case cases[] = {
+    {0,1,90}, {15,1,90}, {10,1,90}, {63,1,90}, {64,1,90},
+    {65,1,110}, {79,1,110}, {80,1,106}, {81,1,102}, {82,1,98},
+    {83,1,94}, {84,1,90}, {85,1,90}, {108,1,90}, {157,1,90}, {170,1,90},
+    {170,-1,90}, {157,-1,90}, {108,-1,90}, {85,-1,90}, {79,-1,90},
+    {65,-1,90}, {63,-1,90}, {60,-1,90}, {34,-1,90}, {33,-1,105},
+    {29,-1,105}, {26,-1,105}, {25,-1,90}, {15,-1,90}, {0,-1,90},
+    {26,1,90}, {33,1,90}
+  };
+  for (const auto& c : cases) {
+    navi.declare(c.mm, c.direction, ++clockMs * 1000ULL);
+    autoEnrolled = autoRunning = true;
+    actualPwm = 0; rampTarget = commandedPwm = 0;
+    serviceAutoCruise();
+    assert(rampTarget == c.pwm && commandedPwm == c.pwm);
+    assert(navi.mm() == c.mm && navi.direction() == c.direction);
+    const auto before = requests;
+    for (unsigned step = 1; step <= c.pwm; ++step) {
+      clockMs += AUTO_STEP_UP_MS; serviceRamp(); serviceAutoCruise();
+      assert(actualPwm == int(step) && physicalPwm == int(step));
+    }
+    assert(requests == before); // cruise cannot keep restarting the ramp
+  }
+  navi.declare(10, 1, ++clockMs * 1000ULL);
+  actualPwm = 105; rampTarget = commandedPwm = 105;
+  serviceAutoCruise(); assert(actualPwm == 105 && rampTarget == 90);
+  for (int expected = 104; expected >= 90; --expected) {
+    clockMs += AUTO_STEP_DOWN_MS; serviceRamp(); assert(actualPwm == expected);
+  }
+  autoRunning = false; requestPwm(0, 0, AUTO_STEP_DOWN_MS);
+  serviceAutoCruise(); assert(rampTarget == 0); // manual STOP persists
+  autoEnrolled = false; requestPwm(200, MANUAL_STEP_UP_MS, 0, true);
+  serviceAutoCruise(); assert(rampTarget == 200); // manual full range persists
+  estopAsserted = true; actualPwm = 90; autoRunning = true;
+  serviceRamp();
+  assert(!autoRunning && actualPwm == 0 && rampTarget == 0 && physicalPwm == 0);
+  estopAsserted = estopped = false;
+  actualPwm = 90; requestPwm(90, AUTO_STEP_UP_MS, AUTO_STEP_DOWN_MS);
+  lowVoltage = true; clockMs += AUTO_STEP_DOWN_MS; serviceRamp();
+  assert(rampTarget == 0 && commandedPwm == 0 && actualPwm == 89);
+  lowVoltage = false;
+  // Actual sketch cold entry uses declaration truth immediately: MM040 is
+  // inside the five-MM 50-PWM section, with no first-Hall admission condition.
+  stopOverlay.reset(); navi.declare(40, 1, ++clockMs * 1000ULL);
+  autoEnrolled = autoRunning = true; actualPwm = 0; rampTarget = commandedPwm = 0;
+  serviceAutoCruise(); assert(rampTarget == 50);
+  assert(rampUpMs == 150); // Operator-specified ordinary AUTO acceleration.
+  for (int pwm = 1; pwm <= 50; ++pwm) {
+    clockMs += AUTO_STEP_UP_MS; serviceRamp(); serviceAutoCruise();
+    assert(actualPwm == pwm && rampTarget == 50);
+  }
+  // Final braking uses the actual actuator and finishes without any IR input.
+  stopOverlay.reset(); navi.declare(45, 1, ++clockMs * 1000ULL);
+  actualPwm = 35; rampTarget = commandedPwm = 35;
+  serviceAutoCruise(); assert(rampTarget == 0);
+  assert(rampDownMs == 300); // Dedicated calibrated final decrement.
+  lastRampStepMs = clockMs; // Check full subsequent intervals independently of prior ramp phase.
+  for (int pwm = 34; pwm >= 0; --pwm) {
+    clockMs += 299; serviceRamp(); serviceAutoCruise();
+    assert(actualPwm == pwm + 1);
+    ++clockMs; serviceRamp(); serviceAutoCruise();
+    assert(actualPwm == pwm && rampTarget == 0);
+  }
+  clockMs += 4999; serviceAutoCruise(); assert(actualPwm == 0 && rampTarget == 0);
+  ++clockMs; serviceAutoCruise(); assert(actualPwm == 0 && rampTarget == 90);
+  assert(rampUpMs == 150); // David's specified restart rate.
+  // The unchanged actuator's clock predates dwell, so its first count can
+  // execute immediately. Subsequent counts must be separated by 150 ms.
+  serviceRamp(); serviceAutoCruise(); assert(actualPwm == 1);
+  const uint32_t firstRestartCountMs = clockMs;
+  clockMs += 149; serviceRamp(); serviceAutoCruise();
+  assert(actualPwm == 1 && rampTarget == 90);
+  ++clockMs; serviceRamp(); serviceAutoCruise(); assert(actualPwm == 2);
+  for (int pwm = 3; pwm <= 90; ++pwm) {
+    clockMs += 150; serviceRamp(); serviceAutoCruise();
+    assert(actualPwm == pwm && rampTarget == 90); // Same footprint cannot restop.
+  }
+  assert(clockMs - firstRestartCountMs == 13350);
+  std::puts(lastStopJson.c_str());
+}
+'''
+        path = self.root/'actual_cruise_base.cpp'
+        path.write_text(cpp)
+        exe = self.root/'actual_cruise_base'
+        subprocess.run(['c++', '-std=c++17', '-Wall', '-Wextra', '-Werror',
+                        '-fsanitize=address,undefined', str(path), '-o', str(exe)], check=True)
+        result = subprocess.run([str(exe)], check=True, capture_output=True, text=True)
+        stop = json.loads(result.stdout)
+        self.assertEqual(stop['source'], 'OPERATOR_MM')
+        self.assertIsNone(stop['position_um'])
+        self.assertIsNone(stop['error_um'])
+        self.assertEqual(stop['execution'], 'RELEASED')
+        self.assertEqual(stop['commanded_pwm'], 90)
+        self.assertEqual(stop['release'], 'DWELL_5S_PWM_ZERO')
+
     def test_actual_sketch_pwm_zero_auto_withdrawal_and_admission(self):
-        source = (TESTS.parent/'NAVI_EYES_WIDE_OPEN_INTEGRATED.ino').read_text()
+        source = (TESTS.parent/'NAVI_EWO_0_1_MM045_STOP.ino').read_text()
         # Compile the actual shell functions with output-only hardware stubs.
         functions = []
         for name in ('withdraw', 'servicePwmZeroMovementHold', 'opsNow'):
@@ -119,7 +269,7 @@ class EwoIntegration(unittest.TestCase):
         loop = source[source.index('void loop() {'):]
         self.assertLess(loop.index('serviceIrIngress();'), loop.index('servicePwmZeroMovementHold();'))
         self.assertLess(loop.index('servicePwmZeroMovementHold();'), loop.index('handleCommand(command)'))
-        self.assertLess(loop.index('servicePwmZeroMovementHold();'), loop.index('serviceStation();'))
+        self.assertLess(loop.index('servicePwmZeroMovementHold();'), loop.index('serviceAutoCruise();'))
         self.assertIn('else if (Refusal reason = admitAuto(o))', source)
         self.assertIn('if (Refusal reason = admitGo(o))', source)
         self.assertIn('pub("state/nav_ready", opsNow().positionKnown ? "1" : "0", true);', source)
@@ -189,7 +339,7 @@ int main() {
         subprocess.run([str(exe)], check=True)
 
     def test_actual_type5_ingress_preserves_validity_without_reconfiguration(self):
-        source = (TESTS.parent/'NAVI_EYES_WIDE_OPEN_INTEGRATED.ino').read_text()
+        source = (TESTS.parent/'NAVI_EWO_0_1_MM045_STOP.ino').read_text()
         functions = [re.search(r'^static (?:void|uint16_t) ' + name +
                                r'\([^\{]*\{.*?^\}', source, re.M | re.S).group()
                      for name in ('movementCrc', 'serviceIrIngress')]
