@@ -62,3 +62,5 @@ absence of a file states equally well.
 | `20260926_toby_20q3_run3.md` | 20Q3 run 3: two-MM identity error across a reversal, uncorrected by recovery (TRAVEL_UNAVAILABLE_HOLD); IR rejected three false Hall events incl. a stop-on-magnet re-detection at 720 ms |
 | `20260926_toby_20q3_run4.md` | 20Q3 run 4 (logs run4a–d): first AUTO and station run under 20Q3; 117 of 117 Hall events correct (82/82 and 35/35 poles), 111 IR-judged inside ±15%; two obstruction stalls with PWM held and no stall recognition; E-stop, hand clearing and power cut noted as contamination |
 | `20260926_toby_20q3_run5.md` | 20Q3 run 5: undeclared manual running (declaration refused), 926/926 Hall events pole-consistent over five laps; IR coupling default-off after reboot and the operator's default-ON proposal |
+
+- [October 9 complete evening-run log snapshot](logs/20261009_MM045_EVENING/README.md) — both MM045 runs, unfiltered compressed source.
