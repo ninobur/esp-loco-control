@@ -132,3 +132,105 @@ or manufacture an exact20-marker difference from the supplied pair. The
 reported dashboard marker alone supplies no fine physical offset. This is
 further evidence of location disagreement, not a measurement of final braking
 error relative to the target. No code or calibration change follows from it.
+
+## Telemetry analysis of the evening runs — Claude, with David and Sam
+
+Source: the unfiltered snapshot `logs/20261009_MM045_EVENING/all_20261009.log.gz`
+(original SHA-256 `56292fad…1978`), Otto `9950011` topics only. Read-only
+analysis; no firmware, threshold or navigation change follows from it. Times
+are the log's own labels.
+
+### Sessions identified in the log
+
+| Run | Boot | Declared / GO | Ended | Hall accepted / missed |
+|---|---|---|---|---|
+| A | `FD2F3506…` | 055–056 / 18:56:49 | 18:58:56 at MM149: obstruction stop and power cycle (David confirmed) | 94 / 0 |
+| 1 | `E71CF024…` | 025–026 / 19:03:34 | dispatcher release 19:13:51 | 142 / 218 |
+| 2 | `E71CF024…` (same boot as run 1) | 040–041 / 19:31:33 | dispatcher release 19:40:25 | 384 / 0 |
+| 3 | `2A0C8220…` | 040–041 / 19:49:11 | E-stop 19:54:39 | 71 / 104 |
+
+The IR car was dislodged and reseated between runs A and 1 (log: IR pulses stop
+at 19:02:10 while PWM is 70; signal returns by 19:03:00). Between runs 2 and 3,
+David reports the car was moved to the table and Otto was **reflashed with edited
+ramp values**. Run 3's braking telemetry (PWM falling about one count per 300 ms)
+matches the constants committed in `93d5226` (300 ms final step, 150 ms AUTO
+acceleration); the boot record does not carry a Git revision, so this is a match,
+not an identification. Run 3 therefore ran a different binary from runs 1 and 2.
+The navigation core (`NaviIntegratedCore.h`) is unchanged between `6bf81a1` and
+the branch head.
+
+### Stopping behaviour (all runs)
+
+Every completed stop began braking on entry to the final MM, 296 mm before the
+MM045 + 150 mm target, and ended 267–296 mm short of it (about MM044.6, matching
+the physical 044.5 reports). With the 31 ms/count ramp Otto coasted 10–20 mm;
+with the 300 ms/count ramp (run 3) it stopped moving at about PWM 26–27 and
+travelled 29 mm and 0 mm. **Stop position was set by where braking started, not
+by ramp rate.** Below roughly PWM 25–30 Otto did not move at that location.
+
+Run 1's third approach stalled at applied PWM 31 in the penultimate section at
+19:12:15 (IR speed 0, position frozen 308 mm before the final section) and stayed
+there with AUTO running until release. The overlay's PWM there is a function of
+position only, so a stall cannot change it. This is the automatic-restart failure
+David reported: Otto never reached the dwell.
+
+### IR acquisition irregularities
+
+- **Run 1:** at 19:05:22, near MM095, IR signal span spiked to 1327 and then
+  settled at about 255–303 (previously 383–431). From then to the end, every
+  sample reported `InadequateContrast` (fault 6), readiness `Unavailable`, and
+  aborts increased one-for-one with completed pulses. Counting continued. The
+  per-pulse event stream reported almost nothing in this period, so the
+  periodic-interval test below cannot be applied to it.
+- **Run 3:** contrast was reported healthy and aborts were 0 throughout motion.
+  In steady running, unusually long pulse intervals (more than 2× the local median,
+  typically 2.5–3.2×) recurred most often every **8** counted pulses (also 9, 17,
+  18).
+
+| Run | Long intervals per steady pulse | Uncounted time, in pulse periods | Observed drift |
+|---|---|---|---|
+| A (before foot incident) | 0 | 0% | none |
+| 2 | 1.6% | ≈2.4% | none |
+| 3 | 5.6% | ≈8.6% | ≈15.5 of ≈166 markers ≈9.3% |
+
+Run 3's uncounted fraction matches its drift. The excess time is distance the IR
+count did not register, whether the cause is missing spokes, wheel binding or
+slipping, or optical counting; the data do not decide between these. Eight counted
+pulses cannot be assumed to be one revolution. The pattern was absent before the
+foot incident. In run 2 it was small enough (≈7 mm per magnet interval) to stay
+inside NAVI's ±45 mm acceptance window, so every magnet was accepted and the count
+was corrected at each one. **Working hypothesis:** the IR car or its measuring
+wheel has been defective since the incident and worsened after later handling.
+This is not confirmed. The proposed bench check is to mark the wheel and compare
+pulse counts and long intervals with its angular position over several
+revolutions.
+
+### How the IR error became location loss
+
+The Hall sensor kept detecting magnets throughout: before run 1's fault, 69
+detections and 69 acceptances; afterwards, 235 detections and 73 acceptances. NAVI
+accepts a magnet only when IR distance since the last accepted magnet matches the
+map within ±15% of one interval (about ±45 mm), a tolerance that does not widen
+across consecutive misses. With IR reading short, real magnets arrived "early",
+failed that check (run 1: 159 of 181 rejections were 5–10% short against cumulative
+mapped distance) and were recorded as missed magnets. NAVI then advanced by IR
+distance alone and fell behind.
+
+Later groups of accepted magnets did not correct this. In run 3, the lag
+consistent with each group's magnet polarities grew 3 → 6–8 → 9 → 9 → 11 → 14 →
+15. The final 15 matches the physical 059–060 against dashboard 044 pair, so NAVI
+accepted real magnets under the wrong numbers, which locked the offset in.
+`position_reliable` stayed 1 throughout.
+
+**Central finding (David, Sam and Claude):** NAVI detected each Hall/IR
+disagreement but interpreted every one as a missed magnet, never as IR error, and
+had no response to persistent disagreement. Optical faults and aborts were
+diagnostic only and did not withdraw IR distance authority, and the periodic
+pulse irregularities were not assessed as counting faults. A possible IR
+measurement defect therefore exposed a separate navigation weakness: NAVI did
+not recognize or reconcile the growing disagreement between its location and
+the railway. Whether NAVI should keep IR distance authority while the IR
+instrument reports a fault, and how persistent Hall/IR disagreement should be
+handled under Decision 0116, are architectural questions for David. **No
+navigation change was made.** The only firmware change during the evening was
+the ramp reflash before run 3.
