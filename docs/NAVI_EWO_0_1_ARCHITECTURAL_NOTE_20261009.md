@@ -102,9 +102,12 @@ The same location and physical circumstances should produce the same operating r
 ### 4. Universal STOP sequence
 
 **Later October 9 profile refinement:** David now specifies ten-PWM reductions
-over each MM interval down to 50, then 50-to-30 at one PWM per spoke interval,
-then 30-to-20 and zero over a half interval. His exact instruction and remaining
-distance/placement questions are preserved in the
+over each MM interval down to 50, **five full MM sections held at 50**, then
+**50-to-30 evenly over the penultimate MM segment**, followed by a simple
+ramp in the final MM. This supersedes his intervening one-PWM-per-spoke rule.
+“Half the interval” means half an MM segment; how the final ramp occupies that
+half remains under clarification. His instructions and revised final question
+are preserved in the
 [MM045 trial definition](NAVI_STOP_MM045_BIDIRECTIONAL_TEST_DEFINITION_20261009.md#later-october-9-profile-refinement--governing-change).
 That refinement supersedes the earlier profile description in this guide
 where they conflict, including the earlier direct 50-to-20 final reduction.

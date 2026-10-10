@@ -101,8 +101,8 @@ This replaces treating the list solely as abrupt PWM assignments at markers.
 The final reduction now explicitly includes **50 → 30 → 20 → 0**; it must
 not silently retain the earlier direct 50-to-20 description.
 
-The following interpretation questions have been returned to David before
-implementing the changed motor behavior:
+The following interpretation questions were returned to David; his subsequent
+answers and the remaining revised question follow them:
 
 1. Whether the repeated 50 values still represent a level PWM-50 section,
    and the length of that section in MM intervals.
@@ -111,6 +111,30 @@ implementing the changed motor behavior:
 3. Which interval the final “half” refers to; whether 30-to-20 and 20-to-zero
    share that half or each occupy one; and zero's placement relative to the
    chosen midpoint target.
+
+**Subsequent clarification — now governing:** David confirmed **five full MM
+sections held at PWM 50**, because this standard STOP sequence needs to
+accommodate stations. He specified **50-to-30 evenly over the penultimate MM
+segment**, followed by **a simple ramp in the last MM**. He also clarified that
+“half the interval” means **half an MM segment**, not half a spoke interval.
+
+| Portion of the standard sequence | Current instruction |
+|---|---|
+| Initial reduction | 90 → 80 → 70 → 60 → 50; each ten-PWM decrease spans one MM interval |
+| In-station-speed section | Five full MM sections held at PWM 50 |
+| Penultimate MM segment | Reduce evenly from PWM 50 to 30 over the whole segment |
+| Final MM segment | A simple ramp from 30 toward zero; exact use of the half-MM remains under clarification |
+
+The penultimate-segment instruction **supersedes the earlier one-PWM-per-spoke
+rule**. The earlier quote remains above as historical evidence; it must not
+remain a competing instruction.
+
+David requested a revised final question. The remaining distinction is whether
+the whole **30 → 20 → 0** ramp occupies the first half of the final MM segment
+(nominal zero at the chosen midpoint target), or **30 → 20** occupies its first
+half and **20 → 0** its second half. The second interpretation would require
+reconciling nominal zero placement with the fixed bidirectional target; no
+relocation or new stop-completion gate has been adopted.
 
 The existing time-based actuator ramp must still finish an already-commanded
 stop without further IR arrivals. This refinement does not authorize invented
