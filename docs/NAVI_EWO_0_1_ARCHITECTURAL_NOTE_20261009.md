@@ -101,6 +101,15 @@ The same location and physical circumstances should produce the same operating r
 
 ### 4. Universal STOP sequence
 
+**Later October 9 profile refinement:** David now specifies ten-PWM reductions
+over each MM interval down to 50, then 50-to-30 at one PWM per spoke interval,
+then 30-to-20 and zero over a half interval. His exact instruction and remaining
+distance/placement questions are preserved in the
+[MM045 trial definition](NAVI_STOP_MM045_BIDIRECTIONAL_TEST_DEFINITION_20261009.md#later-october-9-profile-refinement--governing-change).
+That refinement supersedes the earlier profile description in this guide
+where they conflict, including the earlier direct 50-to-20 final reduction.
+Do not infer the unresolved spacing or target placement from the older text.
+
 **STOP sequence** is the name of the universal stopping maneuver. Every stop
 is geographic; no geographic qualifier is necessary. Unlike the legacy
 station-stop procedure, this sequence is **assignable to any target point

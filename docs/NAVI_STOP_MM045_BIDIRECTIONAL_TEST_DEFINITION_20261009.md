@@ -71,7 +71,9 @@ For this STOP trial, David subsequently specified:
   ramp to 60”. **The 60 value is superseded by the subsequent correction below.**
   Five seconds and the existing acceleration ramp remain approved; release
   returns to the corrected ordinary cruise of 90. The geographic grades remain.
-- **Profile values, exactly as supplied:** `90,80,70,60,50,50,50,50,50,20,0`.
+- **Earlier profile values, preserved as evidence:**
+  `90,80,70,60,50,50,50,50,50,20,0`. The later refinement below governs where
+  it changes this description.
 
 **Latest correction:** David then stated: **“Ordinary cruise is 90PWM (the
 previous value) 50 is the in station speed.”** Ordinary cruise and restart
@@ -82,9 +84,37 @@ is introduced.
 
 These decisions replace the earlier unanswered choice between a one-time
 enrollment trial and a repeating sequence, and settle the trial dwell and
-departure destination. The distance between the supplied profile entries
-remains a question for David; the proposed one-MM spacing with zero at the
-target has not yet been confirmed. Preserve the supplied values exactly.
+departure destination. David subsequently refined the distances and final
+reduction as recorded below; do not treat the earlier list as unchanged.
+
+### Later October 9 profile refinement — governing change
+
+David explicitly changed the profile:
+
+> Each value is decreased 10 PWM steps over the MM interval. I am making a
+> change here. 50 to 30 is one PWM per spoke interval, 30 to 20 (and then to
+> zero) divided over half the interval.
+
+The initial reductions are therefore spread across MM intervals:
+**90 → 80 → 70 → 60 → 50**, with each ten-PWM decrease spanning an MM interval.
+This replaces treating the list solely as abrupt PWM assignments at markers.
+The final reduction now explicitly includes **50 → 30 → 20 → 0**; it must
+not silently retain the earlier direct 50-to-20 description.
+
+The following interpretation questions have been returned to David before
+implementing the changed motor behavior:
+
+1. Whether the repeated 50 values still represent a level PWM-50 section,
+   and the length of that section in MM intervals.
+2. Whether 50-to-30 means one PWM decrement per measured IR spoke interval,
+   for twenty spoke intervals in total.
+3. Which interval the final “half” refers to; whether 30-to-20 and 20-to-zero
+   share that half or each occupy one; and zero's placement relative to the
+   chosen midpoint target.
+
+The existing time-based actuator ramp must still finish an already-commanded
+stop without further IR arrivals. This refinement does not authorize invented
+travel, a second navigation estimate, or replacing measured distance with time.
 
 The code commission remains a single-locomotive generic STOP demonstration.
 It does not authorize CTO/CE algorithms, deployment, or a new safety cap.
