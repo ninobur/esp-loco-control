@@ -1,7 +1,9 @@
 # NAVI_EWO_0_1_CRUISE_BASE — ordinary cruise with geographic grades
 
 **Current candidate, October 9, 2026:** based on stationless `c7c21163`.
-Ordinary AUTO cruise is PWM 60; David explicitly retained the existing
+Ordinary AUTO cruise is PWM 90 after David's final correction; PWM 50 is
+in-station speed for the subsequent overlay. The unflashed PWM-60 candidate
+is superseded. David explicitly retained the existing
 geographic grade settings and transitions. The existing actuator ramps and
 operator/navigation protections remain. There is no station service or STOP
 overlay in this increment.

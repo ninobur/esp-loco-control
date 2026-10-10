@@ -1,5 +1,7 @@
 /* EWO integrated working-sketch candidate. NOT FIELD ACCEPTED.
- * 2026-10-09: cruise-only base PWM 60, retaining established geographic grades.
+ * 2026-10-09: ordinary cruise restored to PWM 90 by David's correction;
+ * PWM 50 is in-station speed. Established geographic grades are retained.
+ * Supersedes the unflashed PWM-60 base candidate (01d6298).
  * Stationless starting point: c7c21163; STOP overlay is the next increment.
  * Authority: October 9 primary guide plus David's later grade-retention ruling.
  * Type-6 pulse evidence is observation-only; Type-5 navigation/wire unchanged.
@@ -49,7 +51,7 @@ using namespace navi_eyes;
 
 static constexpr char SKETCH_NAME[] = "NAVI_EWO_0_1_CRUISE_BASE";
 static constexpr char BUILD_CLASS[] = "INTEGRATION_CANDIDATE_NOT_FIELD_ACCEPTED";
-static constexpr uint8_t NAVI_BASE_CRUISE_PWM = 60;
+static constexpr uint8_t NAVI_BASE_CRUISE_PWM = 90;
 static constexpr uint8_t HALL_PIN = 33;
 static constexpr uint8_t I2C_SDA = 21, I2C_SCL = 22;
 static constexpr uint16_t AUTO_STEP_UP_MS = 62, AUTO_STEP_DOWN_MS = 31;
@@ -672,7 +674,7 @@ static void serviceAutoCruise() {
     return;
   }
 
-  // Ordinary cruise is 60; retain the established location/direction-dependent
+  // Ordinary cruise is 90; retain the established location/direction-dependent
   // grade settings (David, 2026-10-09). They describe real track conditions.
   // This base has no station service; future authorized overlays select their
   // instruction before the one actuator request.

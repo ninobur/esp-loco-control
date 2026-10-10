@@ -53,8 +53,9 @@ or a successful build.
 **2026-10-09 NAVI cruise base — current integrated candidate:**
 `programs/NAVI_EYES_WIDE_OPEN_INTEGRATED/NAVI_EYES_WIDE_OPEN_INTEGRATED.ino`
 identifies as **NAVI_EWO_0_1_CRUISE_BASE**. Stationless source `c7c21163` with
-ordinary cruise PWM 60 and the established geographic grade settings retained
-at David's explicit instruction. Existing ramps, navigation, operator controls
+ordinary cruise PWM 90 and the established geographic grade settings retained
+at David's explicit instruction. His final correction supersedes the unflashed
+PWM-60 candidate; PWM 50 is the in-station setting for subsequent overlay work. Existing ramps, navigation, operator controls
 and wire contracts are unchanged. The universal STOP overlay is pending.
 **Built for Otto 9950011 / ESP32 core 3.3.12; host-tested; awaiting independent
 review and track validation. NOT flashed, merged, or field accepted.**

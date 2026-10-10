@@ -157,13 +157,13 @@ int main() {
   // grade boundaries, and every point of the existing CW grade transition.
   struct Case { uint8_t mm; int8_t direction; uint8_t pwm; };
   const Case cases[] = {
-    {0,1,60}, {15,1,60}, {45,1,60}, {63,1,60}, {64,1,60},
+    {0,1,90}, {15,1,90}, {45,1,90}, {63,1,90}, {64,1,90},
     {65,1,110}, {79,1,110}, {80,1,106}, {81,1,102}, {82,1,98},
-    {83,1,94}, {84,1,90}, {85,1,60}, {108,1,60}, {157,1,60}, {170,1,60},
-    {170,-1,60}, {157,-1,60}, {108,-1,60}, {85,-1,60}, {79,-1,60},
-    {65,-1,60}, {63,-1,60}, {46,-1,60}, {34,-1,60}, {33,-1,105},
-    {29,-1,105}, {26,-1,105}, {25,-1,60}, {15,-1,60}, {0,-1,60},
-    {26,1,60}, {33,1,60}
+    {83,1,94}, {84,1,90}, {85,1,90}, {108,1,90}, {157,1,90}, {170,1,90},
+    {170,-1,90}, {157,-1,90}, {108,-1,90}, {85,-1,90}, {79,-1,90},
+    {65,-1,90}, {63,-1,90}, {46,-1,90}, {34,-1,90}, {33,-1,105},
+    {29,-1,105}, {26,-1,105}, {25,-1,90}, {15,-1,90}, {0,-1,90},
+    {26,1,90}, {33,1,90}
   };
   for (const auto& c : cases) {
     navi.declare(c.mm, c.direction, ++clockMs * 1000ULL);
@@ -180,22 +180,22 @@ int main() {
     assert(requests == before); // cruise cannot keep restarting the ramp
   }
   navi.declare(45, 1, ++clockMs * 1000ULL);
-  actualPwm = 90; rampTarget = commandedPwm = 90;
-  serviceAutoCruise(); assert(actualPwm == 90 && rampTarget == 60);
-  for (int expected = 89; expected >= 60; --expected) {
+  actualPwm = 105; rampTarget = commandedPwm = 105;
+  serviceAutoCruise(); assert(actualPwm == 105 && rampTarget == 90);
+  for (int expected = 104; expected >= 90; --expected) {
     clockMs += AUTO_STEP_DOWN_MS; serviceRamp(); assert(actualPwm == expected);
   }
   autoRunning = false; requestPwm(0, 0, AUTO_STEP_DOWN_MS);
   serviceAutoCruise(); assert(rampTarget == 0); // manual STOP persists
   autoEnrolled = false; requestPwm(200, MANUAL_STEP_UP_MS, 0, true);
   serviceAutoCruise(); assert(rampTarget == 200); // manual full range persists
-  estopAsserted = true; actualPwm = 60; autoRunning = true;
+  estopAsserted = true; actualPwm = 90; autoRunning = true;
   serviceRamp();
   assert(!autoRunning && actualPwm == 0 && rampTarget == 0 && physicalPwm == 0);
   estopAsserted = estopped = false;
-  actualPwm = 60; requestPwm(60, AUTO_STEP_UP_MS, AUTO_STEP_DOWN_MS);
+  actualPwm = 90; requestPwm(90, AUTO_STEP_UP_MS, AUTO_STEP_DOWN_MS);
   lowVoltage = true; clockMs += AUTO_STEP_DOWN_MS; serviceRamp();
-  assert(rampTarget == 0 && commandedPwm == 0 && actualPwm == 59);
+  assert(rampTarget == 0 && commandedPwm == 0 && actualPwm == 89);
 }
 '''
         path = self.root/'actual_cruise_base.cpp'
