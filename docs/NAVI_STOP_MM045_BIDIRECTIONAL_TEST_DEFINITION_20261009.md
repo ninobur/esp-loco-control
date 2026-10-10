@@ -123,18 +123,48 @@ segment**, followed by **a simple ramp in the last MM**. He also clarified that
 | Initial reduction | 90 → 80 → 70 → 60 → 50; each ten-PWM decrease spans one MM interval |
 | In-station-speed section | Five full MM sections held at PWM 50 |
 | Penultimate MM segment | Reduce evenly from PWM 50 to 30 over the whole segment |
-| Final MM segment | A simple ramp from 30 toward zero; exact use of the half-MM remains under clarification |
+| Final MM segment | Nominal 30 → 20 over its first half; 20 → 0 over its second half. Execute a continuous time-based ramp to zero, as clarified below. |
 
 The penultimate-segment instruction **supersedes the earlier one-PWM-per-spoke
 rule**. The earlier quote remains above as historical evidence; it must not
 remain a competing instruction.
 
-David requested a revised final question. The remaining distinction is whether
-the whole **30 → 20 → 0** ramp occupies the first half of the final MM segment
-(nominal zero at the chosen midpoint target), or **30 → 20** occupies its first
-half and **20 → 0** its second half. The second interpretation would require
-reconciling nominal zero placement with the fixed bidirectional target; no
-relocation or new stop-completion gate has been adopted.
+David answered the revised final question: **“30→20 first half; 20→0 second
+half.”** He then explicitly approved **“Yes: continuous ramp; halfway 20 is an
+aim”** when asked whether the existing time-based actuator should continue to
+zero independently of further spoke pulses. Therefore the PWM-20 halfway
+assignment is a geographic calibration aim, **not a position gate**. No speed
+feedback controller is added to force the timed ramp to match that position.
+
+Keep the same physical midpoint target and project the whole final MM backward
+from it. In the MM045 trial's 300-mm intervals:
+
+| Direction | Nominal PWM 30 / final ramp starts | PWM 20 calibration aim | Nominal zero / stop aim |
+|---|---|---|---|
+| CW | Midpoint MM044–MM045 | MM045 | Midpoint MM045–MM046 |
+| CCW | Midpoint MM046–MM047 | MM046 | Midpoint MM045–MM046 |
+
+All earlier profile sections are projected backward from that same target in
+the selected direction. The complete footprint is eleven MM sections: four
+initial reductions, five at 50, one penultimate reduction, and one final ramp.
+It is not necessary to align the translated section boundaries with magnets.
+Actual zero-PWM position may differ; record the error without repositioning.
+
+**Startup versus entry within an established run — resolved:** David approved
+using the current MM instruction immediately and stated: **“Operator declaration
+is location truth. IR provides movement and velocity only until the first MM
+contact.”** He then clarified the scope: **“For start within sequence, the IR is
+accurate for all three, movement, velocity & location, unless it is a new start
+or a reposition, then the startup rule applies.”**
+
+An existing valid NAVI/IR location therefore remains valid when entering the
+sequence or resuming STOP/GO. These operations do not reset the location
+reference or demand a new MM contact. Only a new start or explicit reposition/
+declaration uses the startup rule. The authoritative declared MM supplies its
+current profile instruction immediately; pre-contact IR travel is not promoted
+to an invented exact marker anchor. Telemetry distinguishes `OPERATOR_MM` from
+`HALL_IR`, retaining null fine-coordinate/error fields until a real reference
+exists. This is a precision distinction, not a rejection of declaration truth.
 
 The existing time-based actuator ramp must still finish an already-commanded
 stop without further IR arrivals. This refinement does not authorize invented
@@ -156,8 +186,9 @@ the documentation branch is not the stationless firmware starting branch.
 The [primary guide](NAVI_EWO_0_1_ARCHITECTURAL_NOTE_20261009.md) governs the
 cruise-only base (default PWM 90 with established geographic grade settings
 retained) and universal STOP overlay. The subsequent decisions above settle
-repeatability, trial dwell, and ramped departure to ordinary cruise. The
-geographic profile mapping and instructions across gaps in usable IR position
-still need an explicit record; no invented geographic travel is permitted.
+repeatability, trial dwell, ramped departure, geographic profile, continuous
+final braking, and the startup/established-position distinction. An established
+instruction continues across unavailable fine-position evidence; the approved
+final ramp continues to zero. No invented geographic travel is permitted.
 It does not require resolving CTO/CE algorithms or the whole-service
 overlay proposal before the single-stop demonstration.

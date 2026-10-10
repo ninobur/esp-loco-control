@@ -33,14 +33,21 @@ requirements are **temporary overlays**. NAVI has **one active PWM-authority
 overlay at a time**, selected by priority, with geographic collision prevention
 highest. A universal arbitrary-destination STOP overlay is developed **before**
 Four-Station Local. Its geographic PWM ramp is resolved at IR-pulse positions,
-using creep PWM **50** and a final approach toward PWM **20** at the target;
+using the subsequently clarified eleven-MM profile: four reductions from 90
+to 50, five MM sections at 50, one MM from 50 to 30, then a continuous timed
+ramp to zero. Nominal 30→20 and 20→0 occupy the final MM's two halves, with
+halfway 20 a calibration aim rather than a position gate;
 stop accuracy is measured, not an execution gate. For timed service,
 completion requires **elapsed dwell and concurrently applied PWM=0**. The old
 Station +1-MM moving-clock trigger and base station-stop tiles are superseded.
 After release, ramp up independently of actual stop location; follow the
 next valid geographic tile instruction. See the mandatory primary guide
 §§4–5, 8, 13–14. Lower priority, overlay-consumption representation and
-early-stop actuator progression to PWM zero remain explicitly undecided.
+broader preemption semantics remain outside this single-stop trial. The
+[MM045 trial definition](NAVI_STOP_MM045_BIDIRECTIONAL_TEST_DEFINITION_20261009.md)
+records the settled repeating stop, five-second zero-PWM dwell, restart to 90,
+and preservation of established IR location on entry/resume. Startup rules
+apply only to a new start or reposition.
 
 No firmware, merge, flash, or two-train activation is authorized by this index.
 

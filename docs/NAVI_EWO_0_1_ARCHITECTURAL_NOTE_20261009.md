@@ -105,13 +105,21 @@ The same location and physical circumstances should produce the same operating r
 over each MM interval down to 50, **five full MM sections held at 50**, then
 **50-to-30 evenly over the penultimate MM segment**, followed by a simple
 ramp in the final MM. This supersedes his intervening one-PWM-per-spoke rule.
-“Half the interval” means half an MM segment; how the final ramp occupies that
-half remains under clarification. His instructions and revised final question
-are preserved in the
+The nominal final profile is **30→20 over its first half, 20→0 over its second**.
+David expressly approved a **continuous time-based final ramp**: PWM 20 at the
+halfway point is a calibration aim, not a position gate. Project the full
+sequence backward from the unchanged physical target. His instructions and
+the resolved startup-versus-established-position rule are preserved in the
 [MM045 trial definition](NAVI_STOP_MM045_BIDIRECTIONAL_TEST_DEFINITION_20261009.md#later-october-9-profile-refinement--governing-change).
 That refinement supersedes the earlier profile description in this guide
 where they conflict, including the earlier direct 50-to-20 final reduction.
-Do not infer the unresolved spacing or target placement from the older text.
+Use that settled profile and target projection rather than conflicting older text.
+
+**Entry is not startup:** when a valid NAVI/IR location already exists, retain
+it on entry within the sequence and across STOP/GO. Only a new start or
+reposition uses operator declaration as initial location truth, with IR
+providing movement/velocity until the first MM contact establishes the fine
+reference. No new start-marker admission rule is created by the STOP overlay.
 
 **STOP sequence** is the name of the universal stopping maneuver. Every stop
 is geographic; no geographic qualifier is necessary. Unlike the legacy
