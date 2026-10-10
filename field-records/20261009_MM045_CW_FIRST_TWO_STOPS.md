@@ -109,3 +109,14 @@ follow the power cycle, IR-car replacement and location redeclaration. That
 redeclaration supplies a new location starting point; it does not independently
 validate optical acquisition or IR distance after replacement. Possible changes
 to IR-car placement/alignment remain hypotheses, not a confirmed cause of drift.
+
+## Later CW trial — reported 20-marker loss
+
+After reporting a CW start at040–041, landings in044–045 and a second measured
+landing at044.5 with dashboard044, David later reported: “OTTO lost20 MM this
+round.” Preserve this as an operator-reported20-marker location discrepancy;
+no paired physical/dashboard coordinates or exact timestamp accompanied this
+latest statement. Do not infer its exact lap boundary or assign it to the new
+50→35 profile. That profile was committed as0fdc6c9 for a subsequent bench
+reflash; the running image is not independently identified by a Git revision.
+The report shows the accumulating location discrepancy remains unresolved.
