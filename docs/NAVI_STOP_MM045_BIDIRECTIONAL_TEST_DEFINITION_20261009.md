@@ -61,7 +61,8 @@ whose MM045–MM046 interval is 300 mm. Recheck the live source before coding;
 the documentation branch is not the stationless firmware starting branch.
 
 The [primary guide](NAVI_EWO_0_1_ARCHITECTURAL_NOTE_20261009.md) governs the
-cruise-only PWM 60 base and universal STOP overlay. This target choice does not
+cruise-only base (default PWM 60 with established geographic grade settings
+retained) and universal STOP overlay. This target choice does not
 settle its remaining implementation questions about execution-progress lifetime,
 departure handoff, or geographic instructions across gaps in usable IR position.
 The initial approach distances and test dwell must be explicit in the coding

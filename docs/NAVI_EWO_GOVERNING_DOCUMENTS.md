@@ -25,7 +25,8 @@ monotonic PWM reduction in deceleration; continuous homeostasis, adaptive glide
 control, and ticker-tape recording/playback requirements are superseded.
 IR recovery restores applicable evidence, not the superseded speed controllers.
 **Further October 9 governing update (primary guide):** ordinary base tiles
-assign cruise PWM **60**; station stopping and all exceptional operating
+assign default cruise PWM **60**, retaining established geographic grade
+settings and transitions under David's later October 9 correction; station stopping and exceptional service
 requirements are **temporary overlays**. NAVI has **one active PWM-authority
 overlay at a time**, selected by priority, with geographic collision prevention
 highest. A universal arbitrary-destination STOP overlay is developed **before**
@@ -196,6 +197,7 @@ conflicting assumptions are superseded for NAVI_EWO as follows.
 
 | Older assumption | Now | By |
 |---|---|---|
+| Default PWM 60 removes geographic grade compensation | Superseded. David explicitly retained the established location/direction-dependent grade values and transitions; 60 is ordinary cruise elsewhere | Primary guide §1 correction, §§6/8/13 |
 | CTO means independent operation plus collision avoidance; CE is a peer mode or single-locomotive express | Superseded/rejected. CTO is the negotiated two-train bubble; CE is its temporary coordinated role-reversal sequence, returning to ordinary CTO. Normal Operations can use collision protection independently | Primary guide §§8–9; October 9 CTO/CE decision note |
 | A local PWM overlay defines the shared operating relationship; a traffic stop discharges platform service | Superseded/rejected. One PWM overlay per locomotive executes its instructions; shared coordination is distinct. The follower still owes its platform stop after the traffic hold | Primary guide §§8–9; October 9 CTO/CE decision note |
 | Earlier NAVI architectural documents can govern a conflicting future revision | Mandatory primary guide governs all future NAVI revisions; compatible earlier decisions survive | Primary guide, governing-authority provision; AGENTS.md |

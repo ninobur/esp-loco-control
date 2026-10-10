@@ -64,7 +64,9 @@ Otto can negotiate a shared operating relationship while each NAVI executes
 its own resulting geographic instruction through its own single active overlay.
 The local overlay invariant neither prohibits nor substitutes for cooperation.
 
-The common base is **ordinary cruise only, initially PWM 60**. The portable
+The common base is **ordinary cruise only, default PWM 60 with the established
+geographic grade settings retained** (David's later October 9 correction in
+the primary guide §1). The portable
 **STOP sequence** is invoked under an overlay and supplies the physical
 maneuver **DECELERATE → STOP → WAIT → RESTART → ACCELERATE**. The governing
 operation supplies why/where to stop and the applicable waiting/release
