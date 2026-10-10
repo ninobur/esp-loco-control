@@ -50,17 +50,17 @@ or a successful build.
 
 ## Current catalog
 
-**2026-10-09 NAVI cruise base — current integrated candidate:**
+**2026-10-09 NAVI MM045 STOP — current integrated candidate:**
 `programs/NAVI_EYES_WIDE_OPEN_INTEGRATED/NAVI_EYES_WIDE_OPEN_INTEGRATED.ino`
-identifies as **NAVI_EWO_0_1_CRUISE_BASE**. Stationless source `c7c21163` with
-ordinary cruise PWM 90 and the established geographic grade settings retained
-at David's explicit instruction. His final correction supersedes the unflashed
-PWM-60 candidate; PWM 50 is the in-station setting for subsequent overlay work. Existing ramps, navigation, operator controls
-and wire contracts are unchanged. The universal STOP overlay is pending.
-**Built for Otto 9950011 / ESP32 core 3.3.12; host-tested; awaiting independent
-review and track validation. NOT flashed, merged, or field accepted.**
-Controlling guide, provenance, source rollback, changes and validation:
-[cruise-base implementation report](../docs/NAVI_EWO_0_1_CRUISE_BASE_IMPLEMENTATION_20261009.md).
+identifies as **NAVI_EWO_0_1_MM045_STOP**. Stationless source `c7c21163`, ordinary
+cruise PWM 90 with geographic grades retained, plus the portable repeating STOP
+profile: five MM sections at 50, continuous final ramp to zero, five-second dwell,
+and ramped restart. Both directions target the midpoint MM045–MM046. Established
+IR location is retained on entry/resume; startup rules apply only to new starts
+or repositioning. No station service or CTO/CE implementation is implied.
+**Host-tested; built for Otto 9950011 / ESP32 core 3.3.12; independent review and
+track calibration pending. NOT flashed, merged, or field accepted.**
+[Implementation report, governing guide, rollback, and validation](../docs/NAVI_MM045_STOP_IMPLEMENTATION_20261009.md).
 The older integrated-sketch entries below remain historical evidence, not
 current build identities or proof of this candidate's field performance.
 

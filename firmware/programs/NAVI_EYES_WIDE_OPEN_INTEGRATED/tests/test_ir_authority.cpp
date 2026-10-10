@@ -1,4 +1,4 @@
-#include "../NaviIntegratedCore.h"
+#include "../NaviStopOverlay.h"
 #include <cassert>
 #include <cstdio>
 
@@ -44,6 +44,63 @@ static void absentSupport(NaviIntegratedCore& n, uint64_t afterUs) {
 }
 
 int main() {
+  // Reading a physical offset must not turn an interval declaration into an
+  // exact marker observation, even when the operator reverses immediately.
+  NaviIntegratedCore position;
+  const int32_t stopTarget = stopMarkerUm(2) + 150000;
+  assert(!stopView(position, stopTarget, 0).available);
+  int64_t offset = 123;
+  assert(!position.physicalOffsetUm(0, offset) && offset == 123);
+  boot(position);
+  position.declare(0, 1, 500000);
+  assert(!position.physicalOffsetUm(500000, offset));
+  auto view = stopView(position, stopTarget, 500000);
+  assert(view.available && !view.fine); // Declaration is authoritative at startup.
+  position.reverse(-1, 510000);
+  assert(!position.physicalOffsetUm(510000, offset));
+  position.declare(0, 1, 520000);
+  absentSupport(position, 520000);
+  position.observeIr(ir(6, 340), 610000, 40);
+  field(position, 50, 620000, 1);
+  assert(position.mm() == 1 && position.confirmedCount() == 1);
+  assert(position.physicalOffsetUm(625000, offset) && offset == 0);
+  view = stopView(position, stopTarget, 625000);
+  assert(view.available && view.fine && view.positionUm == stopMarkerUm(1));
+  position.observeIr(ir(7, 540), 710000, 40);
+  const int64_t outward = int64_t(ir(7, 540).nominalUm - ir(6, 340).nominalUm);
+  assert(position.physicalOffsetUm(710000, offset) && offset == outward);
+  view = stopView(position, stopTarget, 710000);
+  assert(view.fine && view.positionUm == stopMarkerUm(1) + outward);
+  // Entering/resuming an operating sequence is not a new start/reposition.
+  NaviStopOverlay withinSequence;
+  withinSequence.command(view.geography, view.available, 1, 90, 40, 40, 710, true);
+  withinSequence.command(view.geography, view.available, 1, 90, 0, 0, 711, false);
+  withinSequence.command(view.geography, view.available, 1, 90, 0, 0, 712, true);
+  assert(stopView(position, stopTarget, 712000).fine);
+  assert(stopView(position, stopTarget, 712000).positionUm == view.positionUm);
+  position.reverse(-1, 720000);
+  assert(position.physicalOffsetUm(720000, offset) && offset == -outward);
+  position.observeIr(ir(8, 640), 810000, 40);
+  const int64_t returnTravel = int64_t(ir(8, 640).nominalUm - ir(7, 540).nominalUm);
+  assert(position.physicalOffsetUm(810000, offset) && offset == -outward + returnTravel);
+  position.reverse(1, 820000);
+  assert(position.physicalOffsetUm(820000, offset) && offset == outward - returnTravel);
+  // An unchanged counter at PWM zero retains the physical relationship.
+  position.observeIr(ir(9, 640), 910000, 0);
+  assert(position.physicalOffsetUm(910000, offset) && offset == outward - returnTravel);
+  const uint8_t beforeStale = position.mm();
+  assert(!position.physicalOffsetUm(2000000, offset));
+  assert(!stopView(position, stopTarget, 2000000).available); // No startup fallback after anchoring.
+  assert(position.mm() == beforeStale && position.confirmedCount() == 1);
+  // Actual movement at zero invokes the existing operator-owned recovery rule.
+  position.observeIr(ir(10, 660), 1010000, 0);
+  assert(position.pwmZeroMovementRequiresDeclaration());
+  assert(!position.physicalOffsetUm(1010000, offset));
+  position.declare(1, 1, 1020000);
+  assert(!position.physicalOffsetUm(1020000, offset));
+  view = stopView(position, stopTarget, 1020000);
+  assert(view.available && !view.fine); // Explicit reposition uses startup rule again.
+
   // Otto's MM13->12->11 failure: one sustained Hall field, unchanged IR,
   // repeated observations more than 650 ms apart. No timer can move MM.
   NaviIntegratedCore sustained;
@@ -106,9 +163,12 @@ int main() {
   reverseAfterMiss.observeIr(ir(6, 400), 610000, 40);
   reverseAfterMiss.observeIr(ir(7, 750), 710000, 40);
   assert(reverseAfterMiss.missedCount() == 2 && reverseAfterMiss.mm() == 2);
+  assert(reverseAfterMiss.physicalOffsetUm(710000, offset));
+  const int64_t afterMiss = offset;
   reverseAfterMiss.reverse(-1, 720000);
   assert(reverseAfterMiss.relationshipReliable() &&
          reverseAfterMiss.target().sequence == 2);
+  assert(reverseAfterMiss.physicalOffsetUm(720000, offset) && offset == -afterMiss);
   reverseAfterMiss.observeIr(ir(8, 800), 810000, 40);
   field(reverseAfterMiss, 450, 820000, 2);
   assert(reverseAfterMiss.confirmedCount() == 2 && reverseAfterMiss.mm() == 2);
@@ -120,8 +180,10 @@ int main() {
   reset.observeIr(ir(6, 340), 610000, 40);
   field(reset, 500, 620000, 1);
   assert(reset.mm() == 1);
+  assert(reset.physicalOffsetUm(625000, offset));
   reset.observeIr(ir(1, 0, 43), 710000, 40);  // genuine counter/frame reset
   assert(!reset.relationshipReliable() && reset.positionReliable());
+  assert(!reset.physicalOffsetUm(710000, offset));
   assert(reset.mm() == 1 && reset.target().sequence == 2);
   reset.observeIr(ir(2, 340, 43), 810000, 40);
   field(reset, 600, 820000, 1);

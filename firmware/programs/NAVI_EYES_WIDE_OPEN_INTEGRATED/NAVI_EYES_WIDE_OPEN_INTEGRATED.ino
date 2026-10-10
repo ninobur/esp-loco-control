@@ -1,8 +1,10 @@
 /* EWO integrated working-sketch candidate. NOT FIELD ACCEPTED.
- * 2026-10-09: ordinary cruise restored to PWM 90 by David's correction;
- * PWM 50 is in-station speed. Established geographic grades are retained.
+ * 2026-10-09: repeating portable MM045 STOP overlay, five-second zero-PWM
+ * dwell and restart; ordinary cruise PWM 90 and existing grades retained.
+ * Operator declaration is location truth only at startup/reposition; an
+ * established IR location remains available on sequence entry and STOP/GO.
  * Supersedes the unflashed PWM-60 base candidate (01d6298).
- * Stationless starting point: c7c21163; STOP overlay is the next increment.
+ * Stationless starting point: c7c21163; see the MM045 implementation report.
  * Authority: October 9 primary guide plus David's later grade-retention ruling.
  * Type-6 pulse evidence is observation-only; Type-5 navigation/wire unchanged.
  * Spec: docs/NAVI_PULSE_EVENT_PHYSICAL_SPEED_OBSERVATION_20261006.md.
@@ -37,6 +39,7 @@
 #include "../NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_HEALTH/Ops.h"
 #include "../NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_HEALTH/RouteMap.h"
 #include "NaviIntegratedCore.h"
+#include "NaviStopOverlay.h"
 #include "NaviEstop.h"
 #include "NaviCompatibility.h"
 #include "NaviPulseTelemetry.h"
@@ -49,7 +52,7 @@ static portMUX_TYPE recorderMux = portMUX_INITIALIZER_UNLOCKED;
 using namespace navi_one;
 using namespace navi_eyes;
 
-static constexpr char SKETCH_NAME[] = "NAVI_EWO_0_1_CRUISE_BASE";
+static constexpr char SKETCH_NAME[] = "NAVI_EWO_0_1_MM045_STOP";
 static constexpr char BUILD_CLASS[] = "INTEGRATION_CANDIDATE_NOT_FIELD_ACCEPTED";
 static constexpr uint8_t NAVI_BASE_CRUISE_PWM = 90;
 static constexpr uint8_t HALL_PIN = 33;
@@ -76,6 +79,7 @@ struct PubMsg { char topic[72]; char payload[1200]; bool retain; };
 struct CmdMsg { char topic[72]; char payload[64]; uint64_t order; uint64_t receivedUs; };
 
 static NaviIntegratedCore navi;
+static NaviStopOverlay stopOverlay;
 // The recorder owns large fixed native Hall/IR/NAVI rings. Keep the pointer
 // small in internal DRAM so ESP-IDF can create the Arduino app task; allocate
 // the unchanged recorder after setup() begins.
@@ -491,6 +495,7 @@ static void declarePosition(uint8_t mm, int8_t direction, const char* interval) 
   recordInput(navi_sync::InputKind::Declaration, now, activeCommandReceivedUs, mm,
               actualPwm, commandedPwm, direction);
   navi.declare(mm, direction, now);
+  stopOverlay.reset();  // Explicit declaration/reposition starts a new operation.
   warnSticky = false; pub("state/warning", "", true);
   char value[20]; snprintf(value, sizeof(value), "%u", mm);
   pub("state/start_mm", value, true);
@@ -667,8 +672,56 @@ static void serviceBattery() {
   snprintf(text, sizeof(text), "%.2f", double(busW)); pub("telem/power", text, true);
 }
 
+static void recordStop(const StopView& view, const StopCommand& command,
+                       uint64_t nowUs, int32_t targetUm) {
+  static uint32_t previousKey = UINT32_MAX, lastMs = 0;
+  const uint32_t nowMs = uint32_t(nowUs / 1000);
+  const uint32_t key = uint32_t(view.geography.pwm) |
+      (uint32_t(view.geography.section) << 8) | (uint32_t(command.execution) << 11) |
+      (uint32_t(view.available) << 14) | (uint32_t(view.fine) << 15) |
+      (uint32_t(autoRunning) << 16) | (uint32_t(navi.direction() > 0) << 17) |
+      (uint32_t(command.overlay) << 18);
+  if (key == previousKey && !command.releasedNow &&
+      (!command.overlay || uint32_t(nowMs - lastMs) < 1000)) return;
+  previousKey = key; lastMs = nowMs;
+  char position[24] = "null", error[24] = "null", speed[24] = "null", aim[8] = "null";
+  if (view.available) snprintf(aim, sizeof(aim), "%u", unsigned(view.geography.pwm));
+  if (view.fine) {
+    snprintf(position, sizeof(position), "%ld", (long)view.positionUm);
+    snprintf(error, sizeof(error), "%ld", (long)view.errorUm);
+  }
+  if (navi.irSpeedAvailable(nowUs))
+    snprintf(speed, sizeof(speed), "%.2f", navi.irSpeedMmS());
+  static const char* sections[] = {"OUTSIDE", "APPROACH", "FIFTY", "PENULTIMATE", "FINAL"};
+  static const char* executions[] = {"GEOGRAPHIC", "BRAKING", "DWELL", "RELEASED"};
+  char payload[640];
+  snprintf(payload, sizeof(payload),
+      "{\"time_us\":%llu,\"mm\":%u,\"dir\":%d,\"source\":\"%s\","
+      "\"target_um\":%ld,\"position_um\":%s,\"error_um\":%s,\"ir_mmps\":%s,"
+      "\"section\":\"%s\",\"execution\":\"%s\",\"aim_pwm\":%s,"
+      "\"commanded_pwm\":%u,\"applied_pwm\":%d,\"auto_running\":%u,"
+      "\"overlay\":%u,\"release\":\"%s\"}",
+      (unsigned long long)nowUs, unsigned(navi.mm()), int(navi.direction()),
+      view.fine ? "HALL_IR" : view.available ? "OPERATOR_MM" : "UNAVAILABLE",
+      (long)targetUm, position, error, speed,
+      view.available ? sections[unsigned(view.geography.section)] : "UNAVAILABLE",
+      executions[unsigned(command.execution)], aim,
+      unsigned(command.pwm), actualPwm, unsigned(autoRunning), unsigned(command.overlay),
+      command.releasedNow ? "DWELL_5S_PWM_ZERO" : "NONE");
+  pub("telem/stop", payload);
+}
+
 static void serviceAutoCruise() {
-  if (!autoRunning) return;
+  const uint64_t nowUs = esp_timer_get_time();
+  const uint32_t nowMs = millis();
+  static const int32_t targetUm = stopMarkerUm(45) + 150000;
+  if (!autoRunning) {
+    const StopView view = stopView(navi, targetUm, nowUs);
+    const StopCommand command = stopOverlay.command(view.geography, view.available,
+        navi.direction(), NAVI_BASE_CRUISE_PWM, actualPwm, rampTarget, nowMs, false);
+    recordStop(view, command, nowUs, targetUm);
+    return;  // Observe execution progress, never command the motor under Manual.
+  }
   if (!navi.declared() || !navi.positionReliable()) {
     withdraw("Position relationship unreliable; AUTO withdrawn. Manual available.");
     return;
@@ -676,11 +729,14 @@ static void serviceAutoCruise() {
 
   // Ordinary cruise is 90; retain the established location/direction-dependent
   // grade settings (David, 2026-10-09). They describe real track conditions.
-  // This base has no station service; future authorized overlays select their
-  // instruction before the one actuator request.
+  // Select one active overlay instruction before the single actuator request.
   const uint8_t cruise = cruisePwmAt(navi.mm(), navi.direction(), NAVI_BASE_CRUISE_PWM);
-  if (rampTarget != cruise)
-    requestPwm(cruise, AUTO_STEP_UP_MS, AUTO_STEP_DOWN_MS);
+  const StopView view = stopView(navi, targetUm, nowUs);
+  const StopCommand command = stopOverlay.command(view.geography, view.available,
+      navi.direction(), cruise, actualPwm, rampTarget, nowMs, true);
+  if (rampTarget != command.pwm)
+    requestPwm(command.pwm, AUTO_STEP_UP_MS, AUTO_STEP_DOWN_MS);
+  recordStop(view, command, nowUs, targetUm);
 }
 
 static bool syncSend(const void* bytes, size_t length) {

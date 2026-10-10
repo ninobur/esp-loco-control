@@ -2,7 +2,11 @@
 
 **Date:** October 9, 2026
 
-**Status:** Built for Otto 9950011, host-tested; awaiting independent review and
+**Historical increment:** the current candidate is documented in
+[the MM045 STOP implementation report](NAVI_MM045_STOP_IMPLEMENTATION_20261009.md).
+The text below records the earlier cruise-only increment and its then-pending work.
+
+**Status at that increment:** Built for Otto 9950011, host-tested; awaiting independent review and
 field validation. Not flashed, merged, or field accepted. The universal STOP
 overlay is the next increment and is not implemented by this change.
 

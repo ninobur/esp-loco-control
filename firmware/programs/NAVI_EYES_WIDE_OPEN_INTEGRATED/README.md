@@ -1,16 +1,19 @@
-# NAVI_EWO_0_1_CRUISE_BASE — ordinary cruise with geographic grades
+# NAVI_EWO_0_1_MM045_STOP — repeating bidirectional STOP trial
 
-**Current candidate, October 9, 2026:** based on stationless `c7c21163`.
-Ordinary AUTO cruise is PWM 90 after David's final correction; PWM 50 is
-in-station speed for the subsequent overlay. The unflashed PWM-60 candidate
-is superseded. David explicitly retained the existing
-geographic grade settings and transitions. The existing actuator ramps and
-operator/navigation protections remain. There is no station service or STOP
-overlay in this increment.
+**Current candidate, October 9, 2026:** stationless source `c7c21163`, ordinary
+cruise PWM 90 and existing geographic grades, plus the standard eleven-MM STOP
+profile aimed at the midpoint of MM045–MM046 from either direction. Five MM
+sections remain at 50. The final ramp continues to zero without more IR pulses;
+five seconds at zero releases back to cruise through the existing ramp. Repeat
+on subsequent circuits. Existing IR location remains valid on entry/resume;
+only a new start/reposition uses declaration truth until the first MM contact.
 
-**Built for Otto 9950011 and host-tested; awaiting independent review and track
-validation. Not flashed, merged, or field accepted.** See the
-[implementation report and governing guide reference](../../../docs/NAVI_EWO_0_1_CRUISE_BASE_IMPLEMENTATION_20261009.md).
+**Host-tested and built for Otto 9950011; awaiting independent review and track
+calibration. Not flashed, merged, or field accepted.** See the
+[implementation report, authority, and validation](../../../docs/NAVI_MM045_STOP_IMPLEMENTATION_20261009.md).
+The earlier [cruise-base increment](../../../docs/NAVI_EWO_0_1_CRUISE_BASE_IMPLEMENTATION_20261009.md)
+is retained as history. Existing AUTO/GO operates this candidate's repeating
+trial; no new console control or server change is required.
 
 ## Historical R2_FT2 adaptive station-brake description
 

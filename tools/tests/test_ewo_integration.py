@@ -115,19 +115,24 @@ class EwoIntegration(unittest.TestCase):
         functions = [re.search(r'^static (?:void|uint16_t) ' + name +
                               r'\([^)]*\) \{.*?^\}', source, re.M | re.S).group()
                      for name in ('brakeStepMs', 'requestPwm', 'serviceRamp',
-                                  'withdraw', 'serviceAutoCruise')]
+                                  'withdraw', 'recordStop', 'serviceAutoCruise')]
         constants = [re.search(r'^static constexpr uint(?:8|16)_t ' + name +
                               r'[^\n]*;', source, re.M).group()
                      for name in ('NAVI_BASE_CRUISE_PWM', 'AUTO_STEP_UP_MS',
                                   'MANUAL_STEP_UP_MS', 'BRAKE_STEP_COAST_MS')]
-        cpp = '#include "' + str(TESTS.parent/'NaviIntegratedCore.h') + '"\n'
+        cpp = '#include "' + str(TESTS.parent/'NaviStopOverlay.h') + '"\n'
         cpp += r'''
 #include <cassert>
 #include <algorithm>
+#include <cstdio>
+#include <cstring>
+#include <string>
 using namespace navi_one;
 using namespace navi_eyes;
 namespace navi_sync { enum class ActionKind { RequestedPwm }; }
 static NaviIntegratedCore navi;
+static NaviStopOverlay stopOverlay;
+static std::string lastStopJson;
 static bool autoEnrolled = false, autoRunning = false, estopped = false;
 static bool estopAsserted = false, lowVoltage = false;
 static int actualPwm = 0, commandedPwm = 0, rampTarget = 0;
@@ -139,10 +144,13 @@ static constexpr int NAVI_MAX_OPERATING_PWM = 110;
 static constexpr int MOTOR_DIR_PIN = 2, HIGH = 1, LOW = 0;
 static int constrain(int n, int lo, int hi) { return std::min(hi, std::max(lo, n)); }
 static uint32_t millis() { return clockMs; }
+static uint64_t esp_timer_get_time() { return uint64_t(clockMs) * 1000; }
 static void digitalWrite(int, int) {}
 static void writePwm(int value) { assert(value >= 0 && value <= 255); physicalPwm = value; }
 static void recordAction(navi_sync::ActionKind) { ++requests; }
-static void pub(const char*, const char*, bool) {}
+static void pub(const char* topic, const char* payload, bool = false) {
+  if (!std::strcmp(topic, "telem/stop")) lastStopJson = payload;
+}
 static void warn(const char*, bool) {}
 '''
         cpp += '\n'.join(constants + functions)
@@ -157,11 +165,11 @@ int main() {
   // grade boundaries, and every point of the existing CW grade transition.
   struct Case { uint8_t mm; int8_t direction; uint8_t pwm; };
   const Case cases[] = {
-    {0,1,90}, {15,1,90}, {45,1,90}, {63,1,90}, {64,1,90},
+    {0,1,90}, {15,1,90}, {10,1,90}, {63,1,90}, {64,1,90},
     {65,1,110}, {79,1,110}, {80,1,106}, {81,1,102}, {82,1,98},
     {83,1,94}, {84,1,90}, {85,1,90}, {108,1,90}, {157,1,90}, {170,1,90},
     {170,-1,90}, {157,-1,90}, {108,-1,90}, {85,-1,90}, {79,-1,90},
-    {65,-1,90}, {63,-1,90}, {46,-1,90}, {34,-1,90}, {33,-1,105},
+    {65,-1,90}, {63,-1,90}, {60,-1,90}, {34,-1,90}, {33,-1,105},
     {29,-1,105}, {26,-1,105}, {25,-1,90}, {15,-1,90}, {0,-1,90},
     {26,1,90}, {33,1,90}
   };
@@ -179,7 +187,7 @@ int main() {
     }
     assert(requests == before); // cruise cannot keep restarting the ramp
   }
-  navi.declare(45, 1, ++clockMs * 1000ULL);
+  navi.declare(10, 1, ++clockMs * 1000ULL);
   actualPwm = 105; rampTarget = commandedPwm = 105;
   serviceAutoCruise(); assert(actualPwm == 105 && rampTarget == 90);
   for (int expected = 104; expected >= 90; --expected) {
@@ -196,6 +204,31 @@ int main() {
   actualPwm = 90; requestPwm(90, AUTO_STEP_UP_MS, AUTO_STEP_DOWN_MS);
   lowVoltage = true; clockMs += AUTO_STEP_DOWN_MS; serviceRamp();
   assert(rampTarget == 0 && commandedPwm == 0 && actualPwm == 89);
+  lowVoltage = false;
+  // Actual sketch cold entry uses declaration truth immediately: MM040 is
+  // inside the five-MM 50-PWM section, with no first-Hall admission condition.
+  stopOverlay.reset(); navi.declare(40, 1, ++clockMs * 1000ULL);
+  autoEnrolled = autoRunning = true; actualPwm = 0; rampTarget = commandedPwm = 0;
+  serviceAutoCruise(); assert(rampTarget == 50);
+  for (int pwm = 1; pwm <= 50; ++pwm) {
+    clockMs += AUTO_STEP_UP_MS; serviceRamp(); serviceAutoCruise();
+    assert(actualPwm == pwm && rampTarget == 50);
+  }
+  // Final braking uses the actual actuator and finishes without any IR input.
+  stopOverlay.reset(); navi.declare(45, 1, ++clockMs * 1000ULL);
+  actualPwm = 30; rampTarget = commandedPwm = 30;
+  serviceAutoCruise(); assert(rampTarget == 0);
+  for (int pwm = 29; pwm >= 0; --pwm) {
+    clockMs += AUTO_STEP_DOWN_MS; serviceRamp(); serviceAutoCruise();
+    assert(actualPwm == pwm && rampTarget == 0);
+  }
+  clockMs += 4999; serviceAutoCruise(); assert(actualPwm == 0 && rampTarget == 0);
+  ++clockMs; serviceAutoCruise(); assert(actualPwm == 0 && rampTarget == 90);
+  for (int pwm = 1; pwm <= 90; ++pwm) {
+    clockMs += AUTO_STEP_UP_MS; serviceRamp(); serviceAutoCruise();
+    assert(actualPwm == pwm && rampTarget == 90); // Same footprint cannot restop.
+  }
+  std::puts(lastStopJson.c_str());
 }
 '''
         path = self.root/'actual_cruise_base.cpp'
@@ -203,7 +236,14 @@ int main() {
         exe = self.root/'actual_cruise_base'
         subprocess.run(['c++', '-std=c++17', '-Wall', '-Wextra', '-Werror',
                         '-fsanitize=address,undefined', str(path), '-o', str(exe)], check=True)
-        subprocess.run([str(exe)], check=True)
+        result = subprocess.run([str(exe)], check=True, capture_output=True, text=True)
+        stop = json.loads(result.stdout)
+        self.assertEqual(stop['source'], 'OPERATOR_MM')
+        self.assertIsNone(stop['position_um'])
+        self.assertIsNone(stop['error_um'])
+        self.assertEqual(stop['execution'], 'RELEASED')
+        self.assertEqual(stop['commanded_pwm'], 90)
+        self.assertEqual(stop['release'], 'DWELL_5S_PWM_ZERO')
 
     def test_actual_sketch_pwm_zero_auto_withdrawal_and_admission(self):
         source = (TESTS.parent/'NAVI_EYES_WIDE_OPEN_INTEGRATED.ino').read_text()
