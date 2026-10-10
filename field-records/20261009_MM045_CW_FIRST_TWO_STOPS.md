@@ -74,9 +74,12 @@ physical landing difference from the programmed target. The approximate pair
 does not establish an exact per-lap loss or its cause. This follows the two CW
 reports; a separate direction confirmation for this stop was not supplied.
 
-“Did not bother to restart” is preserved without interpreting it as either an
-operator decision or an automatic restart failure. Raw telemetry and the
-running build identity remain unavailable. AUTO was recommended paused.
+David subsequently clarified: “He did not restart automaticaly.” This confirms
+a reported automatic restart failure at the third stop, rather than an operator
+decision to leave Otto stopped. It is recorded separately from the location
+discrepancy; no cause or relationship between the two failures is established.
+Raw telemetry and the running build identity remain unavailable. AUTO was
+recommended paused.
 
 Bounded source inspection found that the STOP overlay does not directly change
 NAVI's marker count. Declaration, Hall confirmation and IR-distance-based
