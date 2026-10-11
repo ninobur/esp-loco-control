@@ -1,4 +1,9 @@
-> Current scoped correction: [IR_VALIDITY_CORRECTION.md](IR_VALIDITY_CORRECTION.md).
+> Latest results: [STOP_HANDOFF_CORRECTION.md](STOP_HANDOFF_CORRECTION.md).
+> This supersedes the historical whole-header equality claim for the read-only
+> STOP adapter and the declaration-only telemetry source label. STOP geometry,
+> execution and actuator remain preserved. Not ready for field deployment.
+>
+> Prior scoped correction: [IR_VALIDITY_CORRECTION.md](IR_VALIDITY_CORRECTION.md).
 > Stale Type-6 authority and timing-only withdrawal are corrected; the full
 > +/-15% window now qualifies encounters. Genuine physical missed-pulse
 > discrimination remains unresolved. **Not ready for field testing.**

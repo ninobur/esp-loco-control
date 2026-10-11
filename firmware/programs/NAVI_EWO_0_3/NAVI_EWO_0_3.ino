@@ -1,5 +1,6 @@
 /* EWO 0.3 restoration candidate from operational 0.1 commit 85a2cf2.
  * 2026-10-11: sequential Hall/DNA integration; Type-6 credibility evidence.
+ * 2026-10-11: STOP consumes accepted NAVI MM when a fine IR offset is unavailable.
  * STOP, actuator, interfaces and 9652 um/pulse retained.
  * See STATUS.md for validation and limitations.
  * EWO integrated working-sketch candidate. NOT FIELD ACCEPTED.
@@ -731,7 +732,8 @@ static void recordStop(const StopView& view, const StopCommand& command,
       "\"commanded_pwm\":%u,\"applied_pwm\":%d,\"auto_running\":%u,"
       "\"overlay\":%u,\"release\":\"%s\"}",
       (unsigned long long)nowUs, unsigned(navi.mm()), int(navi.direction()),
-      view.fine ? "HALL_IR" : view.available ? "OPERATOR_MM" : "UNAVAILABLE",
+      view.fine ? "HALL_IR" : view.available
+          ? (navi.physicalPositionAnchored() ? "NAVI_MM" : "OPERATOR_MM") : "UNAVAILABLE",
       (long)targetUm, position, error, speed,
       view.available ? sections[unsigned(view.geography.section)] : "UNAVAILABLE",
       executions[unsigned(command.execution)], aim,

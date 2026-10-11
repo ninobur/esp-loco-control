@@ -1,0 +1,136 @@
+fine_ir_cw MM034 reliable=1 anchored=1 relationship=1 available=1 fine=1 target=90
+fine_ir_cw MM035 reliable=1 anchored=1 relationship=1 available=1 fine=1 target=85
+fine_ir_cw MM036 reliable=1 anchored=1 relationship=1 available=1 fine=1 target=75
+fine_ir_cw MM037 reliable=1 anchored=1 relationship=1 available=1 fine=1 target=65
+fine_ir_cw MM038 reliable=1 anchored=1 relationship=1 available=1 fine=1 target=55
+fine_ir_cw MM039 reliable=1 anchored=1 relationship=1 available=1 fine=1 target=50
+fine_ir_cw MM040 reliable=1 anchored=1 relationship=1 available=1 fine=1 target=50
+fine_ir_cw MM041 reliable=1 anchored=1 relationship=1 available=1 fine=1 target=50
+fine_ir_cw MM042 reliable=1 anchored=1 relationship=1 available=1 fine=1 target=50
+fine_ir_cw MM043 reliable=1 anchored=1 relationship=1 available=1 fine=1 target=50
+fine_ir_cw MM044 reliable=1 anchored=1 relationship=1 available=1 fine=1 target=50
+fine_ir_cw MM045 reliable=1 anchored=1 relationship=1 available=1 fine=1 target=0
+PASS: final ramp 300 ms/count, applied-zero dwell 5000 ms, restart 150 ms/count
+.FPASS: manual STOP and full-range throttle unaffected at accepted MM045
+.no_ir_ccw MM057 reliable=1 anchored=1 relationship=0 available=0 fine=0 target=90
+no_ir_ccw MM056 reliable=1 anchored=1 relationship=0 available=0 fine=0 target=90
+no_ir_ccw MM055 reliable=1 anchored=1 relationship=0 available=0 fine=0 target=90
+no_ir_ccw MM054 reliable=1 anchored=1 relationship=0 available=0 fine=0 target=90
+no_ir_ccw MM053 reliable=1 anchored=1 relationship=0 available=0 fine=0 target=90
+no_ir_ccw MM052 reliable=1 anchored=1 relationship=0 available=0 fine=0 target=90
+no_ir_ccw MM051 reliable=1 anchored=1 relationship=0 available=0 fine=0 target=90
+no_ir_ccw MM050 reliable=1 anchored=1 relationship=0 available=0 fine=0 target=90
+no_ir_ccw MM049 reliable=1 anchored=1 relationship=0 available=0 fine=0 target=90
+no_ir_ccw MM048 reliable=1 anchored=1 relationship=0 available=0 fine=0 target=90
+no_ir_ccw MM047 reliable=1 anchored=1 relationship=0 available=0 fine=0 target=90
+no_ir_ccw MM046 reliable=1 anchored=1 relationship=0 available=0 fine=0 target=90
+Fno_ir_cw MM034 reliable=1 anchored=1 relationship=0 available=0 fine=0 target=90
+no_ir_cw MM035 reliable=1 anchored=1 relationship=0 available=0 fine=0 target=90
+no_ir_cw MM036 reliable=1 anchored=1 relationship=0 available=0 fine=0 target=90
+no_ir_cw MM037 reliable=1 anchored=1 relationship=0 available=0 fine=0 target=90
+no_ir_cw MM038 reliable=1 anchored=1 relationship=0 available=0 fine=0 target=90
+no_ir_cw MM039 reliable=1 anchored=1 relationship=0 available=0 fine=0 target=90
+no_ir_cw MM040 reliable=1 anchored=1 relationship=0 available=0 fine=0 target=90
+no_ir_cw MM041 reliable=1 anchored=1 relationship=0 available=0 fine=0 target=90
+no_ir_cw MM042 reliable=1 anchored=1 relationship=0 available=0 fine=0 target=90
+no_ir_cw MM043 reliable=1 anchored=1 relationship=0 available=0 fine=0 target=90
+no_ir_cw MM044 reliable=1 anchored=1 relationship=0 available=0 fine=0 target=90
+no_ir_cw MM045 reliable=1 anchored=1 relationship=0 available=0 fine=0 target=90
+FPASS: unqualified samples and pending DNA cannot become STOP geography
+.stale_ir_cw MM034 reliable=1 anchored=1 relationship=0 available=0 fine=0 target=90
+stale_ir_cw MM035 reliable=1 anchored=1 relationship=0 available=0 fine=0 target=90
+stale_ir_cw MM036 reliable=1 anchored=1 relationship=0 available=0 fine=0 target=90
+stale_ir_cw MM037 reliable=1 anchored=1 relationship=0 available=0 fine=0 target=90
+stale_ir_cw MM038 reliable=1 anchored=1 relationship=0 available=0 fine=0 target=90
+stale_ir_cw MM039 reliable=1 anchored=1 relationship=0 available=0 fine=0 target=90
+stale_ir_cw MM040 reliable=1 anchored=1 relationship=0 available=0 fine=0 target=90
+stale_ir_cw MM041 reliable=1 anchored=1 relationship=0 available=0 fine=0 target=90
+stale_ir_cw MM042 reliable=1 anchored=1 relationship=0 available=0 fine=0 target=90
+stale_ir_cw MM043 reliable=1 anchored=1 relationship=0 available=0 fine=0 target=90
+stale_ir_cw MM044 reliable=1 anchored=1 relationship=0 available=0 fine=0 target=90
+stale_ir_cw MM045 reliable=1 anchored=1 relationship=0 available=0 fine=0 target=90
+F
+======================================================================
+FAIL: test_fine_to_accepted_mm (__main__.StopHandoff)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/davidbrown/NGR/NGR-Files/navi-ewo-0-3-stop-integration/firmware/programs/NAVI_EWO_0_3/tests/test_stop_handoff.py", line 64, in test_fine_to_accepted_mm
+    self.run_case('fine_to_mm')
+  File "/Users/davidbrown/NGR/NGR-Files/navi-ewo-0-3-stop-integration/firmware/programs/NAVI_EWO_0_3/tests/test_stop_handoff.py", line 43, in run_case
+    self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+AssertionError: -6 != 0 : Assertion failed: (navi.mm() == 44 && view().available && !view().fine), function fineToMm, file test_stop_handoff.cpp, line 172.
+
+
+======================================================================
+FAIL: test_no_ir_ccw (__main__.StopHandoff)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/davidbrown/NGR/NGR-Files/navi-ewo-0-3-stop-integration/firmware/programs/NAVI_EWO_0_3/tests/test_stop_handoff.py", line 49, in test_no_ir_ccw
+    self.run_case('no_ir_ccw')
+  File "/Users/davidbrown/NGR/NGR-Files/navi-ewo-0-3-stop-integration/firmware/programs/NAVI_EWO_0_3/tests/test_stop_handoff.py", line 43, in run_case
+    self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+AssertionError: -6 != 0 : no_ir_ccw MM057 reliable=1 anchored=1 relationship=0 available=0 fine=0 target=90
+no_ir_ccw MM056 reliable=1 anchored=1 relationship=0 available=0 fine=0 target=90
+no_ir_ccw MM055 reliable=1 anchored=1 relationship=0 available=0 fine=0 target=90
+no_ir_ccw MM054 reliable=1 anchored=1 relationship=0 available=0 fine=0 target=90
+no_ir_ccw MM053 reliable=1 anchored=1 relationship=0 available=0 fine=0 target=90
+no_ir_ccw MM052 reliable=1 anchored=1 relationship=0 available=0 fine=0 target=90
+no_ir_ccw MM051 reliable=1 anchored=1 relationship=0 available=0 fine=0 target=90
+no_ir_ccw MM050 reliable=1 anchored=1 relationship=0 available=0 fine=0 target=90
+no_ir_ccw MM049 reliable=1 anchored=1 relationship=0 available=0 fine=0 target=90
+no_ir_ccw MM048 reliable=1 anchored=1 relationship=0 available=0 fine=0 target=90
+no_ir_ccw MM047 reliable=1 anchored=1 relationship=0 available=0 fine=0 target=90
+no_ir_ccw MM046 reliable=1 anchored=1 relationship=0 available=0 fine=0 target=90
+Assertion failed: (mismatches == 0), function journey, file test_stop_handoff.cpp, line 127.
+
+
+======================================================================
+FAIL: test_no_ir_cw (__main__.StopHandoff)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/davidbrown/NGR/NGR-Files/navi-ewo-0-3-stop-integration/firmware/programs/NAVI_EWO_0_3/tests/test_stop_handoff.py", line 46, in test_no_ir_cw
+    self.run_case('no_ir_cw')
+  File "/Users/davidbrown/NGR/NGR-Files/navi-ewo-0-3-stop-integration/firmware/programs/NAVI_EWO_0_3/tests/test_stop_handoff.py", line 43, in run_case
+    self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+AssertionError: -6 != 0 : no_ir_cw MM034 reliable=1 anchored=1 relationship=0 available=0 fine=0 target=90
+no_ir_cw MM035 reliable=1 anchored=1 relationship=0 available=0 fine=0 target=90
+no_ir_cw MM036 reliable=1 anchored=1 relationship=0 available=0 fine=0 target=90
+no_ir_cw MM037 reliable=1 anchored=1 relationship=0 available=0 fine=0 target=90
+no_ir_cw MM038 reliable=1 anchored=1 relationship=0 available=0 fine=0 target=90
+no_ir_cw MM039 reliable=1 anchored=1 relationship=0 available=0 fine=0 target=90
+no_ir_cw MM040 reliable=1 anchored=1 relationship=0 available=0 fine=0 target=90
+no_ir_cw MM041 reliable=1 anchored=1 relationship=0 available=0 fine=0 target=90
+no_ir_cw MM042 reliable=1 anchored=1 relationship=0 available=0 fine=0 target=90
+no_ir_cw MM043 reliable=1 anchored=1 relationship=0 available=0 fine=0 target=90
+no_ir_cw MM044 reliable=1 anchored=1 relationship=0 available=0 fine=0 target=90
+no_ir_cw MM045 reliable=1 anchored=1 relationship=0 available=0 fine=0 target=90
+Assertion failed: (mismatches == 0), function journey, file test_stop_handoff.cpp, line 127.
+
+
+======================================================================
+FAIL: test_stale_ir_cw (__main__.StopHandoff)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/davidbrown/NGR/NGR-Files/navi-ewo-0-3-stop-integration/firmware/programs/NAVI_EWO_0_3/tests/test_stop_handoff.py", line 52, in test_stale_ir_cw
+    self.run_case('stale_ir_cw')
+  File "/Users/davidbrown/NGR/NGR-Files/navi-ewo-0-3-stop-integration/firmware/programs/NAVI_EWO_0_3/tests/test_stop_handoff.py", line 43, in run_case
+    self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+AssertionError: -6 != 0 : stale_ir_cw MM034 reliable=1 anchored=1 relationship=0 available=0 fine=0 target=90
+stale_ir_cw MM035 reliable=1 anchored=1 relationship=0 available=0 fine=0 target=90
+stale_ir_cw MM036 reliable=1 anchored=1 relationship=0 available=0 fine=0 target=90
+stale_ir_cw MM037 reliable=1 anchored=1 relationship=0 available=0 fine=0 target=90
+stale_ir_cw MM038 reliable=1 anchored=1 relationship=0 available=0 fine=0 target=90
+stale_ir_cw MM039 reliable=1 anchored=1 relationship=0 available=0 fine=0 target=90
+stale_ir_cw MM040 reliable=1 anchored=1 relationship=0 available=0 fine=0 target=90
+stale_ir_cw MM041 reliable=1 anchored=1 relationship=0 available=0 fine=0 target=90
+stale_ir_cw MM042 reliable=1 anchored=1 relationship=0 available=0 fine=0 target=90
+stale_ir_cw MM043 reliable=1 anchored=1 relationship=0 available=0 fine=0 target=90
+stale_ir_cw MM044 reliable=1 anchored=1 relationship=0 available=0 fine=0 target=90
+stale_ir_cw MM045 reliable=1 anchored=1 relationship=0 available=0 fine=0 target=90
+Assertion failed: (mismatches == 0), function journey, file test_stop_handoff.cpp, line 127.
+
+
+----------------------------------------------------------------------
+Ran 7 tests in 2.768s
+
+FAILED (failures=4)

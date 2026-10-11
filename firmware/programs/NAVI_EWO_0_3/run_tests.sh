@@ -17,6 +17,7 @@ python3 "$here/tests/run_unchanged_regressions.py"
 cd "$root"
 python3 -m unittest discover -s tools/tests
 python3 "$here/tests/test_operational_shell.py"
+python3 "$here/tests/test_stop_handoff.py"
 python3 "$here/tests/test_pulse_ingress.py"
 python3 "$here/tests/test_preservation.py"
 python3 "$here/tests/replay_pulses.py"

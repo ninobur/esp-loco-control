@@ -98,13 +98,12 @@ inline StopView stopView(const NaviIntegratedCore& navi, int32_t targetUm,
     const int32_t length = stopCircuitUm();
     out.errorUm = stopRouteMod(int64_t(navi.direction()) *
         (out.positionUm - targetUm) + length / 2, length) - length / 2;
-  } else if (!navi.physicalPositionAnchored()) {
-    // New start/reposition only: the operator declaration is location truth.
-    // IR supplies movement/velocity until the first MM contact, not an exact
-    // physical offset inferred from the time or place of declaration.
-    // Once anchored, IR gaps preserve the last command rather than resetting
-    // the fine instruction to an interval boundary. Entering this overlay or
-    // resuming STOP/GO never resets an established IR location reference.
+  } else {
+    // NAVI's accepted MM remains geographic truth without a fine IR offset,
+    // both after declaration and after a qualified Hall/DNA confirmation.
+    // Expose that interval to STOP without inventing fractional travel or
+    // changing NAVI's established location reference. The guards above retain
+    // NAVI's authority to withhold an unreliable position.
     out.available = true;
     out.geography = stopGeography(int32_t(navi.mm()) * kStopMm,
                                   stopCoordinate(targetUm), navi.direction());

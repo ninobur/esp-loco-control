@@ -1,0 +1,170 @@
+PASS: 0 failures
+PASS: 0 failures
+PASS: 0 failures
+PASS: EWO NSR1 observation and decision records
+PASS: B1/B2, provisional boot reference, frame hold/redeclaration, causal time, cumulative loss
+PASS: stationary field, single/double reversal including missed MM, frame reset/redeclaration, 1s IR speed
+PASS: portable STOP geometry, both directions, cold entry, timed final/dwell, interruption, departure and repeat
+PASS: FT2 first target at 10/106/300/500 mm, onset safety, no first miss, normal second window/miss, polarity, context, reversal
+PASS: PWM-zero movement holds until declaration; no later Hall/IR recovery or miss; dwell, context, frame faults and FT2 preserved
+PASS: fixed Type-5 configuration, raw calibration metadata, real epochs, validity and diagnostic boundaries
+PASS native pulse measurements, source/boot/order/loss recovery, TX interoperability, wrap and wire validation
+PASS: 0 failures
+PASS: test_evidence
+PASS: test_ir
+PASS: test_judgment
+PASS: test_bridge
+PASS: 0.3 integrated navigation acceptance
+PASS: test_navigation
+PASS native pulse measurements, source/boot/order/loss recovery, TX interoperability, wrap and wire validation
+PASS: test_pulse_observation
+PASS: 0 failures
+PASS unchanged 0.1 assertions against 0.3: map_adapter ['-DHALL_POLARITY_INVERTED=true']
+PASS: 0 failures
+PASS unchanged 0.1 assertions against 0.3: map_adapter ['-DHALL_POLARITY_INVERTED=false']
+PASS: EWO NSR1 observation and decision records
+PASS unchanged 0.1 assertions against 0.3: recorder []
+PASS: portable STOP geometry, both directions, cold entry, timed final/dwell, interruption, departure and repeat
+PASS unchanged 0.1 assertions against 0.3: stop_overlay []
+PASS: fixed Type-5 configuration, raw calibration metadata, real epochs, validity and diagnostic boundaries
+PASS unchanged 0.1 assertions against 0.3: ir_configuration []
+..............
+----------------------------------------------------------------------
+Ran 14 tests in 6.625s
+
+OK
+pulse JSON maximum exercised bytes: 826
+......
+----------------------------------------------------------------------
+Ran 6 tests in 4.560s
+
+OK
+fine_ir_cw MM034 reliable=1 anchored=1 relationship=1 available=1 fine=1 target=90
+fine_ir_cw MM035 reliable=1 anchored=1 relationship=1 available=1 fine=1 target=85
+fine_ir_cw MM036 reliable=1 anchored=1 relationship=1 available=1 fine=1 target=75
+fine_ir_cw MM037 reliable=1 anchored=1 relationship=1 available=1 fine=1 target=65
+fine_ir_cw MM038 reliable=1 anchored=1 relationship=1 available=1 fine=1 target=55
+fine_ir_cw MM039 reliable=1 anchored=1 relationship=1 available=1 fine=1 target=50
+fine_ir_cw MM040 reliable=1 anchored=1 relationship=1 available=1 fine=1 target=50
+fine_ir_cw MM041 reliable=1 anchored=1 relationship=1 available=1 fine=1 target=50
+fine_ir_cw MM042 reliable=1 anchored=1 relationship=1 available=1 fine=1 target=50
+fine_ir_cw MM043 reliable=1 anchored=1 relationship=1 available=1 fine=1 target=50
+fine_ir_cw MM044 reliable=1 anchored=1 relationship=1 available=1 fine=1 target=50
+fine_ir_cw MM045 reliable=1 anchored=1 relationship=1 available=1 fine=1 target=0
+PASS: final ramp 300 ms/count, applied-zero dwell 5000 ms, restart 150 ms/count
+.PASS: fine IR preferred; stale IR still exposes accepted MM and next Hall advances it
+.PASS: manual STOP and full-range throttle unaffected at accepted MM045
+.no_ir_ccw MM057 reliable=1 anchored=1 relationship=0 available=1 fine=0 target=90
+no_ir_ccw MM056 reliable=1 anchored=1 relationship=0 available=1 fine=0 target=85
+no_ir_ccw MM055 reliable=1 anchored=1 relationship=0 available=1 fine=0 target=75
+no_ir_ccw MM054 reliable=1 anchored=1 relationship=0 available=1 fine=0 target=65
+no_ir_ccw MM053 reliable=1 anchored=1 relationship=0 available=1 fine=0 target=55
+no_ir_ccw MM052 reliable=1 anchored=1 relationship=0 available=1 fine=0 target=50
+no_ir_ccw MM051 reliable=1 anchored=1 relationship=0 available=1 fine=0 target=50
+no_ir_ccw MM050 reliable=1 anchored=1 relationship=0 available=1 fine=0 target=50
+no_ir_ccw MM049 reliable=1 anchored=1 relationship=0 available=1 fine=0 target=50
+no_ir_ccw MM048 reliable=1 anchored=1 relationship=0 available=1 fine=0 target=50
+no_ir_ccw MM047 reliable=1 anchored=1 relationship=0 available=1 fine=0 target=50
+no_ir_ccw MM046 reliable=1 anchored=1 relationship=0 available=1 fine=0 target=0
+PASS: final ramp 300 ms/count, applied-zero dwell 5000 ms, restart 150 ms/count
+.no_ir_cw MM034 reliable=1 anchored=1 relationship=0 available=1 fine=0 target=90
+no_ir_cw MM035 reliable=1 anchored=1 relationship=0 available=1 fine=0 target=85
+no_ir_cw MM036 reliable=1 anchored=1 relationship=0 available=1 fine=0 target=75
+no_ir_cw MM037 reliable=1 anchored=1 relationship=0 available=1 fine=0 target=65
+no_ir_cw MM038 reliable=1 anchored=1 relationship=0 available=1 fine=0 target=55
+no_ir_cw MM039 reliable=1 anchored=1 relationship=0 available=1 fine=0 target=50
+no_ir_cw MM040 reliable=1 anchored=1 relationship=0 available=1 fine=0 target=50
+no_ir_cw MM041 reliable=1 anchored=1 relationship=0 available=1 fine=0 target=50
+no_ir_cw MM042 reliable=1 anchored=1 relationship=0 available=1 fine=0 target=50
+no_ir_cw MM043 reliable=1 anchored=1 relationship=0 available=1 fine=0 target=50
+no_ir_cw MM044 reliable=1 anchored=1 relationship=0 available=1 fine=0 target=50
+no_ir_cw MM045 reliable=1 anchored=1 relationship=0 available=1 fine=0 target=0
+PASS: final ramp 300 ms/count, applied-zero dwell 5000 ms, restart 150 ms/count
+.PASS: unqualified samples and pending DNA cannot become STOP geography
+.stale_ir_cw MM034 reliable=1 anchored=1 relationship=0 available=1 fine=0 target=90
+stale_ir_cw MM035 reliable=1 anchored=1 relationship=0 available=1 fine=0 target=85
+stale_ir_cw MM036 reliable=1 anchored=1 relationship=0 available=1 fine=0 target=75
+stale_ir_cw MM037 reliable=1 anchored=1 relationship=0 available=1 fine=0 target=65
+stale_ir_cw MM038 reliable=1 anchored=1 relationship=0 available=1 fine=0 target=55
+stale_ir_cw MM039 reliable=1 anchored=1 relationship=0 available=1 fine=0 target=50
+stale_ir_cw MM040 reliable=1 anchored=1 relationship=0 available=1 fine=0 target=50
+stale_ir_cw MM041 reliable=1 anchored=1 relationship=0 available=1 fine=0 target=50
+stale_ir_cw MM042 reliable=1 anchored=1 relationship=0 available=1 fine=0 target=50
+stale_ir_cw MM043 reliable=1 anchored=1 relationship=0 available=1 fine=0 target=50
+stale_ir_cw MM044 reliable=1 anchored=1 relationship=0 available=1 fine=0 target=50
+stale_ir_cw MM045 reliable=1 anchored=1 relationship=0 available=1 fine=0 target=0
+PASS: final ramp 300 ms/count, applied-zero dwell 5000 ms, restart 150 ms/count
+.
+----------------------------------------------------------------------
+Ran 7 tests in 1.350s
+
+OK
+..
+----------------------------------------------------------------------
+Ran 2 tests in 1.839s
+
+OK
+pulse JSON maximum exercised bytes: 826
+.....
+----------------------------------------------------------------------
+Ran 5 tests in 0.242s
+
+OK
+[
+  {
+    "events": 9484,
+    "normal": 2114,
+    "timing_questions": 136,
+    "missing_compatible": 17,
+    "observation_gaps": 2061,
+    "proven_physical_missed_pulses": 0,
+    "dna_replay": false,
+    "name": "oct09_healthy"
+  },
+  {
+    "events": 275,
+    "normal": 22,
+    "timing_questions": 1,
+    "missing_compatible": 0,
+    "observation_gaps": 127,
+    "proven_physical_missed_pulses": 0,
+    "dna_replay": false,
+    "name": "oct09_run1_onset"
+  },
+  {
+    "events": 333,
+    "normal": 223,
+    "timing_questions": 22,
+    "missing_compatible": 6,
+    "observation_gaps": 21,
+    "proven_physical_missed_pulses": 0,
+    "dna_replay": false,
+    "name": "oct09_run2_onset"
+  },
+  {
+    "events": 12848,
+    "normal": 1915,
+    "timing_questions": 46,
+    "missing_compatible": 7,
+    "observation_gaps": 3961,
+    "proven_physical_missed_pulses": 0,
+    "dna_replay": false,
+    "name": "oct10_121800"
+  },
+  {
+    "events": 0,
+    "normal": 0,
+    "timing_questions": 0,
+    "missing_compatible": 0,
+    "observation_gaps": 0,
+    "proven_physical_missed_pulses": 0,
+    "dna_replay": false,
+    "name": "oct10_124555"
+  }
+]
+PASS radio success, immediate/callback failure, timeout, late callback isolation, recovery and CRC coverage
+.....
+----------------------------------------------------------------------
+Ran 5 tests in 0.915s
+
+OK

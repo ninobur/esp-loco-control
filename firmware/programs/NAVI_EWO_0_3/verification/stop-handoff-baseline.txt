@@ -1,0 +1,110 @@
+PASS: 0 failures
+PASS: 0 failures
+PASS: 0 failures
+PASS: EWO NSR1 observation and decision records
+PASS: B1/B2, provisional boot reference, frame hold/redeclaration, causal time, cumulative loss
+PASS: stationary field, single/double reversal including missed MM, frame reset/redeclaration, 1s IR speed
+PASS: portable STOP geometry, both directions, cold entry, timed final/dwell, interruption, departure and repeat
+PASS: FT2 first target at 10/106/300/500 mm, onset safety, no first miss, normal second window/miss, polarity, context, reversal
+PASS: PWM-zero movement holds until declaration; no later Hall/IR recovery or miss; dwell, context, frame faults and FT2 preserved
+PASS: fixed Type-5 configuration, raw calibration metadata, real epochs, validity and diagnostic boundaries
+PASS native pulse measurements, source/boot/order/loss recovery, TX interoperability, wrap and wire validation
+PASS: 0 failures
+PASS: test_evidence
+PASS: test_ir
+PASS: test_judgment
+PASS: test_bridge
+PASS: 0.3 integrated navigation acceptance
+PASS: test_navigation
+PASS native pulse measurements, source/boot/order/loss recovery, TX interoperability, wrap and wire validation
+PASS: test_pulse_observation
+PASS: 0 failures
+PASS unchanged 0.1 assertions against 0.3: map_adapter ['-DHALL_POLARITY_INVERTED=true']
+PASS: 0 failures
+PASS unchanged 0.1 assertions against 0.3: map_adapter ['-DHALL_POLARITY_INVERTED=false']
+PASS: EWO NSR1 observation and decision records
+PASS unchanged 0.1 assertions against 0.3: recorder []
+PASS: portable STOP geometry, both directions, cold entry, timed final/dwell, interruption, departure and repeat
+PASS unchanged 0.1 assertions against 0.3: stop_overlay []
+PASS: fixed Type-5 configuration, raw calibration metadata, real epochs, validity and diagnostic boundaries
+PASS unchanged 0.1 assertions against 0.3: ir_configuration []
+..............
+----------------------------------------------------------------------
+Ran 14 tests in 12.272s
+
+OK
+pulse JSON maximum exercised bytes: 826
+......
+----------------------------------------------------------------------
+Ran 6 tests in 4.522s
+
+OK
+..
+----------------------------------------------------------------------
+Ran 2 tests in 1.875s
+
+OK
+pulse JSON maximum exercised bytes: 826
+....
+----------------------------------------------------------------------
+Ran 4 tests in 0.167s
+
+OK
+[
+  {
+    "events": 9484,
+    "normal": 2114,
+    "timing_questions": 136,
+    "missing_compatible": 17,
+    "observation_gaps": 2061,
+    "proven_physical_missed_pulses": 0,
+    "dna_replay": false,
+    "name": "oct09_healthy"
+  },
+  {
+    "events": 275,
+    "normal": 22,
+    "timing_questions": 1,
+    "missing_compatible": 0,
+    "observation_gaps": 127,
+    "proven_physical_missed_pulses": 0,
+    "dna_replay": false,
+    "name": "oct09_run1_onset"
+  },
+  {
+    "events": 333,
+    "normal": 223,
+    "timing_questions": 22,
+    "missing_compatible": 6,
+    "observation_gaps": 21,
+    "proven_physical_missed_pulses": 0,
+    "dna_replay": false,
+    "name": "oct09_run2_onset"
+  },
+  {
+    "events": 12848,
+    "normal": 1915,
+    "timing_questions": 46,
+    "missing_compatible": 7,
+    "observation_gaps": 3961,
+    "proven_physical_missed_pulses": 0,
+    "dna_replay": false,
+    "name": "oct10_121800"
+  },
+  {
+    "events": 0,
+    "normal": 0,
+    "timing_questions": 0,
+    "missing_compatible": 0,
+    "observation_gaps": 0,
+    "proven_physical_missed_pulses": 0,
+    "dna_replay": false,
+    "name": "oct10_124555"
+  }
+]
+PASS radio success, immediate/callback failure, timeout, late callback isolation, recovery and CRC coverage
+.....
+----------------------------------------------------------------------
+Ran 5 tests in 0.736s
+
+OK

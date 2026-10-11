@@ -7,6 +7,10 @@ method are inherited unchanged. Not flashed, merged, deployed, or field accepted
 
 [Implementation status and limits](STATUS.md) · [Verification results](VERIFICATION.md)
 
+[Station STOP handoff correction and before/after evidence](STOP_HANDOFF_CORRECTION.md):
+accepted NAVI MM now reaches STOP without a fine IR offset. Host and ESP32 checks
+pass; other independent-review findings remain open. Not ready for field deployment.
+
 Run the complete offline suite:
 
 ```sh

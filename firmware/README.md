@@ -9,6 +9,9 @@ and captured-boundary re-anchoring; existing MM045 STOP and actuator preserved.
 This is an isolated successor candidate, not a replacement of the operating image.
 See its [status](programs/NAVI_EWO_0_3/STATUS.md) and
 [verification](programs/NAVI_EWO_0_3/VERIFICATION.md). No flashing/deployment.
+The [STOP handoff correction](programs/NAVI_EWO_0_3/STOP_HANDOFF_CORRECTION.md)
+now exposes accepted MM geography without a fine IR offset. Other independent
+review findings remain open; this candidate is not ready for field deployment.
 
 ## Operational NAVI 0.1 foundation
 
