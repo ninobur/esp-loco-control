@@ -26,7 +26,8 @@ static PulseTransportStatusPacket status(uint64_t boot=42,uint32_t seq=1,
 }
 static StatusRx statusRx(PulseTransportStatusPacket p,bool corrupt=false){
   p.crc=crc(reinterpret_cast<uint8_t*>(&p),offsetof(PulseTransportStatusPacket,crc));
-  if(corrupt)++p.crc;StatusRx r{};r.length=sizeof(p);std::memcpy(r.bytes,&p,sizeof(p));return r;
+  if(corrupt)++p.crc;
+  StatusRx r{};r.length=sizeof(p);std::memcpy(r.bytes,&p,sizeof(p));return r;
 }
 static void prime(Observation& o){o.receive(rx(event()));assert(!o.state().eventValid);
   o.receive(rx(event(2,2,80000)));assert(o.state().eventValid);}

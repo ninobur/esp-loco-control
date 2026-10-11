@@ -79,6 +79,8 @@ static std::atomic<uint32_t> pulseRxDrops{0},pulseLogDrops{0};
 static NaviIntegratedCore navi;
 static bool irCarCoupled=false;
 static navi_pulse::Observation pulseObservation;
+static navi_pulse::TransportObservation pulseTransportObservation;
+static constexpr double NAVI_PKPH_MM_PER_SEC = 5.373;
 static void serviceObservationLoss(){++lossCalls;}
 template<class... Args> static void recordInput(Args...){++inputs;}
 struct Recorder { unsigned ir=0;template<class... Args>void addIr(Args...){++ir;} };
@@ -86,8 +88,9 @@ static Recorder recording;static Recorder* recorder=&recording;
 '''
         cpp += ir_rx + r'''
 static Queue operational{sizeof(IrRx),32,{}}, pulses{sizeof(navi_pulse::Rx),32,{}},
-  logs{sizeof(navi_pulse::Report),16,{}}, status{sizeof(navi_pulse::Report),1,{}};
-static QueueHandle_t irQ=&operational,pulseQ=&pulses,pulseLogQ=&logs,pulseStatusQ=&status;
+  logs{sizeof(navi_pulse::Report),16,{}}, status{sizeof(navi_pulse::Report),1,{}},
+  transport{sizeof(navi_pulse::StatusRx),1,{}};
+static QueueHandle_t irQ=&operational,pulseQ=&pulses,pulseLogQ=&logs,pulseStatusQ=&status,pulseTransportQ=&transport;
 '''
         cpp += '\n'.join(function(name) for name in
                          ('movementCrc', 'onIr', 'serviceIrIngress', 'pulseReport', 'servicePulseIngress'))
