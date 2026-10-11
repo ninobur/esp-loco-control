@@ -18,4 +18,6 @@ int main(){
   e.polarity=Polarity::North;c.observedDirection=-1;
   r=judgeExpected(e,c);
   assert(r.ruling==IdentityRuling::WrongDirection);
+  c.expectedDirection=0;c.observedDirection=0;
+  assert(judgeExpected(e,c).ruling==IdentityRuling::WrongDirection);
 }

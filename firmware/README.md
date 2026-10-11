@@ -1,6 +1,16 @@
 # Firmware — current programs and tools
 
-## Current NAVI review candidate
+## Isolated NAVI 0.3 restoration review candidate
+
+**[NAVI_EWO_0_3](programs/NAVI_EWO_0_3/)** — complete sketch based on operational
+0.1 commit `85a2cf2`, host-tested and ESP32 compiled; independent review and field
+validation pending. Sequential Hall/DNA navigation, Type-6 credibility judgment,
+and captured-boundary re-anchoring; existing MM045 STOP and actuator preserved.
+This is an isolated successor candidate, not a replacement of the operating image.
+See its [status](programs/NAVI_EWO_0_3/STATUS.md) and
+[verification](programs/NAVI_EWO_0_3/VERIFICATION.md). No flashing/deployment.
+
+## Operational NAVI 0.1 foundation
 
 **[NAVI_EWO_0_1_MM045_STOP](programs/NAVI_EWO_0_1_MM045_STOP/)**
 

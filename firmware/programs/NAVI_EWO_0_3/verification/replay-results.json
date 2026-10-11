@@ -1,0 +1,52 @@
+[
+  {
+    "events": 9484,
+    "normal": 2114,
+    "timing_questions": 136,
+    "missing_compatible": 17,
+    "observation_gaps": 2061,
+    "proven_physical_missed_pulses": 0,
+    "dna_replay": false,
+    "name": "oct09_healthy"
+  },
+  {
+    "events": 275,
+    "normal": 22,
+    "timing_questions": 1,
+    "missing_compatible": 0,
+    "observation_gaps": 127,
+    "proven_physical_missed_pulses": 0,
+    "dna_replay": false,
+    "name": "oct09_run1_onset"
+  },
+  {
+    "events": 333,
+    "normal": 223,
+    "timing_questions": 22,
+    "missing_compatible": 6,
+    "observation_gaps": 21,
+    "proven_physical_missed_pulses": 0,
+    "dna_replay": false,
+    "name": "oct09_run2_onset"
+  },
+  {
+    "events": 12848,
+    "normal": 1915,
+    "timing_questions": 46,
+    "missing_compatible": 7,
+    "observation_gaps": 3961,
+    "proven_physical_missed_pulses": 0,
+    "dna_replay": false,
+    "name": "oct10_121800"
+  },
+  {
+    "events": 0,
+    "normal": 0,
+    "timing_questions": 0,
+    "missing_compatible": 0,
+    "observation_gaps": 0,
+    "proven_physical_missed_pulses": 0,
+    "dna_replay": false,
+    "name": "oct10_124555"
+  }
+]

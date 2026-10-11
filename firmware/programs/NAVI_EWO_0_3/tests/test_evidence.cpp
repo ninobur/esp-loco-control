@@ -14,6 +14,14 @@ int main() {
   assert(!h.observe(100,100,1710000,7,640,e));
   assert(!h.observe(180,100,1711000,8,650,e));
   assert(!h.observe(180,100,1712000,9,660,e)); // repeat inside guard
+  // A packet arriving between opening and detection must not make a duplicate
+  // seem farther from the preceding encounter than its actual opening was.
+  HallQualifier boundary;
+  assert(!boundary.observe(170,100,1000,1,1000,e,true,850,true));
+  assert(boundary.observe(170,100,2000,2,1000,e,true,850,true));
+  assert(!boundary.observe(100,100,700000,3,1000,e,true,850,true));
+  assert(!boundary.observe(170,100,701000,4,1800,e,true,850,true));
+  assert(!boundary.observe(170,100,702000,5,1900,e,true,850,true));
   DnaHistory d; d.append(e,1); assert(d.identify(0,24));
   const auto result=verifyIdentified(d,[](uint8_t mm){
     return mm==24?Polarity::South:Polarity::North;

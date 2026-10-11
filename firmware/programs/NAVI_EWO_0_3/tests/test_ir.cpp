@@ -3,14 +3,19 @@
 using namespace ngr_evidence;
 int main(){
  IrPulseEvidence p;
- assert(p.observe(1,100000,90).finding==PulseFinding::Baseline);
- assert(p.observe(2,160000,90).finding==PulseFinding::Baseline);
- assert(p.observe(3,220000,90).finding==PulseFinding::Normal);
- auto a=p.observe(4,400000,90);
- assert(a.finding==PulseFinding::TimingAnomaly && a.intervalUs==180000);
- assert(p.observe(5,460000,90).finding==PulseFinding::Normal);
- assert(p.observe(8,640000,90).finding==PulseFinding::ObservationGap);
- assert(p.observe(9,700000,90).finding==PulseFinding::Baseline);
- assert(p.observe(10,760000,95).finding==PulseFinding::Baseline);
- assert(p.observe(11,750000,95).finding==PulseFinding::ClockError);
+ assert(p.observe(1,60000,90).finding==PulseFinding::Baseline);
+ for(unsigned i=2;i<=6;++i)assert(p.observe(i,i*60000,90).finding==PulseFinding::Baseline);
+ assert(p.observe(7,420000,90).finding==PulseFinding::Normal);
+ auto a=p.observe(8,600000,90);
+ assert(a.finding==PulseFinding::TimingAnomaly && a.intervalUs==180000 && !a.questionable);
+ a=p.observe(9,660000,90);
+ assert(a.finding==PulseFinding::BracketedMissingCompatible && a.questionable);
+ assert(p.observe(12,840000,90).finding==PulseFinding::ObservationGap);
+ assert(p.observe(13,900000,90).finding==PulseFinding::Baseline);
+ assert(p.observe(14,960000,95).finding==PulseFinding::Baseline);
+ assert(p.observe(15,950000,95).finding==PulseFinding::ClockError);
+ // A prolonged slowdown never supplies a returning normal bracket.
+ p.reset();for(unsigned i=1;i<=7;++i)p.observe(i,i*60000,90);
+ assert(!p.observe(8,600000,90).questionable);
+ assert(!p.observe(9,780000,90).questionable);
 }

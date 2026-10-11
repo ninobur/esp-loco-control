@@ -1,0 +1,97 @@
+[
+  {
+    "name": "oct09_healthy",
+    "source": "all_20261009.log.gz",
+    "source_sha256": "33716fc9122d7fec8661a2ab55d00f57920988a06c43aaa5b9229d42dc546c46",
+    "start": "2026-10-09T19:31:00",
+    "end": "2026-10-09T19:41:00",
+    "events": 9484,
+    "fixture_sha256": "dc31733fcb0ea513b0a68a50887e26ac17d88836f58ff4bee2e9d4bb731b59ae",
+    "pwm_provenance": "most recent one-second state/loopstat; not physical pulse-time PWM",
+    "columns": [
+      "boot",
+      "completed_count",
+      "completed_us",
+      "last_reported_pwm",
+      "event_valid"
+    ],
+    "dna_replay": false,
+    "physical_missed_pulse_proof": false
+  },
+  {
+    "name": "oct09_run1_onset",
+    "source": "all_20261009.log.gz",
+    "source_sha256": "33716fc9122d7fec8661a2ab55d00f57920988a06c43aaa5b9229d42dc546c46",
+    "start": "2026-10-09T19:05:15",
+    "end": "2026-10-09T19:05:30",
+    "events": 275,
+    "fixture_sha256": "60f244a394fd38ef42f73015f709ba660f89e950cc2eae27eca3a93bcd982212",
+    "pwm_provenance": "most recent one-second state/loopstat; not physical pulse-time PWM",
+    "columns": [
+      "boot",
+      "completed_count",
+      "completed_us",
+      "last_reported_pwm",
+      "event_valid"
+    ],
+    "dna_replay": false,
+    "physical_missed_pulse_proof": false
+  },
+  {
+    "name": "oct09_run2_onset",
+    "source": "all_20261009.log.gz",
+    "source_sha256": "33716fc9122d7fec8661a2ab55d00f57920988a06c43aaa5b9229d42dc546c46",
+    "start": "2026-10-09T19:50:15",
+    "end": "2026-10-09T19:50:35",
+    "events": 333,
+    "fixture_sha256": "94e9fa1c18abcdac6ae1e55b31797d47b668bb45ee92025fd90d44f9c2e055f3",
+    "pwm_provenance": "most recent one-second state/loopstat; not physical pulse-time PWM",
+    "columns": [
+      "boot",
+      "completed_count",
+      "completed_us",
+      "last_reported_pwm",
+      "event_valid"
+    ],
+    "dna_replay": false,
+    "physical_missed_pulse_proof": false
+  },
+  {
+    "name": "oct10_121800",
+    "source": "9950011_20261010_121800.log",
+    "source_sha256": "b09bbd5e7b2f6f818b83d20c92b64607e5ddf9562496775e5abb3ec56724f106",
+    "start": "",
+    "end": "z",
+    "events": 12848,
+    "fixture_sha256": "9e51494e21b15dac16117c2d369abc4725c4a4ccea5a09ddc17ff38256a59ae3",
+    "pwm_provenance": "most recent one-second state/loopstat; not physical pulse-time PWM",
+    "columns": [
+      "boot",
+      "completed_count",
+      "completed_us",
+      "last_reported_pwm",
+      "event_valid"
+    ],
+    "dna_replay": false,
+    "physical_missed_pulse_proof": false
+  },
+  {
+    "name": "oct10_124555",
+    "source": "9950011_20261010_124555.log",
+    "source_sha256": "759788f06a8d751cd200964096d7d169987068cea87c013aad5b91745a21f35c",
+    "start": "",
+    "end": "z",
+    "events": 0,
+    "fixture_sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64",
+    "pwm_provenance": "most recent one-second state/loopstat; not physical pulse-time PWM",
+    "columns": [
+      "boot",
+      "completed_count",
+      "completed_us",
+      "last_reported_pwm",
+      "event_valid"
+    ],
+    "dna_replay": false,
+    "physical_missed_pulse_proof": false
+  }
+]
