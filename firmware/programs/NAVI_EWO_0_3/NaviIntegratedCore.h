@@ -5,7 +5,9 @@
 #include <vector>
 
 #include "../NAVI_EYES_WIDE_OPEN/NaviEvidence.h"
-#include "../NAVI_EWO_0_1_MM045_STOP/NaviMapAdapter.h"
+#include "NaviMapAdapter.h"
+#include "NaviIrEvidence.h"
+#include "NaviPulseObservation.h"
 #include "NaviEvidenceBridge.h"
 #include "../../reference/NAVI_COHERENCE/IR_ARCHITECTURE_0_4/IrInstrument.h"
 
@@ -20,7 +22,8 @@ enum class EwoEventKind : uint8_t {
   IrDistanceHold, IrDistanceReady, PwmZeroDisplacement,
   // NSR1 event 14 is retired; retain the existing IDs of current events.
   ObservationLoss = 15,
-  SpatialInvalidated
+  SpatialInvalidated, EncounterObserved, GeographicContradiction,
+  DnaResolved, IrTimingQuestionable, IrObservabilityGap, IrCredibilityRestored
 };
 
 struct EwoEvent {
@@ -41,9 +44,12 @@ struct EwoEvent {
   uint64_t consumptionId = 0;
   uint32_t irSequence = 0;
   uint32_t hallQueueDrops = 0, irQueueDrops = 0;
+  uint64_t hallOpenedUs=0,hallDetectedUs=0;
+  int8_t openingPolarity=0;
+  bool openingIrValid=false;
 };
 
-// NAVI's working target-only authority. Acquisition delivers each ADC result
+// NAVI's sequential journey authority. Acquisition delivers each ADC result
 // and each decoded type-5 IR snapshot; neither source selects NAVI evidence.
 class NaviIntegratedCore {
  public:
@@ -73,6 +79,8 @@ class NaviIntegratedCore {
     frameLost_ = false;
     resetTargetEvidence();
     evidenceBridge_.resetForDeclarationOrReversal();
+    pendingCount_=0; dnaChecks_=0;
+    irWindowQuestionable_=false; reanchorNeeded_=false;
     spatialPhase_ = SpatialPhase::None;
     setDistanceHolding(!relationshipReliable_ || !targetOriginValid_);
     push(EwoEventKind::Declared);
@@ -102,26 +110,32 @@ class NaviIntegratedCore {
     // for operator review rather than inventing a target.
     const bool reversible = coherent &&
         (newPosition < 0 ? -newPosition <= oldInterval : newPosition <= newInterval);
-    const bool seekCurrentMm = newPosition < 0;
+    const bool seekCurrentMm = newPosition < 0 && !evidenceBridge_.inField();
     const uint64_t distanceToTarget = reversible ? uint64_t(seekCurrentMm ?
         -newPosition : newInterval - newPosition) : 0;
     contextSinceUs_ = nowUs;
-    firstTargetAfterDeclare_ = false;
+    firstTargetAfterDeclare_ = !physicalPositionAnchored_;
+    firstTargetSupportAbsent_ = false;
     direction_ = direction;
-    reverseTarget_ = seekCurrentMm;
+    reverseTarget_ = !physicalPositionAnchored_ ? !reverseTarget_ :
+        coherent ? seekCurrentMm : !evidenceBridge_.inField();
     chooseTarget();
-    if (reversible) {
+    if (reversible || !physicalPositionAnchored_) {
       physicalOriginUm_ = latestIr_.nominalUm;
       expectedCumulativeUm_ = distanceToTarget;
     } else {
+      // Stale/questionable distance is not a loss of established journey.
+      // Retain the last verified MM and direction; the next qualified field
+      // can identify its current-MM return or adjacent marker. True frame loss
+      // retains its existing operator-declaration latch.
       targetOriginValid_ = false;
       relationshipReliable_ = false;
-      frameLost_ = true;
     }
     resetTargetEvidence();
-    evidenceBridge_.resetForDeclarationOrReversal();
+    evidenceBridge_.reverse();
+    pendingCount_=0; pulseEvidence_.reset(); irPulseObservable_=false;
     spatialPhase_ = SpatialPhase::None;
-    setDistanceHolding(!reversible);
+    setDistanceHolding(!reversible && physicalPositionAnchored_);
     push(EwoEventKind::Reversed);
   }
 
@@ -168,12 +182,15 @@ class NaviIntegratedCore {
     // integrity controls distance applicability. Diagnostic counter changes,
     // low contrast, saturation and reacquisition cannot veto cumulative pulses.
     if (discontinuity) {
+      irBoundaryCount_=0; pulseEvidence_.reset(); irPulseObservable_=false;
+      irWindowQuestionable_=true; reanchorNeeded_=true;
       resetTargetEvidence();
       invalidateRelationship();
       clearSpeedHistory();
     }
     if (!epochActive_ || discontinuity) { ++epochId_; epochActive_ = true; }
     irContinuity_ = true;
+    addIrBoundary(w,receivedUs);
     addSpeedPoint(w);
     const bool advanced = sameFrame && ordered &&
                           w.completedPulses > prior.completedPulses;
@@ -193,7 +210,8 @@ class NaviIntegratedCore {
     if (spatialPhase_ != SpatialPhase::None) updateSpatialPhase(w.nominalUm);
     // A packet is not a mapped landmark; only an operator declaration or a
     // Hall+IR confirmation can establish a physical origin.
-    evaluateMissing(w.nominalUm);
+    // IR packets alone never assign a marker. Missed Hall identities require
+    // retained magnetic sequence evidence, not distance-based progression.
   }
 
   void observeHall(const HallSample& sample) {
@@ -202,69 +220,112 @@ class NaviIntegratedCore {
   void observeHall(const HallSample& sample, uint64_t judgmentUs) {
     beginDecision(judgmentUs);
     ++hallObservationCount_;
-    lastHall_ = sample;
-    haveHall_ = true;
-    if (sample.pwm == 0) return;  // still delivered and retained
-    if (pwmZeroMovementRequiresDeclaration_) return; // only declaration can resume navigation
-    // The first native Hall ADC is the provisional boot reference. It is
-    // deliberately independent of IR applicability and never blocks startup.
+    lastHall_=sample; haveHall_=true;
+    if (!sample.pwm || pwmZeroMovementRequiresDeclaration_) {
+      evidenceBridge_.breakSamples(); return;
+    }
     if (!initialReferenceReady_) {
-      if (sample.pwm == 0) return;
-      activeReference_ = sample.raw;
-      initialReferenceReady_ = true;
-      push(EwoEventKind::ReferenceReady);
-      return;
+      activeReference_=sample.raw; initialReferenceReady_=true;
+      push(EwoEventKind::ReferenceReady); return;
     }
-    // A declaration/reversal clears incompatible queued evidence as well as
-    // the rolling window. Acquisition and its recording remain untouched.
-    if (!declared_ || sample.timestampUs < contextSinceUs_) return;
-    if (firstTargetAfterDeclare_ && sample.timestampUs == contextSinceUs_) return;
-    // Evidence acquisition is independent of the IR-gated spatial reference.
-    // A magnet encountered while IR stalls must still reach NAVI.
-    if (spatialPhase_ != SpatialPhase::None &&
-        irApplicable(decisionUs_) && relationshipReliable_) collectSpatial(sample.raw);
+    if (!declared_ || sample.timestampUs<=contextSinceUs_) return;
+    const int delta=int(sample.raw)-activeReference_;
+    addHallDiagnostic(sample.raw); // median-of-five remains diagnostic only
+    hallSupport_=target_.polarity==HallOpeningPolarity::AboveReference ?
+                  delta>=70 : delta<=-70;
+    if (firstTargetAfterDeclare_ && delta<70 && delta>-70)
+      firstTargetSupportAbsent_=true;
+    // Do not feed a magnetic excursion into reference collection. Observation
+    // still runs throughout clearance/collection, including stalled IR.
+    if (spatialPhase_!=SpatialPhase::None && delta<70 && delta>-70 &&
+        irApplicable(decisionUs_) && relationshipReliable_)
+      collectSpatial(sample.raw);
 
+    const IrBoundary boundary=irBoundaryAt(sample.timestampUs);
     ngr_evidence::IdentityEvidence identity{};
-    identity.expectedMm = static_cast<uint8_t>(target_.sequence);
-    identity.expectedPolarity =
-        target_.polarity == HallOpeningPolarity::AboveReference ?
+    identity.expectedMm=static_cast<uint8_t>(target_.sequence);
+    identity.expectedPolarity=target_.polarity==HallOpeningPolarity::AboveReference ?
         ngr_evidence::Polarity::North : ngr_evidence::Polarity::South;
-    identity.expectedDirection = direction_;
-    identity.irCredible = irApplicable(decisionUs_) && relationshipReliable_ &&
-                         targetOriginValid_ && !irWindowQuestionable_;
-    if (identity.irCredible && latestIr_.nominalUm >= physicalOriginUm_) {
-      const uint64_t traveled=latestIr_.nominalUm-physicalOriginUm_;
+    identity.expectedDirection=direction_;
+    identity.irCredible=boundary.valid && relationshipReliable_ &&
+                        targetOriginValid_ && irPulseObservable_ && !irWindowQuestionable_ &&
+                        sample.timestampUs>=lastPulseReceivedUs_;
+    if(identity.irCredible && boundary.um>=physicalOriginUm_) {
+      const uint64_t traveled=boundary.um-physicalOriginUm_;
       const uint64_t tolerance=uint64_t(target_.distanceMm)*150;
-      identity.irInsideWindow =
-          traveled+tolerance>=expectedCumulativeUm_ &&
-          traveled<=expectedCumulativeUm_+tolerance;
+      identity.irInsideWindow=traveled+tolerance>=expectedCumulativeUm_ &&
+                             traveled<=expectedCumulativeUm_+tolerance;
     }
-    const int8_t sensedDir = sample.direction==1 ? 1 :
-                            sample.direction==2 ? -1 : 0;
-    const auto result=evidenceBridge_.observe(
-        sample.raw,activeReference_,sample.timestampUs,sample.sampleSerial,
-        haveIr_ ? latestIr_.nominalUm : 0,sensedDir,identity);
-    if (!result.newEncounter) return;
-    // Record every physical encounter, even when it contradicts the target.
-    if (!result.expectedMagnet) return;
-    // An encounter's leading boundary is the geographic anchor.
-    // IR is supplementary: its window is not a veto over validated Hall DNA.
-    HallPoint landmark{result.encounter.serial,result.encounter.openedUs,
-                       sample.raw,result.encounter.irUm,
-                       irApplicable(decisionUs_)};
-    // Preserve the original first-target declaration protection.
-    if (firstTargetAfterDeclare_ &&
-        (!firstTargetSupportAbsent_ && identity.irCredible)) return;
-    if (reverseTarget_ && identity.irCredible &&
-        latestIr_.nominalUm==physicalOriginUm_) return;
+    const int8_t sensedDir=sample.direction==1?1:sample.direction==2?-1:0;
+    const uint64_t separation=reverseTarget_ ? expectedCumulativeUm_*85/100 : uint64_t(target_.distanceMm)*850;
+    const auto ruling=evidenceBridge_.observe(sample.raw,activeReference_,
+        sample.timestampUs,sample.sampleSerial,boundary.um,sensedDir,identity,
+        identity.irCredible,separation,boundary.valid);
+    if(!ruling.newEncounter)return;
+    auto encounter=ruling.encounter;
+    lastEncounter_=encounter;
+    openingSerial_=encounter.serial; openingIrUm_=encounter.irUm;
+    push(EwoEventKind::EncounterObserved);
+    ++dnaChecks_; // every encounter, including ordinary IR agreement
+    checkDnaJourney();
+    // Preserve observation and do not allow the wrong journey to move MM.
+    if(ruling.directionConflict)return;
+    if(firstTargetAfterDeclare_ && (!firstTargetSupportAbsent_ ||
+       (boundary.valid && boundary.um<=physicalOriginUm_)))return;
+    if(frameLost_)return; // genuine cumulative-stream loss still needs declaration
+    if(reverseTarget_ && boundary.valid && boundary.um<=physicalOriginUm_)return;
+    if(pendingCount_ || !positionReliable_ || !ruling.expectedMagnet) {
+      evidenceBridge_.markContradiction();
+      if(!pendingCount_) { pendingTarget_=target_; pendingCount_=1; }
+      else ++pendingCount_;
+      positionReliable_=false;
+      push(EwoEventKind::GeographicContradiction);
+      resolvePending(); return;
+    }
+    HallPoint landmark{encounter.serial,encounter.openedUs,sample.raw,
+                       encounter.irUm,encounter.irValid};
     confirm(landmark);
-    const size_t last=evidenceBridge_.history().size();
-    if(last) evidenceBridge_.recordConfirmed(last-1,mm_);
-    const auto dna=evidenceBridge_.verify([](uint8_t mm){
-      return navi_one::polarityAt(mm) ?
-          ngr_evidence::Polarity::North : ngr_evidence::Polarity::South;
-    });
-    if(dna.contradictions) positionReliable_=false;
+    const size_t size=evidenceBridge_.history().size();
+    evidenceBridge_.recordConfirmed(size-1,mm_);
+    checkDnaJourney();
+  }
+
+  // Called only after the unchanged Type-6 parser validates wire/provenance.
+  void observePulse(const navi_pulse::State& state,uint8_t pwm,int8_t direction,
+                    uint64_t judgmentUs=0) {
+    beginDecision(judgmentUs?judgmentUs:state.receivedUs);
+    const bool same=haveIr_ && state.event.bootId==latestIr_.bootId &&
+        (!haveSource_ || !std::memcmp(state.mac,latestIrMac_,6));
+    if(state.receivedUs<contextSinceUs_ ||
+       (physicalPositionAnchored_ && state.receivedUs<anchorOpenedUs_))return;
+    lastPulseReceivedUs_=state.receivedUs;
+    if(!same || direction!=direction_) {pulseEvidence_.reset();irPulseObservable_=false;return;}
+    if(!state.eventValid) {
+      pulseEvidence_.reset(); irPulseObservable_=false;
+      irWindowQuestionable_=true;
+      push(EwoEventKind::IrObservabilityGap); return;
+    }
+    const auto assessment=pulseEvidence_.observe(state.event.completedPulses,
+                                                state.event.completedUs,pwm);
+    lastPulseAssessment_=assessment;
+    // A new PWM population, a gap, or a clock fault cannot inherit the previous
+    // population's credibility. These are observability losses, not pulse losses.
+    if(assessment.finding==ngr_evidence::PulseFinding::Baseline ||
+       assessment.finding==ngr_evidence::PulseFinding::ObservationGap ||
+       assessment.finding==ngr_evidence::PulseFinding::ClockError)
+      irPulseObservable_=false;
+    if(assessment.finding==ngr_evidence::PulseFinding::TimingAnomaly ||
+       assessment.questionable) {
+      irWindowQuestionable_=true; reanchorNeeded_=true; irPulseObservable_=false;
+      ++irTimingQuestions_; push(EwoEventKind::IrTimingQuestionable);
+    } else if(!reanchorNeeded_ &&
+              assessment.finding==ngr_evidence::PulseFinding::Normal &&
+              irWindowQuestionable_) {
+      irWindowQuestionable_=false;
+      push(EwoEventKind::IrCredibilityRestored);
+    }
+    if(assessment.finding==ngr_evidence::PulseFinding::Normal && !reanchorNeeded_)
+      irPulseObservable_=true;
   }
 
   // Transport loss is visible, but a cumulative counter can bridge a missing
@@ -278,6 +339,7 @@ class NaviIntegratedCore {
     // A dropped packet does not erase a cumulative counter. Hold while stale;
     // a later same-frame ordered snapshot can bridge the transport gap.
     if (newIrLoss || newHallLoss) {
+      if(newHallLoss)evidenceBridge_.breakSamples();
       resetTargetEvidence();
     }
     push(EwoEventKind::ObservationLoss);
@@ -304,6 +366,7 @@ class NaviIntegratedCore {
   }
   bool declared() const { return declared_; }
   bool positionReliable() const { return positionReliable_; }
+  bool geographicJudgmentPending()const{return pendingCount_!=0;}
   uint8_t mm() const { return mm_; }
   int8_t direction() const { return direction_; }
   bool physicalPositionAnchored() const { return physicalPositionAnchored_; }
@@ -335,8 +398,17 @@ class NaviIntegratedCore {
     if (pwmZeroMovementRequiresDeclaration_) return "PWM_ZERO_MOVEMENT_REDECLARE";
     if (!irApplicable(nowUs)) return "IR_STALE";
     if (!relationshipReliable_ || !targetOriginValid_) return "UNANCHORED_REDECLARE";
+    if (irWindowQuestionable_) return "IR_TIMING_QUESTIONABLE";
+    if (!irPulseObservable_) return "IR_TIMING_UNOBSERVED";
     return "HALL_IR_READY";
   }
+  const ngr_evidence::DnaHistory& dnaHistory()const{return evidenceBridge_.history();}
+  ngr_evidence::DnaCheck dnaCheck()const{return dnaCheck_;}
+  uint32_t geographicRevision()const{return geographicRevision_;}
+  uint32_t dnaChecks()const{return dnaChecks_;}
+  uint32_t irTimingQuestions()const{return irTimingQuestions_;}
+  bool irMagnetVetoAvailable()const{return irPulseObservable_ && !irWindowQuestionable_ && irContinuity_;}
+  ngr_evidence::PulseAssessment pulseAssessment()const{return lastPulseAssessment_;}
   bool initialReferenceReady() const { return initialReferenceReady_; }
   uint64_t consumptionId() const { return consumptionId_; }
   bool irSpeedAvailable(uint64_t nowUs) const { return speedAvailable_ && irApplicable(nowUs); }
@@ -391,6 +463,10 @@ class NaviIntegratedCore {
                            openingSerial_, openingIrUm_, positionReliable_,
                            static_cast<uint8_t>(spatialPhase_), consumptionId_,
                            haveIr_ ? latestIr_.sequence : 0, hallLoss_, irLoss_};
+    events_[eventHead_].hallOpenedUs=lastEncounter_.openedUs;
+    events_[eventHead_].hallDetectedUs=lastEncounter_.detectedUs;
+    events_[eventHead_].openingPolarity=static_cast<int8_t>(lastEncounter_.polarity);
+    events_[eventHead_].openingIrValid=lastEncounter_.irValid;
     eventHead_ = next;
   }
   void setDistanceHolding(bool holding) {
@@ -407,8 +483,17 @@ class NaviIntegratedCore {
   }
   void resetTargetEvidence() {
     hallWindow_.clear();
+    diagnosticCount_=0;
     hallSupport_ = false;
     hallMedian_ = 0;
+  }
+  void addHallDiagnostic(int16_t raw) {
+    if(diagnosticCount_==5){for(unsigned i=1;i<5;++i)diagnosticHall_[i-1]=diagnosticHall_[i];--diagnosticCount_;}
+    diagnosticHall_[diagnosticCount_++]=raw;
+    if(diagnosticCount_==5){
+      int16_t sorted[5];for(unsigned i=0;i<5;++i)sorted[i]=diagnosticHall_[i];
+      std::sort(sorted,sorted+5);hallMedian_=sorted[2];
+    }
   }
   void clearSpeedHistory() { speedPointCount_ = 0; speedAvailable_ = false; }
   void addSpeedPoint(const ir_movement::WireSnapshot& w) {
@@ -443,14 +528,17 @@ class NaviIntegratedCore {
     // The field's observed leading boundary, not the later median decision,
     // is the physical landmark for both mapped distance and Function 4.
     physicalOriginUm_ = landmark.irUm;
+    anchorOpenedUs_=landmark.timestampUs;
     expectedCumulativeUm_ = uint64_t(navi_one::spanMm(mm_, direction_)) * 1000;
-    targetOriginValid_ = true;
-    relationshipReliable_ = true;
+    targetOriginValid_=landmark.irApplicable;
+    relationshipReliable_=landmark.irApplicable;
+    reanchorNeeded_=false; // a fresh verified geographic boundary ends old span
+    if(!landmark.irApplicable)irWindowQuestionable_=true;
     push(EwoEventKind::TargetConfirmed);
     chooseTarget();
     resetTargetEvidence();
     spatialOriginUm_ = landmark.irUm;
-    spatialPhase_ = SpatialPhase::Clearance;
+    spatialPhase_=landmark.irApplicable ? SpatialPhase::Clearance : SpatialPhase::None;
     for (auto& occupied : spatialOccupied_) occupied = false;
     spatialCount_ = 0;
     push(EwoEventKind::SpatialClearance);
@@ -494,22 +582,75 @@ class NaviIntegratedCore {
       ++spatialCount_;
     }
   }
-  void evaluateMissing(uint64_t nowUm) {
-    if (!declared_ || firstTargetAfterDeclare_ || pwmZeroMovementRequiresDeclaration_ || !initialReferenceReady_ ||
-        spatialPhase_ != SpatialPhase::None || !relationshipReliable_ ||
-        !targetOriginValid_ || !irApplicable(decisionUs_) ||
-        nowUm < physicalOriginUm_) return;
-    for (unsigned count = 0; count < navi_one::ROUTE_N; ++count) {
-      const uint64_t interval = uint64_t(target_.distanceMm) * 1000;
-      if (nowUm - physicalOriginUm_ <= expectedCumulativeUm_ + interval * 15 / 100) break;
-      expectedCumulativeUm_ += uint64_t(navi_one::spanMm(target_.sequence, direction_)) * 1000;
-      mm_ = static_cast<uint8_t>(target_.sequence);
-      reverseTarget_ = false;
-      ++missedCount_;
-      push(EwoEventKind::MissedMagnet);
-      chooseTarget();
-      resetTargetEvidence();
+  void checkDnaJourney() {
+    dnaCheck_=evidenceBridge_.verify([](uint8_t mm){return mapPole(mm);});
+    const auto& h=evidenceBridge_.history();
+    for(size_t i=1;i<h.size();++i) {
+      const auto& prior=h.at(i-1);const auto& current=h.at(i);
+      if(!prior.identified || !current.identified)continue;
+      const uint8_t next=navi_one::nextMarker(prior.mm,current.direction);
+      const bool sequential=current.direction==prior.direction ? current.mm==next :
+                            current.mm==prior.mm || current.mm==next;
+      if(!sequential)++dnaCheck_.contradictions;
     }
+    if(dnaCheck_.contradictions)positionReliable_=false;
+  }
+  static ngr_evidence::Polarity mapPole(uint8_t mm) {
+    return navi_one::polarityAt(mm)?ngr_evidence::Polarity::North:ngr_evidence::Polarity::South;
+  }
+  // Two evidence interpretations of the single leading contradiction: a real
+  // sequential encounter with bad polarity, or an extra magnetic observation.
+  // Both walk only the established journey; neither searches the map or skips
+  // unobserved geographic markers. Ten following poles use the map's existing
+  // unique-sequence property. All observations remain in the bounded ledger.
+  void resolvePending() {
+    const auto& history=evidenceBridge_.history();
+    if(pendingCount_>history.size() || pendingCount_>ngr_evidence::DnaHistory::kCapacity ||
+       pendingCount_<11)return;
+    const size_t first=history.size()-pendingCount_;
+    unsigned matches=0; uint8_t resolved=mm_; bool counted=false;
+    for(unsigned countLeading=0;countLeading<2;++countLeading) {
+      uint8_t mm=static_cast<uint8_t>(pendingTarget_.sequence);
+      if(countLeading)mm=navi_one::nextMarker(mm,direction_);
+      bool agrees=true;
+      for(size_t i=first+1;i<history.size();++i) {
+        const auto& e=history.at(i);
+        if(e.direction!=direction_ || e.encounter.polarity!=mapPole(mm)){agrees=false;break;}
+        resolved=mm; mm=navi_one::nextMarker(mm,direction_);
+      }
+      if(agrees){++matches;counted=countLeading;}
+    }
+    if(matches!=1)return;
+    uint8_t assign=static_cast<uint8_t>(pendingTarget_.sequence);
+    if(counted)assign=navi_one::nextMarker(assign,direction_);
+    for(size_t i=first+1;i<history.size();++i) {
+      evidenceBridge_.recordConfirmed(i,assign);
+      resolved=assign;assign=navi_one::nextMarker(assign,direction_);
+    }
+    const auto& e=history.at(history.size()-1).encounter;
+    target_=mappedTargetAfter(navi_one::nextMarker(resolved,-direction_),direction_);
+    pendingCount_=0;
+    confirm({e.serial,e.openedUs,lastHall_.raw,e.irUm,e.irValid});
+    checkDnaJourney();
+    ++geographicRevision_;
+    push(EwoEventKind::DnaResolved);
+  }
+
+  struct IrBoundary {uint64_t receivedUs=0,um=0,boot=0;bool valid=false;};
+  void addIrBoundary(const ir_movement::WireSnapshot& w,uint64_t receivedUs) {
+    if(irBoundaryCount_==kBoundaryCapacity) {
+      for(size_t i=1;i<irBoundaryCount_;++i)irBoundaries_[i-1]=irBoundaries_[i];
+      --irBoundaryCount_;
+    }
+    irBoundaries_[irBoundaryCount_++]={receivedUs,w.nominalUm,w.bootId,true};
+  }
+  IrBoundary irBoundaryAt(uint64_t hallUs)const {
+    for(size_t i=irBoundaryCount_;i>0;--i) {
+      const auto& b=irBoundaries_[i-1];
+      if(b.receivedUs<=hallUs && hallUs-b.receivedUs<=kIrFreshUs &&
+         b.boot==latestIr_.bootId)return b;
+    }
+    return {};
   }
 
   void beginDecision(uint64_t nowUs) { decisionUs_ = nowUs; ++consumptionId_; }
@@ -564,7 +705,19 @@ class NaviIntegratedCore {
   size_t speedPointCount_ = 0;
   ngr_nav::IrInstrumentState interpretedHealth_{};
   ngr_evidence::NaviEvidenceBridge evidenceBridge_{};
-  bool irWindowQuestionable_ = false; // pending evaluated Type-6 integration
+  bool irWindowQuestionable_=false,reanchorNeeded_=false,irPulseObservable_=false;
+  ngr_evidence::IrPulseEvidence pulseEvidence_{};
+  ngr_evidence::PulseAssessment lastPulseAssessment_{};
+  ngr_evidence::DnaCheck dnaCheck_{};
+  ngr_evidence::Encounter lastEncounter_{};
+  int16_t diagnosticHall_[5]{}; unsigned diagnosticCount_=0;
+  uint32_t dnaChecks_=0,irTimingQuestions_=0,pendingCount_=0;
+  uint64_t lastPulseReceivedUs_=0,anchorOpenedUs_=0;
+  uint32_t geographicRevision_=0;
+  TargetSpec pendingTarget_{};
+  static constexpr size_t kBoundaryCapacity=64;
+  IrBoundary irBoundaries_[kBoundaryCapacity]{};
+  size_t irBoundaryCount_=0;
   bool haveHall_ = false;
   HallSample lastHall_{};
   uint64_t hallObservationCount_ = 0, irObservationCount_ = 0;

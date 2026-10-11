@@ -22,10 +22,11 @@ class NaviEvidenceBridge {
   }
   Ruling observe(int raw,int reference,uint64_t timestampUs,uint32_t serial,
                  uint64_t irUm,int8_t observedDirection,
-                 const IdentityEvidence& target) {
+                 const IdentityEvidence& target, bool irCoordinateValid=false,
+                 uint64_t separationUm=0, bool coordinateValid=false) {
     Ruling out;
     Encounter encounter;
-    if (!hall_.observe(raw,reference,timestampUs,serial,irUm,encounter))return out;
+    if (!hall_.observe(raw,reference,timestampUs,serial,irUm,encounter,irCoordinateValid,separationUm,coordinateValid))return out;
     out.newEncounter=true;
     out.encounter=encounter;
     history_.append(encounter,observedDirection);
@@ -41,6 +42,10 @@ class NaviEvidenceBridge {
     // must explicitly commit it after its own movement/position checks.
     return out;
   }
+  bool inField()const{return hall_.fieldLatched();}
+  void reverse(){hall_.reverse();}
+  void breakSamples(){hall_.breakSamples();}
+  void markContradiction(){if(history_.size())history_.markContradiction(history_.size()-1);}
   bool recordConfirmed(size_t historyIndex,uint8_t mm) {
     return history_.identify(historyIndex,mm);
   }

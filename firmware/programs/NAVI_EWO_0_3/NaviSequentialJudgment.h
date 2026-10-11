@@ -22,7 +22,8 @@ struct IdentityDecision {
   bool irDisagrees=false;
 };
 inline IdentityDecision judgeExpected(const Encounter& e,const IdentityEvidence& c){
-  if(c.expectedDirection!=c.observedDirection)
+  if((c.expectedDirection!=1 && c.expectedDirection!=-1) ||
+     c.expectedDirection!=c.observedDirection)
     return {IdentityRuling::WrongDirection,c.expectedMm,false};
   if(e.polarity!=c.expectedPolarity)
     return {IdentityRuling::ContradictoryPolarity,c.expectedMm,false};
