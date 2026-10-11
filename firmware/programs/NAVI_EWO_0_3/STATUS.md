@@ -21,3 +21,10 @@ Baseline: EWO 0.1 commit 85a2cf2. This directory contains isolated, host-testabl
 - Keep STOP, actuator code, IR calibration, and governing decisions unchanged unless separately authorized.
 
 No firmware flashed or deployed.
+
+## Latest addition — sequential identity judgment
+
+- `NaviSequentialJudgment.h` implements a pure next-MM judgment from a **qualified** Hall encounter, expected mapped polarity and direction. Credible IR-window disagreement is reported but does not veto the qualified expected magnet.
+- `tests/test_judgment.cpp` adds expected-target, IR-disagreement, opposite-polarity, and wrong-direction cases.
+- This is **not yet wired into `NaviIntegratedCore`**. The new tests have not been executed in this session, and neither integration nor field readiness is claimed.
+- Outstanding before integration: reliable qualification of the IR coordinate at the Hall opening, continuous DNA history checks in the operational path, real Type-6 pulse provenance, reversal/declaration tests, and full sketch build.
