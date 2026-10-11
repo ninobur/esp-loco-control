@@ -28,3 +28,11 @@ No firmware flashed or deployed.
 - `tests/test_judgment.cpp` adds expected-target, IR-disagreement, opposite-polarity, and wrong-direction cases.
 - This is **not yet wired into `NaviIntegratedCore`**. The new tests have not been executed in this session, and neither integration nor field readiness is claimed.
 - Outstanding before integration: reliable qualification of the IR coordinate at the Hall opening, continuous DNA history checks in the operational path, real Type-6 pulse provenance, reversal/declaration tests, and full sketch build.
+
+## First operational core integration draft (commit 439c9c2)
+- Created `NaviIntegratedCore.h` from the exact EWO 0.1 core. Retained its public API, mapped target, `confirm()` geographic anchoring, and operational STOP interfaces.
+- Replaced the 0.1 Hall target-only/IR-veto acceptance path with the evidence bridge. Spatial-reference collection no longer suppresses physical Hall encounter observation.
+- Qualified expected-polarity encounters can now call the existing `confirm()` without requiring the IR ±15% window. A bounded DNA history records confirmed identities and runs read-only polarity checks.
+- The original 0.1 `evaluateMissing()` is **still present** and can still infer geographic progression from IR. Type-6 credibility is **not wired into the core**, and the provisional `irWindowQuestionable_` flag is not yet set. The full operational sketch has **not** been copied or compiled. The integrated core is a work-in-progress, **not approved for flashing**.
+- Critical remaining validation: first-target declaration behavior, Hall baseline behavior during spatial collection, station duplicate protection with IR, sequence continuity beyond individually confirmed identities, reversals, unknown/contradictory encounters, and stale STOP instruction after a correction. No automatic DNA correction implemented.
+- Integration has **not passed a full build or host regression suite**. Do not represent this commit as field-ready.
