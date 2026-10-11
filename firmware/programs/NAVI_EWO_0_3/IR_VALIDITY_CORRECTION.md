@@ -1,5 +1,86 @@
 # IR validity and encounter qualification correction — 2026-10-11
 
+## Follow-up implementation and verification
+
+Review branch: `codex/navi-ewo-0-3-ir-validity-review`.
+Starting commit and rollback: `253faa464692b97ab48beb0aa621aa11372aaa55`,
+the existing published correction on `codex/navi-ewo-0-3-ir-validity`.
+This branch retains that work; it does not restart from 0.2 or redesign 0.3.
+The full correction can be reviewed against the 0.3 implementation at
+`16c65f61662c358923c780a2edffda9733f0a8da`.
+
+The inherited correction fixes both reported defects: Type-6 support expires
+after the existing one-second freshness bound, even if Type-5 continues;
+the 1.5x median and returning-normal bracket remain diagnostics and cannot
+alone withdraw IR authority. It also applies both edges of the existing +/-15%
+mapped-distance window before admitting a Hall encounter. Unavailable IR selects
+the unchanged 650-ms fallback. The detailed original report below is preserved.
+
+This follow-up removes the no-argument `irMagnetVetoAvailable()` overload from
+`NaviIntegratedCore.h`. It evaluated freshness at `decisionUs_`, the last
+consumed input's timestamp. With no new inputs that value never advanced, so a
+read-only caller could continue seeing stale validity. Callers must now supply
+the time being evaluated. Production Hall and telemetry callers already did so;
+the navigation tests now do so too. A compile-time assertion prevents accidental
+reintroduction of a validity query without time. No timeout constant changes.
+
+`tests/test_ir_validity.cpp`, included by `run_tests.sh`, adds:
+
+- Wire CRC validation and the actual Type-6 parser feeding the actual NAVI core
+  and Hall qualifier. Continuous pulses select mapped distance before 650 ms;
+  inside/outside distance cases, 69/70 counts and one/two Hall samples are checked.
+- An actually withheld generated Type-6 event. Sequence/count discontinuities
+  invalidate IR, without claiming radio loss is a physical missed cycle. The
+  subsequent Hall candidate is rejected at 649,999 us and accepted at 650,000 us
+  despite an invalid IR distance of just two pulse pitches.
+- Continuous uneven pulse intervals, including a long interval and return to
+  normal, retain authority while preserving timing diagnostics.
+- Read-only expiry at 1,000,001 us and much later with neither input stream
+  running; continued Type-5 alone cannot refresh Type-6. Resumption must rebuild
+  the existing pulse population before restoring authority.
+- The production `Measurement` detector and `PulseEventEvidence` transmitter,
+  driven by 1-kHz low/high/low samples. A saturated sample interrupts an open
+  cycle. Assertions establish an observed rise, no completed count for that
+  cycle, and incremented interruption diagnostics. The next Type-6 has no usable
+  interval; the parser and NAVI invalidate IR. Subsequent continuous evidence
+  restores validity. No replacement count is inserted.
+
+The last test establishes one **detectable interrupted-pulse case**, not a
+general physical missed-pulse classifier or a field result. A cycle that is
+entirely undetected can still produce consecutive counts and a longer interval
+indistinguishable from ordinary speed variation. Consequently the blanket
+"no missed physical pulses" requirement remains unresolved. No different timing
+ratio, geographic criterion, or hidden physical assumption is substituted.
+As before, the one-second bound means unavailable current evidence, not proof
+of a missed pulse; sufficiently sparse legitimate pulses select fallback.
+
+Verification on macOS with Apple clang 21.0.0:
+
+- Baseline suite at `253faa4`: exit 0. Final full `run_tests.sh`: exit 0;
+  24 C++ suite executions, 31 Python test methods, the standalone radio transport
+  scenarios and the unchanged 22,940-event recorded replay all pass. ASAN and
+  UBSAN remain enabled. No test failures occurred in this follow-up.
+  [Full results](verification/ir-validity-review-host-results.txt).
+- Full ESP32 build: exit 0, core 3.3.12, `esp32:esp32:esp32`, inherited Otto
+  profile. Program 1,028,067 / 1,310,720 bytes (78%); global memory
+  62,492 / 327,680 bytes (19%). Used only the safe credentials template in an
+  external temporary include directory. This resolves the prior environment's
+  build blocker; it does not change or erase its historical record.
+  [Build result](verification/ir-validity-review-esp32-build.txt).
+- Existing preservation tests pass for the map, calibration, polarity profiles,
+  STOP, actuator, manual, MQTT and Type-5 functions. `git diff --check` passes.
+- Physical missed pulses without detectable interruption remain **unverified**;
+  neither synthetic tests nor the recorded timing replay establishes their
+  detection. No raw-Hall DNA replay or field acceptance is claimed.
+
+Scope: the runtime follow-up is solely the time-required validity query.
+70 counts/two samples, +/-15%, 650 ms, the map and pitch, polarity evaluation,
+DNA, geographic sequencing, STOP, AUTO and PWM remain unchanged. Stationary
+and missing-magnet findings are outside this correction. **NAVI_EWO_0_3 is not
+ready for field testing.** No merge, flash, hardware or live-service change.
+
+## Original correction record (253faa4)
+
 Branch: `codex/navi-ewo-0-3-ir-validity`.
 Local starting commit/rollback: `352a72e` on `codex/navi-ewo-0-3-complete`.
 GitHub starting source: `16c65f61662c358923c780a2edffda9733f0a8da`.

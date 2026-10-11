@@ -8,7 +8,7 @@ trap 'rm -rf "$build_dir"' EXIT
 export ASAN_OPTIONS="${ASAN_OPTIONS:-detect_leaks=0}"
 flags='-std=c++17 -Wall -Wextra -Werror -fsanitize=address,undefined'
 sh "$here/../NAVI_EWO_0_1_MM045_STOP/run_tests.sh"
-for test in evidence ir judgment bridge navigation pulse_observation; do
+for test in evidence ir judgment bridge navigation pulse_observation ir_validity; do
   c++ $flags "$here/tests/test_$test.cpp" -o "$build_dir/$test"
   "$build_dir/$test"
   echo "PASS: test_$test"

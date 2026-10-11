@@ -414,11 +414,15 @@ class NaviIntegratedCore {
   uint32_t geographicRevision()const{return geographicRevision_;}
   uint32_t dnaChecks()const{return dnaChecks_;}
   uint32_t irTimingQuestions()const{return irTimingQuestions_;}
+  // The caller must supply the observation/decision time being evaluated.
+  // decisionUs_ is the last consumed input, not a clock: using it by default
+  // would let a read-only query retain authority indefinitely during silence.
+  // Continuous detected pulses are not proof that no optical cycle was missed;
+  // see IR_VALIDITY_CORRECTION.md for the unresolved physical limitation.
   bool irMagnetVetoAvailable(uint64_t nowUs)const{
     return irPulseObservable_ && !irWindowQuestionable_ && irApplicable(nowUs) &&
            nowUs>=lastPulseReceivedUs_ && nowUs-lastPulseReceivedUs_<=kIrFreshUs;
   }
-  bool irMagnetVetoAvailable()const{return irMagnetVetoAvailable(decisionUs_);}
   ngr_evidence::PulseAssessment pulseAssessment()const{return lastPulseAssessment_;}
   bool initialReferenceReady() const { return initialReferenceReady_; }
   uint64_t consumptionId() const { return consumptionId_; }

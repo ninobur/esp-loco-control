@@ -102,28 +102,28 @@ static void sequentialAndUndercount() {
 static void irCredibility() {
   Run r;r.field(28);
   for(unsigned i=1;i<=7;++i)r.pulse(i,i*60000ULL);
-  assert(r.n.irMagnetVetoAvailable());
-  r.pulse(8,600000);assert(r.n.irMagnetVetoAvailable());
+  assert(r.n.irMagnetVetoAvailable(r.now));
+  r.pulse(8,600000);assert(r.n.irMagnetVetoAvailable(r.now));
   r.pulse(9,660000);
   assert(r.n.pulseAssessment().questionable);
-  assert(r.n.irMagnetVetoAvailable()); // bracket is not proof of pulse loss
+  assert(r.n.irMagnetVetoAvailable(r.now)); // bracket is not proof of pulse loss
   const uint64_t count=r.n.latestIr().completedPulses;
   // Lost delivery observability is invalid evidence, not a physical missed pulse.
-  r.pulse(12,840000,90,false);assert(!r.n.irMagnetVetoAvailable());
+  r.pulse(12,840000,90,false);assert(!r.n.irMagnetVetoAvailable(r.now));
   r.field(29,200000);
   assert(r.n.mm()==29&&r.n.openingIrUm()==r.um);
   assert(r.n.latestIr().completedPulses>=count);
   for(unsigned i=13;i<=20;++i)r.pulse(i,840000+(i-12)*60000ULL);
-  assert(r.n.irMagnetVetoAvailable());
+  assert(r.n.irMagnetVetoAvailable(r.now));
   r.pulse(21,1500000,35);assert(!r.n.pulseAssessment().questionable);
-  assert(!r.n.irMagnetVetoAvailable());
+  assert(!r.n.irMagnetVetoAvailable(r.now));
   for(unsigned i=22;i<=27;++i)r.pulse(i,1500000+(i-21)*60000ULL,35);
-  assert(r.n.irMagnetVetoAvailable());
+  assert(r.n.irMagnetVetoAvailable(r.now));
   r.n.reverse(-1,r.now+=1000);
-  assert(!r.n.irMagnetVetoAvailable());
+  assert(!r.n.irMagnetVetoAvailable(r.now));
   Run credible;credible.field(28);
   for(unsigned i=1;i<=7;++i)credible.pulse(i,i*60000ULL);
-  assert(credible.n.irMagnetVetoAvailable());
+  assert(credible.n.irMagnetVetoAvailable(credible.now));
   credible.field(29,uint64_t(navi_one::spanMm(28,1))*1000);
   assert(credible.n.mm()==29&&credible.n.positionReliable());
   assert(credible.n.dnaChecks()==2&&credible.n.dnaCheck().matched==2);
@@ -137,7 +137,7 @@ static void irValiditySelection() {
   static_assert(NaviIntegratedCore::kIrFreshUs==1000000);
   auto warm=[](Run& r,unsigned start=1) {
     for(unsigned i=start;i<start+7;++i)r.pulse(i,i*60000ULL);
-    assert(r.n.irMagnetVetoAvailable());
+    assert(r.n.irMagnetVetoAvailable(r.now));
   };
   // Distance, rather than time or polarity alone, qualifies a fresh encounter.
   for(int percent:{84,90,100,114,116}) {
@@ -176,19 +176,19 @@ static void irValiditySelection() {
   assert(stale.n.irMagnetVetoAvailable(received+1000000));
   assert(!stale.n.irMagnetVetoAvailable(received+1000001));
   stale.neutral();stale.wait(1000001);stale.ir(stale.um+9652);
-  assert(!stale.n.irMagnetVetoAvailable());
+  assert(!stale.n.irMagnetVetoAvailable(stale.now));
   assert(std::strcmp(stale.n.irDistanceState(stale.now),"IR_TIMING_UNOBSERVED")==0);
   stale.sample(1100);stale.sample(1100);assert(stale.n.mm()==29);
-  stale.pulse(8,480000);assert(!stale.n.irMagnetVetoAvailable());
+  stale.pulse(8,480000);assert(!stale.n.irMagnetVetoAvailable(stale.now));
   for(unsigned i=9;i<=14;++i)stale.pulse(i,i*60000ULL);
-  assert(stale.n.irMagnetVetoAvailable());
+  assert(stale.n.irMagnetVetoAvailable(stale.now));
   // Uneven timing, including the old missing-compatible bracket, remains
   // diagnostic and cannot masquerade as verified physical pulse loss.
   Run variation;variation.field(28);warm(variation);
-  variation.pulse(8,540000);assert(variation.n.irMagnetVetoAvailable());
-  variation.pulse(9,600000);assert(variation.n.irMagnetVetoAvailable());
-  variation.pulse(10,690000);assert(variation.n.irMagnetVetoAvailable());
-  variation.pulse(11,750000);assert(variation.n.irMagnetVetoAvailable());
+  variation.pulse(8,540000);assert(variation.n.irMagnetVetoAvailable(variation.now));
+  variation.pulse(9,600000);assert(variation.n.irMagnetVetoAvailable(variation.now));
+  variation.pulse(10,690000);assert(variation.n.irMagnetVetoAvailable(variation.now));
+  variation.pulse(11,750000);assert(variation.n.irMagnetVetoAvailable(variation.now));
 }
 static void contradictionAndRetrospection() {
   // Real MM028 wrong polarity: retain the encounter, then ten subsequent
