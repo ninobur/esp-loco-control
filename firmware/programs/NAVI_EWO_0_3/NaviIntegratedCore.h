@@ -248,14 +248,16 @@ class NaviIntegratedCore {
         ngr_evidence::Polarity::North : ngr_evidence::Polarity::South;
     identity.expectedDirection=direction_;
     identity.irCredible=boundary.valid && relationshipReliable_ &&
-                        targetOriginValid_ && irPulseObservable_ && !irWindowQuestionable_ &&
-                        sample.timestampUs>=lastPulseReceivedUs_;
+                        targetOriginValid_ && irMagnetVetoAvailable(sample.timestampUs);
     if(identity.irCredible && boundary.um>=physicalOriginUm_) {
       const uint64_t traveled=boundary.um-physicalOriginUm_;
       const uint64_t tolerance=uint64_t(target_.distanceMm)*150;
       identity.irInsideWindow=traveled+tolerance>=expectedCumulativeUm_ &&
                              traveled<=expectedCumulativeUm_+tolerance;
     }
+    // A between-marker declaration has no measured marker origin. Retain its
+    // established first-target behavior; do not invent a mapped distance.
+    if(firstTargetAfterDeclare_)identity.irInsideWindow=true;
     const int8_t sensedDir=sample.direction==1?1:sample.direction==2?-1:0;
     const uint64_t separation=reverseTarget_ ? expectedCumulativeUm_*85/100 : uint64_t(target_.distanceMm)*850;
     const auto ruling=evidenceBridge_.observe(sample.raw,activeReference_,
@@ -316,15 +318,20 @@ class NaviIntegratedCore {
       irPulseObservable_=false;
     if(assessment.finding==ngr_evidence::PulseFinding::TimingAnomaly ||
        assessment.questionable) {
-      irWindowQuestionable_=true; reanchorNeeded_=true; irPulseObservable_=false;
+      // Timing alone cannot distinguish wheel-speed variation from an optical
+      // cycle that was never counted. Record the question without granting it
+      // missed-pulse authority. Raw timestamps/counts remain unchanged.
       ++irTimingQuestions_; push(EwoEventKind::IrTimingQuestionable);
-    } else if(!reanchorNeeded_ &&
-              assessment.finding==ngr_evidence::PulseFinding::Normal &&
+    }
+    const bool continuous=assessment.finding==ngr_evidence::PulseFinding::Normal ||
+                          assessment.finding==ngr_evidence::PulseFinding::TimingAnomaly ||
+                          assessment.finding==ngr_evidence::PulseFinding::BracketedMissingCompatible;
+    if(!reanchorNeeded_ && continuous &&
               irWindowQuestionable_) {
       irWindowQuestionable_=false;
       push(EwoEventKind::IrCredibilityRestored);
     }
-    if(assessment.finding==ngr_evidence::PulseFinding::Normal && !reanchorNeeded_)
+    if(continuous && !reanchorNeeded_)
       irPulseObservable_=true;
   }
 
@@ -399,7 +406,7 @@ class NaviIntegratedCore {
     if (!irApplicable(nowUs)) return "IR_STALE";
     if (!relationshipReliable_ || !targetOriginValid_) return "UNANCHORED_REDECLARE";
     if (irWindowQuestionable_) return "IR_TIMING_QUESTIONABLE";
-    if (!irPulseObservable_) return "IR_TIMING_UNOBSERVED";
+    if (!irMagnetVetoAvailable(nowUs)) return "IR_TIMING_UNOBSERVED";
     return "HALL_IR_READY";
   }
   const ngr_evidence::DnaHistory& dnaHistory()const{return evidenceBridge_.history();}
@@ -407,7 +414,11 @@ class NaviIntegratedCore {
   uint32_t geographicRevision()const{return geographicRevision_;}
   uint32_t dnaChecks()const{return dnaChecks_;}
   uint32_t irTimingQuestions()const{return irTimingQuestions_;}
-  bool irMagnetVetoAvailable()const{return irPulseObservable_ && !irWindowQuestionable_ && irContinuity_;}
+  bool irMagnetVetoAvailable(uint64_t nowUs)const{
+    return irPulseObservable_ && !irWindowQuestionable_ && irApplicable(nowUs) &&
+           nowUs>=lastPulseReceivedUs_ && nowUs-lastPulseReceivedUs_<=kIrFreshUs;
+  }
+  bool irMagnetVetoAvailable()const{return irMagnetVetoAvailable(decisionUs_);}
   ngr_evidence::PulseAssessment pulseAssessment()const{return lastPulseAssessment_;}
   bool initialReferenceReady() const { return initialReferenceReady_; }
   uint64_t consumptionId() const { return consumptionId_; }
@@ -653,7 +664,16 @@ class NaviIntegratedCore {
     return {};
   }
 
-  void beginDecision(uint64_t nowUs) { decisionUs_ = nowUs; ++consumptionId_; }
+  void beginDecision(uint64_t nowUs) {
+    decisionUs_ = nowUs; ++consumptionId_;
+    // Use the existing observation freshness bound. Continuing Type-5 reports
+    // cannot keep an absent Type-6 stream authoritative. After a pause, collect
+    // a fresh population rather than inheriting one from before the pause.
+    if(lastPulseReceivedUs_ && nowUs>=lastPulseReceivedUs_ &&
+       nowUs-lastPulseReceivedUs_>kIrFreshUs) {
+      pulseEvidence_.reset(); irPulseObservable_=false;
+    }
+  }
   void requireDeclarationAfterMovement() {
     pwmZeroMovementRequiresDeclaration_ = true;
     resetTargetEvidence();

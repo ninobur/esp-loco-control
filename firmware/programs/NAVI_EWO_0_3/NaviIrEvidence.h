@@ -3,9 +3,9 @@
 #include <stdint.h>
 
 namespace ngr_evidence {
-// Timing judgments concern measurement credibility, never synthetic distance.
+// Timing findings are diagnostics, never a physical missed-pulse verdict.
 // A counted long interval cannot prove whether the wheel slowed or an optical
-// cycle was lost. Keep that distinction even when withdrawing distance veto.
+// cycle was lost. NAVI must not withdraw distance authority from this alone.
 enum class PulseFinding : uint8_t {
   Baseline, Normal, TimingAnomaly, ObservationGap, ClockError,
   BracketedMissingCompatible

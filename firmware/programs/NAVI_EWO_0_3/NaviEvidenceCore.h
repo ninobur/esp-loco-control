@@ -19,7 +19,8 @@ class HallQualifier {
   // Call once per 1-kHz sample; a gap breaks two-sample persistence.
   bool observe(int raw,int reference,uint64_t timestampUs,uint32_t serial,
                uint64_t irUm,Encounter& out, bool irCredible=false,
-               uint64_t separationUm=0, bool coordinateValid=false) {
+               uint64_t separationUm=0, bool coordinateValid=false,
+               bool distanceQualified=true) {
     if (haveSample_ && timestampUs<=lastSampleUs_) { resetPending(); return false; }
     const bool contiguous=haveSample_ && serial==lastSampleSerial_+1 &&
         timestampUs-lastSampleUs_>=500 && timestampUs-lastSampleUs_<=1500;
@@ -31,12 +32,18 @@ class HallQualifier {
     if (fieldLatched_) return false; // one continuous field cannot retrigger
     if (p!=pending_ || !contiguous) {
       pending_=p; count_=1; openingUs_=timestampUs;
+      openingDistanceQualified_=distanceQualified; openingIrCredible_=irCredible;
       openingIrUm_=irUm; openingSerial_=serial; openingIrValid_=coordinateValid; return false;
     }
     if (++count_<2) return false;
     fieldLatched_=true; // latch even if excluded: must leave field before rearming
+    // Qualified distance is NAVI's complete mapped +/-15% window at the Hall
+    // opening. A failed window is not a new encounter and does not move the
+    // exclusion origin. When IR is unavailable, only the retained timer applies.
+    const bool useDistance=irCredible && openingIrCredible_;
+    if(useDistance && !openingDistanceQualified_)return false;
     if (haveDetection_) {
-      if (irCredible && openingIrValid_ && lastIrValid_ && separationUm && openingIrUm_>=lastIrUm_) {
+      if (useDistance && openingIrValid_ && lastIrValid_ && separationUm && openingIrUm_>=lastIrUm_) {
         if (openingIrUm_-lastIrUm_<separationUm) return false;
       } else if (timestampUs-lastDetectionUs_<kGuardUs) return false;
     }
@@ -59,6 +66,7 @@ class HallQualifier {
   uint64_t openingUs_=0,openingIrUm_=0,lastSampleUs_=0,lastDetectionUs_=0;
   uint32_t openingSerial_=0,lastSampleSerial_=0;
   bool openingIrValid_=false,lastIrValid_=false;
+  bool openingDistanceQualified_=false,openingIrCredible_=false;
   uint64_t lastIrUm_=0;
 };
 

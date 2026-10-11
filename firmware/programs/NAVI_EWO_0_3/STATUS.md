@@ -1,3 +1,10 @@
+> Current scoped correction: [IR_VALIDITY_CORRECTION.md](IR_VALIDITY_CORRECTION.md).
+> Stale Type-6 authority and timing-only withdrawal are corrected; the full
+> +/-15% window now qualifies encounters. Genuine physical missed-pulse
+> discrimination remains unresolved. **Not ready for field testing.**
+> The original implementation/verification snapshot below describes the prior
+> candidate; its timing-authority claims are superseded by the correction report.
+
 # NAVI_EWO_0_3 — implementation and verification status
 
 2026-10-11. Complete operational sketch implemented and ESP32 compiled. This is

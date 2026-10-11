@@ -26,7 +26,7 @@ class NaviEvidenceBridge {
                  uint64_t separationUm=0, bool coordinateValid=false) {
     Ruling out;
     Encounter encounter;
-    if (!hall_.observe(raw,reference,timestampUs,serial,irUm,encounter,irCoordinateValid,separationUm,coordinateValid))return out;
+    if (!hall_.observe(raw,reference,timestampUs,serial,irUm,encounter,irCoordinateValid,separationUm,coordinateValid,target.irInsideWindow))return out;
     out.newEncounter=true;
     out.encounter=encounter;
     history_.append(encounter,observedDirection);

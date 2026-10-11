@@ -67,7 +67,7 @@ static void duplicatesAndSpatial() {
   Run r(28);r.field(29);assert(r.n.mm()==29);
   for(unsigned i=1;i<=7;++i)r.pulse(i,i*60000ULL);
   const unsigned history=r.n.dnaHistory().size();
-  r.neutral();r.wait(1000000);r.ir(r.um+10000);
+  r.neutral();r.wait(700000);r.ir(r.um+10000);
   r.sample(1100);r.sample(1100);
   assert(r.n.confirmedCount()==1&&r.n.dnaHistory().size()==history);
   r.wait();r.sample(1100);r.sample(1100);assert(r.n.confirmedCount()==1);
@@ -103,32 +103,92 @@ static void irCredibility() {
   Run r;r.field(28);
   for(unsigned i=1;i<=7;++i)r.pulse(i,i*60000ULL);
   assert(r.n.irMagnetVetoAvailable());
-  r.pulse(8,600000);assert(!r.n.irMagnetVetoAvailable());
+  r.pulse(8,600000);assert(r.n.irMagnetVetoAvailable());
   r.pulse(9,660000);
   assert(r.n.pulseAssessment().questionable);
+  assert(r.n.irMagnetVetoAvailable()); // bracket is not proof of pulse loss
   const uint64_t count=r.n.latestIr().completedPulses;
-  r.field(29,200000); // lost veto cannot block the true expected marker
-  assert(r.n.mm()==29&&r.n.openingIrUm()==r.um);
-  assert(r.n.latestIr().completedPulses>=count); // counter was never rewritten
-  r.pulse(10,720000);assert(r.n.irMagnetVetoAvailable());
-  // A telemetry record gap is missing observability, not a missing physical pulse.
+  // Lost delivery observability is invalid evidence, not a physical missed pulse.
   r.pulse(12,840000,90,false);assert(!r.n.irMagnetVetoAvailable());
+  r.field(29,200000);
+  assert(r.n.mm()==29&&r.n.openingIrUm()==r.um);
+  assert(r.n.latestIr().completedPulses>=count);
   for(unsigned i=13;i<=20;++i)r.pulse(i,840000+(i-12)*60000ULL);
   assert(r.n.irMagnetVetoAvailable());
-  // Acceleration changes measured PWM: do not label its interval skipped.
   r.pulse(21,1500000,35);assert(!r.n.pulseAssessment().questionable);
   assert(!r.n.irMagnetVetoAvailable());
   for(unsigned i=22;i<=27;++i)r.pulse(i,1500000+(i-21)*60000ULL,35);
   assert(r.n.irMagnetVetoAvailable());
   r.n.reverse(-1,r.now+=1000);
   assert(!r.n.irMagnetVetoAvailable());
-  // Ordinary credible distance agreement still exercises DNA at every marker.
   Run credible;credible.field(28);
   for(unsigned i=1;i<=7;++i)credible.pulse(i,i*60000ULL);
   assert(credible.n.irMagnetVetoAvailable());
   credible.field(29,uint64_t(navi_one::spanMm(28,1))*1000);
   assert(credible.n.mm()==29&&credible.n.positionReliable());
   assert(credible.n.dnaChecks()==2&&credible.n.dnaCheck().matched==2);
+}
+// Scoped correction tests use the operational core, leaving geographic/DNA
+// expectations unchanged. Synthetic delivery loss is never called pulse loss.
+static void irValiditySelection() {
+  static_assert(ngr_evidence::HallQualifier::kThreshold==70);
+  static_assert(ngr_evidence::HallQualifier::kGuardUs==650000);
+  static_assert(ir_movement::kInstalledPitchUm==9652);
+  static_assert(NaviIntegratedCore::kIrFreshUs==1000000);
+  auto warm=[](Run& r,unsigned start=1) {
+    for(unsigned i=start;i<start+7;++i)r.pulse(i,i*60000ULL);
+    assert(r.n.irMagnetVetoAvailable());
+  };
+  // Distance, rather than time or polarity alone, qualifies a fresh encounter.
+  for(int percent:{84,90,100,114,116}) {
+    Run r;r.field(28);warm(r);
+    const uint64_t distance=uint64_t(r.n.target().distanceMm)*1000*percent/100;
+    r.neutral();r.wait(100000);r.ir(r.um+distance);
+    r.sample(1100);r.sample(1100);
+    const bool inside=percent>=85 && percent<=115;
+    assert(r.n.confirmedCount()==(inside?2:1));
+    assert(r.n.mm()==(inside?29:28));
+    assert(r.n.dnaHistory().size()==(inside?2:1));
+  }
+  // A packet between the two Hall samples cannot rescue an opening outside
+  // the lower window; likewise later overshoot cannot invalidate a valid opening.
+  for(bool inside:{false,true}) {
+    Run r;r.field(28);warm(r);r.neutral();r.wait(100000);
+    const uint64_t distance=uint64_t(r.n.target().distanceMm)*1000;
+    r.ir(r.um+distance*(inside?100:84)/100);
+    r.sample(1100);r.now+=500;r.ir(r.um+distance/2);r.sample(1100);
+    assert(r.n.confirmedCount()==(inside?2:1));
+  }
+  // Invalid evidence selects the exact 650-ms guard even if its distance
+  // would pass, and cannot reject a >650-ms encounter with undercounted distance.
+  for(uint64_t elapsed:{uint64_t(649999),uint64_t(650000)}) {
+    Run r;r.field(28);warm(r);const uint64_t last=r.now;
+    r.neutral();r.now=last+elapsed-2000;r.ir(r.um+300000);
+    r.pulse(20,1200000,90,false);
+    r.sample(1100);r.sample(1100);
+    assert(r.n.confirmedCount()==(elapsed>=650000?2:1));
+  }
+  Run invalid;invalid.field(28);warm(invalid);
+  invalid.pulse(20,1200000,90,false);
+  invalid.field(29,9652);assert(invalid.n.mm()==29);
+  // Refreshing Type-5 without Type-6 must not preserve distance authority.
+  Run stale;stale.field(28);warm(stale);stale.ir(stale.um);const uint64_t received=stale.now;
+  assert(stale.n.irMagnetVetoAvailable(received+1000000));
+  assert(!stale.n.irMagnetVetoAvailable(received+1000001));
+  stale.neutral();stale.wait(1000001);stale.ir(stale.um+9652);
+  assert(!stale.n.irMagnetVetoAvailable());
+  assert(std::strcmp(stale.n.irDistanceState(stale.now),"IR_TIMING_UNOBSERVED")==0);
+  stale.sample(1100);stale.sample(1100);assert(stale.n.mm()==29);
+  stale.pulse(8,480000);assert(!stale.n.irMagnetVetoAvailable());
+  for(unsigned i=9;i<=14;++i)stale.pulse(i,i*60000ULL);
+  assert(stale.n.irMagnetVetoAvailable());
+  // Uneven timing, including the old missing-compatible bracket, remains
+  // diagnostic and cannot masquerade as verified physical pulse loss.
+  Run variation;variation.field(28);warm(variation);
+  variation.pulse(8,540000);assert(variation.n.irMagnetVetoAvailable());
+  variation.pulse(9,600000);assert(variation.n.irMagnetVetoAvailable());
+  variation.pulse(10,690000);assert(variation.n.irMagnetVetoAvailable());
+  variation.pulse(11,750000);assert(variation.n.irMagnetVetoAvailable());
 }
 static void contradictionAndRetrospection() {
   // Real MM028 wrong polarity: retain the encounter, then ten subsequent
@@ -210,4 +270,4 @@ static void mapDnaAndRearmedDeclaration() {
     assert(r.n.positionReliable()&&r.n.mm()==38&&!r.n.geographicJudgmentPending());
   }
 }
-int main(){mapDnaAndRearmedDeclaration();thresholdAndBoundary();duplicatesAndSpatial();sequentialAndUndercount();irCredibility();contradictionAndRetrospection();declarationsAndReversal();std::puts("PASS: 0.3 integrated navigation acceptance");}
+int main(){irValiditySelection();mapDnaAndRearmedDeclaration();thresholdAndBoundary();duplicatesAndSpatial();sequentialAndUndercount();irCredibility();contradictionAndRetrospection();declarationsAndReversal();std::puts("PASS: 0.3 integrated navigation acceptance");}
