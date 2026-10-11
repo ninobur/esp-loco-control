@@ -7,6 +7,13 @@ Decided by: David, after review with Sam.
 
 ## Decision
 
+### 2026-10-10 revision
+
+A physical magnetic encounter is a departure of at least 70 counts from the
+established reference for two consecutive 1-kHz native samples. NAVI preserves
+both polarities, leading boundary, timestamp and associated IR coordinate. This
+is observation, not identity. Median-of-five remains diagnostic only.
+
 **Native observations.** One ADC conversion is one Hall observation. Individual
 ADC observations reach NAVI in order, with provenance. No upstream Hall median or
 other evidence-selection calculation determines what NAVI gets to see. NAVI may

@@ -21,6 +21,14 @@ unchanged to preserve the decision history.
 
 ## Decision
 
+### 2026-10-10 revision
+
+IR is supporting evidence, not an unconditional veto. NAVI evaluates ordered
+Type-6 completion timestamps and fixed-PWM apparent-speed continuity for the
+current interval. Questionable IR remains recorded but is excluded from marker
+identification and inferred Missed Magnet advancement; it is never repaired.
+Validated Hall/DNA/reachability evidence may establish identity.
+
 IR health is observation and telemetry, not authority to erase coherent
 cumulative distance. `INADEQUATE_CONTRAST`, saturation, sample gaps, pulse
 aborts and reacquisition remain raw recorded diagnostics. No pulse progression

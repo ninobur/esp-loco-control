@@ -9,6 +9,15 @@ below is the canonical wording from David's documentation instruction of
 
 ## Decision
 
+### 2026-10-10 revision
+
+NAVI continuously preserves physical Hall encounters and evaluates their ordered
+magnetic DNA against the declared journey. It may retrospectively identify a
+marker only when ordered observations, surveyed geometry, physical reachability
+and journey history produce one conclusion. It may not invent, delete or reorder
+an encounter, map-wide match, or guess position. Ten unresolved Hall encounters
+or credible-IR marker passages withdraw AUTO and require redeclaration.
+
 **NAVI is on a quest to confirm its known target.**
 
 NAVI knows which MM it seeks and that MM's mapped polarity, distance,

@@ -4,7 +4,7 @@
 
 namespace ir_movement {
 // Installed standard LGB wheel geometry; not a runtime calibration setting.
-static constexpr uint32_t kInstalledPitchUm = 9652;
+static constexpr uint32_t kInstalledPitchUm = 10000;
 // ESP32 little-endian transport. Type 5 is separate from legacy raw/fusion.
 struct __attribute__((packed)) WireSnapshot {
   uint16_t magic=0x4952;

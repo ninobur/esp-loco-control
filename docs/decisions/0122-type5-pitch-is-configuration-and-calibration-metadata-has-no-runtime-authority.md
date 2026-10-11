@@ -6,8 +6,8 @@ Decided by: David's explicit Document B implementation instruction; implementati
 ## Decision
 
 David instructed: “Pitch is configuration, not runtime state” and “Remove the
-fictional lifecycle, not measurement validation.” The installed pitch is
-9652 µm per completed pulse. EWO checks that configured value and the
+fictional lifecycle, not measurement validation.” The installed pitch for
+NAVI_EWO_0_2 is 10000 µm per completed pulse. EWO checks that configured value and the
 overflow-safe pulse/distance product. A different pitch is malformed evidence,
 not a supported configuration transition.
 

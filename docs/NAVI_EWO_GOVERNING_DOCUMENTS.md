@@ -84,6 +84,13 @@ extension by 0111 is withdrawn by 0116.
 
 ## 3. Reconciliation and architectural history
 
+## 2026-10-10 NAVI_EWO_0_2 evidence revision
+
+No instrument is infallible. Hall supplies physical encounters, IR supplies
+movement evidence, the map supplies DNA, and NAVI alone evaluates evidence and
+determines geographic identity. Decisions 0109, 0110, 0113, 0116 and 0122
+contain the scoped candidate rules; 0120 and 0121 remain unchanged.
+
 - [Position/overlay documentation reconciliation, 2026-10-05](NAVI_POSITION_OVERLAY_DOCUMENTATION_RECONCILIATION_20261005.md)
   (scoped supersession notices and search classifications; historical evidence
   remains intact; no firmware or test changes)

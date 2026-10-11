@@ -19,6 +19,12 @@ sections below were not rewritten; where they conflict with later EWO
 decisions, those decisions govern (notably 0106's IR-at-PWM-0 rule, superseded
 by 0112, and the EWO Hall-only fallback, withdrawn by 0116).
 
+**NAVI_EWO_0_2 evidence revision (2026-10-10):** Hall provides physical
+encounters, IR provides fallible movement evidence, the route map provides
+magnetic DNA, and NAVI alone determines geographic identity. Continuous bounded
+DNA reconciliation replaces target-only shrug for EWO; see revised 0109, 0110,
+0113, 0116 and 0122.
+
 **It authorizes no implementation.** Nothing here changes firmware, tests,
 thresholds, the dashboard, the Pi or field behavior. Per
 [`decisions/README.md`](decisions/README.md), no record authorizes an agent to

@@ -12,6 +12,13 @@ the post-confirmation spatial cycle is unchanged.
 
 ## Decision
 
+### 2026-10-10 refinement
+
+The existing IR-based collection geometry and sample selection remain unchanged.
+Collection terminates, retaining the prior reference, at 800 ms (PWM≤50), 640
+ms (51–69), 490 ms (70–89), or 375 ms (PWM≥90), using the highest PWM band since
+collection began. Timeout never initiates collection or adds rising-signal filtering.
+
 **The reference belongs to NAVI.** Progression is based on **physical travel, not
 elapsed stationary time.**
 
