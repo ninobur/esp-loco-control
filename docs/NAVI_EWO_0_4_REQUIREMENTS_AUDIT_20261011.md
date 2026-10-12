@@ -328,3 +328,13 @@ Keep the draft's controls and add:
 - the 5-second dwell at applied zero;
 - one overlay, with collision highest;
 - the deployment prohibitions.
+
+---
+
+## Correction (2026-10-11)
+
+**§2.3 item 2 and traceability item 12 are withdrawn.**
+
+David clarified that "MM" means **mile markers**, so "10 MM standard length" means a window of 10 mile markers. It does not mean 10 millimetres, and it has no connection to the 10,000 µm/pulse calibration.
+
+See `NAVI_EWO_0_4_REQUIREMENTS_AUDIT_REV2_20261011.md` §3.9.
