@@ -29,6 +29,7 @@ log carries.
 | `20260801_otto_chain-v3-cert.log` | `~/run_0801_1600.log` | 2026-08-01 16:00 → 08-03 15:31 | Otto 9950011 | contains the 16:03 dashboard-failure session that produced v1.10.1 |
 | `20260802_toby_lapA-sensor-flip-cert.log` | `~/toby_cert_0802_1831.log` | 2026-08-02 18:31 → 08-03 20:54 | Toby 9950012 (+ Otto traffic) | Lap A / sensor-flip certification; analysed in `verdicts/` |
 | `20260810_IR_SPEED_LOCAL_1_2_otto.log` | `~/NGR/telemetry/runs/20260810_IR_SPEED_LOCAL_1_2_otto.log` | 2026-08-10 19:19 → 21:09 PDT | Otto 9950011 + IR_SPEED_SENSOR | Merged beta-test capture: Otto Hall/navigation and IR test-car telemetry. Contains the three `HARD_BOUND` NO_QUORUM incidents, including the final Patio-area incident at log lines 25020–25120. |
+| `20261002_otto_ewo-survey-build_post-run-stationary.log` | `9950011_20261002_165113.log` | 2026-10-02 16:51:13 → 16:58:22 local | Otto 9950011 | EWO R2_FT2 survey build; post-run stationary end state only — the reported failed station stop is not in this capture; analysed in `verdicts/` |
 
 ## Cal recordings
 
@@ -42,3 +43,4 @@ absence of a file states equally well.
 | file | covers |
 |---|---|
 | `20260802_toby_lapA-sensor-flip-cert.md` | Toby's five certification metrics before/after the shielded cable |
+| `20261002_otto_ewo-survey-build_post-run-stationary.md` | Otto's reported failed station stop: log holds only the post-run end state (NAVI MM012→013 in Patio's CW zone, AUTO cleared); cause undetermined, evidence needed listed |
