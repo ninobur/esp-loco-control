@@ -1,0 +1,1802 @@
+[
+  {
+    "blob_sha": "03b06f3de7a414af36f45ae91aad23ffba1f52fc",
+    "paths": [
+      "docs/NAVI_UNIFIED_AUTHORITY_X22_RECONCILIATION_PLAN_20260926.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "8363bf088cb6a82e8ea7795e642f4a0e4316a7a6",
+        "date": "2026-09-27T05:51:10Z",
+        "path": "docs/NAVI_UNIFIED_AUTHORITY_X22_RECONCILIATION_PLAN_20260926.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "12d8a7b7be8a51cedceb55c0c80732f97b2b5d23",
+    "paths": [
+      "docs/decisions/0106-motive-pwm-zero-is-a-non-navigation-interval-for-sensor-changes.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "8363bf088cb6a82e8ea7795e642f4a0e4316a7a6",
+        "date": "2026-09-27T05:51:10Z",
+        "path": "docs/decisions/0106-motive-pwm-zero-is-a-non-navigation-interval-for-sensor-changes.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "37ccfdb97598c2ef147113554bbb4e765e6cc58c",
+    "paths": [
+      "docs/decisions/0106-motive-pwm-zero-is-a-non-navigation-interval-for-sensor-changes.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "d279f791fc7254f6a90ee24d2592d403a32c7854",
+        "date": "2026-09-27T06:04:44Z",
+        "path": "docs/decisions/0106-motive-pwm-zero-is-a-non-navigation-interval-for-sensor-changes.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "4e547e6dfa4c0464e1e937a46f3debe518f23e19",
+    "paths": [
+      "docs/decisions/0106-motive-pwm-zero-is-a-non-navigation-interval-for-sensor-changes.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "db78af1ee7a58d0392383527657995848cbf0bff",
+        "date": "2026-09-27T06:04:59Z",
+        "path": "docs/decisions/0106-motive-pwm-zero-is-a-non-navigation-interval-for-sensor-changes.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "12902e97bae29c9c55cc33c1b5bec4dc3b640b48",
+    "paths": [
+      ".gitattributes"
+    ],
+    "occurrences": [
+      {
+        "commit": "82600b41315fbc685e248b5da97e66dad65dd135",
+        "date": "2026-09-27T06:53:50Z",
+        "path": ".gitattributes",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "589d99f33a7c05d936e8bb26edc7dc9dfc1f0b85",
+    "paths": [
+      "field-records/analysis/rtb_evidence_20260926/README.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "82600b41315fbc685e248b5da97e66dad65dd135",
+        "date": "2026-09-27T06:53:50Z",
+        "path": "field-records/analysis/rtb_evidence_20260926/README.md",
+        "change": "added",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "fae3eb4f5ca3970bf7661257811bb62fb21b5840",
+    "paths": [
+      "field-records/analysis/rtb_evidence_20260926/manifest.json"
+    ],
+    "occurrences": [
+      {
+        "commit": "82600b41315fbc685e248b5da97e66dad65dd135",
+        "date": "2026-09-27T06:53:50Z",
+        "path": "field-records/analysis/rtb_evidence_20260926/manifest.json",
+        "change": "added",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "e4fc258a3abb3e109e11d151f7c39a1c2ea29e1e",
+    "paths": [
+      "field-records/analysis/rtb_evidence_20260926/passages/otto_difficult_no_position_seq2507284.csv"
+    ],
+    "occurrences": [
+      {
+        "commit": "82600b41315fbc685e248b5da97e66dad65dd135",
+        "date": "2026-09-27T06:53:50Z",
+        "path": "field-records/analysis/rtb_evidence_20260926/passages/otto_difficult_no_position_seq2507284.csv",
+        "change": "added",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "e9ed81ab58bc3e16a3ee4258a3f7075662df81f9",
+    "paths": [
+      "field-records/analysis/rtb_evidence_20260926/passages/otto_difficult_not_a_magnet_seq2420075.csv"
+    ],
+    "occurrences": [
+      {
+        "commit": "82600b41315fbc685e248b5da97e66dad65dd135",
+        "date": "2026-09-27T06:53:50Z",
+        "path": "field-records/analysis/rtb_evidence_20260926/passages/otto_difficult_not_a_magnet_seq2420075.csv",
+        "change": "added",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "ec89a2ab5a802383f7c42b4b91b285d947473514",
+    "paths": [
+      "field-records/analysis/rtb_evidence_20260926/passages/otto_difficult_wrong_magnet_seq2756638.csv"
+    ],
+    "occurrences": [
+      {
+        "commit": "82600b41315fbc685e248b5da97e66dad65dd135",
+        "date": "2026-09-27T06:53:50Z",
+        "path": "field-records/analysis/rtb_evidence_20260926/passages/otto_difficult_wrong_magnet_seq2756638.csv",
+        "change": "added",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "b6c128acb335bef5f9b6f5892f6ca9ebd2752014",
+    "paths": [
+      "field-records/analysis/rtb_evidence_20260926/passages/otto_high_pwm_N_seq1179424.csv"
+    ],
+    "occurrences": [
+      {
+        "commit": "82600b41315fbc685e248b5da97e66dad65dd135",
+        "date": "2026-09-27T06:53:50Z",
+        "path": "field-records/analysis/rtb_evidence_20260926/passages/otto_high_pwm_N_seq1179424.csv",
+        "change": "added",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "f8dc5859702c0ad15d16cca42b09f65ddf8912b8",
+    "paths": [
+      "field-records/analysis/rtb_evidence_20260926/passages/otto_high_pwm_S_seq1177933.csv"
+    ],
+    "occurrences": [
+      {
+        "commit": "82600b41315fbc685e248b5da97e66dad65dd135",
+        "date": "2026-09-27T06:53:50Z",
+        "path": "field-records/analysis/rtb_evidence_20260926/passages/otto_high_pwm_S_seq1177933.csv",
+        "change": "added",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "b62173f9975c651d29a67537a2ea81da781eac51",
+    "paths": [
+      "field-records/analysis/rtb_evidence_20260926/passages/otto_low_pwm_N_seq33704.csv"
+    ],
+    "occurrences": [
+      {
+        "commit": "82600b41315fbc685e248b5da97e66dad65dd135",
+        "date": "2026-09-27T06:53:50Z",
+        "path": "field-records/analysis/rtb_evidence_20260926/passages/otto_low_pwm_N_seq33704.csv",
+        "change": "added",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "faaacf2bdc66df7c32b065564210a804b7cb3480",
+    "paths": [
+      "field-records/analysis/rtb_evidence_20260926/passages/otto_low_pwm_S_seq1118929.csv"
+    ],
+    "occurrences": [
+      {
+        "commit": "82600b41315fbc685e248b5da97e66dad65dd135",
+        "date": "2026-09-27T06:53:50Z",
+        "path": "field-records/analysis/rtb_evidence_20260926/passages/otto_low_pwm_S_seq1118929.csv",
+        "change": "added",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "5f4387c252a7920193bfa3968195cfca4cd2ffbd",
+    "paths": [
+      "field-records/analysis/rtb_evidence_20260926/passages/otto_mid_pwm_N_seq41887.csv"
+    ],
+    "occurrences": [
+      {
+        "commit": "82600b41315fbc685e248b5da97e66dad65dd135",
+        "date": "2026-09-27T06:53:50Z",
+        "path": "field-records/analysis/rtb_evidence_20260926/passages/otto_mid_pwm_N_seq41887.csv",
+        "change": "added",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "90a2532adb0bc42de772532f9e4132878be34082",
+    "paths": [
+      "field-records/analysis/rtb_evidence_20260926/passages/otto_mid_pwm_S_seq36183.csv"
+    ],
+    "occurrences": [
+      {
+        "commit": "82600b41315fbc685e248b5da97e66dad65dd135",
+        "date": "2026-09-27T06:53:50Z",
+        "path": "field-records/analysis/rtb_evidence_20260926/passages/otto_mid_pwm_S_seq36183.csv",
+        "change": "added",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "90e2112d5424db0d6f5c67551b950b21d33dc119",
+    "paths": [
+      "field-records/analysis/rtb_evidence_20260926/passages/toby_difficult_disagree_t998001.csv"
+    ],
+    "occurrences": [
+      {
+        "commit": "82600b41315fbc685e248b5da97e66dad65dd135",
+        "date": "2026-09-27T06:53:50Z",
+        "path": "field-records/analysis/rtb_evidence_20260926/passages/toby_difficult_disagree_t998001.csv",
+        "change": "added",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "65194255cb6c5243f013b7c1c8c7633969e03f3a",
+    "paths": [
+      "field-records/analysis/rtb_evidence_20260926/passages/toby_low_pwm_N_t442867.csv"
+    ],
+    "occurrences": [
+      {
+        "commit": "82600b41315fbc685e248b5da97e66dad65dd135",
+        "date": "2026-09-27T06:53:50Z",
+        "path": "field-records/analysis/rtb_evidence_20260926/passages/toby_low_pwm_N_t442867.csv",
+        "change": "added",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "ef568495b7882ae5024a37393cf9a4353e3f5cad",
+    "paths": [
+      "field-records/analysis/rtb_evidence_20260926/passages/toby_low_pwm_S_t437078.csv"
+    ],
+    "occurrences": [
+      {
+        "commit": "82600b41315fbc685e248b5da97e66dad65dd135",
+        "date": "2026-09-27T06:53:50Z",
+        "path": "field-records/analysis/rtb_evidence_20260926/passages/toby_low_pwm_S_t437078.csv",
+        "change": "added",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "cddc8274e4a043d3f5d70de70947ffb24fbe65a6",
+    "paths": [
+      "field-records/analysis/rtb_evidence_20260926/passages/toby_mid_pwm_N_t415952.csv"
+    ],
+    "occurrences": [
+      {
+        "commit": "82600b41315fbc685e248b5da97e66dad65dd135",
+        "date": "2026-09-27T06:53:50Z",
+        "path": "field-records/analysis/rtb_evidence_20260926/passages/toby_mid_pwm_N_t415952.csv",
+        "change": "added",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "3d2b58b37ab40e23ddce06581c04a58e7e44bc51",
+    "paths": [
+      "field-records/analysis/rtb_evidence_20260926/passages/toby_mid_pwm_S_t409264.csv"
+    ],
+    "occurrences": [
+      {
+        "commit": "82600b41315fbc685e248b5da97e66dad65dd135",
+        "date": "2026-09-27T06:53:50Z",
+        "path": "field-records/analysis/rtb_evidence_20260926/passages/toby_mid_pwm_S_t409264.csv",
+        "change": "added",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "6ec89ffc0f74262512b1a34c9d63a7da03c77daf",
+    "paths": [
+      "field-records/analysis/rtb_evidence_20260926/plots/otto_difficult_no_position_seq2507284.png"
+    ],
+    "occurrences": [
+      {
+        "commit": "82600b41315fbc685e248b5da97e66dad65dd135",
+        "date": "2026-09-27T06:53:50Z",
+        "path": "field-records/analysis/rtb_evidence_20260926/plots/otto_difficult_no_position_seq2507284.png",
+        "change": "added",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "13f4a8b5af39e54d9f396a070670e569f971f18b",
+    "paths": [
+      "field-records/analysis/rtb_evidence_20260926/plots/otto_difficult_not_a_magnet_seq2420075.png"
+    ],
+    "occurrences": [
+      {
+        "commit": "82600b41315fbc685e248b5da97e66dad65dd135",
+        "date": "2026-09-27T06:53:50Z",
+        "path": "field-records/analysis/rtb_evidence_20260926/plots/otto_difficult_not_a_magnet_seq2420075.png",
+        "change": "added",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "22e21b9da074c44c9afd88b17cc98f9df22dcb45",
+    "paths": [
+      "field-records/analysis/rtb_evidence_20260926/plots/otto_difficult_wrong_magnet_seq2756638.png"
+    ],
+    "occurrences": [
+      {
+        "commit": "82600b41315fbc685e248b5da97e66dad65dd135",
+        "date": "2026-09-27T06:53:50Z",
+        "path": "field-records/analysis/rtb_evidence_20260926/plots/otto_difficult_wrong_magnet_seq2756638.png",
+        "change": "added",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "f95b470d312f4eb81e4c184ebfd555bd49401f2c",
+    "paths": [
+      "field-records/analysis/rtb_evidence_20260926/plots/otto_high_pwm_N_seq1179424.png"
+    ],
+    "occurrences": [
+      {
+        "commit": "82600b41315fbc685e248b5da97e66dad65dd135",
+        "date": "2026-09-27T06:53:50Z",
+        "path": "field-records/analysis/rtb_evidence_20260926/plots/otto_high_pwm_N_seq1179424.png",
+        "change": "added",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "afdf3a627056f000832e9554a39667bb4a43894e",
+    "paths": [
+      "field-records/analysis/rtb_evidence_20260926/plots/otto_high_pwm_S_seq1177933.png"
+    ],
+    "occurrences": [
+      {
+        "commit": "82600b41315fbc685e248b5da97e66dad65dd135",
+        "date": "2026-09-27T06:53:50Z",
+        "path": "field-records/analysis/rtb_evidence_20260926/plots/otto_high_pwm_S_seq1177933.png",
+        "change": "added",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "97ed4ecd42468a4942b5776a6ae06e151d5ac7f0",
+    "paths": [
+      "field-records/analysis/rtb_evidence_20260926/plots/otto_low_pwm_N_seq33704.png"
+    ],
+    "occurrences": [
+      {
+        "commit": "82600b41315fbc685e248b5da97e66dad65dd135",
+        "date": "2026-09-27T06:53:50Z",
+        "path": "field-records/analysis/rtb_evidence_20260926/plots/otto_low_pwm_N_seq33704.png",
+        "change": "added",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "f6fd92af90aaa06f3132d5dc342151b2fd900e76",
+    "paths": [
+      "field-records/analysis/rtb_evidence_20260926/plots/otto_low_pwm_S_seq1118929.png"
+    ],
+    "occurrences": [
+      {
+        "commit": "82600b41315fbc685e248b5da97e66dad65dd135",
+        "date": "2026-09-27T06:53:50Z",
+        "path": "field-records/analysis/rtb_evidence_20260926/plots/otto_low_pwm_S_seq1118929.png",
+        "change": "added",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "0c028a6affca54b2c7f7521c0fc20821c0fedc63",
+    "paths": [
+      "field-records/analysis/rtb_evidence_20260926/plots/otto_mid_pwm_N_seq41887.png"
+    ],
+    "occurrences": [
+      {
+        "commit": "82600b41315fbc685e248b5da97e66dad65dd135",
+        "date": "2026-09-27T06:53:50Z",
+        "path": "field-records/analysis/rtb_evidence_20260926/plots/otto_mid_pwm_N_seq41887.png",
+        "change": "added",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "bbb89e89ee8fe0276096f24cf9e9828a527c56b7",
+    "paths": [
+      "field-records/analysis/rtb_evidence_20260926/plots/otto_mid_pwm_S_seq36183.png"
+    ],
+    "occurrences": [
+      {
+        "commit": "82600b41315fbc685e248b5da97e66dad65dd135",
+        "date": "2026-09-27T06:53:50Z",
+        "path": "field-records/analysis/rtb_evidence_20260926/plots/otto_mid_pwm_S_seq36183.png",
+        "change": "added",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "e40ef55b6f201d031a583d2f5f6963fb4d4fecdd",
+    "paths": [
+      "field-records/analysis/rtb_evidence_20260926/plots/toby_difficult_disagree_t998001.png"
+    ],
+    "occurrences": [
+      {
+        "commit": "82600b41315fbc685e248b5da97e66dad65dd135",
+        "date": "2026-09-27T06:53:50Z",
+        "path": "field-records/analysis/rtb_evidence_20260926/plots/toby_difficult_disagree_t998001.png",
+        "change": "added",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "9ac811786e649216600ab566559994b4ddce3d52",
+    "paths": [
+      "field-records/analysis/rtb_evidence_20260926/plots/toby_low_pwm_N_t442867.png"
+    ],
+    "occurrences": [
+      {
+        "commit": "82600b41315fbc685e248b5da97e66dad65dd135",
+        "date": "2026-09-27T06:53:50Z",
+        "path": "field-records/analysis/rtb_evidence_20260926/plots/toby_low_pwm_N_t442867.png",
+        "change": "added",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "467a68b7ff3799ff8cdb51da496ae02988f5486e",
+    "paths": [
+      "field-records/analysis/rtb_evidence_20260926/plots/toby_low_pwm_S_t437078.png"
+    ],
+    "occurrences": [
+      {
+        "commit": "82600b41315fbc685e248b5da97e66dad65dd135",
+        "date": "2026-09-27T06:53:50Z",
+        "path": "field-records/analysis/rtb_evidence_20260926/plots/toby_low_pwm_S_t437078.png",
+        "change": "added",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "f21d8892926ba19f0b6cf662c036a62297ba7745",
+    "paths": [
+      "field-records/analysis/rtb_evidence_20260926/plots/toby_mid_pwm_N_t415952.png"
+    ],
+    "occurrences": [
+      {
+        "commit": "82600b41315fbc685e248b5da97e66dad65dd135",
+        "date": "2026-09-27T06:53:50Z",
+        "path": "field-records/analysis/rtb_evidence_20260926/plots/toby_mid_pwm_N_t415952.png",
+        "change": "added",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "6343fcf9763f970328695935ac2fab52e57c9af7",
+    "paths": [
+      "field-records/analysis/rtb_evidence_20260926/plots/toby_mid_pwm_S_t409264.png"
+    ],
+    "occurrences": [
+      {
+        "commit": "82600b41315fbc685e248b5da97e66dad65dd135",
+        "date": "2026-09-27T06:53:50Z",
+        "path": "field-records/analysis/rtb_evidence_20260926/plots/toby_mid_pwm_S_t409264.png",
+        "change": "added",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "c4a56fe623fffd08817dc6a83004bdf1d891be06",
+    "paths": [
+      "field-records/analysis/rtb_evidence_20260926/scripts/extract_passages.py"
+    ],
+    "occurrences": [
+      {
+        "commit": "82600b41315fbc685e248b5da97e66dad65dd135",
+        "date": "2026-09-27T06:53:50Z",
+        "path": "field-records/analysis/rtb_evidence_20260926/scripts/extract_passages.py",
+        "change": "added",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "2bf4a33cad242350e68da868efec301ed9547d28",
+    "paths": [
+      "field-records/analysis/rtb_evidence_20260926/scripts/plot_passages.py"
+    ],
+    "occurrences": [
+      {
+        "commit": "82600b41315fbc685e248b5da97e66dad65dd135",
+        "date": "2026-09-27T06:53:50Z",
+        "path": "field-records/analysis/rtb_evidence_20260926/scripts/plot_passages.py",
+        "change": "added",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "d8b79dfeba09d91ce1fc73bdbd0fe4d8cd565d21",
+    "paths": [
+      "field-records/analysis/rtb_evidence_20260926/sources/9950012_20260824_183600.log"
+    ],
+    "occurrences": [
+      {
+        "commit": "82600b41315fbc685e248b5da97e66dad65dd135",
+        "date": "2026-09-27T06:53:50Z",
+        "path": "field-records/analysis/rtb_evidence_20260926/sources/9950012_20260824_183600.log",
+        "change": "added",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "30c6152702d66a9e99e91860e81b8a90b4ec7876",
+    "paths": [
+      "field-records/analysis/rtb_evidence_20260926/sources/qt_20260824_184813.qtcap"
+    ],
+    "occurrences": [
+      {
+        "commit": "82600b41315fbc685e248b5da97e66dad65dd135",
+        "date": "2026-09-27T06:53:50Z",
+        "path": "field-records/analysis/rtb_evidence_20260926/sources/qt_20260824_184813.qtcap",
+        "change": "added",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "567a9a762af6ee9cc0ec223a9d4e8c90e3575f85",
+    "paths": [
+      "field-records/analysis/rtb_evidence_20260926/sources/receiver.log"
+    ],
+    "occurrences": [
+      {
+        "commit": "82600b41315fbc685e248b5da97e66dad65dd135",
+        "date": "2026-09-27T06:53:50Z",
+        "path": "field-records/analysis/rtb_evidence_20260926/sources/receiver.log",
+        "change": "added",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "63235c44da311991aa3591d1fb9ea2b9576850f2",
+    "paths": [
+      "field-records/analysis/rtb_evidence_20260926/sources/xhr_20260916_191904.xhr"
+    ],
+    "occurrences": [
+      {
+        "commit": "82600b41315fbc685e248b5da97e66dad65dd135",
+        "date": "2026-09-27T06:53:50Z",
+        "path": "field-records/analysis/rtb_evidence_20260926/sources/xhr_20260916_191904.xhr",
+        "change": "added",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "6213599b9cd80615e64faf56c183b11aa47b5ded",
+    "paths": [
+      "field-records/logs/9950012_20260926_104241.log"
+    ],
+    "occurrences": [
+      {
+        "commit": "82600b41315fbc685e248b5da97e66dad65dd135",
+        "date": "2026-09-27T06:53:50Z",
+        "path": "field-records/logs/9950012_20260926_104241.log",
+        "change": "added",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "18937d44ceb795178206f3c01345cc3946599a1f",
+    "paths": [
+      "field-records/logs/9950012_20260926_104630.log"
+    ],
+    "occurrences": [
+      {
+        "commit": "82600b41315fbc685e248b5da97e66dad65dd135",
+        "date": "2026-09-27T06:53:50Z",
+        "path": "field-records/logs/9950012_20260926_104630.log",
+        "change": "added",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "d43e8b75e40edd2a653874710dc4e8ebfd3b14b1",
+    "paths": [
+      "field-records/analysis/rtb_evidence_20260926/proximal_ordinary_track/REPORT.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "06d3eec58fe17a89e860e08c78d08e01ade0fb53",
+        "date": "2026-09-27T07:32:18Z",
+        "path": "field-records/analysis/rtb_evidence_20260926/proximal_ordinary_track/REPORT.md",
+        "change": "added",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "8abccb3a0e37b10d6bd3658d370c8ea7a05d6802",
+    "paths": [
+      "field-records/analysis/rtb_evidence_20260926/proximal_ordinary_track/figures/f1_lobe_profiles.png"
+    ],
+    "occurrences": [
+      {
+        "commit": "06d3eec58fe17a89e860e08c78d08e01ade0fb53",
+        "date": "2026-09-27T07:32:18Z",
+        "path": "field-records/analysis/rtb_evidence_20260926/proximal_ordinary_track/figures/f1_lobe_profiles.png",
+        "change": "added",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "c9eec52d339a702b1622ad711687cff08dd2ff0a",
+    "paths": [
+      "field-records/analysis/rtb_evidence_20260926/proximal_ordinary_track/figures/f2_window_length.png"
+    ],
+    "occurrences": [
+      {
+        "commit": "06d3eec58fe17a89e860e08c78d08e01ade0fb53",
+        "date": "2026-09-27T07:32:18Z",
+        "path": "field-records/analysis/rtb_evidence_20260926/proximal_ordinary_track/figures/f2_window_length.png",
+        "change": "added",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "fec205c8faeffeb33b9a0eb11b8f26b07f0ed344",
+    "paths": [
+      "field-records/analysis/rtb_evidence_20260926/proximal_ordinary_track/figures/f3_freeze_lag.png"
+    ],
+    "occurrences": [
+      {
+        "commit": "06d3eec58fe17a89e860e08c78d08e01ade0fb53",
+        "date": "2026-09-27T07:32:18Z",
+        "path": "field-records/analysis/rtb_evidence_20260926/proximal_ordinary_track/figures/f3_freeze_lag.png",
+        "change": "added",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "9211076b6baf011d01738bff1b4c62cc68bd550a",
+    "paths": [
+      "field-records/analysis/rtb_evidence_20260926/proximal_ordinary_track/figures/f4_segmentation_examples.png"
+    ],
+    "occurrences": [
+      {
+        "commit": "06d3eec58fe17a89e860e08c78d08e01ade0fb53",
+        "date": "2026-09-27T07:32:18Z",
+        "path": "field-records/analysis/rtb_evidence_20260926/proximal_ordinary_track/figures/f4_segmentation_examples.png",
+        "change": "added",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "a328d7a97d86cdf6ff1967e3308df183d7fa2260",
+    "paths": [
+      "field-records/analysis/rtb_evidence_20260926/proximal_ordinary_track/results/intervals_x0.5.csv"
+    ],
+    "occurrences": [
+      {
+        "commit": "06d3eec58fe17a89e860e08c78d08e01ade0fb53",
+        "date": "2026-09-27T07:32:18Z",
+        "path": "field-records/analysis/rtb_evidence_20260926/proximal_ordinary_track/results/intervals_x0.5.csv",
+        "change": "added",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "c249778da5a341b7553efcfdc9b2530f228e4d8c",
+    "paths": [
+      "field-records/analysis/rtb_evidence_20260926/proximal_ordinary_track/results/intervals_x0.5.txt"
+    ],
+    "occurrences": [
+      {
+        "commit": "06d3eec58fe17a89e860e08c78d08e01ade0fb53",
+        "date": "2026-09-27T07:32:18Z",
+        "path": "field-records/analysis/rtb_evidence_20260926/proximal_ordinary_track/results/intervals_x0.5.txt",
+        "change": "added",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "9ee94982e4e6b7c22c9468692dcd00378e2c8966",
+    "paths": [
+      "field-records/analysis/rtb_evidence_20260926/proximal_ordinary_track/results/intervals_x1.0.csv"
+    ],
+    "occurrences": [
+      {
+        "commit": "06d3eec58fe17a89e860e08c78d08e01ade0fb53",
+        "date": "2026-09-27T07:32:18Z",
+        "path": "field-records/analysis/rtb_evidence_20260926/proximal_ordinary_track/results/intervals_x1.0.csv",
+        "change": "added",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "ac2522b0e6af3f596c58ea2ff6dbdbf7896b0cc0",
+    "paths": [
+      "field-records/analysis/rtb_evidence_20260926/proximal_ordinary_track/results/intervals_x1.0.txt"
+    ],
+    "occurrences": [
+      {
+        "commit": "06d3eec58fe17a89e860e08c78d08e01ade0fb53",
+        "date": "2026-09-27T07:32:18Z",
+        "path": "field-records/analysis/rtb_evidence_20260926/proximal_ordinary_track/results/intervals_x1.0.txt",
+        "change": "added",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "33f695b14d67f5f3c7aad8d5d2de9204238eba40",
+    "paths": [
+      "field-records/analysis/rtb_evidence_20260926/proximal_ordinary_track/results/intervals_x1.5.csv"
+    ],
+    "occurrences": [
+      {
+        "commit": "06d3eec58fe17a89e860e08c78d08e01ade0fb53",
+        "date": "2026-09-27T07:32:18Z",
+        "path": "field-records/analysis/rtb_evidence_20260926/proximal_ordinary_track/results/intervals_x1.5.csv",
+        "change": "added",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "c11b4098f1414df885399da03e923e2321e50bfe",
+    "paths": [
+      "field-records/analysis/rtb_evidence_20260926/proximal_ordinary_track/results/intervals_x1.5.txt"
+    ],
+    "occurrences": [
+      {
+        "commit": "06d3eec58fe17a89e860e08c78d08e01ade0fb53",
+        "date": "2026-09-27T07:32:18Z",
+        "path": "field-records/analysis/rtb_evidence_20260926/proximal_ordinary_track/results/intervals_x1.5.txt",
+        "change": "added",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "fd59f397a111b80482c8e45b68bb512210a9a449",
+    "paths": [
+      "field-records/analysis/rtb_evidence_20260926/proximal_ordinary_track/results/lobe_profile_pooled.csv"
+    ],
+    "occurrences": [
+      {
+        "commit": "06d3eec58fe17a89e860e08c78d08e01ade0fb53",
+        "date": "2026-09-27T07:32:18Z",
+        "path": "field-records/analysis/rtb_evidence_20260926/proximal_ordinary_track/results/lobe_profile_pooled.csv",
+        "change": "added",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "a59a75f9983fe956504398931ad003f4ca851b0d",
+    "paths": [
+      "field-records/analysis/rtb_evidence_20260926/proximal_ordinary_track/results/lobes.csv"
+    ],
+    "occurrences": [
+      {
+        "commit": "06d3eec58fe17a89e860e08c78d08e01ade0fb53",
+        "date": "2026-09-27T07:32:18Z",
+        "path": "field-records/analysis/rtb_evidence_20260926/proximal_ordinary_track/results/lobes.csv",
+        "change": "added",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "4138840d9659da174e4c792294ba08908f3dda21",
+    "paths": [
+      "field-records/analysis/rtb_evidence_20260926/proximal_ordinary_track/results/prox_x0.5.csv"
+    ],
+    "occurrences": [
+      {
+        "commit": "06d3eec58fe17a89e860e08c78d08e01ade0fb53",
+        "date": "2026-09-27T07:32:18Z",
+        "path": "field-records/analysis/rtb_evidence_20260926/proximal_ordinary_track/results/prox_x0.5.csv",
+        "change": "added",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "2e5a01b309be9feefe75df8090cab477c3f6f0b4",
+    "paths": [
+      "field-records/analysis/rtb_evidence_20260926/proximal_ordinary_track/results/prox_x0.5.txt"
+    ],
+    "occurrences": [
+      {
+        "commit": "06d3eec58fe17a89e860e08c78d08e01ade0fb53",
+        "date": "2026-09-27T07:32:18Z",
+        "path": "field-records/analysis/rtb_evidence_20260926/proximal_ordinary_track/results/prox_x0.5.txt",
+        "change": "added",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "6bbb6d2a577d7251f3569666953b53801a6a157f",
+    "paths": [
+      "field-records/analysis/rtb_evidence_20260926/proximal_ordinary_track/results/prox_x1.0.csv"
+    ],
+    "occurrences": [
+      {
+        "commit": "06d3eec58fe17a89e860e08c78d08e01ade0fb53",
+        "date": "2026-09-27T07:32:18Z",
+        "path": "field-records/analysis/rtb_evidence_20260926/proximal_ordinary_track/results/prox_x1.0.csv",
+        "change": "added",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "29159f7a34c5049f7203784b128ae2bf47fc1cb1",
+    "paths": [
+      "field-records/analysis/rtb_evidence_20260926/proximal_ordinary_track/results/prox_x1.0.txt"
+    ],
+    "occurrences": [
+      {
+        "commit": "06d3eec58fe17a89e860e08c78d08e01ade0fb53",
+        "date": "2026-09-27T07:32:18Z",
+        "path": "field-records/analysis/rtb_evidence_20260926/proximal_ordinary_track/results/prox_x1.0.txt",
+        "change": "added",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "e7ba97455feb60d7c7cc08453350c578cf50d79a",
+    "paths": [
+      "field-records/analysis/rtb_evidence_20260926/proximal_ordinary_track/results/prox_x1.5.csv"
+    ],
+    "occurrences": [
+      {
+        "commit": "06d3eec58fe17a89e860e08c78d08e01ade0fb53",
+        "date": "2026-09-27T07:32:18Z",
+        "path": "field-records/analysis/rtb_evidence_20260926/proximal_ordinary_track/results/prox_x1.5.csv",
+        "change": "added",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "9e12df0c48bb5f80ab2362ce362bd60109574cb6",
+    "paths": [
+      "field-records/analysis/rtb_evidence_20260926/proximal_ordinary_track/results/prox_x1.5.txt"
+    ],
+    "occurrences": [
+      {
+        "commit": "06d3eec58fe17a89e860e08c78d08e01ade0fb53",
+        "date": "2026-09-27T07:32:18Z",
+        "path": "field-records/analysis/rtb_evidence_20260926/proximal_ordinary_track/results/prox_x1.5.txt",
+        "change": "added",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "dca93d849760cb60ee1fa6e5fad4291274fe203e",
+    "paths": [
+      "field-records/analysis/rtb_evidence_20260926/proximal_ordinary_track/results/settle.txt"
+    ],
+    "occurrences": [
+      {
+        "commit": "06d3eec58fe17a89e860e08c78d08e01ade0fb53",
+        "date": "2026-09-27T07:32:18Z",
+        "path": "field-records/analysis/rtb_evidence_20260926/proximal_ordinary_track/results/settle.txt",
+        "change": "added",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "4b29e03df4953372d46c34f8a23e8e959d579440",
+    "paths": [
+      "field-records/analysis/rtb_evidence_20260926/proximal_ordinary_track/results/sliding_x0.5.csv"
+    ],
+    "occurrences": [
+      {
+        "commit": "06d3eec58fe17a89e860e08c78d08e01ade0fb53",
+        "date": "2026-09-27T07:32:18Z",
+        "path": "field-records/analysis/rtb_evidence_20260926/proximal_ordinary_track/results/sliding_x0.5.csv",
+        "change": "added",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "fd82231d01b2d60246abd80654eaacbf6a6710e6",
+    "paths": [
+      "field-records/analysis/rtb_evidence_20260926/proximal_ordinary_track/results/sliding_x1.0.csv"
+    ],
+    "occurrences": [
+      {
+        "commit": "06d3eec58fe17a89e860e08c78d08e01ade0fb53",
+        "date": "2026-09-27T07:32:18Z",
+        "path": "field-records/analysis/rtb_evidence_20260926/proximal_ordinary_track/results/sliding_x1.0.csv",
+        "change": "added",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "8c3ac19ccbb961698de1de018b62f1f02032350c",
+    "paths": [
+      "field-records/analysis/rtb_evidence_20260926/proximal_ordinary_track/results/sliding_x1.5.csv"
+    ],
+    "occurrences": [
+      {
+        "commit": "06d3eec58fe17a89e860e08c78d08e01ade0fb53",
+        "date": "2026-09-27T07:32:18Z",
+        "path": "field-records/analysis/rtb_evidence_20260926/proximal_ordinary_track/results/sliding_x1.5.csv",
+        "change": "added",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "25dbab67f87abce98d602535b689369257e3752c",
+    "paths": [
+      "field-records/analysis/rtb_evidence_20260926/proximal_ordinary_track/scripts/clean.py"
+    ],
+    "occurrences": [
+      {
+        "commit": "06d3eec58fe17a89e860e08c78d08e01ade0fb53",
+        "date": "2026-09-27T07:32:18Z",
+        "path": "field-records/analysis/rtb_evidence_20260926/proximal_ordinary_track/scripts/clean.py",
+        "change": "added",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "787d892a325d0f0d5e652c12d784078e433c054f",
+    "paths": [
+      "field-records/analysis/rtb_evidence_20260926/proximal_ordinary_track/scripts/figures.py"
+    ],
+    "occurrences": [
+      {
+        "commit": "06d3eec58fe17a89e860e08c78d08e01ade0fb53",
+        "date": "2026-09-27T07:32:18Z",
+        "path": "field-records/analysis/rtb_evidence_20260926/proximal_ordinary_track/scripts/figures.py",
+        "change": "added",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "f5ffe0afad1c3166498ad5b065b4a931f0a0b3d8",
+    "paths": [
+      "field-records/analysis/rtb_evidence_20260926/proximal_ordinary_track/scripts/prox.py"
+    ],
+    "occurrences": [
+      {
+        "commit": "06d3eec58fe17a89e860e08c78d08e01ade0fb53",
+        "date": "2026-09-27T07:32:18Z",
+        "path": "field-records/analysis/rtb_evidence_20260926/proximal_ordinary_track/scripts/prox.py",
+        "change": "added",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "3d3084aabfb1003692a4bdbca68c30aca974fe6b",
+    "paths": [
+      "field-records/analysis/rtb_evidence_20260926/proximal_ordinary_track/scripts/seg.py"
+    ],
+    "occurrences": [
+      {
+        "commit": "06d3eec58fe17a89e860e08c78d08e01ade0fb53",
+        "date": "2026-09-27T07:32:18Z",
+        "path": "field-records/analysis/rtb_evidence_20260926/proximal_ordinary_track/scripts/seg.py",
+        "change": "added",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "a3660808c3754c312191cec7b7d01fcf43e363dc",
+    "paths": [
+      "field-records/analysis/rtb_evidence_20260926/proximal_ordinary_track/scripts/segs.py"
+    ],
+    "occurrences": [
+      {
+        "commit": "06d3eec58fe17a89e860e08c78d08e01ade0fb53",
+        "date": "2026-09-27T07:32:18Z",
+        "path": "field-records/analysis/rtb_evidence_20260926/proximal_ordinary_track/scripts/segs.py",
+        "change": "added",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "bef2bad8d2a85117febe1ddb8ae95b9832b49e7e",
+    "paths": [
+      "field-records/analysis/rtb_evidence_20260926/proximal_ordinary_track/scripts/settle.py"
+    ],
+    "occurrences": [
+      {
+        "commit": "06d3eec58fe17a89e860e08c78d08e01ade0fb53",
+        "date": "2026-09-27T07:32:18Z",
+        "path": "field-records/analysis/rtb_evidence_20260926/proximal_ordinary_track/scripts/settle.py",
+        "change": "added",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "fb204a9c24605aa0a01f536042a16fac91383a66",
+    "paths": [
+      "field-records/analysis/rtb_evidence_20260926/eyes_wide_open_review/REVIEW.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "748888f92d3aefa6c5de0c700aadd48d558b0ebe",
+        "date": "2026-09-27T08:22:22Z",
+        "path": "field-records/analysis/rtb_evidence_20260926/eyes_wide_open_review/REVIEW.md",
+        "change": "added",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "a02b649bcea475b80fe744eeaeb267c1feb07b01",
+    "paths": [
+      "field-records/analysis/rtb_evidence_20260926/eyes_wide_open_review/results/anchored_hybrid_self_scenarios.txt"
+    ],
+    "occurrences": [
+      {
+        "commit": "748888f92d3aefa6c5de0c700aadd48d558b0ebe",
+        "date": "2026-09-27T08:22:22Z",
+        "path": "field-records/analysis/rtb_evidence_20260926/eyes_wide_open_review/results/anchored_hybrid_self_scenarios.txt",
+        "change": "added",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "1ac2679b14e8b53e02e25b9f1205df68ea257ba7",
+    "paths": [
+      "field-records/analysis/rtb_evidence_20260926/eyes_wide_open_review/results/injection_anchored.txt"
+    ],
+    "occurrences": [
+      {
+        "commit": "748888f92d3aefa6c5de0c700aadd48d558b0ebe",
+        "date": "2026-09-27T08:22:22Z",
+        "path": "field-records/analysis/rtb_evidence_20260926/eyes_wide_open_review/results/injection_anchored.txt",
+        "change": "added",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "38138f0f094680838f5528ff10878dd08365228b",
+    "paths": [
+      "field-records/analysis/rtb_evidence_20260926/eyes_wide_open_review/results/missed_mm_merged_interval.txt"
+    ],
+    "occurrences": [
+      {
+        "commit": "748888f92d3aefa6c5de0c700aadd48d558b0ebe",
+        "date": "2026-09-27T08:22:22Z",
+        "path": "field-records/analysis/rtb_evidence_20260926/eyes_wide_open_review/results/missed_mm_merged_interval.txt",
+        "change": "added",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "33e4d43a3531d1e4faf0f203a8d2f7056113fffe",
+    "paths": [
+      "field-records/analysis/rtb_evidence_20260926/eyes_wide_open_review/results/reference_comparison.txt"
+    ],
+    "occurrences": [
+      {
+        "commit": "748888f92d3aefa6c5de0c700aadd48d558b0ebe",
+        "date": "2026-09-27T08:22:22Z",
+        "path": "field-records/analysis/rtb_evidence_20260926/eyes_wide_open_review/results/reference_comparison.txt",
+        "change": "added",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "6dbef900ae50953a36bc51a63755732e343cf33b",
+    "paths": [
+      "field-records/analysis/rtb_evidence_20260926/eyes_wide_open_review/results/replay_extras_and_misses.txt"
+    ],
+    "occurrences": [
+      {
+        "commit": "748888f92d3aefa6c5de0c700aadd48d558b0ebe",
+        "date": "2026-09-27T08:22:22Z",
+        "path": "field-records/analysis/rtb_evidence_20260926/eyes_wide_open_review/results/replay_extras_and_misses.txt",
+        "change": "added",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "ba07bacdc5153f010b273fc20e47f73fc5cd7796",
+    "paths": [
+      "field-records/analysis/rtb_evidence_20260926/eyes_wide_open_review/results/rtb_band.txt"
+    ],
+    "occurrences": [
+      {
+        "commit": "748888f92d3aefa6c5de0c700aadd48d558b0ebe",
+        "date": "2026-09-27T08:22:22Z",
+        "path": "field-records/analysis/rtb_evidence_20260926/eyes_wide_open_review/results/rtb_band.txt",
+        "change": "added",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "5bcc365cb4087e392b1828676a182570b8827372",
+    "paths": [
+      "field-records/analysis/rtb_evidence_20260926/eyes_wide_open_review/results/tolerance_by_failure_type.txt"
+    ],
+    "occurrences": [
+      {
+        "commit": "748888f92d3aefa6c5de0c700aadd48d558b0ebe",
+        "date": "2026-09-27T08:22:22Z",
+        "path": "field-records/analysis/rtb_evidence_20260926/eyes_wide_open_review/results/tolerance_by_failure_type.txt",
+        "change": "added",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "92950e0d9039b274a632bf4d19a60bebabc20815",
+    "paths": [
+      "field-records/analysis/rtb_evidence_20260926/eyes_wide_open_review/scripts/adversarial.py"
+    ],
+    "occurrences": [
+      {
+        "commit": "748888f92d3aefa6c5de0c700aadd48d558b0ebe",
+        "date": "2026-09-27T08:22:22Z",
+        "path": "field-records/analysis/rtb_evidence_20260926/eyes_wide_open_review/scripts/adversarial.py",
+        "change": "added",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "439357384d7d2c41ada1dc7621cba64c66347377",
+    "paths": [
+      "field-records/analysis/rtb_evidence_20260926/eyes_wide_open_review/scripts/adversarial_lib.py"
+    ],
+    "occurrences": [
+      {
+        "commit": "748888f92d3aefa6c5de0c700aadd48d558b0ebe",
+        "date": "2026-09-27T08:22:22Z",
+        "path": "field-records/analysis/rtb_evidence_20260926/eyes_wide_open_review/scripts/adversarial_lib.py",
+        "change": "added",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "2946211cb4b642dce441d008ea03f4a70de250f2",
+    "paths": [
+      "field-records/analysis/rtb_evidence_20260926/eyes_wide_open_review/scripts/decode_full.py"
+    ],
+    "occurrences": [
+      {
+        "commit": "748888f92d3aefa6c5de0c700aadd48d558b0ebe",
+        "date": "2026-09-27T08:22:22Z",
+        "path": "field-records/analysis/rtb_evidence_20260926/eyes_wide_open_review/scripts/decode_full.py",
+        "change": "added",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "ba78c7be988eb47ecb2288dfba5dc137ca075a7c",
+    "paths": [
+      "field-records/analysis/rtb_evidence_20260926/eyes_wide_open_review/scripts/explain.py"
+    ],
+    "occurrences": [
+      {
+        "commit": "748888f92d3aefa6c5de0c700aadd48d558b0ebe",
+        "date": "2026-09-27T08:22:22Z",
+        "path": "field-records/analysis/rtb_evidence_20260926/eyes_wide_open_review/scripts/explain.py",
+        "change": "added",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "2007a420333dda4c83a1099a28809b021c088a5a",
+    "paths": [
+      "field-records/analysis/rtb_evidence_20260926/eyes_wide_open_review/scripts/hybrid.py"
+    ],
+    "occurrences": [
+      {
+        "commit": "748888f92d3aefa6c5de0c700aadd48d558b0ebe",
+        "date": "2026-09-27T08:22:22Z",
+        "path": "field-records/analysis/rtb_evidence_20260926/eyes_wide_open_review/scripts/hybrid.py",
+        "change": "added",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "d625b964ab224ff0b180573400593a5267db19fe",
+    "paths": [
+      "field-records/analysis/rtb_evidence_20260926/eyes_wide_open_review/scripts/intervals.py"
+    ],
+    "occurrences": [
+      {
+        "commit": "748888f92d3aefa6c5de0c700aadd48d558b0ebe",
+        "date": "2026-09-27T08:22:22Z",
+        "path": "field-records/analysis/rtb_evidence_20260926/eyes_wide_open_review/scripts/intervals.py",
+        "change": "added",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "8edbed112566ff13daa880cc9b04f4f4cf89d0da",
+    "paths": [
+      "field-records/analysis/rtb_evidence_20260926/eyes_wide_open_review/scripts/missed.py"
+    ],
+    "occurrences": [
+      {
+        "commit": "748888f92d3aefa6c5de0c700aadd48d558b0ebe",
+        "date": "2026-09-27T08:22:22Z",
+        "path": "field-records/analysis/rtb_evidence_20260926/eyes_wide_open_review/scripts/missed.py",
+        "change": "added",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "ebab5b51cf25e63cd8abeaf2be66f767ad08fbb0",
+    "paths": [
+      "field-records/analysis/rtb_evidence_20260926/eyes_wide_open_review/scripts/oracle.py"
+    ],
+    "occurrences": [
+      {
+        "commit": "748888f92d3aefa6c5de0c700aadd48d558b0ebe",
+        "date": "2026-09-27T08:22:22Z",
+        "path": "field-records/analysis/rtb_evidence_20260926/eyes_wide_open_review/scripts/oracle.py",
+        "change": "added",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "444c893896632ae45a3af3ef5f4ea07facf423c2",
+    "paths": [
+      "field-records/analysis/rtb_evidence_20260926/eyes_wide_open_review/scripts/refcmp.py"
+    ],
+    "occurrences": [
+      {
+        "commit": "748888f92d3aefa6c5de0c700aadd48d558b0ebe",
+        "date": "2026-09-27T08:22:22Z",
+        "path": "field-records/analysis/rtb_evidence_20260926/eyes_wide_open_review/scripts/refcmp.py",
+        "change": "added",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "3c791c081b6432c9cb4a2540da4b7c1af6d05307",
+    "paths": [
+      "field-records/analysis/rtb_evidence_20260926/eyes_wide_open_review/scripts/replay.py"
+    ],
+    "occurrences": [
+      {
+        "commit": "748888f92d3aefa6c5de0c700aadd48d558b0ebe",
+        "date": "2026-09-27T08:22:22Z",
+        "path": "field-records/analysis/rtb_evidence_20260926/eyes_wide_open_review/scripts/replay.py",
+        "change": "added",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "76ab0b9e9ed2267444feeac0820914d48c7cc71f",
+    "paths": [
+      "field-records/analysis/rtb_evidence_20260926/eyes_wide_open_review/scripts/rtbband.py"
+    ],
+    "occurrences": [
+      {
+        "commit": "748888f92d3aefa6c5de0c700aadd48d558b0ebe",
+        "date": "2026-09-27T08:22:22Z",
+        "path": "field-records/analysis/rtb_evidence_20260926/eyes_wide_open_review/scripts/rtbband.py",
+        "change": "added",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "3a8361bfe28a322ed95ebafbd6ae924bc2997320",
+    "paths": [
+      "field-records/analysis/rtb_evidence_20260926/eyes_wide_open_review/scripts/tolerance.py"
+    ],
+    "occurrences": [
+      {
+        "commit": "748888f92d3aefa6c5de0c700aadd48d558b0ebe",
+        "date": "2026-09-27T08:22:22Z",
+        "path": "field-records/analysis/rtb_evidence_20260926/eyes_wide_open_review/scripts/tolerance.py",
+        "change": "added",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "31f8b77115ca79f89eaf485c6fff28272b6ff847",
+    "paths": [
+      "field-records/analysis/rtb_evidence_20260926/eyes_wide_open_review/scripts/tolerance_types.py"
+    ],
+    "occurrences": [
+      {
+        "commit": "748888f92d3aefa6c5de0c700aadd48d558b0ebe",
+        "date": "2026-09-27T08:22:22Z",
+        "path": "field-records/analysis/rtb_evidence_20260926/eyes_wide_open_review/scripts/tolerance_types.py",
+        "change": "added",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "2133584940438fc8b4d423bee52151c95a49707a",
+    "paths": [
+      "field-records/analysis/20260927_spatial_hall_reference.json"
+    ],
+    "occurrences": [
+      {
+        "commit": "8321f8b750ef2cee7a0b7d9b33f08c975bbcf491",
+        "date": "2026-09-27T09:07:43Z",
+        "path": "field-records/analysis/20260927_spatial_hall_reference.json",
+        "change": "added",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "400c97f32405b167b782e478f74291d1c8c0dce8",
+    "paths": [
+      "field-records/analysis/20260927_spatial_hall_reference_report.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "8321f8b750ef2cee7a0b7d9b33f08c975bbcf491",
+        "date": "2026-09-27T09:07:43Z",
+        "path": "field-records/analysis/20260927_spatial_hall_reference_report.md",
+        "change": "added",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "394d008e3ca00ca9540e4c65d3f354e64f1770fa",
+    "paths": [
+      "tools/evaluate_spatial_hall_reference.py"
+    ],
+    "occurrences": [
+      {
+        "commit": "8321f8b750ef2cee7a0b7d9b33f08c975bbcf491",
+        "date": "2026-09-27T09:07:43Z",
+        "path": "tools/evaluate_spatial_hall_reference.py",
+        "change": "added",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "4f53b95c111590ca134106a99b11d7b51a321321",
+    "paths": [
+      "docs/NAVI_SYNC_NATIVE_HALL_IR_RECORDER_20260927.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "7b83179f82eb7ee1ec5a0ba2eefda959fa44a6fd",
+        "date": "2026-09-28T01:07:24Z",
+        "path": "docs/NAVI_SYNC_NATIVE_HALL_IR_RECORDER_20260927.md",
+        "change": "added",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "6f5297e69a0f91aeda1cdc4b66e3ff394d6a1e6f",
+    "paths": [
+      "firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_HEALTH/NAVI_COHERENCE_0_6_IR_HEALTH.ino"
+    ],
+    "occurrences": [
+      {
+        "commit": "7b83179f82eb7ee1ec5a0ba2eefda959fa44a6fd",
+        "date": "2026-09-28T01:07:24Z",
+        "path": "firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_HEALTH/NAVI_COHERENCE_0_6_IR_HEALTH.ino",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "a1669d35250887ba03bdbc8699f7c2e08aa78148",
+    "paths": [
+      "firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_HEALTH/NaviSyncRecorder.h"
+    ],
+    "occurrences": [
+      {
+        "commit": "7b83179f82eb7ee1ec5a0ba2eefda959fa44a6fd",
+        "date": "2026-09-28T01:07:24Z",
+        "path": "firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_HEALTH/NaviSyncRecorder.h",
+        "change": "added",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "257174e40a6f29673ad758f535f56f917004d54c",
+    "paths": [
+      "firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_HEALTH/README.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "7b83179f82eb7ee1ec5a0ba2eefda959fa44a6fd",
+        "date": "2026-09-28T01:07:24Z",
+        "path": "firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_HEALTH/README.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  }
+]

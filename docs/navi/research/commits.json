@@ -2,7 +2,8 @@
   {
     "sha": "e658045d165ec3a1a52764030c073802d4105fe3",
     "date": "2026-09-19T00:47:17Z",
-    "message": "docs: NAVI_SIMPLIFIED review — add finding 18, the alert does not identify the build",
+    "author_date": "2026-09-19T00:47:17Z",
+    "message": "docs: NAVI_SIMPLIFIED review \u2014 add finding 18, the alert does not identify the build",
     "parents": [
       "e5b586c5e7bd88fa17dfff088bed9bcd74f6a933"
     ]
@@ -10,6 +11,7 @@
   {
     "sha": "c19ec1f5f38f3f29b2d42f115207ad7b19078835",
     "date": "2026-09-19T02:18:30Z",
+    "author_date": "2026-09-19T02:18:30Z",
     "message": "docs: reconstruct NAVI_SIMPLIFIED project state",
     "parents": [
       "e658045d165ec3a1a52764030c073802d4105fe3"
@@ -18,6 +20,7 @@
   {
     "sha": "73ab21593e64d135b5322521145900ce90609617",
     "date": "2026-09-19T02:18:49Z",
+    "author_date": "2026-09-19T02:18:49Z",
     "message": "docs: clean NAVI reconstruction formatting",
     "parents": [
       "c19ec1f5f38f3f29b2d42f115207ad7b19078835"
@@ -26,6 +29,7 @@
   {
     "sha": "207eab2ec1bfc344ece9df3c8aecc7703e2d0b46",
     "date": "2026-09-19T02:19:03Z",
+    "author_date": "2026-09-19T02:19:03Z",
     "message": "docs: clarify NAVI report provenance",
     "parents": [
       "73ab21593e64d135b5322521145900ce90609617"
@@ -34,6 +38,7 @@
   {
     "sha": "edf9b593f857fcdf3a3ee8e57fc2977ef3c50881",
     "date": "2026-09-19T02:26:52Z",
+    "author_date": "2026-09-19T02:26:52Z",
     "message": "docs: record provisional NAVI_SIMPLIFIED detector convention",
     "parents": [
       "207eab2ec1bfc344ece9df3c8aecc7703e2d0b46"
@@ -42,6 +47,7 @@
   {
     "sha": "36a1f3d4ff0d11bfb756d4aec56db669905f1059",
     "date": "2026-09-19T02:39:44Z",
+    "author_date": "2026-09-19T02:39:44Z",
     "message": "docs: open NAVI_SIMPLIFIED decision record with NS-D001 (magnet detection)",
     "parents": [
       "edf9b593f857fcdf3a3ee8e57fc2977ef3c50881"
@@ -50,6 +56,7 @@
   {
     "sha": "bebb51ce40407dfa42e3d02f7650fa66911bcaf7",
     "date": "2026-09-19T02:47:39Z",
+    "author_date": "2026-09-19T02:47:39Z",
     "message": "docs: NAVI_SIMPLIFIED NS-D002 (sensor reporting and NAVI authority)",
     "parents": [
       "36a1f3d4ff0d11bfb756d4aec56db669905f1059"
@@ -58,6 +65,7 @@
   {
     "sha": "4139ed7b3ad3447945743452e2db5fa3c12328dc",
     "date": "2026-09-19T02:54:16Z",
+    "author_date": "2026-09-19T02:54:16Z",
     "message": "docs: NAVI_SIMPLIFIED NS-D003 (sensor report content)",
     "parents": [
       "bebb51ce40407dfa42e3d02f7650fa66911bcaf7"
@@ -66,6 +74,7 @@
   {
     "sha": "53b1ad33f1c50b74132dd02d003a0e084ef58ec0",
     "date": "2026-09-19T02:56:48Z",
+    "author_date": "2026-09-19T02:56:48Z",
     "message": "docs: NAVI_SIMPLIFIED NS-D004 (distinct sensor event)",
     "parents": [
       "4139ed7b3ad3447945743452e2db5fa3c12328dc"
@@ -74,6 +83,7 @@
   {
     "sha": "4d071717f885d6513a90ec97ab0a38a08fb56c88",
     "date": "2026-09-19T03:36:30Z",
+    "author_date": "2026-09-19T03:36:30Z",
     "message": "docs: NAVI_SIMPLIFIED NS-D005 (baseline establishment: governing technical requirements)",
     "parents": [
       "53b1ad33f1c50b74132dd02d003a0e084ef58ec0"
@@ -82,6 +92,7 @@
   {
     "sha": "4c4722057d71e52b2a7a2203139ed2b7d2c3d067",
     "date": "2026-09-19T03:37:54Z",
+    "author_date": "2026-09-19T03:37:54Z",
     "message": "docs: add Date to NS-D005 (NAVI_SIMPLIFIED)",
     "parents": [
       "4d071717f885d6513a90ec97ab0a38a08fb56c88"
@@ -90,6 +101,7 @@
   {
     "sha": "377a2c8ae7e3fb9a1343bb83fb432e892a72680f",
     "date": "2026-09-19T04:10:36Z",
+    "author_date": "2026-09-19T04:10:36Z",
     "message": "docs: distance-traveled evidence inventory for NAVI_SIMPLIFIED",
     "parents": [
       "4c4722057d71e52b2a7a2203139ed2b7d2c3d067"
@@ -98,6 +110,7 @@
   {
     "sha": "379dca6e06d67f32384567925252f2d5fe768a80",
     "date": "2026-09-19T06:08:02Z",
+    "author_date": "2026-09-19T06:08:02Z",
     "message": "docs: answer the baseline design checklist from existing evidence",
     "parents": [
       "377a2c8ae7e3fb9a1343bb83fb432e892a72680f"
@@ -106,6 +119,7 @@
   {
     "sha": "a99133966a8c582a02d55b00e415b8fa5da11672",
     "date": "2026-09-19T06:35:10Z",
+    "author_date": "2026-09-19T06:35:10Z",
     "message": "docs: does the magnet reading move with the baseline, or stay fixed? (X18 Hall data)",
     "parents": [
       "379dca6e06d67f32384567925252f2d5fe768a80"
@@ -114,6 +128,7 @@
   {
     "sha": "5ee24a06bdb34547ba3f3f8e5541e82f12b508b4",
     "date": "2026-09-19T16:56:26Z",
+    "author_date": "2026-09-19T16:56:26Z",
     "message": "docs: the fix-to-strike relationship across the whole NAVI_ONE line",
     "parents": [
       "a99133966a8c582a02d55b00e415b8fa5da11672"
@@ -122,6 +137,7 @@
   {
     "sha": "2d9d864312e902d6b4d643d5a092d20d8e7d4de6",
     "date": "2026-09-19T17:05:32Z",
+    "author_date": "2026-09-19T17:05:32Z",
     "message": "docs: two findings against NAVI_SIMPLIFIED's locked per-interval baseline",
     "parents": [
       "5ee24a06bdb34547ba3f3f8e5541e82f12b508b4"
@@ -130,6 +146,7 @@
   {
     "sha": "3f06b729096ed7a82fb948b4bff8ab354d1cd090",
     "date": "2026-09-19T17:17:38Z",
+    "author_date": "2026-09-19T17:17:38Z",
     "message": "X22: the reference is locked, and re-established once per marker interval",
     "parents": [
       "2d9d864312e902d6b4d643d5a092d20d8e7d4de6"
@@ -138,6 +155,7 @@
   {
     "sha": "20bc251ef1aa6cd4aa14fbf4dbbd71783118aa15",
     "date": "2026-09-19T19:03:11Z",
+    "author_date": "2026-09-19T19:03:11Z",
     "message": "docs: analyze magnet-only NAVI_ONE feasibility",
     "parents": [
       "3f06b729096ed7a82fb948b4bff8ab354d1cd090"
@@ -146,6 +164,7 @@
   {
     "sha": "8f34035318f025e781b58829a39feb9b8f46f5de",
     "date": "2026-09-19T19:04:57Z",
+    "author_date": "2026-09-19T19:03:11Z",
     "message": "docs: analyze magnet-only NAVI_ONE feasibility",
     "parents": [
       "bc7dd06bf11a05fa9bca14bcd0d5220c3bd1c485"
@@ -154,6 +173,7 @@
   {
     "sha": "bc7dd06bf11a05fa9bca14bcd0d5220c3bd1c485",
     "date": "2026-09-19T19:04:57Z",
+    "author_date": "2026-09-19T16:56:26Z",
     "message": "docs: the fix-to-strike relationship across the whole NAVI_ONE line",
     "parents": [
       "31d877abc5224f596dd7c381e551a613e9bd36be"
@@ -162,6 +182,7 @@
   {
     "sha": "7ede8b4df46aa007f94062d12267250d0dbc089b",
     "date": "2026-09-19T19:33:17Z",
+    "author_date": "2026-09-19T19:33:17Z",
     "message": "docs: review Claude NAVI_ONE cross-variant analysis",
     "parents": [
       "20bc251ef1aa6cd4aa14fbf4dbbd71783118aa15"
@@ -170,6 +191,7 @@
   {
     "sha": "c87a51d7a6e768a0e54702b10d865ec11a4c12b5",
     "date": "2026-09-19T19:33:37Z",
+    "author_date": "2026-09-19T19:33:17Z",
     "message": "docs: review Claude NAVI_ONE cross-variant analysis",
     "parents": [
       "8f34035318f025e781b58829a39feb9b8f46f5de"
@@ -178,6 +200,7 @@
   {
     "sha": "8f4522b9614269f10d8a4b797de62c9bd364db7b",
     "date": "2026-09-20T01:46:05Z",
+    "author_date": "2026-09-20T01:46:05Z",
     "message": "docs: define Hall IR navigation contract and acceptance gates",
     "parents": [
       "c87a51d7a6e768a0e54702b10d865ec11a4c12b5"
@@ -186,6 +209,7 @@
   {
     "sha": "3369772a6b6c1bfb89c45a360dd21f6dffca7a01",
     "date": "2026-09-20T03:14:28Z",
+    "author_date": "2026-09-20T03:14:28Z",
     "message": "docs: record provisional IR relay delivery comparison",
     "parents": [
       "8f4522b9614269f10d8a4b797de62c9bd364db7b"
@@ -194,6 +218,7 @@
   {
     "sha": "8758df1f2d80e2bac2659b8fcf08c1387e310802",
     "date": "2026-09-20T06:53:39Z",
+    "author_date": "2026-09-20T06:53:39Z",
     "message": "Add USB-only raw IR bench tester and capture viewer",
     "parents": [
       "3369772a6b6c1bfb89c45a360dd21f6dffca7a01"
@@ -202,6 +227,7 @@
   {
     "sha": "79c63c9cb1e52f807d9be76f6b05cc571101e734",
     "date": "2026-09-20T07:09:22Z",
+    "author_date": "2026-09-20T07:09:22Z",
     "message": "Stabilize USB IR recording with batched transport and isolated capture",
     "parents": [
       "8758df1f2d80e2bac2659b8fcf08c1387e310802"
@@ -210,6 +236,7 @@
   {
     "sha": "b176b42199e254fecbce10f0dae236715efefa28",
     "date": "2026-09-20T18:54:35Z",
+    "author_date": "2026-09-20T18:54:35Z",
     "message": "Add checked ESP-NOW RX radio startup diagnostics",
     "parents": [
       "79c63c9cb1e52f807d9be76f6b05cc571101e734"
@@ -218,6 +245,7 @@
   {
     "sha": "c1e0ad9b1c72efb95d51ff30c4109d6e1dca672c",
     "date": "2026-09-20T19:06:40Z",
+    "author_date": "2026-09-20T19:06:40Z",
     "message": "Initialize RX readback fields and record verified startup",
     "parents": [
       "b176b42199e254fecbce10f0dae236715efefa28"
@@ -226,6 +254,7 @@
   {
     "sha": "688f8687ddb2c5ea7caef5032b036b58caf11332",
     "date": "2026-09-20T19:20:02Z",
+    "author_date": "2026-09-20T19:20:02Z",
     "message": "Record IR mixed sun and shade lap annotations",
     "parents": [
       "c1e0ad9b1c72efb95d51ff30c4109d6e1dca672c"
@@ -234,6 +263,7 @@
   {
     "sha": "9bfea6868368a39fdd556f6af925a1dda88f4b4f",
     "date": "2026-09-20T19:23:41Z",
+    "author_date": "2026-09-20T19:23:41Z",
     "message": "Record IR run route anchor and final stop",
     "parents": [
       "688f8687ddb2c5ea7caef5032b036b58caf11332"
@@ -242,6 +272,7 @@
   {
     "sha": "ae4b7e658bc36fb7a1cfc2d3065a8cf09e40c97a",
     "date": "2026-09-20T20:00:18Z",
+    "author_date": "2026-09-20T20:00:18Z",
     "message": "firmware: preserve NAVI simple experimental sources",
     "parents": [
       "7ede8b4df46aa007f94062d12267250d0dbc089b"
@@ -250,6 +281,7 @@
   {
     "sha": "6ecff322e257a876f52adcc79a94ed28fb7a683c",
     "date": "2026-09-20T21:35:11Z",
+    "author_date": "2026-09-20T21:35:11Z",
     "message": "docs: independent review of NAVI_IR 0.1 field failure and 0.2 fix",
     "parents": [
       "ae4b7e658bc36fb7a1cfc2d3065a8cf09e40c97a"
@@ -258,6 +290,7 @@
   {
     "sha": "6398708dee94357353a36913d832fa139f8fc06e",
     "date": "2026-09-20T22:02:03Z",
+    "author_date": "2026-09-20T22:02:03Z",
     "message": "docs: record operator design ruling for NAVI_IR 0.3",
     "parents": [
       "6ecff322e257a876f52adcc79a94ed28fb7a683c"
@@ -266,6 +299,7 @@
   {
     "sha": "03845792aeeef58335ebe4a9ce8aa93db42a21b6",
     "date": "2026-09-21T01:57:42Z",
+    "author_date": "2026-09-21T01:57:42Z",
     "message": "docs: independent review of NAVI_IR 0.4 patch",
     "parents": [
       "6398708dee94357353a36913d832fa139f8fc06e"
@@ -274,6 +308,7 @@
   {
     "sha": "2d60dfd8cc95403d6d672a2a51463efd6ab5ee79",
     "date": "2026-09-21T02:17:32Z",
+    "author_date": "2026-09-21T02:17:32Z",
     "message": "docs: record optimistic-NAVI continuity principle for the next NAVI_IR revision",
     "parents": [
       "03845792aeeef58335ebe4a9ce8aa93db42a21b6"
@@ -282,6 +317,7 @@
   {
     "sha": "3105718395b37a778c32009163dc12a438d9330d",
     "date": "2026-09-21T02:22:34Z",
+    "author_date": "2026-09-21T02:22:34Z",
     "message": "docs: NAVI_COHERENCE 0.1 design sketch, plus Sam's two refinements",
     "parents": [
       "2d60dfd8cc95403d6d672a2a51463efd6ab5ee79"
@@ -290,6 +326,7 @@
   {
     "sha": "35ca940a2f2cfef8475ab20b2bc7d3296ef6e1fc",
     "date": "2026-09-21T20:58:29Z",
+    "author_date": "2026-09-21T20:58:29Z",
     "message": "docs: external prior art survey for NAVI_COHERENCE",
     "parents": [
       "3105718395b37a778c32009163dc12a438d9330d"
@@ -298,6 +335,7 @@
   {
     "sha": "bf027875dd51614c482ac83ba4c6f0ccb3747250",
     "date": "2026-09-21T21:02:01Z",
+    "author_date": "2026-09-21T21:02:01Z",
     "message": "docs: spatial variability of Hall MM declaration points vs IR travel",
     "parents": [
       "35ca940a2f2cfef8475ab20b2bc7d3296ef6e1fc"
@@ -306,6 +344,7 @@
   {
     "sha": "e657d2b71334fbc6f9a769f063872b9faf3bd3f5",
     "date": "2026-09-22T01:07:55Z",
+    "author_date": "2026-09-22T01:07:55Z",
     "message": "docs: independent review of extracted NAVI_COHERENCE 0.2 patch",
     "parents": [
       "bf027875dd51614c482ac83ba4c6f0ccb3747250"
@@ -314,6 +353,7 @@
   {
     "sha": "3c25dba9f53e85fec1dd114c52a83976fa60ad76",
     "date": "2026-09-22T03:13:17Z",
+    "author_date": "2026-09-22T03:13:17Z",
     "message": "docs: NAVI_COHERENCE 0.3 review; correct 0.2 review's cached build result",
     "parents": [
       "e657d2b71334fbc6f9a769f063872b9faf3bd3f5"
@@ -322,6 +362,7 @@
   {
     "sha": "e0a366bcfcbb83611c16e460131963a50102e055",
     "date": "2026-09-22T03:29:37Z",
+    "author_date": "2026-09-22T03:29:37Z",
     "message": "docs: correct NAVI_IR 0.4 review's build-cleanliness claim",
     "parents": [
       "3c25dba9f53e85fec1dd114c52a83976fa60ad76"
@@ -330,6 +371,7 @@
   {
     "sha": "e04f9c56042f4653df0e4a30c8e94b976349e668",
     "date": "2026-09-22T03:43:07Z",
+    "author_date": "2026-09-22T03:43:07Z",
     "message": "docs: independent review of NAVI_COHERENCE 0.4 patch",
     "parents": [
       "e0a366bcfcbb83611c16e460131963a50102e055"
@@ -338,6 +380,7 @@
   {
     "sha": "7997fbd97d0d788b367216d6236d23401eac6e89",
     "date": "2026-09-22T17:52:32Z",
+    "author_date": "2026-09-22T17:52:32Z",
     "message": "docs: add NAVI_COHERENCE 0.4 review build tree",
     "parents": [
       "e04f9c56042f4653df0e4a30c8e94b976349e668"
@@ -346,6 +389,7 @@
   {
     "sha": "bd2f48d88f9f98bb973b7a02e90ddc892c15aab0",
     "date": "2026-09-22T18:10:08Z",
+    "author_date": "2026-09-22T18:10:08Z",
     "message": "firmware: place NAVI_COHERENCE 0.4 as a ready-to-flash test program",
     "parents": [
       "7997fbd97d0d788b367216d6236d23401eac6e89"
@@ -354,6 +398,7 @@
   {
     "sha": "49fea8793f4e0603f95e64f74f387471531632f8",
     "date": "2026-09-22T21:02:36Z",
+    "author_date": "2026-09-22T21:02:36Z",
     "message": "docs: NAVI_COHERENCE 0.4 first field lap analysis",
     "parents": [
       "bd2f48d88f9f98bb973b7a02e90ddc892c15aab0"
@@ -362,7 +407,8 @@
   {
     "sha": "bbd80e47dfbdcbb8548903465d5a621f49bd7092",
     "date": "2026-09-22T21:06:40Z",
-    "message": "docs: NAVI_COHERENCE 0.4 lap — correct stop position per operator (MM53)",
+    "author_date": "2026-09-22T21:06:40Z",
+    "message": "docs: NAVI_COHERENCE 0.4 lap \u2014 correct stop position per operator (MM53)",
     "parents": [
       "49fea8793f4e0603f95e64f74f387471531632f8"
     ]
@@ -370,7 +416,8 @@
   {
     "sha": "5be2b7e11b179618ddc75df9cf94fb3ad940fc2b",
     "date": "2026-09-22T21:15:02Z",
-    "message": "docs: NAVI_COHERENCE 0.4 lap — operator confirms stop between MM52 and MM53",
+    "author_date": "2026-09-22T21:15:02Z",
+    "message": "docs: NAVI_COHERENCE 0.4 lap \u2014 operator confirms stop between MM52 and MM53",
     "parents": [
       "bbd80e47dfbdcbb8548903465d5a621f49bd7092"
     ]
@@ -378,6 +425,7 @@
   {
     "sha": "c148af7e5fb76adb11c513521f7fb2f8840eae34",
     "date": "2026-09-22T21:24:51Z",
+    "author_date": "2026-09-22T21:24:51Z",
     "message": "docs: NAVI_COHERENCE 0.4 second field run",
     "parents": [
       "5be2b7e11b179618ddc75df9cf94fb3ad940fc2b"
@@ -386,7 +434,8 @@
   {
     "sha": "b07fe48c6e784e5e1bd9ca4e4c34be8683dbf5e9",
     "date": "2026-09-22T21:24:58Z",
-    "message": "docs: NAVI_COHERENCE 0.4 lap 1 — operator selected the 041-042 declaration",
+    "author_date": "2026-09-22T21:24:58Z",
+    "message": "docs: NAVI_COHERENCE 0.4 lap 1 \u2014 operator selected the 041-042 declaration",
     "parents": [
       "c148af7e5fb76adb11c513521f7fb2f8840eae34"
     ]
@@ -394,6 +443,7 @@
   {
     "sha": "2deadba7998fef663ed06171aa77e88a7d7a8833",
     "date": "2026-09-22T21:39:13Z",
+    "author_date": "2026-09-22T21:39:13Z",
     "message": "firmware: NAVI_COHERENCE 0.5 AUTO_ENABLED for Toby",
     "parents": [
       "b07fe48c6e784e5e1bd9ca4e4c34be8683dbf5e9"
@@ -402,6 +452,7 @@
   {
     "sha": "b41f8b4e3fb79d2285966bd429587db8be7005fd",
     "date": "2026-09-22T21:40:50Z",
+    "author_date": "2026-09-22T21:40:50Z",
     "message": "firmware/common: commit the IR movement headers NAVI_COHERENCE builds include",
     "parents": [
       "2deadba7998fef663ed06171aa77e88a7d7a8833"
@@ -410,7 +461,8 @@
   {
     "sha": "de2bf78a8d661f49797f0cc47e862b3326c5afa9",
     "date": "2026-09-22T21:44:55Z",
-    "message": "firmware: NAVI_COHERENCE 0.5 — station logic follows the corrected position",
+    "author_date": "2026-09-22T21:44:55Z",
+    "message": "firmware: NAVI_COHERENCE 0.5 \u2014 station logic follows the corrected position",
     "parents": [
       "b41f8b4e3fb79d2285966bd429587db8be7005fd"
     ]
@@ -418,7 +470,8 @@
   {
     "sha": "32b39cc1472fa57a79a35e2a62ecf4c4b0e8efe5",
     "date": "2026-09-22T21:45:03Z",
-    "message": "firmware: NAVI_COHERENCE 0.5 README — correction no longer resets the station machine",
+    "author_date": "2026-09-22T21:45:03Z",
+    "message": "firmware: NAVI_COHERENCE 0.5 README \u2014 correction no longer resets the station machine",
     "parents": [
       "de2bf78a8d661f49797f0cc47e862b3326c5afa9"
     ]
@@ -426,7 +479,8 @@
   {
     "sha": "6e33f619b5364bd9e268c0cb725ce7d84581c926",
     "date": "2026-09-22T21:49:40Z",
-    "message": "firmware: catalog — NAVI_COHERENCE 0.5 AUTO_ENABLED flashed to Toby",
+    "author_date": "2026-09-22T21:49:40Z",
+    "message": "firmware: catalog \u2014 NAVI_COHERENCE 0.5 AUTO_ENABLED flashed to Toby",
     "parents": [
       "32b39cc1472fa57a79a35e2a62ecf4c4b0e8efe5"
     ]
@@ -434,6 +488,7 @@
   {
     "sha": "c435e0e8062e20ca3575887f91df32664cf85948",
     "date": "2026-09-22T22:23:39Z",
+    "author_date": "2026-09-22T22:23:39Z",
     "message": "docs: NAVI_COHERENCE 0.5 first AUTO run",
     "parents": [
       "6e33f619b5364bd9e268c0cb725ce7d84581c926"
@@ -442,6 +497,7 @@
   {
     "sha": "06b89dfd345340cfc5c211bdd92f8a56a58b19b7",
     "date": "2026-09-22T22:24:54Z",
+    "author_date": "2026-09-22T22:24:54Z",
     "message": "field-records: preserve 2026-09-22 NAVI_COHERENCE field logs",
     "parents": [
       "c435e0e8062e20ca3575887f91df32664cf85948"
@@ -450,7 +506,8 @@
   {
     "sha": "c0cb3825ed168e8fc70c8b73d0a7876d55405ea6",
     "date": "2026-09-22T22:46:51Z",
-    "message": "docs: decision 0091 (proposed) — IR trust earned, kept through stops, revoked by introspection",
+    "author_date": "2026-09-22T22:46:51Z",
+    "message": "docs: decision 0091 (proposed) \u2014 IR trust earned, kept through stops, revoked by introspection",
     "parents": [
       "06b89dfd345340cfc5c211bdd92f8a56a58b19b7"
     ]
@@ -458,7 +515,8 @@
   {
     "sha": "08e00fabe0f29e1e18053fd3f4bf57d708d576f1",
     "date": "2026-09-22T22:49:55Z",
-    "message": "docs: 0091 — operator rates the first-10-magnet IR window low risk",
+    "author_date": "2026-09-22T22:49:55Z",
+    "message": "docs: 0091 \u2014 operator rates the first-10-magnet IR window low risk",
     "parents": [
       "c0cb3825ed168e8fc70c8b73d0a7876d55405ea6"
     ]
@@ -466,7 +524,8 @@
   {
     "sha": "0aca6a183c0c2837b7eb4f3133bb765fd6f957f1",
     "date": "2026-09-22T23:45:39Z",
-    "message": "docs: decision 0092 (proposed) — NAVI / IR decision model, adopted with Sam",
+    "author_date": "2026-09-22T23:45:39Z",
+    "message": "docs: decision 0092 (proposed) \u2014 NAVI / IR decision model, adopted with Sam",
     "parents": [
       "08e00fabe0f29e1e18053fd3f4bf57d708d576f1"
     ]
@@ -474,7 +533,8 @@
   {
     "sha": "89f5d197a213de6a4cd98e2326c258d4cbb2673c",
     "date": "2026-09-23T01:46:33Z",
-    "message": "docs: Toby's weakest Hall signal — June 39 vs today 70 are different measurements",
+    "author_date": "2026-09-23T01:46:33Z",
+    "message": "docs: Toby's weakest Hall signal \u2014 June 39 vs today 70 are different measurements",
     "parents": [
       "0aca6a183c0c2837b7eb4f3133bb765fd6f957f1"
     ]
@@ -482,7 +542,8 @@
   {
     "sha": "f263792b62cf4e4119325059e4bae369439a2280",
     "date": "2026-09-23T01:49:52Z",
-    "message": "docs: Hall minimum — past-week data both locos; MM012 dropped from ~135 to ~71 since 9/20",
+    "author_date": "2026-09-23T01:49:52Z",
+    "message": "docs: Hall minimum \u2014 past-week data both locos; MM012 dropped from ~135 to ~71 since 9/20",
     "parents": [
       "89f5d197a213de6a4cd98e2326c258d4cbb2673c"
     ]
@@ -490,7 +551,8 @@
   {
     "sha": "4f425db6b29c66c95690edb721f828788210c112",
     "date": "2026-09-23T02:03:23Z",
-    "message": "docs: Hall minimum — MM012 was a displaced bar magnet, now restored; excluded",
+    "author_date": "2026-09-23T02:03:23Z",
+    "message": "docs: Hall minimum \u2014 MM012 was a displaced bar magnet, now restored; excluded",
     "parents": [
       "f263792b62cf4e4119325059e4bae369439a2280"
     ]
@@ -498,6 +560,7 @@
   {
     "sha": "a1dcc717a2169e6edcc85005790d3f734e5e245b",
     "date": "2026-09-23T05:10:26Z",
+    "author_date": "2026-09-23T05:10:26Z",
     "message": "docs: MM Hall-only guard timing evidence (Toby NAVI_COHERENCE + Otto X15 cross-check)",
     "parents": [
       "4f425db6b29c66c95690edb721f828788210c112"
@@ -506,7 +569,8 @@
   {
     "sha": "f8bcaeb1960ed1e5051ea42e07b33bc8aa358c7e",
     "date": "2026-09-23T05:35:58Z",
-    "message": "docs: decision 0093 — provisional NAVI_COHERENCE Hall-only guard, 650ms",
+    "author_date": "2026-09-23T05:35:58Z",
+    "message": "docs: decision 0093 \u2014 provisional NAVI_COHERENCE Hall-only guard, 650ms",
     "parents": [
       "a1dcc717a2169e6edcc85005790d3f734e5e245b"
     ]
@@ -514,6 +578,7 @@
   {
     "sha": "99100161e9f4d489780092d1289ba32c53ce7e61",
     "date": "2026-09-23T06:45:47Z",
+    "author_date": "2026-09-23T06:45:47Z",
     "message": "docs: add NAVI IR health and MM reference design note",
     "parents": [
       "f8bcaeb1960ed1e5051ea42e07b33bc8aa358c7e"
@@ -522,7 +587,8 @@
   {
     "sha": "1a9bd32dfaffeb228917e6e6320d8a33b4c0c8fb",
     "date": "2026-09-23T06:53:32Z",
-    "message": "docs: decision 0094 — IR validity is continuous health, not earned trust",
+    "author_date": "2026-09-23T06:53:32Z",
+    "message": "docs: decision 0094 \u2014 IR validity is continuous health, not earned trust",
     "parents": [
       "99100161e9f4d489780092d1289ba32c53ce7e61"
     ]
@@ -530,7 +596,8 @@
   {
     "sha": "86ea6ec85aa1a67ddc3638ba1f1a4b7dd48e8834",
     "date": "2026-09-23T07:00:15Z",
-    "message": "docs: 0094 — add the SIGNAL_STALE exchange (why the model changed)",
+    "author_date": "2026-09-23T07:00:15Z",
+    "message": "docs: 0094 \u2014 add the SIGNAL_STALE exchange (why the model changed)",
     "parents": [
       "1a9bd32dfaffeb228917e6e6320d8a33b4c0c8fb"
     ]
@@ -538,7 +605,8 @@
   {
     "sha": "671c758188e082b071d887f90f3e94be68d50abe",
     "date": "2026-09-23T07:15:38Z",
-    "message": "docs: 0094 — add the cyclometer test as an explicit code-placement criterion",
+    "author_date": "2026-09-23T07:15:38Z",
+    "message": "docs: 0094 \u2014 add the cyclometer test as an explicit code-placement criterion",
     "parents": [
       "86ea6ec85aa1a67ddc3638ba1f1a4b7dd48e8834"
     ]
@@ -546,6 +614,7 @@
   {
     "sha": "b4ca11db9d8ee0e0e12cc1c56cd74d8844061bc3",
     "date": "2026-09-23T18:26:29Z",
+    "author_date": "2026-09-23T18:26:29Z",
     "message": "Add tested IR health and epoch foundation with design handoff",
     "parents": [
       "671c758188e082b071d887f90f3e94be68d50abe"
@@ -554,6 +623,7 @@
   {
     "sha": "584f724efa8e4eba298005a63050fb916813d30d",
     "date": "2026-09-23T19:21:54Z",
+    "author_date": "2026-09-23T19:21:54Z",
     "message": "Add observation-only IR health indicators to Toby COHERENCE 0.6",
     "parents": [
       "b4ca11db9d8ee0e0e12cc1c56cd74d8844061bc3"
@@ -562,6 +632,7 @@
   {
     "sha": "3004c634f40aaeb9be93177c1b11be4f3939b030",
     "date": "2026-09-23T20:05:50Z",
+    "author_date": "2026-09-23T20:05:50Z",
     "message": "docs: independent verification of 0.6 IR_HEALTH handoff before field test",
     "parents": [
       "584f724efa8e4eba298005a63050fb916813d30d"
@@ -570,6 +641,7 @@
   {
     "sha": "5101974615600926b6cb94e5d3df12c0f9475dff",
     "date": "2026-09-23T20:16:54Z",
+    "author_date": "2026-09-23T20:16:54Z",
     "message": "chore: organize September IR and NAVI artifacts",
     "parents": [
       "3004c634f40aaeb9be93177c1b11be4f3939b030"
@@ -578,6 +650,7 @@
   {
     "sha": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
     "date": "2026-09-23T20:29:14Z",
+    "author_date": "2026-09-23T20:29:14Z",
     "message": "refactor: group firmware programs by lineage",
     "parents": [
       "5101974615600926b6cb94e5d3df12c0f9475dff"
@@ -586,6 +659,7 @@
   {
     "sha": "a6b6ed070024e863c90bc50251b0e5ef5c25f59c",
     "date": "2026-09-23T20:54:32Z",
+    "author_date": "2026-09-23T20:54:32Z",
     "message": "Fix IR health compatibility with zero-calibration TX snapshots",
     "parents": [
       "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370"
@@ -594,6 +668,7 @@
   {
     "sha": "9a4dd24b08503ad00a0032683e7506de6b32f0e6",
     "date": "2026-09-23T20:56:50Z",
+    "author_date": "2026-09-23T20:56:50Z",
     "message": "Record Toby CAL0_FIX1 flash and live packet acceptance",
     "parents": [
       "a6b6ed070024e863c90bc50251b0e5ef5c25f59c"
@@ -602,6 +677,7 @@
   {
     "sha": "89dc3697956c67192499474877b7bd7c4dae595c",
     "date": "2026-09-23T22:06:30Z",
+    "author_date": "2026-09-23T22:06:30Z",
     "message": "Record towed IR evidence and confirmed AUTO global correction failure",
     "parents": [
       "9a4dd24b08503ad00a0032683e7506de6b32f0e6"
@@ -610,6 +686,7 @@
   {
     "sha": "b6b7f13d972658aedd824ec822e00ffadc2733f8",
     "date": "2026-09-23T22:33:20Z",
+    "author_date": "2026-09-23T22:33:20Z",
     "message": "Replace global NAV matching with physical proximal recovery",
     "parents": [
       "89dc3697956c67192499474877b7bd7c4dae595c"
@@ -618,6 +695,7 @@
   {
     "sha": "72ca5f37f602f211e5ee0ab5f01665bab5cbb25a",
     "date": "2026-09-23T23:14:48Z",
+    "author_date": "2026-09-23T23:14:48Z",
     "message": "Record authorized Toby PROXIMAL_R1 flash and startup verification",
     "parents": [
       "b6b7f13d972658aedd824ec822e00ffadc2733f8"
@@ -626,6 +704,7 @@
   {
     "sha": "d3daf9148c0cdfb14fb4557fd56c0ecb6495aa88",
     "date": "2026-09-23T23:36:15Z",
+    "author_date": "2026-09-23T23:36:15Z",
     "message": "Add IR KPH tile to the loco page",
     "parents": [
       "72ca5f37f602f211e5ee0ab5f01665bab5cbb25a"
@@ -634,6 +713,7 @@
   {
     "sha": "58d31804ed2663c72a651303322ebb766a4f5ca2",
     "date": "2026-09-23T23:36:57Z",
+    "author_date": "2026-09-23T23:36:57Z",
     "message": "docs: record IR KPH tile implementation report",
     "parents": [
       "d3daf9148c0cdfb14fb4557fd56c0ecb6495aa88"
@@ -642,6 +722,7 @@
   {
     "sha": "b1e271c752af9d14e36fd9ea8b04e432f889a3f2",
     "date": "2026-09-24T00:07:26Z",
+    "author_date": "2026-09-24T00:07:26Z",
     "message": "Parse telem/speed's bare-number form for the IR KPH tile",
     "parents": [
       "58d31804ed2663c72a651303322ebb766a4f5ca2"
@@ -650,6 +731,7 @@
   {
     "sha": "740261fa7fe803ca34dc59c5d58e96a9df7c8491",
     "date": "2026-09-24T00:53:09Z",
+    "author_date": "2026-09-24T00:53:09Z",
     "message": "Add and deploy Toby IR speed telemetry and canonical pKPH display",
     "parents": [
       "b1e271c752af9d14e36fd9ea8b04e432f889a3f2"
@@ -658,6 +740,7 @@
   {
     "sha": "6e7ccc2213621a05bc30b3624972bfd7eb6a0676",
     "date": "2026-09-24T01:08:27Z",
+    "author_date": "2026-09-24T01:08:27Z",
     "message": "IR_SPEED_LOCAL: sync replay_noise transcription and add drift tripwire",
     "parents": [
       "9bfea6868368a39fdd556f6af925a1dda88f4b4f"
@@ -666,6 +749,7 @@
   {
     "sha": "d4dadd8f123a9132290df3042c8d4adc790cb5b0",
     "date": "2026-09-24T01:58:46Z",
+    "author_date": "2026-09-24T01:58:46Z",
     "message": "Restore full 0-255 manual throttle range for Toby",
     "parents": [
       "740261fa7fe803ca34dc59c5d58e96a9df7c8491"
@@ -674,6 +758,7 @@
   {
     "sha": "1de06aec1d9e61de8d9e2fe5afb6809655638207",
     "date": "2026-09-24T02:08:32Z",
+    "author_date": "2026-09-24T02:08:32Z",
     "message": "Prepare unflashed IR TX 1.6 stop-retention candidate for review",
     "parents": [
       "d4dadd8f123a9132290df3042c8d4adc790cb5b0"
@@ -682,6 +767,7 @@
   {
     "sha": "4de40df8c2121ca0b7a15a89b86b1632bbaf8e09",
     "date": "2026-09-24T02:18:57Z",
+    "author_date": "2026-09-24T02:18:57Z",
     "message": "Independent review of IR TX 1.6 stop retention: not bench-ready as written",
     "parents": [
       "1de06aec1d9e61de8d9e2fe5afb6809655638207"
@@ -690,6 +776,7 @@
   {
     "sha": "3887f2afbcd7efd87dd5ec85c0c4ee9dc3209c1c",
     "date": "2026-09-24T02:27:23Z",
+    "author_date": "2026-09-24T02:27:23Z",
     "message": "Revise unflashed IR TX 1.6 retention after independent review",
     "parents": [
       "4de40df8c2121ca0b7a15a89b86b1632bbaf8e09"
@@ -698,6 +785,7 @@
   {
     "sha": "0c236cdacd7b76ad4600349653f8ef6ef510fe91",
     "date": "2026-09-24T02:30:25Z",
+    "author_date": "2026-09-24T02:30:25Z",
     "message": "Record R2 independent review pass for IR-only bench evaluation",
     "parents": [
       "3887f2afbcd7efd87dd5ec85c0c4ee9dc3209c1c"
@@ -706,6 +794,7 @@
   {
     "sha": "e0db6b0190991e8ec38632299c50a952f209cc8e",
     "date": "2026-09-24T02:35:28Z",
+    "author_date": "2026-09-24T02:35:28Z",
     "message": "Record authorized IR TX R2 flash and cold stationary startup",
     "parents": [
       "0c236cdacd7b76ad4600349653f8ef6ef510fe91"
@@ -714,6 +803,7 @@
   {
     "sha": "a42d7e489a0f4ec9067590b20ea5d064ad2aec28",
     "date": "2026-09-24T02:37:50Z",
+    "author_date": "2026-09-24T02:37:50Z",
     "message": "Record R2 short roll and unavailable final stop",
     "parents": [
       "e0db6b0190991e8ec38632299c50a952f209cc8e"
@@ -722,6 +812,7 @@
   {
     "sha": "01efacc12318fc21d7827e3d1eb74f060764fbd7",
     "date": "2026-09-24T02:45:29Z",
+    "author_date": "2026-09-24T02:45:29Z",
     "message": "Analyze R2 stop contrast collapse from recorded waveform",
     "parents": [
       "a42d7e489a0f4ec9067590b20ea5d064ad2aec28"
@@ -730,6 +821,7 @@
   {
     "sha": "19ecb088f99c396af7dc4909cd7e061b4d547641",
     "date": "2026-09-24T03:13:39Z",
+    "author_date": "2026-09-24T03:13:39Z",
     "message": "Record R2 retained-zero failure across three bench stops",
     "parents": [
       "01efacc12318fc21d7827e3d1eb74f060764fbd7"
@@ -738,6 +830,7 @@
   {
     "sha": "78c84d8875c2a9b448c3bcbc9a22a8763ed7cb84",
     "date": "2026-09-24T03:28:01Z",
+    "author_date": "2026-09-24T03:28:01Z",
     "message": "Reproduce smooth-stop retention failure and propose separate optical memory",
     "parents": [
       "19ecb088f99c396af7dc4909cd7e061b4d547641"
@@ -746,6 +839,7 @@
   {
     "sha": "4f72f57ccdfcbe82f99c9ad93329c3c88cbd754c",
     "date": "2026-09-24T03:55:27Z",
+    "author_date": "2026-09-24T03:55:27Z",
     "message": "Independent review of R2 bench stop failure with captured-waveform replay and R3 proposal",
     "parents": [
       "78c84d8875c2a9b448c3bcbc9a22a8763ed7cb84"
@@ -754,6 +848,7 @@
   {
     "sha": "ea031a7dbb23c6b4c9a918a649575e057ffad560",
     "date": "2026-09-24T04:26:16Z",
+    "author_date": "2026-09-24T04:26:16Z",
     "message": "Record decisional inertia clarification and test retained trajectory",
     "parents": [
       "78c84d8875c2a9b448c3bcbc9a22a8763ed7cb84"
@@ -762,6 +857,7 @@
   {
     "sha": "427c68bf8b0e4cb90d4c8458ad50cbe1364b93ed",
     "date": "2026-09-24T04:49:19Z",
+    "author_date": "2026-09-24T04:49:19Z",
     "message": "Interpret settled stops in NAVI speed display without altering raw IR",
     "parents": [
       "ea031a7dbb23c6b4c9a918a649575e057ffad560"
@@ -770,6 +866,7 @@
   {
     "sha": "ab13dbb8f828b1c3be0e70c8a500b143be108804",
     "date": "2026-09-24T04:57:50Z",
+    "author_date": "2026-09-24T04:57:50Z",
     "message": "Record cleared NAVI stop-display deployment and verified Toby flash",
     "parents": [
       "427c68bf8b0e4cb90d4c8458ad50cbe1364b93ed"
@@ -778,6 +875,7 @@
   {
     "sha": "877b3c49d0359217395a562905c8dc758a3f7ed8",
     "date": "2026-09-24T05:01:24Z",
+    "author_date": "2026-09-24T05:01:24Z",
     "message": "Record observed NAVI stopped display and measured restart",
     "parents": [
       "ab13dbb8f828b1c3be0e70c8a500b143be108804"
@@ -786,6 +884,7 @@
   {
     "sha": "86783d63eaf1c55f813fbd495767d7c645afc831",
     "date": "2026-09-24T05:10:33Z",
+    "author_date": "2026-09-24T05:10:33Z",
     "message": "Preserve NAVI shared train-state judgment principle",
     "parents": [
       "877b3c49d0359217395a562905c8dc758a3f7ed8"
@@ -794,6 +893,7 @@
   {
     "sha": "3619dfa69333a5595ab64ad590ec1934e63ac1c9",
     "date": "2026-09-24T05:11:12Z",
+    "author_date": "2026-09-24T05:11:12Z",
     "message": "Record SAM refinement: preserve knowledge by train-state dimension",
     "parents": [
       "86783d63eaf1c55f813fbd495767d7c645afc831"
@@ -802,6 +902,7 @@
   {
     "sha": "e5705cdc910e64b1a5ccc391e903aaad86731d58",
     "date": "2026-09-24T05:13:16Z",
+    "author_date": "2026-09-24T05:13:16Z",
     "message": "Clarify IR relative movement and NAVI-owned spatial knowledge",
     "parents": [
       "3619dfa69333a5595ab64ad590ec1934e63ac1c9"
@@ -810,6 +911,7 @@
   {
     "sha": "6c64204424934f14cf3ad3ec42c11b4cf10504ff",
     "date": "2026-09-24T05:47:01Z",
+    "author_date": "2026-09-24T05:47:01Z",
     "message": "Analyze final Toby AUTO run: retained trajectory and pause-resume station gap",
     "parents": [
       "e5705cdc910e64b1a5ccc391e903aaad86731d58"
@@ -818,6 +920,7 @@
   {
     "sha": "57d34d6eeba46964acfad641cdef3ad3e09b91b2",
     "date": "2026-09-24T06:07:33Z",
+    "author_date": "2026-09-24T06:07:33Z",
     "message": "Make station obligations position-based across AUTO pause and resume",
     "parents": [
       "6c64204424934f14cf3ad3ec42c11b4cf10504ff"
@@ -826,6 +929,7 @@
   {
     "sha": "5cff7592acdf7d51fd77b37f8fcee29d80ef2287",
     "date": "2026-09-24T06:40:25Z",
+    "author_date": "2026-09-24T06:40:25Z",
     "message": "Audit inherited NAVI CTO command and state contracts",
     "parents": [
       "57d34d6eeba46964acfad641cdef3ad3e09b91b2"
@@ -834,6 +938,7 @@
   {
     "sha": "ab52e3e7d8f5dc7d12d9488931c8cb5c04176690",
     "date": "2026-09-24T12:55:58Z",
+    "author_date": "2026-09-24T12:55:58Z",
     "message": "Review POSITION_STATIONS_R1: latch after failed visit, late-acquisition policy question",
     "parents": [
       "5cff7592acdf7d51fd77b37f8fcee29d80ef2287"
@@ -842,6 +947,7 @@
   {
     "sha": "50730d21416117f97b419c9ed635ed5110b821f9",
     "date": "2026-09-24T17:46:18Z",
+    "author_date": "2026-09-24T17:46:18Z",
     "message": "Record exact NAVI source package for SAM review",
     "parents": [
       "ab52e3e7d8f5dc7d12d9488931c8cb5c04176690"
@@ -850,6 +956,7 @@
   {
     "sha": "277a2758fa0277c8703e54b859621bac588879fb",
     "date": "2026-09-24T18:31:37Z",
+    "author_date": "2026-09-24T18:31:37Z",
     "message": "Document CTO3 evidence and unresolved collision protection",
     "parents": [
       "50730d21416117f97b419c9ed635ed5110b821f9"
@@ -858,6 +965,7 @@
   {
     "sha": "3fa209bdda1955db5bd60ace9a00213b1ba94bf7",
     "date": "2026-09-24T23:10:02Z",
+    "author_date": "2026-09-24T23:10:02Z",
     "message": "Grillers wayside 0.2/0.3: detector fixes, bench findings",
     "parents": [
       "277a2758fa0277c8703e54b859621bac588879fb"
@@ -866,6 +974,7 @@
   {
     "sha": "c50b8727104565361b88b445ff83f1ea899441f7",
     "date": "2026-09-24T23:54:42Z",
+    "author_date": "2026-09-24T23:54:42Z",
     "message": "Add GRILLERS_WAYSIDE 0.1 trackside Hall observer",
     "parents": [
       "9bfea6868368a39fdd556f6af925a1dda88f4b4f"
@@ -874,6 +983,7 @@
   {
     "sha": "2ee8b2d2c4698005e346744ca5b33ec6f8661e43",
     "date": "2026-09-24T23:54:51Z",
+    "author_date": "2026-09-24T23:54:51Z",
     "message": "GRILLERS_WAYSIDE 0.2: fix event splitting and baseline drift; catalog it",
     "parents": [
       "c50b8727104565361b88b445ff83f1ea899441f7"
@@ -882,6 +992,7 @@
   {
     "sha": "2e8e45ced420cfac291895fbba8b9af475e465fc",
     "date": "2026-09-25T05:16:58Z",
+    "author_date": "2026-09-25T05:16:58Z",
     "message": "Install standing NGR AI agent operating policy",
     "parents": [
       "3fa209bdda1955db5bd60ace9a00213b1ba94bf7"
@@ -890,6 +1001,7 @@
   {
     "sha": "193aeb7b87583a0d059ab6dbb025fa3efe2a2c1c",
     "date": "2026-09-25T05:16:58Z",
+    "author_date": "2026-09-25T05:16:58Z",
     "message": "Install standing NGR AI agent operating policy",
     "parents": [
       "9bfea6868368a39fdd556f6af925a1dda88f4b4f"
@@ -898,6 +1010,7 @@
   {
     "sha": "2ec2d10a46db2158789c3e4bfc3d52e58666e0db",
     "date": "2026-09-25T05:21:16Z",
+    "author_date": "2026-09-25T05:21:16Z",
     "message": "Add scope, deployment, rollback and field-evidence guardrails to agent policy",
     "parents": [
       "2e8e45ced420cfac291895fbba8b9af475e465fc"
@@ -906,6 +1019,7 @@
   {
     "sha": "780872d2a7d19d25adda353558ff833ea2ca4720",
     "date": "2026-09-25T05:21:16Z",
+    "author_date": "2026-09-25T05:21:16Z",
     "message": "Add scope, deployment, rollback and field-evidence guardrails to agent policy",
     "parents": [
       "193aeb7b87583a0d059ab6dbb025fa3efe2a2c1c"
@@ -914,7 +1028,8 @@
   {
     "sha": "e7a8a8b73b9941b58ac95ecb723a546070402ff9",
     "date": "2026-09-25T07:20:00Z",
-    "message": "Add track-evidence priority principle to agent policy (§8)",
+    "author_date": "2026-09-25T07:20:00Z",
+    "message": "Add track-evidence priority principle to agent policy (\u00a78)",
     "parents": [
       "2ec2d10a46db2158789c3e4bfc3d52e58666e0db"
     ]
@@ -922,7 +1037,8 @@
   {
     "sha": "7409c19d3199511759f837d31a1054ba0822fd2d",
     "date": "2026-09-25T07:20:00Z",
-    "message": "Add track-evidence priority principle to agent policy (§8)",
+    "author_date": "2026-09-25T07:20:00Z",
+    "message": "Add track-evidence priority principle to agent policy (\u00a78)",
     "parents": [
       "780872d2a7d19d25adda353558ff833ea2ca4720"
     ]
@@ -930,6 +1046,7 @@
   {
     "sha": "8d9a9ac8a2faa9263d0662be2860f1a75a477761",
     "date": "2026-09-25T22:41:21Z",
+    "author_date": "2026-09-25T22:41:21Z",
     "message": "docs: preserve NAVI architectural lineage draft v0.1 (Sam, 2026-09-25)",
     "parents": [
       "e7a8a8b73b9941b58ac95ecb723a546070402ff9"
@@ -938,6 +1055,7 @@
   {
     "sha": "5c0d49435dbb7784c18ab1fb89a78edab7195970",
     "date": "2026-09-25T23:17:00Z",
+    "author_date": "2026-09-25T23:17:00Z",
     "message": "NAVI_COHERENCE 0.6 POSITION_STATIONS_R1_20Q3: implement three decided 20Q standards",
     "parents": [
       "8d9a9ac8a2faa9263d0662be2860f1a75a477761"
@@ -946,6 +1064,7 @@
   {
     "sha": "394c64d4b9720f8d93a381b0146de9489fd358a0",
     "date": "2026-09-26T02:15:56Z",
+    "author_date": "2026-09-26T02:15:56Z",
     "message": "20Q3: remove superseded X22 refractory (X22R); keep last actual Hall speed",
     "parents": [
       "5c0d49435dbb7784c18ab1fb89a78edab7195970"
@@ -954,6 +1073,7 @@
   {
     "sha": "c1651ef1c33072ee88431bd76fa8c6bb092a16cf",
     "date": "2026-09-26T15:20:49Z",
+    "author_date": "2026-09-26T15:20:49Z",
     "message": "docs: replace NAVI lineage transcription with Sam's original Markdown",
     "parents": [
       "394c64d4b9720f8d93a381b0146de9489fd358a0"
@@ -962,6 +1082,7 @@
   {
     "sha": "723944742ba75c36e63fd069ea68ccae6ec373c4",
     "date": "2026-09-26T16:33:51Z",
+    "author_date": "2026-09-26T16:33:51Z",
     "message": "field-records: Toby 20Q3 run 1 log and verdict",
     "parents": [
       "c1651ef1c33072ee88431bd76fa8c6bb092a16cf"
@@ -970,6 +1091,7 @@
   {
     "sha": "a1208db7ee571d61e4e9080a3cbfb0897d743145",
     "date": "2026-09-26T16:42:13Z",
+    "author_date": "2026-09-26T16:42:13Z",
     "message": "field-records: Toby 20Q3 run 2 log and record; run 1 record summary",
     "parents": [
       "723944742ba75c36e63fd069ea68ccae6ec373c4"
@@ -978,6 +1100,7 @@
   {
     "sha": "ffde493246fd5a58d35b97722f8124d1fd64496f",
     "date": "2026-09-26T16:48:02Z",
+    "author_date": "2026-09-26T16:48:02Z",
     "message": "field-records: Toby 20Q3 run 3 log and record (reverse run)",
     "parents": [
       "a1208db7ee571d61e4e9080a3cbfb0897d743145"
@@ -986,6 +1109,7 @@
   {
     "sha": "7d42727573196bc9c69766876fb84c8ddad1dcb1",
     "date": "2026-09-26T17:21:27Z",
+    "author_date": "2026-09-26T17:21:27Z",
     "message": "field-records: Toby 20Q3 run 4 logs and record (AUTO, stations, obstructions)",
     "parents": [
       "ffde493246fd5a58d35b97722f8124d1fd64496f"
@@ -994,6 +1118,7 @@
   {
     "sha": "53f499704a697d3c3aa65d23e5ab5047dc39f9c5",
     "date": "2026-09-26T17:44:09Z",
+    "author_date": "2026-09-26T17:44:09Z",
     "message": "field-records: run 4 operator answers and ground truth",
     "parents": [
       "7d42727573196bc9c69766876fb84c8ddad1dcb1"
@@ -1002,6 +1127,7 @@
   {
     "sha": "3332bdb32c173ee1dd1fccd35c02420d7abe1b02",
     "date": "2026-09-26T18:02:44Z",
+    "author_date": "2026-09-26T18:02:44Z",
     "message": "field-records: Toby 20Q3 run 5 complete log and record; run 4 IR note",
     "parents": [
       "53f499704a697d3c3aa65d23e5ab5047dc39f9c5"
@@ -1010,6 +1136,7 @@
   {
     "sha": "ab60ca65afade93bce5043b759ee11ac5638fa46",
     "date": "2026-09-26T18:54:47Z",
+    "author_date": "2026-09-26T18:54:47Z",
     "message": "docs: NAVI unified authority / X22 concept reconciliation plan (no code)",
     "parents": [
       "3332bdb32c173ee1dd1fccd35c02420d7abe1b02"
@@ -1018,6 +1145,7 @@
   {
     "sha": "948b90b692aa9941d71e9180c8fa509d314070c5",
     "date": "2026-09-27T01:45:29Z",
+    "author_date": "2026-09-27T01:45:29Z",
     "message": "docs: codify NAVI decision model after D1-D10 review (no implementation)",
     "parents": [
       "ab60ca65afade93bce5043b759ee11ac5638fa46"
@@ -1026,6 +1154,7 @@
   {
     "sha": "924d97877cf6c46837c85e1e92fa2e16607cd925",
     "date": "2026-09-27T01:46:54Z",
+    "author_date": "2026-09-27T01:46:54Z",
     "message": "docs: add enduring NGR decision-system design principles and link from entry points",
     "parents": [
       "948b90b692aa9941d71e9180c8fa509d314070c5"
@@ -1034,6 +1163,7 @@
   {
     "sha": "8363bf088cb6a82e8ea7795e642f4a0e4316a7a6",
     "date": "2026-09-27T05:51:10Z",
+    "author_date": "2026-09-27T05:51:10Z",
     "message": "docs: correct 0106 to the decision reached - PWM = 0 means no movement",
     "parents": [
       "924d97877cf6c46837c85e1e92fa2e16607cd925"
@@ -1042,6 +1172,7 @@
   {
     "sha": "d279f791fc7254f6a90ee24d2592d403a32c7854",
     "date": "2026-09-27T06:04:44Z",
+    "author_date": "2026-09-27T06:04:44Z",
     "message": "docs: 0106 - coasting is a PWM ramp simulation (operator clarification)",
     "parents": [
       "8363bf088cb6a82e8ea7795e642f4a0e4316a7a6"
@@ -1050,6 +1181,7 @@
   {
     "sha": "db78af1ee7a58d0392383527657995848cbf0bff",
     "date": "2026-09-27T06:04:59Z",
+    "author_date": "2026-09-27T06:04:59Z",
     "message": "docs: 0106 - remove stray blank line",
     "parents": [
       "d279f791fc7254f6a90ee24d2592d403a32c7854"
@@ -1058,6 +1190,7 @@
   {
     "sha": "82600b41315fbc685e248b5da97e66dad65dd135",
     "date": "2026-09-27T06:53:50Z",
+    "author_date": "2026-09-27T06:53:50Z",
     "message": "field-records: add complete RTB evidence bundle",
     "parents": [
       "db78af1ee7a58d0392383527657995848cbf0bff"
@@ -1066,6 +1199,7 @@
   {
     "sha": "06d3eec58fe17a89e860e08c78d08e01ade0fb53",
     "date": "2026-09-27T07:32:18Z",
+    "author_date": "2026-09-27T07:32:18Z",
     "message": "Analysis: proximal ordinary-track Hall behaviour around MM passages (RTB evidence 2026-09-26)",
     "parents": [
       "7409c19d3199511759f837d31a1054ba0822fd2d"
@@ -1074,6 +1208,7 @@
   {
     "sha": "748888f92d3aefa6c5de0c700aadd48d558b0ebe",
     "date": "2026-09-27T08:22:22Z",
+    "author_date": "2026-09-27T08:22:22Z",
     "message": "Review: NAVI_EYES_WIDE_OPEN Hall reference model, with full-session replay",
     "parents": [
       "06d3eec58fe17a89e860e08c78d08e01ade0fb53"
@@ -1082,6 +1217,7 @@
   {
     "sha": "8321f8b750ef2cee7a0b7d9b33f08c975bbcf491",
     "date": "2026-09-27T09:07:43Z",
+    "author_date": "2026-09-27T09:07:43Z",
     "message": "field-records: evaluate spatial Hall references",
     "parents": [
       "82600b41315fbc685e248b5da97e66dad65dd135"
@@ -1090,6 +1226,7 @@
   {
     "sha": "7b83179f82eb7ee1ec5a0ba2eefda959fa44a6fd",
     "date": "2026-09-28T01:07:24Z",
+    "author_date": "2026-09-28T01:07:24Z",
     "message": "Add native synchronized Hall and IR recorder",
     "parents": [
       "8321f8b750ef2cee7a0b7d9b33f08c975bbcf491"
@@ -1098,6 +1235,7 @@
   {
     "sha": "d54ab3f666775e4f93c231e2a7464c31e4b5a165",
     "date": "2026-09-28T02:55:39Z",
+    "author_date": "2026-09-28T02:55:39Z",
     "message": "Fix NSR1 CRC interoperability",
     "parents": [
       "7b83179f82eb7ee1ec5a0ba2eefda959fa44a6fd"
@@ -1106,6 +1244,7 @@
   {
     "sha": "744b9469c77c97113b1b68fd56ece7d05378ce95",
     "date": "2026-09-28T03:22:31Z",
+    "author_date": "2026-09-28T03:22:31Z",
     "message": "Record NSR1 field validation results",
     "parents": [
       "d54ab3f666775e4f93c231e2a7464c31e4b5a165"
@@ -1114,6 +1253,7 @@
   {
     "sha": "028229b2089b8c138cac1497a8e53308c35ba777",
     "date": "2026-09-28T04:25:12Z",
+    "author_date": "2026-09-28T04:25:12Z",
     "message": "docs: codify measurement applicability principle",
     "parents": [
       "744b9469c77c97113b1b68fd56ece7d05378ce95"
@@ -1122,6 +1262,7 @@
   {
     "sha": "d61fe04439d6da8ef6e3a2a17cc69a730552d629",
     "date": "2026-09-28T05:19:03Z",
+    "author_date": "2026-09-28T05:19:03Z",
     "message": "field-records: analyze spatial Hall reference capture",
     "parents": [
       "028229b2089b8c138cac1497a8e53308c35ba777"
@@ -1130,6 +1271,7 @@
   {
     "sha": "3d6a1d34e698534f3eff3195c82d06f279ac2bc7",
     "date": "2026-09-28T06:10:22Z",
+    "author_date": "2026-09-28T06:10:22Z",
     "message": "analysis: replay historical Hall impostor challenge",
     "parents": [
       "d61fe04439d6da8ef6e3a2a17cc69a730552d629"
@@ -1138,6 +1280,7 @@
   {
     "sha": "7cc9e602f052999067c22cb606002a67e1166fe2",
     "date": "2026-09-28T21:58:33Z",
+    "author_date": "2026-09-28T21:58:33Z",
     "message": "Add clean-slate NAVI eyes-wide-open sketch",
     "parents": [
       "3d6a1d34e698534f3eff3195c82d06f279ac2bc7"
@@ -1146,6 +1289,7 @@
   {
     "sha": "93af2267f1a4609edeca57aecec4b69278e6097d",
     "date": "2026-09-28T22:10:38Z",
+    "author_date": "2026-09-28T22:10:38Z",
     "message": "NAVI_EYES_WIDE_OPEN: remove X22R from the Hall->NAVI path",
     "parents": [
       "3d6a1d34e698534f3eff3195c82d06f279ac2bc7"
@@ -1154,6 +1298,7 @@
   {
     "sha": "384b2e84f92803daa6fbdd41126d6cdab20c3cb4",
     "date": "2026-09-28T22:13:58Z",
+    "author_date": "2026-09-28T22:13:58Z",
     "message": "Pass native Hall observations directly to NAVI",
     "parents": [
       "7cc9e602f052999067c22cb606002a67e1166fe2"
@@ -1162,6 +1307,7 @@
   {
     "sha": "a371b79821cbead074164be8bae0449540a0d47a",
     "date": "2026-09-28T22:39:25Z",
+    "author_date": "2026-09-28T22:39:25Z",
     "message": "Establish initial Hall reference from 10 mm IR travel",
     "parents": [
       "384b2e84f92803daa6fbdd41126d6cdab20c3cb4"
@@ -1170,6 +1316,7 @@
   {
     "sha": "54ebf662c70862ccd29e96d1f309b72c91a982c9",
     "date": "2026-09-28T22:53:33Z",
+    "author_date": "2026-09-28T22:53:33Z",
     "message": "Keep IR movement interpretation inside NAVI",
     "parents": [
       "a371b79821cbead074164be8bae0449540a0d47a"
@@ -1178,6 +1325,7 @@
   {
     "sha": "a3d1017754cce0df73bf5b3bc9a356179bcf3b79",
     "date": "2026-09-28T22:58:45Z",
+    "author_date": "2026-09-28T22:58:45Z",
     "message": "Recognize two-sample Hall openings in NAVI",
     "parents": [
       "54ebf662c70862ccd29e96d1f309b72c91a982c9"
@@ -1186,6 +1334,7 @@
   {
     "sha": "99964e584d14ccdae7464cecb9c4029a54860cf8",
     "date": "2026-09-28T23:30:52Z",
+    "author_date": "2026-09-28T23:30:52Z",
     "message": "Confirm Hall opening polarity inside NAVI",
     "parents": [
       "a3d1017754cce0df73bf5b3bc9a356179bcf3b79"
@@ -1194,6 +1343,7 @@
   {
     "sha": "56da374491bc722a86002d8cae55e65cc0f2c082",
     "date": "2026-09-28T23:39:49Z",
+    "author_date": "2026-09-28T23:39:49Z",
     "message": "Establish spatial Hall reference after confirmed magnet",
     "parents": [
       "99964e584d14ccdae7464cecb9c4029a54860cf8"
@@ -1202,6 +1352,7 @@
   {
     "sha": "134f9bbe786ede3220bd313cbc6c135c7370bd68",
     "date": "2026-09-29T02:08:51Z",
+    "author_date": "2026-09-29T02:08:51Z",
     "message": "Reconcile NAVI target confirmation and spatial reference",
     "parents": [
       "56da374491bc722a86002d8cae55e65cc0f2c082"
@@ -1210,6 +1361,7 @@
   {
     "sha": "638c6354df39ab73dd758d58126d9eaaaf65c562",
     "date": "2026-09-29T02:54:59Z",
+    "author_date": "2026-09-29T02:54:59Z",
     "message": "Use NAVI median-of-five target Hall evidence",
     "parents": [
       "134f9bbe786ede3220bd313cbc6c135c7370bd68"
@@ -1218,6 +1370,7 @@
   {
     "sha": "cd55929c5f95c2d41bc00771c97641938612bd8a",
     "date": "2026-09-29T09:27:42Z",
+    "author_date": "2026-09-29T09:27:42Z",
     "message": "Integrate EWO target-only NAVI working-sketch candidate",
     "parents": [
       "638c6354df39ab73dd758d58126d9eaaaf65c562"
@@ -1226,6 +1379,7 @@
   {
     "sha": "f903a625b82d36002d7cebbdf29b1ab924334cf8",
     "date": "2026-09-29T09:42:12Z",
+    "author_date": "2026-09-29T09:42:12Z",
     "message": "Record canonical NAVI_EWO architecture as decisions 0109-0113",
     "parents": [
       "cd55929c5f95c2d41bc00771c97641938612bd8a"
@@ -1234,6 +1388,7 @@
   {
     "sha": "8d0c3d83bf858154fb5d5c9ce0addf187d8086e6",
     "date": "2026-09-29T09:44:12Z",
+    "author_date": "2026-09-29T09:44:12Z",
     "message": "Record David and Sam's confirmations of NAVI_EWO review points",
     "parents": [
       "f903a625b82d36002d7cebbdf29b1ab924334cf8"
@@ -1242,6 +1397,7 @@
   {
     "sha": "612b791ee90e2404ea8febded675edbd622e063e",
     "date": "2026-09-29T09:46:31Z",
+    "author_date": "2026-09-29T09:46:31Z",
     "message": "Resolve 0107 D4/D8 for EWO where 0113 answers them; add principle 17",
     "parents": [
       "8d0c3d83bf858154fb5d5c9ce0addf187d8086e6"
@@ -1250,6 +1406,7 @@
   {
     "sha": "caf228098d69ac8c5aa64c27505d39895462a0bd",
     "date": "2026-09-29T10:51:28Z",
+    "author_date": "2026-09-29T10:51:28Z",
     "message": "Fix integrated EWO review findings and five-position startup",
     "parents": [
       "612b791ee90e2404ea8febded675edbd622e063e"
@@ -1258,6 +1415,7 @@
   {
     "sha": "bf7b4875deed82886ff4ec2f0cfd1e3900e78d60",
     "date": "2026-09-29T20:08:38Z",
+    "author_date": "2026-09-29T20:08:38Z",
     "message": "Finalize EWO boot reference and missed-magnet origin",
     "parents": [
       "caf228098d69ac8c5aa64c27505d39895462a0bd"
@@ -1266,6 +1424,7 @@
   {
     "sha": "ea992a04e72f04e82b49c2261c441be67d1fe5e8",
     "date": "2026-09-29T20:29:06Z",
+    "author_date": "2026-09-29T20:29:06Z",
     "message": "Add NAVI_EWO-native dashboard v1.12.0",
     "parents": [
       "caf228098d69ac8c5aa64c27505d39895462a0bd"
@@ -1274,6 +1433,7 @@
   {
     "sha": "43f358f564eb0c1359281d4acf9bbe1a05b8d0b2",
     "date": "2026-09-29T22:21:24Z",
+    "author_date": "2026-09-29T22:21:24Z",
     "message": "Make Otto credentials include explicit",
     "parents": [
       "bf7b4875deed82886ff4ec2f0cfd1e3900e78d60"
@@ -1282,6 +1442,7 @@
   {
     "sha": "7830483cd672f6931978e5b95a17121beb3e54e9",
     "date": "2026-09-30T01:23:24Z",
+    "author_date": "2026-09-30T01:23:24Z",
     "message": "Defer recorder allocation until app startup",
     "parents": [
       "43f358f564eb0c1359281d4acf9bbe1a05b8d0b2"
@@ -1290,6 +1451,7 @@
   {
     "sha": "c19938049c5084fa56196d50c70c3e759dd31992",
     "date": "2026-09-30T01:43:00Z",
+    "author_date": "2026-09-30T01:43:00Z",
     "message": "Add runtime network and IR diagnostics",
     "parents": [
       "7830483cd672f6931978e5b95a17121beb3e54e9"
@@ -1298,6 +1460,7 @@
   {
     "sha": "40a1925f9d3659504f8ec40345d8db72cfdd123e",
     "date": "2026-09-30T01:56:55Z",
+    "author_date": "2026-09-30T01:56:55Z",
     "message": "Start Wi-Fi before ESP-NOW radio setup",
     "parents": [
       "c19938049c5084fa56196d50c70c3e759dd31992"
@@ -1306,6 +1469,7 @@
   {
     "sha": "9924314dd0c072769a53f3760e42396517e3f018",
     "date": "2026-09-30T02:12:19Z",
+    "author_date": "2026-09-30T02:12:19Z",
     "message": "DIAGNOSTIC: record Otto Wi-Fi auth expiry and AP scan",
     "parents": [
       "40a1925f9d3659504f8ec40345d8db72cfdd123e"
@@ -1314,6 +1478,7 @@
   {
     "sha": "b35103a5313e1e8de7b4939cb946a6e68b1091c2",
     "date": "2026-09-30T02:15:00Z",
+    "author_date": "2026-09-30T02:15:00Z",
     "message": "Add safe Wi-Fi-only diagnostic probe for Otto",
     "parents": [
       "40a1925f9d3659504f8ec40345d8db72cfdd123e"
@@ -1322,6 +1487,7 @@
   {
     "sha": "182a202f2c2aa4652f2865bec1da18273b2305f0",
     "date": "2026-09-30T02:43:29Z",
+    "author_date": "2026-09-30T02:43:29Z",
     "message": "DIAGNOSTIC: reduce EWO publish queue to test Wi-Fi heap pressure",
     "parents": [
       "9924314dd0c072769a53f3760e42396517e3f018"
@@ -1330,6 +1496,7 @@
   {
     "sha": "b7bdfb5e9522f97ddae3ce5b4739f05f7b69a248",
     "date": "2026-09-30T02:53:52Z",
+    "author_date": "2026-09-30T02:53:52Z",
     "message": "Fix EWO Wi-Fi startup memory budget on Otto",
     "parents": [
       "40a1925f9d3659504f8ec40345d8db72cfdd123e"
@@ -1338,6 +1505,7 @@
   {
     "sha": "a156b70cde41ecdd79fe1831153012d7ad1c9e87",
     "date": "2026-09-30T03:02:24Z",
+    "author_date": "2026-09-30T03:02:24Z",
     "message": "Document Otto EWO Wi-Fi diagnosis and flash outcome",
     "parents": [
       "b7bdfb5e9522f97ddae3ce5b4739f05f7b69a248"
@@ -1346,6 +1514,7 @@
   {
     "sha": "4e9ee88bad220348d08e933274ca87ad7f59c134",
     "date": "2026-09-30T03:41:55Z",
+    "author_date": "2026-09-30T03:41:55Z",
     "message": "Record Otto first EWO test-run telemetry and offline transition",
     "parents": [
       "a156b70cde41ecdd79fe1831153012d7ad1c9e87"
@@ -1354,6 +1523,7 @@
   {
     "sha": "3c9fc63b60ce4435579d801a30f6b4daafc97853",
     "date": "2026-09-30T03:43:33Z",
+    "author_date": "2026-09-30T03:43:33Z",
     "message": "Record Otto reversed-direction operator observation",
     "parents": [
       "4e9ee88bad220348d08e933274ca87ad7f59c134"
@@ -1362,6 +1532,7 @@
   {
     "sha": "7b42d4ecc501e4cb17c3a3d811be7c8b91ce459b",
     "date": "2026-09-30T04:47:18Z",
+    "author_date": "2026-09-30T04:47:18Z",
     "message": "Document Otto moving-run speed telemetry mismatch",
     "parents": [
       "3c9fc63b60ce4435579d801a30f6b4daafc97853"
@@ -1370,6 +1541,7 @@
   {
     "sha": "5b3cef98d647759795113958bc05f926703c1489",
     "date": "2026-09-30T04:52:26Z",
+    "author_date": "2026-09-30T04:52:26Z",
     "message": "Document EWO speed regression and NAVI consumer boundary",
     "parents": [
       "7b42d4ecc501e4cb17c3a3d811be7c8b91ce459b"
@@ -1378,6 +1550,7 @@
   {
     "sha": "1227ede01682ada5eaaf9a5ac941883b3e8e5cb6",
     "date": "2026-09-30T05:06:14Z",
+    "author_date": "2026-09-30T05:06:14Z",
     "message": "Document Otto EWO navigation run and physical endpoint",
     "parents": [
       "5b3cef98d647759795113958bc05f926703c1489"
@@ -1386,6 +1559,7 @@
   {
     "sha": "d0185be25ec51f9ba6d58567458a59d3f1c289ca",
     "date": "2026-09-30T18:52:54Z",
+    "author_date": "2026-09-30T18:52:54Z",
     "message": "EWO: require IR distance for navigation and repair speed display",
     "parents": [
       "1227ede01682ada5eaaf9a5ac941883b3e8e5cb6"
@@ -1394,6 +1568,7 @@
   {
     "sha": "7fea36a7029e30265427d89dbd212097636729e2",
     "date": "2026-09-30T23:20:44Z",
+    "author_date": "2026-09-30T23:20:44Z",
     "message": "Record Otto EWO R2 CCW run of 2026-09-30 and Claude's analysis",
     "parents": [
       "7409c19d3199511759f837d31a1054ba0822fd2d"
@@ -1402,6 +1577,7 @@
   {
     "sha": "46576ec507cd4278f449c34d15243fcc6521f13d",
     "date": "2026-09-30T23:25:11Z",
+    "author_date": "2026-09-30T23:25:11Z",
     "message": "Add coupling observation and checkbox finding to 2026-09-30 run verdict",
     "parents": [
       "7fea36a7029e30265427d89dbd212097636729e2"
@@ -1410,6 +1586,7 @@
   {
     "sha": "bf23b897c323bb2952c8283aff89a3dc2d4a9bad",
     "date": "2026-09-30T23:40:37Z",
+    "author_date": "2026-09-30T23:40:37Z",
     "message": "Record dislodged IR housing and failure timing in 2026-09-30 verdict",
     "parents": [
       "46576ec507cd4278f449c34d15243fcc6521f13d"
@@ -1418,6 +1595,7 @@
   {
     "sha": "3ea38ba51dff61d4f793657703c57c8cc2951932",
     "date": "2026-10-01T23:19:31Z",
+    "author_date": "2026-10-01T23:19:31Z",
     "message": "Record NAVI proposal: identify ordinary track directly from Hall data",
     "parents": [
       "d0185be25ec51f9ba6d58567458a59d3f1c289ca"
@@ -1426,6 +1604,7 @@
   {
     "sha": "350eaaefdd7a524d8076b82110ece29698790b9c",
     "date": "2026-10-01T23:56:38Z",
+    "author_date": "2026-10-01T23:56:38Z",
     "message": "Record NAVI proposal: native IR observation when IR becomes local",
     "parents": [
       "3ea38ba51dff61d4f793657703c57c8cc2951932"
@@ -1434,6 +1613,7 @@
   {
     "sha": "c3c925ac10c55bf3a9be1ed4a1a31d0f4af117f1",
     "date": "2026-10-02T19:59:42Z",
+    "author_date": "2026-10-02T19:59:42Z",
     "message": "Accept first declared EWO target after observed Hall onset",
     "parents": [
       "d0185be25ec51f9ba6d58567458a59d3f1c289ca"
@@ -1442,6 +1622,7 @@
   {
     "sha": "ab0938b0f01531a38ce4d8a1d9d932ffad4f0334",
     "date": "2026-10-02T20:16:15Z",
+    "author_date": "2026-10-02T20:16:15Z",
     "message": "FT2: anchor first declared target on Hall onset without distance window",
     "parents": [
       "c3c925ac10c55bf3a9be1ed4a1a31d0f4af117f1"
@@ -1450,6 +1631,7 @@
   {
     "sha": "0c7410adfe991f69a833f61403ddb80a9091f987",
     "date": "2026-10-02T20:17:00Z",
+    "author_date": "2026-10-02T20:17:00Z",
     "message": "Add firmware build register and numbering rule (decision 0118)",
     "parents": [
       "c3c925ac10c55bf3a9be1ed4a1a31d0f4af117f1"
@@ -1458,6 +1640,7 @@
   {
     "sha": "b8ff3d27add2d10156cea5f3ef756871593c90ac",
     "date": "2026-10-02T20:18:24Z",
+    "author_date": "2026-10-02T20:18:24Z",
     "message": "Merge commit 'ab0938b' into claude/wizardly-cray-0q924k",
     "parents": [
       "0c7410adfe991f69a833f61403ddb80a9091f987",
@@ -1467,6 +1650,7 @@
   {
     "sha": "9d5fd8d80d2ddaeeacc8542ccb737705600cd628",
     "date": "2026-10-02T20:18:29Z",
+    "author_date": "2026-10-02T20:18:29Z",
     "message": "Register EWO-13 (ab0938b) and renumber build-numbering decision to 0119",
     "parents": [
       "b8ff3d27add2d10156cea5f3ef756871593c90ac"
@@ -1475,6 +1659,7 @@
   {
     "sha": "958ef9a0f790250bb9d3b86106058cac12dd6f63",
     "date": "2026-10-02T20:19:53Z",
+    "author_date": "2026-10-02T20:19:53Z",
     "message": "Build names carry the creation date after the number (0119)",
     "parents": [
       "9d5fd8d80d2ddaeeacc8542ccb737705600cd628"
@@ -1483,6 +1668,7 @@
   {
     "sha": "5b3b0899807a456c852035d83e4f3bdb4a4ac61b",
     "date": "2026-10-02T21:04:33Z",
+    "author_date": "2026-10-02T21:04:33Z",
     "message": "Codify EWO PWM-zero IR displacement semantics (decision 0120)",
     "parents": [
       "958ef9a0f790250bb9d3b86106058cac12dd6f63"
@@ -1491,6 +1677,7 @@
   {
     "sha": "ead5c4f5e85052b9ed925eedcee091be140cc949",
     "date": "2026-10-02T21:05:24Z",
+    "author_date": "2026-10-02T21:05:24Z",
     "message": "Record Otto EWO R2_FT2 CCW/CW station runs and PWM-zero hand turn",
     "parents": [
       "5b3b0899807a456c852035d83e4f3bdb4a4ac61b"
@@ -1499,6 +1686,7 @@
   {
     "sha": "b146815b4431f1519046a2706abdfbfd11ffabc4",
     "date": "2026-10-02T21:11:16Z",
+    "author_date": "2026-10-02T21:11:16Z",
     "message": "Retain EWO interval after PWM-zero movement and reacquire IR coordinate",
     "parents": [
       "ab0938b0f01531a38ce4d8a1d9d932ffad4f0334"
@@ -1507,6 +1695,7 @@
   {
     "sha": "ad89e67090d648054ede719a387403f3bd8937b4",
     "date": "2026-10-02T22:37:04Z",
+    "author_date": "2026-10-02T22:37:04Z",
     "message": "Require operator declaration after PWM-zero IR movement",
     "parents": [
       "b146815b4431f1519046a2706abdfbfd11ffabc4"
@@ -1515,6 +1704,7 @@
   {
     "sha": "17e8ed116e8efd90d5396f450885a0073916bf7f",
     "date": "2026-10-02T23:30:34Z",
+    "author_date": "2026-10-02T23:30:34Z",
     "message": "Correct surveyed Lowline intervals MM011 through MM014",
     "parents": [
       "ad89e67090d648054ede719a387403f3bd8937b4"
@@ -1523,6 +1713,7 @@
   {
     "sha": "dadafa93417cab603cf7c629ea88a0ab0790d16d",
     "date": "2026-10-02T23:35:51Z",
+    "author_date": "2026-10-02T23:35:51Z",
     "message": "Record Otto survey-build flash and stationary verification",
     "parents": [
       "17e8ed116e8efd90d5396f450885a0073916bf7f"
@@ -1531,6 +1722,7 @@
   {
     "sha": "c33fdeb446feac7a5f9c1e013a0c99b18f74ae61",
     "date": "2026-10-05T07:26:25Z",
+    "author_date": "2026-10-05T07:26:25Z",
     "message": "Add CTO/CE architectural reference note for NAVI close-train reconstruction",
     "parents": [
       "7409c19d3199511759f837d31a1054ba0822fd2d"
@@ -1539,6 +1731,7 @@
   {
     "sha": "08a05cbf5d4fbc72f7531a008d360ea426df2cb1",
     "date": "2026-10-05T07:43:14Z",
+    "author_date": "2026-10-05T07:43:14Z",
     "message": "Record legacy CTO2 / NAVI CTO scope boundary and coexistence requirement",
     "parents": [
       "c33fdeb446feac7a5f9c1e013a0c99b18f74ae61"
@@ -1547,6 +1740,7 @@
   {
     "sha": "f3149a8ccf2cc2b0fe29293e7c7d2d3b442d9cdf",
     "date": "2026-10-05T18:20:55Z",
+    "author_date": "2026-10-05T18:20:55Z",
     "message": "Add NAVI intelligent braking architecture (governing design record)",
     "parents": [
       "08a05cbf5d4fbc72f7531a008d360ea426df2cb1"
@@ -1555,6 +1749,7 @@
   {
     "sha": "97164ec6661a973a300c95a4f20dbe1760e4f04e",
     "date": "2026-10-05T18:32:06Z",
+    "author_date": "2026-10-05T18:32:06Z",
     "message": "NAVI braking architecture rev 2: adaptive stopping model",
     "parents": [
       "f3149a8ccf2cc2b0fe29293e7c7d2d3b442d9cdf"
@@ -1563,6 +1758,7 @@
   {
     "sha": "4c100e8f3e2bf7c9005b5c8a4e976bb21170de12",
     "date": "2026-10-05T18:36:49Z",
+    "author_date": "2026-10-05T18:36:49Z",
     "message": "Implement measured EWO station stop profile",
     "parents": [
       "dadafa93417cab603cf7c629ea88a0ab0790d16d"
@@ -1571,6 +1767,7 @@
   {
     "sha": "dd495ab581b7203884526720c89e59c654ce89df",
     "date": "2026-10-05T19:05:30Z",
+    "author_date": "2026-10-05T19:05:30Z",
     "message": "Integrate adaptive EWO station braking",
     "parents": [
       "4c100e8f3e2bf7c9005b5c8a4e976bb21170de12"
@@ -1579,6 +1776,7 @@
   {
     "sha": "4721b64c60f8e351d4a11096977815d70adfc96f",
     "date": "2026-10-05T19:33:04Z",
+    "author_date": "2026-10-05T19:33:04Z",
     "message": "Fix EWO station event format crash at approach entry",
     "parents": [
       "dd495ab581b7203884526720c89e59c654ce89df"
@@ -1587,6 +1785,7 @@
   {
     "sha": "4f525fd61f7b6d07cf5d0d896864861ea9ba9909",
     "date": "2026-10-05T19:39:45Z",
+    "author_date": "2026-10-05T19:39:45Z",
     "message": "Record Otto corrected EWO flash verification",
     "parents": [
       "4721b64c60f8e351d4a11096977815d70adfc96f"
@@ -1595,6 +1794,7 @@
   {
     "sha": "a860ebb3c8de5e2ff506c5e95586acd6d005feb7",
     "date": "2026-10-05T19:52:28Z",
+    "author_date": "2026-10-05T19:52:28Z",
     "message": "Allow IR-positioned EWO station approach after missed Hall",
     "parents": [
       "4f525fd61f7b6d07cf5d0d896864861ea9ba9909"
@@ -1603,6 +1803,7 @@
   {
     "sha": "21a02f90c54731aa4fb3c4e1c4f5a82e555f638a",
     "date": "2026-10-05T20:14:45Z",
+    "author_date": "2026-10-05T20:14:45Z",
     "message": "docs: preserve settled NAVI CTO and Circuit Express architecture",
     "parents": [
       "a860ebb3c8de5e2ff506c5e95586acd6d005feb7"
@@ -1611,6 +1812,7 @@
   {
     "sha": "2d738d1ddec16c78be741fc71b6a02e3e5f2b072",
     "date": "2026-10-05T20:19:12Z",
+    "author_date": "2026-10-05T20:19:12Z",
     "message": "docs: preserve NAVI vestigial code cleanup architecture",
     "parents": [
       "21a02f90c54731aa4fb3c4e1c4f5a82e555f638a"
@@ -1619,6 +1821,7 @@
   {
     "sha": "b79ce94231fda537e67f4c0aeb8b611848c8351a",
     "date": "2026-10-05T20:24:05Z",
+    "author_date": "2026-10-05T20:24:05Z",
     "message": "docs: preserve NAVI position/overlay operating architecture",
     "parents": [
       "2d738d1ddec16c78be741fc71b6a02e3e5f2b072"
@@ -1627,6 +1830,7 @@
   {
     "sha": "b42e0d83ee98253ac72427198fd37953b11ac526",
     "date": "2026-10-05T20:42:30Z",
+    "author_date": "2026-10-05T20:42:30Z",
     "message": "docs: reconcile NAVI operating authority with position/overlay architecture",
     "parents": [
       "b79ce94231fda537e67f4c0aeb8b611848c8351a"
@@ -1635,6 +1839,7 @@
   {
     "sha": "41d07c56f9ffb7e01536319fe40b24dd4dd50018",
     "date": "2026-10-05T21:02:14Z",
+    "author_date": "2026-10-05T21:02:14Z",
     "message": "Remove runtime pitch and calibration authority from EWO",
     "parents": [
       "b42e0d83ee98253ac72427198fd37953b11ac526"
@@ -1643,6 +1848,7 @@
   {
     "sha": "0116518b6d5d429fce3281505611d4fa17e2a350",
     "date": "2026-10-05T21:09:04Z",
+    "author_date": "2026-10-05T21:09:04Z",
     "message": "Remove EWO vestigial APIs and compatibility branches",
     "parents": [
       "41d07c56f9ffb7e01536319fe40b24dd4dd50018"
@@ -1651,6 +1857,7 @@
   {
     "sha": "e1ec763d20f6ec8ca84707afd2116a597cea981a",
     "date": "2026-10-06T04:26:27Z",
+    "author_date": "2026-10-06T04:26:27Z",
     "message": "docs: expand Document C with speed-control architecture",
     "parents": [
       "0116518b6d5d429fce3281505611d4fa17e2a350"
@@ -1659,6 +1866,7 @@
   {
     "sha": "65210f3d70cf33aeae270cae65776fe8dd2412aa",
     "date": "2026-10-06T19:44:53Z",
+    "author_date": "2026-10-06T19:44:53Z",
     "message": "Add IR completed-pulse event instrumentation",
     "parents": [
       "e1ec763d20f6ec8ca84707afd2116a597cea981a"
@@ -1667,6 +1875,7 @@
   {
     "sha": "c5e6594b7fe3f610a65896d41ae3bf5acf1ebd11",
     "date": "2026-10-06T20:01:35Z",
+    "author_date": "2026-10-06T20:01:35Z",
     "message": "Add observation-only NAVI pulse-event speed instrumentation",
     "parents": [
       "65210f3d70cf33aeae270cae65776fe8dd2412aa"
@@ -1675,6 +1884,7 @@
   {
     "sha": "cbcb0802520f698c241d96782e4cea32c6adf58d",
     "date": "2026-10-06T20:48:47Z",
+    "author_date": "2026-10-06T20:48:47Z",
     "message": "Add IR pulse transport truth telemetry",
     "parents": [
       "c5e6594b7fe3f610a65896d41ae3bf5acf1ebd11"
@@ -1683,6 +1893,7 @@
   {
     "sha": "442a3d70599a403ba2fef168503d05f060e5e72c",
     "date": "2026-10-06T23:41:43Z",
+    "author_date": "2026-10-06T23:41:43Z",
     "message": "Add locomotive pulse reception accounting",
     "parents": [
       "cbcb0802520f698c241d96782e4cea32c6adf58d"
@@ -1691,6 +1902,7 @@
   {
     "sha": "151226b0c7ccabb8f8a204010c5eccd14e8a6625",
     "date": "2026-10-07T22:02:51Z",
+    "author_date": "2026-10-07T22:02:51Z",
     "message": "Test direct ChatGPT GitHub write and readback",
     "parents": [
       "442a3d70599a403ba2fef168503d05f060e5e72c"
@@ -1699,6 +1911,7 @@
   {
     "sha": "83462fee6ff56ff85caa3a9d9d6e8a8d84c50925",
     "date": "2026-10-07T22:17:31Z",
+    "author_date": "2026-10-07T22:17:31Z",
     "message": "Add NAVI addressed IR pulse transport",
     "parents": [
       "151226b0c7ccabb8f8a204010c5eccd14e8a6625"
@@ -1707,6 +1920,7 @@
   {
     "sha": "48ccfb2646c2ee29ac9137f03d51715f48afc0be",
     "date": "2026-10-07T23:58:38Z",
+    "author_date": "2026-10-07T23:58:38Z",
     "message": "WIP: IR/NAVI selective-ACK reliable transport for independent review",
     "parents": [
       "83462fee6ff56ff85caa3a9d9d6e8a8d84c50925"
@@ -1715,6 +1929,7 @@
   {
     "sha": "23feba9a6cd064d506380e1a8ccfc3e8ef7a234f",
     "date": "2026-10-08T02:14:52Z",
+    "author_date": "2026-10-08T02:14:52Z",
     "message": "Document revised IR-NAVI cumulative movement communication goal",
     "parents": [
       "83462fee6ff56ff85caa3a9d9d6e8a8d84c50925"
@@ -1723,6 +1938,7 @@
   {
     "sha": "ec1d62c0398af26018c8d03d3949894f5e38458c",
     "date": "2026-10-08T03:36:44Z",
+    "author_date": "2026-10-08T03:36:44Z",
     "message": "Document proposed NAVI adaptive control recording and backup architecture",
     "parents": [
       "23feba9a6cd064d506380e1a8ccfc3e8ef7a234f"
@@ -1731,6 +1947,7 @@
   {
     "sha": "6ed96c935b01cfa469f816ff9ed1a5ca74ed7095",
     "date": "2026-10-08T04:36:07Z",
+    "author_date": "2026-10-08T04:36:07Z",
     "message": "Simplify IR NAVI cumulative transport",
     "parents": [
       "442a3d70599a403ba2fef168503d05f060e5e72c"
@@ -1739,6 +1956,7 @@
   {
     "sha": "ec1bfa6cdb3e506709573704edb82859a2a71a85",
     "date": "2026-10-08T05:52:03Z",
+    "author_date": "2026-10-08T05:52:03Z",
     "message": "Simplify IR cumulative observation transport",
     "parents": [
       "442a3d70599a403ba2fef168503d05f060e5e72c"
@@ -1747,6 +1965,7 @@
   {
     "sha": "5db9409533f801e3b6f55e7b16bf78f7a37fbe12",
     "date": "2026-10-08T17:10:33Z",
+    "author_date": "2026-10-08T17:10:33Z",
     "message": "Fix IR cumulative source and service handling",
     "parents": [
       "ec1bfa6cdb3e506709573704edb82859a2a71a85"
@@ -1755,6 +1974,7 @@
   {
     "sha": "1a0c9d498be8f2eb0b660fd82b0b444860c8f8b5",
     "date": "2026-10-08T17:17:05Z",
+    "author_date": "2026-10-08T17:17:05Z",
     "message": "Scope IR unicast to movement packets",
     "parents": [
       "5db9409533f801e3b6f55e7b16bf78f7a37fbe12"
@@ -1763,6 +1983,7 @@
   {
     "sha": "00fc8cfc899f6336c234fc1451eb11dc5bb5bcea",
     "date": "2026-10-08T17:28:34Z",
+    "author_date": "2026-10-08T17:28:34Z",
     "message": "Register broadcast peer for legacy IR traffic",
     "parents": [
       "1a0c9d498be8f2eb0b660fd82b0b444860c8f8b5"
@@ -1771,6 +1992,7 @@
   {
     "sha": "a29625f2859b6a5679c3b16cb40b5d2a0e91826a",
     "date": "2026-10-08T19:47:37Z",
+    "author_date": "2026-10-08T19:47:37Z",
     "message": "Document consist-aware geographic movement and stopping principle",
     "parents": [
       "83462fee6ff56ff85caa3a9d9d6e8a8d84c50925"
@@ -1779,6 +2001,7 @@
   {
     "sha": "3761b2f083905eedc95a8a631c46e951923864d8",
     "date": "2026-10-08T20:14:31Z",
+    "author_date": "2026-10-08T20:14:31Z",
     "message": "Revise Document C for base station tiles and consist-aware dynamic overlays",
     "parents": [
       "a29625f2859b6a5679c3b16cb40b5d2a0e91826a"
@@ -1787,6 +2010,7 @@
   {
     "sha": "a6b68dc0d8829ff37794691e39006260ee432b84",
     "date": "2026-10-08T22:13:58Z",
+    "author_date": "2026-10-08T22:13:58Z",
     "message": "Record Document C geographic overlay and following architectural decisions",
     "parents": [
       "3761b2f083905eedc95a8a631c46e951923864d8"
@@ -1795,6 +2019,7 @@
   {
     "sha": "a0c74e2e287cc356a1988394ba27d75bd657632d",
     "date": "2026-10-08T22:14:56Z",
+    "author_date": "2026-10-08T22:14:56Z",
     "message": "Reconcile six settled tile and following decisions into Document C",
     "parents": [
       "a6b68dc0d8829ff37794691e39006260ee432b84"
@@ -1803,6 +2028,7 @@
   {
     "sha": "485044efd0461aa3766901e7fce90291077cbacd",
     "date": "2026-10-08T22:15:08Z",
+    "author_date": "2026-10-08T22:15:08Z",
     "message": "Clarify decision 0121 tile-local stop dwell departure versus procedural authority",
     "parents": [
       "a0c74e2e287cc356a1988394ba27d75bd657632d"
@@ -1811,6 +2037,7 @@
   {
     "sha": "c7c21163b016e443524eb9fa483f8b706ce76e22",
     "date": "2026-10-08T23:49:04Z",
+    "author_date": "2026-10-08T23:49:04Z",
     "message": "Remove legacy NAVI station operating authority",
     "parents": [
       "442a3d70599a403ba2fef168503d05f060e5e72c"
@@ -1819,6 +2046,7 @@
   {
     "sha": "b646cab5995124ff84ae2173c0d9912c84357815",
     "date": "2026-10-09T02:29:12Z",
+    "author_date": "2026-10-09T02:29:12Z",
     "message": "docs: record NAVI Pass 2 control decisions",
     "parents": [
       "485044efd0461aa3766901e7fce90291077cbacd"
@@ -1827,6 +2055,7 @@
   {
     "sha": "7a31d913ef2218687b488936a998f82655f5d3c6",
     "date": "2026-10-09T04:17:42Z",
+    "author_date": "2026-10-09T04:17:42Z",
     "message": "docs: simplify NAVI IR-loss fallback",
     "parents": [
       "b646cab5995124ff84ae2173c0d9912c84357815"
@@ -1835,6 +2064,7 @@
   {
     "sha": "9130cc55701b868f58defd1d3cd9c4175f8aaf16",
     "date": "2026-10-09T06:51:09Z",
+    "author_date": "2026-10-09T06:51:09Z",
     "message": "Implement NAVI four-station local Pass 2",
     "parents": [
       "c7c21163b016e443524eb9fa483f8b706ce76e22"
@@ -1843,6 +2073,7 @@
   {
     "sha": "22b05a22d30d0ab76f5feb654a3e6f57a005545c",
     "date": "2026-10-09T18:31:42Z",
+    "author_date": "2026-10-09T18:31:42Z",
     "message": "Correct NAVI geographic glide control",
     "parents": [
       "9130cc55701b868f58defd1d3cd9c4175f8aaf16"
@@ -1851,6 +2082,7 @@
   {
     "sha": "db329782d422559dcb886f93db8c1f3e3922a7ab",
     "date": "2026-10-09T20:18:22Z",
+    "author_date": "2026-10-09T20:18:22Z",
     "message": "docs: add NAVI EWO 0.1 architectural note",
     "parents": [
       "b646cab5995124ff84ae2173c0d9912c84357815"
@@ -1859,6 +2091,7 @@
   {
     "sha": "21517679b13347ec229d046460e0525cb77f1589",
     "date": "2026-10-09T20:30:59Z",
+    "author_date": "2026-10-09T20:30:59Z",
     "message": "docs: establish mandatory NAVI guide and reconcile simplified control",
     "parents": [
       "db329782d422559dcb886f93db8c1f3e3922a7ab"
@@ -1867,6 +2100,7 @@
   {
     "sha": "e969e3bcff67592b08cc0b647ba93b1fd1744fa8",
     "date": "2026-10-09T20:56:48Z",
+    "author_date": "2026-10-09T20:56:48Z",
     "message": "docs: govern cruise-only base and single pulse-resolution STOP overlay",
     "parents": [
       "21517679b13347ec229d046460e0525cb77f1589"
@@ -1875,6 +2109,7 @@
   {
     "sha": "5ec278a1c2df96edc26a2787ac679c10693c39bd",
     "date": "2026-10-09T20:57:18Z",
+    "author_date": "2026-10-09T20:57:18Z",
     "message": "docs: flag early-stop PWM-zero progression for explicit resolution",
     "parents": [
       "e969e3bcff67592b08cc0b647ba93b1fd1744fa8"
@@ -1883,6 +2118,7 @@
   {
     "sha": "dbf62fea0627e35dab92641af55f7bdf3d6a7853",
     "date": "2026-10-09T20:57:33Z",
+    "author_date": "2026-10-09T20:57:33Z",
     "message": "docs: index cruise-only base, single overlay, and revised stop completion",
     "parents": [
       "5ec278a1c2df96edc26a2787ac679c10693c39bd"
@@ -1891,6 +2127,7 @@
   {
     "sha": "b53622c31ec895f7f39781a190f64d2f412edc3a",
     "date": "2026-10-09T20:57:53Z",
+    "author_date": "2026-10-09T20:57:53Z",
     "message": "docs: reconcile NAVI_POSITION_OVERLAY_OPERATING_ARCHITECTURE_20261005.md with single STOP overlay authority",
     "parents": [
       "dbf62fea0627e35dab92641af55f7bdf3d6a7853"
@@ -1899,6 +2136,7 @@
   {
     "sha": "5118946466742a159a6e0b090daa584b3612fbaa",
     "date": "2026-10-09T20:57:55Z",
+    "author_date": "2026-10-09T20:57:55Z",
     "message": "docs: reconcile 0123-navi-pass2-uses-geographic-speed-control-and-pwm-ticker-tape.md with single STOP overlay authority",
     "parents": [
       "b53622c31ec895f7f39781a190f64d2f412edc3a"
@@ -1907,6 +2145,7 @@
   {
     "sha": "7a04e7872a952430e3006b2ca7cd6407570308ab",
     "date": "2026-10-09T20:58:50Z",
+    "author_date": "2026-10-09T20:58:50Z",
     "message": "docs: PWM zero is sufficient operating stop and dwell criterion",
     "parents": [
       "5118946466742a159a6e0b090daa584b3612fbaa"
@@ -1915,6 +2154,7 @@
   {
     "sha": "d9915ea4a465e8b9e347fa78db70f7db33ae1892",
     "date": "2026-10-09T20:59:16Z",
+    "author_date": "2026-10-09T20:59:16Z",
     "message": "docs: clarify PWM-zero criterion in Document C",
     "parents": [
       "7a04e7872a952430e3006b2ca7cd6407570308ab"
@@ -1923,6 +2163,7 @@
   {
     "sha": "f4ab99578aea073c515bf3c6f238da28a8de8d39",
     "date": "2026-10-09T20:59:27Z",
+    "author_date": "2026-10-09T20:59:27Z",
     "message": "docs: align Decision 0123 with PWM-zero dwell and cruise base",
     "parents": [
       "d9915ea4a465e8b9e347fa78db70f7db33ae1892"
@@ -1931,6 +2172,7 @@
   {
     "sha": "4a57789612f497c787a6fc91e8d7939595633b27",
     "date": "2026-10-09T20:59:37Z",
+    "author_date": "2026-10-09T20:59:37Z",
     "message": "docs: index PWM-zero stop and dwell definition",
     "parents": [
       "f4ab99578aea073c515bf3c6f238da28a8de8d39"
@@ -1939,6 +2181,7 @@
   {
     "sha": "3845253b16b3f0401a6b0ce9f04de1b87b889259",
     "date": "2026-10-09T21:00:14Z",
+    "author_date": "2026-10-09T21:00:14Z",
     "message": "docs: remove conflicting current Document C stop and dwell rules",
     "parents": [
       "4a57789612f497c787a6fc91e8d7939595633b27"
@@ -1947,6 +2190,7 @@
   {
     "sha": "aae29e25857f3c540e4a4467e72479fd2bd3166e",
     "date": "2026-10-09T21:00:32Z",
+    "author_date": "2026-10-09T21:00:32Z",
     "message": "docs: finalize PWM-zero stop acceptance and open-issue ledger",
     "parents": [
       "3845253b16b3f0401a6b0ce9f04de1b87b889259"
@@ -1955,6 +2199,7 @@
   {
     "sha": "8101675e0a32157375bfdc97bf67affeb69886f9",
     "date": "2026-10-09T21:00:45Z",
+    "author_date": "2026-10-09T21:00:45Z",
     "message": "docs: correct STOP overlay acceptance numbering",
     "parents": [
       "aae29e25857f3c540e4a4467e72479fd2bd3166e"
@@ -1963,6 +2208,7 @@
   {
     "sha": "bd0b15f55f32a5dd92e939f2da26b61ae143dfd4",
     "date": "2026-10-09T21:31:04Z",
+    "author_date": "2026-10-09T21:31:04Z",
     "message": "docs: name STOP sequence and permit any Lowline target or entry point",
     "parents": [
       "8101675e0a32157375bfdc97bf67affeb69886f9"
@@ -1971,6 +2217,7 @@
   {
     "sha": "a2a105ff6da426da46414d4a8dc36fedc179ce9b",
     "date": "2026-10-09T22:30:39Z",
+    "author_date": "2026-10-09T22:30:39Z",
     "message": "docs: preserve CTO bubble and CE role-reversal decisions",
     "parents": [
       "bd0b15f55f32a5dd92e939f2da26b61ae143dfd4"
@@ -1979,6 +2226,7 @@
   {
     "sha": "851195c2636191015f36924c674e42010caf8601",
     "date": "2026-10-09T23:55:15Z",
+    "author_date": "2026-10-09T23:55:15Z",
     "message": "docs: define one bidirectional STOP target near MM045",
     "parents": [
       "a2a105ff6da426da46414d4a8dc36fedc179ce9b"
@@ -1987,6 +2235,7 @@
   {
     "sha": "4b8cf3671b896cd0cd8afba1fadb50dde6e601b6",
     "date": "2026-10-10T00:05:12Z",
+    "author_date": "2026-10-10T00:05:12Z",
     "message": "docs: retain geographic grade settings in cruise base",
     "parents": [
       "851195c2636191015f36924c674e42010caf8601"
@@ -1995,6 +2244,7 @@
   {
     "sha": "01d6298fd0169b2aac3ceced5d12c5d3ebab1bc6",
     "date": "2026-10-10T00:07:04Z",
+    "author_date": "2026-10-10T00:07:04Z",
     "message": "feat: establish NAVI cruise base while retaining geographic grades",
     "parents": [
       "c7c21163b016e443524eb9fa483f8b706ce76e22"
@@ -2003,6 +2253,7 @@
   {
     "sha": "c8f0fdcc50abc36c069e26e975a8012bd8d92471",
     "date": "2026-10-10T00:12:43Z",
+    "author_date": "2026-10-10T00:12:43Z",
     "message": "docs: record repeating STOP trial and operator PWM profile",
     "parents": [
       "4b8cf3671b896cd0cd8afba1fadb50dde6e601b6"
@@ -2011,6 +2262,7 @@
   {
     "sha": "1a61919c6d12140ea95b468cc6e0e1c7647e4e3a",
     "date": "2026-10-10T00:16:03Z",
+    "author_date": "2026-10-10T00:16:03Z",
     "message": "docs: restore ordinary cruise to PWM 90 per operator correction",
     "parents": [
       "c8f0fdcc50abc36c069e26e975a8012bd8d92471"
@@ -2019,6 +2271,7 @@
   {
     "sha": "00d5dc590cbaf7fd65326fb15471c71d18581566",
     "date": "2026-10-10T00:17:20Z",
+    "author_date": "2026-10-10T00:17:20Z",
     "message": "fix: restore ordinary NAVI cruise to PWM 90",
     "parents": [
       "01d6298fd0169b2aac3ceced5d12c5d3ebab1bc6"
@@ -2027,6 +2280,7 @@
   {
     "sha": "25aa4a010c7a9459f7020bf17b26c16a24217dc3",
     "date": "2026-10-10T00:19:10Z",
+    "author_date": "2026-10-10T00:19:10Z",
     "message": "docs: record revised distance-based STOP reductions",
     "parents": [
       "1a61919c6d12140ea95b468cc6e0e1c7647e4e3a"
@@ -2035,6 +2289,7 @@
   {
     "sha": "c1c8ee58a2c6301c98f9139f924d52fe1f258895",
     "date": "2026-10-10T00:41:41Z",
+    "author_date": "2026-10-10T00:41:41Z",
     "message": "docs: clarify five-MM station speed and penultimate STOP ramp",
     "parents": [
       "25aa4a010c7a9459f7020bf17b26c16a24217dc3"
@@ -2043,6 +2298,7 @@
   {
     "sha": "a053c9bb5c4f224ec7602111c8abba1cddb3e622",
     "date": "2026-10-10T00:57:21Z",
+    "author_date": "2026-10-10T00:57:21Z",
     "message": "docs: settle continuous final STOP ramp and IR entry authority",
     "parents": [
       "c1c8ee58a2c6301c98f9139f924d52fe1f258895"
@@ -2051,6 +2307,7 @@
   {
     "sha": "c5fcef1c741dbb217699f7eda4f9a99bf3123053",
     "date": "2026-10-10T00:59:12Z",
+    "author_date": "2026-10-10T00:59:12Z",
     "message": "docs: reconcile guide acceptance with settled MM045 trial",
     "parents": [
       "a053c9bb5c4f224ec7602111c8abba1cddb3e622"
@@ -2059,6 +2316,7 @@
   {
     "sha": "f40e388b5fcfa5d6be8cba8aab6dc02d07a21312",
     "date": "2026-10-10T01:01:02Z",
+    "author_date": "2026-10-10T01:01:02Z",
     "message": "feat: implement repeating bidirectional MM045 STOP overlay",
     "parents": [
       "00d5dc590cbaf7fd65326fb15471c71d18581566"
@@ -2067,6 +2325,7 @@
   {
     "sha": "557de9ab181459693791de6d7f498ef4826d82c8",
     "date": "2026-10-10T01:36:38Z",
+    "author_date": "2026-10-10T01:36:38Z",
     "message": "Name MM045 sketch consistently and clarify current program index",
     "parents": [
       "f40e388b5fcfa5d6be8cba8aab6dc02d07a21312"
@@ -2075,6 +2334,7 @@
   {
     "sha": "6bf81a1acca2cc5e2ab91f4deea7f541eac1ab45",
     "date": "2026-10-10T02:11:28Z",
+    "author_date": "2026-10-10T02:11:28Z",
     "message": "Use 150 ms STOP restart steps and record first CW trials",
     "parents": [
       "557de9ab181459693791de6d7f498ef4826d82c8"
@@ -2083,6 +2343,7 @@
   {
     "sha": "fd22f5da5f1bd47cddd042c046ced704d5a5c115",
     "date": "2026-10-10T02:12:45Z",
+    "author_date": "2026-10-10T02:12:45Z",
     "message": "Record reported accumulating CW marker offset",
     "parents": [
       "6bf81a1acca2cc5e2ab91f4deea7f541eac1ab45"
@@ -2091,6 +2352,7 @@
   {
     "sha": "dd78bcd4ff2fda58b816aaed3685d8ebe3ea9d56",
     "date": "2026-10-10T02:16:16Z",
+    "author_date": "2026-10-10T02:16:16Z",
     "message": "Record third CW stop physical and dashboard location discrepancy",
     "parents": [
       "fd22f5da5f1bd47cddd042c046ced704d5a5c115"
@@ -2099,6 +2361,7 @@
   {
     "sha": "0b2ee2bf3a538d5630cfd58913189e3cee22f2a9",
     "date": "2026-10-10T02:17:53Z",
+    "author_date": "2026-10-10T02:17:53Z",
     "message": "Clarify third stop failed to restart automatically",
     "parents": [
       "dd78bcd4ff2fda58b816aaed3685d8ebe3ea9d56"
@@ -2107,6 +2370,7 @@
   {
     "sha": "e3ac9d5dd5a66239596c2917e58373b2267f25b8",
     "date": "2026-10-10T02:26:56Z",
+    "author_date": "2026-10-10T02:26:56Z",
     "message": "Document read-only investigation of MM045 navigation drift and stalled third maneuver",
     "parents": [
       "0b2ee2bf3a538d5630cfd58913189e3cee22f2a9"
@@ -2115,6 +2379,7 @@
   {
     "sha": "d06b0960426a80c1543648b9039e7edb5900b66e",
     "date": "2026-10-10T02:29:41Z",
+    "author_date": "2026-10-10T02:29:41Z",
     "message": "Record obstruction power cycle and IR-car reseat before STOP trials",
     "parents": [
       "e3ac9d5dd5a66239596c2917e58373b2267f25b8"
@@ -2123,6 +2388,7 @@
   {
     "sha": "93d5226e4ed0740c8a68f9371eb48292ad83312d",
     "date": "2026-10-10T02:43:34Z",
+    "author_date": "2026-10-10T02:43:34Z",
     "message": "Calibrate final STOP decrement and set AUTO acceleration to 150 ms",
     "parents": [
       "d06b0960426a80c1543648b9039e7edb5900b66e"
@@ -2131,6 +2397,7 @@
   {
     "sha": "0fdc6c9e2de835ce91b55a874e223785c090555d",
     "date": "2026-10-10T02:53:49Z",
+    "author_date": "2026-10-10T02:53:49Z",
     "message": "Revise STOP to 50-to-35 over MM044-045 and 300 ms final ramp",
     "parents": [
       "93d5226e4ed0740c8a68f9371eb48292ad83312d"
@@ -2139,6 +2406,7 @@
   {
     "sha": "2b9465498d469894e5f9747e5382fae22bd83af8",
     "date": "2026-10-10T02:54:21Z",
+    "author_date": "2026-10-10T02:54:21Z",
     "message": "Preserve later CW report of twenty-marker location loss",
     "parents": [
       "0fdc6c9e2de835ce91b55a874e223785c090555d"
@@ -2147,6 +2415,7 @@
   {
     "sha": "263af426975752f5f55408e6781c56215ef840c7",
     "date": "2026-10-10T02:55:22Z",
+    "author_date": "2026-10-10T02:55:22Z",
     "message": "Record later physical MM059-060 versus dashboard MM044 pair",
     "parents": [
       "2b9465498d469894e5f9747e5382fae22bd83af8"
@@ -2155,6 +2424,7 @@
   {
     "sha": "bf95cc457ab3a774e5531b17b741b30d2f2ffcb4",
     "date": "2026-10-10T02:58:34Z",
+    "author_date": "2026-10-10T02:58:34Z",
     "message": "Preserve complete October 9 evening telemetry snapshot",
     "parents": [
       "263af426975752f5f55408e6781c56215ef840c7"
@@ -2163,6 +2433,7 @@
   {
     "sha": "c31e989a304a48ff4f41ed8cefdf7f26c9cf6c4e",
     "date": "2026-10-10T03:04:30Z",
+    "author_date": "2026-10-10T03:04:30Z",
     "message": "Record second-run Hall distance rejection and gate-anchor inconsistency",
     "parents": [
       "bf95cc457ab3a774e5531b17b741b30d2f2ffcb4"
@@ -2171,6 +2442,7 @@
   {
     "sha": "85a2cf2a16d262abdf7258c60f60508b823913ee",
     "date": "2026-10-10T04:22:53Z",
+    "author_date": "2026-10-10T04:22:53Z",
     "message": "Complete pulse timestamp review at all three drift onsets",
     "parents": [
       "c31e989a304a48ff4f41ed8cefdf7f26c9cf6c4e"
@@ -2179,6 +2451,7 @@
   {
     "sha": "66412e6f68f62a31ae02397e11e3769619b6078b",
     "date": "2026-10-10T18:58:36Z",
+    "author_date": "2026-10-10T18:58:36Z",
     "message": "Record evening telemetry analysis of MM045 drift and stops",
     "parents": [
       "bf95cc457ab3a774e5531b17b741b30d2f2ffcb4"
@@ -2187,6 +2460,7 @@
   {
     "sha": "f3084b6f102125dd6fe8700135b8e58d004d6621",
     "date": "2026-10-10T21:36:14Z",
+    "author_date": "2026-10-10T21:36:14Z",
     "message": "Add read-only NAVI_EWO DNA and IR-credibility architectural review",
     "parents": [
       "7409c19d3199511759f837d31a1054ba0822fd2d"
@@ -2195,6 +2469,7 @@
   {
     "sha": "cbdfe9495ca1b52d2165a5ce6be27cbfce1d1439",
     "date": "2026-10-11T01:15:50Z",
+    "author_date": "2026-10-11T01:14:53Z",
     "message": "Implement NAVI EWO 0.2 evidence reconciliation",
     "parents": [
       "85a2cf2a16d262abdf7258c60f60508b823913ee"
@@ -2203,6 +2478,7 @@
   {
     "sha": "9af8c4182bcad1156fd0abcf594257fd4744124d",
     "date": "2026-10-11T05:43:08Z",
+    "author_date": "2026-10-11T05:43:08Z",
     "message": "Add isolated NAVI_EWO_0_3 restoration primitive and test",
     "parents": [
       "85a2cf2a16d262abdf7258c60f60508b823913ee"
@@ -2211,6 +2487,7 @@
   {
     "sha": "946db1091d684f1bd55a4d8ec8dd2b4795acfe13",
     "date": "2026-10-11T05:43:10Z",
+    "author_date": "2026-10-11T05:43:10Z",
     "message": "Add isolated NAVI_EWO_0_3 restoration primitive and test",
     "parents": [
       "9af8c4182bcad1156fd0abcf594257fd4744124d"
@@ -2219,6 +2496,7 @@
   {
     "sha": "73f8c4e74966cddb6f525e70d111d9f6e927cf28",
     "date": "2026-10-11T05:43:13Z",
+    "author_date": "2026-10-11T05:43:13Z",
     "message": "Add isolated NAVI_EWO_0_3 restoration primitive and test",
     "parents": [
       "946db1091d684f1bd55a4d8ec8dd2b4795acfe13"
@@ -2227,6 +2505,7 @@
   {
     "sha": "a01016f1f4d3612f12f64e0bb2c4aa2692190be4",
     "date": "2026-10-11T05:48:34Z",
+    "author_date": "2026-10-11T05:48:34Z",
     "message": "Correct Hall encounter latching and add continuous read-only DNA verification primitive",
     "parents": [
       "73f8c4e74966cddb6f525e70d111d9f6e927cf28"
@@ -2235,6 +2514,7 @@
   {
     "sha": "7304214391bd185b52dfa7cade147fda15556ff4",
     "date": "2026-10-11T05:48:58Z",
+    "author_date": "2026-10-11T05:48:58Z",
     "message": "Add regression checks for continuous-field duplicate suppression and DNA contradiction",
     "parents": [
       "a01016f1f4d3612f12f64e0bb2c4aa2692190be4"
@@ -2243,6 +2523,7 @@
   {
     "sha": "20fff0ec5caba24993ffbbb1101296497dbcc90d",
     "date": "2026-10-11T05:57:33Z",
+    "author_date": "2026-10-11T05:57:33Z",
     "message": "Add evidence-only IR pulse timing monitor and host test",
     "parents": [
       "7304214391bd185b52dfa7cade147fda15556ff4"
@@ -2251,6 +2532,7 @@
   {
     "sha": "5f1d0b0aa189eecaf7f6f4477ac47b3fcb273fff",
     "date": "2026-10-11T05:57:35Z",
+    "author_date": "2026-10-11T05:57:35Z",
     "message": "Add evidence-only IR pulse timing monitor and host test",
     "parents": [
       "20fff0ec5caba24993ffbbb1101296497dbcc90d"
@@ -2259,6 +2541,7 @@
   {
     "sha": "02920d39a494c98a7cdcd53667f71a6ec4148671",
     "date": "2026-10-11T05:57:44Z",
+    "author_date": "2026-10-11T05:57:44Z",
     "message": "Record tested evidence primitives and remaining NAVI integration work",
     "parents": [
       "5f1d0b0aa189eecaf7f6f4477ac47b3fcb273fff"
@@ -2267,6 +2550,7 @@
   {
     "sha": "56b5c0f5b3629e508ca694f3b0afcab81f7f6644",
     "date": "2026-10-11T06:06:48Z",
+    "author_date": "2026-10-11T06:06:48Z",
     "message": "Add pure sequential MM identification decision and regression test",
     "parents": [
       "02920d39a494c98a7cdcd53667f71a6ec4148671"
@@ -2275,6 +2559,7 @@
   {
     "sha": "36b856649eb50ac73fcd89204334f6ea01669d62",
     "date": "2026-10-11T06:06:50Z",
+    "author_date": "2026-10-11T06:06:50Z",
     "message": "Add pure sequential MM identification decision and regression test",
     "parents": [
       "56b5c0f5b3629e508ca694f3b0afcab81f7f6644"
@@ -2283,6 +2568,7 @@
   {
     "sha": "27dfa0f9bb7bfafa1a5738315c2a93d5133563cc",
     "date": "2026-10-11T06:06:59Z",
+    "author_date": "2026-10-11T06:06:59Z",
     "message": "Document next-MM judgment module and unverified integration status",
     "parents": [
       "36b856649eb50ac73fcd89204334f6ea01669d62"
@@ -2291,6 +2577,7 @@
   {
     "sha": "a56841a09fd32e35bc2788d847dc79b887f6279a",
     "date": "2026-10-11T06:52:55Z",
+    "author_date": "2026-10-11T06:52:55Z",
     "message": "Add tested NAVI evidence-to-identity bridge without geographic authority",
     "parents": [
       "27dfa0f9bb7bfafa1a5738315c2a93d5133563cc"
@@ -2299,6 +2586,7 @@
   {
     "sha": "0c08710cdfa1d7e8c8b0edf171dcb3201872a724",
     "date": "2026-10-11T06:52:59Z",
+    "author_date": "2026-10-11T06:52:59Z",
     "message": "Add tested NAVI evidence-to-identity bridge without geographic authority",
     "parents": [
       "a56841a09fd32e35bc2788d847dc79b887f6279a"
@@ -2307,6 +2595,7 @@
   {
     "sha": "439c9c20a2c6df8f51d34380c50ceb7587a052f9",
     "date": "2026-10-11T06:55:08Z",
+    "author_date": "2026-10-11T06:55:08Z",
     "message": "Create initial 0.3 core integration of Hall/DNA evidence with 0.1 navigation",
     "parents": [
       "0c08710cdfa1d7e8c8b0edf171dcb3201872a724"
@@ -2315,6 +2604,7 @@
   {
     "sha": "60dd1bcb3b686d6b688d1429d1fb3f5a3ba47025",
     "date": "2026-10-11T06:55:23Z",
+    "author_date": "2026-10-11T06:55:23Z",
     "message": "Record exact limitations of initial 0.3 operational core integration",
     "parents": [
       "439c9c20a2c6df8f51d34380c50ceb7587a052f9"
@@ -2323,6 +2613,7 @@
   {
     "sha": "9dc1df4a3a1ada777754ceb9aae1dfe0d38e055e",
     "date": "2026-10-11T12:16:19Z",
+    "author_date": "2026-10-11T12:16:19Z",
     "message": "test: restore complete EWO regression harness on current host compiler",
     "parents": [
       "60dd1bcb3b686d6b688d1429d1fb3f5a3ba47025"
@@ -2331,6 +2622,7 @@
   {
     "sha": "b725d7776f5697fe70a7455ea67c7eb6bdf6d151",
     "date": "2026-10-11T12:16:25Z",
+    "author_date": "2026-10-11T12:16:25Z",
     "message": "feat: complete NAVI EWO 0.3 on the operational 0.1 shell",
     "parents": [
       "9dc1df4a3a1ada777754ceb9aae1dfe0d38e055e"
@@ -2339,6 +2631,7 @@
   {
     "sha": "16c65f61662c358923c780a2edffda9733f0a8da",
     "date": "2026-10-11T12:17:11Z",
+    "author_date": "2026-10-11T12:17:11Z",
     "message": "test: verify restored navigation and preserve operational STOP behavior",
     "parents": [
       "b725d7776f5697fe70a7455ea67c7eb6bdf6d151"
@@ -2347,6 +2640,7 @@
   {
     "sha": "253faa464692b97ab48beb0aa621aa11372aaa55",
     "date": "2026-10-11T19:48:44Z",
+    "author_date": "2026-10-11T19:48:44Z",
     "message": "fix: bound IR observation authority and enforce mapped encounter window",
     "parents": [
       "16c65f61662c358923c780a2edffda9733f0a8da"
@@ -2355,6 +2649,7 @@
   {
     "sha": "c4cd2b2b8edd5641a0c4a7a31191614f7cba153e",
     "date": "2026-10-11T20:04:33Z",
+    "author_date": "2026-10-11T20:04:33Z",
     "message": "fix: require current time for IR validity and verify pulse fallback",
     "parents": [
       "253faa464692b97ab48beb0aa621aa11372aaa55"
@@ -2363,6 +2658,7 @@
   {
     "sha": "4ad1df225f3768c192330c634b53d114faabf894",
     "date": "2026-10-11T20:08:01Z",
+    "author_date": "2026-10-11T20:08:01Z",
     "message": "fix: hand accepted NAVI geography to station STOP",
     "parents": [
       "253faa464692b97ab48beb0aa621aa11372aaa55"
@@ -2371,6 +2667,7 @@
   {
     "sha": "0db254fb59612d8f73fab30a785a25649499778b",
     "date": "2026-10-11T21:01:34Z",
+    "author_date": "2026-10-11T21:01:34Z",
     "message": "Add NAVI_EWO_0_4 requirements specification audit",
     "parents": [
       "7409c19d3199511759f837d31a1054ba0822fd2d"
@@ -2379,6 +2676,7 @@
   {
     "sha": "4972c622f57b2f48c0291a2329e3e55a2cd58074",
     "date": "2026-10-11T23:07:38Z",
+    "author_date": "2026-10-11T23:07:38Z",
     "message": "docs: record NAVI failed and withdrawn architectural approaches",
     "parents": [
       "442a3d70599a403ba2fef168503d05f060e5e72c"
@@ -2387,6 +2685,7 @@
   {
     "sha": "ad79af7242d3c3140d1d2bf3c1b130537358d6f9",
     "date": "2026-10-11T23:11:33Z",
+    "author_date": "2026-10-11T23:11:33Z",
     "message": "docs: preserve 14-item NAVI unsuccessful architecture retrospective",
     "parents": [
       "85a2cf2a16d262abdf7258c60f60508b823913ee"
@@ -2395,6 +2694,7 @@
   {
     "sha": "2580917ade2017704ecdf22bf0fab5a458070333",
     "date": "2026-10-11T23:12:22Z",
+    "author_date": "2026-10-11T23:12:22Z",
     "message": "docs: preserve 32-item NGR sensor navigation and process failure inventory",
     "parents": [
       "ad79af7242d3c3140d1d2bf3c1b130537358d6f9"

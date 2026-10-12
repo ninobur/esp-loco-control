@@ -1,0 +1,219 @@
+I think these fit together very well. In fact, I’d express them as a single architectural philosophy that applies to the entire locomotive, not just MM navigation or the IR sensor.
+
+⸻
+
+NGR Design Philosophy: Confidence-Based Navigation and Control
+
+The locomotive should not treat sensor readings as facts. It should treat them as evidence.
+
+Its job is to continuously build the best estimate of reality from multiple imperfect sources while understanding that every source has strengths, weaknesses, and characteristic failure modes.
+
+Fundamental Principles
+
+The locomotive should always distinguish between:
+
+* Command Intent (PWM)
+* Measured Result (IR speed, MM timing, Hall sensors)
+* Absolute Truth (truth points)
+* Estimated State (current position, speed, confidence)
+
+No single measurement should instantly redefine reality.
+
+Instead, every new observation should either:
+
+* reinforce the current estimate,
+* slightly weaken it,
+* or cause it to be revised.
+
+⸻
+
+Evaluate Every Measurement
+
+Every incoming measurement should be asked:
+
+“Is this plausible here, now?”
+
+The answer depends on:
+
+* recent measurements,
+* expected progression,
+* PWM intent,
+* geographic location,
+* operating phase,
+* physical limits.
+
+The firmware should reject the idea that every measurement deserves equal trust.
+
+⸻
+
+Unknown Is a Valid State
+
+One of the most important concepts is:
+
+Unknown is not the same as wrong.
+
+Examples:
+
+* IR lockout from sunlight
+* missed mile marker
+* noisy Hall transition
+* delayed MQTT packet
+
+These should not force incorrect conclusions.
+
+Instead:
+
+measurement unavailable
+↓
+confidence reduced
+↓
+continue estimating
+↓
+wait for better evidence
+
+⸻
+
+Confidence is Multi-Dimensional
+
+Different things can be known with different confidence.
+
+Examples:
+
+* Position Confidence
+* Speed Confidence
+* Timing Confidence
+* Sensor Confidence
+
+A temporary timing anomaly should not erase position confidence.
+
+A temporary IR failure should not invalidate MM navigation.
+
+A missed MM should not erase the last known truth point.
+
+⸻
+
+Predict Before Measuring
+
+The locomotive should always have an expectation of what should happen next.
+
+Examples:
+
+“I expect the next MM in roughly 900 ms.”
+
+“I expect the next IR interval to shorten because PWM increased.”
+
+“I expect another NNS polarity.”
+
+Measurements are compared against predictions rather than interpreted in isolation.
+
+⸻
+
+Recognize Failure Signatures
+
+Many sensor failures have recognizable patterns.
+
+Examples:
+
+Sunlight on IR:
+
+150
+149
+151
+3020
+148
+150
+
+This is not slow motion.
+
+It is an optical lockout.
+
+Similarly:
+
+* missed MM
+* duplicated Hall edge
+* stale MQTT message
+
+all produce characteristic signatures.
+
+The firmware should classify the failure rather than blindly using the number.
+
+⸻
+
+Continue Operating Through Imperfect Data
+
+The railroad is an outdoor environment.
+
+Sensor failures are expected.
+
+The objective is graceful degradation.
+
+Instead of:
+
+bad data
+↓
+navigation lost
+
+the architecture becomes:
+
+bad data
+↓
+reduce confidence
+↓
+infer what is most likely
+↓
+continue
+↓
+recover at next truth point
+
+⸻
+
+Truth Points Reset Accumulated Error
+
+Truth points are absolute observations.
+
+They:
+
+* restore position
+* rebuild timing model
+* restore confidence
+* eliminate accumulated estimation error
+
+Everything else is relative navigation.
+
+Truth points periodically anchor reality.
+
+⸻
+
+Sensor Fusion
+
+The locomotive should continuously combine information from:
+
+* PWM
+* Mile-marker timing
+* Truth points
+* IR wheel speed
+* Hall polarity sequence
+* Route geometry
+* Operating mode
+
+No individual source owns reality.
+
+Reality emerges from the agreement among them.
+
+⸻
+
+Near-Term Application
+
+This philosophy immediately benefits:
+
+* Ramp-aware MM navigation
+* Confidence-based inferred MM counting
+* Truth-point recovery
+* IR low-speed regulation
+* Outdoor operation with intermittent sensor degradation
+
+Future closed-loop speed control can use the same architecture simply by adding IR as another weighted source of evidence rather than treating it as an absolute speed sensor.
+
+⸻
+
+I think this is the direction the NGR architecture has been evolving over the past several months. Early versions were largely event-driven (“a magnet was seen, so update the state”). The newer concepts are model-driven: the locomotive maintains an internal model of where it is, how fast it should be moving, and how confident it is, then uses each new observation to strengthen, weaken, or correct that model. That is a much more robust foundation for autonomous operation outdoors, where no single sensor can be assumed perfect all the time.

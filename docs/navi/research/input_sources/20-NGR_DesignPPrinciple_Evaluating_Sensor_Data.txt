@@ -1,0 +1,136 @@
+NGR Design Principle: Evaluating Sensor Data
+
+A recurring architectural principle for NGR is that sensor data should not be accepted simply because it exists. Every measurement should be evaluated in the context of recent history, the locomotive’s commanded behavior, the laws of physics, and the geography of the railroad before it becomes actionable.
+
+The firmware should ask:
+
+“Is this a plausible value at this point?”
+
+rather than simply:
+
+“What value did the sensor report?”
+
+Data Classification
+
+Sensor readings should first be classified before they are used.
+
+Possible categories include:
+
+* Valid — consistent with expectations.
+* Valid but unusual — plausible but outside the normal pattern.
+* Undefined / Unknown — insufficient confidence to draw conclusions.
+* Likely sensor error — optical lockout, missed pulse, false pulse, stale data, etc.
+
+The important principle is:
+
+Unknown is not the same as slow. Unknown simply means no actionable information is available.
+
+Pattern Recognition
+
+Individual measurements should rarely be interpreted in isolation.
+
+The firmware should recognize:
+
+* stable cruising patterns,
+* steady acceleration,
+* steady deceleration,
+* expected transitions,
+* recovery after temporary signal loss.
+
+For example, after many nearly identical IR intervals, one interval twenty times longer should not immediately be interpreted as a dramatic speed reduction. It more likely represents a temporary sensor failure.
+
+Likewise, impossible short intervals probably represent false triggering rather than sudden acceleration.
+
+Predictive Evaluation
+
+The controller should continuously maintain an expectation of what the next measurement should approximately look like.
+
+That prediction can be based on:
+
+* recently accepted sensor values,
+* current PWM,
+* locomotive operating mode,
+* mile-marker timing,
+* known route location,
+* station approach or departure state.
+
+Each new measurement is then compared against an expected range rather than accepted unconditionally.
+
+Multiple Sources of Evidence
+
+No sensor operates in isolation.
+
+The ESP already possesses several independent sources of information:
+
+* Mile-marker timing
+* PWM command
+* Recent IR history
+* Direction
+* Current operating mode
+* Geographic position on the railroad
+
+These sources should reinforce or question one another.
+
+Example:
+
+* PWM steady
+* MM speed steady
+* No commanded stop
+* One IR interval indicates an extremely low speed
+
+The correct conclusion is not that the train suddenly slowed dramatically. The more probable conclusion is that the IR sensor temporarily produced unusable data.
+
+Confidence Rather Than Blind Acceptance
+
+Each measurement should contribute evidence with an associated confidence.
+
+High-confidence data may influence locomotive behavior.
+
+Low-confidence or undefined data should simply be ignored until confidence returns.
+
+The controller should continue operating using the remaining trustworthy information.
+
+Temporary Sensor Failure
+
+A temporary sensor failure should not trigger corrective action.
+
+Instead:
+
+1. Detect the implausible measurement.
+2. Mark that sensor’s output as undefined.
+3. Continue operating using other available information.
+4. Wait for a new sequence of believable measurements.
+5. Resume using that sensor once confidence has been re-established.
+
+Near-Term Application to IR Speed Sensor
+
+The IR wheel sensor is particularly valuable for low-speed regulation, where mile-marker updates are relatively infrequent.
+
+Near-term uses include:
+
+* Station approach regulation
+* Maintaining crawl speed
+* Final stopping sequence
+* Startup from a stop
+* Detecting incipient stalls
+
+If sunlight or other interference temporarily invalidates the IR measurement, the locomotive should simply suspend IR-based corrections until believable data resumes.
+
+General NGR Philosophy
+
+This principle applies to every subsystem, not just the IR sensor.
+
+The controller should continuously ask:
+
+* Is this value physically possible?
+* Is it consistent with recent history?
+* Is it consistent with current PWM?
+* Is it consistent with known geography?
+* Is it consistent with the current operating phase?
+* Is there sufficient confidence to act?
+
+Only when those questions are answered positively should a measurement become part of the locomotive’s understanding of reality.
+
+Core Principle
+
+The locomotive should not react to measurements. It should react to trusted interpretations of measurements.

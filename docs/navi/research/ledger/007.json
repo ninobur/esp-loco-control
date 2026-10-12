@@ -1,0 +1,1834 @@
+[
+  {
+    "blob_sha": "43b743985275b5e8f61fb809ebce7c9f87ddbc95",
+    "paths": [
+      "firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_HEALTH/tests/test_ir_health_monitor.cpp",
+      "firmware/programs/NAVI_COHERENCE/variants/NAVI_EYES_WIDE_OPEN/tests/test_ir_health_monitor.cpp"
+    ],
+    "occurrences": [
+      {
+        "commit": "b6b7f13d972658aedd824ec822e00ffadc2733f8",
+        "date": "2026-09-23T22:33:20Z",
+        "path": "firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_HEALTH/tests/test_ir_health_monitor.cpp",
+        "change": "modified",
+        "previous_path": null
+      },
+      {
+        "commit": "93af2267f1a4609edeca57aecec4b69278e6097d",
+        "date": "2026-09-28T22:10:38Z",
+        "path": "firmware/programs/NAVI_COHERENCE/variants/NAVI_EYES_WIDE_OPEN/tests/test_ir_health_monitor.cpp",
+        "change": "added",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "0eb2e964d4cd36b74766db3107bf826e521aecd8",
+    "paths": [
+      "firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_HEALTH/tests/test_proximal_recovery.cpp"
+    ],
+    "occurrences": [
+      {
+        "commit": "b6b7f13d972658aedd824ec822e00ffadc2733f8",
+        "date": "2026-09-23T22:33:20Z",
+        "path": "firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_HEALTH/tests/test_proximal_recovery.cpp",
+        "change": "added",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "fc35c7dfbaa596af60db597dceaa864f2fc4a0f3",
+    "paths": [
+      "firmware/reference/NAVI_COHERENCE/CURRENT_STATUS.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "b6b7f13d972658aedd824ec822e00ffadc2733f8",
+        "date": "2026-09-23T22:33:20Z",
+        "path": "firmware/reference/NAVI_COHERENCE/CURRENT_STATUS.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "93069b115c5235ddf086c81561f94532f79dd9df",
+    "paths": [
+      "docs/NAVI_PROXIMAL_R1_FLASH_20260923.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "72ca5f37f602f211e5ee0ab5f01665bab5cbb25a",
+        "date": "2026-09-23T23:14:48Z",
+        "path": "docs/NAVI_PROXIMAL_R1_FLASH_20260923.md",
+        "change": "added",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "a094330be9b8be8d5ea5921ad0018451d3467de3",
+    "paths": [
+      "firmware/README.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "72ca5f37f602f211e5ee0ab5f01665bab5cbb25a",
+        "date": "2026-09-23T23:14:48Z",
+        "path": "firmware/README.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "45f6b9707ec020a25658a8a31a8c45307a746920",
+    "paths": [
+      "server/ngr_app_v1_11_2.py"
+    ],
+    "occurrences": [
+      {
+        "commit": "d3daf9148c0cdfb14fb4557fd56c0ecb6495aa88",
+        "date": "2026-09-23T23:36:15Z",
+        "path": "server/ngr_app_v1_11_2.py",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "108abf24110f23c88df4437bf956973dc37ca74c",
+    "paths": [
+      "docs/DASHBOARD_IR_KPH_TILE_IMPLEMENTATION_REPORT_20260923.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "58d31804ed2663c72a651303322ebb766a4f5ca2",
+        "date": "2026-09-23T23:36:57Z",
+        "path": "docs/DASHBOARD_IR_KPH_TILE_IMPLEMENTATION_REPORT_20260923.md",
+        "change": "added",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "26a60b09a532ea6baa2dbb91943fb8a0fd219e44",
+    "paths": [
+      "server/ngr_app_v1_11_2.py"
+    ],
+    "occurrences": [
+      {
+        "commit": "b1e271c752af9d14e36fd9ea8b04e432f889a3f2",
+        "date": "2026-09-24T00:07:26Z",
+        "path": "server/ngr_app_v1_11_2.py",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "7c416ac9984287e67c017b0f0fe73f3319ac92ba",
+    "paths": [
+      "docs/DASHBOARD_IR_KPH_TILE_IMPLEMENTATION_REPORT_20260923.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "740261fa7fe803ca34dc59c5d58e96a9df7c8491",
+        "date": "2026-09-24T00:53:09Z",
+        "path": "docs/DASHBOARD_IR_KPH_TILE_IMPLEMENTATION_REPORT_20260923.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "89050ad4ac4ba2c3b105fc516fd8b13e4031fc5e",
+    "paths": [
+      "docs/IR_SENSOR_NOTES.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "740261fa7fe803ca34dc59c5d58e96a9df7c8491",
+        "date": "2026-09-24T00:53:09Z",
+        "path": "docs/IR_SENSOR_NOTES.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "948ac75ed5469847d18b224a487fdcd24fc5690c",
+    "paths": [
+      "docs/NAVI_IR_SPEED_DEPLOYMENT_20260923.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "740261fa7fe803ca34dc59c5d58e96a9df7c8491",
+        "date": "2026-09-24T00:53:09Z",
+        "path": "docs/NAVI_IR_SPEED_DEPLOYMENT_20260923.md",
+        "change": "added",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "462823a4cb7437fc470cca14587d5490574b2fc0",
+    "paths": [
+      "docs/NAVI_IR_SPEED_TELEMETRY_20260923.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "740261fa7fe803ca34dc59c5d58e96a9df7c8491",
+        "date": "2026-09-24T00:53:09Z",
+        "path": "docs/NAVI_IR_SPEED_TELEMETRY_20260923.md",
+        "change": "added",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "e87e560382636ad211dca8d925a87eb5ce87c123",
+    "paths": [
+      "docs/STATUS.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "740261fa7fe803ca34dc59c5d58e96a9df7c8491",
+        "date": "2026-09-24T00:53:09Z",
+        "path": "docs/STATUS.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "b36f872fed1395e55bf8b8465b94dec17bef86e7",
+    "paths": [
+      "docs/decisions/0099-canonical-house-pkph.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "740261fa7fe803ca34dc59c5d58e96a9df7c8491",
+        "date": "2026-09-24T00:53:09Z",
+        "path": "docs/decisions/0099-canonical-house-pkph.md",
+        "change": "added",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "fc511522311dab44be764e732bb6af4ea480b275",
+    "paths": [
+      "firmware/programs/IR_TEST/IR_TEST.ino"
+    ],
+    "occurrences": [
+      {
+        "commit": "740261fa7fe803ca34dc59c5d58e96a9df7c8491",
+        "date": "2026-09-24T00:53:09Z",
+        "path": "firmware/programs/IR_TEST/IR_TEST.ino",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "4bd707fa7ae152a101edae414e1482ec0727088c",
+    "paths": [
+      "firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_HEALTH/IrSpeedTelemetry.h"
+    ],
+    "occurrences": [
+      {
+        "commit": "740261fa7fe803ca34dc59c5d58e96a9df7c8491",
+        "date": "2026-09-24T00:53:09Z",
+        "path": "firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_HEALTH/IrSpeedTelemetry.h",
+        "change": "added",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "59f3680b36e74a490a3d50fdc73027c3368488a3",
+    "paths": [
+      "firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_HEALTH/NAVI_COHERENCE_0_6_IR_HEALTH.ino"
+    ],
+    "occurrences": [
+      {
+        "commit": "740261fa7fe803ca34dc59c5d58e96a9df7c8491",
+        "date": "2026-09-24T00:53:09Z",
+        "path": "firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_HEALTH/NAVI_COHERENCE_0_6_IR_HEALTH.ino",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "31304ff92988082ca2e0df663f64dba1e253f057",
+    "paths": [
+      "firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_HEALTH/README.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "740261fa7fe803ca34dc59c5d58e96a9df7c8491",
+        "date": "2026-09-24T00:53:09Z",
+        "path": "firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_HEALTH/README.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "e80292de3a6999b66c9ef9a14fe94d6348396e3e",
+    "paths": [
+      "firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_HEALTH/tests/test_ir_speed.cpp",
+      "firmware/programs/NAVI_COHERENCE/variants/NAVI_EYES_WIDE_OPEN/tests/test_ir_speed.cpp"
+    ],
+    "occurrences": [
+      {
+        "commit": "740261fa7fe803ca34dc59c5d58e96a9df7c8491",
+        "date": "2026-09-24T00:53:09Z",
+        "path": "firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_HEALTH/tests/test_ir_speed.cpp",
+        "change": "added",
+        "previous_path": null
+      },
+      {
+        "commit": "93af2267f1a4609edeca57aecec4b69278e6097d",
+        "date": "2026-09-28T22:10:38Z",
+        "path": "firmware/programs/NAVI_COHERENCE/variants/NAVI_EYES_WIDE_OPEN/tests/test_ir_speed.cpp",
+        "change": "added",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "619a5489ef3f6d1cd6734a23312b5083643008c8",
+    "paths": [
+      "server/ir_hall_live.py"
+    ],
+    "occurrences": [
+      {
+        "commit": "740261fa7fe803ca34dc59c5d58e96a9df7c8491",
+        "date": "2026-09-24T00:53:09Z",
+        "path": "server/ir_hall_live.py",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "1bc5fe8536edb29c93f80e493aef5b3429793bf6",
+    "paths": [
+      "server/ngr_app_v1_10_0.py"
+    ],
+    "occurrences": [
+      {
+        "commit": "740261fa7fe803ca34dc59c5d58e96a9df7c8491",
+        "date": "2026-09-24T00:53:09Z",
+        "path": "server/ngr_app_v1_10_0.py",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "32cdf8a07a4708ca5056db4189557655e403091a",
+    "paths": [
+      "server/ngr_app_v1_10_1.py"
+    ],
+    "occurrences": [
+      {
+        "commit": "740261fa7fe803ca34dc59c5d58e96a9df7c8491",
+        "date": "2026-09-24T00:53:09Z",
+        "path": "server/ngr_app_v1_10_1.py",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "1f14e3764170254bdbbb6eb98e050e5d04279d17",
+    "paths": [
+      "server/ngr_app_v1_10_10.py"
+    ],
+    "occurrences": [
+      {
+        "commit": "740261fa7fe803ca34dc59c5d58e96a9df7c8491",
+        "date": "2026-09-24T00:53:09Z",
+        "path": "server/ngr_app_v1_10_10.py",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "4eb1df1d24f1b293ac2c034ba5c9d2e1ba31f4c1",
+    "paths": [
+      "server/ngr_app_v1_10_11.py"
+    ],
+    "occurrences": [
+      {
+        "commit": "740261fa7fe803ca34dc59c5d58e96a9df7c8491",
+        "date": "2026-09-24T00:53:09Z",
+        "path": "server/ngr_app_v1_10_11.py",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "7b4539d2a9c04b026a60c92a1af6dade92495347",
+    "paths": [
+      "server/ngr_app_v1_10_2.py"
+    ],
+    "occurrences": [
+      {
+        "commit": "740261fa7fe803ca34dc59c5d58e96a9df7c8491",
+        "date": "2026-09-24T00:53:09Z",
+        "path": "server/ngr_app_v1_10_2.py",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "e3b77ad5464deb46ad96d5db4ea344ba3dbbdd17",
+    "paths": [
+      "server/ngr_app_v1_10_3.py"
+    ],
+    "occurrences": [
+      {
+        "commit": "740261fa7fe803ca34dc59c5d58e96a9df7c8491",
+        "date": "2026-09-24T00:53:09Z",
+        "path": "server/ngr_app_v1_10_3.py",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "06295be7ecfb3a8d7ab048d2f0505056b76ab86e",
+    "paths": [
+      "server/ngr_app_v1_10_4.py"
+    ],
+    "occurrences": [
+      {
+        "commit": "740261fa7fe803ca34dc59c5d58e96a9df7c8491",
+        "date": "2026-09-24T00:53:09Z",
+        "path": "server/ngr_app_v1_10_4.py",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "d433e1e8bd761d19ee71eca7bb31dfa8ef58ebd2",
+    "paths": [
+      "server/ngr_app_v1_10_5.py"
+    ],
+    "occurrences": [
+      {
+        "commit": "740261fa7fe803ca34dc59c5d58e96a9df7c8491",
+        "date": "2026-09-24T00:53:09Z",
+        "path": "server/ngr_app_v1_10_5.py",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "4a43c5b28a1886cb9ffc7a24eced7f1c87fbab89",
+    "paths": [
+      "server/ngr_app_v1_10_6.py"
+    ],
+    "occurrences": [
+      {
+        "commit": "740261fa7fe803ca34dc59c5d58e96a9df7c8491",
+        "date": "2026-09-24T00:53:09Z",
+        "path": "server/ngr_app_v1_10_6.py",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "4220e0e696f2ee2fdb2611b409169e515348d293",
+    "paths": [
+      "server/ngr_app_v1_10_7.py"
+    ],
+    "occurrences": [
+      {
+        "commit": "740261fa7fe803ca34dc59c5d58e96a9df7c8491",
+        "date": "2026-09-24T00:53:09Z",
+        "path": "server/ngr_app_v1_10_7.py",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "182e1fe5493d4ce407d4e3d5217feba62a3b893f",
+    "paths": [
+      "server/ngr_app_v1_10_8.py"
+    ],
+    "occurrences": [
+      {
+        "commit": "740261fa7fe803ca34dc59c5d58e96a9df7c8491",
+        "date": "2026-09-24T00:53:09Z",
+        "path": "server/ngr_app_v1_10_8.py",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "1ba7782008dcd5b5cee9873266da329094b4cc97",
+    "paths": [
+      "server/ngr_app_v1_10_9.py"
+    ],
+    "occurrences": [
+      {
+        "commit": "740261fa7fe803ca34dc59c5d58e96a9df7c8491",
+        "date": "2026-09-24T00:53:09Z",
+        "path": "server/ngr_app_v1_10_9.py",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "0b989021f6de2e6e7b0a786638547c319dc9c1ed",
+    "paths": [
+      "server/ngr_app_v1_11_0.py"
+    ],
+    "occurrences": [
+      {
+        "commit": "740261fa7fe803ca34dc59c5d58e96a9df7c8491",
+        "date": "2026-09-24T00:53:09Z",
+        "path": "server/ngr_app_v1_11_0.py",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "7e40aa1938253a2babce1cb0eff4bebc269a8780",
+    "paths": [
+      "server/ngr_app_v1_11_1.py"
+    ],
+    "occurrences": [
+      {
+        "commit": "740261fa7fe803ca34dc59c5d58e96a9df7c8491",
+        "date": "2026-09-24T00:53:09Z",
+        "path": "server/ngr_app_v1_11_1.py",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "1a401de3d4515a9ab6baab7c8bb9a2cfd147af82",
+    "paths": [
+      "server/ngr_app_v1_11_2.py"
+    ],
+    "occurrences": [
+      {
+        "commit": "740261fa7fe803ca34dc59c5d58e96a9df7c8491",
+        "date": "2026-09-24T00:53:09Z",
+        "path": "server/ngr_app_v1_11_2.py",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "732130daed0137cd751f7d4b8b2ba27044b6732f",
+    "paths": [
+      "server/ngr_app_v1_9_5.py"
+    ],
+    "occurrences": [
+      {
+        "commit": "740261fa7fe803ca34dc59c5d58e96a9df7c8491",
+        "date": "2026-09-24T00:53:09Z",
+        "path": "server/ngr_app_v1_9_5.py",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "e09541c3a9df74acc7c629138d31960b540072c4",
+    "paths": [
+      "server/tests/test_ir_speed_dashboard.py"
+    ],
+    "occurrences": [
+      {
+        "commit": "740261fa7fe803ca34dc59c5d58e96a9df7c8491",
+        "date": "2026-09-24T00:53:09Z",
+        "path": "server/tests/test_ir_speed_dashboard.py",
+        "change": "added",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "010eb134cce9e37942bdc193e045cba102d720bb",
+    "paths": [
+      "firmware/test-programs/IR_SPEED_LOCAL/tests/replay_noise.py"
+    ],
+    "occurrences": [
+      {
+        "commit": "6e7ccc2213621a05bc30b3624972bfd7eb6a0676",
+        "date": "2026-09-24T01:08:27Z",
+        "path": "firmware/test-programs/IR_SPEED_LOCAL/tests/replay_noise.py",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "88b06df82eecbb726c58aabec1fcc5a45f952540",
+    "paths": [
+      "docs/NAVI_MANUAL_THROTTLE_FULL_RANGE_20260923.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "d4dadd8f123a9132290df3042c8d4adc790cb5b0",
+        "date": "2026-09-24T01:58:46Z",
+        "path": "docs/NAVI_MANUAL_THROTTLE_FULL_RANGE_20260923.md",
+        "change": "added",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "b2205009475e53f0c8d807adde76cec709ecd36a",
+    "paths": [
+      "firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_HEALTH/NAVI_COHERENCE_0_6_IR_HEALTH.ino"
+    ],
+    "occurrences": [
+      {
+        "commit": "d4dadd8f123a9132290df3042c8d4adc790cb5b0",
+        "date": "2026-09-24T01:58:46Z",
+        "path": "firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_HEALTH/NAVI_COHERENCE_0_6_IR_HEALTH.ino",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "b12567c370af0f1db3a922099e43e39e5ae4e755",
+    "paths": [
+      "firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_HEALTH/README.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "d4dadd8f123a9132290df3042c8d4adc790cb5b0",
+        "date": "2026-09-24T01:58:46Z",
+        "path": "firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_HEALTH/README.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "6f9b4ad737a678e326eb1a5e3001bd4306dc16d4",
+    "paths": [
+      "tools/test_manual_pwm.py"
+    ],
+    "occurrences": [
+      {
+        "commit": "d4dadd8f123a9132290df3042c8d4adc790cb5b0",
+        "date": "2026-09-24T01:58:46Z",
+        "path": "tools/test_manual_pwm.py",
+        "change": "added",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "1d54a87ec4600e2abee36d6d77aa114527dc0caa",
+    "paths": [
+      "docs/IR_TX_1_6_STOP_RETENTION_REVIEW_20260923.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "1de06aec1d9e61de8d9e2fe5afb6809655638207",
+        "date": "2026-09-24T02:08:32Z",
+        "path": "docs/IR_TX_1_6_STOP_RETENTION_REVIEW_20260923.md",
+        "change": "added",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "c0f3f02e9ab3b984dfdd5a5cef8ca6cf18961de0",
+    "paths": [
+      "firmware/common/IrMovementContract.h"
+    ],
+    "occurrences": [
+      {
+        "commit": "1de06aec1d9e61de8d9e2fe5afb6809655638207",
+        "date": "2026-09-24T02:08:32Z",
+        "path": "firmware/common/IrMovementContract.h",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "da91f8d4ac1fe0152960175564a31be9c82b5ca9",
+    "paths": [
+      "firmware/common/IrMovementDetector.h"
+    ],
+    "occurrences": [
+      {
+        "commit": "1de06aec1d9e61de8d9e2fe5afb6809655638207",
+        "date": "2026-09-24T02:08:32Z",
+        "path": "firmware/common/IrMovementDetector.h",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "4a1998f61b4f11eb9269c0973af25c166498579a",
+    "paths": [
+      "firmware/programs/IR_SCOPE_ESPNOW/variants/IR_SCOPE_ESPNOW_TX/IR_SCOPE_ESPNOW_TX.ino"
+    ],
+    "occurrences": [
+      {
+        "commit": "1de06aec1d9e61de8d9e2fe5afb6809655638207",
+        "date": "2026-09-24T02:08:32Z",
+        "path": "firmware/programs/IR_SCOPE_ESPNOW/variants/IR_SCOPE_ESPNOW_TX/IR_SCOPE_ESPNOW_TX.ino",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "9a449b8bd382750be026d98a397d1bd98c8854e1",
+    "paths": [
+      "tools/test_ir_stationary.cpp"
+    ],
+    "occurrences": [
+      {
+        "commit": "1de06aec1d9e61de8d9e2fe5afb6809655638207",
+        "date": "2026-09-24T02:08:32Z",
+        "path": "tools/test_ir_stationary.cpp",
+        "change": "added",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "ee687d27354bcd850f0c1252f7606081065e44b1",
+    "paths": [
+      "tools/test_ir_stationary_pipeline.cpp"
+    ],
+    "occurrences": [
+      {
+        "commit": "1de06aec1d9e61de8d9e2fe5afb6809655638207",
+        "date": "2026-09-24T02:08:32Z",
+        "path": "tools/test_ir_stationary_pipeline.cpp",
+        "change": "added",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "15a4e18728e000294ac53e28225f96d52d1ba28b",
+    "paths": [
+      "docs/IR_TX_1_6_STOP_RETENTION_INDEPENDENT_REVIEW_20260923.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "4de40df8c2121ca0b7a15a89b86b1632bbaf8e09",
+        "date": "2026-09-24T02:18:57Z",
+        "path": "docs/IR_TX_1_6_STOP_RETENTION_INDEPENDENT_REVIEW_20260923.md",
+        "change": "added",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "dac5967d93c270c569965e79fcd364da0fb5f9b9",
+    "paths": [
+      "tools/test_ir_stationary_adversarial.cpp"
+    ],
+    "occurrences": [
+      {
+        "commit": "4de40df8c2121ca0b7a15a89b86b1632bbaf8e09",
+        "date": "2026-09-24T02:18:57Z",
+        "path": "tools/test_ir_stationary_adversarial.cpp",
+        "change": "added",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "8ed62e2b16e176108195d9baed6ef85452884efa",
+    "paths": [
+      "docs/IR_TX_1_6_R2_REVIEW_RESPONSE_20260923.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "3887f2afbcd7efd87dd5ec85c0c4ee9dc3209c1c",
+        "date": "2026-09-24T02:27:23Z",
+        "path": "docs/IR_TX_1_6_R2_REVIEW_RESPONSE_20260923.md",
+        "change": "added",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "dfd92fc92d587460125d6271a3d00c925acbc1ae",
+    "paths": [
+      "docs/IR_TX_1_6_STOP_RETENTION_REVIEW_20260923.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "3887f2afbcd7efd87dd5ec85c0c4ee9dc3209c1c",
+        "date": "2026-09-24T02:27:23Z",
+        "path": "docs/IR_TX_1_6_STOP_RETENTION_REVIEW_20260923.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "70a4f1b21279bc2afb64cf41c3a1434969e3f42f",
+    "paths": [
+      "firmware/README.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "3887f2afbcd7efd87dd5ec85c0c4ee9dc3209c1c",
+        "date": "2026-09-24T02:27:23Z",
+        "path": "firmware/README.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "202efcfa1247a35e65e230182d99f1ea3e68011d",
+    "paths": [
+      "firmware/common/IrMovementDetector.h"
+    ],
+    "occurrences": [
+      {
+        "commit": "3887f2afbcd7efd87dd5ec85c0c4ee9dc3209c1c",
+        "date": "2026-09-24T02:27:23Z",
+        "path": "firmware/common/IrMovementDetector.h",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "07e7b412c27294a855833daf4f98a57f6f9781c8",
+    "paths": [
+      "firmware/programs/IR_SCOPE_ESPNOW/variants/IR_SCOPE_ESPNOW_TX/IR_SCOPE_ESPNOW_TX.ino"
+    ],
+    "occurrences": [
+      {
+        "commit": "3887f2afbcd7efd87dd5ec85c0c4ee9dc3209c1c",
+        "date": "2026-09-24T02:27:23Z",
+        "path": "firmware/programs/IR_SCOPE_ESPNOW/variants/IR_SCOPE_ESPNOW_TX/IR_SCOPE_ESPNOW_TX.ino",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "f7dfd53a5231372264f36688437971b4a65d4658",
+    "paths": [
+      "tools/test_ir_default_equivalence.cpp"
+    ],
+    "occurrences": [
+      {
+        "commit": "3887f2afbcd7efd87dd5ec85c0c4ee9dc3209c1c",
+        "date": "2026-09-24T02:27:23Z",
+        "path": "tools/test_ir_default_equivalence.cpp",
+        "change": "added",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "7fc0eb4e42791f86e53d4ffbddcaafd685bab952",
+    "paths": [
+      "tools/test_ir_stationary_revision.cpp"
+    ],
+    "occurrences": [
+      {
+        "commit": "3887f2afbcd7efd87dd5ec85c0c4ee9dc3209c1c",
+        "date": "2026-09-24T02:27:23Z",
+        "path": "tools/test_ir_stationary_revision.cpp",
+        "change": "added",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "c039bce7fab72d64e2398daa26fe591b7f3ceb03",
+    "paths": [
+      "docs/IR_TX_1_6_R2_INDEPENDENT_REREVIEW_20260923.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "0c236cdacd7b76ad4600349653f8ef6ef510fe91",
+        "date": "2026-09-24T02:30:25Z",
+        "path": "docs/IR_TX_1_6_R2_INDEPENDENT_REREVIEW_20260923.md",
+        "change": "added",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "340ab4473dd5821835c30cb286037d125c4385ee",
+    "paths": [
+      "docs/IR_TX_1_6_R2_REVIEW_RESPONSE_20260923.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "0c236cdacd7b76ad4600349653f8ef6ef510fe91",
+        "date": "2026-09-24T02:30:25Z",
+        "path": "docs/IR_TX_1_6_R2_REVIEW_RESPONSE_20260923.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "569b3d723f1276d31eebbed4e61249c36e86c493",
+    "paths": [
+      "firmware/README.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "0c236cdacd7b76ad4600349653f8ef6ef510fe91",
+        "date": "2026-09-24T02:30:25Z",
+        "path": "firmware/README.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "b6986d484ea806fabfae15fc161532aa7d53bc0a",
+    "paths": [
+      "docs/IR_TX_1_6_R2_FLASH_20260923.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "e0db6b0190991e8ec38632299c50a952f209cc8e",
+        "date": "2026-09-24T02:35:28Z",
+        "path": "docs/IR_TX_1_6_R2_FLASH_20260923.md",
+        "change": "added",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "0094e33ae09ce080bc823f469a2336fcc4905f8b",
+    "paths": [
+      "field-records/logs/20260923_ir_tx_1_6_r2_boot.log"
+    ],
+    "occurrences": [
+      {
+        "commit": "e0db6b0190991e8ec38632299c50a952f209cc8e",
+        "date": "2026-09-24T02:35:28Z",
+        "path": "field-records/logs/20260923_ir_tx_1_6_r2_boot.log",
+        "change": "added",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "5d8b19808aa0011aef762cd8f301fe3ec1d7a772",
+    "paths": [
+      "firmware/README.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "e0db6b0190991e8ec38632299c50a952f209cc8e",
+        "date": "2026-09-24T02:35:28Z",
+        "path": "firmware/README.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "21370bd85399cbb4e7939875b3c45b6bc47a223b",
+    "paths": [
+      "docs/IR_TX_R2_SHORT_ROLL_20260923.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "a42d7e489a0f4ec9067590b20ea5d064ad2aec28",
+        "date": "2026-09-24T02:37:50Z",
+        "path": "docs/IR_TX_R2_SHORT_ROLL_20260923.md",
+        "change": "added",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "e76d436ed06117c6761ffe44062d48d6d938f5d5",
+    "paths": [
+      "field-records/logs/20260923_ir_tx_r2_short_roll.log"
+    ],
+    "occurrences": [
+      {
+        "commit": "a42d7e489a0f4ec9067590b20ea5d064ad2aec28",
+        "date": "2026-09-24T02:37:50Z",
+        "path": "field-records/logs/20260923_ir_tx_r2_short_roll.log",
+        "change": "added",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "4c27d691747edc42ae3869b349a4c9b9f46eec56",
+    "paths": [
+      "docs/IR_TX_R2_STOP_WAVEFORM_20260923.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "01efacc12318fc21d7827e3d1eb74f060764fbd7",
+        "date": "2026-09-24T02:45:29Z",
+        "path": "docs/IR_TX_R2_STOP_WAVEFORM_20260923.md",
+        "change": "added",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "c88038134770e08856ca3b1470f05a0667f52cdb",
+    "paths": [
+      "field-records/logs/20260923_ir_r2_bench_radio.log.gz"
+    ],
+    "occurrences": [
+      {
+        "commit": "01efacc12318fc21d7827e3d1eb74f060764fbd7",
+        "date": "2026-09-24T02:45:29Z",
+        "path": "field-records/logs/20260923_ir_r2_bench_radio.log.gz",
+        "change": "added",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "344a5aec837676e6954d293fe621e204d1265e23",
+    "paths": [
+      "docs/IR_TX_R2_THREE_STOPS_20260923.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "19ecb088f99c396af7dc4909cd7e061b4d547641",
+        "date": "2026-09-24T03:13:39Z",
+        "path": "docs/IR_TX_R2_THREE_STOPS_20260923.md",
+        "change": "added",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "5894f68f056f7e096cd74c46316ebb5ba0fb2442",
+    "paths": [
+      "field-records/logs/20260923_ir_r2_pre_roll_wait.log"
+    ],
+    "occurrences": [
+      {
+        "commit": "19ecb088f99c396af7dc4909cd7e061b4d547641",
+        "date": "2026-09-24T03:13:39Z",
+        "path": "field-records/logs/20260923_ir_r2_pre_roll_wait.log",
+        "change": "added",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "6a598b639d7245349b08043ee050300876e50f3b",
+    "paths": [
+      "field-records/logs/20260923_ir_r2_three_stops_radio.log.gz"
+    ],
+    "occurrences": [
+      {
+        "commit": "19ecb088f99c396af7dc4909cd7e061b4d547641",
+        "date": "2026-09-24T03:13:39Z",
+        "path": "field-records/logs/20260923_ir_r2_three_stops_radio.log.gz",
+        "change": "added",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "ed657e75c706425275f31109ae52d5b1278e3580",
+    "paths": [
+      "firmware/README.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "19ecb088f99c396af7dc4909cd7e061b4d547641",
+        "date": "2026-09-24T03:13:39Z",
+        "path": "firmware/README.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "b1bb573a4fd24260a15c52b53da69067ce96584e",
+    "paths": [
+      "docs/IR_TX_R3_DESIGN_REVIEW_PROPOSAL_20260923.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "78c84d8875c2a9b448c3bcbc9a22a8763ed7cb84",
+        "date": "2026-09-24T03:28:01Z",
+        "path": "docs/IR_TX_R3_DESIGN_REVIEW_PROPOSAL_20260923.md",
+        "change": "added",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "bc3d637cfae2b80e878ef12c59503f187cf8f90f",
+    "paths": [
+      "tools/ir_raw_replay_input.py"
+    ],
+    "occurrences": [
+      {
+        "commit": "78c84d8875c2a9b448c3bcbc9a22a8763ed7cb84",
+        "date": "2026-09-24T03:28:01Z",
+        "path": "tools/ir_raw_replay_input.py",
+        "change": "added",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "e59e03b3ea93ab17a178424b8c2b6e22fa45ecbc",
+    "paths": [
+      "tools/replay_ir_detector_trace.cpp"
+    ],
+    "occurrences": [
+      {
+        "commit": "78c84d8875c2a9b448c3bcbc9a22a8763ed7cb84",
+        "date": "2026-09-24T03:28:01Z",
+        "path": "tools/replay_ir_detector_trace.cpp",
+        "change": "added",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "785b53bb045af5e86948c393caa53b55da6afa58",
+    "paths": [
+      "tools/test_ir_raw_replay_input.py"
+    ],
+    "occurrences": [
+      {
+        "commit": "78c84d8875c2a9b448c3bcbc9a22a8763ed7cb84",
+        "date": "2026-09-24T03:28:01Z",
+        "path": "tools/test_ir_raw_replay_input.py",
+        "change": "added",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "8991f51dcaf24df9de9a20388fe8f77988e2b384",
+    "paths": [
+      "tools/test_ir_stop_decay.cpp"
+    ],
+    "occurrences": [
+      {
+        "commit": "78c84d8875c2a9b448c3bcbc9a22a8763ed7cb84",
+        "date": "2026-09-24T03:28:01Z",
+        "path": "tools/test_ir_stop_decay.cpp",
+        "change": "added",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "92bd3682455973a3083d5b1dd696ac9f4f5ad6f8",
+    "paths": [
+      "docs/IR_TX_R2_BENCH_FAILURE_REVIEW_20260924.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "4f72f57ccdfcbe82f99c9ad93329c3c88cbd754c",
+        "date": "2026-09-24T03:55:27Z",
+        "path": "docs/IR_TX_R2_BENCH_FAILURE_REVIEW_20260924.md",
+        "change": "added",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "4fc4663b26c79926ade2ce120ee7bd14391911d3",
+    "paths": [
+      "tools/ir_bench_replay.h"
+    ],
+    "occurrences": [
+      {
+        "commit": "4f72f57ccdfcbe82f99c9ad93329c3c88cbd754c",
+        "date": "2026-09-24T03:55:27Z",
+        "path": "tools/ir_bench_replay.h",
+        "change": "added",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "8169a81428214b3dd3a913291eb22a3eb04d9894",
+    "paths": [
+      "tools/ir_r2_capture_extract.py"
+    ],
+    "occurrences": [
+      {
+        "commit": "4f72f57ccdfcbe82f99c9ad93329c3c88cbd754c",
+        "date": "2026-09-24T03:55:27Z",
+        "path": "tools/ir_r2_capture_extract.py",
+        "change": "added",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "6ba2f83f521d86c63c3831a0cc5765d6582151eb",
+    "paths": [
+      "tools/ir_r3_proposal/IrMovementDetector.h"
+    ],
+    "occurrences": [
+      {
+        "commit": "4f72f57ccdfcbe82f99c9ad93329c3c88cbd754c",
+        "date": "2026-09-24T03:55:27Z",
+        "path": "tools/ir_r3_proposal/IrMovementDetector.h",
+        "change": "added",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "40e56035d4e1e0c5de83193807d4a05ec28e26c9",
+    "paths": [
+      "tools/run_ir_r2_bench_review.sh"
+    ],
+    "occurrences": [
+      {
+        "commit": "4f72f57ccdfcbe82f99c9ad93329c3c88cbd754c",
+        "date": "2026-09-24T03:55:27Z",
+        "path": "tools/run_ir_r2_bench_review.sh",
+        "change": "added",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "cd79f346adb359a890e70e5483977d122565e3e0",
+    "paths": [
+      "tools/test_ir_fade_turning.cpp"
+    ],
+    "occurrences": [
+      {
+        "commit": "4f72f57ccdfcbe82f99c9ad93329c3c88cbd754c",
+        "date": "2026-09-24T03:55:27Z",
+        "path": "tools/test_ir_fade_turning.cpp",
+        "change": "added",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "94779a3d4b1b2fd3fc05490d3ea117766b696a33",
+    "paths": [
+      "tools/test_ir_r2_bench_replay.cpp"
+    ],
+    "occurrences": [
+      {
+        "commit": "4f72f57ccdfcbe82f99c9ad93329c3c88cbd754c",
+        "date": "2026-09-24T03:55:27Z",
+        "path": "tools/test_ir_r2_bench_replay.cpp",
+        "change": "added",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "80964da1135b7df7d1749422ff0bb85c9cad211c",
+    "paths": [
+      "tools/test_ir_r3_bench_replay.cpp"
+    ],
+    "occurrences": [
+      {
+        "commit": "4f72f57ccdfcbe82f99c9ad93329c3c88cbd754c",
+        "date": "2026-09-24T03:55:27Z",
+        "path": "tools/test_ir_r3_bench_replay.cpp",
+        "change": "added",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "20c1f3fbf81188ec6f738ac1b0f30dabcadd62ef",
+    "paths": [
+      "tools/test_ir_r3_proposal.cpp"
+    ],
+    "occurrences": [
+      {
+        "commit": "4f72f57ccdfcbe82f99c9ad93329c3c88cbd754c",
+        "date": "2026-09-24T03:55:27Z",
+        "path": "tools/test_ir_r3_proposal.cpp",
+        "change": "added",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "4907dbde4c2fe3ce42f6c2a8ef7909269bab06ac",
+    "paths": [
+      "tools/test_ir_stationary_revision.cpp"
+    ],
+    "occurrences": [
+      {
+        "commit": "4f72f57ccdfcbe82f99c9ad93329c3c88cbd754c",
+        "date": "2026-09-24T03:55:27Z",
+        "path": "tools/test_ir_stationary_revision.cpp",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "7a60c8d75b1b2ad48d87ea4c2b00affea2c33991",
+    "paths": [
+      "docs/NAVI_DECISIONAL_INERTIA_CLARIFICATION_20260923.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "ea031a7dbb23c6b4c9a918a649575e057ffad560",
+        "date": "2026-09-24T04:26:16Z",
+        "path": "docs/NAVI_DECISIONAL_INERTIA_CLARIFICATION_20260923.md",
+        "change": "added",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "0d4f58fc1dd2f946a4be7edbeed6b45320a7d916",
+    "paths": [
+      "docs/NAVI_DECISIONAL_INERTIA_OPERATOR_TEXT_20260923.txt"
+    ],
+    "occurrences": [
+      {
+        "commit": "ea031a7dbb23c6b4c9a918a649575e057ffad560",
+        "date": "2026-09-24T04:26:16Z",
+        "path": "docs/NAVI_DECISIONAL_INERTIA_OPERATOR_TEXT_20260923.txt",
+        "change": "added",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "b60289fb150e62f99eafcb2495c73affd25a6f27",
+    "paths": [
+      "tools/test_nav_decisional_inertia.cpp"
+    ],
+    "occurrences": [
+      {
+        "commit": "ea031a7dbb23c6b4c9a918a649575e057ffad560",
+        "date": "2026-09-24T04:26:16Z",
+        "path": "tools/test_nav_decisional_inertia.cpp",
+        "change": "added",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "e37046bdead68cda0b112b81a0c239d96dc009f8",
+    "paths": [
+      "docs/NAVI_STOP_DISPLAY_20260923.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "427c68bf8b0e4cb90d4c8458ad50cbe1364b93ed",
+        "date": "2026-09-24T04:49:19Z",
+        "path": "docs/NAVI_STOP_DISPLAY_20260923.md",
+        "change": "added",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "661616c420f14e7af40b67f717ac4079db3bf530",
+    "paths": [
+      "docs/decisions/0100-navi-interprets-speed-for-the-operator.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "427c68bf8b0e4cb90d4c8458ad50cbe1364b93ed",
+        "date": "2026-09-24T04:49:19Z",
+        "path": "docs/decisions/0100-navi-interprets-speed-for-the-operator.md",
+        "change": "added",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "1c178a225f2781586e235753202e48ae0c29dc00",
+    "paths": [
+      "firmware/README.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "427c68bf8b0e4cb90d4c8458ad50cbe1364b93ed",
+        "date": "2026-09-24T04:49:19Z",
+        "path": "firmware/README.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "058e1baf6eca1c519be6cdf9c95745453c67f169",
+    "paths": [
+      "firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_HEALTH/IrSpeedTelemetry.h",
+      "firmware/programs/NAVI_COHERENCE/variants/NAVI_EYES_WIDE_OPEN/IrSpeedTelemetry.h"
+    ],
+    "occurrences": [
+      {
+        "commit": "427c68bf8b0e4cb90d4c8458ad50cbe1364b93ed",
+        "date": "2026-09-24T04:49:19Z",
+        "path": "firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_HEALTH/IrSpeedTelemetry.h",
+        "change": "modified",
+        "previous_path": null
+      },
+      {
+        "commit": "93af2267f1a4609edeca57aecec4b69278e6097d",
+        "date": "2026-09-28T22:10:38Z",
+        "path": "firmware/programs/NAVI_COHERENCE/variants/NAVI_EYES_WIDE_OPEN/IrSpeedTelemetry.h",
+        "change": "added",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "183dbb1cc9c8259ba7f0b6c9ca530b87b2e00430",
+    "paths": [
+      "firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_HEALTH/NAVI_COHERENCE_0_6_IR_HEALTH.ino"
+    ],
+    "occurrences": [
+      {
+        "commit": "427c68bf8b0e4cb90d4c8458ad50cbe1364b93ed",
+        "date": "2026-09-24T04:49:19Z",
+        "path": "firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_HEALTH/NAVI_COHERENCE_0_6_IR_HEALTH.ino",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "73de5f4aa2e9ee400e8a9cc99cdcb06ccc50a37f",
+    "paths": [
+      "firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_HEALTH/tests/test_navi_stop_display.cpp",
+      "firmware/programs/NAVI_COHERENCE/variants/NAVI_EYES_WIDE_OPEN/tests/test_navi_stop_display.cpp"
+    ],
+    "occurrences": [
+      {
+        "commit": "427c68bf8b0e4cb90d4c8458ad50cbe1364b93ed",
+        "date": "2026-09-24T04:49:19Z",
+        "path": "firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_HEALTH/tests/test_navi_stop_display.cpp",
+        "change": "added",
+        "previous_path": null
+      },
+      {
+        "commit": "93af2267f1a4609edeca57aecec4b69278e6097d",
+        "date": "2026-09-28T22:10:38Z",
+        "path": "firmware/programs/NAVI_COHERENCE/variants/NAVI_EYES_WIDE_OPEN/tests/test_navi_stop_display.cpp",
+        "change": "added",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "76d159b1998f2f59ea6735cf74040ae4335d7ec6",
+    "paths": [
+      "server/ngr_app_v1_11_2.py"
+    ],
+    "occurrences": [
+      {
+        "commit": "427c68bf8b0e4cb90d4c8458ad50cbe1364b93ed",
+        "date": "2026-09-24T04:49:19Z",
+        "path": "server/ngr_app_v1_11_2.py",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "82873c5de0455820fe84784d43ba38abdda26c2a",
+    "paths": [
+      "server/tests/test_ir_speed_dashboard.py"
+    ],
+    "occurrences": [
+      {
+        "commit": "427c68bf8b0e4cb90d4c8458ad50cbe1364b93ed",
+        "date": "2026-09-24T04:49:19Z",
+        "path": "server/tests/test_ir_speed_dashboard.py",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "6b71e1f7db788bec2f14a353bac57694393f1fbf",
+    "paths": [
+      "docs/NAVI_STOP_DISPLAY_20260923.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "ab13dbb8f828b1c3be0e70c8a500b143be108804",
+        "date": "2026-09-24T04:57:50Z",
+        "path": "docs/NAVI_STOP_DISPLAY_20260923.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "73dd917e5194cabc2d48af9b4f628ab9bf6459a4",
+    "paths": [
+      "docs/NAVI_STOP_DISPLAY_CLEARANCE_AND_DEPLOYMENT_20260923.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "ab13dbb8f828b1c3be0e70c8a500b143be108804",
+        "date": "2026-09-24T04:57:50Z",
+        "path": "docs/NAVI_STOP_DISPLAY_CLEARANCE_AND_DEPLOYMENT_20260923.md",
+        "change": "added",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "ef68bba670684faf4bd2c8676e35655e8823b2dd",
+    "paths": [
+      "firmware/README.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "ab13dbb8f828b1c3be0e70c8a500b143be108804",
+        "date": "2026-09-24T04:57:50Z",
+        "path": "firmware/README.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  }
+]

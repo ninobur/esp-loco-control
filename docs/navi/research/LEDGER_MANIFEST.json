@@ -1,0 +1,33 @@
+{
+  "schema": 1,
+  "snapshot_date": "2026-10-12",
+  "revision_key": "Git blob SHA-1; paths and distinct revisions retained",
+  "parts": [
+    "ledger/000.json",
+    "ledger/001.json",
+    "ledger/002.json",
+    "ledger/003.json",
+    "ledger/004.json",
+    "ledger/005.json",
+    "ledger/006.json",
+    "ledger/007.json",
+    "ledger/008.json",
+    "ledger/009.json",
+    "ledger/010.json",
+    "ledger/011.json",
+    "ledger/012.json",
+    "ledger/013.json",
+    "ledger/014.json",
+    "ledger/015.json",
+    "ledger/016.json"
+  ],
+  "revisions": 1653,
+  "paths": 1371,
+  "review_status": {
+    "PENDING": 1598,
+    "FULLY_REVIEWED": 54,
+    "PARTIALLY_REVIEWED": 1
+  },
+  "verified_cache_contents_at_execution": 1128,
+  "warning": "Cached content availability describes transient execution scratch, not durable content. Fetch immutable Git blobs by SHA when resuming. Full changed-content inventory; embedded source archive expansion and unmodified dependency closure remain incomplete."
+}

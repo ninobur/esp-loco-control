@@ -1,0 +1,81 @@
+Exactly. That is the correct navigation model.
+
+A locomotive should not “forget where it is” just because throttle goes to zero or direction changes. Position changes only when the Hall sensor detects a magnet.
+
+The rule should be:
+
+Stopped:
+  retain current MM
+  retain current truth lock
+  retain last confirmed anchor
+  do not advance or reset location
+Direction command changes:
+  retain current MM
+  change travel interpretation
+  next magnet is evaluated in the new direction
+Next magnet after reverse:
+  should be one of the recently passed markers
+  use it to validate that backing has begun
+
+So if the train is here:
+
+current = MM122
+direction = clockwise
+
+and then it stops and reverses, it should still believe:
+
+current = MM122
+direction = counterclockwise
+
+Then the next detected ordinary magnet should move the map backward:
+
+MM121
+MM120
+MM119
+
+That is not a loss of confidence. It is confirmation. Seeing the same neighborhood in reverse is useful evidence.
+
+The important distinction:
+
+Direction changes the meaning of the next magnet.
+Direction does not invalidate the last known position.
+
+Truth points should correct accumulated error, not be required for an intentional reverse move. The next version should treat reverse travel as normal map traversal in the opposite direction, not as a SEEKING state.
+
+I can incorporate it in the next firmware pass: 2.0e.
+
+I would not fold it casually into 2.0d, because this is not just display cleanup. It changes the navigation state model. It deserves its own version.
+
+2.0e target change:
+
+STOP does not alter location.
+Direction change does not clear location.
+Current MM remains established.
+Next magnet is interpreted according to the new travel direction.
+Backing over recently passed magnets validates position.
+Truth point is not required after reversal.
+
+Expected behavior:
+
+MM122 N  STOP
+DIR=REVERSE
+MM121 S  REVERSING
+MM120 N
+MM119 N
+
+instead of continuing forward or dropping into SEEKING.
+
+I would build 2.0e from 2.0d, keeping:
+
+dt / expected / ratio / class
+1.5× pKPH display
+diagnostic MQTT feed
+quieter mm/pos
+
+and adding:
+
+reverse-aware MM counting
+retained position through stop
+reverse validation using recently passed magnets
+
+This is probably the next highest-value firmware change before adding the new truth points.

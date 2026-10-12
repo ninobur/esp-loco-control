@@ -1,0 +1,2146 @@
+[
+  {
+    "blob_sha": "ba0b35e4ac81aa1bcdfc75dd058fe92de4e4926b",
+    "paths": [
+      "firmware/programs/NAVI_ONE/variants/NAVI_ONE_X18_RECORDER/tests/replay_polarity_survey.cpp",
+      "firmware/programs/NAVI_ONE/variants/NAVI_ONE/tests/replay_polarity_survey.cpp",
+      "firmware/programs/NAVI_ONE/variants/NAVI_ONE_STATION_CURVES/tests/replay_polarity_survey.cpp"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/NAVI_ONE/variants/NAVI_ONE_X18_RECORDER/tests/replay_polarity_survey.cpp",
+        "change": "renamed",
+        "previous_path": "firmware/test-programs/NAVI_ONE_X18_RECORDER/tests/replay_polarity_survey.cpp"
+      },
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/NAVI_ONE/variants/NAVI_ONE/tests/replay_polarity_survey.cpp",
+        "change": "renamed",
+        "previous_path": "firmware/test-programs/NAVI_ONE/tests/replay_polarity_survey.cpp"
+      },
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/NAVI_ONE/variants/NAVI_ONE_STATION_CURVES/tests/replay_polarity_survey.cpp",
+        "change": "renamed",
+        "previous_path": "firmware/test-programs/NAVI_ONE_STATION_CURVES/tests/replay_polarity_survey.cpp"
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "dd64e0704787474afc9c26ae13cffa5f17fdc566",
+    "paths": [
+      "firmware/programs/NAVI_ONE/variants/NAVI_ONE_X18_RECORDER/tests/replay_station_run.cpp",
+      "firmware/programs/NAVI_ONE/variants/NAVI_ONE/tests/replay_station_run.cpp"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/NAVI_ONE/variants/NAVI_ONE_X18_RECORDER/tests/replay_station_run.cpp",
+        "change": "renamed",
+        "previous_path": "firmware/test-programs/NAVI_ONE_X18_RECORDER/tests/replay_station_run.cpp"
+      },
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/NAVI_ONE/variants/NAVI_ONE/tests/replay_station_run.cpp",
+        "change": "renamed",
+        "previous_path": "firmware/test-programs/NAVI_ONE/tests/replay_station_run.cpp"
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "5d85655b3e26a6fc3e31360d28ddb4665e767598",
+    "paths": [
+      "firmware/programs/NAVI_ONE/variants/NAVI_ONE_X18_RECORDER/tests/replay_survey.cpp",
+      "firmware/programs/NAVI_ONE/variants/NAVI_ONE/tests/replay_survey.cpp"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/NAVI_ONE/variants/NAVI_ONE_X18_RECORDER/tests/replay_survey.cpp",
+        "change": "renamed",
+        "previous_path": "firmware/test-programs/NAVI_ONE_X18_RECORDER/tests/replay_survey.cpp"
+      },
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/NAVI_ONE/variants/NAVI_ONE/tests/replay_survey.cpp",
+        "change": "renamed",
+        "previous_path": "firmware/test-programs/NAVI_ONE/tests/replay_survey.cpp"
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "7d1b569c7886f34d12be48028994bb33215c37f7",
+    "paths": [
+      "firmware/programs/NAVI_ONE/variants/NAVI_ONE_X18_RECORDER/tests/run_tests.sh"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/NAVI_ONE/variants/NAVI_ONE_X18_RECORDER/tests/run_tests.sh",
+        "change": "renamed",
+        "previous_path": "firmware/test-programs/NAVI_ONE_X18_RECORDER/tests/run_tests.sh"
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "1c26e33306aa7c578e9898b7864250aaaa63b998",
+    "paths": [
+      "firmware/programs/NAVI_ONE/variants/NAVI_ONE_X19/ExcursionDetector.h"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/NAVI_ONE/variants/NAVI_ONE_X19/ExcursionDetector.h",
+        "change": "renamed",
+        "previous_path": "firmware/test-programs/NAVI_ONE_X19/ExcursionDetector.h"
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "a78ff5f35bf577130f59ccaeea141e568dbd7c04",
+    "paths": [
+      "firmware/programs/NAVI_ONE/variants/NAVI_ONE_X19/LocoConfig.h",
+      "firmware/programs/NAVI_ONE/variants/NAVI_ONE_X20/LocoConfig.h",
+      "firmware/programs/NAVI_ONE/variants/NAVI_ONE/LocoConfig.h",
+      "firmware/programs/NAVI_ONE/variants/NAVI_ONE_X18_RECORDER/LocoConfig.h"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/NAVI_ONE/variants/NAVI_ONE_X19/LocoConfig.h",
+        "change": "renamed",
+        "previous_path": "firmware/test-programs/NAVI_ONE/LocoConfig.h"
+      },
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/NAVI_ONE/variants/NAVI_ONE_X20/LocoConfig.h",
+        "change": "renamed",
+        "previous_path": "firmware/test-programs/NAVI_ONE_X19/LocoConfig.h"
+      },
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/NAVI_ONE/variants/NAVI_ONE/LocoConfig.h",
+        "change": "renamed",
+        "previous_path": "firmware/test-programs/NAVI_ONE_X20/LocoConfig.h"
+      },
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/NAVI_ONE/variants/NAVI_ONE_X18_RECORDER/LocoConfig.h",
+        "change": "renamed",
+        "previous_path": "firmware/test-programs/NAVI_ONE_X18_RECORDER/LocoConfig.h"
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "2911f8a98cc4765d77ea3445b25f13f7aef78ba1",
+    "paths": [
+      "firmware/programs/NAVI_ONE/variants/NAVI_ONE_X19/NAVI_ONE_X19.ino"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/NAVI_ONE/variants/NAVI_ONE_X19/NAVI_ONE_X19.ino",
+        "change": "renamed",
+        "previous_path": "firmware/test-programs/NAVI_ONE_X19/NAVI_ONE_X19.ino"
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "1a89d8ece488989ba51651281493b345c5716459",
+    "paths": [
+      "firmware/programs/NAVI_ONE/variants/NAVI_ONE_X19/tests/check_payload_bounds.py"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/NAVI_ONE/variants/NAVI_ONE_X19/tests/check_payload_bounds.py",
+        "change": "renamed",
+        "previous_path": "firmware/test-programs/NAVI_ONE_X19/tests/check_payload_bounds.py"
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "d4a02dfa8176d7b7f2c362f333be790e9ca6c454",
+    "paths": [
+      "firmware/programs/NAVI_ONE/variants/NAVI_ONE_X19/tests/gate_excursion.cpp"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/NAVI_ONE/variants/NAVI_ONE_X19/tests/gate_excursion.cpp",
+        "change": "renamed",
+        "previous_path": "firmware/test-programs/NAVI_ONE_X19/tests/gate_excursion.cpp"
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "49fbadef6267e378b32bbd960c4fbba5596409b1",
+    "paths": [
+      "firmware/programs/NAVI_ONE/variants/NAVI_ONE_X19/tests/replay_x19_20260915.cpp"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/NAVI_ONE/variants/NAVI_ONE_X19/tests/replay_x19_20260915.cpp",
+        "change": "renamed",
+        "previous_path": "firmware/test-programs/NAVI_ONE_X19/tests/replay_x19_20260915.cpp"
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "af7890d64c3e51b6d7a30cee56067537b3085bd7",
+    "paths": [
+      "firmware/programs/NAVI_ONE/variants/NAVI_ONE_X19/tests/run_tests.sh"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/NAVI_ONE/variants/NAVI_ONE_X19/tests/run_tests.sh",
+        "change": "renamed",
+        "previous_path": "firmware/test-programs/NAVI_ONE_X19/tests/run_tests.sh"
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "3af92efe3969f7d783abc66a47231dbcf413218d",
+    "paths": [
+      "firmware/programs/NAVI_ONE/variants/NAVI_ONE_X20/ExcursionDetector.h"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/NAVI_ONE/variants/NAVI_ONE_X20/ExcursionDetector.h",
+        "change": "renamed",
+        "previous_path": "firmware/test-programs/NAVI_ONE_X20/ExcursionDetector.h"
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "d6a6591550b35882480ad3741a2ca64a0cd6f4bf",
+    "paths": [
+      "firmware/programs/NAVI_ONE/variants/NAVI_ONE_X20/NAVI_ONE_X20.ino"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/NAVI_ONE/variants/NAVI_ONE_X20/NAVI_ONE_X20.ino",
+        "change": "renamed",
+        "previous_path": "firmware/test-programs/NAVI_ONE_X20/NAVI_ONE_X20.ino"
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "297d693d23fa074d6513de4aed689456ed512302",
+    "paths": [
+      "firmware/programs/NAVI_ONE/variants/NAVI_ONE_X20/tests/check_payload_bounds.py"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/NAVI_ONE/variants/NAVI_ONE_X20/tests/check_payload_bounds.py",
+        "change": "renamed",
+        "previous_path": "firmware/test-programs/NAVI_ONE_X20/tests/check_payload_bounds.py"
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "ffcd044e784143488be478f6626986da3bf704c4",
+    "paths": [
+      "firmware/programs/NAVI_ONE/variants/NAVI_ONE_X20/tests/gate_excursion.cpp"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/NAVI_ONE/variants/NAVI_ONE_X20/tests/gate_excursion.cpp",
+        "change": "renamed",
+        "previous_path": "firmware/test-programs/NAVI_ONE_X20/tests/gate_excursion.cpp"
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "a24b8f97b2baf91872e7d211e53e275f38866786",
+    "paths": [
+      "firmware/programs/NAVI_ONE/variants/NAVI_ONE_X20/tests/replay_x20_20260915.cpp"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/NAVI_ONE/variants/NAVI_ONE_X20/tests/replay_x20_20260915.cpp",
+        "change": "renamed",
+        "previous_path": "firmware/test-programs/NAVI_ONE_X20/tests/replay_x20_20260915.cpp"
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "2e466b8d9fe337f0e274f71b01065df809b9ada9",
+    "paths": [
+      "firmware/programs/NAVI_ONE/variants/NAVI_ONE_X20/tests/run_tests.sh"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/NAVI_ONE/variants/NAVI_ONE_X20/tests/run_tests.sh",
+        "change": "renamed",
+        "previous_path": "firmware/test-programs/NAVI_ONE_X20/tests/run_tests.sh"
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "012563b329b964b75fab43e7d76c9e5de0dee43e",
+    "paths": [
+      "firmware/programs/NAVI_ONE/variants/NAVI_ONE_X22/LocoConfig.h"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/NAVI_ONE/variants/NAVI_ONE_X22/LocoConfig.h",
+        "change": "renamed",
+        "previous_path": "firmware/test-programs/NAVI_ONE_X22/LocoConfig.h"
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "dcdccca4c49314b45c003d8195a006fd670efe44",
+    "paths": [
+      "firmware/programs/NAVI_SIMPLIFIED/LL_LocoConfig_9950011.h"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/NAVI_SIMPLIFIED/LL_LocoConfig_9950011.h",
+        "change": "renamed",
+        "previous_path": "firmware/test-programs/NAVI_SIMPLIFIED/LL_LocoConfig_9950011.h"
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "6fbbc2e7115011e064b2a616526f77dad4c21b85",
+    "paths": [
+      "firmware/programs/NAVI_SIMPLIFIED/LL_LocoConfig_9950012.h"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/NAVI_SIMPLIFIED/LL_LocoConfig_9950012.h",
+        "change": "renamed",
+        "previous_path": "firmware/test-programs/NAVI_SIMPLIFIED/LL_LocoConfig_9950012.h"
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "1229ce68dd2f639c7c155401e55b2f486e5c30da",
+    "paths": [
+      "firmware/programs/NAVI_SIMPLIFIED/NAVI_SIMPLIFIED.ino"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/NAVI_SIMPLIFIED/NAVI_SIMPLIFIED.ino",
+        "change": "renamed",
+        "previous_path": "firmware/test-programs/NAVI_SIMPLIFIED/NAVI_SIMPLIFIED.ino"
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "6df25bca23804159844a6e2cbfd353eba5b088c1",
+    "paths": [
+      "firmware/programs/QUORUM/LL_LocoConfig_9950011.h"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/QUORUM/LL_LocoConfig_9950011.h",
+        "change": "renamed",
+        "previous_path": "firmware/QUORUM/LL_LocoConfig_9950011.h"
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "f2b8558ec69e483a9e986d73522d7c45ed36d578",
+    "paths": [
+      "firmware/programs/QUORUM/LL_LocoConfig_9950012.h",
+      "firmware/programs/NAVI_2/LL_LocoConfig_9950012.h",
+      "firmware/programs/NAVI_CL2/LL_LocoConfig_9950012.h"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/QUORUM/LL_LocoConfig_9950012.h",
+        "change": "renamed",
+        "previous_path": "firmware/test-programs/NAVI_CL2/LL_LocoConfig_9950012.h"
+      },
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/NAVI_2/LL_LocoConfig_9950012.h",
+        "change": "renamed",
+        "previous_path": "firmware/QUORUM/LL_LocoConfig_9950012.h"
+      },
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/NAVI_CL2/LL_LocoConfig_9950012.h",
+        "change": "renamed",
+        "previous_path": "firmware/test-programs/NAVI_2/LL_LocoConfig_9950012.h"
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "24a68df83458f36bf0a935113b4a0999b15b6da4",
+    "paths": [
+      "firmware/programs/QUORUM/LocoConfig.h",
+      "firmware/programs/NAVI_CL2/LocoConfig.h"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/QUORUM/LocoConfig.h",
+        "change": "renamed",
+        "previous_path": "firmware/QUORUM/LocoConfig.h"
+      },
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/NAVI_CL2/LocoConfig.h",
+        "change": "renamed",
+        "previous_path": "firmware/test-programs/NAVI_CL2/LocoConfig.h"
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "be580f88a625b4cf2831d7da39e38e935af48231",
+    "paths": [
+      "firmware/programs/QUORUM/QUORUM.ino"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/QUORUM/QUORUM.ino",
+        "change": "renamed",
+        "previous_path": "firmware/QUORUM/QUORUM.ino"
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "63d64716e40666abef26b4389404da7f78d8c25a",
+    "paths": [
+      "firmware/programs/QUORUM/tests/.gitignore",
+      "firmware/programs/QUORUM/variants/QUORUM_1_13D/tests/.gitignore",
+      "firmware/programs/QUORUM/variants/QUORUM_1_13X/tests/.gitignore"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/QUORUM/tests/.gitignore",
+        "change": "renamed",
+        "previous_path": "firmware/QUORUM/tests/.gitignore"
+      },
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/QUORUM/variants/QUORUM_1_13D/tests/.gitignore",
+        "change": "renamed",
+        "previous_path": "firmware/test-programs/QUORUM_1_13D/tests/.gitignore"
+      },
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/QUORUM/variants/QUORUM_1_13X/tests/.gitignore",
+        "change": "renamed",
+        "previous_path": "firmware/test-programs/QUORUM_1_13X/tests/.gitignore"
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "2ac10dba75770c64461a519c09c95d890dd3060a",
+    "paths": [
+      "firmware/programs/QUORUM/tests/README.md",
+      "firmware/programs/QUORUM/variants/QUORUM_1_13D/tests/README.md",
+      "firmware/programs/QUORUM/variants/QUORUM_1_13X/tests/README.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/QUORUM/tests/README.md",
+        "change": "renamed",
+        "previous_path": "firmware/QUORUM/tests/README.md"
+      },
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/QUORUM/variants/QUORUM_1_13D/tests/README.md",
+        "change": "renamed",
+        "previous_path": "firmware/test-programs/QUORUM_1_13D/tests/README.md"
+      },
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/QUORUM/variants/QUORUM_1_13X/tests/README.md",
+        "change": "renamed",
+        "previous_path": "firmware/test-programs/QUORUM_1_13X/tests/README.md"
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "25cc22f1dc9e33126dedd352ef342936ea1b327b",
+    "paths": [
+      "firmware/programs/QUORUM/tests/extract_fixture.py",
+      "firmware/programs/QUORUM/variants/QUORUM_1_13D/tests/extract_fixture.py",
+      "firmware/programs/QUORUM/variants/QUORUM_1_13X/tests/extract_fixture.py"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/QUORUM/tests/extract_fixture.py",
+        "change": "renamed",
+        "previous_path": "firmware/QUORUM/tests/extract_fixture.py"
+      },
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/QUORUM/variants/QUORUM_1_13D/tests/extract_fixture.py",
+        "change": "renamed",
+        "previous_path": "firmware/test-programs/QUORUM_1_13D/tests/extract_fixture.py"
+      },
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/QUORUM/variants/QUORUM_1_13X/tests/extract_fixture.py",
+        "change": "renamed",
+        "previous_path": "firmware/test-programs/QUORUM_1_13X/tests/extract_fixture.py"
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "e228d0752674e5588168d50fd28a707dd72afc16",
+    "paths": [
+      "firmware/programs/QUORUM/tests/extract_session.py"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/QUORUM/tests/extract_session.py",
+        "change": "renamed",
+        "previous_path": "firmware/QUORUM/tests/extract_session.py"
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "a5be3cb3d7aa8a79026528a9a9c45cd5da9e2e6e",
+    "paths": [
+      "firmware/programs/QUORUM/tests/harness.cpp"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/QUORUM/tests/harness.cpp",
+        "change": "renamed",
+        "previous_path": "firmware/QUORUM/tests/harness.cpp"
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "0c24c3e00b620788f2bab0610556fe7a155c2d22",
+    "paths": [
+      "firmware/programs/QUORUM/tests/make_synthetic.py"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/QUORUM/tests/make_synthetic.py",
+        "change": "renamed",
+        "previous_path": "firmware/QUORUM/tests/make_synthetic.py"
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "c668af731c1751d8c4bd795519de2ec1050f7c8c",
+    "paths": [
+      "firmware/programs/QUORUM/tests/qrun.py"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/QUORUM/tests/qrun.py",
+        "change": "renamed",
+        "previous_path": "firmware/QUORUM/tests/qrun.py"
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "ada3d6fdbbe0d41b45d8fef2c5506aa1696a557d",
+    "paths": [
+      "firmware/programs/QUORUM/tests/replay_matrix.py"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/QUORUM/tests/replay_matrix.py",
+        "change": "renamed",
+        "previous_path": "firmware/QUORUM/tests/replay_matrix.py"
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "e37a898f01f43065c716a5912b386b811210d58d",
+    "paths": [
+      "firmware/programs/QUORUM/tests/results_20260821_holdout_adjudication.json"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/QUORUM/tests/results_20260821_holdout_adjudication.json",
+        "change": "renamed",
+        "previous_path": "firmware/QUORUM/tests/results_20260821_holdout_adjudication.json"
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "e382d7a44c9211004c8ed577900251ae25a63090",
+    "paths": [
+      "firmware/programs/QUORUM/tests/results_20260821_holdout_matrix.json"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/QUORUM/tests/results_20260821_holdout_matrix.json",
+        "change": "renamed",
+        "previous_path": "firmware/QUORUM/tests/results_20260821_holdout_matrix.json"
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "0ff26f96ba2300f4284fa71e3debdc9fb667c651",
+    "paths": [
+      "firmware/programs/QUORUM/tests/results_20260821_shadow_matrix.txt"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/QUORUM/tests/results_20260821_shadow_matrix.txt",
+        "change": "renamed",
+        "previous_path": "firmware/QUORUM/tests/results_20260821_shadow_matrix.txt"
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "0f99375e173b8ccfd556e3eef8f6c90cfa684ab8",
+    "paths": [
+      "firmware/programs/QUORUM/tests/run_suite.py"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/QUORUM/tests/run_suite.py",
+        "change": "renamed",
+        "previous_path": "firmware/QUORUM/tests/run_suite.py"
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "25095456c7119c0b0a5a03095d51b04175204d6d",
+    "paths": [
+      "firmware/programs/QUORUM/tests/shim/Adafruit_INA219.h",
+      "firmware/programs/QUORUM/variants/QUORUM_1_13D/tests/shim/Adafruit_INA219.h",
+      "firmware/programs/QUORUM/variants/QUORUM_1_13X/tests/shim/Adafruit_INA219.h"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/QUORUM/tests/shim/Adafruit_INA219.h",
+        "change": "renamed",
+        "previous_path": "firmware/QUORUM/tests/shim/Adafruit_INA219.h"
+      },
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/QUORUM/variants/QUORUM_1_13D/tests/shim/Adafruit_INA219.h",
+        "change": "renamed",
+        "previous_path": "firmware/test-programs/QUORUM_1_13D/tests/shim/Adafruit_INA219.h"
+      },
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/QUORUM/variants/QUORUM_1_13X/tests/shim/Adafruit_INA219.h",
+        "change": "renamed",
+        "previous_path": "firmware/test-programs/QUORUM_1_13X/tests/shim/Adafruit_INA219.h"
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "12ee117309e37b473fa29452dacf3fb022d76642",
+    "paths": [
+      "firmware/programs/QUORUM/tests/shim/Arduino.h"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/QUORUM/tests/shim/Arduino.h",
+        "change": "renamed",
+        "previous_path": "firmware/QUORUM/tests/shim/Arduino.h"
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "e78c5d92fb6684b2d652ccea3ed10c64fc463755",
+    "paths": [
+      "firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_3/NAVI_COHERENCE_0_3.ino"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_3/NAVI_COHERENCE_0_3.ino",
+        "change": "renamed",
+        "previous_path": "firmware/NAVI_COHERENCE/NAVI_COHERENCE_0_3/NAVI_COHERENCE_0_3.ino"
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "ad44ad0e3d079c1753c8708a85a49d1ebfdb4f73",
+    "paths": [
+      "firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_4/HallObserver.h",
+      "firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_5_AUTO_ENABLED/HallObserver.h",
+      "firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_HEALTH/HallObserver.h"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_4/HallObserver.h",
+        "change": "renamed",
+        "previous_path": "firmware/test-programs/NAVI_COHERENCE_0_5_AUTO_ENABLED/HallObserver.h"
+      },
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_5_AUTO_ENABLED/HallObserver.h",
+        "change": "renamed",
+        "previous_path": "firmware/test-programs/NAVI_IR/HallObserver.h"
+      },
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_HEALTH/HallObserver.h",
+        "change": "renamed",
+        "previous_path": "firmware/test-programs/NAVI_COHERENCE_0_6_IR_HEALTH/HallObserver.h"
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "7f8b3b031f93d2b6bac026ed8f156804956f7db6",
+    "paths": [
+      "firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_4/LocoConfig.h",
+      "firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_5_AUTO_ENABLED/LocoConfig.h",
+      "firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_HEALTH/LocoConfig.h"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_4/LocoConfig.h",
+        "change": "renamed",
+        "previous_path": "firmware/test-programs/NAVI_COHERENCE_0_6_IR_HEALTH/LocoConfig.h"
+      },
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_5_AUTO_ENABLED/LocoConfig.h",
+        "change": "renamed",
+        "previous_path": "firmware/test-programs/NAVI_COHERENCE_0_5_AUTO_ENABLED/LocoConfig.h"
+      },
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_HEALTH/LocoConfig.h",
+        "change": "renamed",
+        "previous_path": "firmware/test-programs/NAVI_IR/LocoConfig.h"
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "29c1112fd3e36a493572a1b5bf72271071be00d4",
+    "paths": [
+      "firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_4/MovementEvidence.h",
+      "firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_5_AUTO_ENABLED/MovementEvidence.h",
+      "firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_HEALTH/MovementEvidence.h"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_4/MovementEvidence.h",
+        "change": "renamed",
+        "previous_path": "firmware/test-programs/NAVI_COHERENCE_0_6_IR_HEALTH/MovementEvidence.h"
+      },
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_5_AUTO_ENABLED/MovementEvidence.h",
+        "change": "renamed",
+        "previous_path": "firmware/test-programs/NAVI_COHERENCE_0_5_AUTO_ENABLED/MovementEvidence.h"
+      },
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_HEALTH/MovementEvidence.h",
+        "change": "renamed",
+        "previous_path": "firmware/test-programs/NAVI_IR/MovementEvidence.h"
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "303f11c745305c5497ca891a38c2a1f58621d731",
+    "paths": [
+      "firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_4/NAVI_COHERENCE_0_4.ino",
+      "firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_4_PATCH_SOURCE/NAVI_COHERENCE_0_4.ino"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_4/NAVI_COHERENCE_0_4.ino",
+        "change": "renamed",
+        "previous_path": "firmware/test-programs/NAVI_COHERENCE_0_4/NAVI_COHERENCE_0_4.ino"
+      },
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_4_PATCH_SOURCE/NAVI_COHERENCE_0_4.ino",
+        "change": "renamed",
+        "previous_path": "firmware/NAVI_COHERENCE/NAVI_COHERENCE_0_4/NAVI_COHERENCE_0_4.ino"
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "b5d2f0f3dab683ce4986956e583186df7d9b2d65",
+    "paths": [
+      "firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_4/README.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_4/README.md",
+        "change": "renamed",
+        "previous_path": "firmware/test-programs/NAVI_COHERENCE_0_4/README.md"
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "22929c443346a41e059bd5c4e2d98b85effec221",
+    "paths": [
+      "firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_5_AUTO_ENABLED/NAVI_COHERENCE_0_5_AUTO_ENABLED.ino"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_5_AUTO_ENABLED/NAVI_COHERENCE_0_5_AUTO_ENABLED.ino",
+        "change": "renamed",
+        "previous_path": "firmware/test-programs/NAVI_COHERENCE_0_5_AUTO_ENABLED/NAVI_COHERENCE_0_5_AUTO_ENABLED.ino"
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "6f5e2d8ae5d0466347bdfea2e2dc024173ebf416",
+    "paths": [
+      "firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_HEALTH/IrHealthMonitor.h"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_HEALTH/IrHealthMonitor.h",
+        "change": "renamed",
+        "previous_path": "firmware/test-programs/NAVI_COHERENCE_0_6_IR_HEALTH/IrHealthMonitor.h"
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "61cf0d8e54899b82a79e9429bef99c6cde17e23c",
+    "paths": [
+      "firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_HEALTH/NAVI_COHERENCE_0_6_IR_HEALTH.ino"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_HEALTH/NAVI_COHERENCE_0_6_IR_HEALTH.ino",
+        "change": "renamed",
+        "previous_path": "firmware/test-programs/NAVI_COHERENCE_0_6_IR_HEALTH/NAVI_COHERENCE_0_6_IR_HEALTH.ino"
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "dcc0ae156af0e4e75a05de44ddcd6af2c8c8ca36",
+    "paths": [
+      "firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_HEALTH/README.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_HEALTH/README.md",
+        "change": "renamed",
+        "previous_path": "firmware/test-programs/NAVI_COHERENCE_0_6_IR_HEALTH/README.md"
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "76ecc69f8d814703c2c8fc1af53385170c788707",
+    "paths": [
+      "firmware/programs/NAVI_HYPOTHESIS_SHADOW/HypothesisNavigator.h"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/NAVI_HYPOTHESIS_SHADOW/HypothesisNavigator.h",
+        "change": "renamed",
+        "previous_path": "firmware/test-programs/NAVI_HYPOTHESIS_SHADOW/HypothesisNavigator.h"
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "4a32badf16fe149e3a46e10ba0ba80aba013bb34",
+    "paths": [
+      "firmware/programs/NAVI_HYPOTHESIS_SHADOW/README.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/NAVI_HYPOTHESIS_SHADOW/README.md",
+        "change": "renamed",
+        "previous_path": "firmware/test-programs/NAVI_HYPOTHESIS_SHADOW/README.md"
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "abf0a934efa49c0fcc74533a2b739e9110e51411",
+    "paths": [
+      "firmware/programs/NAVI_IR/HallObserver.h"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/NAVI_IR/HallObserver.h",
+        "change": "renamed",
+        "previous_path": "firmware/test-programs/NAVI_COHERENCE_0_4/HallObserver.h"
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "55fbd46870372d6d1c13e57a657bd2d9fc19438c",
+    "paths": [
+      "firmware/programs/NAVI_IR/NAVI_IR.ino"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/NAVI_IR/NAVI_IR.ino",
+        "change": "renamed",
+        "previous_path": "firmware/test-programs/NAVI_IR/NAVI_IR.ino"
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "2437faa12333adfad136b3a0d4f590111f711a5b",
+    "paths": [
+      "firmware/programs/NAVI_IR/README.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/NAVI_IR/README.md",
+        "change": "renamed",
+        "previous_path": "firmware/test-programs/NAVI_IR/README.md"
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "8bc2812a28c098289502d64958d2a32a688633bb",
+    "paths": [
+      "firmware/programs/NAVI_ONE/variants/NAVI_ONE/HallCapture.h",
+      "firmware/programs/NAVI_ONE/variants/NAVI_ONE_X18_RECORDER/HallCapture.h"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/NAVI_ONE/variants/NAVI_ONE/HallCapture.h",
+        "change": "renamed",
+        "previous_path": "firmware/test-programs/NAVI_ONE/HallCapture.h"
+      },
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/NAVI_ONE/variants/NAVI_ONE_X18_RECORDER/HallCapture.h",
+        "change": "renamed",
+        "previous_path": "firmware/test-programs/NAVI_ONE_X18_RECORDER/HallCapture.h"
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "113033a55ac7cedb7f183996489dcf1f526eff7e",
+    "paths": [
+      "firmware/programs/NAVI_ONE/variants/NAVI_ONE/Hall_Baseline_Laps.txt",
+      "firmware/programs/NAVI_ONE/variants/NAVI_ONE_X18_RECORDER/Hall_Baseline_Laps.txt"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/NAVI_ONE/variants/NAVI_ONE/Hall_Baseline_Laps.txt",
+        "change": "renamed",
+        "previous_path": "firmware/test-programs/NAVI_ONE/Hall_Baseline_Laps.txt"
+      },
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/NAVI_ONE/variants/NAVI_ONE_X18_RECORDER/Hall_Baseline_Laps.txt",
+        "change": "renamed",
+        "previous_path": "firmware/test-programs/NAVI_ONE_X18_RECORDER/Hall_Baseline_Laps.txt"
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "371d797c1580b23b5510dbde80029808435e55a2",
+    "paths": [
+      "firmware/programs/NAVI_ONE/variants/NAVI_ONE/MagnetRecognizer.h",
+      "firmware/programs/NAVI_ONE/variants/NAVI_ONE_X18_RECORDER/MagnetRecognizer.h"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/NAVI_ONE/variants/NAVI_ONE/MagnetRecognizer.h",
+        "change": "renamed",
+        "previous_path": "firmware/test-programs/NAVI_ONE/MagnetRecognizer.h"
+      },
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/NAVI_ONE/variants/NAVI_ONE_X18_RECORDER/MagnetRecognizer.h",
+        "change": "renamed",
+        "previous_path": "firmware/test-programs/NAVI_ONE_X18_RECORDER/MagnetRecognizer.h"
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "e849dd2822973539a7212baac1febb12b854092e",
+    "paths": [
+      "firmware/programs/NAVI_ONE/variants/NAVI_ONE/NAVIFieldConfig.h",
+      "firmware/programs/NAVI_ONE/variants/NAVI_ONE_X18_RECORDER/NAVIFieldConfig.h"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/NAVI_ONE/variants/NAVI_ONE/NAVIFieldConfig.h",
+        "change": "renamed",
+        "previous_path": "firmware/test-programs/NAVI_ONE/NAVIFieldConfig.h"
+      },
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/NAVI_ONE/variants/NAVI_ONE_X18_RECORDER/NAVIFieldConfig.h",
+        "change": "renamed",
+        "previous_path": "firmware/test-programs/NAVI_ONE_X18_RECORDER/NAVIFieldConfig.h"
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "db24a03f4ab93120f4432fb2ac35c7644e724101",
+    "paths": [
+      "firmware/programs/NAVI_ONE/variants/NAVI_ONE/NAVI_ONE.ino"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/NAVI_ONE/variants/NAVI_ONE/NAVI_ONE.ino",
+        "change": "renamed",
+        "previous_path": "firmware/test-programs/NAVI_ONE/NAVI_ONE.ino"
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "1040b30cdd2b0fd6ac774e6d501a6a5f57efc2cb",
+    "paths": [
+      "firmware/programs/NAVI_ONE/variants/NAVI_ONE/TwoSided.h",
+      "firmware/programs/NAVI_ONE/variants/NAVI_ONE_STATION_CURVES/TwoSided.h",
+      "firmware/programs/NAVI_ONE/variants/NAVI_ONE_X18_RECORDER/TwoSided.h"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/NAVI_ONE/variants/NAVI_ONE/TwoSided.h",
+        "change": "renamed",
+        "previous_path": "firmware/test-programs/NAVI_ONE/TwoSided.h"
+      },
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/NAVI_ONE/variants/NAVI_ONE_STATION_CURVES/TwoSided.h",
+        "change": "renamed",
+        "previous_path": "firmware/test-programs/NAVI_ONE_STATION_CURVES/TwoSided.h"
+      },
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/NAVI_ONE/variants/NAVI_ONE_X18_RECORDER/TwoSided.h",
+        "change": "renamed",
+        "previous_path": "firmware/test-programs/NAVI_ONE_X18_RECORDER/TwoSided.h"
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "23a00f01c321bac3db96056abaff3e06dccc0f66",
+    "paths": [
+      "firmware/programs/NAVI_ONE/variants/NAVI_ONE/WaveformDump.h",
+      "firmware/programs/NAVI_ONE/variants/NAVI_ONE_STATION_CURVES/WaveformDump.h",
+      "firmware/programs/NAVI_ONE/variants/NAVI_ONE_X18_RECORDER/WaveformDump.h"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/NAVI_ONE/variants/NAVI_ONE/WaveformDump.h",
+        "change": "renamed",
+        "previous_path": "firmware/test-programs/NAVI_ONE/WaveformDump.h"
+      },
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/NAVI_ONE/variants/NAVI_ONE_STATION_CURVES/WaveformDump.h",
+        "change": "renamed",
+        "previous_path": "firmware/test-programs/NAVI_ONE_STATION_CURVES/WaveformDump.h"
+      },
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/NAVI_ONE/variants/NAVI_ONE_X18_RECORDER/WaveformDump.h",
+        "change": "renamed",
+        "previous_path": "firmware/test-programs/NAVI_ONE_X18_RECORDER/WaveformDump.h"
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "6f3d4922ee17630af2d0e3acd5a61de374548158",
+    "paths": [
+      "firmware/programs/NAVI_ONE/variants/NAVI_ONE/WaveformWindow.h",
+      "firmware/programs/NAVI_ONE/variants/NAVI_ONE_STATION_CURVES/WaveformWindow.h",
+      "firmware/programs/NAVI_ONE/variants/NAVI_ONE_X18_RECORDER/WaveformWindow.h"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/NAVI_ONE/variants/NAVI_ONE/WaveformWindow.h",
+        "change": "renamed",
+        "previous_path": "firmware/test-programs/NAVI_ONE/WaveformWindow.h"
+      },
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/NAVI_ONE/variants/NAVI_ONE_STATION_CURVES/WaveformWindow.h",
+        "change": "renamed",
+        "previous_path": "firmware/test-programs/NAVI_ONE_STATION_CURVES/WaveformWindow.h"
+      },
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/NAVI_ONE/variants/NAVI_ONE_X18_RECORDER/WaveformWindow.h",
+        "change": "renamed",
+        "previous_path": "firmware/test-programs/NAVI_ONE_X18_RECORDER/WaveformWindow.h"
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "327a9c3e24ec893da54bcdaa9a41472e3efa088a",
+    "paths": [
+      "firmware/programs/NAVI_ONE/variants/NAVI_ONE/tests/HallCaptureCeiling.h",
+      "firmware/programs/NAVI_ONE/variants/NAVI_ONE_X18_RECORDER/tests/HallCaptureCeiling.h"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/NAVI_ONE/variants/NAVI_ONE/tests/HallCaptureCeiling.h",
+        "change": "renamed",
+        "previous_path": "firmware/test-programs/NAVI_ONE/tests/HallCaptureCeiling.h"
+      },
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/NAVI_ONE/variants/NAVI_ONE_X18_RECORDER/tests/HallCaptureCeiling.h",
+        "change": "renamed",
+        "previous_path": "firmware/test-programs/NAVI_ONE_X18_RECORDER/tests/HallCaptureCeiling.h"
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "4e890e9d2e33538409d5d4dfde8e17002280bd49",
+    "paths": [
+      "firmware/programs/NAVI_ONE/variants/NAVI_ONE/tests/contract.cpp",
+      "firmware/programs/NAVI_ONE/variants/NAVI_ONE_X18_RECORDER/tests/contract.cpp"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/NAVI_ONE/variants/NAVI_ONE/tests/contract.cpp",
+        "change": "renamed",
+        "previous_path": "firmware/test-programs/NAVI_ONE/tests/contract.cpp"
+      },
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/NAVI_ONE/variants/NAVI_ONE_X18_RECORDER/tests/contract.cpp",
+        "change": "renamed",
+        "previous_path": "firmware/test-programs/NAVI_ONE_X18_RECORDER/tests/contract.cpp"
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "22d19ca2df065cf6c0f9797af93de50539870864",
+    "paths": [
+      "firmware/programs/NAVI_ONE/variants/NAVI_ONE/tests/fixtures_arches.h",
+      "firmware/programs/NAVI_ONE/variants/NAVI_ONE_STATION_CURVES/tests/fixtures_arches.h",
+      "firmware/programs/NAVI_ONE/variants/NAVI_ONE_X18_RECORDER/tests/fixtures_arches.h"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/NAVI_ONE/variants/NAVI_ONE/tests/fixtures_arches.h",
+        "change": "renamed",
+        "previous_path": "firmware/test-programs/NAVI_ONE/tests/fixtures_arches.h"
+      },
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/NAVI_ONE/variants/NAVI_ONE_STATION_CURVES/tests/fixtures_arches.h",
+        "change": "renamed",
+        "previous_path": "firmware/test-programs/NAVI_ONE_STATION_CURVES/tests/fixtures_arches.h"
+      },
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/NAVI_ONE/variants/NAVI_ONE_X18_RECORDER/tests/fixtures_arches.h",
+        "change": "renamed",
+        "previous_path": "firmware/test-programs/NAVI_ONE_X18_RECORDER/tests/fixtures_arches.h"
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "cd96a6179e1c8e20a1a958aa74f30d495c9b7363",
+    "paths": [
+      "firmware/programs/NAVI_ONE/variants/NAVI_ONE/tests/fixtures_arches_departures.h",
+      "firmware/programs/NAVI_ONE/variants/NAVI_ONE_X18_RECORDER/tests/fixtures_arches_departures.h"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/NAVI_ONE/variants/NAVI_ONE/tests/fixtures_arches_departures.h",
+        "change": "renamed",
+        "previous_path": "firmware/test-programs/NAVI_ONE/tests/fixtures_arches_departures.h"
+      },
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/NAVI_ONE/variants/NAVI_ONE_X18_RECORDER/tests/fixtures_arches_departures.h",
+        "change": "renamed",
+        "previous_path": "firmware/test-programs/NAVI_ONE_X18_RECORDER/tests/fixtures_arches_departures.h"
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "71a43e7e7207917c85ffa6b3896c9c8106526bc3",
+    "paths": [
+      "firmware/programs/NAVI_ONE/variants/NAVI_ONE/tests/fixtures_bamboo_20260912.h",
+      "firmware/programs/NAVI_ONE/variants/NAVI_ONE_X18_RECORDER/tests/fixtures_bamboo_20260912.h"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/NAVI_ONE/variants/NAVI_ONE/tests/fixtures_bamboo_20260912.h",
+        "change": "renamed",
+        "previous_path": "firmware/test-programs/NAVI_ONE/tests/fixtures_bamboo_20260912.h"
+      },
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/NAVI_ONE/variants/NAVI_ONE_X18_RECORDER/tests/fixtures_bamboo_20260912.h",
+        "change": "renamed",
+        "previous_path": "firmware/test-programs/NAVI_ONE_X18_RECORDER/tests/fixtures_bamboo_20260912.h"
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "fe48286a9c3acd0a6345a63bb76397a2746bfcc2",
+    "paths": [
+      "firmware/programs/NAVI_ONE/variants/NAVI_ONE/tests/fixtures_captures.h",
+      "firmware/programs/NAVI_ONE/variants/NAVI_ONE_STATION_CURVES/tests/fixtures_captures.h",
+      "firmware/programs/NAVI_ONE/variants/NAVI_ONE_X18_RECORDER/tests/fixtures_captures.h"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/NAVI_ONE/variants/NAVI_ONE/tests/fixtures_captures.h",
+        "change": "renamed",
+        "previous_path": "firmware/test-programs/NAVI_ONE/tests/fixtures_captures.h"
+      },
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/NAVI_ONE/variants/NAVI_ONE_STATION_CURVES/tests/fixtures_captures.h",
+        "change": "renamed",
+        "previous_path": "firmware/test-programs/NAVI_ONE_STATION_CURVES/tests/fixtures_captures.h"
+      },
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/NAVI_ONE/variants/NAVI_ONE_X18_RECORDER/tests/fixtures_captures.h",
+        "change": "renamed",
+        "previous_path": "firmware/test-programs/NAVI_ONE_X18_RECORDER/tests/fixtures_captures.h"
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "c36ec4079022175db7aaa165f80a8af216e1badb",
+    "paths": [
+      "docs/decisions/0002-locomotive-control-is-bicameral.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "docs/decisions/0002-locomotive-control-is-bicameral.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "f1999a4914d0e15689e55d6011f171e96dafd9d4",
+    "paths": [
+      "docs/decisions/0003-one-control-sketch.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "docs/decisions/0003-one-control-sketch.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "b74ffd6ea50b7a87e2d46605c15f1c4371814814",
+    "paths": [
+      "docs/decisions/0018-firmware-role-and-evidence-status.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "docs/decisions/0018-firmware-role-and-evidence-status.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "402d9fe5172c9d0cb17f58385346edef6b5697aa",
+    "paths": [
+      "docs/decisions/0019-merged-pulse-evidence-is-the-raw-waveform.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "docs/decisions/0019-merged-pulse-evidence-is-the-raw-waveform.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "81ddd4175994e1303c6bda8c17c79e20b4e6eaad",
+    "paths": [
+      "docs/decisions/0021-ir-speed-is-local-and-telemetry-is-summary.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "docs/decisions/0021-ir-speed-is-local-and-telemetry-is-summary.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "7133ef703c0075487b10130ef639799587c70cb6",
+    "paths": [
+      "docs/decisions/0022-plastic-ten-spoke-wheel-is-the-ir-target.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "docs/decisions/0022-plastic-ten-spoke-wheel-is-the-ir-target.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "cf4289fd047b95785d1a02b3cbd60b0864a7c994",
+    "paths": [
+      "docs/decisions/0023-quorum-adjudicates-within-a-fence-it-must-be-able-to-leave.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "docs/decisions/0023-quorum-adjudicates-within-a-fence-it-must-be-able-to-leave.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "eeb39c4ec3c14acc7cd3d394c2aceba772aa40e0",
+    "paths": [
+      "docs/decisions/0025-the-console-roster-is-discovered-not-declared.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "docs/decisions/0025-the-console-roster-is-discovered-not-declared.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "b3b32b54001f94aed454900b5162731af016a280",
+    "paths": [
+      "docs/decisions/0030-train-extent-is-a-distance-and-the-producer-applies-it.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "docs/decisions/0030-train-extent-is-a-distance-and-the-producer-applies-it.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "2be18193c52682d617b4ce279b15f53581292add",
+    "paths": [
+      "docs/decisions/0034-v1-14-cto-wire-and-membership-contracts.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "docs/decisions/0034-v1-14-cto-wire-and-membership-contracts.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "3bc36f1e8c26ddddf56d90e09411fa6ed72fb41a",
+    "paths": [
+      "docs/decisions/0037-a-pairing-dissolves-when-nose-tail-order-inverts.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "docs/decisions/0037-a-pairing-dissolves-when-nose-tail-order-inverts.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "4db5292df28c49f50194af27a0c195a183559b90",
+    "paths": [
+      "docs/decisions/0039-a-third-node-may-relay-peer-truth-under-freshness-and-novelty-gates.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "docs/decisions/0039-a-third-node-may-relay-peer-truth-under-freshness-and-novelty-gates.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "db6098ac532d1ad77905c41396cb1897083df4f2",
+    "paths": [
+      "docs/decisions/0053-the-navigator-refuses-bad-data-rather-than-recovering-from-it.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "docs/decisions/0053-the-navigator-refuses-bad-data-rather-than-recovering-from-it.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "92383a38bd2ed96d5f7e6477080779eb0dfc235a",
+    "paths": [
+      "docs/decisions/0055-manual-movement-invalidates-position-and-is-not-recovered-from.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "docs/decisions/0055-manual-movement-invalidates-position-and-is-not-recovered-from.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "788640c7dc6805426fc2af787b736c40d8b6f3df",
+    "paths": [
+      "docs/decisions/0058-a-one-strike-stop-withdraws-position-it-does-not-merely-stop.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "docs/decisions/0058-a-one-strike-stop-withdraws-position-it-does-not-merely-stop.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "f8dc27825195a261511cf835b47cef5ee024bb8d",
+    "paths": [
+      "docs/decisions/0059-the-ten-magnet-witness-cannot-disagree-and-the-real-bound-is-six-markers.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "docs/decisions/0059-the-ten-magnet-witness-cannot-disagree-and-the-real-bound-is-six-markers.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "df0ca51f84ddcacdc09276ea71023e1a992ecdc8",
+    "paths": [
+      "docs/decisions/0060-battery-policy-belongs-to-the-locomotive-and-low-voltage-ramps.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "docs/decisions/0060-battery-policy-belongs-to-the-locomotive-and-low-voltage-ramps.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "41f131a7594feb4ab9a869237f37898bbf6f84ce",
+    "paths": [
+      "docs/decisions/0061-presence-and-thresholds-are-declared-per-locomotive.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "docs/decisions/0061-presence-and-thresholds-are-declared-per-locomotive.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "83878b9898ab38707f8cd8175f09210f7a43cbcb",
+    "paths": [
+      "docs/decisions/0062-the-shape-test-abstains-on-a-railed-passage-and-the-data-says-keep-it-that-way.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "docs/decisions/0062-the-shape-test-abstains-on-a-railed-passage-and-the-data-says-keep-it-that-way.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "eef5f1be291d83bc6e3cabb7ddf0fbdae8b739b7",
+    "paths": [
+      "docs/decisions/0063-a-six-passage-waveform-window-publishes-only-on-a-navigation-shutdown.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "docs/decisions/0063-a-six-passage-waveform-window-publishes-only-on-a-navigation-shutdown.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "1ceb95ac25a9360ac6430b6fd3f0ee38c0671f46",
+    "paths": [
+      "docs/decisions/0064-polarity-is-the-sign-of-the-summed-passage.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "docs/decisions/0064-polarity-is-the-sign-of-the-summed-passage.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "594496cad4dec9ab999f0a36a7ee6d7e6a4ca897",
+    "paths": [
+      "docs/decisions/0065-judgement-reads-a-median-of-three-copy-the-recording-is-never-filtered.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "docs/decisions/0065-judgement-reads-a-median-of-three-copy-the-recording-is-never-filtered.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "8f7efac5ba630da68772dc0b5183a55b51db18e5",
+    "paths": [
+      "docs/decisions/0066-the-grillers-climb-runs-at-110-and-backs-off-one-count-at-a-time.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "docs/decisions/0066-the-grillers-climb-runs-at-110-and-backs-off-one-count-at-a-time.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "ba3b0e53cc7d9a5d6f19db38ff91bdf3d13034b2",
+    "paths": [
+      "docs/decisions/0067-the-curve-into-patio-runs-at-105-ccw-and-hands-over-to-the-station.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "docs/decisions/0067-the-curve-into-patio-runs-at-105-ccw-and-hands-over-to-the-station.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "1ed7f63aad857b834e2d739c3f9d9c9b11b97ee7",
+    "paths": [
+      "docs/decisions/0068-station-stops-return-with-per-direction-stopping-points.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "docs/decisions/0068-station-stops-return-with-per-direction-stopping-points.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "4e4c6abcb800ad5762ac9daec4b1bed1af7d8b35",
+    "paths": [
+      "docs/decisions/0074-shape-is-recorded-not-refused.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "docs/decisions/0074-shape-is-recorded-not-refused.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "39025b13500056d9efbb33d35de5e98dd3e93090",
+    "paths": [
+      "docs/decisions/0075-a-rising-reading-is-not-a-false-start.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "docs/decisions/0075-a-rising-reading-is-not-a-false-start.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "2b47ed560ac334199b25a2e3d305f31ff5d5c8ef",
+    "paths": [
+      "docs/decisions/0077-cto-may-reduce-motion-authority-but-may-never-manufacture-it.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "docs/decisions/0077-cto-may-reduce-motion-authority-but-may-never-manufacture-it.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "8efb72a86da62a30de761d734037d1245727e668",
+    "paths": [
+      "docs/decisions/0078-navi-states-are-mapped-onto-the-frozen-cto-v3-wire-never-redefined.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "docs/decisions/0078-navi-states-are-mapped-onto-the-frozen-cto-v3-wire-never-redefined.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "b3960bafa8f1cdfedb29d059f9da85076ed67e28",
+    "paths": [
+      "docs/decisions/0079-ottos-recognizer-constants-are-measured-on-otto.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "docs/decisions/0079-ottos-recognizer-constants-are-measured-on-otto.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "355d3d9da084b99717dc165547b3610d7d77c042",
+    "paths": [
+      "docs/decisions/0080-field-test-rulings-expire-and-morphology-has-no-navigation-authority.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "docs/decisions/0080-field-test-rulings-expire-and-morphology-has-no-navigation-authority.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "fdf56c28a39235b4d5c344769c18753b8edd7d8e",
+    "paths": [
+      "docs/decisions/0081-the-rebound-guard-is-500-ms.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "docs/decisions/0081-the-rebound-guard-is-500-ms.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  }
+]

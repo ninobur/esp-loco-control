@@ -1,0 +1,65 @@
+{
+  "map_blob": "4bbd054e9983c6800111b240bae59ef611915d9a",
+  "n": 171,
+  "loop_mm": 52264,
+  "min_mm": 280,
+  "max_mm": 360,
+  "tests": [
+    {
+      "direction": 1,
+      "window": 7,
+      "distinct_words": 113,
+      "positions_with_unique_word": 65,
+      "max_ambiguity": 4
+    },
+    {
+      "direction": 1,
+      "window": 8,
+      "distinct_words": 149,
+      "positions_with_unique_word": 129,
+      "max_ambiguity": 3
+    },
+    {
+      "direction": 1,
+      "window": 9,
+      "distinct_words": 167,
+      "positions_with_unique_word": 163,
+      "max_ambiguity": 2
+    },
+    {
+      "direction": 1,
+      "window": 10,
+      "distinct_words": 171,
+      "positions_with_unique_word": 171,
+      "max_ambiguity": 1
+    },
+    {
+      "direction": -1,
+      "window": 7,
+      "distinct_words": 113,
+      "positions_with_unique_word": 65,
+      "max_ambiguity": 4
+    },
+    {
+      "direction": -1,
+      "window": 8,
+      "distinct_words": 149,
+      "positions_with_unique_word": 129,
+      "max_ambiguity": 3
+    },
+    {
+      "direction": -1,
+      "window": 9,
+      "distinct_words": 167,
+      "positions_with_unique_word": 163,
+      "max_ambiguity": 2
+    },
+    {
+      "direction": -1,
+      "window": 10,
+      "distinct_words": 171,
+      "positions_with_unique_word": 171,
+      "max_ambiguity": 1
+    }
+  ]
+}

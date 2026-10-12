@@ -1,0 +1,11 @@
+{
+  "date": "2026-10-12",
+  "source_commit": "4ad1df225f3768c192330c634b53d114faabf894",
+  "test_command": "python firmware/programs/NAVI_EWO_0_3/tests/test_stop_handoff.py",
+  "new_execution": {"exit_code": 0, "tests": 7, "reported_seconds": 1.171, "sanitizers": ["address", "undefined"], "warnings_as_errors": true},
+  "scope": "Production NAVI core and STOP adapter plus verbatim extracted actuator/shell functions; clock and hardware stubs. Exact source blobs materialized from the saved tree, 17 transitive included files available.",
+  "not_run_here": ["full historical regression suite", "Arduino ESP32 compilation", "full raw Hall/DNA replay", "physical field tests"],
+  "map_math": "map_verification.json; exact installed map blob parsed, counts and cyclic words verified separately for each known direction",
+  "does_not_establish": ["physical no-missed-pulses predicate", "physical braking accuracy", "field acceptance", "approved Hall-only architecture"],
+  "firmware_changes": 0
+}

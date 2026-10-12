@@ -1,0 +1,1816 @@
+[
+  {
+    "blob_sha": "1c898a47c1e7dd04d2a4d29a5b7aa3a7a73abf5e",
+    "paths": [
+      "firmware/programs/NAVI_EYES_WIDE_OPEN_INTEGRATED/NaviPulseTelemetry.h"
+    ],
+    "occurrences": [
+      {
+        "commit": "6ed96c935b01cfa469f816ff9ed1a5ca74ed7095",
+        "date": "2026-10-08T04:36:07Z",
+        "path": "firmware/programs/NAVI_EYES_WIDE_OPEN_INTEGRATED/NaviPulseTelemetry.h",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "a6c1fead645481bf4cec1b8bf1d926b1cb1ab590",
+    "paths": [
+      "firmware/programs/NAVI_EYES_WIDE_OPEN_INTEGRATED/tests/test_pulse_observation.cpp"
+    ],
+    "occurrences": [
+      {
+        "commit": "6ed96c935b01cfa469f816ff9ed1a5ca74ed7095",
+        "date": "2026-10-08T04:36:07Z",
+        "path": "firmware/programs/NAVI_EYES_WIDE_OPEN_INTEGRATED/tests/test_pulse_observation.cpp",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "d31a4620e4adef27be98fa9819a5507481dea6e6",
+    "paths": [
+      "tools/tests/test_navi_pulse.py"
+    ],
+    "occurrences": [
+      {
+        "commit": "6ed96c935b01cfa469f816ff9ed1a5ca74ed7095",
+        "date": "2026-10-08T04:36:07Z",
+        "path": "tools/tests/test_navi_pulse.py",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "cc1272dba2f552abd0dc48b841e30df400cffce7",
+    "paths": [
+      "docs/NGR_IR_COMMUNICATION_SIMPLIFICATION_RECONCILIATION_20261007.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "ec1bfa6cdb3e506709573704edb82859a2a71a85",
+        "date": "2026-10-08T05:52:03Z",
+        "path": "docs/NGR_IR_COMMUNICATION_SIMPLIFICATION_RECONCILIATION_20261007.md",
+        "change": "added",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "a822aa63e86190a159afbdd5f51d22c386c64133",
+    "paths": [
+      "firmware/programs/IR_SCOPE_ESPNOW/variants/IR_SCOPE_ESPNOW_TX/IR_SCOPE_ESPNOW_TX.ino"
+    ],
+    "occurrences": [
+      {
+        "commit": "ec1bfa6cdb3e506709573704edb82859a2a71a85",
+        "date": "2026-10-08T05:52:03Z",
+        "path": "firmware/programs/IR_SCOPE_ESPNOW/variants/IR_SCOPE_ESPNOW_TX/IR_SCOPE_ESPNOW_TX.ino",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "2d829364c9884886559465e4732b12e044e3c0b2",
+    "paths": [
+      "firmware/programs/NAVI_EYES_WIDE_OPEN_INTEGRATED/NAVI_EYES_WIDE_OPEN_INTEGRATED.ino"
+    ],
+    "occurrences": [
+      {
+        "commit": "ec1bfa6cdb3e506709573704edb82859a2a71a85",
+        "date": "2026-10-08T05:52:03Z",
+        "path": "firmware/programs/NAVI_EYES_WIDE_OPEN_INTEGRATED/NAVI_EYES_WIDE_OPEN_INTEGRATED.ino",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "3766d0ceeda18e8b4b33b76929d9b5131be6a1d3",
+    "paths": [
+      "firmware/programs/NAVI_EYES_WIDE_OPEN_INTEGRATED/NaviPulseObservation.h"
+    ],
+    "occurrences": [
+      {
+        "commit": "ec1bfa6cdb3e506709573704edb82859a2a71a85",
+        "date": "2026-10-08T05:52:03Z",
+        "path": "firmware/programs/NAVI_EYES_WIDE_OPEN_INTEGRATED/NaviPulseObservation.h",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "89181c51f2d0b01eb64bd0b8c4ef897edfde6a32",
+    "paths": [
+      "firmware/programs/NAVI_EYES_WIDE_OPEN_INTEGRATED/NaviPulseTelemetry.h"
+    ],
+    "occurrences": [
+      {
+        "commit": "ec1bfa6cdb3e506709573704edb82859a2a71a85",
+        "date": "2026-10-08T05:52:03Z",
+        "path": "firmware/programs/NAVI_EYES_WIDE_OPEN_INTEGRATED/NaviPulseTelemetry.h",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "f908b133303d668405ce43ac4f35443c748721ae",
+    "paths": [
+      "firmware/programs/NAVI_EYES_WIDE_OPEN_INTEGRATED/README.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "ec1bfa6cdb3e506709573704edb82859a2a71a85",
+        "date": "2026-10-08T05:52:03Z",
+        "path": "firmware/programs/NAVI_EYES_WIDE_OPEN_INTEGRATED/README.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "f217105e5664354477d021262ed68243f9f328ad",
+    "paths": [
+      "firmware/programs/NAVI_EYES_WIDE_OPEN_INTEGRATED/tests/test_pulse_observation.cpp"
+    ],
+    "occurrences": [
+      {
+        "commit": "ec1bfa6cdb3e506709573704edb82859a2a71a85",
+        "date": "2026-10-08T05:52:03Z",
+        "path": "firmware/programs/NAVI_EYES_WIDE_OPEN_INTEGRATED/tests/test_pulse_observation.cpp",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "3d5fe873bf38f8058e02f282ae879a1a74077da4",
+    "paths": [
+      "tools/tests/test_navi_pulse.py"
+    ],
+    "occurrences": [
+      {
+        "commit": "ec1bfa6cdb3e506709573704edb82859a2a71a85",
+        "date": "2026-10-08T05:52:03Z",
+        "path": "tools/tests/test_navi_pulse.py",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "e7d636f58adeafc39136c8f74de2b002aa530f47",
+    "paths": [
+      "firmware/programs/IR_SCOPE_ESPNOW/variants/IR_SCOPE_ESPNOW_TX/IR_SCOPE_ESPNOW_TX.ino"
+    ],
+    "occurrences": [
+      {
+        "commit": "5db9409533f801e3b6f55e7b16bf78f7a37fbe12",
+        "date": "2026-10-08T17:10:33Z",
+        "path": "firmware/programs/IR_SCOPE_ESPNOW/variants/IR_SCOPE_ESPNOW_TX/IR_SCOPE_ESPNOW_TX.ino",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "b428bec166457661e67ff22f68914aa893905623",
+    "paths": [
+      "firmware/programs/NAVI_EYES_WIDE_OPEN_INTEGRATED/NAVI_EYES_WIDE_OPEN_INTEGRATED.ino"
+    ],
+    "occurrences": [
+      {
+        "commit": "5db9409533f801e3b6f55e7b16bf78f7a37fbe12",
+        "date": "2026-10-08T17:10:33Z",
+        "path": "firmware/programs/NAVI_EYES_WIDE_OPEN_INTEGRATED/NAVI_EYES_WIDE_OPEN_INTEGRATED.ino",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "03cbe34a8ee8ae9b4925bd138a3ff2e8bb142f0d",
+    "paths": [
+      "firmware/programs/NAVI_EYES_WIDE_OPEN_INTEGRATED/NaviPulseObservation.h"
+    ],
+    "occurrences": [
+      {
+        "commit": "5db9409533f801e3b6f55e7b16bf78f7a37fbe12",
+        "date": "2026-10-08T17:10:33Z",
+        "path": "firmware/programs/NAVI_EYES_WIDE_OPEN_INTEGRATED/NaviPulseObservation.h",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "da205423100e0e5d287845fd833f7d2f82b7c93c",
+    "paths": [
+      "firmware/programs/IR_SCOPE_ESPNOW/variants/IR_SCOPE_ESPNOW_TX/IR_SCOPE_ESPNOW_TX.ino"
+    ],
+    "occurrences": [
+      {
+        "commit": "1a0c9d498be8f2eb0b660fd82b0b444860c8f8b5",
+        "date": "2026-10-08T17:17:05Z",
+        "path": "firmware/programs/IR_SCOPE_ESPNOW/variants/IR_SCOPE_ESPNOW_TX/IR_SCOPE_ESPNOW_TX.ino",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "be52e4923adf7cdca7a7a0a47141a8dbd1f3b1e4",
+    "paths": [
+      "tools/tests/test_ir_destination_routing.py"
+    ],
+    "occurrences": [
+      {
+        "commit": "1a0c9d498be8f2eb0b660fd82b0b444860c8f8b5",
+        "date": "2026-10-08T17:17:05Z",
+        "path": "tools/tests/test_ir_destination_routing.py",
+        "change": "added",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "550a616e8badaf2abd548efac3e8778feee193f2",
+    "paths": [
+      "firmware/programs/IR_SCOPE_ESPNOW/variants/IR_SCOPE_ESPNOW_TX/IR_SCOPE_ESPNOW_TX.ino"
+    ],
+    "occurrences": [
+      {
+        "commit": "00fc8cfc899f6336c234fc1451eb11dc5bb5bcea",
+        "date": "2026-10-08T17:28:34Z",
+        "path": "firmware/programs/IR_SCOPE_ESPNOW/variants/IR_SCOPE_ESPNOW_TX/IR_SCOPE_ESPNOW_TX.ino",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "f1e2988547583f25a588b655d39a76fd7eb88cfb",
+    "paths": [
+      "tools/tests/test_ir_destination_routing.py"
+    ],
+    "occurrences": [
+      {
+        "commit": "00fc8cfc899f6336c234fc1451eb11dc5bb5bcea",
+        "date": "2026-10-08T17:28:34Z",
+        "path": "tools/tests/test_ir_destination_routing.py",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "25c9ffcc6e54ae79d5a5537ceff799cb37bf18e5",
+    "paths": [
+      "docs/NGR_GEOGRAPHIC_CONSIST_AND_MOVEMENT_ARCHITECTURE_20261008.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "a29625f2859b6a5679c3b16cb40b5d2a0e91826a",
+        "date": "2026-10-08T19:47:37Z",
+        "path": "docs/NGR_GEOGRAPHIC_CONSIST_AND_MOVEMENT_ARCHITECTURE_20261008.md",
+        "change": "added",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "9e1db7bbd0f524cef224272de0346b40e34ffc7e",
+    "paths": [
+      "docs/NAVI_POSITION_OVERLAY_OPERATING_ARCHITECTURE_20261005.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "3761b2f083905eedc95a8a631c46e951923864d8",
+        "date": "2026-10-08T20:14:31Z",
+        "path": "docs/NAVI_POSITION_OVERLAY_OPERATING_ARCHITECTURE_20261005.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "18023f92d7e01c265f0dafa6fac45e42748b83bc",
+    "paths": [
+      "docs/NAVI_DOCUMENT_C_ARCHITECTURAL_DECISIONS_20261008.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "a6b68dc0d8829ff37794691e39006260ee432b84",
+        "date": "2026-10-08T22:13:58Z",
+        "path": "docs/NAVI_DOCUMENT_C_ARCHITECTURAL_DECISIONS_20261008.md",
+        "change": "added",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "bfadc67d610faaed8c2cda65c3882e9ede3b837e",
+    "paths": [
+      "docs/NAVI_POSITION_OVERLAY_OPERATING_ARCHITECTURE_20261005.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "a0c74e2e287cc356a1988394ba27d75bd657632d",
+        "date": "2026-10-08T22:14:56Z",
+        "path": "docs/NAVI_POSITION_OVERLAY_OPERATING_ARCHITECTURE_20261005.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "6828fbe5577045b44010f0f0995daf1e321fd7c0",
+    "paths": [
+      "docs/decisions/0121-current-position-direction-and-overlay-determine-navi-operating-authority.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "485044efd0461aa3766901e7fce90291077cbacd",
+        "date": "2026-10-08T22:15:08Z",
+        "path": "docs/decisions/0121-current-position-direction-and-overlay-determine-navi-operating-authority.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "FULLY_REVIEWED",
+    "review_notes": [
+      "Full0121 read. Current-position/direction/overlay authority; legitimate current execution progress versus procedural authority. October8 base-station provisions later superseded byOctober9guide."
+    ],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "a76a79024b57886291383ea71ad1586d166d58ea",
+    "paths": [
+      "firmware/programs/NAVI_EYES_WIDE_OPEN_INTEGRATED/NAVI_EYES_WIDE_OPEN_INTEGRATED.ino"
+    ],
+    "occurrences": [
+      {
+        "commit": "c7c21163b016e443524eb9fa483f8b706ce76e22",
+        "date": "2026-10-08T23:49:04Z",
+        "path": "firmware/programs/NAVI_EYES_WIDE_OPEN_INTEGRATED/NAVI_EYES_WIDE_OPEN_INTEGRATED.ino",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "3d06e2f3a63c44d2cbf60b8731fabff880f84ded",
+    "paths": [
+      "firmware/programs/NAVI_EYES_WIDE_OPEN_INTEGRATED/run_tests.sh"
+    ],
+    "occurrences": [
+      {
+        "commit": "c7c21163b016e443524eb9fa483f8b706ce76e22",
+        "date": "2026-10-08T23:49:04Z",
+        "path": "firmware/programs/NAVI_EYES_WIDE_OPEN_INTEGRATED/run_tests.sh",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "dde8078fbc453dadbe2e09993b50929cee961427",
+    "paths": [
+      "firmware/programs/NAVI_EYES_WIDE_OPEN_INTEGRATED/tests/test_pulse_observation.cpp",
+      "firmware/programs/NAVI_EWO_0_1_MM045_STOP/tests/test_pulse_observation.cpp"
+    ],
+    "occurrences": [
+      {
+        "commit": "c7c21163b016e443524eb9fa483f8b706ce76e22",
+        "date": "2026-10-08T23:49:04Z",
+        "path": "firmware/programs/NAVI_EYES_WIDE_OPEN_INTEGRATED/tests/test_pulse_observation.cpp",
+        "change": "modified",
+        "previous_path": null
+      },
+      {
+        "commit": "557de9ab181459693791de6d7f498ef4826d82c8",
+        "date": "2026-10-10T01:36:38Z",
+        "path": "firmware/programs/NAVI_EWO_0_1_MM045_STOP/tests/test_pulse_observation.cpp",
+        "change": "renamed",
+        "previous_path": "firmware/programs/NAVI_EYES_WIDE_OPEN_INTEGRATED/tests/test_pulse_observation.cpp"
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "297e6b49355e69e18903b58e7b5e133c5d469f13",
+    "paths": [
+      "docs/NAVI_EWO_GOVERNING_DOCUMENTS.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "b646cab5995124ff84ae2173c0d9912c84357815",
+        "date": "2026-10-09T02:29:12Z",
+        "path": "docs/NAVI_EWO_GOVERNING_DOCUMENTS.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "9a9360613774f6047ab7fec3a88a4893a70b1302",
+    "paths": [
+      "docs/NAVI_POSITION_OVERLAY_OPERATING_ARCHITECTURE_20261005.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "b646cab5995124ff84ae2173c0d9912c84357815",
+        "date": "2026-10-09T02:29:12Z",
+        "path": "docs/NAVI_POSITION_OVERLAY_OPERATING_ARCHITECTURE_20261005.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "7bfa3fdd3b8461cf88dd37413f5777490fc613c0",
+    "paths": [
+      "docs/decisions/0123-navi-pass2-uses-geographic-speed-control-and-pwm-ticker-tape.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "b646cab5995124ff84ae2173c0d9912c84357815",
+        "date": "2026-10-09T02:29:12Z",
+        "path": "docs/decisions/0123-navi-pass2-uses-geographic-speed-control-and-pwm-ticker-tape.md",
+        "change": "added",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "f5ed3899b311775e7e183e9b487fc69c349ab893",
+    "paths": [
+      "docs/NAVI_EWO_GOVERNING_DOCUMENTS.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "7a31d913ef2218687b488936a998f82655f5d3c6",
+        "date": "2026-10-09T04:17:42Z",
+        "path": "docs/NAVI_EWO_GOVERNING_DOCUMENTS.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "b273dc1b1cf45a3590e910a58571bcaeb99865f9",
+    "paths": [
+      "docs/NAVI_POSITION_OVERLAY_OPERATING_ARCHITECTURE_20261005.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "7a31d913ef2218687b488936a998f82655f5d3c6",
+        "date": "2026-10-09T04:17:42Z",
+        "path": "docs/NAVI_POSITION_OVERLAY_OPERATING_ARCHITECTURE_20261005.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "3a713cca93dd251728d40c91314d980aa537117a",
+    "paths": [
+      "docs/decisions/0123-navi-pass2-uses-geographic-speed-control-and-pwm-ticker-tape.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "7a31d913ef2218687b488936a998f82655f5d3c6",
+        "date": "2026-10-09T04:17:42Z",
+        "path": "docs/decisions/0123-navi-pass2-uses-geographic-speed-control-and-pwm-ticker-tape.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "4ce6c89422c20b22114e671f7e34a4466d2bf3b1",
+    "paths": [
+      "firmware/programs/NAVI_EYES_WIDE_OPEN_INTEGRATED/NAVI_EYES_WIDE_OPEN_INTEGRATED.ino"
+    ],
+    "occurrences": [
+      {
+        "commit": "9130cc55701b868f58defd1d3cd9c4175f8aaf16",
+        "date": "2026-10-09T06:51:09Z",
+        "path": "firmware/programs/NAVI_EYES_WIDE_OPEN_INTEGRATED/NAVI_EYES_WIDE_OPEN_INTEGRATED.ino",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "f6db9e49294bd537b4867faaaff54f007ebd2361",
+    "paths": [
+      "firmware/programs/NAVI_EYES_WIDE_OPEN_INTEGRATED/NaviFourStationLocal.h"
+    ],
+    "occurrences": [
+      {
+        "commit": "9130cc55701b868f58defd1d3cd9c4175f8aaf16",
+        "date": "2026-10-09T06:51:09Z",
+        "path": "firmware/programs/NAVI_EYES_WIDE_OPEN_INTEGRATED/NaviFourStationLocal.h",
+        "change": "added",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "1f24445bc587273a2bbb4bd6544c5f8051acf20f",
+    "paths": [
+      "firmware/programs/NAVI_EYES_WIDE_OPEN_INTEGRATED/run_tests.sh"
+    ],
+    "occurrences": [
+      {
+        "commit": "9130cc55701b868f58defd1d3cd9c4175f8aaf16",
+        "date": "2026-10-09T06:51:09Z",
+        "path": "firmware/programs/NAVI_EYES_WIDE_OPEN_INTEGRATED/run_tests.sh",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "4d49646d28bcedc9f3a260863af1c17b15ead712",
+    "paths": [
+      "firmware/programs/NAVI_EYES_WIDE_OPEN_INTEGRATED/tests/test_four_station_local.cpp"
+    ],
+    "occurrences": [
+      {
+        "commit": "9130cc55701b868f58defd1d3cd9c4175f8aaf16",
+        "date": "2026-10-09T06:51:09Z",
+        "path": "firmware/programs/NAVI_EYES_WIDE_OPEN_INTEGRATED/tests/test_four_station_local.cpp",
+        "change": "added",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "5b6f225e7ee5b34caed08f4e434ec63d1d9c2494",
+    "paths": [
+      "firmware/programs/NAVI_EYES_WIDE_OPEN_INTEGRATED/NAVI_EYES_WIDE_OPEN_INTEGRATED.ino"
+    ],
+    "occurrences": [
+      {
+        "commit": "22b05a22d30d0ab76f5feb654a3e6f57a005545c",
+        "date": "2026-10-09T18:31:42Z",
+        "path": "firmware/programs/NAVI_EYES_WIDE_OPEN_INTEGRATED/NAVI_EYES_WIDE_OPEN_INTEGRATED.ino",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "75d872f815c475362aa5ea0c3535654d915aad05",
+    "paths": [
+      "firmware/programs/NAVI_EYES_WIDE_OPEN_INTEGRATED/NaviFourStationLocal.h"
+    ],
+    "occurrences": [
+      {
+        "commit": "22b05a22d30d0ab76f5feb654a3e6f57a005545c",
+        "date": "2026-10-09T18:31:42Z",
+        "path": "firmware/programs/NAVI_EYES_WIDE_OPEN_INTEGRATED/NaviFourStationLocal.h",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "77a74162b6a2ba6a7fd5a3677e4b315a7b705d38",
+    "paths": [
+      "firmware/programs/NAVI_EYES_WIDE_OPEN_INTEGRATED/NaviIntegratedCore.h"
+    ],
+    "occurrences": [
+      {
+        "commit": "22b05a22d30d0ab76f5feb654a3e6f57a005545c",
+        "date": "2026-10-09T18:31:42Z",
+        "path": "firmware/programs/NAVI_EYES_WIDE_OPEN_INTEGRATED/NaviIntegratedCore.h",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "b4b410f6c6fe39af4314005fdde8df2b6391edf0",
+    "paths": [
+      "firmware/programs/NAVI_EYES_WIDE_OPEN_INTEGRATED/tests/test_four_station_local.cpp"
+    ],
+    "occurrences": [
+      {
+        "commit": "22b05a22d30d0ab76f5feb654a3e6f57a005545c",
+        "date": "2026-10-09T18:31:42Z",
+        "path": "firmware/programs/NAVI_EYES_WIDE_OPEN_INTEGRATED/tests/test_four_station_local.cpp",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "d202b9d994017cc35927cff4bc936f21406023ca",
+    "paths": [
+      "docs/NAVI_EWO_0_1_ARCHITECTURAL_NOTE_20261009.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "db329782d422559dcb886f93db8c1f3e3922a7ab",
+        "date": "2026-10-09T20:18:22Z",
+        "path": "docs/NAVI_EWO_0_1_ARCHITECTURAL_NOTE_20261009.md",
+        "change": "added",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "744bd98d26a0330d78a904166ac547f42557a386",
+    "paths": [
+      "docs/NAVI_EWO_GOVERNING_DOCUMENTS.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "db329782d422559dcb886f93db8c1f3e3922a7ab",
+        "date": "2026-10-09T20:18:22Z",
+        "path": "docs/NAVI_EWO_GOVERNING_DOCUMENTS.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "644920550fd8084e6d12065906c617abc5f2efa5",
+    "paths": [
+      "AGENTS.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "21517679b13347ec229d046460e0525cb77f1589",
+        "date": "2026-10-09T20:30:59Z",
+        "path": "AGENTS.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "0606544414c456aa1afb886133acae0189a42245",
+    "paths": [
+      "docs/NAVI_EWO_0_1_ARCHITECTURAL_NOTE_20261009.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "21517679b13347ec229d046460e0525cb77f1589",
+        "date": "2026-10-09T20:30:59Z",
+        "path": "docs/NAVI_EWO_0_1_ARCHITECTURAL_NOTE_20261009.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "012d15f540c7806d94f9a5d4e842fb46e031e88c",
+    "paths": [
+      "docs/NAVI_EWO_GOVERNING_DOCUMENTS.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "21517679b13347ec229d046460e0525cb77f1589",
+        "date": "2026-10-09T20:30:59Z",
+        "path": "docs/NAVI_EWO_GOVERNING_DOCUMENTS.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "6159cab1f78f98c8b1837482a20f800ae1571aae",
+    "paths": [
+      "docs/NAVI_POSITION_OVERLAY_OPERATING_ARCHITECTURE_20261005.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "21517679b13347ec229d046460e0525cb77f1589",
+        "date": "2026-10-09T20:30:59Z",
+        "path": "docs/NAVI_POSITION_OVERLAY_OPERATING_ARCHITECTURE_20261005.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "75f933d5ee5416d505ba90986b04b99130598eb9",
+    "paths": [
+      "docs/decisions/0123-navi-pass2-uses-geographic-speed-control-and-pwm-ticker-tape.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "21517679b13347ec229d046460e0525cb77f1589",
+        "date": "2026-10-09T20:30:59Z",
+        "path": "docs/decisions/0123-navi-pass2-uses-geographic-speed-control-and-pwm-ticker-tape.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "1ae5d858662c04f8c1e418a9ac8c6dd9afde631e",
+    "paths": [
+      "docs/NAVI_EWO_0_1_ARCHITECTURAL_NOTE_20261009.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "e969e3bcff67592b08cc0b647ba93b1fd1744fa8",
+        "date": "2026-10-09T20:56:48Z",
+        "path": "docs/NAVI_EWO_0_1_ARCHITECTURAL_NOTE_20261009.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "9c313c0845fe7404cd5422669da429b21d235d0e",
+    "paths": [
+      "docs/NAVI_EWO_0_1_ARCHITECTURAL_NOTE_20261009.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "5ec278a1c2df96edc26a2787ac679c10693c39bd",
+        "date": "2026-10-09T20:57:18Z",
+        "path": "docs/NAVI_EWO_0_1_ARCHITECTURAL_NOTE_20261009.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "ed142af1fdf1a1c860b346d3bd69f014e3115842",
+    "paths": [
+      "docs/NAVI_EWO_GOVERNING_DOCUMENTS.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "dbf62fea0627e35dab92641af55f7bdf3d6a7853",
+        "date": "2026-10-09T20:57:33Z",
+        "path": "docs/NAVI_EWO_GOVERNING_DOCUMENTS.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "9cdf7e6898ca422aad38f3d67068de940b076ca9",
+    "paths": [
+      "docs/NAVI_POSITION_OVERLAY_OPERATING_ARCHITECTURE_20261005.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "b53622c31ec895f7f39781a190f64d2f412edc3a",
+        "date": "2026-10-09T20:57:53Z",
+        "path": "docs/NAVI_POSITION_OVERLAY_OPERATING_ARCHITECTURE_20261005.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "019325fca1be985e928fa2c0a19e1ece2d022568",
+    "paths": [
+      "docs/decisions/0123-navi-pass2-uses-geographic-speed-control-and-pwm-ticker-tape.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "5118946466742a159a6e0b090daa584b3612fbaa",
+        "date": "2026-10-09T20:57:55Z",
+        "path": "docs/decisions/0123-navi-pass2-uses-geographic-speed-control-and-pwm-ticker-tape.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "592381148fd5b0c0ea25862c5864b62dfd68d6fb",
+    "paths": [
+      "docs/NAVI_EWO_0_1_ARCHITECTURAL_NOTE_20261009.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "7a04e7872a952430e3006b2ca7cd6407570308ab",
+        "date": "2026-10-09T20:58:50Z",
+        "path": "docs/NAVI_EWO_0_1_ARCHITECTURAL_NOTE_20261009.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "fd338864c5123684ee5b11d4f2f0cb6531aea82f",
+    "paths": [
+      "docs/NAVI_POSITION_OVERLAY_OPERATING_ARCHITECTURE_20261005.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "d9915ea4a465e8b9e347fa78db70f7db33ae1892",
+        "date": "2026-10-09T20:59:16Z",
+        "path": "docs/NAVI_POSITION_OVERLAY_OPERATING_ARCHITECTURE_20261005.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "c1e204aa7379614212e6fa0da3691e77fad522d8",
+    "paths": [
+      "docs/decisions/0123-navi-pass2-uses-geographic-speed-control-and-pwm-ticker-tape.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "f4ab99578aea073c515bf3c6f238da28a8de8d39",
+        "date": "2026-10-09T20:59:27Z",
+        "path": "docs/decisions/0123-navi-pass2-uses-geographic-speed-control-and-pwm-ticker-tape.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "FULLY_REVIEWED",
+    "review_notes": [
+      "Full0123 read. Closed-loop homeostasis/adaptiveglide/ticker tape historical; simplified actuator fallback survives. Retained cruise60 synopsis predates laterguide90 correction."
+    ],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "2db1d556032f819567352512eaf44e0a5cbf78d9",
+    "paths": [
+      "docs/NAVI_EWO_GOVERNING_DOCUMENTS.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "4a57789612f497c787a6fc91e8d7939595633b27",
+        "date": "2026-10-09T20:59:37Z",
+        "path": "docs/NAVI_EWO_GOVERNING_DOCUMENTS.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "e16e3cda766eef21c409961eb76d70cbdf376693",
+    "paths": [
+      "docs/NAVI_POSITION_OVERLAY_OPERATING_ARCHITECTURE_20261005.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "3845253b16b3f0401a6b0ce9f04de1b87b889259",
+        "date": "2026-10-09T21:00:14Z",
+        "path": "docs/NAVI_POSITION_OVERLAY_OPERATING_ARCHITECTURE_20261005.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "331bd0b16a21791711ad1e38cfc0c9f5412db259",
+    "paths": [
+      "docs/NAVI_EWO_0_1_ARCHITECTURAL_NOTE_20261009.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "aae29e25857f3c540e4a4467e72479fd2bd3166e",
+        "date": "2026-10-09T21:00:32Z",
+        "path": "docs/NAVI_EWO_0_1_ARCHITECTURAL_NOTE_20261009.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "d04f0a2dfffc9d9be268bed5a5dd19255f04f3f7",
+    "paths": [
+      "docs/NAVI_EWO_0_1_ARCHITECTURAL_NOTE_20261009.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "8101675e0a32157375bfdc97bf67affeb69886f9",
+        "date": "2026-10-09T21:00:45Z",
+        "path": "docs/NAVI_EWO_0_1_ARCHITECTURAL_NOTE_20261009.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "c8d65edb6f6b67db5f5a8400f5ee65a5df3c1569",
+    "paths": [
+      "docs/NAVI_EWO_0_1_ARCHITECTURAL_NOTE_20261009.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "bd0b15f55f32a5dd92e939f2da26b61ae143dfd4",
+        "date": "2026-10-09T21:31:04Z",
+        "path": "docs/NAVI_EWO_0_1_ARCHITECTURAL_NOTE_20261009.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "f1c475f7402a92de98b2f85b8cf67b484560fbe0",
+    "paths": [
+      "README.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "a2a105ff6da426da46414d4a8dc36fedc179ce9b",
+        "date": "2026-10-09T22:30:39Z",
+        "path": "README.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "fd2d8d10260f6256d3b08e844a1b710cff8fa7c0",
+    "paths": [
+      "docs/NAVI_CLOSE_TRAIN_OPERATIONS_RECONSTRUCTION_ARCHITECTURE_20261005.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "a2a105ff6da426da46414d4a8dc36fedc179ce9b",
+        "date": "2026-10-09T22:30:39Z",
+        "path": "docs/NAVI_CLOSE_TRAIN_OPERATIONS_RECONSTRUCTION_ARCHITECTURE_20261005.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "7b634a4e8e315b6b257178ad0843712dd0a2902f",
+    "paths": [
+      "docs/NAVI_CTO_ARCHITECTURE_AND_PROVENANCE_20260909.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "a2a105ff6da426da46414d4a8dc36fedc179ce9b",
+        "date": "2026-10-09T22:30:39Z",
+        "path": "docs/NAVI_CTO_ARCHITECTURE_AND_PROVENANCE_20260909.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "e8326dc5e47d513ce3769ddfc4370e2e88e86e73",
+    "paths": [
+      "docs/NAVI_CTO_BUBBLE_AND_CIRCUIT_EXPRESS_DECISIONS_20261009.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "a2a105ff6da426da46414d4a8dc36fedc179ce9b",
+        "date": "2026-10-09T22:30:39Z",
+        "path": "docs/NAVI_CTO_BUBBLE_AND_CIRCUIT_EXPRESS_DECISIONS_20261009.md",
+        "change": "added",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "09956d0b93f4e29ea8cc478117a5c8ec4fd81616",
+    "paths": [
+      "docs/NAVI_EWO_0_1_ARCHITECTURAL_NOTE_20261009.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "a2a105ff6da426da46414d4a8dc36fedc179ce9b",
+        "date": "2026-10-09T22:30:39Z",
+        "path": "docs/NAVI_EWO_0_1_ARCHITECTURAL_NOTE_20261009.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "13c70c917aa592573d438088b1b8b7aef90df4f3",
+    "paths": [
+      "docs/NAVI_EWO_GOVERNING_DOCUMENTS.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "a2a105ff6da426da46414d4a8dc36fedc179ce9b",
+        "date": "2026-10-09T22:30:39Z",
+        "path": "docs/NAVI_EWO_GOVERNING_DOCUMENTS.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "12f24304553d9a4b4ed86cba9e559ad905aa9d2e",
+    "paths": [
+      "docs/NAVI_POSITION_OVERLAY_OPERATING_ARCHITECTURE_20261005.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "a2a105ff6da426da46414d4a8dc36fedc179ce9b",
+        "date": "2026-10-09T22:30:39Z",
+        "path": "docs/NAVI_POSITION_OVERLAY_OPERATING_ARCHITECTURE_20261005.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "3b6d414acb98fea296687f3711a8311617e55bae",
+    "paths": [
+      "docs/NAVI_EWO_0_1_ARCHITECTURAL_NOTE_20261009.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "851195c2636191015f36924c674e42010caf8601",
+        "date": "2026-10-09T23:55:15Z",
+        "path": "docs/NAVI_EWO_0_1_ARCHITECTURAL_NOTE_20261009.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "450c914af317bcf04ae786b5d64262b64ceb6f0b",
+    "paths": [
+      "docs/NAVI_EWO_GOVERNING_DOCUMENTS.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "851195c2636191015f36924c674e42010caf8601",
+        "date": "2026-10-09T23:55:15Z",
+        "path": "docs/NAVI_EWO_GOVERNING_DOCUMENTS.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "38089b8ff917976ccf863f88cb48e1e5d20d86ef",
+    "paths": [
+      "docs/NAVI_STOP_MM045_BIDIRECTIONAL_TEST_DEFINITION_20261009.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "851195c2636191015f36924c674e42010caf8601",
+        "date": "2026-10-09T23:55:15Z",
+        "path": "docs/NAVI_STOP_MM045_BIDIRECTIONAL_TEST_DEFINITION_20261009.md",
+        "change": "added",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "df71c590fbbdf161d293633cd6c2121b8526ff23",
+    "paths": [
+      "docs/NAVI_CTO_BUBBLE_AND_CIRCUIT_EXPRESS_DECISIONS_20261009.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "4b8cf3671b896cd0cd8afba1fadb50dde6e601b6",
+        "date": "2026-10-10T00:05:12Z",
+        "path": "docs/NAVI_CTO_BUBBLE_AND_CIRCUIT_EXPRESS_DECISIONS_20261009.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "c394e6dd4f750a2269a49e7ec047fa749a680e5c",
+    "paths": [
+      "docs/NAVI_EWO_0_1_ARCHITECTURAL_NOTE_20261009.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "4b8cf3671b896cd0cd8afba1fadb50dde6e601b6",
+        "date": "2026-10-10T00:05:12Z",
+        "path": "docs/NAVI_EWO_0_1_ARCHITECTURAL_NOTE_20261009.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "056f4a9b398678663f0b1be97a341ee0c07ed9e5",
+    "paths": [
+      "docs/NAVI_EWO_GOVERNING_DOCUMENTS.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "4b8cf3671b896cd0cd8afba1fadb50dde6e601b6",
+        "date": "2026-10-10T00:05:12Z",
+        "path": "docs/NAVI_EWO_GOVERNING_DOCUMENTS.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "4581e7296e2b3b212235cfac60a089fe8043ede9",
+    "paths": [
+      "docs/NAVI_STOP_MM045_BIDIRECTIONAL_TEST_DEFINITION_20261009.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "4b8cf3671b896cd0cd8afba1fadb50dde6e601b6",
+        "date": "2026-10-10T00:05:12Z",
+        "path": "docs/NAVI_STOP_MM045_BIDIRECTIONAL_TEST_DEFINITION_20261009.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "27955fd447b8da1eb71d46e6c0bcf88db3fa1c2d",
+    "paths": [
+      "docs/NAVI_EWO_0_1_CRUISE_BASE_IMPLEMENTATION_20261009.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "01d6298fd0169b2aac3ceced5d12c5d3ebab1bc6",
+        "date": "2026-10-10T00:07:04Z",
+        "path": "docs/NAVI_EWO_0_1_CRUISE_BASE_IMPLEMENTATION_20261009.md",
+        "change": "added",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "007dcdb07648fe7f318771ba962672c944464b39",
+    "paths": [
+      "firmware/README.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "01d6298fd0169b2aac3ceced5d12c5d3ebab1bc6",
+        "date": "2026-10-10T00:07:04Z",
+        "path": "firmware/README.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "01e6750792cdc7a1a92e11366dacc2e06103d7e1",
+    "paths": [
+      "firmware/programs/NAVI_EYES_WIDE_OPEN_INTEGRATED/NAVI_EYES_WIDE_OPEN_INTEGRATED.ino"
+    ],
+    "occurrences": [
+      {
+        "commit": "01d6298fd0169b2aac3ceced5d12c5d3ebab1bc6",
+        "date": "2026-10-10T00:07:04Z",
+        "path": "firmware/programs/NAVI_EYES_WIDE_OPEN_INTEGRATED/NAVI_EYES_WIDE_OPEN_INTEGRATED.ino",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "27e91f01f2e29b23a48989a636e8783301aecc60",
+    "paths": [
+      "firmware/programs/NAVI_EYES_WIDE_OPEN_INTEGRATED/README.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "01d6298fd0169b2aac3ceced5d12c5d3ebab1bc6",
+        "date": "2026-10-10T00:07:04Z",
+        "path": "firmware/programs/NAVI_EYES_WIDE_OPEN_INTEGRATED/README.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "2a8909b240c39b61505a8b2f7a3322edbdd0a9a0",
+    "paths": [
+      "tools/tests/test_ewo_integration.py"
+    ],
+    "occurrences": [
+      {
+        "commit": "01d6298fd0169b2aac3ceced5d12c5d3ebab1bc6",
+        "date": "2026-10-10T00:07:04Z",
+        "path": "tools/tests/test_ewo_integration.py",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "1363131be7da0fb73b131ced592eb363d0adf24a",
+    "paths": [
+      "docs/NAVI_STOP_MM045_BIDIRECTIONAL_TEST_DEFINITION_20261009.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "c8f0fdcc50abc36c069e26e975a8012bd8d92471",
+        "date": "2026-10-10T00:12:43Z",
+        "path": "docs/NAVI_STOP_MM045_BIDIRECTIONAL_TEST_DEFINITION_20261009.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "04ab0d7fe608486d169954feb255a61d693a343a",
+    "paths": [
+      "docs/NAVI_CTO_BUBBLE_AND_CIRCUIT_EXPRESS_DECISIONS_20261009.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "1a61919c6d12140ea95b468cc6e0e1c7647e4e3a",
+        "date": "2026-10-10T00:16:03Z",
+        "path": "docs/NAVI_CTO_BUBBLE_AND_CIRCUIT_EXPRESS_DECISIONS_20261009.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "fadb8e9f8be9c92290b20cc150b2b2b074878650",
+    "paths": [
+      "docs/NAVI_EWO_0_1_ARCHITECTURAL_NOTE_20261009.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "1a61919c6d12140ea95b468cc6e0e1c7647e4e3a",
+        "date": "2026-10-10T00:16:03Z",
+        "path": "docs/NAVI_EWO_0_1_ARCHITECTURAL_NOTE_20261009.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "aea16c6a8b13534ed80dcf0b1c1a68447a7efccc",
+    "paths": [
+      "docs/NAVI_EWO_GOVERNING_DOCUMENTS.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "1a61919c6d12140ea95b468cc6e0e1c7647e4e3a",
+        "date": "2026-10-10T00:16:03Z",
+        "path": "docs/NAVI_EWO_GOVERNING_DOCUMENTS.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "f1cbe16320a8ce99c406a2fd109e65d064a738b3",
+    "paths": [
+      "docs/NAVI_STOP_MM045_BIDIRECTIONAL_TEST_DEFINITION_20261009.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "1a61919c6d12140ea95b468cc6e0e1c7647e4e3a",
+        "date": "2026-10-10T00:16:03Z",
+        "path": "docs/NAVI_STOP_MM045_BIDIRECTIONAL_TEST_DEFINITION_20261009.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "619ba7e790a8375e9af934a5dfea6bc2713aff93",
+    "paths": [
+      "docs/NAVI_EWO_0_1_CRUISE_BASE_IMPLEMENTATION_20261009.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "00d5dc590cbaf7fd65326fb15471c71d18581566",
+        "date": "2026-10-10T00:17:20Z",
+        "path": "docs/NAVI_EWO_0_1_CRUISE_BASE_IMPLEMENTATION_20261009.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "d26e320ac05c4b93d83ae026943d386e23472490",
+    "paths": [
+      "firmware/README.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "00d5dc590cbaf7fd65326fb15471c71d18581566",
+        "date": "2026-10-10T00:17:20Z",
+        "path": "firmware/README.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "41a889949fb4d61d0b9377bfc817a30f31ee0ba5",
+    "paths": [
+      "firmware/programs/NAVI_EYES_WIDE_OPEN_INTEGRATED/NAVI_EYES_WIDE_OPEN_INTEGRATED.ino"
+    ],
+    "occurrences": [
+      {
+        "commit": "00d5dc590cbaf7fd65326fb15471c71d18581566",
+        "date": "2026-10-10T00:17:20Z",
+        "path": "firmware/programs/NAVI_EYES_WIDE_OPEN_INTEGRATED/NAVI_EYES_WIDE_OPEN_INTEGRATED.ino",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "ede165c3b446cf1871fdc9036ff7bf5684ccbed1",
+    "paths": [
+      "firmware/programs/NAVI_EYES_WIDE_OPEN_INTEGRATED/README.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "00d5dc590cbaf7fd65326fb15471c71d18581566",
+        "date": "2026-10-10T00:17:20Z",
+        "path": "firmware/programs/NAVI_EYES_WIDE_OPEN_INTEGRATED/README.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "c5cb264977b0e348efc9a7ccbc22c9e6a651d287",
+    "paths": [
+      "tools/tests/test_ewo_integration.py"
+    ],
+    "occurrences": [
+      {
+        "commit": "00d5dc590cbaf7fd65326fb15471c71d18581566",
+        "date": "2026-10-10T00:17:20Z",
+        "path": "tools/tests/test_ewo_integration.py",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "177e91c4cca72f5b61a175bfd2341f581acc9d0d",
+    "paths": [
+      "docs/NAVI_EWO_0_1_ARCHITECTURAL_NOTE_20261009.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "25aa4a010c7a9459f7020bf17b26c16a24217dc3",
+        "date": "2026-10-10T00:19:10Z",
+        "path": "docs/NAVI_EWO_0_1_ARCHITECTURAL_NOTE_20261009.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "f78b53284adf08832a24e34abfcd9199aac60734",
+    "paths": [
+      "docs/NAVI_STOP_MM045_BIDIRECTIONAL_TEST_DEFINITION_20261009.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "25aa4a010c7a9459f7020bf17b26c16a24217dc3",
+        "date": "2026-10-10T00:19:10Z",
+        "path": "docs/NAVI_STOP_MM045_BIDIRECTIONAL_TEST_DEFINITION_20261009.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "5e583a1820fa7060518b4fa17dabb1509570581c",
+    "paths": [
+      "docs/NAVI_EWO_0_1_ARCHITECTURAL_NOTE_20261009.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "c1c8ee58a2c6301c98f9139f924d52fe1f258895",
+        "date": "2026-10-10T00:41:41Z",
+        "path": "docs/NAVI_EWO_0_1_ARCHITECTURAL_NOTE_20261009.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "b0d9c967c74b2b0b0b9786613052ac7772c6002f",
+    "paths": [
+      "docs/NAVI_STOP_MM045_BIDIRECTIONAL_TEST_DEFINITION_20261009.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "c1c8ee58a2c6301c98f9139f924d52fe1f258895",
+        "date": "2026-10-10T00:41:41Z",
+        "path": "docs/NAVI_STOP_MM045_BIDIRECTIONAL_TEST_DEFINITION_20261009.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "665daed71161261376108fee2e1aba2afcdb19d5",
+    "paths": [
+      "docs/NAVI_EWO_0_1_ARCHITECTURAL_NOTE_20261009.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "a053c9bb5c4f224ec7602111c8abba1cddb3e622",
+        "date": "2026-10-10T00:57:21Z",
+        "path": "docs/NAVI_EWO_0_1_ARCHITECTURAL_NOTE_20261009.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "b351a81147ab70ecc8b1025fd87aa45683ef3afb",
+    "paths": [
+      "docs/NAVI_EWO_GOVERNING_DOCUMENTS.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "a053c9bb5c4f224ec7602111c8abba1cddb3e622",
+        "date": "2026-10-10T00:57:21Z",
+        "path": "docs/NAVI_EWO_GOVERNING_DOCUMENTS.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "26b35b4e95f2cef0d6a57212b65654ddc72169a0",
+    "paths": [
+      "docs/NAVI_STOP_MM045_BIDIRECTIONAL_TEST_DEFINITION_20261009.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "a053c9bb5c4f224ec7602111c8abba1cddb3e622",
+        "date": "2026-10-10T00:57:21Z",
+        "path": "docs/NAVI_STOP_MM045_BIDIRECTIONAL_TEST_DEFINITION_20261009.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "340aab3225e2ecd0feda9c4303f8e81427bf022d",
+    "paths": [
+      "docs/NAVI_EWO_0_1_ARCHITECTURAL_NOTE_20261009.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "c5fcef1c741dbb217699f7eda4f9a99bf3123053",
+        "date": "2026-10-10T00:59:12Z",
+        "path": "docs/NAVI_EWO_0_1_ARCHITECTURAL_NOTE_20261009.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "FULLY_REVIEWED",
+    "review_notes": [
+      "Full latest accessible mandatoryguide atc5fcef1c read. Cruise90/grades, portableSTOP, no position/IRrest completion gate, soleoverlay, CTO negotiation andCEroles; later calibration35 versusguide30 needs historical source reconciliation."
+    ],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "9a7e3d1c9f2716ace75ca9799e033a6c9ca12120",
+    "paths": [
+      "docs/NAVI_EWO_0_1_CRUISE_BASE_IMPLEMENTATION_20261009.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "f40e388b5fcfa5d6be8cba8aab6dc02d07a21312",
+        "date": "2026-10-10T01:01:02Z",
+        "path": "docs/NAVI_EWO_0_1_CRUISE_BASE_IMPLEMENTATION_20261009.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "a11bd5c45c01be9c723ef92b10f7fbc5a377ef1d",
+    "paths": [
+      "docs/NAVI_MM045_STOP_IMPLEMENTATION_20261009.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "f40e388b5fcfa5d6be8cba8aab6dc02d07a21312",
+        "date": "2026-10-10T01:01:02Z",
+        "path": "docs/NAVI_MM045_STOP_IMPLEMENTATION_20261009.md",
+        "change": "added",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "4ef3f10b1b2f0934bf58ca041824fee01521c446",
+    "paths": [
+      "firmware/README.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "f40e388b5fcfa5d6be8cba8aab6dc02d07a21312",
+        "date": "2026-10-10T01:01:02Z",
+        "path": "firmware/README.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  }
+]

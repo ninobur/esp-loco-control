@@ -1,0 +1,1950 @@
+[
+  {
+    "blob_sha": "d1298ec3bd10375b3b1e42f13ded0691d0ac77e2",
+    "paths": [
+      "docs/QUORUM_1_14_IMPLEMENTATION_REPORT.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "docs/QUORUM_1_14_IMPLEMENTATION_REPORT.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "1163f79b8e1e4186d29c85a4f7af1750a5d5de57",
+    "paths": [
+      "docs/QUORUM_1_16R_IR_TEST_A_FIRMWARE_SPEC.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "docs/QUORUM_1_16R_IR_TEST_A_FIRMWARE_SPEC.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "5bfc46826b1e13d56c915eeb31b6afa6b47c63e2",
+    "paths": [
+      "docs/QUORUM_1_16R_REVIEW_RESPONSE.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "docs/QUORUM_1_16R_REVIEW_RESPONSE.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "e282ec33837c66970f3bb7b776a2dd95eba3a12e",
+    "paths": [
+      "docs/QUORUM_1_7_IMPLEMENTATION_REPORT.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "docs/QUORUM_1_7_IMPLEMENTATION_REPORT.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "6d2d7155c8069a25194bde481236fce6754214ad",
+    "paths": [
+      "docs/QUORUM_1_8_IMPLEMENTATION_REPORT.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "docs/QUORUM_1_8_IMPLEMENTATION_REPORT.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "cb2e999e0bae28863cb236f4df84c3c5fab8e1df",
+    "paths": [
+      "docs/QUORUM_BASELINE_MOTION_GATE_SPEC.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "docs/QUORUM_BASELINE_MOTION_GATE_SPEC.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "1eee78653c9afc813a1f0c27a73566b22f8a3944",
+    "paths": [
+      "docs/QUORUM_CANDIDATE_WINDOW_ANALYSIS.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "docs/QUORUM_CANDIDATE_WINDOW_ANALYSIS.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "eec17469513b7f78510c6a7b2343637b2f64ea7c",
+    "paths": [
+      "docs/QUORUM_HAND_REPOSITION_HAZARD.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "docs/QUORUM_HAND_REPOSITION_HAZARD.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "17dc3416d928ddd306c58bb813ef757c28a170b5",
+    "paths": [
+      "docs/QUORUM_IR_INTEGRATION_SPEC.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "docs/QUORUM_IR_INTEGRATION_SPEC.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "0b44f81e57896013d71b094749236700b8622175",
+    "paths": [
+      "docs/QUORUM_LOW_PWM_PHANTOM_DESIGN_PROPOSAL.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "docs/QUORUM_LOW_PWM_PHANTOM_DESIGN_PROPOSAL.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "c9ad80fb941ae1e58c9684bd4964294566d544aa",
+    "paths": [
+      "docs/QUORUM_PRIOR_AWARE_ADJUDICATION_DESIGN_NOTE.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "docs/QUORUM_PRIOR_AWARE_ADJUDICATION_DESIGN_NOTE.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "358d7a71123af81fc8a031720f3797dfce18cfca",
+    "paths": [
+      "docs/QUORUM_STATIONARY_BASELINE_POISONING.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "docs/QUORUM_STATIONARY_BASELINE_POISONING.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "fffb238b0f701145e27ce79dd4c96db8f6b5b469",
+    "paths": [
+      "docs/QUORUM_v3_0_implementation_spec.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "docs/QUORUM_v3_0_implementation_spec.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "0b75299f8d554ba906f0e9a36fb67f25a3caad22",
+    "paths": [
+      "docs/STATUS.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "docs/STATUS.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "695e5d64a79d3ec67c7933bda140387d9081981f",
+    "paths": [
+      "docs/X20_STATION_DWELL_IMPLEMENTATION_20260915.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "docs/X20_STATION_DWELL_IMPLEMENTATION_20260915.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "397c89fc12e7b157519984ca8d91d48a472a229d",
+    "paths": [
+      "docs/X21_HALL_ONLY_NAV_IMPLEMENTATION_20260916.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "docs/X21_HALL_ONLY_NAV_IMPLEMENTATION_20260916.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "83dc1ad1f97ca4ea6abc7f6259b6034858259755",
+    "paths": [
+      "docs/X22_LOCKED_BASELINE_IMPLEMENTATION_20260919.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "docs/X22_LOCKED_BASELINE_IMPLEMENTATION_20260919.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "b08056460bc88f3e74af4cb3b3b27eb4090dcc68",
+    "paths": [
+      "firmware/programs/QUORUM/tests/shim/PubSubClient.h",
+      "firmware/programs/QUORUM/variants/QUORUM_1_13D/tests/shim/PubSubClient.h",
+      "firmware/programs/QUORUM/variants/QUORUM_1_13X/tests/shim/PubSubClient.h"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/QUORUM/tests/shim/PubSubClient.h",
+        "change": "renamed",
+        "previous_path": "firmware/QUORUM/tests/shim/PubSubClient.h"
+      },
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/QUORUM/variants/QUORUM_1_13D/tests/shim/PubSubClient.h",
+        "change": "renamed",
+        "previous_path": "firmware/test-programs/QUORUM_1_13D/tests/shim/PubSubClient.h"
+      },
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/QUORUM/variants/QUORUM_1_13X/tests/shim/PubSubClient.h",
+        "change": "renamed",
+        "previous_path": "firmware/test-programs/QUORUM_1_13X/tests/shim/PubSubClient.h"
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "37c79645e100b55a49993abda285016b86564e05",
+    "paths": [
+      "firmware/programs/QUORUM/tests/shim/WiFi.h"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/QUORUM/tests/shim/WiFi.h",
+        "change": "renamed",
+        "previous_path": "firmware/QUORUM/tests/shim/WiFi.h"
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "90c558cd43d242e7c6cdfe0a993f9ad2ef36307f",
+    "paths": [
+      "firmware/programs/QUORUM/tests/shim/Wire.h",
+      "firmware/programs/QUORUM/variants/QUORUM_1_13D/tests/shim/Wire.h",
+      "firmware/programs/QUORUM/variants/QUORUM_1_13X/tests/shim/Wire.h"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/QUORUM/tests/shim/Wire.h",
+        "change": "renamed",
+        "previous_path": "firmware/QUORUM/tests/shim/Wire.h"
+      },
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/QUORUM/variants/QUORUM_1_13D/tests/shim/Wire.h",
+        "change": "renamed",
+        "previous_path": "firmware/test-programs/QUORUM_1_13D/tests/shim/Wire.h"
+      },
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/QUORUM/variants/QUORUM_1_13X/tests/shim/Wire.h",
+        "change": "renamed",
+        "previous_path": "firmware/test-programs/QUORUM_1_13X/tests/shim/Wire.h"
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "5feeb0db460968f9cd8a8dc7e85bced8716f6d8f",
+    "paths": [
+      "firmware/programs/QUORUM/tests/shim/esp_now.h"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/QUORUM/tests/shim/esp_now.h",
+        "change": "renamed",
+        "previous_path": "firmware/QUORUM/tests/shim/esp_now.h"
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "ea05fb2f89ffa563b259e9676feccd8ada38af37",
+    "paths": [
+      "firmware/programs/QUORUM/tests/shim/pgmspace.h",
+      "firmware/programs/QUORUM/variants/QUORUM_1_13D/tests/shim/pgmspace.h",
+      "firmware/programs/QUORUM/variants/QUORUM_1_13X/tests/shim/pgmspace.h"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/QUORUM/tests/shim/pgmspace.h",
+        "change": "renamed",
+        "previous_path": "firmware/QUORUM/tests/shim/pgmspace.h"
+      },
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/QUORUM/variants/QUORUM_1_13D/tests/shim/pgmspace.h",
+        "change": "renamed",
+        "previous_path": "firmware/test-programs/QUORUM_1_13D/tests/shim/pgmspace.h"
+      },
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/QUORUM/variants/QUORUM_1_13X/tests/shim/pgmspace.h",
+        "change": "renamed",
+        "previous_path": "firmware/test-programs/QUORUM_1_13X/tests/shim/pgmspace.h"
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "a443eb56f0449c93f3b08716666772b1769eeea2",
+    "paths": [
+      "firmware/programs/QUORUM/tests/statediff.py"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/QUORUM/tests/statediff.py",
+        "change": "renamed",
+        "previous_path": "firmware/QUORUM/tests/statediff.py"
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "b409c947caea0b1fc0e57cfdf683234736ccda7b",
+    "paths": [
+      "firmware/programs/QUORUM/tests/sweeps/README.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/QUORUM/tests/sweeps/README.md",
+        "change": "renamed",
+        "previous_path": "firmware/QUORUM/tests/sweeps/README.md"
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "c10cb96f835aad97b0a576e188da8b1b096f1b51",
+    "paths": [
+      "firmware/programs/QUORUM/tests/sweeps/probe_excluded.py"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/QUORUM/tests/sweeps/probe_excluded.py",
+        "change": "renamed",
+        "previous_path": "firmware/QUORUM/tests/sweeps/probe_excluded.py"
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "c19fcb62b714dc472efc33e5af8510bd0c27e2f2",
+    "paths": [
+      "firmware/programs/QUORUM/tests/sweeps/probe_rescue.py"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/QUORUM/tests/sweeps/probe_rescue.py",
+        "change": "renamed",
+        "previous_path": "firmware/QUORUM/tests/sweeps/probe_rescue.py"
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "db559908326fa2f39c2ce1b397d93d9cff0b7c0a",
+    "paths": [
+      "firmware/programs/QUORUM/tests/sweeps/probe_slow_phantom_family.py"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/QUORUM/tests/sweeps/probe_slow_phantom_family.py",
+        "change": "renamed",
+        "previous_path": "firmware/QUORUM/tests/sweeps/probe_slow_phantom_family.py"
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "561b4ff82d6d5d1b00e6835523de8cd581e0a512",
+    "paths": [
+      "firmware/programs/QUORUM/tests/sweeps/sweep_ccw_strict.py"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/QUORUM/tests/sweeps/sweep_ccw_strict.py",
+        "change": "renamed",
+        "previous_path": "firmware/QUORUM/tests/sweeps/sweep_ccw_strict.py"
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "099d8c4f150e16323ac2ebea79420fe1dc453a6d",
+    "paths": [
+      "firmware/programs/QUORUM/tests/sweeps/sweep_commit_gate.py"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/QUORUM/tests/sweeps/sweep_commit_gate.py",
+        "change": "renamed",
+        "previous_path": "firmware/QUORUM/tests/sweeps/sweep_commit_gate.py"
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "61f7083f0d337bbe104117f633999c2d8bf5c1bf",
+    "paths": [
+      "firmware/programs/QUORUM/tests/sweeps/sweep_excluded.py"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/QUORUM/tests/sweeps/sweep_excluded.py",
+        "change": "renamed",
+        "previous_path": "firmware/QUORUM/tests/sweeps/sweep_excluded.py"
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "5e59f6947ec5b7e92d44a36888ff2b442bae8ed3",
+    "paths": [
+      "firmware/programs/QUORUM/tests/sweeps/sweep_false_rescue.py"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/QUORUM/tests/sweeps/sweep_false_rescue.py",
+        "change": "renamed",
+        "previous_path": "firmware/QUORUM/tests/sweeps/sweep_false_rescue.py"
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "213631f18cf662eaf6a4fa6e404e0c37fdcf523e",
+    "paths": [
+      "firmware/programs/QUORUM/tests/sweeps/sweep_rescue.py"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/QUORUM/tests/sweeps/sweep_rescue.py",
+        "change": "renamed",
+        "previous_path": "firmware/QUORUM/tests/sweeps/sweep_rescue.py"
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "5a7428119f238b55472951b9556432e07f516eed",
+    "paths": [
+      "firmware/programs/QUORUM/tests/sweeps/sweep_rescue2.py"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/QUORUM/tests/sweeps/sweep_rescue2.py",
+        "change": "renamed",
+        "previous_path": "firmware/QUORUM/tests/sweeps/sweep_rescue2.py"
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "63a67fba7535a04cef18f058c20a3883ef961c54",
+    "paths": [
+      "firmware/programs/QUORUM/tests/test_ce_mission.py"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/QUORUM/tests/test_ce_mission.py",
+        "change": "renamed",
+        "previous_path": "firmware/QUORUM/tests/test_ce_mission.py"
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "403e70aefbc3e1ed5825f877c36343fb0f39be24",
+    "paths": [
+      "firmware/programs/QUORUM/tests/test_channel_watch.py"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/QUORUM/tests/test_channel_watch.py",
+        "change": "renamed",
+        "previous_path": "firmware/QUORUM/tests/test_channel_watch.py"
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "a109074d17a136f108755a7e87d4d318a57009c0",
+    "paths": [
+      "firmware/programs/QUORUM/tests/test_cto_roles.py"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/QUORUM/tests/test_cto_roles.py",
+        "change": "renamed",
+        "previous_path": "firmware/QUORUM/tests/test_cto_roles.py"
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "d4ce5ca941e50cb846fc9a1c28ec4454315a01d2",
+    "paths": [
+      "firmware/programs/QUORUM/tests/test_ir_test_a.py"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/QUORUM/tests/test_ir_test_a.py",
+        "change": "renamed",
+        "previous_path": "firmware/QUORUM/tests/test_ir_test_a.py"
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "64c573dfa549fa464646a89a979723d7455a4855",
+    "paths": [
+      "firmware/programs/QUORUM/tests/verify_inert.py"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/QUORUM/tests/verify_inert.py",
+        "change": "renamed",
+        "previous_path": "firmware/QUORUM/tests/verify_inert.py"
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "83e17fcfb26c803648b22ddf95dc9d4ba0eeb7f1",
+    "paths": [
+      "firmware/programs/QUORUM/tests/verify_replay.py",
+      "firmware/programs/QUORUM/variants/QUORUM_1_13D/tests/verify_replay.py",
+      "firmware/programs/QUORUM/variants/QUORUM_1_13X/tests/verify_replay.py"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/QUORUM/tests/verify_replay.py",
+        "change": "renamed",
+        "previous_path": "firmware/QUORUM/tests/verify_replay.py"
+      },
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/QUORUM/variants/QUORUM_1_13D/tests/verify_replay.py",
+        "change": "renamed",
+        "previous_path": "firmware/test-programs/QUORUM_1_13D/tests/verify_replay.py"
+      },
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/QUORUM/variants/QUORUM_1_13X/tests/verify_replay.py",
+        "change": "renamed",
+        "previous_path": "firmware/test-programs/QUORUM_1_13X/tests/verify_replay.py"
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "00b0c952f171cc4df5434e4798ccb5fbd2597ace",
+    "paths": [
+      "firmware/programs/QUORUM/variants/QUORUM_1_13D/LL_LocoConfig_9950011.h"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/QUORUM/variants/QUORUM_1_13D/LL_LocoConfig_9950011.h",
+        "change": "renamed",
+        "previous_path": "firmware/test-programs/QUORUM_1_13D/LL_LocoConfig_9950011.h"
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "0b194037a5082f006a74a5b06de14f3e8957958f",
+    "paths": [
+      "firmware/programs/QUORUM/variants/QUORUM_1_13D/LocoConfig.h"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/QUORUM/variants/QUORUM_1_13D/LocoConfig.h",
+        "change": "renamed",
+        "previous_path": "firmware/test-programs/QUORUM_1_13D/LocoConfig.h"
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "dfefae578c06718072206d66ad00a74b9d8abeb7",
+    "paths": [
+      "firmware/programs/QUORUM/variants/QUORUM_1_13D/QUORUM_1_13D.ino"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/QUORUM/variants/QUORUM_1_13D/QUORUM_1_13D.ino",
+        "change": "renamed",
+        "previous_path": "firmware/test-programs/QUORUM_1_13D/QUORUM_1_13D.ino"
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "d82b7f770a472140e8bf12f0f6958505953fb78b",
+    "paths": [
+      "firmware/programs/QUORUM/variants/QUORUM_1_13D/README.md",
+      "firmware/programs/QUORUM/variants/QUORUM_1_13X/README.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/QUORUM/variants/QUORUM_1_13D/README.md",
+        "change": "renamed",
+        "previous_path": "firmware/test-programs/QUORUM_1_13D/README.md"
+      },
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/QUORUM/variants/QUORUM_1_13X/README.md",
+        "change": "renamed",
+        "previous_path": "firmware/test-programs/QUORUM_1_13X/README.md"
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "2a280fc719b176c52cdd35605090bbce88d93acd",
+    "paths": [
+      "firmware/programs/QUORUM/variants/QUORUM_1_13D/tests/harness.cpp"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/QUORUM/variants/QUORUM_1_13D/tests/harness.cpp",
+        "change": "renamed",
+        "previous_path": "firmware/test-programs/QUORUM_1_13D/tests/harness.cpp"
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "acf7d495fd65de214bf6d955b207718e6912fef5",
+    "paths": [
+      "firmware/programs/QUORUM/variants/QUORUM_1_13D/tests/make_synthetic.py",
+      "firmware/programs/QUORUM/variants/QUORUM_1_13X/tests/make_synthetic.py"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/QUORUM/variants/QUORUM_1_13D/tests/make_synthetic.py",
+        "change": "renamed",
+        "previous_path": "firmware/test-programs/QUORUM_1_13D/tests/make_synthetic.py"
+      },
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/QUORUM/variants/QUORUM_1_13X/tests/make_synthetic.py",
+        "change": "renamed",
+        "previous_path": "firmware/test-programs/QUORUM_1_13X/tests/make_synthetic.py"
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "79ea767c6f8badbb216fe4c0695280e6f503cb8f",
+    "paths": [
+      "firmware/programs/QUORUM/variants/QUORUM_1_13D/tests/qrun.py",
+      "firmware/programs/QUORUM/variants/QUORUM_1_13X/tests/qrun.py"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/QUORUM/variants/QUORUM_1_13D/tests/qrun.py",
+        "change": "renamed",
+        "previous_path": "firmware/test-programs/QUORUM_1_13D/tests/qrun.py"
+      },
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/QUORUM/variants/QUORUM_1_13X/tests/qrun.py",
+        "change": "renamed",
+        "previous_path": "firmware/test-programs/QUORUM_1_13X/tests/qrun.py"
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "7a3877dd6948a887049c5566d97d00eb4b5e27b2",
+    "paths": [
+      "firmware/programs/QUORUM/variants/QUORUM_1_13D/tests/run_suite.py",
+      "firmware/programs/QUORUM/variants/QUORUM_1_13X/tests/run_suite.py"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/QUORUM/variants/QUORUM_1_13D/tests/run_suite.py",
+        "change": "renamed",
+        "previous_path": "firmware/test-programs/QUORUM_1_13D/tests/run_suite.py"
+      },
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/QUORUM/variants/QUORUM_1_13X/tests/run_suite.py",
+        "change": "renamed",
+        "previous_path": "firmware/test-programs/QUORUM_1_13X/tests/run_suite.py"
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "e36ce255e4806d8f8d7097dd031d9cadb3be773e",
+    "paths": [
+      "firmware/programs/QUORUM/variants/QUORUM_1_13D/tests/shim/Arduino.h",
+      "firmware/programs/QUORUM/variants/QUORUM_1_13X/tests/shim/Arduino.h"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/QUORUM/variants/QUORUM_1_13D/tests/shim/Arduino.h",
+        "change": "renamed",
+        "previous_path": "firmware/test-programs/QUORUM_1_13D/tests/shim/Arduino.h"
+      },
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/QUORUM/variants/QUORUM_1_13X/tests/shim/Arduino.h",
+        "change": "renamed",
+        "previous_path": "firmware/test-programs/QUORUM_1_13X/tests/shim/Arduino.h"
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "f65aa1418954e9eace8f4c1eefb893f23b7707a4",
+    "paths": [
+      "firmware/programs/QUORUM/variants/QUORUM_1_13D/tests/shim/WiFi.h",
+      "firmware/programs/QUORUM/variants/QUORUM_1_13X/tests/shim/WiFi.h"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/QUORUM/variants/QUORUM_1_13D/tests/shim/WiFi.h",
+        "change": "renamed",
+        "previous_path": "firmware/test-programs/QUORUM_1_13D/tests/shim/WiFi.h"
+      },
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/QUORUM/variants/QUORUM_1_13X/tests/shim/WiFi.h",
+        "change": "renamed",
+        "previous_path": "firmware/test-programs/QUORUM_1_13X/tests/shim/WiFi.h"
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "7b60aea0c65b81f4cb651e2c17fdeb28c66add46",
+    "paths": [
+      "firmware/programs/QUORUM/variants/QUORUM_1_13D/tests/verify_inert.py",
+      "firmware/programs/QUORUM/variants/QUORUM_1_13X/tests/verify_inert.py"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/QUORUM/variants/QUORUM_1_13D/tests/verify_inert.py",
+        "change": "renamed",
+        "previous_path": "firmware/test-programs/QUORUM_1_13D/tests/verify_inert.py"
+      },
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/QUORUM/variants/QUORUM_1_13X/tests/verify_inert.py",
+        "change": "renamed",
+        "previous_path": "firmware/test-programs/QUORUM_1_13X/tests/verify_inert.py"
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "e0584c224bb8c43f701ecc397ec1f3649f0b5f62",
+    "paths": [
+      "firmware/programs/QUORUM/variants/QUORUM_1_13D/tests/wavetest.cpp"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/QUORUM/variants/QUORUM_1_13D/tests/wavetest.cpp",
+        "change": "renamed",
+        "previous_path": "firmware/test-programs/QUORUM_1_13D/tests/wavetest.cpp"
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "6558e70e6cfa867557a32db773ba931fe2701f6f",
+    "paths": [
+      "firmware/programs/QUORUM/variants/QUORUM_1_13X/LL_LocoConfig_9950011.h"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/QUORUM/variants/QUORUM_1_13X/LL_LocoConfig_9950011.h",
+        "change": "renamed",
+        "previous_path": "firmware/test-programs/QUORUM_1_13X/LL_LocoConfig_9950011.h"
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "9880c145a0d6a2b3005e0a6a28655ccc34ce8986",
+    "paths": [
+      "firmware/programs/QUORUM/variants/QUORUM_1_13X/LocoConfig.h"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/QUORUM/variants/QUORUM_1_13X/LocoConfig.h",
+        "change": "renamed",
+        "previous_path": "firmware/test-programs/QUORUM_1_13X/LocoConfig.h"
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "07877e4c2d504b319ee9f448d9866b9bf94def5e",
+    "paths": [
+      "firmware/programs/QUORUM/variants/QUORUM_1_13X/QUORUM_1_13X.ino"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/QUORUM/variants/QUORUM_1_13X/QUORUM_1_13X.ino",
+        "change": "renamed",
+        "previous_path": "firmware/test-programs/QUORUM_1_13X/QUORUM_1_13X.ino"
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "775486f7d8b6e67556f84928316552eff584e032",
+    "paths": [
+      "firmware/programs/QUORUM/variants/QUORUM_1_13X/tests/harness.cpp"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/QUORUM/variants/QUORUM_1_13X/tests/harness.cpp",
+        "change": "renamed",
+        "previous_path": "firmware/test-programs/QUORUM_1_13X/tests/harness.cpp"
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "505739a88201905ba23ed7a5cbe56b78ff7bb40d",
+    "paths": [
+      "firmware/programs/QUORUM/variants/QUORUM_1_13X/tests/wavetest.cpp"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/QUORUM/variants/QUORUM_1_13X/tests/wavetest.cpp",
+        "change": "renamed",
+        "previous_path": "firmware/test-programs/QUORUM_1_13X/tests/wavetest.cpp"
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "593e7f37b3f59a208ce7998cffcfdfb74b262695",
+    "paths": [
+      "firmware/programs/SENSORTEST/SENSORTEST.ino"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/SENSORTEST/SENSORTEST.ino",
+        "change": "renamed",
+        "previous_path": "firmware/test-programs/SENSORTEST/SENSORTEST.ino"
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "f2da43a3a08d0c5a9d78b20a4982fe684b8b65e5",
+    "paths": [
+      "firmware/programs/Spoke_IR_RSSI_survey/Spoke_IR_RSSI_survey.ino"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/Spoke_IR_RSSI_survey/Spoke_IR_RSSI_survey.ino",
+        "change": "renamed",
+        "previous_path": "firmware/test-programs/Spoke_IR_RSSI_survey/Spoke_IR_RSSI_survey.ino"
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "7564e301dd51418c4ad790f4d99cfe71ad921c6e",
+    "paths": [
+      "firmware/reference/NAVI_COHERENCE/CURRENT_STATUS.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/reference/NAVI_COHERENCE/CURRENT_STATUS.md",
+        "change": "renamed",
+        "previous_path": "firmware/NAVI_COHERENCE/CURRENT_STATUS.md"
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "fc83072f369e0873f1110237f82c433483370833",
+    "paths": [
+      "firmware/reference/NAVI_COHERENCE/IR_ARCHITECTURE_0_4/README.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/reference/NAVI_COHERENCE/IR_ARCHITECTURE_0_4/README.md",
+        "change": "renamed",
+        "previous_path": "firmware/NAVI_COHERENCE/IR_ARCHITECTURE_0_4/README.md"
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "22ab21751f33917d8081668091e57e3c87169bdd",
+    "paths": [
+      "server/ngr_app_v1_10_1.py"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "server/ngr_app_v1_10_1.py",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "f672a4dbb8204daf8b47323a36f6241c5a19ba56",
+    "paths": [
+      "server/ngr_app_v1_10_10.py"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "server/ngr_app_v1_10_10.py",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "0580ec00679aca284c11e16dcc90dcbe96003309",
+    "paths": [
+      "server/ngr_app_v1_10_11.py"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "server/ngr_app_v1_10_11.py",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "8a3dc8340f0e740feefee750e5c47cd6aa1b3d41",
+    "paths": [
+      "server/ngr_app_v1_10_2.py"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "server/ngr_app_v1_10_2.py",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "decf645fbd1ec6b02e46abecde0f021773a918ae",
+    "paths": [
+      "server/ngr_app_v1_10_3.py"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "server/ngr_app_v1_10_3.py",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "7b1251d809b2a4688abc682249bbe5c139ac103f",
+    "paths": [
+      "server/ngr_app_v1_10_4.py"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "server/ngr_app_v1_10_4.py",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "3e3295f992ac017822f5c1ddede8e67e5f0012a3",
+    "paths": [
+      "server/ngr_app_v1_10_5.py"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "server/ngr_app_v1_10_5.py",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "d68f5960a2897ce47e9304d619f736aea88c7264",
+    "paths": [
+      "server/ngr_app_v1_10_6.py"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "server/ngr_app_v1_10_6.py",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "c6c1143f9cf56f89eb1a532ad4ddb1217dc67e14",
+    "paths": [
+      "server/ngr_app_v1_10_7.py"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "server/ngr_app_v1_10_7.py",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "450e2e1c5cec2585f8f3e96fe9334c533d1fb88d",
+    "paths": [
+      "server/ngr_app_v1_10_8.py"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "server/ngr_app_v1_10_8.py",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "bbd4d494346fbf485f5c7a76d6783a40e9546996",
+    "paths": [
+      "server/ngr_app_v1_10_9.py"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "server/ngr_app_v1_10_9.py",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "fe7aeaad435b1ab442e1c8e663969d352382d64c",
+    "paths": [
+      "tools/arches_fixtures.py"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "tools/arches_fixtures.py",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "a2734a90728478c75f3bc192020f15957a031156",
+    "paths": [
+      "tools/interrupted_replay/0070.diff"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "tools/interrupted_replay/0070.diff",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "d3842be8995647dddc3f0dbae879c21d226a4897",
+    "paths": [
+      "tools/interrupted_replay/README.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "tools/interrupted_replay/README.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "e1b6286a7163c721a84432c97009feebcf9fa824",
+    "paths": [
+      "docs/NAVI_COHERENCE_0_6_STARTUP_REJECTION_20260923.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "a6b6ed070024e863c90bc50251b0e5ef5c25f59c",
+        "date": "2026-09-23T20:54:32Z",
+        "path": "docs/NAVI_COHERENCE_0_6_STARTUP_REJECTION_20260923.md",
+        "change": "added",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "54b4fd972ebe67477b9a6217c7fb0bc2403890e6",
+    "paths": [
+      "docs/decisions/0097-zero-calibration-id-is-not-an-optical-fault.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "a6b6ed070024e863c90bc50251b0e5ef5c25f59c",
+        "date": "2026-09-23T20:54:32Z",
+        "path": "docs/decisions/0097-zero-calibration-id-is-not-an-optical-fault.md",
+        "change": "added",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "b356f3098c7f390262b70abe93ba40cf33162da1",
+    "paths": [
+      "firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_HEALTH/IrHealthMonitor.h"
+    ],
+    "occurrences": [
+      {
+        "commit": "a6b6ed070024e863c90bc50251b0e5ef5c25f59c",
+        "date": "2026-09-23T20:54:32Z",
+        "path": "firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_HEALTH/IrHealthMonitor.h",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "023bd536d69e9c423cdf7460bea5a8ad080ba762",
+    "paths": [
+      "firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_HEALTH/MovementEvidence.h",
+      "firmware/programs/NAVI_COHERENCE/variants/NAVI_EYES_WIDE_OPEN/MovementEvidence.h"
+    ],
+    "occurrences": [
+      {
+        "commit": "a6b6ed070024e863c90bc50251b0e5ef5c25f59c",
+        "date": "2026-09-23T20:54:32Z",
+        "path": "firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_HEALTH/MovementEvidence.h",
+        "change": "modified",
+        "previous_path": null
+      },
+      {
+        "commit": "93af2267f1a4609edeca57aecec4b69278e6097d",
+        "date": "2026-09-28T22:10:38Z",
+        "path": "firmware/programs/NAVI_COHERENCE/variants/NAVI_EYES_WIDE_OPEN/MovementEvidence.h",
+        "change": "added",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "47981958594b0c928f04b147d166f399d30f0f2c",
+    "paths": [
+      "firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_HEALTH/README.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "a6b6ed070024e863c90bc50251b0e5ef5c25f59c",
+        "date": "2026-09-23T20:54:32Z",
+        "path": "firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_HEALTH/README.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "7b4312a706433359b79a01196e6abe6b30fcf903",
+    "paths": [
+      "firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_HEALTH/tests/test_health_json.py"
+    ],
+    "occurrences": [
+      {
+        "commit": "a6b6ed070024e863c90bc50251b0e5ef5c25f59c",
+        "date": "2026-09-23T20:54:32Z",
+        "path": "firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_HEALTH/tests/test_health_json.py",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "bfd7d938ab49f460b89c42cafb69c3d2699421b0",
+    "paths": [
+      "firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_HEALTH/tests/test_ir_health_monitor.cpp"
+    ],
+    "occurrences": [
+      {
+        "commit": "a6b6ed070024e863c90bc50251b0e5ef5c25f59c",
+        "date": "2026-09-23T20:54:32Z",
+        "path": "firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_HEALTH/tests/test_ir_health_monitor.cpp",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "65ded46f3c308949b6d9a1d3215a3a08377b9ac2",
+    "paths": [
+      "firmware/reference/NAVI_COHERENCE/IR_ARCHITECTURE_0_4/IrInstrument.h"
+    ],
+    "occurrences": [
+      {
+        "commit": "a6b6ed070024e863c90bc50251b0e5ef5c25f59c",
+        "date": "2026-09-23T20:54:32Z",
+        "path": "firmware/reference/NAVI_COHERENCE/IR_ARCHITECTURE_0_4/IrInstrument.h",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "52dc2acf574d4fe790fb18d4c1fc28a0f802e382",
+    "paths": [
+      "firmware/reference/NAVI_COHERENCE/IR_ARCHITECTURE_0_4/tests/test_ir_architecture.cpp"
+    ],
+    "occurrences": [
+      {
+        "commit": "a6b6ed070024e863c90bc50251b0e5ef5c25f59c",
+        "date": "2026-09-23T20:54:32Z",
+        "path": "firmware/reference/NAVI_COHERENCE/IR_ARCHITECTURE_0_4/tests/test_ir_architecture.cpp",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "d366eed1c4bd97dccb2ba18c01a2663fc0158fa8",
+    "paths": [
+      "docs/NAVI_COHERENCE_CAL0_FIX1_FLASH_20260923.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "9a4dd24b08503ad00a0032683e7506de6b32f0e6",
+        "date": "2026-09-23T20:56:50Z",
+        "path": "docs/NAVI_COHERENCE_CAL0_FIX1_FLASH_20260923.md",
+        "change": "added",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "75a2c95027b4d6ebb17114304d8369b6a2cf6d6e",
+    "paths": [
+      "docs/NAVI_AUTO_CORRECTION_FAILURE_20260923.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "89dc3697956c67192499474877b7bd7c4dae595c",
+        "date": "2026-09-23T22:06:30Z",
+        "path": "docs/NAVI_AUTO_CORRECTION_FAILURE_20260923.md",
+        "change": "added",
+        "previous_path": null
+      }
+    ],
+    "review_status": "FULLY_REVIEWED",
+    "review_notes": [
+      "Full correction failure investigation read. RecordedMM065->166 while station execution persists; separate independently reported029-030vs163 endpoint. Raw Pi snapshot not independently examined in this pass."
+    ],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "c87feb7954bec480398288c54d114fdfe0b9e050",
+    "paths": [
+      "docs/NAVI_IR_FIRST_TOWED_LAP_CAL0_FIX1_20260923.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "89dc3697956c67192499474877b7bd7c4dae595c",
+        "date": "2026-09-23T22:06:30Z",
+        "path": "docs/NAVI_IR_FIRST_TOWED_LAP_CAL0_FIX1_20260923.md",
+        "change": "added",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "59592b3f67bc30e48849cddbcd65f11e09bfaea4",
+    "paths": [
+      "docs/NAVI_IR_PATIO_REPEAT_20260923.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "89dc3697956c67192499474877b7bd7c4dae595c",
+        "date": "2026-09-23T22:06:30Z",
+        "path": "docs/NAVI_IR_PATIO_REPEAT_20260923.md",
+        "change": "added",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "939ea0cf15a77f4c39d4d6a3ef9e626b57b60423",
+    "paths": [
+      "docs/NAVI_COHERENCE_CURRENT_WORK_20260923.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "b6b7f13d972658aedd824ec822e00ffadc2733f8",
+        "date": "2026-09-23T22:33:20Z",
+        "path": "docs/NAVI_COHERENCE_CURRENT_WORK_20260923.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "2df471f28898ca743e501b723e5e2dc7e1d7e607",
+    "paths": [
+      "docs/NAVI_PROXIMAL_R1_IMPLEMENTATION_20260923.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "b6b7f13d972658aedd824ec822e00ffadc2733f8",
+        "date": "2026-09-23T22:33:20Z",
+        "path": "docs/NAVI_PROXIMAL_R1_IMPLEMENTATION_20260923.md",
+        "change": "added",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "fb6f0c5ccbc85dc28f34b2c7a12059d274856b03",
+    "paths": [
+      "docs/NAVI_PROXIMAL_RECOVERY_OPERATOR_HANDOFF_20260923.txt"
+    ],
+    "occurrences": [
+      {
+        "commit": "b6b7f13d972658aedd824ec822e00ffadc2733f8",
+        "date": "2026-09-23T22:33:20Z",
+        "path": "docs/NAVI_PROXIMAL_RECOVERY_OPERATOR_HANDOFF_20260923.txt",
+        "change": "added",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "5940f2d4cc86766db216558b1c9aceebc788f6e2",
+    "paths": [
+      "docs/decisions/0090-sequence-overrules-declaration-15pct-window-auto-enabled.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "b6b7f13d972658aedd824ec822e00ffadc2733f8",
+        "date": "2026-09-23T22:33:20Z",
+        "path": "docs/decisions/0090-sequence-overrules-declaration-15pct-window-auto-enabled.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "4df83bcb4e78fee033812cd3493972f08673c0ea",
+    "paths": [
+      "docs/decisions/0098-proximal-physical-recovery-before-polarity-scoring.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "b6b7f13d972658aedd824ec822e00ffadc2733f8",
+        "date": "2026-09-23T22:33:20Z",
+        "path": "docs/decisions/0098-proximal-physical-recovery-before-polarity-scoring.md",
+        "change": "added",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "93fc00461ea6718d9fcdabac8d77eb8431972988",
+    "paths": [
+      "firmware/README.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "b6b7f13d972658aedd824ec822e00ffadc2733f8",
+        "date": "2026-09-23T22:33:20Z",
+        "path": "firmware/README.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "03e3584cb79aa5a7806e6c67f4dda83ad5a6a6df",
+    "paths": [
+      "firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_HEALTH/IrHealthMonitor.h"
+    ],
+    "occurrences": [
+      {
+        "commit": "b6b7f13d972658aedd824ec822e00ffadc2733f8",
+        "date": "2026-09-23T22:33:20Z",
+        "path": "firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_HEALTH/IrHealthMonitor.h",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "20c5643275a80e6b765aaf12f9ea950484b3750a",
+    "paths": [
+      "firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_HEALTH/NAVI_COHERENCE_0_6_IR_HEALTH.ino"
+    ],
+    "occurrences": [
+      {
+        "commit": "b6b7f13d972658aedd824ec822e00ffadc2733f8",
+        "date": "2026-09-23T22:33:20Z",
+        "path": "firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_HEALTH/NAVI_COHERENCE_0_6_IR_HEALTH.ino",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "1ffa09447546400820ef58da7112df8321d08f83",
+    "paths": [
+      "firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_HEALTH/Navigator.h"
+    ],
+    "occurrences": [
+      {
+        "commit": "b6b7f13d972658aedd824ec822e00ffadc2733f8",
+        "date": "2026-09-23T22:33:20Z",
+        "path": "firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_HEALTH/Navigator.h",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "6af514060d317a6b6825fb3cbea54b6a9908d30e",
+    "paths": [
+      "firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_HEALTH/ProximalRecovery.h",
+      "firmware/programs/NAVI_COHERENCE/variants/NAVI_EYES_WIDE_OPEN/ProximalRecovery.h"
+    ],
+    "occurrences": [
+      {
+        "commit": "b6b7f13d972658aedd824ec822e00ffadc2733f8",
+        "date": "2026-09-23T22:33:20Z",
+        "path": "firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_HEALTH/ProximalRecovery.h",
+        "change": "added",
+        "previous_path": null
+      },
+      {
+        "commit": "93af2267f1a4609edeca57aecec4b69278e6097d",
+        "date": "2026-09-28T22:10:38Z",
+        "path": "firmware/programs/NAVI_COHERENCE/variants/NAVI_EYES_WIDE_OPEN/ProximalRecovery.h",
+        "change": "added",
+        "previous_path": null
+      }
+    ],
+    "review_status": "FULLY_REVIEWED",
+    "review_notes": [
+      "FullProximalRecovery read. reverse clearsreference while settled=true; no reference->TRAVEL_UNAVAILABLE_HOLD; establish normally requires fullincumbentagreement. This corroboratesrun3deadlockmechanism without claiming fullrawlogreview."
+    ],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "9f2c63bc6efb84b0f7ec2d7ca8a63521b04ab794",
+    "paths": [
+      "firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_HEALTH/README.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "b6b7f13d972658aedd824ec822e00ffadc2733f8",
+        "date": "2026-09-23T22:33:20Z",
+        "path": "firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_HEALTH/README.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "2f8ea06bb88767d690d5ef5bb6dcbc7c5373f67c",
+    "paths": [
+      "firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_HEALTH/tests/test_coherence.cpp"
+    ],
+    "occurrences": [
+      {
+        "commit": "b6b7f13d972658aedd824ec822e00ffadc2733f8",
+        "date": "2026-09-23T22:33:20Z",
+        "path": "firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_HEALTH/tests/test_coherence.cpp",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "28e46ab87e4cb29986ffb1dd6220a6c7b312abb2",
+    "paths": [
+      "firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_HEALTH/tests/test_health_json.py",
+      "firmware/programs/NAVI_COHERENCE/variants/NAVI_EYES_WIDE_OPEN/tests/test_health_json.py"
+    ],
+    "occurrences": [
+      {
+        "commit": "b6b7f13d972658aedd824ec822e00ffadc2733f8",
+        "date": "2026-09-23T22:33:20Z",
+        "path": "firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_HEALTH/tests/test_health_json.py",
+        "change": "modified",
+        "previous_path": null
+      },
+      {
+        "commit": "93af2267f1a4609edeca57aecec4b69278e6097d",
+        "date": "2026-09-28T22:10:38Z",
+        "path": "firmware/programs/NAVI_COHERENCE/variants/NAVI_EYES_WIDE_OPEN/tests/test_health_json.py",
+        "change": "added",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  }
+]

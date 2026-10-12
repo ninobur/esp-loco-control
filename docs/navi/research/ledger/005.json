@@ -1,0 +1,1802 @@
+[
+  {
+    "blob_sha": "eb17889fe649cbb389ea913fa19bc452b3fd7f93",
+    "paths": [
+      "firmware/programs/NAVI_ONE/variants/NAVI_ONE_STATION_CURVES/HallCapture.h"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/NAVI_ONE/variants/NAVI_ONE_STATION_CURVES/HallCapture.h",
+        "change": "renamed",
+        "previous_path": "firmware/test-programs/NAVI_ONE_STATION_CURVES/HallCapture.h"
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "f340417f03f5671df78dc1973420c0a9f88ad4d6",
+    "paths": [
+      "firmware/programs/NAVI_ONE/variants/NAVI_ONE_STATION_CURVES/LocoConfig.h"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/NAVI_ONE/variants/NAVI_ONE_STATION_CURVES/LocoConfig.h",
+        "change": "renamed",
+        "previous_path": "firmware/test-programs/NAVI_ONE_STATION_CURVES/LocoConfig.h"
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "6f4101ef771106a7f919e0dded1c3d2334c123e0",
+    "paths": [
+      "firmware/programs/NAVI_ONE/variants/NAVI_ONE_STATION_CURVES/MagnetRecognizer.h"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/NAVI_ONE/variants/NAVI_ONE_STATION_CURVES/MagnetRecognizer.h",
+        "change": "renamed",
+        "previous_path": "firmware/test-programs/NAVI_ONE_STATION_CURVES/MagnetRecognizer.h"
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "b9b1de2a7ff01a0860725e8fbe6d96b4fc249dc0",
+    "paths": [
+      "firmware/programs/NAVI_ONE/variants/NAVI_ONE_STATION_CURVES/NAVI_ONE_STATION_CURVES.ino"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/NAVI_ONE/variants/NAVI_ONE_STATION_CURVES/NAVI_ONE_STATION_CURVES.ino",
+        "change": "renamed",
+        "previous_path": "firmware/test-programs/NAVI_ONE_STATION_CURVES/NAVI_ONE_STATION_CURVES.ino"
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "ad5edcaddea2b982444eff6fe0313d6b51890b0b",
+    "paths": [
+      "firmware/programs/NAVI_ONE/variants/NAVI_ONE_STATION_CURVES/Navigator.h"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/NAVI_ONE/variants/NAVI_ONE_STATION_CURVES/Navigator.h",
+        "change": "renamed",
+        "previous_path": "firmware/test-programs/NAVI_ONE_STATION_CURVES/Navigator.h"
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "83d28a938c365e0e3646bedb33597ec13c0dc919",
+    "paths": [
+      "firmware/programs/NAVI_ONE/variants/NAVI_ONE_STATION_CURVES/Ops.h"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/NAVI_ONE/variants/NAVI_ONE_STATION_CURVES/Ops.h",
+        "change": "renamed",
+        "previous_path": "firmware/test-programs/NAVI_ONE_STATION_CURVES/Ops.h"
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "abc2a235470bba5ae48c68a50402b40da8a20007",
+    "paths": [
+      "firmware/programs/NAVI_ONE/variants/NAVI_ONE_STATION_CURVES/README.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/NAVI_ONE/variants/NAVI_ONE_STATION_CURVES/README.md",
+        "change": "renamed",
+        "previous_path": "firmware/test-programs/NAVI_ONE_STATION_CURVES/README.md"
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "e8f2c70426ffb248a47282697074bf7c77ade1a8",
+    "paths": [
+      "firmware/programs/NAVI_ONE/variants/NAVI_ONE_STATION_CURVES/tests/contract.cpp"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/NAVI_ONE/variants/NAVI_ONE_STATION_CURVES/tests/contract.cpp",
+        "change": "renamed",
+        "previous_path": "firmware/test-programs/NAVI_ONE_STATION_CURVES/tests/contract.cpp"
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "e17e2fb7760a7244a311a2ace485662ac9cf37cc",
+    "paths": [
+      "firmware/programs/NAVI_ONE/variants/NAVI_ONE_STATION_CURVES/tests/gate_baseline_latch.cpp"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/NAVI_ONE/variants/NAVI_ONE_STATION_CURVES/tests/gate_baseline_latch.cpp",
+        "change": "renamed",
+        "previous_path": "firmware/test-programs/NAVI_ONE_STATION_CURVES/tests/gate_baseline_latch.cpp"
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "c26e55cf5fef534d2c85cae76ba90019b12f323e",
+    "paths": [
+      "firmware/programs/NAVI_ONE/variants/NAVI_ONE_STATION_CURVES/tests/gate_interrupted.cpp"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/NAVI_ONE/variants/NAVI_ONE_STATION_CURVES/tests/gate_interrupted.cpp",
+        "change": "renamed",
+        "previous_path": "firmware/test-programs/NAVI_ONE_STATION_CURVES/tests/gate_interrupted.cpp"
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "c8f26c6a43eeed2cad3831b02b9c2d94336c70a6",
+    "paths": [
+      "firmware/programs/NAVI_ONE/variants/NAVI_ONE_STATION_CURVES/tests/gate_ops.cpp"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/NAVI_ONE/variants/NAVI_ONE_STATION_CURVES/tests/gate_ops.cpp",
+        "change": "renamed",
+        "previous_path": "firmware/test-programs/NAVI_ONE_STATION_CURVES/tests/gate_ops.cpp"
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "b2595ac714ee9d9808a94388a674ee4b6f080031",
+    "paths": [
+      "firmware/programs/NAVI_ONE/variants/NAVI_ONE_STATION_CURVES/tests/gate_polarity.cpp"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/NAVI_ONE/variants/NAVI_ONE_STATION_CURVES/tests/gate_polarity.cpp",
+        "change": "renamed",
+        "previous_path": "firmware/test-programs/NAVI_ONE_STATION_CURVES/tests/gate_polarity.cpp"
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "358fc0ec1df131abad204e820759e4ebaa1c4187",
+    "paths": [
+      "firmware/programs/NAVI_ONE/variants/NAVI_ONE_STATION_CURVES/tests/replay_survey.cpp"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/NAVI_ONE/variants/NAVI_ONE_STATION_CURVES/tests/replay_survey.cpp",
+        "change": "renamed",
+        "previous_path": "firmware/test-programs/NAVI_ONE_STATION_CURVES/tests/replay_survey.cpp"
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "250cad9f9988f5687fefcc418d4c7a8f472e23a7",
+    "paths": [
+      "firmware/programs/NAVI_ONE/variants/NAVI_ONE_STATION_CURVES/tests/run_tests.sh"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/NAVI_ONE/variants/NAVI_ONE_STATION_CURVES/tests/run_tests.sh",
+        "change": "renamed",
+        "previous_path": "firmware/test-programs/NAVI_ONE_STATION_CURVES/tests/run_tests.sh"
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "178931f6d5980ff090a76d1c327c8e173ab2817e",
+    "paths": [
+      "firmware/programs/NAVI_ONE/variants/NAVI_ONE_X18_RECORDER/HallRecorder.h"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/NAVI_ONE/variants/NAVI_ONE_X18_RECORDER/HallRecorder.h",
+        "change": "renamed",
+        "previous_path": "firmware/test-programs/NAVI_ONE_X18_RECORDER/HallRecorder.h"
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "5a43dd1518a562787b147d47868e52c5ad8826f9",
+    "paths": [
+      "firmware/programs/NAVI_ONE/variants/NAVI_ONE_X18_RECORDER/NAVI_ONE_X18_RECORDER.ino"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/NAVI_ONE/variants/NAVI_ONE_X18_RECORDER/NAVI_ONE_X18_RECORDER.ino",
+        "change": "renamed",
+        "previous_path": "firmware/test-programs/NAVI_ONE_X18_RECORDER/NAVI_ONE_X18_RECORDER.ino"
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "c829525641eb873ce2cbcf15446a93bc3df072a6",
+    "paths": [
+      "firmware/programs/NAVI_ONE/variants/NAVI_ONE_X18_RECORDER/README.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "firmware/programs/NAVI_ONE/variants/NAVI_ONE_X18_RECORDER/README.md",
+        "change": "renamed",
+        "previous_path": "firmware/test-programs/NAVI_ONE_X18_RECORDER/README.md"
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "2686de800248e2536cbffe6fe0c0f29df11439d0",
+    "paths": [
+      ".gitignore"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": ".gitignore",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "b2bc9b4bb8b3df732c17a969d521d3939c5c7fc3",
+    "paths": [
+      "README.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "README.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "5dab88d0ead7950ed66073d5c54de3e7c119938b",
+    "paths": [
+      "docs/AUTONOMOUS_ACQUISITION_IMPLEMENTATION_MAP.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "docs/AUTONOMOUS_ACQUISITION_IMPLEMENTATION_MAP.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "23b715e861fe595e42577eb416e830daf8d253b5",
+    "paths": [
+      "docs/CLAUDE.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "docs/CLAUDE.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "10a44ee2583d2febc36b042d979be4654b2b910e",
+    "paths": [
+      "docs/CTO3/CTO3_S7_TRAVEL_DIRECTION_VERIFICATION.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "docs/CTO3/CTO3_S7_TRAVEL_DIRECTION_VERIFICATION.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "606340d7928d5ec7ce242c62f2eec70a2af29c5d",
+    "paths": [
+      "docs/CTO3/station-stop-v1/IMPLEMENTATION_REPORT.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "docs/CTO3/station-stop-v1/IMPLEMENTATION_REPORT.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "b959d8106c5ad84bd25a63f17042b4891c4d476c",
+    "paths": [
+      "docs/CTO3/station-stop-v1/README.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "docs/CTO3/station-stop-v1/README.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "3554338ed692faf3bde3a24e34ad1e05fc100cd6",
+    "paths": [
+      "docs/CTO_RESTORATION_PROMPT_20260904.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "docs/CTO_RESTORATION_PROMPT_20260904.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "a5414e919e9a2466fc929d2342251f6526d05df7",
+    "paths": [
+      "docs/CTO_RESTORATION_STATE_20260813.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "docs/CTO_RESTORATION_STATE_20260813.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "d74fd3b03bfb5f69208ff36825e2ec802227b433",
+    "paths": [
+      "docs/CURVES_DATABASE_REVIEW_RESPONSE_20260903.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "docs/CURVES_DATABASE_REVIEW_RESPONSE_20260903.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "9869c42ce704e6fe9de59c5eacc8dae57da35acd",
+    "paths": [
+      "docs/DASHBOARD_1_10_3_IMPLEMENTATION_REPORT.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "docs/DASHBOARD_1_10_3_IMPLEMENTATION_REPORT.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "359f6ee9a268185696bd6f42a708b3ebb1789f52",
+    "paths": [
+      "docs/DENSE_HALL_CORPORA_INVENTORY.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "docs/DENSE_HALL_CORPORA_INVENTORY.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "402a5a56339d723491165f80e40844b3914fb65a",
+    "paths": [
+      "docs/ESPNOW_REPEATER_BUILD_REPORT.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "docs/ESPNOW_REPEATER_BUILD_REPORT.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "6bc45f1085cf0ae31b17f67956777f141c822d96",
+    "paths": [
+      "docs/IR_ACTIVE_TEST_CAR_RUNBOOK.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "docs/IR_ACTIVE_TEST_CAR_RUNBOOK.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "cb9aa91175f3946cc941ef8a82f4f0c0f15f6207",
+    "paths": [
+      "docs/IR_DEV_REC/2026-08-09_IR_SCOPE_BUILD.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "docs/IR_DEV_REC/2026-08-09_IR_SCOPE_BUILD.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "098812070a90f4ecfa59fb110b99eb83b6c902e4",
+    "paths": [
+      "docs/IR_DEV_REC/2026-08-26_IR_FOUR_LAP_DISTANCE_TRUTH.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "docs/IR_DEV_REC/2026-08-26_IR_FOUR_LAP_DISTANCE_TRUTH.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "a921964245bcfbadb7ae31bcc9e6e7c8e0ba60e2",
+    "paths": [
+      "docs/IR_DEV_REC/2026-08-26_IR_SCOPE_REPLAY_ON_FOUR_LAPS.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "docs/IR_DEV_REC/2026-08-26_IR_SCOPE_REPLAY_ON_FOUR_LAPS.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "4a4bc3a568f81c6eb675dc1fb67511b883d73c43",
+    "paths": [
+      "docs/IR_DEV_REC/2026-08-29_IR_HANDOFF.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "docs/IR_DEV_REC/2026-08-29_IR_HANDOFF.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "f71af94d19f7c144b434ee4b416e88f74e616a13",
+    "paths": [
+      "docs/IR_DEV_REQ/QUALITY_GATES_SPEED_OUTPUT.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "docs/IR_DEV_REQ/QUALITY_GATES_SPEED_OUTPUT.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "d0f275e910228f374736cc9950bacef12896adb7",
+    "paths": [
+      "docs/IR_DIAG_DAYLIGHT_PREP.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "docs/IR_DIAG_DAYLIGHT_PREP.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "f733ae71aeb3a2e4ad878e1a3812f6b3a8566d5b",
+    "paths": [
+      "docs/IR_DIAG_ENVELOPE_AND_MARGIN.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "docs/IR_DIAG_ENVELOPE_AND_MARGIN.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "5e076e81c05d373dd18579443e0287d5e9f215c3",
+    "paths": [
+      "docs/IR_NOON_RUN_ANALYSIS_20260920.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "docs/IR_NOON_RUN_ANALYSIS_20260920.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "3c3d6246d19d5a3e55b96115a1518483bb976f1d",
+    "paths": [
+      "docs/IR_PACKET_FORMAT.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "docs/IR_PACKET_FORMAT.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "194bf09fc091bf9bada0aaa25aee32ee538797fd",
+    "paths": [
+      "docs/IR_ROUTE_EVIDENCE_STATUS.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "docs/IR_ROUTE_EVIDENCE_STATUS.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "cfb7bc5644f902b9270f267c340d3ce3367f52b2",
+    "paths": [
+      "docs/IR_SENSOR_NOTES.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "docs/IR_SENSOR_NOTES.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "099b22da3b1d7505a3985f1d7f1b58d7ed3d3258",
+    "paths": [
+      "docs/IR_SESSION_RECORD_2026-09-19.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "docs/IR_SESSION_RECORD_2026-09-19.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "e8610097ca290647eb178d9ac5cdf3d283a2fd8c",
+    "paths": [
+      "docs/IR_SLOW_DEPARTURE_LIMITATION_20260919.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "docs/IR_SLOW_DEPARTURE_LIMITATION_20260919.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "63a2665e41f7b0d2e6c8002b65f17f880491e879",
+    "paths": [
+      "docs/IR_SPEED_LOCAL_QC_REVIEW.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "docs/IR_SPEED_LOCAL_QC_REVIEW.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "ecb216f15a6c9743f8061e0e72edb982c3cead0b",
+    "paths": [
+      "docs/IR_TEST_A_IMPLEMENTATION_REPORT.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "docs/IR_TEST_A_IMPLEMENTATION_REPORT.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "e2bda1022473ef786a5802651f196194fee4b195",
+    "paths": [
+      "docs/IR_TEST_CAR_ESPNOW_FIRMWARE_SPEC.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "docs/IR_TEST_CAR_ESPNOW_FIRMWARE_SPEC.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "ecd8f73b100f676a1bc8ce2bb821e526ad72e490",
+    "paths": [
+      "docs/IR_TEST_FILTER_AND_ENVELOPE.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "docs/IR_TEST_FILTER_AND_ENVELOPE.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "446f4b17fe230006e1f8ed56d8c394df12ca4242",
+    "paths": [
+      "docs/IR_TEST_STATE_AND_REACQUISITION.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "docs/IR_TEST_STATE_AND_REACQUISITION.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "1ec4cacca03a841cc7e690764c9a46349c701799",
+    "paths": [
+      "docs/IR_TX_1_5_BUILD_RECORD_20260919.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "docs/IR_TX_1_5_BUILD_RECORD_20260919.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "4ffc5c88fd7a433577d8e4b7a449e28b8acddee7",
+    "paths": [
+      "docs/IR_USB_BENCH_BUILD_20260919.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "docs/IR_USB_BENCH_BUILD_20260919.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "9b4ab96173fb9cca09306c019242729152df5c5f",
+    "paths": [
+      "docs/MM_DECLARATION_SPATIAL_VARIABILITY_20260921.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "docs/MM_DECLARATION_SPATIAL_VARIABILITY_20260921.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "5ed13d54550511047abca029ec774645eef246dd",
+    "paths": [
+      "docs/NAVI_BASELINE_DRIFT_20260916_C3B93D0B.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "docs/NAVI_BASELINE_DRIFT_20260916_C3B93D0B.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "649db08fd850ea7245a0c490ad320917a28c3ffd",
+    "paths": [
+      "docs/NAVI_CLOSURE_NECESSITY_ANALYSIS_20260915.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "docs/NAVI_CLOSURE_NECESSITY_ANALYSIS_20260915.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "fbb49236a385fcd02a20763948e81414f85f2955",
+    "paths": [
+      "docs/NAVI_COHERENCE_0_2_INDEPENDENT_REVIEW_20260921.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "docs/NAVI_COHERENCE_0_2_INDEPENDENT_REVIEW_20260921.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "e74f0f156b8e2410656b4cacd268b8f8ac82275f",
+    "paths": [
+      "docs/NAVI_COHERENCE_0_3_INDEPENDENT_REVIEW_20260921.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "docs/NAVI_COHERENCE_0_3_INDEPENDENT_REVIEW_20260921.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "156a51056ee1040007e406c67a4688f08489c739",
+    "paths": [
+      "docs/NAVI_COHERENCE_0_4_INDEPENDENT_REVIEW_20260921.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "docs/NAVI_COHERENCE_0_4_INDEPENDENT_REVIEW_20260921.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "df48342170ce3ce09c7d1fe8c51c2daeafa57298",
+    "paths": [
+      "docs/NAVI_COHERENCE_0_6_IR_HEALTH_20260923.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "docs/NAVI_COHERENCE_0_6_IR_HEALTH_20260923.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "9f49e00f335060a6b9c4e36da992235bcc761927",
+    "paths": [
+      "docs/NAVI_COHERENCE_CURRENT_WORK_20260923.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "docs/NAVI_COHERENCE_CURRENT_WORK_20260923.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "eb8081b5fc3582afdeacc17d15100a1ee776ae24",
+    "paths": [
+      "docs/NAVI_CTO_ARCHITECTURE_AND_PROVENANCE_20260909.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "docs/NAVI_CTO_ARCHITECTURE_AND_PROVENANCE_20260909.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "9ebb4d563655fe9934c9edc7b789137b307f4fb2",
+    "paths": [
+      "docs/NAVI_CTO_DISCREPANCY_RESPONSE_20260910.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "docs/NAVI_CTO_DISCREPANCY_RESPONSE_20260910.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "9c6e1f95ed67d44d21f50f71a4324b261cb835d7",
+    "paths": [
+      "docs/NAVI_IR_0_1_IMPLEMENTATION_REPORT.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "docs/NAVI_IR_0_1_IMPLEMENTATION_REPORT.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "6882d97b91e3e30a487a93980863570a848d29b9",
+    "paths": [
+      "docs/NAVI_IR_0_2_INDEPENDENT_REVIEW_20260920.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "docs/NAVI_IR_0_2_INDEPENDENT_REVIEW_20260920.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "01a86e98b5b3fc3ebb55bb7dc95ee6a3f1035a31",
+    "paths": [
+      "docs/NAVI_IR_0_4_INDEPENDENT_REVIEW_20260920.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "docs/NAVI_IR_0_4_INDEPENDENT_REVIEW_20260920.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "14807fa6f436ae6bba86701ab65815f4a630c12d",
+    "paths": [
+      "docs/NAVI_IR_FIRST_STARTUP_20260920.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "docs/NAVI_IR_FIRST_STARTUP_20260920.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "1f6b6cf2b4a66679ae9f0e0dbd31396789ec3bc1",
+    "paths": [
+      "docs/NAVI_IR_HEALTH_STEP1_20260923.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "docs/NAVI_IR_HEALTH_STEP1_20260923.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "e110fd9cfa47eb78a4d49895d3f8887f6a8dd328",
+    "paths": [
+      "docs/NAVI_MM_HALL_GUARD_TIMING_EVIDENCE_20260922.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "docs/NAVI_MM_HALL_GUARD_TIMING_EVIDENCE_20260922.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "2bf317a9c89fe74fb65d291253b504ecbcb03677",
+    "paths": [
+      "docs/NAVI_ONE_0_3_FIELD_FINDING_01_STALE_STATE_AUTO.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "docs/NAVI_ONE_0_3_FIELD_FINDING_01_STALE_STATE_AUTO.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "6f08b73500104b1632ab0f0c4fea1ad2e1b450b7",
+    "paths": [
+      "docs/NAVI_ONE_0_3_FIELD_FINDING_02_SHAPE_REJECTION_LAG_STOP.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "docs/NAVI_ONE_0_3_FIELD_FINDING_02_SHAPE_REJECTION_LAG_STOP.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "7bfa150318ae4d3ff960f327b42aa45058d96c70",
+    "paths": [
+      "docs/NAVI_ONE_0_3_FIELD_FINDING_03_SECOND_SHAPE_REJECTION_MM146.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "docs/NAVI_ONE_0_3_FIELD_FINDING_03_SECOND_SHAPE_REJECTION_MM146.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "cd5a5dc4fc621c2443f1c0fe6ae14584974c2852",
+    "paths": [
+      "docs/NAVI_ONE_0_3_FIELD_FINDING_05_IMPULSE_FLIPPED_POLARITY_AT_MM70.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "docs/NAVI_ONE_0_3_FIELD_FINDING_05_IMPULSE_FLIPPED_POLARITY_AT_MM70.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "254499468eea7d34277d24a08fc0416d1b1ca817",
+    "paths": [
+      "docs/NAVI_ONE_0_3_FIELD_FINDING_06_SECOND_ENTRY_IMPULSE_MM119.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "docs/NAVI_ONE_0_3_FIELD_FINDING_06_SECOND_ENTRY_IMPULSE_MM119.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "ff1ec6236777b0ad38de674f7288818c3838e675",
+    "paths": [
+      "docs/NAVI_ONE_1_0X11_EPIPHANY_FIRST_RAILWAY_RUN_ARCHES_CW_20260903.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "docs/NAVI_ONE_1_0X11_EPIPHANY_FIRST_RAILWAY_RUN_ARCHES_CW_20260903.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "47f61c39b5b16fd162db734811d52d94bf422a16",
+    "paths": [
+      "docs/NAVI_ONE_DISCARD_FLANK_FIX_20260903.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "docs/NAVI_ONE_DISCARD_FLANK_FIX_20260903.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "0d1643e40755b543fe9ea6ef26b84f4403d72d52",
+    "paths": [
+      "docs/NAVI_ONE_EVALUATION_OF_SAM_HYPOTHESIS_MECHANISM_20260919.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "docs/NAVI_ONE_EVALUATION_OF_SAM_HYPOTHESIS_MECHANISM_20260919.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "06979b5600032131263f73411d14ce89a42663ff",
+    "paths": [
+      "docs/NAVI_ONE_FIELD_FINDING_08_BASELINE_LATCH_SWALLOWS_MARKERS.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "docs/NAVI_ONE_FIELD_FINDING_08_BASELINE_LATCH_SWALLOWS_MARKERS.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "b17abe6a692945e889b8e690f6536be34764818a",
+    "paths": [
+      "docs/NAVI_ONE_MAGNET_ONLY_FEASIBILITY_20260919.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "docs/NAVI_ONE_MAGNET_ONLY_FEASIBILITY_20260919.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "25becd32270fed9cd7d55cd061e7c187a5d7a00f",
+    "paths": [
+      "docs/NAVI_ONE_OPERATOR_RULING_AUDIT_20260910.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "docs/NAVI_ONE_OPERATOR_RULING_AUDIT_20260910.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "113bec619e1f4390f363aaadb529cc656bfb09f9",
+    "paths": [
+      "docs/NAVI_PEAK_CLOSE_REPLAY_20260913.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "docs/NAVI_PEAK_CLOSE_REPLAY_20260913.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "e961899dd70d8c8e089ff5a5cdcdfffdf2ab3f67",
+    "paths": [
+      "docs/NAVI_POST_STOP_PROVISIONAL_RESOLVER_DESIGN_20260912.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "docs/NAVI_POST_STOP_PROVISIONAL_RESOLVER_DESIGN_20260912.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "e78a1193b10bcb9f28803518a418d7f2aab0df49",
+    "paths": [
+      "docs/NAVI_SIMPLIFIED_BASELINE_DESIGN_CHECKLIST_20260918.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "docs/NAVI_SIMPLIFIED_BASELINE_DESIGN_CHECKLIST_20260918.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "4cfe3e80fe4f37881be760817e13ff015bf77cd3",
+    "paths": [
+      "docs/NAVI_SIMPLIFIED_LOCKED_BASELINE_FINDINGS_20260919.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "docs/NAVI_SIMPLIFIED_LOCKED_BASELINE_FINDINGS_20260919.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "b9c9bf119f4fa0f77ded11b2921039731457569a",
+    "paths": [
+      "docs/NAVI_SIMPLIFIED_RECONSTRUCTION_20260918.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "docs/NAVI_SIMPLIFIED_RECONSTRUCTION_20260918.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": true
+  },
+  {
+    "blob_sha": "ccf728beddf8b6594a5f58dc45e93c889bab8aa1",
+    "paths": [
+      "docs/NAVI_SIMPLIFIED_REVIEW_CLAUDE_20260918.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "docs/NAVI_SIMPLIFIED_REVIEW_CLAUDE_20260918.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "7a272e2faf7bb9e1e33b5ddcf8cd37f9419376c6",
+    "paths": [
+      "docs/NAVI_VMAX_PWM90_20260918.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "docs/NAVI_VMAX_PWM90_20260918.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "b76b1f58c20379dfad9a48b3d5d44d9dbe131634",
+    "paths": [
+      "docs/NAVI_X17_FIXED_BASELINE_PREFLASH_AUDIT_20260914.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "docs/NAVI_X17_FIXED_BASELINE_PREFLASH_AUDIT_20260914.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "e357e61b0b7f9c7d8eb727559c2a3b3a0f60d223",
+    "paths": [
+      "docs/NAVI_X18_HALL_RECORDER_20260916.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "docs/NAVI_X18_HALL_RECORDER_20260916.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "ceb47c30947e2cdb47d20a0af5cdacbe1d993134",
+    "paths": [
+      "docs/NAVI_X18_RECORDER_VS_X18.diff"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "docs/NAVI_X18_RECORDER_VS_X18.diff",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "9513c9c5edd1334635a46b04adc6a7e71dd61176",
+    "paths": [
+      "docs/NAVI_X19_AUDIT_PACK_20260915.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "docs/NAVI_X19_AUDIT_PACK_20260915.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "914a17bc59212d08afc21a85013d6a62e29cb8b0",
+    "paths": [
+      "docs/NAVI_X19_IMPLEMENTATION_20260915.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "docs/NAVI_X19_IMPLEMENTATION_20260915.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "74e4ae33c5ec4b269103ccc04fd51e2d46212c28",
+    "paths": [
+      "docs/NAVI_X19_VS_X18_20260915.diff"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "docs/NAVI_X19_VS_X18_20260915.diff",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "a3477b18514d4b170fbc897782f09bd9b704c82e",
+    "paths": [
+      "docs/NGR_DASHBOARD_AUTHORITY_ALIGNMENT_DRAFT2_REVIEW_20260808.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "docs/NGR_DASHBOARD_AUTHORITY_ALIGNMENT_DRAFT2_REVIEW_20260808.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "fce55c4c7e65a6ade8adb00f23121aacde1ddee2",
+    "paths": [
+      "docs/NGR_DASHBOARD_AUTHORITY_ALIGNMENT_DRAFT4_REVIEW_CLAUDE_20260808.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "docs/NGR_DASHBOARD_AUTHORITY_ALIGNMENT_DRAFT4_REVIEW_CLAUDE_20260808.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "7c5fccf779d55208213717a91aef0515b189b3ee",
+    "paths": [
+      "docs/NGR_DASHBOARD_AUTHORITY_ALIGNMENT_DRAFT4_REVIEW_CODEX_20260808.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "docs/NGR_DASHBOARD_AUTHORITY_ALIGNMENT_DRAFT4_REVIEW_CODEX_20260808.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "6a90613988bb6a7bf2361e6fb95ec6b6587a67e3",
+    "paths": [
+      "docs/NGR_DASHBOARD_AUTHORITY_ALIGNMENT_DRAFT5_REVIEW_CODEX_20260808.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "docs/NGR_DASHBOARD_AUTHORITY_ALIGNMENT_DRAFT5_REVIEW_CODEX_20260808.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "7acf78749794f4e5f62b4ed2688da7afddf74e6a",
+    "paths": [
+      "docs/NGR_DASHBOARD_FINDINGS_20260807.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "docs/NGR_DASHBOARD_FINDINGS_20260807.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "0afc55296d6e2578ab39868a43cc2d567765d37f",
+    "paths": [
+      "docs/NGR_ESPNOW_COMMAND_BACKUP_SPEC.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "docs/NGR_ESPNOW_COMMAND_BACKUP_SPEC.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "57be48b9746367647cef0f7ea62e1476386279fd",
+    "paths": [
+      "docs/OTTO_SURVEY_BUILD_20260905.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "docs/OTTO_SURVEY_BUILD_20260905.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "640ae966fa6d43c4131a60be53a057aa70faa48e",
+    "paths": [
+      "docs/PI_REBUILD_RUNBOOK.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "docs/PI_REBUILD_RUNBOOK.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  },
+  {
+    "blob_sha": "7b0266c8d498fb5fca7b6ab1dc7e70923c47f2b8",
+    "paths": [
+      "docs/QUORUM_1_0_IMPLEMENTATION_REPORT.md"
+    ],
+    "occurrences": [
+      {
+        "commit": "d59a332bd63d3ffd8f780a7ee49599b4ff8ba370",
+        "date": "2026-09-23T20:29:14Z",
+        "path": "docs/QUORUM_1_0_IMPLEMENTATION_REPORT.md",
+        "change": "modified",
+        "previous_path": null
+      }
+    ],
+    "review_status": "PENDING",
+    "review_notes": [],
+    "cached_in_execution_20261012": false
+  }
+]

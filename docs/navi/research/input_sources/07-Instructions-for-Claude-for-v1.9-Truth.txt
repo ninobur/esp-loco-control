@@ -1,0 +1,239 @@
+Yes. v1.9 is the right next step, but I would keep it instrumentation-first, not full navigation-table logic yet.
+
+Do v1.9 before MM/TP tables because the tables will be much more useful once every physical magnet has:
+
+absolute magnet number
+ordinary mile-marker count
+truth-point association
+direction-aware interpretation
+miss/inferred count behavior
+confidence state
+
+Here is a clean package you can give Claude.
+
+Claude — please create MM_Loco_1_9.ino from the current tested MM_Loco_1_8_Truth.ino.
+
+Purpose of v1.9:
+Instrumentation and self-correction only. Do not yet add full MM and TP lookup tables. This version prepares for them by making the locomotive report better position evidence, missed-magnet inference, and confidence state.
+
+Keep all current working behavior from v1.8:
+
+* Hall detection
+* MQTT publishing
+* throttle/direction/brake/estop handling
+* seed timing
+* MILE / TRUTH_1 / TRUTH_2 / MM_EXIT_FROM_TRUTH classification
+* MISSED_MM_1 / MISSED_MM_2 / TIMING_RELOCK / RESET behavior
+* ramp handling
+
+Add the following features.
+
+1. Add physical magnet numbering
+
+Maintain a counter for detected physical magnet hits since boot/reset:
+
+uint32_t physicalMagNo = 0;       // increments on every detected Hall event
+uint32_t ordinaryMmNo = 0;        // increments only for accepted ordinary mile markers
+uint32_t inferredMmNo = 0;        // increments for inferred missed ordinary markers
+uint32_t totalMmPosition = 0;     // ordinaryMmNo + inferredMmNo
+
+On every Hall event:
+
+* Increment physicalMagNo.
+* If class is MILE, increment ordinaryMmNo and update totalMmPosition.
+* If class is MISSED_MM_1, infer one missing ordinary MM space.
+* If class is MISSED_MM_2, infer two missing ordinary MM spaces.
+* Truth magnets must not increment ordinary MM count.
+* MM_EXIT_FROM_TRUTH should be handled as ordinary map progression only if current v1.8 already treats it as such; otherwise leave map-counting conservative and explicitly report it.
+
+Important: do not pretend inferred magnets were physically seen. Keep detected and inferred counts separate.
+
+2. Add inferred-miss handling
+
+When the timing classifier declares:
+
+MISSED_MM_1
+
+do:
+
+inferredMmNo += 1;
+totalMmPosition = ordinaryMmNo + inferredMmNo;
+confidence = CONF_DEGRADED;
+
+When it declares:
+
+MISSED_MM_2
+
+do:
+
+inferredMmNo += 2;
+totalMmPosition = ordinaryMmNo + inferredMmNo;
+confidence = CONF_DEGRADED;
+
+After a good run of ordinary MILE detections, allow confidence to recover.
+
+Suggested rule:
+
+if (class == MILE && confidence == CONF_DEGRADED) {
+    goodMileStreak++;
+    if (goodMileStreak >= 6) confidence = CONF_LOCKED;
+} else if (class is missed/anomaly/relock/reset) {
+    goodMileStreak = 0;
+}
+
+3. Add confidence states
+
+Add:
+
+enum NavConfidence {
+    CONF_SEEKING,
+    CONF_LOCKED,
+    CONF_DEGRADED,
+    CONF_RELOCKING,
+    CONF_TRUTH_LOCKED
+};
+
+Suggested transitions:
+
+* Startup / reset / long gap: CONF_SEEKING
+* Seed accepted and normal MILE running: CONF_LOCKED
+* One or two missed MM: CONF_DEGRADED
+* Repeated missed-like events or timing relock: CONF_RELOCKING
+* Clean truth cluster completed: CONF_TRUTH_LOCKED, then return to CONF_LOCKED after the next clean MILE
+
+4. Add rolling speed evidence
+
+Maintain an 8-point rolling average of ordinary MILE intervals only.
+
+Do not include:
+
+* truth intervals
+* MM_EXIT_FROM_TRUTH if it is short
+* MISSED_MM intervals
+* RESET intervals
+* RAMPING_MM intervals
+* rejected seed intervals
+
+Add:
+
+const uint8_t MM_AVG_N = 8;
+uint16_t mmDtBuf[MM_AVG_N];
+uint8_t mmDtIdx = 0;
+uint8_t mmDtCount = 0;
+uint32_t mmDtSum = 0;
+uint16_t rollingMmDt = 0;
+
+Update rolling average only on clean ordinary MILE.
+
+Report:
+
+* dt
+* expected
+* ratio
+* avg8
+* speed band
+
+Suggested speed band:
+
+if (rollingMmDt == 0) speedBand = "UNKNOWN";
+else if (rollingMmDt < 800) speedBand = "TOO_FAST";
+else if (rollingMmDt < 850) speedBand = "CAUTION";
+else speedBand = "OK";
+
+5. Add automatic overspeed warning only, not automatic speed control yet
+
+For v1.9, do not change throttle automatically.
+
+Publish warning if:
+
+rollingMmDt > 0 && rollingMmDt < 850
+
+Suggested MQTT warning payload:
+
+MM_SPEED_CAUTION avg8=### band=CAUTION
+
+If under 800:
+
+MM_OVERSPEED avg8=### band=TOO_FAST
+
+Do not yet force PWM reduction. This version is for observation.
+
+6. Improve MQTT log line format
+
+Current line:
+
+MAG 547 S dt=2438 class=MISSED_MM_2 expected=889 ratio=2.74 [miss 1/3]
+
+New v1.9 line should add:
+
+phys=###
+mm=###
+inf=###
+pos=###
+conf=LOCKED|DEGRADED|SEEKING|RELOCKING|TRUTH_LOCKED
+avg8=###
+band=OK|CAUTION|TOO_FAST|UNKNOWN
+
+Example:
+
+MAG 547 S phys=547 mm=123 inf=2 pos=125 dt=2438 class=MISSED_MM_2 expected=889 ratio=2.74 conf=DEGRADED avg8=889 band=OK
+
+7. Add optional field-position topic
+
+In addition to the existing mm/mag topic, publish a compact state topic after every classified event:
+
+ngr/loco/<id>/mm/pos
+
+Suggested payload:
+
+phys=547 mm=123 inf=2 pos=125 conf=DEGRADED avg8=889 band=OK lastClass=MISSED_MM_2
+
+8. Add current PWM reporting
+
+The log should include commanded and actual/ramped PWM where available.
+
+Suggested fields:
+
+cmdPwm=109 curPwm=109
+
+or if the existing code has different variable names, use those names but report both target throttle and actual applied motor PWM.
+
+9. Keep MM/TP table hooks but do not populate full tables yet
+
+Add placeholder structures only:
+
+struct MileMarkerRecord {
+    uint16_t mmNo;
+    const char* name;
+    uint8_t flags;
+};
+struct TruthPointRecord {
+    uint8_t tpId;
+    const char* name;
+    char code[3];       // "nn", "ns", "sn", "ss"
+    uint16_t mmFromPrev;
+    uint16_t mmToNext;
+};
+
+But do not depend on these yet. v1.9 should still run without a completed map.
+
+10. Key design rule
+
+The locomotive should be able to continue after corrupted data:
+
+* missed MM → infer missing spaces
+* confidence downgraded, not abandoned
+* next good sequence improves confidence
+* next truth point corrects absolute identity
+* repeated corruption triggers relock but does not crash the stream
+
+Please return:
+
+1. Full updated MM_Loco_1_9.ino
+2. A short changelog
+3. A list of exact new MQTT fields
+4. Any assumptions you made about existing variable names
+
+The important thing is that v1.9 should not yet be the map brain. It should be the instrumented odometer that makes the future map brain safe.
+
+I would tell Claude not to change the proven v1.8 classifier more than necessary. The next firmware step is: “count what we saw, count what we inferred, report confidence, and keep going.”

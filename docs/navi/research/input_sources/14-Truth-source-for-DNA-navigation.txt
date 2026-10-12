@@ -1,0 +1,195 @@
+Here is the distilled summary of Sam’s side of the discussion:
+
+Summary: Otto’s MM142 False Correction at Grillers
+
+During testing of the new sketch on the “Island” between Grillers and Arches, Otto correctly followed the adjusted magnet DNA pattern until he was run off the island near Grillers. At that point, he incorrectly reported MM142 instead of the expected area near MM062.
+
+This was not a random error. The polarity pattern near MM142 is dangerously similar to the recent polarity window near MM062.
+
+For CCW travel:
+
+MM071 → MM062:
+N S N S S N N N N S
+MM151 → MM142:
+N S N S S N N N N N
+
+The two windows differ by only the final magnet. When Otto saw one more N, the DNA decoder found an exact-looking match at MM142 and accepted it too quickly:
+
+DNA_CORRECTION old=MM062 new=MM142 dir=CCW source=DNA_EXACT_LOCK
+
+The core problem is that the decoder treated a DNA pattern match as sufficient proof of location.
+
+Main Principle
+
+The locomotive should not change its understood location based on one magnet.
+
+A DNA match should propose a possible location, but it should not automatically overwrite the train’s reported position.
+
+The correct design distinction is:
+
+candidate_location ≠ reported_location
+
+The DNA system may generate candidates, but the locomotive should only update its reported location after the candidate has earned enough certainty.
+
+The Key Architectural Shift
+
+The locomotive needs more than a pattern matcher. It needs a belief model.
+
+The clean rule is:
+
+DNA recognition proposes location.
+Path continuity governs belief.
+Certainty determines when belief changes.
+
+In the Grillers case, Otto’s belief model should have said:
+
+Last trusted location: MM063 near Grillers
+Expected next CCW: MM062
+Observed magnet: N
+DNA candidate: MM142
+Jump distance: about 80 magnets
+Evidence: only one new magnet
+Conclusion: insufficient evidence to abandon expected path
+Reported location: near MM062 / uncertain
+
+Instead of reporting:
+
+MM142
+
+Path Continuity Rule
+
+A location claim should be judged by both:
+
+pattern evidence
++
+plausibility from the last trusted location
+
+A small correction may be plausible. A huge correction is an extraordinary claim.
+
+Suggested proof thresholds:
+
+jump 0–1 magnets:
+  still needs confirmation, but can earn trust quickly
+jump 2–5 magnets:
+  require stronger DNA agreement or next-magnet confirmation
+jump 6–15 magnets:
+  require multiple confirmations
+jump 16+ magnets:
+  hold as provisional only
+jump 40+ magnets:
+  treat as extraordinary; do not update dashboard until repeatedly confirmed
+
+Since MM142 was about 80 markers away from the expected path, it should have been treated as a speculative alternate reality, not as a valid correction.
+
+Better Dashboard Behavior
+
+The dashboard should not show every speculative DNA candidate as the train’s true position.
+
+A better display would have been:
+
+Last trusted: MM063 Grillers
+Expected next: MM062
+DNA candidate: MM142
+Jump distance: 80
+Status: PROVISIONAL / UNCONFIRMED
+Displayed position: near MM062 or UNCERTAIN NEAR GRILLERS
+
+This preserves honesty without allowing the train to “teleport.”
+
+Timing / dt Interpretation
+
+The discussion then expanded from DNA correction into timing intelligence.
+
+A strange dt interval should not immediately produce a conclusion like “missed magnet.” Instead, it should create competing hypotheses.
+
+For example, if:
+
+dt ≈ 2.0 × expected interval
+
+Possible explanations include:
+
+H1: The train slowed down.
+H2: The train missed one magnet.
+H3: The train stalled or nearly stalled.
+H4: The train is no longer on the expected route.
+H5: The timing model is stale because PWM, ramp, load, or slope changed.
+
+The locomotive should score these hypotheses over several observations, not decide from one interval.
+
+dt as Evidence, Not Verdict
+
+dt should be treated as motion evidence:
+
+dt_ratio = observed_dt / expected_dt_for_this_interval
+
+Examples:
+
+dt ≈ 1.2:
+  train arrived late
+  maybe slowing, load, grade, curve, or stale timing model
+dt ≈ 0.9:
+  train arrived early
+  maybe faster, downhill, lower load, or PWM increase
+dt ≈ 2.0:
+  could be missed magnet, but could also be slowing or stale model
+
+The rule is:
+
+One unusual dt changes certainty.
+Several consistent observations change belief.
+
+Missed Magnet Handling
+
+A missed magnet should be inferred only when timing and polarity agree.
+
+For example:
+
+dt ≈ 2x expected
+next observed polarity fits MM+2 better than MM+1
+following magnet continues to fit the skipped path
+
+Then Otto may insert a virtual missed magnet and advance the odometer by two.
+
+But if the next intervals remain consistently long while the polarity sequence remains coherent, the better explanation is that the train is simply moving slower.
+
+Speed Control Implication
+
+This belief model can support autonomous speed control.
+
+If route certainty is high:
+
+actual dt > target dt:
+  train is slower than ordered
+  gradually increase PWM if safe
+actual dt < target dt:
+  train is faster than ordered
+  gradually reduce PWM
+
+But if route certainty is low:
+
+do not aggressively tune speed
+move cautiously
+collect more evidence
+
+Navigation certainty should govern how confidently the train adjusts speed.
+
+Final Core Model
+
+The proposed architecture separates four kinds of belief:
+
+DNA belief:
+  What locations are possible?
+Path continuity belief:
+  Which locations are plausible?
+Timing belief:
+  Is motion consistent with the expected route?
+Reported belief:
+  What location is reliable enough to tell the dashboard?
+
+The central conclusion:
+
+A DNA match should propose a location, not overwrite belief.
+A strange interval should create hypotheses, not conclusions.
+The train should remain on the expected path unless evidence against that path becomes stronger than evidence for it.
+
+In plain language: Otto needs a disciplined sense of reality, not just a clever pattern decoder.

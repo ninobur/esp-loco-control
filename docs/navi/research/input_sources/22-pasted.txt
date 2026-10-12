@@ -1,0 +1,27 @@
+Stopping Overlay
+
+Yes. That is the larger concept.
+
+What we are currently calling the station STOP sequence is really the first implementation of a reusable stopping overlay.
+
+Conceptually, whenever automatic operation requires NAVI to stop, the dispatcher can impose a stopping overlay at the appropriate location. That overlay contains the geographic instructions necessary to execute the stop:
+
+approach/deceleration tile(s) → terminus tile → physical stop → dwell/hold as required → restart/release
+
+The location and reason for the stop can vary:
+
+* station service;
+* spacing behind another consist;
+* holding point;
+* dispatcher-commanded stop;
+* eventually other automatic operating situations.
+
+The stopping mechanism remains fundamentally the same. What changes is where the overlay is placed, perhaps its approach geometry, and what condition governs dwell/release.
+
+That also gives “terminus tile” a useful general meaning: it isn’t a station concept. It is the tile containing the intended terminus of an automatic stopping maneuver.
+
+And our narrow state-transfer rule then makes architectural sense beyond stations:
+
+Within a stopping overlay, the terminus tile may accept the instantaneous physical braking state produced by the preceding stopping-overlay tile so that one continuous physical deceleration can cross the tile boundary.
+
+That is much cleaner than building “station stopping” as a special procedural system. It is a general NAVI capability that station service happens to use first.
