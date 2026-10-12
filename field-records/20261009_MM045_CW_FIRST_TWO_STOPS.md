@@ -138,7 +138,7 @@ error relative to the target. No code or calibration change follows from it.
 Source: the unfiltered snapshot `logs/20261009_MM045_EVENING/all_20261009.log.gz`
 (original SHA-256 `56292fad…1978`), Otto `9950011` topics only. Read-only
 analysis; no firmware, threshold or navigation change follows from it. Times
-are the log's own labels.
+are the log's own labels. Method and full detail: [evening telemetry analysis](../docs/NAVI_MM045_EVENING_TELEMETRY_ANALYSIS_20261009.md).
 
 ### Sessions identified in the log
 
