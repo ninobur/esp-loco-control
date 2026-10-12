@@ -1,0 +1,530 @@
+[
+  {
+    "name": "agent/ir-diag-debounce",
+    "commit": {
+      "sha": "8adadc840227a0ec5ff7469892297a6e8bd46e32",
+      "url": "https://api.github.com/repos/ninobur/esp-loco-control/commits/8adadc840227a0ec5ff7469892297a6e8bd46e32"
+    },
+    "protected": false
+  },
+  {
+    "name": "agent/ir-mount-as-built",
+    "commit": {
+      "sha": "bab1f121b60aad913f3f22263b1da4ab509e2bba",
+      "url": "https://api.github.com/repos/ninobur/esp-loco-control/commits/bab1f121b60aad913f3f22263b1da4ab509e2bba"
+    },
+    "protected": false
+  },
+  {
+    "name": "agent/ir-scope-macos-backend",
+    "commit": {
+      "sha": "41a517af18dc053e0b872c3b56aaef2b13a6f72a",
+      "url": "https://api.github.com/repos/ninobur/esp-loco-control/commits/41a517af18dc053e0b872c3b56aaef2b13a6f72a"
+    },
+    "protected": false
+  },
+  {
+    "name": "agent/ir-scope-review",
+    "commit": {
+      "sha": "419353f1aa4e332095b7e548b650645c87e1e5fc",
+      "url": "https://api.github.com/repos/ninobur/esp-loco-control/commits/419353f1aa4e332095b7e548b650645c87e1e5fc"
+    },
+    "protected": false
+  },
+  {
+    "name": "agent/ir-scope-review-base",
+    "commit": {
+      "sha": "9ac350c0f0fdbf720ca6ee50d4f7c60505c10faf",
+      "url": "https://api.github.com/repos/ninobur/esp-loco-control/commits/9ac350c0f0fdbf720ca6ee50d4f7c60505c10faf"
+    },
+    "protected": false
+  },
+  {
+    "name": "agent/ir-scope-test-suite",
+    "commit": {
+      "sha": "53052c662b5054b54df715923dc877c3ef01a126",
+      "url": "https://api.github.com/repos/ninobur/esp-loco-control/commits/53052c662b5054b54df715923dc877c3ef01a126"
+    },
+    "protected": false
+  },
+  {
+    "name": "agent/ir-speed-local",
+    "commit": {
+      "sha": "f034ecb0ff8dc6a89e53f6973df297a57185a83b",
+      "url": "https://api.github.com/repos/ninobur/esp-loco-control/commits/f034ecb0ff8dc6a89e53f6973df297a57185a83b"
+    },
+    "protected": false
+  },
+  {
+    "name": "agent/phantom-verdict-20260812",
+    "commit": {
+      "sha": "bf9990cb89a49fe85c8fd047270e4505b5035771",
+      "url": "https://api.github.com/repos/ninobur/esp-loco-control/commits/bf9990cb89a49fe85c8fd047270e4505b5035771"
+    },
+    "protected": false
+  },
+  {
+    "name": "agent/publish-codex-spec-reviews",
+    "commit": {
+      "sha": "e21a22796159c940050de2830a368e602bf813ae",
+      "url": "https://api.github.com/repos/ninobur/esp-loco-control/commits/e21a22796159c940050de2830a368e602bf813ae"
+    },
+    "protected": false
+  },
+  {
+    "name": "agent/rev4-approval",
+    "commit": {
+      "sha": "6065f3b28c0f4238b62b8e085f41d46ba48a4db0",
+      "url": "https://api.github.com/repos/ninobur/esp-loco-control/commits/6065f3b28c0f4238b62b8e085f41d46ba48a4db0"
+    },
+    "protected": false
+  },
+  {
+    "name": "agent/toby-1-13-flash",
+    "commit": {
+      "sha": "e7a8a8b73b9941b58ac95ecb723a546070402ff9",
+      "url": "https://api.github.com/repos/ninobur/esp-loco-control/commits/e7a8a8b73b9941b58ac95ecb723a546070402ff9"
+    },
+    "protected": false
+  },
+  {
+    "name": "agent/toby-current-flash-evidence",
+    "commit": {
+      "sha": "83c30ed4eaf5fbadffeabefe2005d10986b63319",
+      "url": "https://api.github.com/repos/ninobur/esp-loco-control/commits/83c30ed4eaf5fbadffeabefe2005d10986b63319"
+    },
+    "protected": false
+  },
+  {
+    "name": "chatgpt/document-c-decisions-20261008",
+    "commit": {
+      "sha": "485044efd0461aa3766901e7fce90291077cbacd",
+      "url": "https://api.github.com/repos/ninobur/esp-loco-control/commits/485044efd0461aa3766901e7fce90291077cbacd"
+    },
+    "protected": false
+  },
+  {
+    "name": "chatgpt/document-c-revision-20261008",
+    "commit": {
+      "sha": "3761b2f083905eedc95a8a631c46e951923864d8",
+      "url": "https://api.github.com/repos/ninobur/esp-loco-control/commits/3761b2f083905eedc95a8a631c46e951923864d8"
+    },
+    "protected": false
+  },
+  {
+    "name": "chatgpt/geographic-consist-architecture-20261008",
+    "commit": {
+      "sha": "a29625f2859b6a5679c3b16cb40b5d2a0e91826a",
+      "url": "https://api.github.com/repos/ninobur/esp-loco-control/commits/a29625f2859b6a5679c3b16cb40b5d2a0e91826a"
+    },
+    "protected": false
+  },
+  {
+    "name": "chatgpt/ir-navi-unicast-20261007",
+    "commit": {
+      "sha": "ec1d62c0398af26018c8d03d3949894f5e38458c",
+      "url": "https://api.github.com/repos/ninobur/esp-loco-control/commits/ec1d62c0398af26018c8d03d3949894f5e38458c"
+    },
+    "protected": false
+  },
+  {
+    "name": "claude/brave-pasteur-3dkkkx",
+    "commit": {
+      "sha": "2ee8b2d2c4698005e346744ca5b33ec6f8661e43",
+      "url": "https://api.github.com/repos/ninobur/esp-loco-control/commits/2ee8b2d2c4698005e346744ca5b33ec6f8661e43"
+    },
+    "protected": false
+  },
+  {
+    "name": "claude/dreamy-mayer-9gv5yd",
+    "commit": {
+      "sha": "0db254fb59612d8f73fab30a785a25649499778b",
+      "url": "https://api.github.com/repos/ninobur/esp-loco-control/commits/0db254fb59612d8f73fab30a785a25649499778b"
+    },
+    "protected": false
+  },
+  {
+    "name": "claude/ewo-governing-docs",
+    "commit": {
+      "sha": "612b791ee90e2404ea8febded675edbd622e063e",
+      "url": "https://api.github.com/repos/ninobur/esp-loco-control/commits/612b791ee90e2404ea8febded675edbd622e063e"
+    },
+    "protected": false
+  },
+  {
+    "name": "claude/friendly-hawking-q8usfp",
+    "commit": {
+      "sha": "66412e6f68f62a31ae02397e11e3769619b6078b",
+      "url": "https://api.github.com/repos/ninobur/esp-loco-control/commits/66412e6f68f62a31ae02397e11e3769619b6078b"
+    },
+    "protected": false
+  },
+  {
+    "name": "claude/gracious-albattani-qsowu8",
+    "commit": {
+      "sha": "748888f92d3aefa6c5de0c700aadd48d558b0ebe",
+      "url": "https://api.github.com/repos/ninobur/esp-loco-control/commits/748888f92d3aefa6c5de0c700aadd48d558b0ebe"
+    },
+    "protected": false
+  },
+  {
+    "name": "claude/hopeful-edison-jt4qow",
+    "commit": {
+      "sha": "f3084b6f102125dd6fe8700135b8e58d004d6621",
+      "url": "https://api.github.com/repos/ninobur/esp-loco-control/commits/f3084b6f102125dd6fe8700135b8e58d004d6621"
+    },
+    "protected": false
+  },
+  {
+    "name": "claude/keen-keller-v7kbqp",
+    "commit": {
+      "sha": "97164ec6661a973a300c95a4f20dbe1760e4f04e",
+      "url": "https://api.github.com/repos/ninobur/esp-loco-control/commits/97164ec6661a973a300c95a4f20dbe1760e4f04e"
+    },
+    "protected": false
+  },
+  {
+    "name": "claude/navi-ewo-hall-ordinary-track-proposal",
+    "commit": {
+      "sha": "350eaaefdd7a524d8076b82110ece29698790b9c",
+      "url": "https://api.github.com/repos/ninobur/esp-loco-control/commits/350eaaefdd7a524d8076b82110ece29698790b9c"
+    },
+    "protected": false
+  },
+  {
+    "name": "claude/navi-ewo-review-caf22809-x81zuo",
+    "commit": {
+      "sha": "ea992a04e72f04e82b49c2261c441be67d1fe5e8",
+      "url": "https://api.github.com/repos/ninobur/esp-loco-control/commits/ea992a04e72f04e82b49c2261c441be67d1fe5e8"
+    },
+    "protected": false
+  },
+  {
+    "name": "claude/navi-ps-r1-20q-standards",
+    "commit": {
+      "sha": "cd55929c5f95c2d41bc00771c97641938612bd8a",
+      "url": "https://api.github.com/repos/ninobur/esp-loco-control/commits/cd55929c5f95c2d41bc00771c97641938612bd8a"
+    },
+    "protected": false
+  },
+  {
+    "name": "claude/quorum-hall-waveform-diagnostic-plutez",
+    "commit": {
+      "sha": "2df8c1faf6283ed3bddec4db74b4dfcd641a9b95",
+      "url": "https://api.github.com/repos/ninobur/esp-loco-control/commits/2df8c1faf6283ed3bddec4db74b4dfcd641a9b95"
+    },
+    "protected": false
+  },
+  {
+    "name": "claude/r2-bench-failure-review",
+    "commit": {
+      "sha": "4f72f57ccdfcbe82f99c9ad93329c3c88cbd754c",
+      "url": "https://api.github.com/repos/ninobur/esp-loco-control/commits/4f72f57ccdfcbe82f99c9ad93329c3c88cbd754c"
+    },
+    "protected": false
+  },
+  {
+    "name": "claude/replay-noise-transcription-sync-h62oob",
+    "commit": {
+      "sha": "6e7ccc2213621a05bc30b3624972bfd7eb6a0676",
+      "url": "https://api.github.com/repos/ninobur/esp-loco-control/commits/6e7ccc2213621a05bc30b3624972bfd7eb6a0676"
+    },
+    "protected": false
+  },
+  {
+    "name": "claude/trusting-wright-m311vv",
+    "commit": {
+      "sha": "ead5c4f5e85052b9ed925eedcee091be140cc949",
+      "url": "https://api.github.com/repos/ninobur/esp-loco-control/commits/ead5c4f5e85052b9ed925eedcee091be140cc949"
+    },
+    "protected": false
+  },
+  {
+    "name": "claude/wizardly-cray-0q924k",
+    "commit": {
+      "sha": "958ef9a0f790250bb9d3b86106058cac12dd6f63",
+      "url": "https://api.github.com/repos/ninobur/esp-loco-control/commits/958ef9a0f790250bb9d3b86106058cac12dd6f63"
+    },
+    "protected": false
+  },
+  {
+    "name": "claude/wizardly-turing-2axvng",
+    "commit": {
+      "sha": "93af2267f1a4609edeca57aecec4b69278e6097d",
+      "url": "https://api.github.com/repos/ninobur/esp-loco-control/commits/93af2267f1a4609edeca57aecec4b69278e6097d"
+    },
+    "protected": false
+  },
+  {
+    "name": "claude/wonderful-pascal-55tbkf",
+    "commit": {
+      "sha": "bf23b897c323bb2952c8283aff89a3dc2d4a9bad",
+      "url": "https://api.github.com/repos/ninobur/esp-loco-control/commits/bf23b897c323bb2952c8283aff89a3dc2d4a9bad"
+    },
+    "protected": false
+  },
+  {
+    "name": "codex/ewo-first-target-after-declare",
+    "commit": {
+      "sha": "ab0938b0f01531a38ce4d8a1d9d932ffad4f0334",
+      "url": "https://api.github.com/repos/ninobur/esp-loco-control/commits/ab0938b0f01531a38ce4d8a1d9d932ffad4f0334"
+    },
+    "protected": false
+  },
+  {
+    "name": "codex/ewo-ir-authoritative",
+    "commit": {
+      "sha": "d0185be25ec51f9ba6d58567458a59d3f1c289ca",
+      "url": "https://api.github.com/repos/ninobur/esp-loco-control/commits/d0185be25ec51f9ba6d58567458a59d3f1c289ca"
+    },
+    "protected": false
+  },
+  {
+    "name": "codex/ewo-pwm-zero-localization",
+    "commit": {
+      "sha": "442a3d70599a403ba2fef168503d05f060e5e72c",
+      "url": "https://api.github.com/repos/ninobur/esp-loco-control/commits/442a3d70599a403ba2fef168503d05f060e5e72c"
+    },
+    "protected": false
+  },
+  {
+    "name": "codex/ewo-review-corrections",
+    "commit": {
+      "sha": "1227ede01682ada5eaaf9a5ac941883b3e8e5cb6",
+      "url": "https://api.github.com/repos/ninobur/esp-loco-control/commits/1227ede01682ada5eaaf9a5ac941883b3e8e5cb6"
+    },
+    "protected": false
+  },
+  {
+    "name": "codex/ir-comms-simplify-20261007",
+    "commit": {
+      "sha": "00fc8cfc899f6336c234fc1451eb11dc5bb5bcea",
+      "url": "https://api.github.com/repos/ninobur/esp-loco-control/commits/00fc8cfc899f6336c234fc1451eb11dc5bb5bcea"
+    },
+    "protected": false
+  },
+  {
+    "name": "codex/ir-navi-reliable-transport",
+    "commit": {
+      "sha": "48ccfb2646c2ee29ac9137f03d51715f48afc0be",
+      "url": "https://api.github.com/repos/ninobur/esp-loco-control/commits/48ccfb2646c2ee29ac9137f03d51715f48afc0be"
+    },
+    "protected": false
+  },
+  {
+    "name": "codex/navi-cruise-stop-20261009",
+    "commit": {
+      "sha": "85a2cf2a16d262abdf7258c60f60508b823913ee",
+      "url": "https://api.github.com/repos/ninobur/esp-loco-control/commits/85a2cf2a16d262abdf7258c60f60508b823913ee"
+    },
+    "protected": false
+  },
+  {
+    "name": "codex/navi-ewo-0-1",
+    "commit": {
+      "sha": "c7c21163b016e443524eb9fa483f8b706ce76e22",
+      "url": "https://api.github.com/repos/ninobur/esp-loco-control/commits/c7c21163b016e443524eb9fa483f8b706ce76e22"
+    },
+    "protected": false
+  },
+  {
+    "name": "codex/navi-ewo-0-2-20261010",
+    "commit": {
+      "sha": "cbdfe9495ca1b52d2165a5ce6be27cbfce1d1439",
+      "url": "https://api.github.com/repos/ninobur/esp-loco-control/commits/cbdfe9495ca1b52d2165a5ce6be27cbfce1d1439"
+    },
+    "protected": false
+  },
+  {
+    "name": "codex/navi-ewo-0-3-complete",
+    "commit": {
+      "sha": "16c65f61662c358923c780a2edffda9733f0a8da",
+      "url": "https://api.github.com/repos/ninobur/esp-loco-control/commits/16c65f61662c358923c780a2edffda9733f0a8da"
+    },
+    "protected": false
+  },
+  {
+    "name": "codex/navi-ewo-0-3-ir-validity",
+    "commit": {
+      "sha": "253faa464692b97ab48beb0aa621aa11372aaa55",
+      "url": "https://api.github.com/repos/ninobur/esp-loco-control/commits/253faa464692b97ab48beb0aa621aa11372aaa55"
+    },
+    "protected": false
+  },
+  {
+    "name": "codex/navi-ewo-0-3-ir-validity-review",
+    "commit": {
+      "sha": "c4cd2b2b8edd5641a0c4a7a31191614f7cba153e",
+      "url": "https://api.github.com/repos/ninobur/esp-loco-control/commits/c4cd2b2b8edd5641a0c4a7a31191614f7cba153e"
+    },
+    "protected": false
+  },
+  {
+    "name": "codex/navi-ewo-0-3-stop-integration",
+    "commit": {
+      "sha": "4ad1df225f3768c192330c634b53d114faabf894",
+      "url": "https://api.github.com/repos/ninobur/esp-loco-control/commits/4ad1df225f3768c192330c634b53d114faabf894"
+    },
+    "protected": false
+  },
+  {
+    "name": "codex/navi-four-station-local-pass2-glide-fix",
+    "commit": {
+      "sha": "22b05a22d30d0ab76f5feb654a3e6f57a005545c",
+      "url": "https://api.github.com/repos/ninobur/esp-loco-control/commits/22b05a22d30d0ab76f5feb654a3e6f57a005545c"
+    },
+    "protected": false
+  },
+  {
+    "name": "codex/navi-four-station-local-pass2",
+    "commit": {
+      "sha": "9130cc55701b868f58defd1d3cd9c4175f8aaf16",
+      "url": "https://api.github.com/repos/ninobur/esp-loco-control/commits/9130cc55701b868f58defd1d3cd9c4175f8aaf16"
+    },
+    "protected": false
+  },
+  {
+    "name": "codex/navi-lightweight-ir-cumulative",
+    "commit": {
+      "sha": "6ed96c935b01cfa469f816ff9ed1a5ca74ed7095",
+      "url": "https://api.github.com/repos/ninobur/esp-loco-control/commits/6ed96c935b01cfa469f816ff9ed1a5ca74ed7095"
+    },
+    "protected": false
+  },
+  {
+    "name": "codex/navi-pass2-design-decisions",
+    "commit": {
+      "sha": "b646cab5995124ff84ae2173c0d9912c84357815",
+      "url": "https://api.github.com/repos/ninobur/esp-loco-control/commits/b646cab5995124ff84ae2173c0d9912c84357815"
+    },
+    "protected": false
+  },
+  {
+    "name": "codex/navi-station-removal",
+    "commit": {
+      "sha": "c7c21163b016e443524eb9fa483f8b706ce76e22",
+      "url": "https://api.github.com/repos/ninobur/esp-loco-control/commits/c7c21163b016e443524eb9fa483f8b706ce76e22"
+    },
+    "protected": false
+  },
+  {
+    "name": "codex/otto-wifi-auth-diag",
+    "commit": {
+      "sha": "182a202f2c2aa4652f2865bec1da18273b2305f0",
+      "url": "https://api.github.com/repos/ninobur/esp-loco-control/commits/182a202f2c2aa4652f2865bec1da18273b2305f0"
+    },
+    "protected": false
+  },
+  {
+    "name": "codex/otto-wifi-minimal-probe",
+    "commit": {
+      "sha": "b35103a5313e1e8de7b4939cb946a6e68b1091c2",
+      "url": "https://api.github.com/repos/ninobur/esp-loco-control/commits/b35103a5313e1e8de7b4939cb946a6e68b1091c2"
+    },
+    "protected": false
+  },
+  {
+    "name": "dashboard-redesign",
+    "commit": {
+      "sha": "a3c312fe32ebc4c7075dbed4b7838d10d9d86366",
+      "url": "https://api.github.com/repos/ninobur/esp-loco-control/commits/a3c312fe32ebc4c7075dbed4b7838d10d9d86366"
+    },
+    "protected": false
+  },
+  {
+    "name": "docs/failed-navi-architecture-review-20261011",
+    "commit": {
+      "sha": "4972c622f57b2f48c0291a2329e3e55a2cd58074",
+      "url": "https://api.github.com/repos/ninobur/esp-loco-control/commits/4972c622f57b2f48c0291a2329e3e55a2cd58074"
+    },
+    "protected": false
+  },
+  {
+    "name": "docs/navi-architecture-reconciliation-20261009",
+    "commit": {
+      "sha": "21517679b13347ec229d046460e0525cb77f1589",
+      "url": "https://api.github.com/repos/ninobur/esp-loco-control/commits/21517679b13347ec229d046460e0525cb77f1589"
+    },
+    "protected": false
+  },
+  {
+    "name": "docs/navi-cto-bubble-decisions-20261009",
+    "commit": {
+      "sha": "c5fcef1c741dbb217699f7eda4f9a99bf3123053",
+      "url": "https://api.github.com/repos/ninobur/esp-loco-control/commits/c5fcef1c741dbb217699f7eda4f9a99bf3123053"
+    },
+    "protected": false
+  },
+  {
+    "name": "docs/navi-ewo-0-1-architecture",
+    "commit": {
+      "sha": "db329782d422559dcb886f93db8c1f3e3922a7ab",
+      "url": "https://api.github.com/repos/ninobur/esp-loco-control/commits/db329782d422559dcb886f93db8c1f3e3922a7ab"
+    },
+    "protected": false
+  },
+  {
+    "name": "docs/navi-failure-history-20261011",
+    "commit": {
+      "sha": "2580917ade2017704ecdf22bf0fab5a458070333",
+      "url": "https://api.github.com/repos/ninobur/esp-loco-control/commits/2580917ade2017704ecdf22bf0fab5a458070333"
+    },
+    "protected": false
+  },
+  {
+    "name": "docs/navi-stop-overlay-20261009",
+    "commit": {
+      "sha": "bd0b15f55f32a5dd92e939f2da26b61ae143dfd4",
+      "url": "https://api.github.com/repos/ninobur/esp-loco-control/commits/bd0b15f55f32a5dd92e939f2da26b61ae143dfd4"
+    },
+    "protected": false
+  },
+  {
+    "name": "docs/simplified-ir-loss-fallback",
+    "commit": {
+      "sha": "7a31d913ef2218687b488936a998f82655f5d3c6",
+      "url": "https://api.github.com/repos/ninobur/esp-loco-control/commits/7a31d913ef2218687b488936a998f82655f5d3c6"
+    },
+    "protected": false
+  },
+  {
+    "name": "ewo-governing-docs",
+    "commit": {
+      "sha": "612b791ee90e2404ea8febded675edbd622e063e",
+      "url": "https://api.github.com/repos/ninobur/esp-loco-control/commits/612b791ee90e2404ea8febded675edbd622e063e"
+    },
+    "protected": false
+  },
+  {
+    "name": "ir-daylight-shade-sun-test-pr",
+    "commit": {
+      "sha": "d1c6de69049fa245964506900a76544c6559fc97",
+      "url": "https://api.github.com/repos/ninobur/esp-loco-control/commits/d1c6de69049fa245964506900a76544c6559fc97"
+    },
+    "protected": false
+  },
+  {
+    "name": "ir-lap-cw-ccw-comparison",
+    "commit": {
+      "sha": "0408aecb86e6ed43b39695a7b2486abc3db9b168",
+      "url": "https://api.github.com/repos/ninobur/esp-loco-control/commits/0408aecb86e6ed43b39695a7b2486abc3db9b168"
+    },
+    "protected": false
+  },
+  {
+    "name": "main",
+    "commit": {
+      "sha": "7409c19d3199511759f837d31a1054ba0822fd2d",
+      "url": "https://api.github.com/repos/ninobur/esp-loco-control/commits/7409c19d3199511759f837d31a1054ba0822fd2d"
+    },
+    "protected": false
+  },
+  {
+    "name": "sam/navi-ewo-0-3-initial-restoration",
+    "commit": {
+      "sha": "60dd1bcb3b686d6b688d1429d1fb3f5a3ba47025",
+      "url": "https://api.github.com/repos/ninobur/esp-loco-control/commits/60dd1bcb3b686d6b688d1429d1fb3f5a3ba47025"
+    },
+    "protected": false
+  }
+]
