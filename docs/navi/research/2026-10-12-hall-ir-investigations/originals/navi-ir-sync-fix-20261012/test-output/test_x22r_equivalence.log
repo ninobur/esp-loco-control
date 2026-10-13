@@ -1,0 +1,1 @@
+PASS X22R == X22(refractory=0): 72 traces, 14893908 samples, 9624 detections, 8772 windows, 7269 baseline outcomes (3217 locks accepted), 1599 dwells, 29 lost-lock segments

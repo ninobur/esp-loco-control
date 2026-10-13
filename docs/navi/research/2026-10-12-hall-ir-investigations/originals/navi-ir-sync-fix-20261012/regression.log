@@ -1,0 +1,3 @@
+PASS source equivalence: 13 historical headers, Hall acquisition, Type-5 processing, MQTT/motor/station services, navigation/control loop
+PASS Type-6 isolation: 240 real NAVI judgments across 10 patterns; Type-5 state, health/MM reference, recorder output and full NavStatus agree with original; genuine Type-5 overflow retained
+PASS causal Hall selection, future exclusion, deferred backlog, post-gap raw counts, foreign source, sequence wrap/duplicate/reorder, pairing reset, history/diagnostic queue bounds, formatting bounds

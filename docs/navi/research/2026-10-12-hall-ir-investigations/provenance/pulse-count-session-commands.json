@@ -1,0 +1,254 @@
+{
+  "thread_id": "01a1317c-97f2-7b33-be91-2caafb6bd4e4",
+  "title": "Analyze September 28 Hall field data",
+  "turn_id": "01a132a7-ef8e-7ee3-9e15-b5e102eabc25",
+  "note": "Recovered original command records. These are archival text, not an executable script. Failed attempts are preserved; interpret exitCode and the final report.",
+  "commands": [
+    {
+      "id": "exec-ae2aea6d-4ecb-47a7-b14f-a97894726efe",
+      "command": "/bin/zsh -lc \"rg -n 'state/direction|state/throttle|\\\"event\\\":\\\"REVERSED\\\"|REVERSE|STOP|GO|AUTO' sources/9950011_20260928_095939.log | head -80\"",
+      "cwd": "/Users/davidbrown/NGR/NGR-Files/hall-field-analysis-20260929",
+      "exitCode": 0
+    },
+    {
+      "id": "exec-3720ec3c-be78-49ab-bedb-0534db198a94",
+      "command": "/bin/zsh -lc \"rg -n \\\"def loop_distances|full_loop\\\" analyze_ir_odometry_calibration.py; sed -n '510,565p' analyze_ir_odometry_calibration.py; head -5 opening-map/calibrated_opening_intervals.csv\"",
+      "cwd": "/Users/davidbrown/NGR/NGR-Files/hall-field-analysis-20260929",
+      "exitCode": 0
+    },
+    {
+      "id": "exec-f5068198-ad9f-431e-8a0d-1b885c5883ce",
+      "command": "/bin/zsh -lc \"sed -n '1,80p' opening-map/full_loop_distances.csv; python3 - <<'PY'\nimport json\np='continuous_hall_analysis.json';d=json.load(open(p));\nprint(d['summary']['capture'])\n# MM000 primary event summary\nfor e in d['events']:\n if e.get('ruling') in ('ADVANCED','ADVANCED_WITH_DISCREPANCY') and e.get('mm')==0:\n  print({k:e.get(k) for k in ['event_serial','opened_ms','ruling','dir','pre_mm','mm','distance_assessable','ir_interval','sample_index','captured_us','raw_open','base_open']})\nPY\"",
+      "cwd": "/Users/davidbrown/NGR/NGR-Files/hall-field-analysis-20260929",
+      "exitCode": 0
+    },
+    {
+      "id": "exec-027592d9-6c84-41d1-a8a0-afa30d24fbed",
+      "command": "/bin/zsh -lc \"python3 - <<'PY'\nimport json\nD=json.load(open('continuous_hall_analysis.json'))\nfor e in D['events']:\n if 290<=e['event_serial']<=690 and (e.get('ruling') in ('ADVANCED','ADVANCED_WITH_DISCREPANCY','DISAGREE','NO_POSITION') or e.get('mm') in [0,1,169,170]):\n  if e['event_serial'] in range(290,330) or e['event_serial'] in range(475,510) or e['event_serial'] in range(640,680):\n   print({k:e.get(k) for k in ['event_serial','opened_ms','ruling','pre_mm','mm','dir','obs','expected','distance_assessable','ir_interval','logged_ir_seq','onboard_ir_pulses','onboard_ir_mm']})\nPY\"",
+      "cwd": "/Users/davidbrown/NGR/NGR-Files/hall-field-analysis-20260929",
+      "exitCode": 0
+    },
+    {
+      "id": "exec-2a26955f-a8c9-41a3-bd6c-cfe8f2178682",
+      "command": "/bin/zsh -lc \"rg -n '\\\"event_serial\\\":488|\\\"event_serial\\\":489' sources/9950011_20260928_095939.log | head -30\"",
+      "cwd": "/Users/davidbrown/NGR/NGR-Files/hall-field-analysis-20260929",
+      "exitCode": 0
+    },
+    {
+      "id": "exec-7b47e5e8-35e3-48ee-9dc0-f3b2e38a6fbd",
+      "command": "/bin/zsh -lc \"rg -n 'event_serial.*488|event_serial.*489|\\\"serial\\\":488|\\\"serial\\\":489' sources/9950011_20260928_095939.log | head -80\"",
+      "cwd": "/Users/davidbrown/NGR/NGR-Files/hall-field-analysis-20260929",
+      "exitCode": 0
+    },
+    {
+      "id": "exec-09a0e52a-d234-4e48-bcd9-deed214df993",
+      "command": "/bin/zsh -lc \"python3 - <<'PY'\nimport json\nD=json.load(open('continuous_hall_analysis.json'))\nfor s in [315,488,489,665,836]:\n e=next(x for x in D['events'] if x['event_serial']==s)\n print('\\\\n',s)\n for k,v in e.items(): print(k,repr(v))\nPY\"",
+      "cwd": "/Users/davidbrown/NGR/NGR-Files/hall-field-analysis-20260929",
+      "exitCode": 0
+    },
+    {
+      "id": "exec-db85b262-00e1-4b7f-89b6-161a21a63188",
+      "command": "/bin/zsh -lc \"rg -n '2692125|2693750|2690910' sources/9950011_20260928_095939.log | head -60\"",
+      "cwd": "/Users/davidbrown/NGR/NGR-Files/hall-field-analysis-20260929",
+      "exitCode": 0
+    },
+    {
+      "id": "exec-274cb371-853f-45c8-b720-3e742bc5d3a1",
+      "command": "/bin/zsh -lc 'rg -n \"analyze_ir_odometry_calibration.py|--logs\" /Users/davidbrown/NGR/NGR-Files/hall-field-analysis-20260929 -S'",
+      "cwd": "/Users/davidbrown/NGR/NGR-Files",
+      "exitCode": 0
+    },
+    {
+      "id": "exec-a395676e-0184-49bf-ba1d-fa46559a7c26",
+      "command": "/bin/zsh -lc \"sed -n '1,180p' opening-map/REPORT.md; find sources -maxdepth 1 -type f -print\"",
+      "cwd": "/Users/davidbrown/NGR/NGR-Files/hall-field-analysis-20260929",
+      "exitCode": 0
+    },
+    {
+      "id": "exec-95ce6f93-bf7d-4468-87d0-a5479c3b772e",
+      "command": "/bin/zsh -lc \"rg -n '\"'^2026-09-28T10:57:'\"' sources/9950011_20260928_*.log | head -100\"",
+      "cwd": "/Users/davidbrown/NGR/NGR-Files/hall-field-analysis-20260929",
+      "exitCode": 0
+    },
+    {
+      "id": "exec-8f6bc383-73c5-4b07-b5db-ce7415efb458",
+      "command": "/bin/zsh -lc \"sed -n '6660,6760p' sources/9950011_20260928_105129.log\"",
+      "cwd": "/Users/davidbrown/NGR/NGR-Files/hall-field-analysis-20260929",
+      "exitCode": 0
+    },
+    {
+      "id": "exec-de73326a-a212-49f5-94fc-ab562ccdb0b5",
+      "command": "/bin/zsh -lc \"rg -n '\"'^2026-09-28T10:57:4[0-6]'\"' sources/9950011_20260928_105129.log\"",
+      "cwd": "/Users/davidbrown/NGR/NGR-Files/hall-field-analysis-20260929",
+      "exitCode": 0
+    },
+    {
+      "id": "exec-1cbd7c80-faf4-4821-89df-93fc539b6dde",
+      "command": "/bin/zsh -lc \"sed -n '6938,7000p' sources/9950011_20260928_105129.log\"",
+      "cwd": "/Users/davidbrown/NGR/NGR-Files/hall-field-analysis-20260929",
+      "exitCode": 0
+    },
+    {
+      "id": "exec-709ad662-7158-4c81-953e-485cd672a61a",
+      "command": "/bin/zsh -lc \"python3 - <<'PY'\nimport json,struct,importlib.util\nfrom pathlib import Path\nimport numpy as np\nroot=Path('/Users/davidbrown/NGR/NGR-Files/hall-field-analysis-20260929')\ndef lm(path,name):\n s=importlib.util.spec_from_file_location(name,path);m=importlib.util.module_from_spec(s);s.loader.exec_module(m);return m\nbase=lm(root/'analyze_continuous_hall.py','base'); cal=lm(root/'analyze_ir_odometry_calibration.py','cal')\nir=cal.load_ir(root/'sources/otto_navi_sync_20260928_101705.nsr',base); cal.prepare_ir(ir)\nseqi={int(s):i for i,s in enumerate(ir['sequence'])}\nlogs=list((root/'sources').glob('9950011_20260928_*.log'))\ntele=cal.load_telemetry(logs)\nD=json.load(open(root/'continuous_hall_analysis.json'))\nhall,*_=base.load_capture(root/'sources/otto_navi_sync_20260928_101705.nsr')\nfor s in [315,488,665,836]:\n e=next(x for x in D['events'] if x['event_serial']==s)\n rec=tele.get(s,{})\n disc=rec.get('discrepancy'); comp=rec.get('compare')\n print('\\\\nEVENT',s,'opening',e['opened_ms'],'mm',e['mm'],'ruling',e['ruling'])\n print('disc',disc)\n print('compare',comp)\n if disc and disc.get('ir_seq') in seqi:\n  i=seqi[disc['ir_seq']]\n  print('selected seq',ir['sequence'][i],'capture',ir['captured_us'][i],'arrival',ir['arrival_us'][i], 'pulses',ir['completed_pulses'][i], 'align',disc['ir_alignment_us'])\n t=int(hall['t_us'][e['sample_index']])\n for label,times in [('aligned',ir['aligned_global_us']),('arrival',ir['arrival_us'])]:\n  i=int(np.argmin(abs(times-t)))\n  print(label,'nearest seq',ir['sequence'][i],'pulses',ir['completed_pulses'][i], 'delta_ms',(times[i]-t)/1000)\nPY\"",
+      "cwd": "/Users/davidbrown/NGR/NGR-Files/hall-field-analysis-20260929",
+      "exitCode": 0
+    },
+    {
+      "id": "exec-f3d379d1-809b-4cda-bfde-948fd57cb26c",
+      "command": "/bin/zsh -lc \"python3 - <<'PY'\nimport json\nD=json.load(open('continuous_hall_analysis.json'))\nfor e in D['events']:\n if 825<=e['event_serial']<=845:\n  print({k:e.get(k) for k in ['event_serial','opened_ms','ruling','pre_mm','mm','dir','obs','expected','evidence','seq_len','seq_matches','distance_assessable','ir_interval','preceding_primary_serial','following_primary_serial','distance_from_primary_mm','secondary_class']})\nPY\nrg -n '\\\"event_serial\\\":83[3-9]|\\\"event_serial\\\":84[0-2]' sources/9950011_20260928_*.log | head -120\"",
+      "cwd": "/Users/davidbrown/NGR/NGR-Files/hall-field-analysis-20260929",
+      "exitCode": 0
+    },
+    {
+      "id": "exec-f628c6c6-b826-4b6e-ac29-923385efacae",
+      "command": "/bin/zsh -lc \"python3 - <<'PY'\nfrom pathlib import Path\nimport json, glob, re\nbase=Path('/Users/davidbrown/NGR/NGR-Files/hall-field-analysis-20260929')\njs=json.load(open(base/'continuous_hall_analysis.json'))\nfor n in [1,2,3,4,5,315,488,489,665,836,837,949,950,951]:\n e=js['events'][n-1]\n keys=['event_no','opened_ms','direction','pre_mm','post_mm','ruling','discrepancy','observed_polarity','expected_polarity','seq_matches','corrections','distance_from_primary_mm','secondary_class']\n print({k:e.get(k) for k in keys})\nprint('direction changes')\nlast=None\nfor e in js['events']:\n d=e.get('direction')\n if d\"'!=last:\n  print(e['\"'event_no'],e.get('opened_ms'),d,e.get('pre_mm'),e.get('post_mm'),e.get('ruling'))\n  last=d\nprint('mm0-ish events')\nfor e in js['events']:\n if e.get('post_mm')==0 or (e.get('pre_mm')==170 and e.get('direction')=='CW'):\n  print(e['event_no'],e.get('opened_ms'),e.get('direction'),e.get('pre_mm'),e.get('post_mm'),e.get('ruling'),e.get('discrepancy'),e.get('seq_matches'))\nPY\"",
+      "cwd": "/Users/davidbrown/NGR/NGR-Files",
+      "exitCode": 0
+    },
+    {
+      "id": "exec-9ebd682e-46a1-497d-957d-21884be37864",
+      "command": "/bin/zsh -lc \"python3 - <<'PY'\nimport json,pprint\np='/Users/davidbrown/NGR/NGR-Files/hall-field-analysis-20260929/continuous_hall_analysis.json'\ne=json.load(open(p))['events'][314]\npprint.pp(e)\nPY\"",
+      "cwd": "/Users/davidbrown/NGR/NGR-Files",
+      "exitCode": 0
+    },
+    {
+      "id": "exec-40e3a9bf-94b2-466f-bc3a-5a217f011484",
+      "command": "/bin/zsh -lc \"python3 - <<'PY'\nfrom pathlib import Path\nimport json\nbase=Path('/Users/davidbrown/NGR/NGR-Files/hall-field-analysis-20260929')\nevents=json.load(open(base/'continuous_hall_analysis.json'))['events']\nfor n in [315,488,489,665,836,837,951]:\n e=events[n-1]\n keys=['event_serial','opened_ms','dir','pre_mm','mm','ruling','evidence','obs','expected','seq_matches','corrections','distance_from_primary_mm','secondary_class','ir_mm']\n print({k:e.get(k) for k in keys})\nprint('\\\\ndirection changes:')\nlast=object()\nfor e in events:\n d=e.get('dir')\n if d\"'!=last:\n  print(e['\"'event_serial'],e['opened_ms'],d,e.get('pre_mm'),e.get('mm'),e.get('ruling'))\n  last=d\nprint('\\\\nmm0-region events:')\nfor e in events:\n if e.get('mm')==0 or (e.get('pre_mm')==170 and e.get('dir')=='CW'):\n  print(e['event_serial'],e['opened_ms'],e.get('dir'),e.get('pre_mm'),e.get('mm'),e.get('ruling'),e.get('evidence'),e.get('obs'),e.get('expected'),e.get('seq_matches'))\nPY\"",
+      "cwd": "/Users/davidbrown/NGR/NGR-Files",
+      "exitCode": 0
+    },
+    {
+      "id": "exec-3f891cc9-c676-4348-aaa8-727efc3400be",
+      "command": "/bin/zsh -lc \"python3 - <<'PY'\nimport json\np='/Users/davidbrown/NGR/NGR-Files/hall-field-analysis-20260929/continuous_hall_analysis.json'\nev=json.load(open(p))['events']\nfor e in ev[145:165]:\n print(e['event_serial'], e['opened_ms'], e['dir'], e['pre_mm'], e['mm'], e['ruling'], e['evidence'],e['obs'],e['expected'],e['seq_matches'],round(e['ir_mm'],1) if e.get('ir_mm') else None)\nPY\"",
+      "cwd": "/Users/davidbrown/NGR/NGR-Files",
+      "exitCode": 0
+    },
+    {
+      "id": "exec-4b0e5be3-aa8c-4f5b-9e1e-e1ba67d7fc4d",
+      "command": "/bin/zsh -lc \"sed -n '1,240p' /Users/davidbrown/NGR/NGR-Files/hall-field-analysis-20260929/scripts/analyze_ir_odometry_calibration.py\"",
+      "cwd": "/Users/davidbrown/NGR/NGR-Files",
+      "exitCode": 1
+    },
+    {
+      "id": "exec-164d710c-0130-4549-a01b-4f7dccccbdea",
+      "command": "/bin/zsh -lc \"rg -n 'DWELL|STATION|STOP|REVERS|DIRECTION|dir' /Users/davidbrown/NGR/NGR-Files/hall-field-analysis-20260929/sources/9950011_20260928_*.log | head -120\"",
+      "cwd": "/Users/davidbrown/NGR/NGR-Files",
+      "exitCode": 0
+    },
+    {
+      "id": "exec-58b00aac-99d2-40ba-8c01-ff93f699bfc6",
+      "command": "/bin/zsh -lc \"rg -n 'event_serial\\\":(156|315|488|665|836)|\\\"event_serial\\\": (156|315|488|665|836)' /Users/davidbrown/NGR/NGR-Files/hall-field-analysis-20260929/sources/9950011_20260928_*.log\"",
+      "cwd": "/Users/davidbrown/NGR/NGR-Files",
+      "exitCode": 0
+    },
+    {
+      "id": "exec-699edaa5-bcbf-497e-9843-92eaeb5a403e",
+      "command": "/bin/zsh -lc 'find /Users/davidbrown/NGR/NGR-Files/hall-field-analysis-20260929 -maxdepth 3 -type f | sort'",
+      "cwd": "/Users/davidbrown/NGR/NGR-Files",
+      "exitCode": 0
+    },
+    {
+      "id": "exec-0ad47f0f-f80d-4b75-9b63-9ccdf8211996",
+      "command": "/bin/zsh -lc \"rg -n 'IR_REPORT|completed_pulses|ir_seq|Type5|type.?5|SIGNAL_STALE' /Users/davidbrown/NGR/NGR-Files/hall-field-analysis-20260929 -g '*.py' -g '*.md' | head -240\"",
+      "cwd": "/Users/davidbrown/NGR/NGR-Files",
+      "exitCode": 0
+    },
+    {
+      "id": "exec-fedcbe38-385d-4c29-9caa-ea3352295259",
+      "command": "/bin/zsh -lc \"sed -n '1,230p' /Users/davidbrown/NGR/NGR-Files/hall-field-analysis-20260929/analyze_ir_odometry_calibration.py; sed -n '500,610p' /Users/davidbrown/NGR/NGR-Files/hall-field-analysis-20260929/analyze_ir_odometry_calibration.py\"",
+      "cwd": "/Users/davidbrown/NGR/NGR-Files",
+      "exitCode": 0
+    },
+    {
+      "id": "exec-fecf458d-625d-4d6e-9b7e-6f3186c65a5c",
+      "command": "/bin/zsh -lc \"sed -n '450,540p' /Users/davidbrown/NGR/NGR-Files/hall-field-analysis-20260929/analyze_ir_odometry_calibration.py; sed -n '1,220p' /Users/davidbrown/NGR/NGR-Files/hall-field-analysis-20260929/opening-map/ir_calibration_summary.json\"",
+      "cwd": "/Users/davidbrown/NGR/NGR-Files",
+      "exitCode": 0
+    },
+    {
+      "id": "exec-620a877e-fc58-4cce-91bf-3065b5cc73ee",
+      "command": "/bin/zsh -lc \"sed -n '1,180p' /Users/davidbrown/NGR/NGR-Files/hall-field-analysis-20260929/analyze_continuous_hall.py\"",
+      "cwd": "/Users/davidbrown/NGR/NGR-Files",
+      "exitCode": 0
+    },
+    {
+      "id": "exec-93cda023-940f-4fea-bd63-84ab6b4639ce",
+      "command": "/bin/zsh -lc \"python3 - <<'PY'\nfrom pathlib import Path\nimport json, glob\npaths=sorted(glob.glob('/Users/davidbrown/NGR/NGR-Files/hall-field-analysis-20260929/sources/9950011_20260928_*.log'))\nendpoint={}\nrows=[]\nfor p in paths:\n for line in open(p,errors='replace'):\n  a=line.rstrip('\\\\n').split('\\\\t',2)\n  if len(a)\"'!=3: continue\n  ts,topic,payload=a\n  try: item=json.loads(payload)\n  except: item=None\n  if isinstance(item,dict) and item.get('\"'event_serial') in [156,315,488,665,836]:\n   if topic.endswith('/mm/marker'):\n    endpoint[item['event_serial']]=(ts,p)\n  if any(x in topic.lower() for x in ['station','dwell','stop','direction']):\n   rows.append((ts,topic,payload,p))\nprint('ENDPOINTS')\nfor k,v in endpoint.items(): print(k,*v)\nprint('\\\\nRELEVANT')\nfor r in rows:\n if '2026-09-28T10:40:00' <= r[0] <= '2026-09-28T11:12:00':\n  print('\\\\t'.join(r[:3]))\nPY\"",
+      "cwd": "/Users/davidbrown/NGR/NGR-Files",
+      "exitCode": 0
+    },
+    {
+      "id": "exec-945c04fe-8579-41a6-9cdf-9e2f41731a30",
+      "command": "/bin/zsh -lc \"python3 - <<'PY'\nfrom pathlib import Path\nimport json, glob\nfrom datetime import datetime\npaths=sorted(glob.glob('/Users/davidbrown/NGR/NGR-Files/hall-field-analysis-20260929/sources/9950011_20260928_*.log'))\n# Merge/dedupe logs\nitems=[]; seen=set()\nfor p in paths:\n for line in open(p,errors='replace'):\n  a=line.rstrip('\\\\n').split('\\\\t',2)\n  if len(a)\"'!=3: continue\n  k=tuple(a)\n  if k in seen: continue\n  seen.add(k)\n  ts,topic,payload=a\n  try: val=json.loads(payload)\n  except: val=payload\n  items.append((ts,topic,val))\nitems.sort()\nbounds={315:'\"'2026-09-28T10:51:00.748',488:'2026-09-28T10:57:42.112',665:'2026-09-28T11:03:46.389',836:'2026-09-28T11:09:44.810'}\nspans=[(315,488),(488,665),(315,665),(665,836)]\nfor a,b in spans:\n lo,hi=bounds[a],bounds[b]\n print(f'\\\\nSPAN {a}-{b} {lo} to {hi}')\n st=[x for x in items if lo < x[0] <= hi and x[1].endswith('/state/station') and isinstance(x[2],dict)]\n for x in st:\n  if x[2].get('event') in ('ARMED','ZERO_RAMP','DWELL_BEGIN','DEPART','DEPARTED'):\n   print(x[0],x[2])\n dirs=[x for x in items if lo < x[0] <= hi and x[1].endswith('/cmd/direction')]\n vals=[]\n last=None\n for x in dirs:\n  if x[2]\"'!=last: vals.append((x[0],x[2]));last=x[2]\n print('\"'direction commands:',vals)\n est=[x for x in items if lo < x[0] <= hi and x[1].endswith('/state/estop') and x[2]\"'!=0]\n print('\"'nonzero estop:',est[:5], 'n',len(est))\nPY\"",
+      "cwd": "/Users/davidbrown/NGR/NGR-Files",
+      "exitCode": 1
+    },
+    {
+      "id": "exec-b0415fa9-d1f8-4bfc-8e15-beceb1b2d521",
+      "command": "/bin/zsh -lc \"python3 - <<'PY'\nimport json, glob\npaths=sorted(glob.glob('/Users/davidbrown/NGR/NGR-Files/hall-field-analysis-20260929/sources/9950011_20260928_*.log'))\nitems=[]; seen=set()\nfor p in paths:\n for line in open(p,errors='replace'):\n  a=line.rstrip('\\\\n').split('\\\\t',2)\n  if len(a)\"'!=3: continue\n  k=tuple(a)\n  if k in seen: continue\n  seen.add(k)\n  ts,topic,payload=a\n  try: val=json.loads(payload)\n  except: val=payload\n  items.append((ts,topic,val))\nitems.sort(key=lambda x:(x[0],x[1]))\nbounds={315:'\"'2026-09-28T10:51:00.748',488:'2026-09-28T10:57:42.112',665:'2026-09-28T11:03:46.389',836:'2026-09-28T11:09:44.810'}\nspans=[(315,488),(488,665),(315,665),(665,836)]\nfor a,b in spans:\n lo,hi=bounds[a],bounds[b]\n print(f'\\\\nSPAN {a}-{b} {lo} to {hi}')\n st=[x for x in items if lo < x[0] <= hi and x[1].endswith('/state/station') and isinstance(x[2],dict)]\n for x in st:\n  if x[2].get('event') in ('ARMED','ZERO_RAMP','DWELL_BEGIN','DEPART','DEPARTED'):\n   print(x[0],x[2])\n dirs=[x for x in items if lo < x[0] <= hi and x[1].endswith('/cmd/direction')]\n vals=[]; last=None\n for x in dirs:\n  if x[2]\"'!=last: vals.append((x[0],x[2]));last=x[2]\n print('\"'direction commands:',vals)\n est=[x for x in items if lo < x[0] <= hi and x[1].endswith('/state/estop') and x[2]\"'!=0]\n print('\"'nonzero estop count:',len(est))\nPY\"",
+      "cwd": "/Users/davidbrown/NGR/NGR-Files",
+      "exitCode": 0
+    },
+    {
+      "id": "exec-0a8c07ad-52a7-413c-9fa3-6b4b4658d84d",
+      "command": "/bin/zsh -lc \"python3 - <<'PY'\nfrom pathlib import Path\nimport importlib.util, json, glob, numpy as np\nbase=Path('/Users/davidbrown/NGR/NGR-Files/hall-field-analysis-20260929')\nspec=importlib.util.spec_from_file_location('a',base/'analyze_ir_odometry_calibration.py'); a=importlib.util.module_from_spec(spec);spec.loader.exec_module(a)\nspec2=importlib.util.spec_from_file_location('b',base/'analyze_continuous_hall.py'); b=importlib.util.module_from_spec(spec2);spec2.loader.exec_module(b)\nir=a.load_ir(base/'sources/otto_navi_sync_20260928_101705.nsr',b)\ntele=a.load_telemetry([Path(x) for x in glob.glob(str(base/'sources/9950011_20260928_*.log'))])\nseqix={int(s):i for i,s in enumerate(ir['sequence'])}\nends={}\nfor ev in [156,315,488,665,836]:\n d=tele[ev]['discrepancy']; ix=seqix[int(d['ir_seq'])]\n ends[ev]=(ix,d)\n print('endpoint',ev,'seq',int(ir['sequence'][ix]),'pulses',int(ir['completed_pulses'][ix]),'captured_us',int(ir['captured_us'][ix]),'alignment',d['ir_alignment_us'],'health',int(ir['health_fault'][ix]),'ready',int(ir['readiness'][ix]),'optical',int(ir['optical_reason'][ix]))\nprint()\nfor left,right in [(156,315),(315,488),(488,665),(315,665),(665,836)]:\n i,di=ends[left];j,dj=ends[right]\n s=ir['sequence'][i:j+1]\n p=ir['completed_pulses'][i:j+1]\n dt=np.diff(ir['captured_us'][i:j+1])\n print('span',left,right,'pulses',int(p[-1]-p[0]),'duration_s',(int(ir['captured_us'][j])-int(ir['captured_us'][i]))/1e6)\n print('  snapshots',len(s),'missing seq positions',int(np.sum(np.maximum(np.diff(s)-1,0))),'seq gaps',int(np.sum(np.diff(s)>1)),'max_capture_gap_ms',float(dt.max()/1000))\n for k in ['observed_rises','inferred_added','inferred_removed','unreliable_samples','saturated_samples','sample_gaps','open_aborts']:\n  print(' ',k,int(ir[k][j]-ir[k][i]))\n print('  health_fault snapshots',int(np.sum(ir['health_fault'][i:j+1]\"'!=0)),'\"'readiness_nonzero',int(np.sum(ir['readiness'][i:j+1]\"'!=0)),'\"'counter_regressions',int(np.sum(np.diff(p)<0)))\n# math\nfor pulses,laps in [(5342,1),(5385,1),(5351,1),(10727,2)]:\n ref=52150*laps\n print('math',pulses,laps,'mm_per_pulse',ref/pulses,'nominal_mm',pulses*9.652,'map_minus_nominal',ref-pulses*9.652,'pct_nominal_vs_map',(pulses*9.652/ref-1)*100)\nprint('expected_pulses_at_9.652',52150/9.652)\nPY\"",
+      "cwd": "/Users/davidbrown/NGR/NGR-Files",
+      "exitCode": 0
+    },
+    {
+      "id": "exec-e7e612e1-431b-4cb5-9de2-3450c3b2bc20",
+      "command": "/bin/zsh -lc \"python3 - <<'PY'\nimport json\np='/Users/davidbrown/NGR/NGR-Files/hall-field-analysis-20260929/continuous_hall_analysis.json'\nev=json.load(open(p))['events']\nfor e in ev[477:493]:\n print(e['event_serial'],e['opened_ms'],e['pre_mm'],e['mm'],e['ruling'],e['evidence'],e['obs'],e['expected'],e['seq_matches'],e.get('onboard_ir_pulses'),e.get('onboard_ir_mm'))\nPY\nrg -n -C 3 'POSITION_ADVANCED_SANS_MM.*\\\"mm\\\":0|\\\"event_serial\\\":488|\\\"event_serial\\\":489' /Users/davidbrown/NGR/NGR-Files/hall-field-analysis-20260929/sources/9950011_20260928_105129.log | tail -120\"",
+      "cwd": "/Users/davidbrown/NGR/NGR-Files",
+      "exitCode": 0
+    },
+    {
+      "id": "exec-4437e1e9-2c3a-42ac-bee9-c4c49751853e",
+      "command": "/bin/zsh -lc \"rg -n -C 2 '\\\"event_serial\\\":836' /Users/davidbrown/NGR/NGR-Files/hall-field-analysis-20260929/sources/9950011_20260928_105129.log | tail -80\"",
+      "cwd": "/Users/davidbrown/NGR/NGR-Files",
+      "exitCode": 0
+    },
+    {
+      "id": "exec-5508b0b3-559b-4ea2-b1ec-6fdf86748466",
+      "command": "/bin/zsh -lc \"python3 - <<'PY'\nfrom pathlib import Path\nimport importlib.util,json,glob,numpy as np\nbase=Path('/Users/davidbrown/NGR/NGR-Files/hall-field-analysis-20260929')\ndef load(name,path):\n s=importlib.util.spec_from_file_location(name,path);m=importlib.util.module_from_spec(s);s.loader.exec_module(m);return m\na=load('a',base/'analyze_ir_odometry_calibration.py');b=load('b',base/'analyze_continuous_hall.py')\nir=a.load_ir(base/'sources/otto_navi_sync_20260928_101705.nsr',b);a.prepare_ir(ir,b)\n# oops second arg irrelevant? prepare_ir returns\nhall,ir0,_,_=b.load_capture(base/'sources/otto_navi_sync_20260928_101705.nsr')\ndata=json.load(open(base/'continuous_hall_analysis.json'))\ntele=a.load_telemetry([Path(x) for x in glob.glob(str(base/'sources/9950011_20260928_*.log'))])\nseqix={int(s):i for i,s in enumerate(ir['sequence'])}\nevby={e['event_serial']:e for e in data['events']}\nfor serial in [315,488,665,836]:\n e=evby[serial]; et=int(hall['t_us'][e['sample_index']]); times=ir['aligned_online_us']\n k=int(np.searchsorted(times,et,side='right')-1);q=k+1\n si=seqix[tele[serial]['discrepancy']['ir_seq']]\n print(serial,'event_t',et)\n print(' selected',int(ir['sequence'][si]),int(ir['completed_pulses'][si]),(int(times[si])-et)/1000)\n print(' before  ',int(ir['sequence'][k]),int(ir['completed_pulses'][k]),(int(times[k])-et)/1000)\n print(' after   ',int(ir['sequence'][q]),int(ir['completed_pulses'][q]),(int(times[q])-et)/1000)\nprint('bounds:')\nbounds={}\nfor serial in [315,488,665,836]:\n e=evby[serial];et=int(hall['t_us'][e['sample_index']]);times=ir['aligned_online_us'];k=int(np.searchsorted(times,et,'right')-1);q=k+1;bounds[serial]=(int(ir['completed_pulses'][k]),int(ir['completed_pulses'][q]))\nfor l,r in [(315,488),(488,665),(665,836)]:\n lo=bounds[r][0]-bounds[l][1];hi=bounds[r][1]-bounds[l][0]\n print(l,r,bounds[l],bounds[r],lo,hi)\nPY\"",
+      "cwd": "/Users/davidbrown/NGR/NGR-Files",
+      "exitCode": 1
+    },
+    {
+      "id": "exec-48a462d2-49ed-4fc5-b4d5-e794b48737c9",
+      "command": "/bin/zsh -lc \"python3 - <<'PY'\nfrom pathlib import Path\nimport importlib.util,json,glob,numpy as np\nbase=Path('/Users/davidbrown/NGR/NGR-Files/hall-field-analysis-20260929')\ndef load(name,path):\n s=importlib.util.spec_from_file_location(name,path);m=importlib.util.module_from_spec(s);s.loader.exec_module(m);return m\na=load('a',base/'analyze_ir_odometry_calibration.py');b=load('b',base/'analyze_continuous_hall.py')\nir=a.load_ir(base/'sources/otto_navi_sync_20260928_101705.nsr',b);a.prepare_ir(ir)\nhall,_,_,_=b.load_capture(base/'sources/otto_navi_sync_20260928_101705.nsr')\ndata=json.load(open(base/'continuous_hall_analysis.json'))\ntele=a.load_telemetry([Path(x) for x in glob.glob(str(base/'sources/9950011_20260928_*.log'))])\nseqix={int(s):i for i,s in enumerate(ir['sequence'])};evby={e['event_serial']:e for e in data['events']}\nbounds={}\nfor serial in [315,488,665,836]:\n e=evby[serial]; et=int(hall['t_us'][e['sample_index']]); times=ir['aligned_online_us']\n k=int(np.searchsorted(times,et,side='right')-1);q=k+1;si=seqix[tele[serial]['discrepancy']['ir_seq']]\n print(serial,'event_t',et)\n print(' selected',int(ir['sequence'][si]),int(ir['completed_pulses'][si]),(int(times[si])-et)/1000)\n print(' before  ',int(ir['sequence'][k]),int(ir['completed_pulses'][k]),(int(times[k])-et)/1000)\n print(' after   ',int(ir['sequence'][q]),int(ir['completed_pulses'][q]),(int(times[q])-et)/1000)\n bounds[serial]=(int(ir['completed_pulses'][k]),int(ir['completed_pulses'][q]))\nprint('bounds:')\nfor l,r in [(315,488),(488,665),(665,836)]:\n lo=bounds[r][0]-bounds[l][1];hi=bounds[r][1]-bounds[l][0]\n print(l,r,bounds[l],bounds[r],lo,hi)\nPY\"",
+      "cwd": "/Users/davidbrown/NGR/NGR-Files",
+      "exitCode": 0
+    },
+    {
+      "id": "exec-8ef0da56-72dd-46ca-9795-3235e60f5d04",
+      "command": "/bin/zsh -lc \"python3 - <<'PY'\nimport statistics, math\nv=[5342,5385,5351]\nprint('mean',statistics.mean(v),'sd_sample',statistics.stdev(v),'sd_pop',statistics.pstdev(v),'range',max(v)-min(v),'cv%',statistics.stdev(v)/statistics.mean(v)*100)\nprint('median',statistics.median(v),'half_range',(max(v)-min(v))/2)\nfor lo,hi in [(5336,5341),(5386,5390),(5348,5352),(16074,16079)]:\n ref=52150 if hi<10000 else 156450\n print(lo,hi,'mmpp range',ref/hi,ref/lo,'avg pulses',((lo+hi)/2))\nprint('3lap selected',156450/16078,'nominal len',16078*9.652,'short',156450-16078*9.652,(16078*9.652/156450-1)*100)\nprint('mean implied',52150/(sum(v)/3))\nPY\"",
+      "cwd": "/Users/davidbrown/NGR/NGR-Files",
+      "exitCode": 0
+    },
+    {
+      "id": "exec-fdbe7bdd-ff51-4810-bebc-91bab396c725",
+      "command": "/bin/zsh -lc \"python3 - <<'PY'\nimport ast\nfrom pathlib import Path\np=Path('/Users/davidbrown/NGR/NGR-Files/hall-field-analysis-20260929/analyze_continuous_hall.py')\ns=p.read_text(); start=s.index('ROUTE_SPACING_MM = np.array([')+len('ROUTE_SPACING_MM = np.array('); end=s.index('], dtype=np.int32)',start)+1\narr=ast.literal_eval(s[start:end])\nprint(len(arr),sum(arr))\nPY\"",
+      "cwd": "/Users/davidbrown/NGR/NGR-Files",
+      "exitCode": 0
+    },
+    {
+      "id": "exec-09461701-1c85-44ad-a988-04a8864d3527",
+      "command": "/bin/zsh -lc \"sed -n '1,260p' /Users/davidbrown/NGR/NGR-Files/ir-pulse-count-circuits-20260928/REPORT.md\"",
+      "cwd": "/Users/davidbrown/NGR/NGR-Files",
+      "exitCode": 0
+    },
+    {
+      "id": "exec-84d1c508-11c5-40b7-bfc4-2747bebd9be6",
+      "command": "/bin/zsh -lc \"python3 - <<'PY'\nimport csv, statistics\nfrom pathlib import Path\np=Path('/Users/davidbrown/NGR/NGR-Files/ir-pulse-count-circuits-20260928')\nrows=list(csv.DictReader(open(p/'circuit_counts.csv')))\nvals=[int(r['selected_snapshot_delta']) for r in rows]\nassert vals == [5342,5385,5351]\nassert sum(vals)==16078\nassert abs(statistics.mean(vals)-5359.333333333333)<1e-9\nfor r in rows:\n assert int(r['end_selected_completed_pulses'])-int(r['start_selected_completed_pulses'])==int(r['selected_snapshot_delta'])\n assert int(r['exact_opening_delta_low'])==int(r['end_opening_bracket_low'])-int(r['start_opening_bracket_high'])\n assert int(r['exact_opening_delta_high'])==int(r['end_opening_bracket_high'])-int(r['start_opening_bracket_low'])\nprint('CSV arithmetic checks passed')\nprint('report bytes', (p/'REPORT.md').stat().st_size)\nPY\"",
+      "cwd": "/Users/davidbrown/NGR/NGR-Files",
+      "exitCode": 0
+    },
+    {
+      "id": "exec-5852a6dc-c200-48c6-b29b-d63b811a3596",
+      "command": "/bin/zsh -lc 'git status --short'",
+      "cwd": "/Users/davidbrown/NGR/NGR-Files/navi-ewo-0-3-stop-integration",
+      "exitCode": 0
+    }
+  ]
+}

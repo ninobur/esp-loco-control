@@ -1,0 +1,8 @@
+{
+  "status": "PASS",
+  "runner": "unchanged archived tests/run_all.py",
+  "scope": "Ten inherited C++ suites, thirteen health JSON cases, source equivalence and 240-judgment Type-6 isolation/timing regression",
+  "hardware_used": false,
+  "firmware_built_or_flashed": false,
+  "python": "3.9.6 (default, Apr 17 2026, 18:15:52) \n[Clang 21.0.0 (clang-2100.1.1.101)]"
+}

@@ -1,0 +1,16 @@
+{
+  "client_date": "2026-10-12",
+  "timezone": "America/Los_Angeles",
+  "base_commit": "63ff4b03ecb2fbaf824047e2d3ba0a87ba84df93",
+  "branch": "docs/navi-research-20261012",
+  "source_artifacts": 174,
+  "relative_markdown_links_checked": 331,
+  "missing_links": [],
+  "source_drift_at_finalization": [],
+  "replay_runners_syntax": "PASS",
+  "corrected_tested_source_hashes_unchanged": true,
+  "source_hash_count": 52,
+  "sync_correction_completed": true,
+  "sync_manifest_status": "UPLOAD_AND_BOOT_VERIFIED",
+  "scope": "Only this documentation/research directory. No operational firmware, decisions, maps, calibration or live systems changed by this assignment."
+}

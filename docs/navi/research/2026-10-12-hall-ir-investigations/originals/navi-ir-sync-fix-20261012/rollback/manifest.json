@@ -1,0 +1,39 @@
+{
+  "mac": "68:09:47:ac:4e:b4",
+  "profile": "Otto 9950011",
+  "installed_sketch": "NAVI_EWO_0_1_MM045_STOP",
+  "file": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/rollback/otto-9950011-pre-ir-sync-0x000000-0x27ffff.bin",
+  "bytes": 2621440,
+  "sha256": "f8f7974e2a758d75382bbdd35abdafc0d6edf73dba8762efefd3be738ada6d29",
+  "coverage": "0x000000 through 0x27ffff; all sectors overwritten by this upload",
+  "upload_regions": [
+    {
+      "offset": "0x1000",
+      "bytes": 24992,
+      "erase_end": "0x8000",
+      "file": "NAVI_COHERENCE_0_6_IR_SYNC_TEST.ino.bootloader.bin"
+    },
+    {
+      "offset": "0x8000",
+      "bytes": 3072,
+      "erase_end": "0x9000",
+      "file": "NAVI_COHERENCE_0_6_IR_SYNC_TEST.ino.partitions.bin"
+    },
+    {
+      "offset": "0xe000",
+      "bytes": 8192,
+      "erase_end": "0x10000",
+      "file": "boot_app0.bin"
+    },
+    {
+      "offset": "0x10000",
+      "bytes": 1064688,
+      "erase_end": "0x114000",
+      "file": "NAVI_COHERENCE_0_6_IR_SYNC_TEST.ino.bin"
+    }
+  ],
+  "full_chip_backup": false,
+  "source": "First five successful independent esptool chunk reads; application held in bootloader between chunks",
+  "limitation": "Reads above this coverage failed serial transport; high flash regions are not backed up and are not written by this upload.",
+  "restore_command": "'/Users/davidbrown/Library/Arduino15/packages/esp32/tools/esptool_py/5.3.1/esptool' --chip esp32 --port /dev/cu.wchusbserial110 --baud 115200 write-flash 0x0 /Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/rollback/otto-9950011-pre-ir-sync-0x000000-0x27ffff.bin"
+}

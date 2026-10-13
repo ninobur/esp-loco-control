@@ -1,0 +1,4 @@
+# Preserve curated research logs despite the repository-wide live-log ignore.
+!*.log
+__pycache__/
+*.pyc

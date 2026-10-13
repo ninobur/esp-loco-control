@@ -1,0 +1,35 @@
+{
+  "endpoints": [
+    {
+      "event": 315,
+      "selected": 10625,
+      "before": 10628,
+      "after": 10631
+    },
+    {
+      "event": 488,
+      "selected": 15967,
+      "before": 15967,
+      "after": 15969
+    },
+    {
+      "event": 665,
+      "selected": 21352,
+      "before": 21355,
+      "after": 21357
+    },
+    {
+      "event": 836,
+      "selected": 26703,
+      "before": 26705,
+      "after": 26707
+    }
+  ],
+  "circuit_pulses": [
+    5342,
+    5385,
+    5351
+  ],
+  "aggregate": 16078,
+  "status": "Raw selected counts and aligned endpoint brackets reproduced; geographic endpoint judgments remain report interpretations, not automatic truth."
+}

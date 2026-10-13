@@ -1,0 +1,2 @@
+{"event_serial":430,"policy":"PROXIMAL_R1","reason":"UNIQUE_BETTER","positions":10,"observations":10,"incumbent_score":7,"best_score":9,"ties":1,"offset":1,"startup":0,"outer_mm":10,"reference_mm":39,"travel_mm":1200.000,"possible_mask":2048,"travel_rejected_mask":2095103,"distance_bounds":"UNVALIDATED"}
+PASS proximal recovery: field -70 rejection, UNKNOWN denominator, warmup, retained history, 421 ties, 65 one-vote improvements, travel filtering, epoch breaks, wrap

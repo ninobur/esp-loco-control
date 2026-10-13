@@ -1,0 +1,20 @@
+/Users/davidbrown/Documents/Arduino/libraries/Adafruit_INA219/Adafruit_INA219.cpp: In member function 'void Adafruit_INA219::setCalibration_32V_2A()':
+/Users/davidbrown/Documents/Arduino/libraries/Adafruit_INA219/Adafruit_INA219.cpp:266:53: warning: bitwise operation between different enumeration types '<unnamed enum>' and '<unnamed enum>' is deprecated [-Wdeprecated-enum-enum-conversion]
+  266 |   uint16_t config = INA219_CONFIG_BVOLTAGERANGE_32V |
+      |                     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+  267 |                     INA219_CONFIG_GAIN_8_320MV | INA219_CONFIG_BADCRES_12BIT |
+      |                     ~~~~~~~~~~~~~~~~~~~~~~~~~~       
+/Users/davidbrown/Documents/Arduino/libraries/Adafruit_INA219/Adafruit_INA219.cpp: In member function 'void Adafruit_INA219::setCalibration_32V_1A()':
+/Users/davidbrown/Documents/Arduino/libraries/Adafruit_INA219/Adafruit_INA219.cpp:377:53: warning: bitwise operation between different enumeration types '<unnamed enum>' and '<unnamed enum>' is deprecated [-Wdeprecated-enum-enum-conversion]
+  377 |   uint16_t config = INA219_CONFIG_BVOLTAGERANGE_32V |
+      |                     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+  378 |                     INA219_CONFIG_GAIN_8_320MV | INA219_CONFIG_BADCRES_12BIT |
+      |                     ~~~~~~~~~~~~~~~~~~~~~~~~~~       
+/Users/davidbrown/Documents/Arduino/libraries/Adafruit_INA219/Adafruit_INA219.cpp: In member function 'void Adafruit_INA219::setCalibration_16V_400mA()':
+/Users/davidbrown/Documents/Arduino/libraries/Adafruit_INA219/Adafruit_INA219.cpp:468:53: warning: bitwise operation between different enumeration types '<unnamed enum>' and '<unnamed enum>' is deprecated [-Wdeprecated-enum-enum-conversion]
+  468 |   uint16_t config = INA219_CONFIG_BVOLTAGERANGE_16V |
+      |                     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+  469 |                     INA219_CONFIG_GAIN_1_40MV | INA219_CONFIG_BADCRES_12BIT |
+      |                     ~~~~~~~~~~~~~~~~~~~~~~~~~        
+Sketch uses 1061611 bytes (80%) of program storage space. Maximum is 1310720 bytes.
+Global variables use 106860 bytes (32%) of dynamic memory, leaving 220820 bytes for local variables. Maximum is 327680 bytes.

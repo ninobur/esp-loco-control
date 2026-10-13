@@ -1,0 +1,4 @@
+expected_mm,impostor_mm,genuine_mm,historical_first_qualified,ideal_distance_selection,quantized_impostor_mm,quantized_genuine_mm,quantized_distance_selection,separation_to_genuine_mm,passes_provisional_15mm_independence,morphology_pairwise_tie_accuracy,physical_status
+300.0,270.0,300.0,impostor,genuine,270.256,299.212,genuine,30.0,True,0.9295685795685795,synthetic
+300.0,295.0,300.0,impostor,genuine,299.212,299.212,tie,5.0,False,0.9295685795685795,synthetic
+300.0,299.0,300.0,impostor,genuine,299.212,299.212,tie,1.0,False,0.9295685795685795,synthetic

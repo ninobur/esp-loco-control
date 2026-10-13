@@ -1,0 +1,308 @@
+Matplotlib is building the font cache; this may take a moment.
+{
+  "capture": {
+    "hall_samples": 3377328,
+    "individual_adc_values": 16886640,
+    "ir_snapshots": 33264,
+    "duration_s": 3377.326998,
+    "sha256": "3d9f0032d53fc647b1eb36fbdc579b9d6f7e06482bcd39db4505185b9b119cd7",
+    "sequence_gaps": [],
+    "ring_drop_ranges": {
+      "(39426584, 1)": [
+        1,
+        1
+      ],
+      "(39426584, 2)": [
+        0,
+        0
+      ],
+      "(39426584, 3)": [
+        1,
+        1
+      ]
+    }
+  },
+  "event_matching": {
+    "events": 951,
+    "raw_matches": 951,
+    "two_sample_opening_matches": 951,
+    "max_abs_time_error_ms": 1.1170000000856817
+  },
+  "mapped_events": {
+    "primaries": 806,
+    "secondaries": 84,
+    "primary_by_direction": {
+      "CW": 754,
+      "CCW": 52
+    },
+    "secondary_by_direction": {
+      "CW": 84,
+      "CCW": 0
+    }
+  },
+  "adjacent_primary_intervals": {
+    "n": 591,
+    "error_mm_against_capture_map": {
+      "n": 591,
+      "min": -42.84835395420669,
+      "p05": -23.889305796357803,
+      "p50": 0.2552726535941474,
+      "p95": 15.07768405488423,
+      "max": 34.9886613796989,
+      "mean": -0.765674528207443,
+      "sd": 11.25641892920458
+    },
+    "error_mm_against_current_map": {
+      "n": 591,
+      "min": -44.77561291458551,
+      "p05": -26.65501355050219,
+      "p50": 0.14204329531639814,
+      "p95": 15.07768405488423,
+      "max": 34.9886613796989,
+      "mean": -1.5423242744003365,
+      "sd": 12.24461683347444
+    },
+    "current_error_by_direction": {
+      "CW": {
+        "n": 557,
+        "min": -42.63130201406602,
+        "p05": -26.028760802117176,
+        "p50": 0.14204329531639814,
+        "p95": 15.184320055966955,
+        "max": 34.9886613796989,
+        "mean": -1.3319953004485512,
+        "sd": 12.013158350199845
+      },
+      "CCW": {
+        "n": 34,
+        "min": -44.77561291458551,
+        "p05": -41.433745104642,
+        "p50": -0.11593721699318849,
+        "p95": 10.022151618479976,
+        "max": 14.248142421245575,
+        "mean": -4.988007759433993,
+        "sd": 15.14313871165657
+      }
+    },
+    "asymmetric_D_minus_10_plus_30": {
+      "inside": 487,
+      "below": 101,
+      "above": 3,
+      "outside": 104
+    },
+    "symmetric_15_percent": {
+      "inside": 591,
+      "outside": 0
+    },
+    "intervals_with_secondary_candidates": 18,
+    "true_primary_closest_to_expected": 18,
+    "false_candidates_inside_asymmetric": 0,
+    "false_candidates_inside_symmetric": 0
+  },
+  "repeat_consistency": {
+    "transition_groups_with_repeats": 164,
+    "observations_in_repeat_groups": 552,
+    "within_transition_range_mm": {
+      "n": 164,
+      "min": 0.7113793212338351,
+      "p05": 2.1939674483190172,
+      "p50": 11.225295869160618,
+      "p95": 34.43166496706799,
+      "max": 50.53538524553005,
+      "mean": 13.938431495887427,
+      "sd": 10.584676651346733
+    },
+    "within_transition_sd_mm": {
+      "n": 164,
+      "min": 0.35568966061691754,
+      "p05": 0.9027664956413978,
+      "p50": 4.526423447382243,
+      "p95": 14.667886454630642,
+      "max": 20.910758984548632,
+      "mean": 5.783762607328842,
+      "sd": 4.43388051639425
+    },
+    "widest_transition": {
+      "direction": "CW",
+      "from_mm": 152,
+      "to_mm": 153,
+      "n": 3,
+      "range_mm": 50.53538524553005,
+      "errors_mm": [
+        8.58147291023488,
+        26.61726298533904,
+        -23.918122260191012
+      ]
+    }
+  },
+  "secondary_classification": {
+    "measured_secondary_openings_classified": 81,
+    "continuous_opposite_lobe_event_count": 15,
+    "continuous_opposite_lobe_unique_sites": 9,
+    "continuous_opposite_lobe_site_distances_mm": {
+      "n": 9,
+      "min": 41.87510366817878,
+      "p05": 44.84036536546337,
+      "p50": 103.02731445508834,
+      "p95": 128.07369875562728,
+      "max": 128.60442914938903,
+      "mean": 96.36306414762981,
+      "sd": 31.09494589659702
+    },
+    "lobe_sites": [
+      {
+        "preceding_primary_serial": 72,
+        "distance_mm": 49.28825791139025,
+        "event_serials": [
+          74,
+          75,
+          76,
+          77,
+          78,
+          79,
+          80
+        ],
+        "longest_quiet_mm": 9.651999999998225
+      },
+      {
+        "preceding_primary_serial": 103,
+        "distance_mm": 92.49582809718413,
+        "event_serials": [
+          104
+        ],
+        "longest_quiet_mm": 3.8416320680407807
+      },
+      {
+        "preceding_primary_serial": 109,
+        "distance_mm": 82.16567919135196,
+        "event_serials": [
+          110
+        ],
+        "longest_quiet_mm": 0.0
+      },
+      {
+        "preceding_primary_serial": 161,
+        "distance_mm": 127.27760316498461,
+        "event_serials": [
+          162
+        ],
+        "longest_quiet_mm": 2.68914713896811
+      },
+      {
+        "preceding_primary_serial": 164,
+        "distance_mm": 118.06062034333445,
+        "event_serials": [
+          165
+        ],
+        "longest_quiet_mm": 2.94058839831996
+      },
+      {
+        "preceding_primary_serial": 253,
+        "distance_mm": 124.47274134776671,
+        "event_serials": [
+          254
+        ],
+        "longest_quiet_mm": 7.086340274880058
+      },
+      {
+        "preceding_primary_serial": 260,
+        "distance_mm": 128.60442914938903,
+        "event_serials": [
+          261
+        ],
+        "longest_quiet_mm": 5.986716172323213
+      },
+      {
+        "preceding_primary_serial": 280,
+        "distance_mm": 103.02731445508834,
+        "event_serials": [
+          281
+        ],
+        "longest_quiet_mm": 8.92784346161352
+      },
+      {
+        "preceding_primary_serial": 291,
+        "distance_mm": 41.87510366817878,
+        "event_serials": [
+          292
+        ],
+        "longest_quiet_mm": 13.944178554811515
+      }
+    ],
+    "inferred_class_rule": "opposite polarity, exactly one pole crossing outside the 25-count deadband, and longest quiet span below 15 mm; repeated openings within 5 mm after the same primary are one spatial site",
+    "max_lobe_quiet_mm": 13.944178554811515,
+    "min_nonlobe_opposite_quiet_mm": 6.63406655837025,
+    "minimum_observed_genuine_interval_mm": 257.368697985934,
+    "measured_gap_lobe_to_genuine_mm": 128.76426883654494
+  },
+  "representative_profiles": [
+    {
+      "primary_serial": 72,
+      "map_marker": 62,
+      "primary_polarity": "S",
+      "primary_open_departure_counts": -70,
+      "primary_peak_departure_counts": -163.0,
+      "primary_peak_position_mm": 10.680257911390072,
+      "first_two_sample_quiet_after_primary_peak_mm": 29.98425791139016,
+      "secondary_serial": 74,
+      "secondary_polarity": "N",
+      "secondary_open_position_mm": 49.28825791139025,
+      "secondary_open_departure_counts": 91,
+      "opposite_peak_departure_from_primary_reference_counts": 368.0,
+      "opposite_peak_position_mm": 49.28825791139025,
+      "first_two_sample_quiet_after_opposite_peak_mm": null
+    },
+    {
+      "primary_serial": 161,
+      "map_marker": 8,
+      "primary_polarity": "N",
+      "primary_open_departure_counts": 73,
+      "primary_peak_departure_counts": 112.0,
+      "primary_peak_position_mm": 4.687439366505714,
+      "first_two_sample_quiet_after_primary_peak_mm": 14.44857336084533,
+      "secondary_serial": 162,
+      "secondary_polarity": "S",
+      "secondary_open_position_mm": 127.27760316498461,
+      "secondary_open_departure_counts": -165,
+      "opposite_peak_departure_from_primary_reference_counts": -170.0,
+      "opposite_peak_position_mm": 132.5108505585813,
+      "first_two_sample_quiet_after_opposite_peak_mm": null
+    },
+    {
+      "primary_serial": 260,
+      "map_marker": 129,
+      "primary_polarity": "N",
+      "primary_open_departure_counts": 73,
+      "primary_peak_departure_counts": 73.0,
+      "primary_peak_position_mm": 0.0,
+      "first_two_sample_quiet_after_primary_peak_mm": 118.23184160866367,
+      "secondary_serial": 261,
+      "secondary_polarity": "S",
+      "secondary_open_position_mm": 128.60442914938903,
+      "secondary_open_departure_counts": -71,
+      "opposite_peak_departure_from_primary_reference_counts": -92.0,
+      "opposite_peak_position_mm": 135.8110331770731,
+      "first_two_sample_quiet_after_opposite_peak_mm": 148.6038426910236
+    },
+    {
+      "primary_serial": 324,
+      "map_marker": 10,
+      "primary_polarity": "S",
+      "primary_open_departure_counts": -71,
+      "primary_peak_departure_counts": -166.0,
+      "primary_peak_position_mm": 13.191279158141697,
+      "first_two_sample_quiet_after_primary_peak_mm": 30.748019753271365,
+      "secondary_serial": null
+    }
+  ],
+  "secondary_distance_mm": {
+    "n": 27,
+    "min": 21.71173638131586,
+    "p05": 27.10952075645837,
+    "p50": 125.05455779751355,
+    "p95": 240.66159369054805,
+    "max": 247.6540660278406,
+    "mean": 128.53012858360228,
+    "sd": 67.42312528751978
+  }
+}

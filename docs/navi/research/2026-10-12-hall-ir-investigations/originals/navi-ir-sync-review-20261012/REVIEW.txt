@@ -1,0 +1,201 @@
+NAVI_COHERENCE_0_6_IR_SYNC_TEST review — October 12, 2026
+
+VERDICT
+
+Do not advance this submitted candidate to a field test yet. Dependencies
+were resolved and compilation was attempted on ESP32 core 3.3.12. The
+submitted sketch fails compilation, and the observation-only guarantee is
+not satisfied by the shared receive-queue loss path.
+
+This review applies the NGR principles that measurement must retain its
+provenance, evidence should survive gaps/disagreement, and NAVI retains
+navigation authority. Recommendations below are proposals, not architectural
+decisions or authorization to implement/deploy.
+
+SOURCE AND PROVENANCE
+
+Submitted source:
+/Users/davidbrown/esp-loco-control/firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_SYNC_TEST.ino
+
+Submitted notes:
+/Users/davidbrown/esp-loco-control/firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_SYNC_TEST_README.md
+
+Local checkout: claude/navi-ps-r1-20q-standards, HEAD 638c635.
+Git reports this historical branch is one commit behind its tracking ref.
+No fetch, checkout, reset, merge, or repository maintenance was performed.
+The submitted files are untracked. Pre-existing changes were left intact.
+
+The complete adjacent NAVI_COHERENCE_0_6_IR_HEALTH sketch identifies as
+NAVI_COHERENCE_0_6_POSITION_STATIONS_R1_20Q3_SYNC_R1. Its .ino is the matching
+baseline: the full diff consists of the new identity and diagnostic additions.
+The existing local profile selects Otto 9950011, despite the old Toby header
+comment; that pre-existing selector was preserved for both builds.
+
+BUILD EVIDENCE
+
+Both sketches were staged unchanged in matching Arduino sketch folders under
+/private/tmp/navi-ir-sync-review-yc0vuszl/firmware/programs/NAVI_COHERENCE/variants/.
+Local headers were copied from the matching historical variant. Shared
+dependencies were resolved to the same historical checkout using symlinks.
+Credentials were used locally by the compiler; their contents are not included
+in these review artifacts. The staged application binaries are not deliverables.
+
+Toolchain: arduino-cli 1.5.1, esp32:esp32 3.3.12.
+Board: esp32:esp32:esp32 (existing ESP32 board selection), --warnings all.
+Libraries: PubSubClient 2.8; Adafruit INA219 1.2.3; Adafruit BusIO 1.17.4;
+WiFi/Networking/Wire/SPI/Preferences from core 3.3.12.
+
+Submitted candidate: FAIL. See compile.log.
+Original baseline with the same dependencies: PASS. See baseline-compile.log.
+Baseline flash: 1,061,611 / 1,310,720 bytes (80%).
+Baseline static RAM: 106,860 / 327,680 bytes (32%).
+The baseline build reports three deprecation warnings in Adafruit INA219.
+No repaired candidate has been built, because no firmware repair was authorized.
+
+FINDINGS
+
+1. P1 — Fix both declaration-order errors before claiming a build.
+   Source lines 75–112, particularly 85 and 98–103.
+
+   Judged embeds SyncPoint at line 85, but SyncPoint is not defined until
+   line 88. A forward declaration is insufficient for these by-value fields.
+   Separately, adding syncCrc() above CmdMsg and HallReading makes Arduino
+   insert generated prototypes before those types exist. The generated
+   hallRead() and handleCommand() declarations therefore also fail.
+   All three unknown-type errors are present in the actual 3.3.12 build log.
+
+   Proposed repair: define SyncPoint before Judged and keep the CRC function
+   definition below every type needed by Arduino-generated prototypes (or
+   provide explicit, correctly ordered declarations). Rebuild the full sketch.
+
+2. P1 — Type-6 loss can invalidate navigation state.
+   Source lines 680–693; irQ capacity is 24 at line 1199.
+
+   Both types enter irQ and increment the same irQueueDrops on failure.
+   serviceMovement() responds to any increase with movement.transportGap()
+   and irHealth.queueGap(). These clear movement history, terminate the
+   active IR epoch, and invalidate the existing MM/IR reference. The actual
+   navigator consumes irHealth.at() and irHealth.odometry().point(). Thus
+   Type-6 can change navigation inputs despite the 'continue' at line 717.
+   Sharing capacity also allows Type-6 backlog to displace a Type-5 packet.
+
+   Reproduction: establish a healthy paired Type-5/MM reference, enqueue 25
+   valid Type-6 packets without draining the 24-slot queue, then service it.
+   Only Type-6 was dropped; the Type-5 frame changed and the reference became
+   invalid. This demonstrates a deterministic coupling, not a claim about
+   how frequently the queue will fill on the physical railway.
+
+   Proposed repair: give Type-6 bounded diagnostic-only queue capacity and
+   loss accounting, preserving the original Type-5 queue and loss behavior.
+   Diagnostic overflow must remain visible without resetting movement/health.
+
+3. P2 — Hall snapshots omit packets already received but not yet processed.
+   Source lines 648–653 and 713–734.
+
+   onIr() timestamps and queues arrivals, but syncType5/syncType6 are updated
+   only in serviceMovement() on the main loop. hallTask() runs independently
+   and freezes those last-processed values. Draining irQ before judgedQ later
+   cannot update the snapshots embedded in the already queued Judged record.
+
+   Reproduction: receive valid Type-5/Type-6 count 11 at 1,090,000 us, detect
+   Hall at 1,100,000 us, then drain. The Hall record retains count 10 even
+   though both newer packets arrived 10 ms before Hall. The comparison can
+   measure main-loop service timing rather than latest receiver-arrival age.
+
+   Proposed repair: retain bounded diagnostic arrival history and select the
+   latest accepted observation at or before the Hall timestamp after processing
+   the applicable queued arrivals. Preserve the existing navigation selection
+   unchanged. Test before/after-Hall arrivals and delayed loop processing.
+
+4. P2 — Type-6 ignores the paired transmitter identity.
+   Source lines 697–714.
+
+   Type-5 receives a MAC check inside MovementSource and IrHealthMonitor.
+   The new Type-6 branch never checks packet.mac against movement.mac(). A
+   valid broadcast from a second transmitter can replace the diagnostic
+   snapshot and its continuity history. A later Type-5 boot comparison can
+   suppress the wrong snapshot, but cannot recover the displaced correct one.
+
+   Reproduction: receive a continuous paired Type-6 stream, then one valid
+   packet from another MAC and boot. The foreign packet replaces syncType6.
+
+   Proposed repair: apply the selected-source identity to the Type-6 observer
+   and reset only its diagnostic state when pairing changes. Record source
+   identity in the output so comparison provenance can be checked.
+
+5. P2 — Gap handling erases the measurements needed to evaluate delivery.
+   Source lines 1340–1354.
+
+   The first received event after a sequence gap has valid=true but
+   continuous=false. The print path substitutes t6=0, t6_age_ms=-1, and
+   t6_minus_t5=0. It never emits the actual count, receive time, boot, or
+   sequence for that observation. No Type-6 raw record is added to the
+   existing NSR1 UDP recorder, so these fields cannot be recovered there.
+
+   Reproduction: after count 10/sequence 1, receive count 12/sequence 3.
+   One millisecond later, the Hall log reports no Type-6 observation instead
+   of retaining count 12 with a continuity warning. This is particularly
+   consequential in an experiment intended to characterize delivery gaps.
+
+   Proposed repair: always retain/log structurally accepted raw observations;
+   expose continuity, source/boot match, availability, and comparison eligibility
+   as separate fields. Keep the intended rule that a discontinuous event is
+   not called continuous. Gap-event count is not a count of missing packets.
+
+WHAT WAS CONFIRMED
+
+The packed 61-byte Type-6 field layout, CRC offset 59, and CRC algorithm match
+the local PulseEventEvidence.h contract in the newer transmitter worktrees.
+The Type-6 branch does not directly call navigation, motor, or station logic.
+The existing Type-5 movement/health calls and navigator algorithms were not
+replaced. The queue coupling above prevents claiming full behavioral isolation.
+
+The historical transmitter next to the matching baseline only schedules
+Type-5 reports at 100,000 us and does not implement Type-6 pulse events.
+A compatible transmitter is required. This review does not verify what is
+currently installed on the IR car or authorize a transmitter change.
+
+Receiver-arrival age is not optical-capture age. Independent board clocks
+remain unsynchronized. Also, Serial.printf runs before navigation judgment;
+its effect on loop latency must be measured when this diagnostic is tested.
+Host probes cannot establish RF reliability or field behavior.
+
+TESTS AND PROPOSED REPAIR SCOPE
+
+reproduce_review.py extracts the submitted receive, processing, Hall snapshot,
+and print statements verbatim. It uses the real historical movement/health
+headers, with a deterministic queue/clock and recorder stub. Four defect
+reproductions completed with AddressSanitizer and UndefinedBehaviorSanitizer
+enabled, without sanitizer findings. See probe-results.txt. These are defect
+reproductions, not a passing regression suite for a corrected implementation.
+
+If approved, limit implementation to the experimental variant and its README,
+plus focused diagnostic test/helper files in a matching variant directory.
+Keep the original IR_HEALTH sketch, navigator, motor/station code, transmitter,
+and deployment unchanged. Update firmware/README.md for the candidate's role,
+provenance and measured evidence status after a successful rebuild.
+
+Expected result: Type-5 retains its original navigation behavior; Type-6
+supplies attributable observations selected by arrival time, with gaps/loss
+visible and isolated from navigation state. Remaining uncertainty concerns
+bounded history sizing, execution overhead, and real transmitter delivery.
+Validate each defect above, sequence wrap/duplicate ordering, before/after-Hall
+selection, and Type-5 state invariance under Type-6 loss; then compile with
+3.3.12. A controlled field test requires separate deployment authorization.
+
+LIBRARIAN CHECK AND LIMITS
+
+Role: experimental diagnostic addition to AUTO-enabled development firmware;
+it is not a passive receiver-only sketch and FIELD_ACCEPTED remains 0.
+Status: submitted source reviewed, dependencies resolved, compilation failed.
+Controlling record: submitted README plus this review and recorded evidence.
+Provenance: matching historical 20Q3/NSR1 baseline, source hashes in manifest.
+Promotion outcome: none; no field acceptance, flashing, or deployment.
+Catalog: firmware/README.md has no entry for this untracked experimental
+candidate; its status should be recorded with an approved repair/integration.
+
+No project firmware or repository documentation was modified in this review.
+Only temporary build staging and this review evidence directory were created.
+The repository AGENTS.md section 2 states: 'Reading, analysis, review,
+compilation, simulation, and testing do not constitute permission to modify
+project code.' Implementation therefore requires David's explicit approval.

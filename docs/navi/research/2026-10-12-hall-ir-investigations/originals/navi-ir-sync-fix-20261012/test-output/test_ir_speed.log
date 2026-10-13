@@ -1,0 +1,2 @@
+{"ir_valid":1,"ir_mmps":100.000,"ir_pkph":18.611,"ir_speed_reason":"MEASURED","ir_coupled":1,"ir_window_us":1000000,"ir_delta_pulses":10,"ir_pitch_um":10000,"ir_speed_authority":"OBSERVE_ONLY"}
+{"ir_valid":0,"ir_mmps":null,"ir_pkph":null,"ir_speed_reason":"LINK_STALE","ir_coupled":1,"ir_window_us":1000000,"ir_delta_pulses":10,"ir_pitch_um":10000,"ir_speed_authority":"OBSERVE_ONLY"}

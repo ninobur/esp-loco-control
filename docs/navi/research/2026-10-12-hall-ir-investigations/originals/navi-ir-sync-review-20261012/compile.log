@@ -1,0 +1,44 @@
+/private/tmp/navi-ir-sync-review-yc0vuszl/firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_SYNC_TEST/NAVI_COHERENCE_0_6_IR_SYNC_TEST.ino:85:3: error: 'SyncPoint' does not name a type
+   85 |   SyncPoint type5AtOpening{},type6AtOpening{};
+      |   ^~~~~~~~~
+/private/tmp/navi-ir-sync-review-yc0vuszl/firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_SYNC_TEST/NAVI_COHERENCE_0_6_IR_SYNC_TEST.ino:85:29: error: expected unqualified-id before ',' token
+   85 |   SyncPoint type5AtOpening{},type6AtOpening{};
+      |                             ^
+/private/tmp/navi-ir-sync-review-yc0vuszl/firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_SYNC_TEST/NAVI_COHERENCE_0_6_IR_SYNC_TEST.ino:244:8: error: 'HallReading' does not name a type
+  244 | static HallReading hallRead(){
+      |        ^~~~~~~~~~~
+/private/tmp/navi-ir-sync-review-yc0vuszl/firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_SYNC_TEST/NAVI_COHERENCE_0_6_IR_SYNC_TEST.ino:905:33: error: 'CmdMsg' does not name a type
+  905 | static void handleCommand(const CmdMsg& c){
+      |                                 ^~~~~~
+/private/tmp/navi-ir-sync-review-yc0vuszl/firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_SYNC_TEST/NAVI_COHERENCE_0_6_IR_SYNC_TEST.ino: In function 'void hallTask(void*)':
+/private/tmp/navi-ir-sync-review-yc0vuszl/firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_SYNC_TEST/NAVI_COHERENCE_0_6_IR_SYNC_TEST.ino:651:15: error: 'struct Judged' has no member named 'type5AtOpening'
+  651 |       pending.type5AtOpening=syncType5;
+      |               ^~~~~~~~~~~~~~
+/private/tmp/navi-ir-sync-review-yc0vuszl/firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_SYNC_TEST/NAVI_COHERENCE_0_6_IR_SYNC_TEST.ino:652:15: error: 'struct Judged' has no member named 'type6AtOpening'
+  652 |       pending.type6AtOpening=syncType6;
+      |               ^~~~~~~~~~~~~~
+/private/tmp/navi-ir-sync-review-yc0vuszl/firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_SYNC_TEST/NAVI_COHERENCE_0_6_IR_SYNC_TEST.ino: In function 'void loop()':
+/private/tmp/navi-ir-sync-review-yc0vuszl/firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_SYNC_TEST/NAVI_COHERENCE_0_6_IR_SYNC_TEST.ino:1340:20: error: 'struct Judged' has no member named 'type5AtOpening'
+ 1340 |     const auto a=j.type5AtOpening,b=j.type6AtOpening;
+      |                    ^~~~~~~~~~~~~~
+/private/tmp/navi-ir-sync-review-yc0vuszl/firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_SYNC_TEST/NAVI_COHERENCE_0_6_IR_SYNC_TEST.ino:1342:20: error: 'b' was not declared in this scope
+ 1342 |     const bool bOk=b.valid && b.continuous && b.receivedUs<=j.capturedUs &&
+      |                    ^
+/private/tmp/navi-ir-sync-review-yc0vuszl/firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_SYNC_TEST/NAVI_COHERENCE_0_6_IR_SYNC_TEST.ino: At global scope:
+/private/tmp/navi-ir-sync-review-yc0vuszl/firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_SYNC_TEST/NAVI_COHERENCE_0_6_IR_SYNC_TEST.ino:905:13: warning: 'void handleCommand(const int&)' declared 'static' but never defined [-Wunused-function]
+  905 | static void handleCommand(const CmdMsg& c){
+      |             ^~~~~~~~~~~~~
+
+Used library    Version Path
+WiFi            3.3.12  /Users/davidbrown/Library/Arduino15/packages/esp32/hardware/esp32/3.3.12/libraries/WiFi
+Networking      3.3.12  /Users/davidbrown/Library/Arduino15/packages/esp32/hardware/esp32/3.3.12/libraries/Network
+PubSubClient    2.8     /Users/davidbrown/Documents/Arduino/libraries/PubSubClient
+Wire            3.3.12  /Users/davidbrown/Library/Arduino15/packages/esp32/hardware/esp32/3.3.12/libraries/Wire
+Adafruit INA219 1.2.3   /Users/davidbrown/Documents/Arduino/libraries/Adafruit_INA219
+Adafruit BusIO  1.17.4  /Users/davidbrown/Documents/Arduino/libraries/Adafruit_BusIO
+SPI             3.3.12  /Users/davidbrown/Library/Arduino15/packages/esp32/hardware/esp32/3.3.12/libraries/SPI
+Preferences     3.3.12  /Users/davidbrown/Library/Arduino15/packages/esp32/hardware/esp32/3.3.12/libraries/Preferences
+
+Used platform Version Path
+esp32:esp32   3.3.12  /Users/davidbrown/Library/Arduino15/packages/esp32/hardware/esp32/3.3.12
+Error during build: exit status 1

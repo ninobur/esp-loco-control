@@ -1,0 +1,2880 @@
+{
+  "files": [
+    {
+      "source": "/private/tmp/navi-ir-sync-review-yc0vuszl/firmware/common/IrMovementContract.h",
+      "path": "dependencies/review-baseline/firmware/common/IrMovementContract.h",
+      "original_bytes": 4261,
+      "original_sha256": "d700f3916482d41900157e6277bf76ebdbf6432d9397917f0bf8a89d7493cfe2",
+      "encoding": "identity",
+      "archived_bytes": 4261,
+      "archived_sha256": "d700f3916482d41900157e6277bf76ebdbf6432d9397917f0bf8a89d7493cfe2"
+    },
+    {
+      "source": "/private/tmp/navi-ir-sync-review-yc0vuszl/firmware/common/IrMovementDetector.h",
+      "path": "dependencies/review-baseline/firmware/common/IrMovementDetector.h",
+      "original_bytes": 4571,
+      "original_sha256": "adc70c64504adbf46dda5c8a5ca9bb53511fd799f4f0aaa8ae57d30cacb37193",
+      "encoding": "identity",
+      "archived_bytes": 4571,
+      "archived_sha256": "adc70c64504adbf46dda5c8a5ca9bb53511fd799f4f0aaa8ae57d30cacb37193"
+    },
+    {
+      "source": "/private/tmp/navi-ir-sync-review-yc0vuszl/firmware/common/IrMovementWire.h",
+      "path": "dependencies/review-baseline/firmware/common/IrMovementWire.h",
+      "original_bytes": 1424,
+      "original_sha256": "4f064adca68e314ebb101bb4dc022badbc866cd0354d7c6dec494aa47711ea88",
+      "encoding": "identity",
+      "archived_bytes": 1424,
+      "archived_sha256": "4f064adca68e314ebb101bb4dc022badbc866cd0354d7c6dec494aa47711ea88"
+    },
+    {
+      "source": "/private/tmp/navi-ir-sync-review-yc0vuszl/firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_HEALTH/ExcursionDetectorX22R.h",
+      "path": "dependencies/review-baseline/firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_HEALTH/ExcursionDetectorX22R.h",
+      "original_bytes": 50084,
+      "original_sha256": "7367a4674d3b1854ca96915b194615678e5a17eda0925ef1dd1eab6e7b3ace41",
+      "encoding": "identity",
+      "archived_bytes": 50084,
+      "archived_sha256": "7367a4674d3b1854ca96915b194615678e5a17eda0925ef1dd1eab6e7b3ace41"
+    },
+    {
+      "source": "/private/tmp/navi-ir-sync-review-yc0vuszl/firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_HEALTH/HallObserver.h",
+      "path": "dependencies/review-baseline/firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_HEALTH/HallObserver.h",
+      "original_bytes": 514,
+      "original_sha256": "535f673a3c63836e58c3ce61fecdf0ceee99d76627ce97a6f0587c9eb65760e8",
+      "encoding": "identity",
+      "archived_bytes": 514,
+      "archived_sha256": "535f673a3c63836e58c3ce61fecdf0ceee99d76627ce97a6f0587c9eb65760e8"
+    },
+    {
+      "source": "/private/tmp/navi-ir-sync-review-yc0vuszl/firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_HEALTH/IrHealthMonitor.h",
+      "path": "dependencies/review-baseline/firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_HEALTH/IrHealthMonitor.h",
+      "original_bytes": 9257,
+      "original_sha256": "9debcc04a462a98f0aca7cd7429bcee0123ad7916d3c300b4e870725d9dfd99d",
+      "encoding": "identity",
+      "archived_bytes": 9257,
+      "archived_sha256": "9debcc04a462a98f0aca7cd7429bcee0123ad7916d3c300b4e870725d9dfd99d"
+    },
+    {
+      "source": "/private/tmp/navi-ir-sync-review-yc0vuszl/firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_HEALTH/IrSpeedTelemetry.h",
+      "path": "dependencies/review-baseline/firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_HEALTH/IrSpeedTelemetry.h",
+      "original_bytes": 4850,
+      "original_sha256": "2ff54f2040d30c02d539437ef9bfb8a53bbed44bb8e30170d33abd4096e05d3e",
+      "encoding": "identity",
+      "archived_bytes": 4850,
+      "archived_sha256": "2ff54f2040d30c02d539437ef9bfb8a53bbed44bb8e30170d33abd4096e05d3e"
+    },
+    {
+      "source": "/private/tmp/navi-ir-sync-review-yc0vuszl/firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_HEALTH/LocoConfig.h",
+      "path": "dependencies/review-baseline/firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_HEALTH/LocoConfig.h",
+      "original_bytes": 844,
+      "original_sha256": "b71763b80b7255230643c95c7dffdbec2dab5df7503a41121c22e99e41cadca5",
+      "encoding": "identity",
+      "archived_bytes": 844,
+      "archived_sha256": "b71763b80b7255230643c95c7dffdbec2dab5df7503a41121c22e99e41cadca5"
+    },
+    {
+      "source": "/private/tmp/navi-ir-sync-review-yc0vuszl/firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_HEALTH/MovementEvidence.h",
+      "path": "dependencies/review-baseline/firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_HEALTH/MovementEvidence.h",
+      "original_bytes": 6707,
+      "original_sha256": "e85f7db66b9757863271dae886cb72a05641d5a96fca96cb4162f5564cfefc4b",
+      "encoding": "identity",
+      "archived_bytes": 6707,
+      "archived_sha256": "e85f7db66b9757863271dae886cb72a05641d5a96fca96cb4162f5564cfefc4b"
+    },
+    {
+      "source": "/private/tmp/navi-ir-sync-review-yc0vuszl/firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_HEALTH/NAVI_COHERENCE_0_6_IR_HEALTH.ino",
+      "path": "dependencies/review-baseline/firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_HEALTH/NAVI_COHERENCE_0_6_IR_HEALTH.ino",
+      "original_bytes": 67949,
+      "original_sha256": "cb1ff012e27a1f8e07d9c527a99c1ba5a45910f3d856d89a287f5f8cc5e2b46c",
+      "encoding": "identity",
+      "archived_bytes": 67949,
+      "archived_sha256": "cb1ff012e27a1f8e07d9c527a99c1ba5a45910f3d856d89a287f5f8cc5e2b46c"
+    },
+    {
+      "source": "/private/tmp/navi-ir-sync-review-yc0vuszl/firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_HEALTH/NaviSyncRecorder.h",
+      "path": "dependencies/review-baseline/firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_HEALTH/NaviSyncRecorder.h",
+      "original_bytes": 12474,
+      "original_sha256": "58113d64abed8f566b461cac3dcc3f1f9e5e25fca1bf5d56b54cde081d0ef19b",
+      "encoding": "identity",
+      "archived_bytes": 12474,
+      "archived_sha256": "58113d64abed8f566b461cac3dcc3f1f9e5e25fca1bf5d56b54cde081d0ef19b"
+    },
+    {
+      "source": "/private/tmp/navi-ir-sync-review-yc0vuszl/firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_HEALTH/Navigator.h",
+      "path": "dependencies/review-baseline/firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_HEALTH/Navigator.h",
+      "original_bytes": 14573,
+      "original_sha256": "363711f1e17f419bfb7428b2429b10d4416db7765e960a0925fd5c6da0e21cfa",
+      "encoding": "identity",
+      "archived_bytes": 14573,
+      "archived_sha256": "363711f1e17f419bfb7428b2429b10d4416db7765e960a0925fd5c6da0e21cfa"
+    },
+    {
+      "source": "/private/tmp/navi-ir-sync-review-yc0vuszl/firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_HEALTH/Ops.h",
+      "path": "dependencies/review-baseline/firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_HEALTH/Ops.h",
+      "original_bytes": 8175,
+      "original_sha256": "cfefaea7d9d9406d2c7e85ddfb86d5a637ea7fb4c24cc731e22bc67e60e124de",
+      "encoding": "identity",
+      "archived_bytes": 8175,
+      "archived_sha256": "cfefaea7d9d9406d2c7e85ddfb86d5a637ea7fb4c24cc731e22bc67e60e124de"
+    },
+    {
+      "source": "/private/tmp/navi-ir-sync-review-yc0vuszl/firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_HEALTH/ProximalRecovery.h",
+      "path": "dependencies/review-baseline/firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_HEALTH/ProximalRecovery.h",
+      "original_bytes": 7174,
+      "original_sha256": "db2975024cab7f9f63eaee5a4e4ca3129806dc99a10c062cc3e234adcc911816",
+      "encoding": "identity",
+      "archived_bytes": 7174,
+      "archived_sha256": "db2975024cab7f9f63eaee5a4e4ca3129806dc99a10c062cc3e234adcc911816"
+    },
+    {
+      "source": "/private/tmp/navi-ir-sync-review-yc0vuszl/firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_HEALTH/RecoveryControl.h",
+      "path": "dependencies/review-baseline/firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_HEALTH/RecoveryControl.h",
+      "original_bytes": 747,
+      "original_sha256": "666f12dfd64bd9271c4f387524b04c818c5e4ae35b4088443d9d7ce24a99c10d",
+      "encoding": "identity",
+      "archived_bytes": 747,
+      "archived_sha256": "666f12dfd64bd9271c4f387524b04c818c5e4ae35b4088443d9d7ce24a99c10d"
+    },
+    {
+      "source": "/private/tmp/navi-ir-sync-review-yc0vuszl/firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_HEALTH/RouteMap.h",
+      "path": "dependencies/review-baseline/firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_HEALTH/RouteMap.h",
+      "original_bytes": 10167,
+      "original_sha256": "6fe9ec94c5dda116747db64640dc30a773f5ea3a21f5fc39cb3500f53f380e74",
+      "encoding": "identity",
+      "archived_bytes": 10167,
+      "archived_sha256": "6fe9ec94c5dda116747db64640dc30a773f5ea3a21f5fc39cb3500f53f380e74"
+    },
+    {
+      "source": "/private/tmp/navi-ir-sync-review-yc0vuszl/firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_HEALTH/Stations.h",
+      "path": "dependencies/review-baseline/firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_HEALTH/Stations.h",
+      "original_bytes": 20744,
+      "original_sha256": "f933bf66643a736b9286e06b672a94f18a177361e85410a8119a40f054e9a9c3",
+      "encoding": "identity",
+      "archived_bytes": 20744,
+      "archived_sha256": "f933bf66643a736b9286e06b672a94f18a177361e85410a8119a40f054e9a9c3"
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/rollback/NAVI_COHERENCE_0_6_IR_SYNC_TEST.ino",
+      "path": "dependencies/review-baseline/firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_SYNC_TEST.ino",
+      "original_bytes": 71437,
+      "original_sha256": "e0facae1241425f3a97e984a608011dd3b14b5c11ee7b6f8c9a69375dae14fa6",
+      "encoding": "identity",
+      "archived_bytes": 71437,
+      "archived_sha256": "e0facae1241425f3a97e984a608011dd3b14b5c11ee7b6f8c9a69375dae14fa6"
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/rollback/NAVI_COHERENCE_0_6_IR_SYNC_TEST_README.md",
+      "path": "dependencies/review-baseline/firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_SYNC_TEST_README.md",
+      "original_bytes": 2816,
+      "original_sha256": "afe0addbb1efa75629684f9a3b4870b38e8f8a2f3d27e9702f23d28ff16cbe9b",
+      "encoding": "identity",
+      "archived_bytes": 2816,
+      "archived_sha256": "afe0addbb1efa75629684f9a3b4870b38e8f8a2f3d27e9702f23d28ff16cbe9b"
+    },
+    {
+      "source": "/Users/davidbrown/esp-loco-control/firmware/programs/NAVI_ONE/variants/NAVI_ONE_X22/ExcursionDetector.h",
+      "path": "dependencies/review-baseline/firmware/programs/NAVI_ONE/variants/NAVI_ONE_X22/ExcursionDetector.h",
+      "encoding": "identity",
+      "original_bytes": 49550,
+      "archived_bytes": 49550,
+      "original_sha256": "71e69cba53cf96b1761a91afe127cf4df1d163d0211421b8524da89c2662a87b",
+      "archived_sha256": "71e69cba53cf96b1761a91afe127cf4df1d163d0211421b8524da89c2662a87b"
+    },
+    {
+      "source": "/Users/davidbrown/esp-loco-control/firmware/programs/NAVI_ONE/variants/NAVI_ONE_X22/MagnetRecognizer.h",
+      "path": "dependencies/review-baseline/firmware/programs/NAVI_ONE/variants/NAVI_ONE_X22/MagnetRecognizer.h",
+      "encoding": "identity",
+      "original_bytes": 13634,
+      "archived_bytes": 13634,
+      "original_sha256": "5ab32e6bac760fe457ea13d0305b0ff756f69c41cbc9f12ee47ea3e0d9c4cf88",
+      "archived_sha256": "5ab32e6bac760fe457ea13d0305b0ff756f69c41cbc9f12ee47ea3e0d9c4cf88"
+    },
+    {
+      "source": "/private/tmp/navi-ir-sync-review-yc0vuszl/firmware/programs/NAVI_SIMPLIFIED/LL_LocoConfig_9950011.h",
+      "path": "dependencies/review-baseline/firmware/programs/NAVI_SIMPLIFIED/LL_LocoConfig_9950011.h",
+      "original_bytes": 13515,
+      "original_sha256": "58a09936a1bef2e199b923b3d4f084bc616af3d385084666436b09dca0ad1958",
+      "encoding": "identity",
+      "archived_bytes": 13515,
+      "archived_sha256": "58a09936a1bef2e199b923b3d4f084bc616af3d385084666436b09dca0ad1958"
+    },
+    {
+      "source": "/private/tmp/navi-ir-sync-review-yc0vuszl/firmware/reference/NAVI_COHERENCE/IR_ARCHITECTURE_0_4/IrInstrument.h",
+      "path": "dependencies/review-baseline/firmware/reference/NAVI_COHERENCE/IR_ARCHITECTURE_0_4/IrInstrument.h",
+      "original_bytes": 2858,
+      "original_sha256": "3de79806cc71d99150dcf403fa9229b8b1b41747be8bb3a1934375f0970a4361",
+      "encoding": "identity",
+      "archived_bytes": 2858,
+      "archived_sha256": "3de79806cc71d99150dcf403fa9229b8b1b41747be8bb3a1934375f0970a4361"
+    },
+    {
+      "source": "/private/tmp/navi-ir-sync-review-yc0vuszl/firmware/reference/NAVI_COHERENCE/IR_ARCHITECTURE_0_4/IrOdometryEpoch.h",
+      "path": "dependencies/review-baseline/firmware/reference/NAVI_COHERENCE/IR_ARCHITECTURE_0_4/IrOdometryEpoch.h",
+      "original_bytes": 7394,
+      "original_sha256": "c3732fd72e004c2778f9b48737c233bbd37c5e3372c2e71ac132284db16a04dc",
+      "encoding": "identity",
+      "archived_bytes": 7394,
+      "archived_sha256": "c3732fd72e004c2778f9b48737c233bbd37c5e3372c2e71ac132284db16a04dc"
+    },
+    {
+      "source": "/private/tmp/navi-ir-sync-review-yc0vuszl/firmware/reference/NAVI_COHERENCE/IR_ARCHITECTURE_0_4/MmDistanceReference.h",
+      "path": "dependencies/review-baseline/firmware/reference/NAVI_COHERENCE/IR_ARCHITECTURE_0_4/MmDistanceReference.h",
+      "original_bytes": 1222,
+      "original_sha256": "e53f1dae264203d5fe680dde09fc83f07cc71705069b30c6320f80a4c8a7dde2",
+      "encoding": "identity",
+      "archived_bytes": 1222,
+      "archived_sha256": "e53f1dae264203d5fe680dde09fc83f07cc71705069b30c6320f80a4c8a7dde2"
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/hall-field-analysis-20260929/REPORT.md",
+      "path": "originals/hall-field-analysis-20260929/REPORT.md",
+      "original_bytes": 10046,
+      "original_sha256": "555e0ccb6b723f9af526b71a8ae39c389980f8ada8426e656c1c29844f96a6c7",
+      "encoding": "identity",
+      "archived_bytes": 10046,
+      "archived_sha256": "555e0ccb6b723f9af526b71a8ae39c389980f8ada8426e656c1c29844f96a6c7"
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/hall-field-analysis-20260929/analyze_continuous_hall.py",
+      "path": "originals/hall-field-analysis-20260929/analyze_continuous_hall.py",
+      "original_bytes": 38215,
+      "original_sha256": "bc2442e45b9ba0881fdb8cabf83e14826737b13e9cffab9ee5bc839b65a0b8d0",
+      "encoding": "identity",
+      "archived_bytes": 38215,
+      "archived_sha256": "bc2442e45b9ba0881fdb8cabf83e14826737b13e9cffab9ee5bc839b65a0b8d0"
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/hall-field-analysis-20260929/analyze_ir_odometry_calibration.py",
+      "path": "originals/hall-field-analysis-20260929/analyze_ir_odometry_calibration.py",
+      "original_bytes": 35396,
+      "original_sha256": "be5aca62ab9cb55b26537a5ebe31ef1e71b354bacab89fa4c9c67b4a25f48d84",
+      "encoding": "identity",
+      "archived_bytes": 35396,
+      "archived_sha256": "be5aca62ab9cb55b26537a5ebe31ef1e71b354bacab89fa4c9c67b4a25f48d84"
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/hall-field-analysis-20260929/analyze_morphology_candidates.py",
+      "path": "originals/hall-field-analysis-20260929/analyze_morphology_candidates.py",
+      "original_bytes": 42523,
+      "original_sha256": "10b097f018766d7261914a8af5583f2cdc229898287a0aee719e686ad80283f8",
+      "encoding": "identity",
+      "archived_bytes": 42523,
+      "archived_sha256": "10b097f018766d7261914a8af5583f2cdc229898287a0aee719e686ad80283f8"
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/hall-field-analysis-20260929/analyze_opening_positions.py",
+      "path": "originals/hall-field-analysis-20260929/analyze_opening_positions.py",
+      "original_bytes": 30009,
+      "original_sha256": "9cd19e3b6ea6fc114e2bffe761bfdad54a7029e2949ccdf06feeb44a09477280",
+      "encoding": "identity",
+      "archived_bytes": 30009,
+      "archived_sha256": "9cd19e3b6ea6fc114e2bffe761bfdad54a7029e2949ccdf06feeb44a09477280"
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/hall-field-analysis-20260929/continuous_hall_analysis.json",
+      "path": "originals/hall-field-analysis-20260929/continuous_hall_analysis.json",
+      "original_bytes": 1371219,
+      "original_sha256": "7683c3ce682e08b5f4165248f27fb3a261170016abb8a5ff1c6e671c5808d1df",
+      "encoding": "identity",
+      "archived_bytes": 1371219,
+      "archived_sha256": "7683c3ce682e08b5f4165248f27fb3a261170016abb8a5ff1c6e671c5808d1df"
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/hall-field-analysis-20260929/morphology-candidate/REPORT.md",
+      "path": "originals/hall-field-analysis-20260929/morphology-candidate/REPORT.md",
+      "original_bytes": 16775,
+      "original_sha256": "9c8ca4fa9b52fca17d3770b91a8303095af3c25fcb815c092bfe95f260d6ce23",
+      "encoding": "identity",
+      "archived_bytes": 16775,
+      "archived_sha256": "9c8ca4fa9b52fca17d3770b91a8303095af3c25fcb815c092bfe95f260d6ce23"
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/hall-field-analysis-20260929/morphology-candidate/candidate_replay.csv",
+      "path": "originals/hall-field-analysis-20260929/morphology-candidate/candidate_replay.csv",
+      "original_bytes": 111382,
+      "original_sha256": "5094a4cecf4b322fe78c7993c837486ffa8ea9e7e92c0f009862510e4a9add97",
+      "encoding": "identity",
+      "archived_bytes": 111382,
+      "archived_sha256": "5094a4cecf4b322fe78c7993c837486ffa8ea9e7e92c0f009862510e4a9add97"
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/hall-field-analysis-20260929/morphology-candidate/candidate_separation.csv",
+      "path": "originals/hall-field-analysis-20260929/morphology-candidate/candidate_separation.csv",
+      "original_bytes": 40513,
+      "original_sha256": "86cbbcb514f7bb2ff2ccd42a766037fcb978c12d24879459491b2e459eac2618",
+      "encoding": "identity",
+      "archived_bytes": 40513,
+      "archived_sha256": "86cbbcb514f7bb2ff2ccd42a766037fcb978c12d24879459491b2e459eac2618"
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/hall-field-analysis-20260929/morphology-candidate/held_out_morphology_predictions.csv",
+      "path": "originals/hall-field-analysis-20260929/morphology-candidate/held_out_morphology_predictions.csv",
+      "original_bytes": 97495,
+      "original_sha256": "154d63f1287326724b69332d0b628e4e63344880f65417f05a653cdd2129a24c",
+      "encoding": "identity",
+      "archived_bytes": 97495,
+      "archived_sha256": "154d63f1287326724b69332d0b628e4e63344880f65417f05a653cdd2129a24c"
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/hall-field-analysis-20260929/morphology-candidate/morphology_features.csv",
+      "path": "originals/hall-field-analysis-20260929/morphology-candidate/morphology_features.csv",
+      "original_bytes": 356577,
+      "original_sha256": "e6da80f4c5c0da066a6dd7bccdacc15fb33d183a198836fe44da6bd825b7fd22",
+      "encoding": "identity",
+      "archived_bytes": 356577,
+      "archived_sha256": "e6da80f4c5c0da066a6dd7bccdacc15fb33d183a198836fe44da6bd825b7fd22"
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/hall-field-analysis-20260929/morphology-candidate/plots/actual_candidate_replay.png",
+      "path": "originals/hall-field-analysis-20260929/morphology-candidate/plots/actual_candidate_replay.png",
+      "original_bytes": 40393,
+      "original_sha256": "ca005341e0acf1d2931cc895d1b58eb06f43d39d98f123a0bd32132256f5672d",
+      "encoding": "identity",
+      "archived_bytes": 40393,
+      "archived_sha256": "ca005341e0acf1d2931cc895d1b58eb06f43d39d98f123a0bd32132256f5672d"
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/hall-field-analysis-20260929/morphology-candidate/plots/candidate_separation_traces.png",
+      "path": "originals/hall-field-analysis-20260929/morphology-candidate/plots/candidate_separation_traces.png",
+      "original_bytes": 176575,
+      "original_sha256": "b3a99db487c9ee7ac7eb533afb2373692dc01342b30e0c1e36293886334b53fa",
+      "encoding": "identity",
+      "archived_bytes": 176575,
+      "archived_sha256": "b3a99db487c9ee7ac7eb533afb2373692dc01342b30e0c1e36293886334b53fa"
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/hall-field-analysis-20260929/morphology-candidate/plots/morphology_feature_distributions.png",
+      "path": "originals/hall-field-analysis-20260929/morphology-candidate/plots/morphology_feature_distributions.png",
+      "original_bytes": 137951,
+      "original_sha256": "c51c8806897a0ab24989f68117824bace8a6ce7268c1ca0b9b8a4225657d8d68",
+      "encoding": "identity",
+      "archived_bytes": 137951,
+      "archived_sha256": "c51c8806897a0ab24989f68117824bace8a6ce7268c1ca0b9b8a4225657d8d68"
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/hall-field-analysis-20260929/morphology-candidate/plots/morphology_heldout_roc.png",
+      "path": "originals/hall-field-analysis-20260929/morphology-candidate/plots/morphology_heldout_roc.png",
+      "original_bytes": 82647,
+      "original_sha256": "ad14eb230b0b3be2d536c7ab71dffbad16b45ba4ba444493612e221e61dee472",
+      "encoding": "identity",
+      "archived_bytes": 82647,
+      "archived_sha256": "ad14eb230b0b3be2d536c7ab71dffbad16b45ba4ba444493612e221e61dee472"
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/hall-field-analysis-20260929/morphology-candidate/plots/synthetic_impostor_scenarios.png",
+      "path": "originals/hall-field-analysis-20260929/morphology-candidate/plots/synthetic_impostor_scenarios.png",
+      "original_bytes": 52935,
+      "original_sha256": "01260df6b612ba09b54978c34592e87999bd299f62b3982050cc166d155ea943",
+      "encoding": "identity",
+      "archived_bytes": 52935,
+      "archived_sha256": "01260df6b612ba09b54978c34592e87999bd299f62b3982050cc166d155ea943"
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/hall-field-analysis-20260929/morphology-candidate/summary.json",
+      "path": "originals/hall-field-analysis-20260929/morphology-candidate/summary.json",
+      "original_bytes": 21603,
+      "original_sha256": "74841a37e5869edc6526f1d5547afd4cfcd83327e35c7bc154ce924c53c0002a",
+      "encoding": "identity",
+      "archived_bytes": 21603,
+      "archived_sha256": "74841a37e5869edc6526f1d5547afd4cfcd83327e35c7bc154ce924c53c0002a"
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/hall-field-analysis-20260929/morphology-candidate/synthetic_impostor_cases.csv",
+      "path": "originals/hall-field-analysis-20260929/morphology-candidate/synthetic_impostor_cases.csv",
+      "original_bytes": 560,
+      "original_sha256": "6868e5a1bfc3e2557e3e99bb1a08a9db2ef55d8378a18af09f48099b3d08dc35",
+      "encoding": "identity",
+      "archived_bytes": 560,
+      "archived_sha256": "6868e5a1bfc3e2557e3e99bb1a08a9db2ef55d8378a18af09f48099b3d08dc35"
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/hall-field-analysis-20260929/opening-map/REPORT.md",
+      "path": "originals/hall-field-analysis-20260929/opening-map/REPORT.md",
+      "original_bytes": 13614,
+      "original_sha256": "bb7123ab10003ab51c84308a27f4507df692cac1cec0f4d1582dce3140007898",
+      "encoding": "identity",
+      "archived_bytes": 13614,
+      "archived_sha256": "bb7123ab10003ab51c84308a27f4507df692cac1cec0f4d1582dce3140007898"
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/hall-field-analysis-20260929/opening-map/calibrated_opening_intervals.csv",
+      "path": "originals/hall-field-analysis-20260929/opening-map/calibrated_opening_intervals.csv",
+      "original_bytes": 23361,
+      "original_sha256": "3640b01cda6a4ab1767a931ef47f4886c69e812b51dddb365c32b3c428e0f95e",
+      "encoding": "identity",
+      "archived_bytes": 23361,
+      "archived_sha256": "3640b01cda6a4ab1767a931ef47f4886c69e812b51dddb365c32b3c428e0f95e"
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/hall-field-analysis-20260929/opening-map/full_loop_distances.csv",
+      "path": "originals/hall-field-analysis-20260929/opening-map/full_loop_distances.csv",
+      "original_bytes": 142,
+      "original_sha256": "e8c34837964b7435f34c1b80f52676ace921cee5705262eb641dd39031304681",
+      "encoding": "identity",
+      "archived_bytes": 142,
+      "archived_sha256": "e8c34837964b7435f34c1b80f52676ace921cee5705262eb641dd39031304681"
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/hall-field-analysis-20260929/opening-map/held_out_candidate_trials.csv",
+      "path": "originals/hall-field-analysis-20260929/opening-map/held_out_candidate_trials.csv",
+      "original_bytes": 115869,
+      "original_sha256": "a19e8ab03c441e4d51dcbd8ffa4b78486f4bd2f64ea92007d7e4fee0a31cc458",
+      "encoding": "identity",
+      "archived_bytes": 115869,
+      "archived_sha256": "a19e8ab03c441e4d51dcbd8ffa4b78486f4bd2f64ea92007d7e4fee0a31cc458"
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/hall-field-analysis-20260929/opening-map/ir_calibration_summary.json",
+      "path": "originals/hall-field-analysis-20260929/opening-map/ir_calibration_summary.json",
+      "original_bytes": 10942,
+      "original_sha256": "2b013bb7b6b6d975babed28e8065a404bba4be6afa0b4a4ba73635a14037ac73",
+      "encoding": "identity",
+      "archived_bytes": 10942,
+      "archived_sha256": "2b013bb7b6b6d975babed28e8065a404bba4be6afa0b4a4ba73635a14037ac73"
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/hall-field-analysis-20260929/opening-map/mm115_116_diagnostic.csv",
+      "path": "originals/hall-field-analysis-20260929/opening-map/mm115_116_diagnostic.csv",
+      "original_bytes": 670,
+      "original_sha256": "0d5e1c04fd2c90547006a7c81d414b00b10d9a9eb6c360f2a24f9a3e959fc9cb",
+      "encoding": "identity",
+      "archived_bytes": 670,
+      "archived_sha256": "0d5e1c04fd2c90547006a7c81d414b00b10d9a9eb6c360f2a24f9a3e959fc9cb"
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/hall-field-analysis-20260929/opening-map/plots/candidate_selection_comparison.png",
+      "path": "originals/hall-field-analysis-20260929/opening-map/plots/candidate_selection_comparison.png",
+      "original_bytes": 54412,
+      "original_sha256": "83293935f076daf7d55fc3b830a67e5c01718c845d6a8c83558e161f16970d3d",
+      "encoding": "identity",
+      "archived_bytes": 54412,
+      "archived_sha256": "83293935f076daf7d55fc3b830a67e5c01718c845d6a8c83558e161f16970d3d"
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/hall-field-analysis-20260929/opening-map/plots/candidate_selection_example.png",
+      "path": "originals/hall-field-analysis-20260929/opening-map/plots/candidate_selection_example.png",
+      "original_bytes": 47040,
+      "original_sha256": "cec072c76ed14522ccd11c4c47ab58099d2fd8ad49c8e66a29905223f99cbe14",
+      "encoding": "identity",
+      "archived_bytes": 47040,
+      "archived_sha256": "cec072c76ed14522ccd11c4c47ab58099d2fd8ad49c8e66a29905223f99cbe14"
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/hall-field-analysis-20260929/opening-map/plots/ir_timing_and_quantization.png",
+      "path": "originals/hall-field-analysis-20260929/opening-map/plots/ir_timing_and_quantization.png",
+      "original_bytes": 108179,
+      "original_sha256": "4c800bb732af28feac2d10fb65c98cb91af9dc068b0089d67ee2134e03544eed",
+      "encoding": "identity",
+      "archived_bytes": 108179,
+      "archived_sha256": "4c800bb732af28feac2d10fb65c98cb91af9dc068b0089d67ee2134e03544eed"
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/hall-field-analysis-20260929/opening-map/plots/mm115_116_diagnostic.png",
+      "path": "originals/hall-field-analysis-20260929/opening-map/plots/mm115_116_diagnostic.png",
+      "original_bytes": 69125,
+      "original_sha256": "0a17b34a7ca9ac2ba0f72a0ba1a741dd3e7d5ee26d7f57a0e3026e790b10b15f",
+      "encoding": "identity",
+      "archived_bytes": 69125,
+      "archived_sha256": "0a17b34a7ca9ac2ba0f72a0ba1a741dd3e7d5ee26d7f57a0e3026e790b10b15f"
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/hall-field-analysis-20260929/opening-map/plots/physical_vs_calibrated_prediction.png",
+      "path": "originals/hall-field-analysis-20260929/opening-map/plots/physical_vs_calibrated_prediction.png",
+      "original_bytes": 50844,
+      "original_sha256": "517f87fba6f0a098de7d7359023f623e4b604ae5f7df481d7a4496ff7b382ac7",
+      "encoding": "identity",
+      "archived_bytes": 50844,
+      "archived_sha256": "517f87fba6f0a098de7d7359023f623e4b604ae5f7df481d7a4496ff7b382ac7"
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/hall-field-analysis-20260929/opening-position/REPORT.md",
+      "path": "originals/hall-field-analysis-20260929/opening-position/REPORT.md",
+      "original_bytes": 11581,
+      "original_sha256": "bbc4e69b52dad4844e195f7610c7d0250991bcdd8230422f899bddf836949ff3",
+      "encoding": "identity",
+      "archived_bytes": 11581,
+      "archived_sha256": "bbc4e69b52dad4844e195f7610c7d0250991bcdd8230422f899bddf836949ff3"
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/hall-field-analysis-20260929/opening-position/cw_ccw_peak_comparison.csv",
+      "path": "originals/hall-field-analysis-20260929/opening-position/cw_ccw_peak_comparison.csv",
+      "original_bytes": 1764,
+      "original_sha256": "317144685c8b876bb2c10a5fd8c4b1de62c22f53f5b87f99083b893f5c0a7011",
+      "encoding": "identity",
+      "archived_bytes": 1764,
+      "archived_sha256": "317144685c8b876bb2c10a5fd8c4b1de62c22f53f5b87f99083b893f5c0a7011"
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/hall-field-analysis-20260929/opening-position/interval_opening_distances.csv",
+      "path": "originals/hall-field-analysis-20260929/opening-position/interval_opening_distances.csv",
+      "original_bytes": 40712,
+      "original_sha256": "412489edd85c4412033a7ccb206db7ec0c63c2bfd0378628032744b01436771b",
+      "encoding": "identity",
+      "archived_bytes": 40712,
+      "archived_sha256": "412489edd85c4412033a7ccb206db7ec0c63c2bfd0378628032744b01436771b"
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/hall-field-analysis-20260929/opening-position/magnet_opening_variation.csv",
+      "path": "originals/hall-field-analysis-20260929/opening-position/magnet_opening_variation.csv",
+      "original_bytes": 46651,
+      "original_sha256": "b02899ada312488f553bd6ad56262dbae0f23546b09a1a42be5cb922115ffdbb",
+      "encoding": "identity",
+      "archived_bytes": 46651,
+      "archived_sha256": "b02899ada312488f553bd6ad56262dbae0f23546b09a1a42be5cb922115ffdbb"
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/hall-field-analysis-20260929/opening-position/magnet_opening_variation.md",
+      "path": "originals/hall-field-analysis-20260929/opening-position/magnet_opening_variation.md",
+      "original_bytes": 12383,
+      "original_sha256": "626b19708e923f45a232e9f1b7a1afd071447f1792c682f1a51078945e27b092",
+      "encoding": "identity",
+      "archived_bytes": 12383,
+      "archived_sha256": "626b19708e923f45a232e9f1b7a1afd071447f1792c682f1a51078945e27b092"
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/hall-field-analysis-20260929/opening-position/opening_passages.csv",
+      "path": "originals/hall-field-analysis-20260929/opening-position/opening_passages.csv",
+      "original_bytes": 104819,
+      "original_sha256": "f0ebadd6437ae7e672fda75912b4513e59ae0b5dd03ecb01715fe73b1204b6f9",
+      "encoding": "identity",
+      "archived_bytes": 104819,
+      "archived_sha256": "f0ebadd6437ae7e672fda75912b4513e59ae0b5dd03ecb01715fe73b1204b6f9"
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/hall-field-analysis-20260929/opening-position/opening_position_summary.json",
+      "path": "originals/hall-field-analysis-20260929/opening-position/opening_position_summary.json",
+      "original_bytes": 21301,
+      "original_sha256": "32a248887c236666a6e25933233976f013581f1f7af27465025b1a8482809ffa",
+      "encoding": "identity",
+      "archived_bytes": 21301,
+      "archived_sha256": "32a248887c236666a6e25933233976f013581f1f7af27465025b1a8482809ffa"
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/hall-field-analysis-20260929/opening-position/plots/calibrated_map_cross_validation.png",
+      "path": "originals/hall-field-analysis-20260929/opening-position/plots/calibrated_map_cross_validation.png",
+      "original_bytes": 49618,
+      "original_sha256": "e40caae7d07d212221b898d6730b3efde07b954030dee83e8f1d8629f3fff54c",
+      "encoding": "identity",
+      "archived_bytes": 49618,
+      "archived_sha256": "e40caae7d07d212221b898d6730b3efde07b954030dee83e8f1d8629f3fff54c"
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/hall-field-analysis-20260929/opening-position/plots/opening_peak_distribution_and_amplitude.png",
+      "path": "originals/hall-field-analysis-20260929/opening-position/plots/opening_peak_distribution_and_amplitude.png",
+      "original_bytes": 105460,
+      "original_sha256": "b182aafcabe033aa519034fff230b0942625241462ac56727d4ccb396a9aa20b",
+      "encoding": "identity",
+      "archived_bytes": 105460,
+      "archived_sha256": "b182aafcabe033aa519034fff230b0942625241462ac56727d4ccb396a9aa20b"
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/hall-field-analysis-20260929/opening-position/plots/per_interval_offsets.png",
+      "path": "originals/hall-field-analysis-20260929/opening-position/plots/per_interval_offsets.png",
+      "original_bytes": 187858,
+      "original_sha256": "7af32c1eec031a848b219b5df911f5f9300e9ab307a17d92639e1ed9d137f34f",
+      "encoding": "identity",
+      "archived_bytes": 187858,
+      "archived_sha256": "7af32c1eec031a848b219b5df911f5f9300e9ab307a17d92639e1ed9d137f34f"
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/hall-field-analysis-20260929/opening-position/plots/per_magnet_profile_offsets.png",
+      "path": "originals/hall-field-analysis-20260929/opening-position/plots/per_magnet_profile_offsets.png",
+      "original_bytes": 74714,
+      "original_sha256": "d0623187ad895932e49da292535e4328d44f89f54c06859f578d85a42f2c7ae6",
+      "encoding": "identity",
+      "archived_bytes": 74714,
+      "archived_sha256": "d0623187ad895932e49da292535e4328d44f89f54c06859f578d85a42f2c7ae6"
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/hall-field-analysis-20260929/opening-position/plots/profile_repeatability_examples.png",
+      "path": "originals/hall-field-analysis-20260929/opening-position/plots/profile_repeatability_examples.png",
+      "original_bytes": 305612,
+      "original_sha256": "6e6a4ce44bc0d0bc43a683566c3165612420f5b1eb83cb200157622c82a012c8",
+      "encoding": "identity",
+      "archived_bytes": 305612,
+      "archived_sha256": "6e6a4ce44bc0d0bc43a683566c3165612420f5b1eb83cb200157622c82a012c8"
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/hall-field-analysis-20260929/plot_hall_intervals_254_257.py",
+      "path": "originals/hall-field-analysis-20260929/plot_hall_intervals_254_257.py",
+      "original_bytes": 13977,
+      "original_sha256": "87980a9901c8de723c51c8b376b7a3cf5994d5960c9ecba59834e1492a1dc79b",
+      "encoding": "identity",
+      "archived_bytes": 13977,
+      "archived_sha256": "87980a9901c8de723c51c8b376b7a3cf5994d5960c9ecba59834e1492a1dc79b"
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/hall-field-analysis-20260929/plots/candidate_window_comparison.png",
+      "path": "originals/hall-field-analysis-20260929/plots/candidate_window_comparison.png",
+      "original_bytes": 53015,
+      "original_sha256": "53b70051cba97671241fd52dcc5b9c623937a1a41fac439c08d7b6df10855994",
+      "encoding": "identity",
+      "archived_bytes": 53015,
+      "archived_sha256": "53b70051cba97671241fd52dcc5b9c623937a1a41fac439c08d7b6df10855994"
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/hall-field-analysis-20260929/plots/distance_distributions.png",
+      "path": "originals/hall-field-analysis-20260929/plots/distance_distributions.png",
+      "original_bytes": 94325,
+      "original_sha256": "84182bf426163ed1f2a1492f1707f352baebd8750bdfcc92ca04eae239672c7c",
+      "encoding": "identity",
+      "archived_bytes": 94325,
+      "archived_sha256": "84182bf426163ed1f2a1492f1707f352baebd8750bdfcc92ca04eae239672c7c"
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/hall-field-analysis-20260929/plots/representative_field_profiles.png",
+      "path": "originals/hall-field-analysis-20260929/plots/representative_field_profiles.png",
+      "original_bytes": 299107,
+      "original_sha256": "5280dc5bc7cb1f2eaf0136b8a67f7b497e391e1206946fe80803b7463afdfda2",
+      "encoding": "identity",
+      "archived_bytes": 299107,
+      "archived_sha256": "5280dc5bc7cb1f2eaf0136b8a67f7b497e391e1206946fe80803b7463afdfda2"
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/hall-field-analysis-20260929/sources/9950011_20260928_095939.log",
+      "path": "originals/hall-field-analysis-20260929/sources/9950011_20260928_095939.log.gz",
+      "original_bytes": 5109402,
+      "original_sha256": "ff1fd8466ec732daf2b6041ddfe410aa22f24e0181a01fc755ff59309cf700d1",
+      "encoding": "gzip",
+      "archived_bytes": 169178,
+      "archived_sha256": "570d85fcbe9d4d35bacbc6ac9d620c89a061177d45a237d47d4f628e57eaf5e3"
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/hall-field-analysis-20260929/sources/9950011_20260928_103421.log",
+      "path": "originals/hall-field-analysis-20260929/sources/9950011_20260928_103421.log.gz",
+      "original_bytes": 745150,
+      "original_sha256": "764297f5c41b8b7ab86e37eb89e388271d30fdcd82855d46cadfa8587313fb50",
+      "encoding": "gzip",
+      "archived_bytes": 23101,
+      "archived_sha256": "b8209ac650aa95f96b91ca6d760a9e7a2f5bf3995dcb9de5eb5717264f3141fa"
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/hall-field-analysis-20260929/sources/9950011_20260928_103821.log",
+      "path": "originals/hall-field-analysis-20260929/sources/9950011_20260928_103821.log.gz",
+      "original_bytes": 2116603,
+      "original_sha256": "2e1083fbd7c2c8cb116f0443b8b2bb2399cfa1eea5a11870066ffa8e8ef5704e",
+      "encoding": "gzip",
+      "archived_bytes": 107142,
+      "archived_sha256": "87d1e84f214770335f1b5576a1a956b7c875d91adcb65a644625e3cd68563dbc"
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/hall-field-analysis-20260929/sources/9950011_20260928_104453.log",
+      "path": "originals/hall-field-analysis-20260929/sources/9950011_20260928_104453.log.gz",
+      "original_bytes": 2172236,
+      "original_sha256": "11cb288325acb5fc5ab4fab267ed42db6350f6b0d2528d8c70fc0cfa4802fbad",
+      "encoding": "gzip",
+      "archived_bytes": 111402,
+      "archived_sha256": "a34d53a7d1785c24c9e4cb6310d804ab0c4ac6250b1fea72dc3f05a554bfdc91"
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/hall-field-analysis-20260929/sources/9950011_20260928_105129.log",
+      "path": "originals/hall-field-analysis-20260929/sources/9950011_20260928_105129.log.gz",
+      "original_bytes": 8501025,
+      "original_sha256": "b875a2590eb336135cb8cf5ab18a5e4fadb23447ab8913c3647695460d628f5f",
+      "encoding": "gzip",
+      "archived_bytes": 441066,
+      "archived_sha256": "6a98c470c0f66ef4b2942847f545f7bfb363c2033828f8ab11e1118d5a166115"
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/hall-field-analysis-20260929/sources/all_20260929.log",
+      "path": "originals/hall-field-analysis-20260929/sources/all_20260929.log.gz",
+      "original_bytes": 45554845,
+      "original_sha256": "33f2e034d63b6728cc2b8fdb6bf90cf35a3ed051b97603abe4a2545b018df1e5",
+      "encoding": "gzip",
+      "archived_bytes": 1450674,
+      "archived_sha256": "3824bb496fdc17ac165718c3d5523c6439c6327932c9345c4097387fdc51cd11"
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/hall-field-analysis-20260929/sources/otto_navi_sync_20260928_101705.nsr",
+      "path": "originals/hall-field-analysis-20260929/sources/otto_navi_sync_20260928_101705.nsr.gz",
+      "original_bytes": 72452124,
+      "original_sha256": "3d9f0032d53fc647b1eb36fbdc579b9d6f7e06482bcd39db4505185b9b119cd7",
+      "encoding": "gzip",
+      "archived_bytes": 23967442,
+      "archived_sha256": "08b3d179aed3c09e1335a3f5f4a39acf2ada5d67f1cb6d8eff340d705ad61ae6"
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/hall-field-analysis-20260929/tmp/summarize_nsr.py",
+      "path": "originals/hall-field-analysis-20260929/tmp/summarize_nsr.py",
+      "original_bytes": 4513,
+      "original_sha256": "342ed5b2b30db3cb8b188592b7cf2f95bfdd332659f7b64a13da6b231a87019b",
+      "encoding": "identity",
+      "archived_bytes": 4513,
+      "archived_sha256": "342ed5b2b30db3cb8b188592b7cf2f95bfdd332659f7b64a13da6b231a87019b"
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/hall-field-analysis-20260929/waveform-254-257/REPORT.md",
+      "path": "originals/hall-field-analysis-20260929/waveform-254-257/REPORT.md",
+      "original_bytes": 5015,
+      "original_sha256": "3758dc3f4d8ef6f4f84c3f01a32b05610724d0d875bc022b9d4db32607dfa449",
+      "encoding": "identity",
+      "archived_bytes": 5015,
+      "archived_sha256": "3758dc3f4d8ef6f4f84c3f01a32b05610724d0d875bc022b9d4db32607dfa449"
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/hall-field-analysis-20260929/waveform-254-257/events_254_255_raw_adc.png",
+      "path": "originals/hall-field-analysis-20260929/waveform-254-257/events_254_255_raw_adc.png",
+      "original_bytes": 298347,
+      "original_sha256": "b51f40a0136076c09eea279e3c2663332150d547b58d70f2a0ee77095e32b379",
+      "encoding": "identity",
+      "archived_bytes": 298347,
+      "archived_sha256": "b51f40a0136076c09eea279e3c2663332150d547b58d70f2a0ee77095e32b379"
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/hall-field-analysis-20260929/waveform-254-257/events_256_257_raw_adc.png",
+      "path": "originals/hall-field-analysis-20260929/waveform-254-257/events_256_257_raw_adc.png",
+      "original_bytes": 358447,
+      "original_sha256": "b1f0e5c3f21687c13cc73cac13323e00ee5a773f700d221f55cfefabe12c817c",
+      "encoding": "identity",
+      "archived_bytes": 358447,
+      "archived_sha256": "b1f0e5c3f21687c13cc73cac13323e00ee5a773f700d221f55cfefabe12c817c"
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/hall-field-analysis-20260929/waveform-254-257/waveform_metrics.csv",
+      "path": "originals/hall-field-analysis-20260929/waveform-254-257/waveform_metrics.csv",
+      "original_bytes": 1310,
+      "original_sha256": "ba0f6659905f3617d88883e1f4da96fea79f988859ed33e344dc61ffde04e7ce",
+      "encoding": "identity",
+      "archived_bytes": 1310,
+      "archived_sha256": "ba0f6659905f3617d88883e1f4da96fea79f988859ed33e344dc61ffde04e7ce"
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/hall-field-analysis-20260929/waveform-254-257/waveform_metrics.json",
+      "path": "originals/hall-field-analysis-20260929/waveform-254-257/waveform_metrics.json",
+      "original_bytes": 3507,
+      "original_sha256": "0f49fd170df146db775cd282164581703711b7a2c43d107fe246d24b6b0e6ad8",
+      "encoding": "identity",
+      "archived_bytes": 3507,
+      "archived_sha256": "0f49fd170df146db775cd282164581703711b7a2c43d107fe246d24b6b0e6ad8"
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/ir-pulse-count-circuits-20260928/REPORT.md",
+      "path": "originals/ir-pulse-count-circuits-20260928/REPORT.md",
+      "original_bytes": 9117,
+      "original_sha256": "6301ffb7b4406c805ea86c68e8e95062c27b41160d7faaac2f3cf72bd756295c",
+      "encoding": "identity",
+      "archived_bytes": 9117,
+      "archived_sha256": "6301ffb7b4406c805ea86c68e8e95062c27b41160d7faaac2f3cf72bd756295c"
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/ir-pulse-count-circuits-20260928/circuit_counts.csv",
+      "path": "originals/ir-pulse-count-circuits-20260928/circuit_counts.csv",
+      "original_bytes": 948,
+      "original_sha256": "1c7b16ea280cd5dad2580463aa2c0d78754c26de440ca496ed51adbf1fca3f98",
+      "encoding": "identity",
+      "archived_bytes": 948,
+      "archived_sha256": "1c7b16ea280cd5dad2580463aa2c0d78754c26de440ca496ed51adbf1fca3f98"
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/ir-pulse-count-circuits-20260928/endpoint_counts.csv",
+      "path": "originals/ir-pulse-count-circuits-20260928/endpoint_counts.csv",
+      "original_bytes": 980,
+      "original_sha256": "2f839f973f677caac88eb3c76cd3ecbc7d1028a916b0f230e850fd641f8a3712",
+      "encoding": "identity",
+      "archived_bytes": 980,
+      "archived_sha256": "2f839f973f677caac88eb3c76cd3ecbc7d1028a916b0f230e850fd641f8a3712"
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/ir-reporting-frequency-review-20261012/REPORT.md",
+      "path": "originals/ir-reporting-frequency-review-20261012/REPORT.md",
+      "original_bytes": 18459,
+      "original_sha256": "9b370b595a212c1efe61c1b2f773f110db59df38d847c5a65740e4ec3e0c8960",
+      "encoding": "identity",
+      "archived_bytes": 18459,
+      "archived_sha256": "9b370b595a212c1efe61c1b2f773f110db59df38d847c5a65740e4ec3e0c8960"
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/ir-reporting-frequency-review-20261012/measure_sept28_ir_age.py",
+      "path": "originals/ir-reporting-frequency-review-20261012/measure_sept28_ir_age.py",
+      "original_bytes": 5466,
+      "original_sha256": "8741d68b12a865df6b7162c69b69df604746abacf246696e3b7ea8afaaa0f862",
+      "encoding": "identity",
+      "archived_bytes": 5466,
+      "archived_sha256": "8741d68b12a865df6b7162c69b69df604746abacf246696e3b7ea8afaaa0f862"
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/ir-reporting-frequency-review-20261012/sept28_hall_opening_ir_arrival_age.png",
+      "path": "originals/ir-reporting-frequency-review-20261012/sept28_hall_opening_ir_arrival_age.png",
+      "original_bytes": 65661,
+      "original_sha256": "2387fb179c18245425e686c3edeb0ac0314f242e315a41f93ea14d7841251a96",
+      "encoding": "identity",
+      "archived_bytes": 65661,
+      "archived_sha256": "2387fb179c18245425e686c3edeb0ac0314f242e315a41f93ea14d7841251a96"
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/ir-reporting-frequency-review-20261012/sept28_ir_age_metrics.json",
+      "path": "originals/ir-reporting-frequency-review-20261012/sept28_ir_age_metrics.json",
+      "original_bytes": 2490,
+      "original_sha256": "d5c2c5c9e1035de7c90da7058ec2f6ebc1f1687da89c38db67807a2509672390",
+      "encoding": "identity",
+      "archived_bytes": 2490,
+      "archived_sha256": "d5c2c5c9e1035de7c90da7058ec2f6ebc1f1687da89c38db67807a2509672390"
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ewo-0-3-stop-integration/docs/IR_DEV_REC/2026-08-26_IR_FOUR_LAP_DISTANCE_TRUTH.md",
+      "path": "originals/navi-ewo-0-3-stop-integration/docs/IR_DEV_REC/2026-08-26_IR_FOUR_LAP_DISTANCE_TRUTH.md",
+      "original_bytes": 8072,
+      "original_sha256": "c0e7c53b1fbfc3df806d7650e988041e5761b1c6ff1ff7d0d53f2416bdf48fb2",
+      "encoding": "identity",
+      "archived_bytes": 8072,
+      "archived_sha256": "c0e7c53b1fbfc3df806d7650e988041e5761b1c6ff1ff7d0d53f2416bdf48fb2"
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ewo-0-3-stop-integration/docs/IR_NAVI_DEVELOPMENT_AUDIT_20260919.md",
+      "path": "originals/navi-ewo-0-3-stop-integration/docs/IR_NAVI_DEVELOPMENT_AUDIT_20260919.md",
+      "original_bytes": 4054,
+      "original_sha256": "39b4c6516a7c4d44c8bbe487b3bdcb11fea333137394cb558ba094fbee69426d",
+      "encoding": "identity",
+      "archived_bytes": 4054,
+      "archived_sha256": "39b4c6516a7c4d44c8bbe487b3bdcb11fea333137394cb558ba094fbee69426d"
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ewo-0-3-stop-integration/docs/IR_NOON_RUN_ANALYSIS_20260920.md",
+      "path": "originals/navi-ewo-0-3-stop-integration/docs/IR_NOON_RUN_ANALYSIS_20260920.md",
+      "original_bytes": 9038,
+      "original_sha256": "22a60b2df8f74d155dc4335dc574b149d3896e16e4d8c7eb0c93cf08f7d48928",
+      "encoding": "identity",
+      "archived_bytes": 9038,
+      "archived_sha256": "22a60b2df8f74d155dc4335dc574b149d3896e16e4d8c7eb0c93cf08f7d48928"
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ewo-0-3-stop-integration/tools/navi_sync_format.py",
+      "path": "originals/navi-ewo-0-3-stop-integration/tools/navi_sync_format.py",
+      "original_bytes": 9754,
+      "original_sha256": "6a249a971cb8f2cd4ee1c15819457f597b8368bbc629e88fec1e741fb5e43477",
+      "encoding": "identity",
+      "archived_bytes": 9754,
+      "archived_sha256": "6a249a971cb8f2cd4ee1c15819457f597b8368bbc629e88fec1e741fb5e43477"
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/all-tests.log",
+      "path": "originals/navi-ir-sync-fix-20261012/all-tests.log",
+      "encoding": "identity",
+      "original_bytes": 1096,
+      "archived_bytes": 1096,
+      "original_sha256": "7c2b2f9184620889b97b4ed3a87a36fe1023dd15856982c89e3db989b57c543a",
+      "archived_sha256": "7c2b2f9184620889b97b4ed3a87a36fe1023dd15856982c89e3db989b57c543a"
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/backup-retry.log",
+      "path": "originals/navi-ir-sync-fix-20261012/backup-retry.log",
+      "encoding": "identity",
+      "original_bytes": 237,
+      "archived_bytes": 237,
+      "original_sha256": "d6069e1aaeed43355b35c07877b28a6a1f1e19b7663c3bd50696878b6e59e4d3",
+      "archived_sha256": "d6069e1aaeed43355b35c07877b28a6a1f1e19b7663c3bd50696878b6e59e4d3"
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/backup.log",
+      "path": "originals/navi-ir-sync-fix-20261012/backup.log",
+      "encoding": "identity",
+      "original_bytes": 92466,
+      "archived_bytes": 92466,
+      "original_sha256": "bd017bb2c2dce07807c0f00a87ddaa0a5b4865fa6dc7f5fc849ea3ccfc2b0419",
+      "archived_sha256": "bd017bb2c2dce07807c0f00a87ddaa0a5b4865fa6dc7f5fc849ea3ccfc2b0419"
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/backup_chunks.py",
+      "path": "originals/navi-ir-sync-fix-20261012/backup_chunks.py",
+      "encoding": "identity",
+      "original_bytes": 1797,
+      "archived_bytes": 1797,
+      "original_sha256": "29f661ac0310abd3635411f1e1a2cd2e0d9e8ac015cf3e1cc4bf557899156b62",
+      "archived_sha256": "29f661ac0310abd3635411f1e1a2cd2e0d9e8ac015cf3e1cc4bf557899156b62"
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/compile.log",
+      "path": "originals/navi-ir-sync-fix-20261012/compile.log",
+      "encoding": "identity",
+      "original_bytes": 2207,
+      "archived_bytes": 2207,
+      "original_sha256": "d8cc811f9754bd4d37898d3c0b1c7f01c72c6fa72d9bda61c7215091353ff7e2",
+      "archived_sha256": "d8cc811f9754bd4d37898d3c0b1c7f01c72c6fa72d9bda61c7215091353ff7e2"
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/diff-from-baseline.patch",
+      "path": "originals/navi-ir-sync-fix-20261012/diff-from-baseline.patch",
+      "encoding": "identity",
+      "original_bytes": 7590,
+      "archived_bytes": 7590,
+      "original_sha256": "1cc98741a36ccc339bd3b3fa0e0dae71c31df92541ef57d7dcc4c28d1da109da",
+      "archived_sha256": "1cc98741a36ccc339bd3b3fa0e0dae71c31df92541ef57d7dcc4c28d1da109da"
+    },
+    {
+      "source": "/Users/davidbrown/esp-loco-control/firmware/README.md",
+      "path": "originals/navi-ir-sync-fix-20261012/firmware/README.md",
+      "encoding": "identity",
+      "original_bytes": 28385,
+      "archived_bytes": 28385,
+      "original_sha256": "43d719ad3092a2dcc92298d40ac950e3cb3e5e055e63c93454bd037eae2dab93",
+      "archived_sha256": "43d719ad3092a2dcc92298d40ac950e3cb3e5e055e63c93454bd037eae2dab93"
+    },
+    {
+      "source": "/Users/davidbrown/esp-loco-control/firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_SYNC_TEST/ExcursionDetectorX22R.h",
+      "path": "originals/navi-ir-sync-fix-20261012/firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_SYNC_TEST/ExcursionDetectorX22R.h",
+      "encoding": "identity",
+      "original_bytes": 50084,
+      "archived_bytes": 50084,
+      "original_sha256": "7367a4674d3b1854ca96915b194615678e5a17eda0925ef1dd1eab6e7b3ace41",
+      "archived_sha256": "7367a4674d3b1854ca96915b194615678e5a17eda0925ef1dd1eab6e7b3ace41"
+    },
+    {
+      "source": "/Users/davidbrown/esp-loco-control/firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_SYNC_TEST/HallObserver.h",
+      "path": "originals/navi-ir-sync-fix-20261012/firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_SYNC_TEST/HallObserver.h",
+      "encoding": "identity",
+      "original_bytes": 514,
+      "archived_bytes": 514,
+      "original_sha256": "535f673a3c63836e58c3ce61fecdf0ceee99d76627ce97a6f0587c9eb65760e8",
+      "archived_sha256": "535f673a3c63836e58c3ce61fecdf0ceee99d76627ce97a6f0587c9eb65760e8"
+    },
+    {
+      "source": "/Users/davidbrown/esp-loco-control/firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_SYNC_TEST/IrHealthMonitor.h",
+      "path": "originals/navi-ir-sync-fix-20261012/firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_SYNC_TEST/IrHealthMonitor.h",
+      "encoding": "identity",
+      "original_bytes": 9257,
+      "archived_bytes": 9257,
+      "original_sha256": "9debcc04a462a98f0aca7cd7429bcee0123ad7916d3c300b4e870725d9dfd99d",
+      "archived_sha256": "9debcc04a462a98f0aca7cd7429bcee0123ad7916d3c300b4e870725d9dfd99d"
+    },
+    {
+      "source": "/Users/davidbrown/esp-loco-control/firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_SYNC_TEST/IrSpeedTelemetry.h",
+      "path": "originals/navi-ir-sync-fix-20261012/firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_SYNC_TEST/IrSpeedTelemetry.h",
+      "encoding": "identity",
+      "original_bytes": 4850,
+      "archived_bytes": 4850,
+      "original_sha256": "2ff54f2040d30c02d539437ef9bfb8a53bbed44bb8e30170d33abd4096e05d3e",
+      "archived_sha256": "2ff54f2040d30c02d539437ef9bfb8a53bbed44bb8e30170d33abd4096e05d3e"
+    },
+    {
+      "source": "/Users/davidbrown/esp-loco-control/firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_SYNC_TEST/IrSyncDiagnostics.h",
+      "path": "originals/navi-ir-sync-fix-20261012/firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_SYNC_TEST/IrSyncDiagnostics.h",
+      "encoding": "identity",
+      "original_bytes": 5970,
+      "archived_bytes": 5970,
+      "original_sha256": "59962fe73dcd3dbd0b358091327a49f8a30a33910fad295201bea5f7ca51577d",
+      "archived_sha256": "59962fe73dcd3dbd0b358091327a49f8a30a33910fad295201bea5f7ca51577d"
+    },
+    {
+      "source": "/Users/davidbrown/esp-loco-control/firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_SYNC_TEST/LocoConfig.h",
+      "path": "originals/navi-ir-sync-fix-20261012/firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_SYNC_TEST/LocoConfig.h",
+      "encoding": "identity",
+      "original_bytes": 844,
+      "archived_bytes": 844,
+      "original_sha256": "b71763b80b7255230643c95c7dffdbec2dab5df7503a41121c22e99e41cadca5",
+      "archived_sha256": "b71763b80b7255230643c95c7dffdbec2dab5df7503a41121c22e99e41cadca5"
+    },
+    {
+      "source": "/Users/davidbrown/esp-loco-control/firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_SYNC_TEST/MovementEvidence.h",
+      "path": "originals/navi-ir-sync-fix-20261012/firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_SYNC_TEST/MovementEvidence.h",
+      "encoding": "identity",
+      "original_bytes": 6707,
+      "archived_bytes": 6707,
+      "original_sha256": "e85f7db66b9757863271dae886cb72a05641d5a96fca96cb4162f5564cfefc4b",
+      "archived_sha256": "e85f7db66b9757863271dae886cb72a05641d5a96fca96cb4162f5564cfefc4b"
+    },
+    {
+      "source": "/Users/davidbrown/esp-loco-control/firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_SYNC_TEST/NAVI_COHERENCE_0_6_IR_SYNC_TEST.ino",
+      "path": "originals/navi-ir-sync-fix-20261012/firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_SYNC_TEST/NAVI_COHERENCE_0_6_IR_SYNC_TEST.ino",
+      "encoding": "identity",
+      "original_bytes": 70755,
+      "archived_bytes": 70755,
+      "original_sha256": "e9c5f6fccd253188bd4da7548e3f18018d123a91c3f36cb4c248b66c1f5d9cb9",
+      "archived_sha256": "e9c5f6fccd253188bd4da7548e3f18018d123a91c3f36cb4c248b66c1f5d9cb9"
+    },
+    {
+      "source": "/Users/davidbrown/esp-loco-control/firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_SYNC_TEST/NaviSyncRecorder.h",
+      "path": "originals/navi-ir-sync-fix-20261012/firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_SYNC_TEST/NaviSyncRecorder.h",
+      "encoding": "identity",
+      "original_bytes": 12474,
+      "archived_bytes": 12474,
+      "original_sha256": "58113d64abed8f566b461cac3dcc3f1f9e5e25fca1bf5d56b54cde081d0ef19b",
+      "archived_sha256": "58113d64abed8f566b461cac3dcc3f1f9e5e25fca1bf5d56b54cde081d0ef19b"
+    },
+    {
+      "source": "/Users/davidbrown/esp-loco-control/firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_SYNC_TEST/Navigator.h",
+      "path": "originals/navi-ir-sync-fix-20261012/firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_SYNC_TEST/Navigator.h",
+      "encoding": "identity",
+      "original_bytes": 14573,
+      "archived_bytes": 14573,
+      "original_sha256": "363711f1e17f419bfb7428b2429b10d4416db7765e960a0925fd5c6da0e21cfa",
+      "archived_sha256": "363711f1e17f419bfb7428b2429b10d4416db7765e960a0925fd5c6da0e21cfa"
+    },
+    {
+      "source": "/Users/davidbrown/esp-loco-control/firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_SYNC_TEST/Ops.h",
+      "path": "originals/navi-ir-sync-fix-20261012/firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_SYNC_TEST/Ops.h",
+      "encoding": "identity",
+      "original_bytes": 8175,
+      "archived_bytes": 8175,
+      "original_sha256": "cfefaea7d9d9406d2c7e85ddfb86d5a637ea7fb4c24cc731e22bc67e60e124de",
+      "archived_sha256": "cfefaea7d9d9406d2c7e85ddfb86d5a637ea7fb4c24cc731e22bc67e60e124de"
+    },
+    {
+      "source": "/Users/davidbrown/esp-loco-control/firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_SYNC_TEST/ProximalRecovery.h",
+      "path": "originals/navi-ir-sync-fix-20261012/firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_SYNC_TEST/ProximalRecovery.h",
+      "encoding": "identity",
+      "original_bytes": 7174,
+      "archived_bytes": 7174,
+      "original_sha256": "db2975024cab7f9f63eaee5a4e4ca3129806dc99a10c062cc3e234adcc911816",
+      "archived_sha256": "db2975024cab7f9f63eaee5a4e4ca3129806dc99a10c062cc3e234adcc911816"
+    },
+    {
+      "source": "/Users/davidbrown/esp-loco-control/firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_SYNC_TEST/README.md",
+      "path": "originals/navi-ir-sync-fix-20261012/firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_SYNC_TEST/README.md",
+      "encoding": "identity",
+      "original_bytes": 7541,
+      "archived_bytes": 7541,
+      "original_sha256": "be45d0bd06979eb8d377d20094191e565598264d8f891f456f955ee9c7997fa5",
+      "archived_sha256": "be45d0bd06979eb8d377d20094191e565598264d8f891f456f955ee9c7997fa5"
+    },
+    {
+      "source": "/Users/davidbrown/esp-loco-control/firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_SYNC_TEST/RecoveryControl.h",
+      "path": "originals/navi-ir-sync-fix-20261012/firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_SYNC_TEST/RecoveryControl.h",
+      "encoding": "identity",
+      "original_bytes": 747,
+      "archived_bytes": 747,
+      "original_sha256": "666f12dfd64bd9271c4f387524b04c818c5e4ae35b4088443d9d7ce24a99c10d",
+      "archived_sha256": "666f12dfd64bd9271c4f387524b04c818c5e4ae35b4088443d9d7ce24a99c10d"
+    },
+    {
+      "source": "/Users/davidbrown/esp-loco-control/firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_SYNC_TEST/RouteMap.h",
+      "path": "originals/navi-ir-sync-fix-20261012/firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_SYNC_TEST/RouteMap.h",
+      "encoding": "identity",
+      "original_bytes": 10167,
+      "archived_bytes": 10167,
+      "original_sha256": "6fe9ec94c5dda116747db64640dc30a773f5ea3a21f5fc39cb3500f53f380e74",
+      "archived_sha256": "6fe9ec94c5dda116747db64640dc30a773f5ea3a21f5fc39cb3500f53f380e74"
+    },
+    {
+      "source": "/Users/davidbrown/esp-loco-control/firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_SYNC_TEST/Stations.h",
+      "path": "originals/navi-ir-sync-fix-20261012/firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_SYNC_TEST/Stations.h",
+      "encoding": "identity",
+      "original_bytes": 20744,
+      "archived_bytes": 20744,
+      "original_sha256": "f933bf66643a736b9286e06b672a94f18a177361e85410a8119a40f054e9a9c3",
+      "archived_sha256": "f933bf66643a736b9286e06b672a94f18a177361e85410a8119a40f054e9a9c3"
+    },
+    {
+      "source": "/Users/davidbrown/esp-loco-control/firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_SYNC_TEST/VALIDATION.md",
+      "path": "originals/navi-ir-sync-fix-20261012/firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_SYNC_TEST/VALIDATION.md",
+      "encoding": "identity",
+      "original_bytes": 5462,
+      "archived_bytes": 5462,
+      "original_sha256": "b2267ff1f1a147ab612cdb3cb8972823baa293371abd866b3a9efdb72aed0c8d",
+      "archived_sha256": "b2267ff1f1a147ab612cdb3cb8972823baa293371abd866b3a9efdb72aed0c8d"
+    },
+    {
+      "source": "/Users/davidbrown/esp-loco-control/firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_SYNC_TEST/tests/run_all.py",
+      "path": "originals/navi-ir-sync-fix-20261012/firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_SYNC_TEST/tests/run_all.py",
+      "encoding": "identity",
+      "original_bytes": 1575,
+      "archived_bytes": 1575,
+      "original_sha256": "2f9e71fa05c49c0cbe477e2db578a90d26b06e8e4434c25c194e48f629892f49",
+      "archived_sha256": "2f9e71fa05c49c0cbe477e2db578a90d26b06e8e4434c25c194e48f629892f49"
+    },
+    {
+      "source": "/Users/davidbrown/esp-loco-control/firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_SYNC_TEST/tests/test_20q_standards.cpp",
+      "path": "originals/navi-ir-sync-fix-20261012/firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_SYNC_TEST/tests/test_20q_standards.cpp",
+      "encoding": "identity",
+      "original_bytes": 10665,
+      "archived_bytes": 10665,
+      "original_sha256": "7027cd87392dce4e8784755f7b5a01900fdbe27655928397a008e50393413ca5",
+      "archived_sha256": "7027cd87392dce4e8784755f7b5a01900fdbe27655928397a008e50393413ca5"
+    },
+    {
+      "source": "/Users/davidbrown/esp-loco-control/firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_SYNC_TEST/tests/test_coherence.cpp",
+      "path": "originals/navi-ir-sync-fix-20261012/firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_SYNC_TEST/tests/test_coherence.cpp",
+      "encoding": "identity",
+      "original_bytes": 6793,
+      "archived_bytes": 6793,
+      "original_sha256": "4a4124b7b93b64c7f1858c1f3359a7d083cd195decef4072b47b5354bc9e4cf4",
+      "archived_sha256": "4a4124b7b93b64c7f1858c1f3359a7d083cd195decef4072b47b5354bc9e4cf4"
+    },
+    {
+      "source": "/Users/davidbrown/esp-loco-control/firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_SYNC_TEST/tests/test_health_json.py",
+      "path": "originals/navi-ir-sync-fix-20261012/firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_SYNC_TEST/tests/test_health_json.py",
+      "encoding": "identity",
+      "original_bytes": 1913,
+      "archived_bytes": 1913,
+      "original_sha256": "8f367a8a8f88cb4faf9be03daeb8e3751ff7e97b80076fbfb9e31a58f0ffbe79",
+      "archived_sha256": "8f367a8a8f88cb4faf9be03daeb8e3751ff7e97b80076fbfb9e31a58f0ffbe79"
+    },
+    {
+      "source": "/Users/davidbrown/esp-loco-control/firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_SYNC_TEST/tests/test_ir_health_monitor.cpp",
+      "path": "originals/navi-ir-sync-fix-20261012/firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_SYNC_TEST/tests/test_ir_health_monitor.cpp",
+      "encoding": "identity",
+      "original_bytes": 8404,
+      "archived_bytes": 8404,
+      "original_sha256": "675a012c584665e82dea11c81e75136c1e346230cc25c4c90d16252b297681f4",
+      "archived_sha256": "675a012c584665e82dea11c81e75136c1e346230cc25c4c90d16252b297681f4"
+    },
+    {
+      "source": "/Users/davidbrown/esp-loco-control/firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_SYNC_TEST/tests/test_ir_speed.cpp",
+      "path": "originals/navi-ir-sync-fix-20261012/firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_SYNC_TEST/tests/test_ir_speed.cpp",
+      "encoding": "identity",
+      "original_bytes": 3837,
+      "archived_bytes": 3837,
+      "original_sha256": "21392c15044e146ca6fc23fc2cc2ec87bd1b81dbac3ba4a9bef5f6a0659ad147",
+      "archived_sha256": "21392c15044e146ca6fc23fc2cc2ec87bd1b81dbac3ba4a9bef5f6a0659ad147"
+    },
+    {
+      "source": "/Users/davidbrown/esp-loco-control/firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_SYNC_TEST/tests/test_ir_sync.py",
+      "path": "originals/navi-ir-sync-fix-20261012/firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_SYNC_TEST/tests/test_ir_sync.py",
+      "encoding": "identity",
+      "original_bytes": 15722,
+      "archived_bytes": 15722,
+      "original_sha256": "4d21fb1753cd8ad996273e6b1a935507727456dea674b053b6e06572ab1bd4f5",
+      "archived_sha256": "4d21fb1753cd8ad996273e6b1a935507727456dea674b053b6e06572ab1bd4f5"
+    },
+    {
+      "source": "/Users/davidbrown/esp-loco-control/firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_SYNC_TEST/tests/test_navi_stop_display.cpp",
+      "path": "originals/navi-ir-sync-fix-20261012/firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_SYNC_TEST/tests/test_navi_stop_display.cpp",
+      "encoding": "identity",
+      "original_bytes": 2339,
+      "archived_bytes": 2339,
+      "original_sha256": "c23be7455ffb22b3cad6665219a8abb03446937192cd9162d11c4ea664082996",
+      "archived_sha256": "c23be7455ffb22b3cad6665219a8abb03446937192cd9162d11c4ea664082996"
+    },
+    {
+      "source": "/Users/davidbrown/esp-loco-control/firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_SYNC_TEST/tests/test_navi_sync_recorder.cpp",
+      "path": "originals/navi-ir-sync-fix-20261012/firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_SYNC_TEST/tests/test_navi_sync_recorder.cpp",
+      "encoding": "identity",
+      "original_bytes": 2933,
+      "archived_bytes": 2933,
+      "original_sha256": "7759705436d2721584ba984fb26db5d520205b38795eb985590eccb6e24e2c80",
+      "archived_sha256": "7759705436d2721584ba984fb26db5d520205b38795eb985590eccb6e24e2c80"
+    },
+    {
+      "source": "/Users/davidbrown/esp-loco-control/firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_SYNC_TEST/tests/test_proximal_recovery.cpp",
+      "path": "originals/navi-ir-sync-fix-20261012/firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_SYNC_TEST/tests/test_proximal_recovery.cpp",
+      "encoding": "identity",
+      "original_bytes": 6542,
+      "archived_bytes": 6542,
+      "original_sha256": "23fb583b18a805dfe7b62843f7e0105c8185889a6e6de3b304f40a97897c9015",
+      "archived_sha256": "23fb583b18a805dfe7b62843f7e0105c8185889a6e6de3b304f40a97897c9015"
+    },
+    {
+      "source": "/Users/davidbrown/esp-loco-control/firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_SYNC_TEST/tests/test_station_correction.cpp",
+      "path": "originals/navi-ir-sync-fix-20261012/firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_SYNC_TEST/tests/test_station_correction.cpp",
+      "encoding": "identity",
+      "original_bytes": 1596,
+      "archived_bytes": 1596,
+      "original_sha256": "8c824e0d2f159a3fc501cf2a52c7ad4633dd50a4f52bd4061ef9001fa6dcd639",
+      "archived_sha256": "8c824e0d2f159a3fc501cf2a52c7ad4633dd50a4f52bd4061ef9001fa6dcd639"
+    },
+    {
+      "source": "/Users/davidbrown/esp-loco-control/firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_SYNC_TEST/tests/test_station_position.cpp",
+      "path": "originals/navi-ir-sync-fix-20261012/firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_SYNC_TEST/tests/test_station_position.cpp",
+      "encoding": "identity",
+      "original_bytes": 7143,
+      "archived_bytes": 7143,
+      "original_sha256": "24419778f2cfa6344d9945905e195d2da153b64d2e3a37ec4601cd1c72ff084e",
+      "archived_sha256": "24419778f2cfa6344d9945905e195d2da153b64d2e3a37ec4601cd1c72ff084e"
+    },
+    {
+      "source": "/Users/davidbrown/esp-loco-control/firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_SYNC_TEST/tests/test_x22r_equivalence.cpp",
+      "path": "originals/navi-ir-sync-fix-20261012/firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_SYNC_TEST/tests/test_x22r_equivalence.cpp",
+      "encoding": "identity",
+      "original_bytes": 8706,
+      "archived_bytes": 8706,
+      "original_sha256": "c55933b84d9ede4a02f61b0069743aaafe938a376819b839c54a36fa050f4d94",
+      "archived_sha256": "c55933b84d9ede4a02f61b0069743aaafe938a376819b839c54a36fa050f4d94"
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/install_verified_source.py",
+      "path": "originals/navi-ir-sync-fix-20261012/install_verified_source.py",
+      "encoding": "identity",
+      "original_bytes": 2109,
+      "archived_bytes": 2109,
+      "original_sha256": "a51fe797465edcc88f9aae28456b6dfc74382e5257c80ec6bb5d9a0b039c3a12",
+      "archived_sha256": "a51fe797465edcc88f9aae28456b6dfc74382e5257c80ec6bb5d9a0b039c3a12"
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/manifest.json",
+      "path": "originals/navi-ir-sync-fix-20261012/manifest.json",
+      "encoding": "identity",
+      "original_bytes": 2744,
+      "archived_bytes": 2744,
+      "original_sha256": "dd960b488a435c488ca75521effd547b270c23c646652c4f5e892ad5f79c6961",
+      "archived_sha256": "dd960b488a435c488ca75521effd547b270c23c646652c4f5e892ad5f79c6961"
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/postflash-boot.log",
+      "path": "originals/navi-ir-sync-fix-20261012/postflash-boot.log",
+      "encoding": "identity",
+      "original_bytes": 2341,
+      "archived_bytes": 2341,
+      "original_sha256": "c84809643c7ae2886cdb0b900dcde46fecd948916c9f27833506b487c399bdce",
+      "archived_sha256": "c84809643c7ae2886cdb0b900dcde46fecd948916c9f27833506b487c399bdce"
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/preflash-boot.log",
+      "path": "originals/navi-ir-sync-fix-20261012/preflash-boot.log",
+      "encoding": "identity",
+      "original_bytes": 4333,
+      "archived_bytes": 4333,
+      "original_sha256": "a680abee3d290af77d20615e52a9f909566dfbb24425ed51fcf039768faab799",
+      "archived_sha256": "a680abee3d290af77d20615e52a9f909566dfbb24425ed51fcf039768faab799"
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/preupload-identity.log",
+      "path": "originals/navi-ir-sync-fix-20261012/preupload-identity.log",
+      "encoding": "identity",
+      "original_bytes": 470,
+      "archived_bytes": 470,
+      "original_sha256": "7b1b7bb87fed249bcaad31ea77601aa7ef65ad245c2a8676be1e2aeac315a0c8",
+      "archived_sha256": "7b1b7bb87fed249bcaad31ea77601aa7ef65ad245c2a8676be1e2aeac315a0c8"
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/regression.log",
+      "path": "originals/navi-ir-sync-fix-20261012/regression.log",
+      "encoding": "identity",
+      "original_bytes": 529,
+      "archived_bytes": 529,
+      "original_sha256": "83e97309c16a31ad82d9e8533a83ce0650f9155d5083cf7f2299423bb6e7f0c7",
+      "archived_sha256": "83e97309c16a31ad82d9e8533a83ce0650f9155d5083cf7f2299423bb6e7f0c7"
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/rollback/NAVI_COHERENCE_0_6_IR_SYNC_TEST.ino",
+      "path": "originals/navi-ir-sync-fix-20261012/rollback/NAVI_COHERENCE_0_6_IR_SYNC_TEST.ino",
+      "encoding": "identity",
+      "original_bytes": 71437,
+      "archived_bytes": 71437,
+      "original_sha256": "e0facae1241425f3a97e984a608011dd3b14b5c11ee7b6f8c9a69375dae14fa6",
+      "archived_sha256": "e0facae1241425f3a97e984a608011dd3b14b5c11ee7b6f8c9a69375dae14fa6"
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/rollback/NAVI_COHERENCE_0_6_IR_SYNC_TEST_README.md",
+      "path": "originals/navi-ir-sync-fix-20261012/rollback/NAVI_COHERENCE_0_6_IR_SYNC_TEST_README.md",
+      "encoding": "identity",
+      "original_bytes": 2816,
+      "archived_bytes": 2816,
+      "original_sha256": "afe0addbb1efa75629684f9a3b4870b38e8f8a2f3d27e9702f23d28ff16cbe9b",
+      "archived_sha256": "afe0addbb1efa75629684f9a3b4870b38e8f8a2f3d27e9702f23d28ff16cbe9b"
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/rollback/chunk-000000-attempt1.log",
+      "path": "originals/navi-ir-sync-fix-20261012/rollback/chunk-000000-attempt1.log",
+      "encoding": "identity",
+      "original_bytes": 659,
+      "archived_bytes": 659,
+      "original_sha256": "e1e04118c77c460a9b0ca43b541351db5ab5ba481bad871465dbbb071a20088c",
+      "archived_sha256": "e1e04118c77c460a9b0ca43b541351db5ab5ba481bad871465dbbb071a20088c"
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/rollback/chunk-080000-attempt1.log",
+      "path": "originals/navi-ir-sync-fix-20261012/rollback/chunk-080000-attempt1.log",
+      "encoding": "identity",
+      "original_bytes": 589,
+      "archived_bytes": 589,
+      "original_sha256": "216602ee4a0869798512f2e9771b07787ccb77e1195c8ec5d18b0ea3a36233d6",
+      "archived_sha256": "216602ee4a0869798512f2e9771b07787ccb77e1195c8ec5d18b0ea3a36233d6"
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/rollback/chunk-080000-attempt2.log",
+      "path": "originals/navi-ir-sync-fix-20261012/rollback/chunk-080000-attempt2.log",
+      "encoding": "identity",
+      "original_bytes": 614,
+      "archived_bytes": 614,
+      "original_sha256": "3a2a6e1c7caa72fc74bf87ecd88124d974aa3678e26b76034d2052100f0ebb1c",
+      "archived_sha256": "3a2a6e1c7caa72fc74bf87ecd88124d974aa3678e26b76034d2052100f0ebb1c"
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/rollback/chunk-100000-attempt1.log",
+      "path": "originals/navi-ir-sync-fix-20261012/rollback/chunk-100000-attempt1.log",
+      "encoding": "identity",
+      "original_bytes": 589,
+      "archived_bytes": 589,
+      "original_sha256": "216602ee4a0869798512f2e9771b07787ccb77e1195c8ec5d18b0ea3a36233d6",
+      "archived_sha256": "216602ee4a0869798512f2e9771b07787ccb77e1195c8ec5d18b0ea3a36233d6"
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/rollback/chunk-100000-attempt2.log",
+      "path": "originals/navi-ir-sync-fix-20261012/rollback/chunk-100000-attempt2.log",
+      "encoding": "identity",
+      "original_bytes": 612,
+      "archived_bytes": 612,
+      "original_sha256": "aa1fcc32689c9a1f5a506521a919ca65868c3055d95578b6ab04298d06e23c48",
+      "archived_sha256": "aa1fcc32689c9a1f5a506521a919ca65868c3055d95578b6ab04298d06e23c48"
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/rollback/chunk-180000-attempt1.log",
+      "path": "originals/navi-ir-sync-fix-20261012/rollback/chunk-180000-attempt1.log",
+      "encoding": "identity",
+      "original_bytes": 589,
+      "archived_bytes": 589,
+      "original_sha256": "216602ee4a0869798512f2e9771b07787ccb77e1195c8ec5d18b0ea3a36233d6",
+      "archived_sha256": "216602ee4a0869798512f2e9771b07787ccb77e1195c8ec5d18b0ea3a36233d6"
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/rollback/chunk-180000-attempt2.log",
+      "path": "originals/navi-ir-sync-fix-20261012/rollback/chunk-180000-attempt2.log",
+      "encoding": "identity",
+      "original_bytes": 617,
+      "archived_bytes": 617,
+      "original_sha256": "854bca2e5036d6ef061bd548265c8847b509823542bea51514289d45b7e051ef",
+      "archived_sha256": "854bca2e5036d6ef061bd548265c8847b509823542bea51514289d45b7e051ef"
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/rollback/chunk-200000-attempt1.log",
+      "path": "originals/navi-ir-sync-fix-20261012/rollback/chunk-200000-attempt1.log",
+      "encoding": "identity",
+      "original_bytes": 589,
+      "archived_bytes": 589,
+      "original_sha256": "216602ee4a0869798512f2e9771b07787ccb77e1195c8ec5d18b0ea3a36233d6",
+      "archived_sha256": "216602ee4a0869798512f2e9771b07787ccb77e1195c8ec5d18b0ea3a36233d6"
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/rollback/chunk-200000-attempt2.log",
+      "path": "originals/navi-ir-sync-fix-20261012/rollback/chunk-200000-attempt2.log",
+      "encoding": "identity",
+      "original_bytes": 612,
+      "archived_bytes": 612,
+      "original_sha256": "88b413e0df2bfb741f34ece2b34f141676ec212efea60d4eb9d114be5f6ca489",
+      "archived_sha256": "88b413e0df2bfb741f34ece2b34f141676ec212efea60d4eb9d114be5f6ca489"
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/rollback/chunk-280000-attempt1.log",
+      "path": "originals/navi-ir-sync-fix-20261012/rollback/chunk-280000-attempt1.log",
+      "encoding": "identity",
+      "original_bytes": 589,
+      "archived_bytes": 589,
+      "original_sha256": "216602ee4a0869798512f2e9771b07787ccb77e1195c8ec5d18b0ea3a36233d6",
+      "archived_sha256": "216602ee4a0869798512f2e9771b07787ccb77e1195c8ec5d18b0ea3a36233d6"
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/rollback/chunk-280000-attempt2.log",
+      "path": "originals/navi-ir-sync-fix-20261012/rollback/chunk-280000-attempt2.log",
+      "encoding": "identity",
+      "original_bytes": 548,
+      "archived_bytes": 548,
+      "original_sha256": "8cc4d8926071bc8e63575d6d38617c61dd70002b5ea725ebabc16a8977d7cf57",
+      "archived_sha256": "8cc4d8926071bc8e63575d6d38617c61dd70002b5ea725ebabc16a8977d7cf57"
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/rollback/firmware-catalog.md",
+      "path": "originals/navi-ir-sync-fix-20261012/rollback/firmware-catalog.md",
+      "encoding": "identity",
+      "original_bytes": 27523,
+      "archived_bytes": 27523,
+      "original_sha256": "5549a38aa0d1212e9eb567deca5337a5f986a8a614d62ef05d3f78688992c57c",
+      "archived_sha256": "5549a38aa0d1212e9eb567deca5337a5f986a8a614d62ef05d3f78688992c57c"
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/rollback/manifest.json",
+      "path": "originals/navi-ir-sync-fix-20261012/rollback/manifest.json",
+      "encoding": "identity",
+      "original_bytes": 1615,
+      "archived_bytes": 1615,
+      "original_sha256": "6bb6c2f35a480d4ee0e7ef6b1204564c7e142612e2ff67a339343a449bf2433f",
+      "archived_sha256": "6bb6c2f35a480d4ee0e7ef6b1204564c7e142612e2ff67a339343a449bf2433f"
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/test-output/ir_sync_regression.cpp",
+      "path": "originals/navi-ir-sync-fix-20261012/test-output/ir_sync_regression.cpp",
+      "encoding": "identity",
+      "original_bytes": 17748,
+      "archived_bytes": 17748,
+      "original_sha256": "04a95c3df11f3c0db0d0073f4c76213162913cc129f864ae207e13d088a04424",
+      "archived_sha256": "04a95c3df11f3c0db0d0073f4c76213162913cc129f864ae207e13d088a04424"
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/test-output/test_20q_standards.log",
+      "path": "originals/navi-ir-sync-fix-20261012/test-output/test_20q_standards.log",
+      "encoding": "identity",
+      "original_bytes": 142,
+      "archived_bytes": 142,
+      "original_sha256": "3ef6b090cf00481169c5cec591629ba317d4e2aa3df156910fbca61b54b442f5",
+      "archived_sha256": "3ef6b090cf00481169c5cec591629ba317d4e2aa3df156910fbca61b54b442f5"
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/test-output/test_coherence.log",
+      "path": "originals/navi-ir-sync-fix-20261012/test-output/test_coherence.log",
+      "encoding": "identity",
+      "original_bytes": 82,
+      "archived_bytes": 82,
+      "original_sha256": "bb506fd33236e27988026f7f6dae43389b2face4231f63d28427c2aefaec62c5",
+      "archived_sha256": "bb506fd33236e27988026f7f6dae43389b2face4231f63d28427c2aefaec62c5"
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/test-output/test_ir_health_monitor.log",
+      "path": "originals/navi-ir-sync-fix-20261012/test-output/test_ir_health_monitor.log",
+      "encoding": "identity",
+      "original_bytes": 8039,
+      "archived_bytes": 8039,
+      "original_sha256": "5a1019a015b954a9fa9d3e4f1b799f23c345b34ada831f28397eb214368d70fe",
+      "archived_sha256": "5a1019a015b954a9fa9d3e4f1b799f23c345b34ada831f28397eb214368d70fe"
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/test-output/test_ir_speed.log",
+      "path": "originals/navi-ir-sync-fix-20261012/test-output/test_ir_speed.log",
+      "encoding": "identity",
+      "original_bytes": 385,
+      "archived_bytes": 385,
+      "original_sha256": "70ab82700f2cb971ce6acfb33b68218afad50e66a88908469c2b657c0b1dfe55",
+      "archived_sha256": "70ab82700f2cb971ce6acfb33b68218afad50e66a88908469c2b657c0b1dfe55"
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/test-output/test_navi_stop_display.log",
+      "path": "originals/navi-ir-sync-fix-20261012/test-output/test_navi_stop_display.log",
+      "encoding": "identity",
+      "original_bytes": 302,
+      "archived_bytes": 302,
+      "original_sha256": "cae56b18ff1a1b03f70a6ecf5dcef5f1154a5c844fe0160ec647a2751b4fac11",
+      "archived_sha256": "cae56b18ff1a1b03f70a6ecf5dcef5f1154a5c844fe0160ec647a2751b4fac11"
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/test-output/test_navi_sync_recorder.log",
+      "path": "originals/navi-ir-sync-fix-20261012/test-output/test_navi_sync_recorder.log",
+      "encoding": "identity",
+      "original_bytes": 33,
+      "archived_bytes": 33,
+      "original_sha256": "26dfea1f35a9d2f2fcd0a06a77c470b08dff668e55dfbb8218fa99e083de0d15",
+      "archived_sha256": "26dfea1f35a9d2f2fcd0a06a77c470b08dff668e55dfbb8218fa99e083de0d15"
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/test-output/test_proximal_recovery.log",
+      "path": "originals/navi-ir-sync-fix-20261012/test-output/test_proximal_recovery.log",
+      "encoding": "identity",
+      "original_bytes": 471,
+      "archived_bytes": 471,
+      "original_sha256": "01a44d6e73327f4e6794fee91e166ff116e07d144306a1e287e8e068e3eeecae",
+      "archived_sha256": "01a44d6e73327f4e6794fee91e166ff116e07d144306a1e287e8e068e3eeecae"
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/test-output/test_station_correction.log",
+      "path": "originals/navi-ir-sync-fix-20261012/test-output/test_station_correction.log",
+      "encoding": "identity",
+      "original_bytes": 66,
+      "archived_bytes": 66,
+      "original_sha256": "e5d09ee6878053727fe7bbe00930c3ccf097f18010fdce921b189578518ceb61",
+      "archived_sha256": "e5d09ee6878053727fe7bbe00930c3ccf097f18010fdce921b189578518ceb61"
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/test-output/test_station_position.log",
+      "path": "originals/navi-ir-sync-fix-20261012/test-output/test_station_position.log",
+      "encoding": "identity",
+      "original_bytes": 146,
+      "archived_bytes": 146,
+      "original_sha256": "9112d34bcee24600066ea2a62a61da5b535d3e8468e57924c0f3ccbaa56fc81a",
+      "archived_sha256": "9112d34bcee24600066ea2a62a61da5b535d3e8468e57924c0f3ccbaa56fc81a"
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/test-output/test_x22r_equivalence.log",
+      "path": "originals/navi-ir-sync-fix-20261012/test-output/test_x22r_equivalence.log",
+      "encoding": "identity",
+      "original_bytes": 173,
+      "archived_bytes": 173,
+      "original_sha256": "f1dfaf40c618a1fa669c3204df8d53fb388dd4bc5b06b9beb99aa9fa463bc1ac",
+      "archived_sha256": "f1dfaf40c618a1fa669c3204df8d53fb388dd4bc5b06b9beb99aa9fa463bc1ac"
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/upload-and-boot.log",
+      "path": "originals/navi-ir-sync-fix-20261012/upload-and-boot.log",
+      "encoding": "identity",
+      "original_bytes": 2386,
+      "archived_bytes": 2386,
+      "original_sha256": "542d2a496ac4405fc8e66c62b3cd5626ff74d9ee869093f245807db2277bf3e3",
+      "archived_sha256": "542d2a496ac4405fc8e66c62b3cd5626ff74d9ee869093f245807db2277bf3e3"
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/upload.log",
+      "path": "originals/navi-ir-sync-fix-20261012/upload.log",
+      "encoding": "identity",
+      "original_bytes": 6065,
+      "archived_bytes": 6065,
+      "original_sha256": "fd6b4c2fd58dafdc74718633114f14b59457021fe05e1dcee6a705d500ad53fd",
+      "archived_sha256": "fd6b4c2fd58dafdc74718633114f14b59457021fe05e1dcee6a705d500ad53fd"
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/upload_verified_build.py",
+      "path": "originals/navi-ir-sync-fix-20261012/upload_verified_build.py",
+      "encoding": "identity",
+      "original_bytes": 3296,
+      "archived_bytes": 3296,
+      "original_sha256": "867b739694998c33f780d8e5813c24f027aab4b10504815f9685f39e486db338",
+      "archived_sha256": "867b739694998c33f780d8e5813c24f027aab4b10504815f9685f39e486db338"
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-review-20261012/REVIEW.txt",
+      "path": "originals/navi-ir-sync-review-20261012/REVIEW.txt",
+      "original_bytes": 11100,
+      "original_sha256": "d7504423bb5a00c2e6175126adf497bf6550421cc59102964cecab57f2c40bb6",
+      "encoding": "identity",
+      "archived_bytes": 11100,
+      "archived_sha256": "d7504423bb5a00c2e6175126adf497bf6550421cc59102964cecab57f2c40bb6"
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-review-20261012/baseline-compile.log",
+      "path": "originals/navi-ir-sync-review-20261012/baseline-compile.log",
+      "original_bytes": 2207,
+      "original_sha256": "4094da33824eb692be326b75a955ebbb27cb89a22f70b2374a0cc90de8900d63",
+      "encoding": "identity",
+      "archived_bytes": 2207,
+      "archived_sha256": "4094da33824eb692be326b75a955ebbb27cb89a22f70b2374a0cc90de8900d63"
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-review-20261012/compile.log",
+      "path": "originals/navi-ir-sync-review-20261012/compile.log",
+      "original_bytes": 4280,
+      "original_sha256": "398492880237218abdcee1ca01f1005d5c433b2e70a501c056efea4c16892209",
+      "encoding": "identity",
+      "archived_bytes": 4280,
+      "archived_sha256": "398492880237218abdcee1ca01f1005d5c433b2e70a501c056efea4c16892209"
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-review-20261012/manifest.json",
+      "path": "originals/navi-ir-sync-review-20261012/manifest.json",
+      "original_bytes": 2450,
+      "original_sha256": "245590a621b840b749b86b4e8a4f4519b0a4c50f06e377ed1a1a04674977cae8",
+      "encoding": "identity",
+      "archived_bytes": 2450,
+      "archived_sha256": "245590a621b840b749b86b4e8a4f4519b0a4c50f06e377ed1a1a04674977cae8"
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-review-20261012/probe-results.txt",
+      "path": "originals/navi-ir-sync-review-20261012/probe-results.txt",
+      "original_bytes": 486,
+      "original_sha256": "7b7800dcc51f923da03d9dff92f618a019c55f4f8516ae07947943071866834a",
+      "encoding": "identity",
+      "archived_bytes": 486,
+      "archived_sha256": "7b7800dcc51f923da03d9dff92f618a019c55f4f8516ae07947943071866834a"
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-review-20261012/reproduce_review.py",
+      "path": "originals/navi-ir-sync-review-20261012/reproduce_review.py",
+      "original_bytes": 6756,
+      "original_sha256": "098ebd50bd80d5b7506e6f3b35f40664c2aedd644ed68e49879dd1665d30bf4d",
+      "encoding": "identity",
+      "archived_bytes": 6756,
+      "archived_sha256": "098ebd50bd80d5b7506e6f3b35f40664c2aedd644ed68e49879dd1665d30bf4d"
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-review-20261012/review_probes.cpp",
+      "path": "originals/navi-ir-sync-review-20261012/review_probes.cpp",
+      "original_bytes": 10095,
+      "original_sha256": "ab0b8907fef456d8d3daaaa48fa3a59c7a96f9efb3ba21b76b38f56bed584654",
+      "encoding": "identity",
+      "archived_bytes": 10095,
+      "archived_sha256": "ab0b8907fef456d8d3daaaa48fa3a59c7a96f9efb3ba21b76b38f56bed584654"
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-review-20261012/submitted-changes.diff",
+      "path": "originals/navi-ir-sync-review-20261012/submitted-changes.diff",
+      "original_bytes": 7064,
+      "original_sha256": "f0e5c92267a166f801e14a8d68fda4bf60f865c30ebd07322de609d5eaf5781d",
+      "encoding": "identity",
+      "archived_bytes": 7064,
+      "archived_sha256": "f0e5c92267a166f801e14a8d68fda4bf60f865c30ebd07322de609d5eaf5781d"
+    }
+  ],
+  "excluded": [
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/hall-field-analysis-20260929/tmp/matplotlib/fontlist-v390.json",
+      "reason": "Regenerable cache or host executable/debug symbols; source and results retained"
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/NAVI_COHERENCE_0_6_IR_SYNC_TEST.ino.bin",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/NAVI_COHERENCE_0_6_IR_SYNC_TEST.ino.bootloader.bin",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/NAVI_COHERENCE_0_6_IR_SYNC_TEST.ino.bootloader_flashed.bin",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/NAVI_COHERENCE_0_6_IR_SYNC_TEST.ino.elf",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/NAVI_COHERENCE_0_6_IR_SYNC_TEST.ino.map",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/NAVI_COHERENCE_0_6_IR_SYNC_TEST.ino.merged.bin",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/NAVI_COHERENCE_0_6_IR_SYNC_TEST.ino.partitions.bin",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/NAVI_COHERENCE_0_6_IR_SYNC_TEST.ino.partitions_flashed.bin",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/NAVI_COHERENCE_0_6_IR_SYNC_TEST.ino_flashed.bin",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/boot_app0.bin",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/boot_app0_flashed.bin",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/build.options.json",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/build_opt.h",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/compile_commands.json",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/core/ColorFormat.c.d",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/core/ColorFormat.c.o",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/core/Esp.cpp.d",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/core/Esp.cpp.o",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/core/FirmwareMSC.cpp.d",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/core/FirmwareMSC.cpp.o",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/core/FunctionalInterrupt.cpp.d",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/core/FunctionalInterrupt.cpp.o",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/core/HEXBuilder.cpp.d",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/core/HEXBuilder.cpp.o",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/core/HWCDC.cpp.d",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/core/HWCDC.cpp.o",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/core/HardwareSerial.cpp.d",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/core/HardwareSerial.cpp.o",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/core/HashBuilder.cpp.d",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/core/HashBuilder.cpp.o",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/core/IPAddress.cpp.d",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/core/IPAddress.cpp.o",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/core/MD5Builder.cpp.d",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/core/MD5Builder.cpp.o",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/core/MacAddress.cpp.d",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/core/MacAddress.cpp.o",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/core/Print.cpp.d",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/core/Print.cpp.o",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/core/Stream.cpp.d",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/core/Stream.cpp.o",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/core/StreamString.cpp.d",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/core/StreamString.cpp.o",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/core/StringUtils.cpp.d",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/core/StringUtils.cpp.o",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/core/Tone.cpp.d",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/core/Tone.cpp.o",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/core/USB.cpp.d",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/core/USB.cpp.o",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/core/USBCDC.cpp.d",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/core/USBCDC.cpp.o",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/core/USBHost.cpp.d",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/core/USBHost.cpp.o",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/core/USBMSC.cpp.d",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/core/USBMSC.cpp.o",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/core/WMath.cpp.d",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/core/WMath.cpp.o",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/core/WString.cpp.d",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/core/WString.cpp.o",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/core/base64.cpp.d",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/core/base64.cpp.o",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/core/cbuf.cpp.d",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/core/cbuf.cpp.o",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/core/chip-debug-report.cpp.d",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/core/chip-debug-report.cpp.o",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/core/core.a",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/core/esp32-hal-adc.c.d",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/core/esp32-hal-adc.c.o",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/core/esp32-hal-bt.c.d",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/core/esp32-hal-bt.c.o",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/core/esp32-hal-cpu.c.d",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/core/esp32-hal-cpu.c.o",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/core/esp32-hal-dac.c.d",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/core/esp32-hal-dac.c.o",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/core/esp32-hal-gpio.c.d",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/core/esp32-hal-gpio.c.o",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/core/esp32-hal-hosted.c.d",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/core/esp32-hal-hosted.c.o",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/core/esp32-hal-i2c-ng.c.d",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/core/esp32-hal-i2c-ng.c.o",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/core/esp32-hal-i2c-slave.c.d",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/core/esp32-hal-i2c-slave.c.o",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/core/esp32-hal-i2c.c.d",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/core/esp32-hal-i2c.c.o",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/core/esp32-hal-ldo.c.d",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/core/esp32-hal-ldo.c.o",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/core/esp32-hal-ledc.c.d",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/core/esp32-hal-ledc.c.o",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/core/esp32-hal-log-wrapper.c.d",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/core/esp32-hal-log-wrapper.c.o",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/core/esp32-hal-matrix.c.d",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/core/esp32-hal-matrix.c.o",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/core/esp32-hal-misc.c.d",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/core/esp32-hal-misc.c.o",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/core/esp32-hal-periman.c.d",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/core/esp32-hal-periman.c.o",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/core/esp32-hal-psram.c.d",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/core/esp32-hal-psram.c.o",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/core/esp32-hal-rgb-led.c.d",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/core/esp32-hal-rgb-led.c.o",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/core/esp32-hal-rmt.c.d",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/core/esp32-hal-rmt.c.o",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/core/esp32-hal-sigmadelta.c.d",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/core/esp32-hal-sigmadelta.c.o",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/core/esp32-hal-spi.c.d",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/core/esp32-hal-spi.c.o",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/core/esp32-hal-time.c.d",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/core/esp32-hal-time.c.o",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/core/esp32-hal-timer.c.d",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/core/esp32-hal-timer.c.o",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/core/esp32-hal-tinyusb.c.d",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/core/esp32-hal-tinyusb.c.o",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/core/esp32-hal-touch-ng.c.d",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/core/esp32-hal-touch-ng.c.o",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/core/esp32-hal-touch.c.d",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/core/esp32-hal-touch.c.o",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/core/esp32-hal-uart.c.d",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/core/esp32-hal-uart.c.o",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/core/firmware_msc_fat.c.d",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/core/firmware_msc_fat.c.o",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/core/freertos_stats.cpp.d",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/core/freertos_stats.cpp.o",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/core/idf_openthread_mpool_wrapper.c.d",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/core/idf_openthread_mpool_wrapper.c.o",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/core/libb64/cdecode.c.d",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/core/libb64/cdecode.c.o",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/core/libb64/cencode.c.d",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/core/libb64/cencode.c.o",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/core/main.cpp.d",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/core/main.cpp.o",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/core/stdlib_noniso.c.d",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/core/stdlib_noniso.c.o",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/core/wiring_pulse.c.d",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/core/wiring_pulse.c.o",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/core/wiring_shift.c.d",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/core/wiring_shift.c.o",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/file_opts",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/flash_args",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/includes.cache",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/libraries.cache",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/libraries/Adafruit_BusIO/Adafruit_BusIO_Register.cpp.d",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/libraries/Adafruit_BusIO/Adafruit_BusIO_Register.cpp.libsdetect.d",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/libraries/Adafruit_BusIO/Adafruit_BusIO_Register.cpp.o",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/libraries/Adafruit_BusIO/Adafruit_GenericDevice.cpp.d",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/libraries/Adafruit_BusIO/Adafruit_GenericDevice.cpp.libsdetect.d",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/libraries/Adafruit_BusIO/Adafruit_GenericDevice.cpp.o",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/libraries/Adafruit_BusIO/Adafruit_I2CDevice.cpp.d",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/libraries/Adafruit_BusIO/Adafruit_I2CDevice.cpp.libsdetect.d",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/libraries/Adafruit_BusIO/Adafruit_I2CDevice.cpp.o",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/libraries/Adafruit_BusIO/Adafruit_SPIDevice.cpp.d",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/libraries/Adafruit_BusIO/Adafruit_SPIDevice.cpp.libsdetect.d",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/libraries/Adafruit_BusIO/Adafruit_SPIDevice.cpp.o",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/libraries/Adafruit_INA219/Adafruit_INA219.cpp.d",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/libraries/Adafruit_INA219/Adafruit_INA219.cpp.libsdetect.d",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/libraries/Adafruit_INA219/Adafruit_INA219.cpp.o",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/libraries/Network/NetworkClient.cpp.d",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/libraries/Network/NetworkClient.cpp.libsdetect.d",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/libraries/Network/NetworkClient.cpp.o",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/libraries/Network/NetworkEvents.cpp.d",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/libraries/Network/NetworkEvents.cpp.libsdetect.d",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/libraries/Network/NetworkEvents.cpp.o",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/libraries/Network/NetworkInterface.cpp.d",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/libraries/Network/NetworkInterface.cpp.libsdetect.d",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/libraries/Network/NetworkInterface.cpp.o",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/libraries/Network/NetworkManager.cpp.d",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/libraries/Network/NetworkManager.cpp.libsdetect.d",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/libraries/Network/NetworkManager.cpp.o",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/libraries/Network/NetworkServer.cpp.d",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/libraries/Network/NetworkServer.cpp.libsdetect.d",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/libraries/Network/NetworkServer.cpp.o",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/libraries/Network/NetworkUdp.cpp.d",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/libraries/Network/NetworkUdp.cpp.libsdetect.d",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/libraries/Network/NetworkUdp.cpp.o",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/libraries/Preferences/Preferences.cpp.d",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/libraries/Preferences/Preferences.cpp.libsdetect.d",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/libraries/Preferences/Preferences.cpp.o",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/libraries/PubSubClient/PubSubClient.cpp.d",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/libraries/PubSubClient/PubSubClient.cpp.libsdetect.d",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/libraries/PubSubClient/PubSubClient.cpp.o",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/libraries/SPI/SPI.cpp.d",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/libraries/SPI/SPI.cpp.libsdetect.d",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/libraries/SPI/SPI.cpp.o",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/libraries/WiFi/AP.cpp.d",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/libraries/WiFi/AP.cpp.libsdetect.d",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/libraries/WiFi/AP.cpp.o",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/libraries/WiFi/STA.cpp.d",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/libraries/WiFi/STA.cpp.libsdetect.d",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/libraries/WiFi/STA.cpp.o",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/libraries/WiFi/WiFi.cpp.d",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/libraries/WiFi/WiFi.cpp.libsdetect.d",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/libraries/WiFi/WiFi.cpp.o",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/libraries/WiFi/WiFiAP.cpp.d",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/libraries/WiFi/WiFiAP.cpp.libsdetect.d",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/libraries/WiFi/WiFiAP.cpp.o",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/libraries/WiFi/WiFiGeneric.cpp.d",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/libraries/WiFi/WiFiGeneric.cpp.libsdetect.d",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/libraries/WiFi/WiFiGeneric.cpp.o",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/libraries/WiFi/WiFiMulti.cpp.d",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/libraries/WiFi/WiFiMulti.cpp.libsdetect.d",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/libraries/WiFi/WiFiMulti.cpp.o",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/libraries/WiFi/WiFiSTA.cpp.d",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/libraries/WiFi/WiFiSTA.cpp.libsdetect.d",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/libraries/WiFi/WiFiSTA.cpp.o",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/libraries/WiFi/WiFiScan.cpp.d",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/libraries/WiFi/WiFiScan.cpp.libsdetect.d",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/libraries/WiFi/WiFiScan.cpp.o",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/libraries/Wire/Wire.cpp.d",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/libraries/Wire/Wire.cpp.libsdetect.d",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/libraries/Wire/Wire.cpp.o",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/partitions.csv",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/sdkconfig",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/sketch/ExcursionDetectorX22R.h",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/sketch/HallObserver.h",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/sketch/IrHealthMonitor.h",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/sketch/IrSpeedTelemetry.h",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/sketch/IrSyncDiagnostics.h",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/sketch/LocoConfig.h",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/sketch/MovementEvidence.h",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/sketch/NAVI_COHERENCE_0_6_IR_SYNC_TEST.ino.cpp",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/sketch/NAVI_COHERENCE_0_6_IR_SYNC_TEST.ino.cpp.d",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/sketch/NAVI_COHERENCE_0_6_IR_SYNC_TEST.ino.cpp.merged",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/sketch/NAVI_COHERENCE_0_6_IR_SYNC_TEST.ino.cpp.merged.libsdetect.d",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/sketch/NAVI_COHERENCE_0_6_IR_SYNC_TEST.ino.cpp.o",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/sketch/NaviSyncRecorder.h",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/sketch/Navigator.h",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/sketch/Ops.h",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/sketch/ProximalRecovery.h",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/sketch/RecoveryControl.h",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/sketch/RouteMap.h",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/sketch/Stations.h",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/sketch/tests/test_20q_standards.cpp",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/sketch/tests/test_coherence.cpp",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/sketch/tests/test_ir_health_monitor.cpp",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/sketch/tests/test_ir_speed.cpp",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/sketch/tests/test_navi_stop_display.cpp",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/sketch/tests/test_navi_sync_recorder.cpp",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/sketch/tests/test_proximal_recovery.cpp",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/sketch/tests/test_station_correction.cpp",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/sketch/tests/test_station_position.cpp",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/build/sketch/tests/test_x22r_equivalence.cpp",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_SYNC_TEST/ExcursionDetectorX22R.h",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_SYNC_TEST/HallObserver.h",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_SYNC_TEST/IrHealthMonitor.h",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_SYNC_TEST/IrSpeedTelemetry.h",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_SYNC_TEST/IrSyncDiagnostics.h",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_SYNC_TEST/LocoConfig.h",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_SYNC_TEST/MovementEvidence.h",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_SYNC_TEST/NAVI_COHERENCE_0_6_IR_SYNC_TEST.ino",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_SYNC_TEST/NaviSyncRecorder.h",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_SYNC_TEST/Navigator.h",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_SYNC_TEST/Ops.h",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_SYNC_TEST/ProximalRecovery.h",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_SYNC_TEST/README.md",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_SYNC_TEST/RecoveryControl.h",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_SYNC_TEST/RouteMap.h",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_SYNC_TEST/Stations.h",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_SYNC_TEST/VALIDATION.md",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_SYNC_TEST/tests/run_all.py",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_SYNC_TEST/tests/test_20q_standards.cpp",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_SYNC_TEST/tests/test_coherence.cpp",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_SYNC_TEST/tests/test_health_json.py",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_SYNC_TEST/tests/test_ir_health_monitor.cpp",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_SYNC_TEST/tests/test_ir_speed.cpp",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_SYNC_TEST/tests/test_ir_sync.py",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_SYNC_TEST/tests/test_navi_stop_display.cpp",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_SYNC_TEST/tests/test_navi_sync_recorder.cpp",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_SYNC_TEST/tests/test_proximal_recovery.cpp",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_SYNC_TEST/tests/test_station_correction.cpp",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_SYNC_TEST/tests/test_station_position.cpp",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_SYNC_TEST/tests/test_x22r_equivalence.cpp",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/rollback/chunk-000000.bin",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/rollback/chunk-080000.bin",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/rollback/chunk-100000.bin",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/rollback/chunk-180000.bin",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/rollback/chunk-200000.bin",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/rollback/otto-9950011-pre-ir-sync-0x000000-0x27ffff.bin",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/test-output/ir_sync_regression",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/test-output/ir_sync_regression.dSYM/Contents/Info.plist",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/test-output/ir_sync_regression.dSYM/Contents/Resources/DWARF/ir_sync_regression",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/test-output/ir_sync_regression.dSYM/Contents/Resources/Relocations/aarch64/ir_sync_regression.yml",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/test-output/legacy-filenames/LocoConfig.h",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/test-output/legacy-filenames/NAVI_COHERENCE_0_6_IR_HEALTH.ino",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/test-output/test_20q_standards",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/test-output/test_20q_standards.dSYM/Contents/Info.plist",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/test-output/test_20q_standards.dSYM/Contents/Resources/DWARF/test_20q_standards",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/test-output/test_20q_standards.dSYM/Contents/Resources/Relocations/aarch64/test_20q_standards.yml",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/test-output/test_coherence",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/test-output/test_coherence.dSYM/Contents/Info.plist",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/test-output/test_coherence.dSYM/Contents/Resources/DWARF/test_coherence",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/test-output/test_coherence.dSYM/Contents/Resources/Relocations/aarch64/test_coherence.yml",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/test-output/test_ir_health_monitor",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/test-output/test_ir_health_monitor.dSYM/Contents/Info.plist",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/test-output/test_ir_health_monitor.dSYM/Contents/Resources/DWARF/test_ir_health_monitor",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/test-output/test_ir_health_monitor.dSYM/Contents/Resources/Relocations/aarch64/test_ir_health_monitor.yml",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/test-output/test_ir_speed",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/test-output/test_ir_speed.dSYM/Contents/Info.plist",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/test-output/test_ir_speed.dSYM/Contents/Resources/DWARF/test_ir_speed",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/test-output/test_ir_speed.dSYM/Contents/Resources/Relocations/aarch64/test_ir_speed.yml",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/test-output/test_navi_stop_display",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/test-output/test_navi_stop_display.dSYM/Contents/Info.plist",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/test-output/test_navi_stop_display.dSYM/Contents/Resources/DWARF/test_navi_stop_display",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/test-output/test_navi_stop_display.dSYM/Contents/Resources/Relocations/aarch64/test_navi_stop_display.yml",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/test-output/test_navi_sync_recorder",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/test-output/test_navi_sync_recorder.dSYM/Contents/Info.plist",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/test-output/test_navi_sync_recorder.dSYM/Contents/Resources/DWARF/test_navi_sync_recorder",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/test-output/test_navi_sync_recorder.dSYM/Contents/Resources/Relocations/aarch64/test_navi_sync_recorder.yml",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/test-output/test_proximal_recovery",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/test-output/test_proximal_recovery.dSYM/Contents/Info.plist",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/test-output/test_proximal_recovery.dSYM/Contents/Resources/DWARF/test_proximal_recovery",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/test-output/test_proximal_recovery.dSYM/Contents/Resources/Relocations/aarch64/test_proximal_recovery.yml",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/test-output/test_station_correction",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/test-output/test_station_correction.dSYM/Contents/Info.plist",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/test-output/test_station_correction.dSYM/Contents/Resources/DWARF/test_station_correction",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/test-output/test_station_correction.dSYM/Contents/Resources/Relocations/aarch64/test_station_correction.yml",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/test-output/test_station_position",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/test-output/test_station_position.dSYM/Contents/Info.plist",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/test-output/test_station_position.dSYM/Contents/Resources/DWARF/test_station_position",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/test-output/test_station_position.dSYM/Contents/Resources/Relocations/aarch64/test_station_position.yml",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/test-output/test_x22r_equivalence",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/test-output/test_x22r_equivalence.dSYM/Contents/Info.plist",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/test-output/test_x22r_equivalence.dSYM/Contents/Resources/DWARF/test_x22r_equivalence",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-fix-20261012/test-output/test_x22r_equivalence.dSYM/Contents/Resources/Relocations/aarch64/test_x22r_equivalence.yml",
+      "reason": "Generated build/cache/executable or staged duplicate; canonical source, tests, logs and manifests archived. Private firmware/device binaries excluded."
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-review-20261012/review_probes",
+      "reason": "Regenerable cache or host executable/debug symbols; source and results retained"
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-review-20261012/review_probes.dSYM/Contents/Info.plist",
+      "reason": "Regenerable cache or host executable/debug symbols; source and results retained"
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-review-20261012/review_probes.dSYM/Contents/Resources/DWARF/review_probes",
+      "reason": "Regenerable cache or host executable/debug symbols; source and results retained"
+    },
+    {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ir-sync-review-20261012/review_probes.dSYM/Contents/Resources/Relocations/aarch64/review_probes.yml",
+      "reason": "Regenerable cache or host executable/debug symbols; source and results retained"
+    },
+    {
+      "source": "/private/tmp/navi-ir-sync-review-yc0vuszl/firmware/programs/QUORUM/credentials.h",
+      "reason": "Local credentials intentionally excluded; required only for full Arduino build"
+    }
+  ]
+}

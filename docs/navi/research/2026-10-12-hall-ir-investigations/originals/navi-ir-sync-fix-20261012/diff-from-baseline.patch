@@ -1,0 +1,149 @@
+--- /Users/davidbrown/esp-loco-control/firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_HEALTH/NAVI_COHERENCE_0_6_IR_HEALTH.ino	2026-09-27 18:01:49
++++ /Users/davidbrown/esp-loco-control/firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_SYNC_TEST/NAVI_COHERENCE_0_6_IR_SYNC_TEST.ino	2026-10-12 18:11:37
+@@ -1,4 +1,6 @@
+ /*
++ * IR_SYNC_TEST R1 (2026-10-12): observation-only Type-5/Type-6 timing.
++ * Separate diagnostic transport; causal arrival histories; no NAVI input.
+  * NAVI_COHERENCE 0.6 PROXIMAL_R1 - Toby. 2026-09-23 recovery revision.
+  * IR_SPEED_R3: NAVI interprets settled stops for the display; raw IR unchanged.
+  * POSITION_STATIONS_R1: current position governs station targets, including
+@@ -50,6 +52,7 @@
+ #include "IrHealthMonitor.h"
+ #include "IrSpeedTelemetry.h"
+ #include "NaviSyncRecorder.h"
++#include "IrSyncDiagnostics.h"
+ 
+ #ifndef NAVI_BASELINE_ADAPT_PWM
+ #error "This locomotive's profile has no NAVI_BASELINE_ADAPT_PWM. Measure the tractive floor from its own PWM/speed fit; do not copy another locomotive's."
+@@ -62,9 +65,9 @@
+ // build is running, so it advances with every behavioural change.
+ // The Hall detector has no refractory: its only timing rule is NAVI's 650 ms
+ // Hall-only fallback (Navigator.h), used only without valid MM-referenced IR.
+-#define SKETCH_NAME    "NAVI_COHERENCE_0_6_POSITION_STATIONS_R1_20Q3_SYNC_R1"
++#define SKETCH_NAME    "NAVI_COHERENCE_0_6_IR_SYNC_TEST_R1"
+ #define BUILD_CLASS    "AUTO_ENABLED_FIELD_TEST"
+-#define BUILD_SUBTITLE "POSITION_STATIONS_R1 + 20Q3 + NSR1 native Hall/IR evidence recorder"
++#define BUILD_SUBTITLE "Observation-only Type-5 / Type-6 Hall arrival comparison"
+ #define FIELD_ACCEPTED 0
+ 
+ // Types used in function signatures must appear before the Arduino
+@@ -85,6 +88,7 @@
+ };
+ struct HallDecisionMsg { BaselineOutcome d; uint32_t t; };
+ struct IrRx { uint8_t mac[6]; uint64_t receivedUs; uint8_t bytes[110]; };
++struct IrPulseRx { uint8_t mac[6]; uint64_t receivedUs; uint8_t bytes[61]; };
+ struct PubMsg { char topic[72]; char payload[1200]; uint16_t len; bool retain; };
+ struct CmdMsg { char topic[72]; char payload[64]; };
+ 
+@@ -160,7 +164,14 @@
+ static volatile int8_t naviSyncNavDir=0;
+ static volatile uint8_t naviSyncStationPhase=0;
+ static volatile uint8_t naviSyncContextFlags=0;
++// Type-5 retains its original queue and overflow accounting.
+ static QueueHandle_t irQ=nullptr;
++static QueueHandle_t irPulseQ=nullptr;
++static StaticQueue_t irPulseQueueControl;
++static uint8_t irPulseQueueStorage[32*sizeof(IrPulseRx)];
++static volatile uint32_t irPulseQueueDrops=0;
++static uint32_t handledPulseDrops=0;
++static ir_sync::Diagnostics irSync;
+ static volatile uint32_t irQueueDrops=0;
+ static uint32_t handledIrDrops=0;
+ static uint8_t lastSeenMac[6]{};
+@@ -656,6 +667,13 @@
+ }
+ 
+ static void onIr(const esp_now_recv_info_t* info,const uint8_t* bytes,int length){
++  // The Type-6 path cannot occupy Type-5 capacity or change its drop counter.
++  if(info && bytes && length==61 && bytes[0]==0x52 && bytes[1]==0x49 && bytes[3]==6){
++    IrPulseRx pulse;memcpy(pulse.mac,info->src_addr,6);
++    pulse.receivedUs=esp_timer_get_time();memcpy(pulse.bytes,bytes,sizeof(pulse.bytes));
++    if(!irPulseQ || xQueueSend(irPulseQ,&pulse,0)!=pdTRUE)irPulseQueueDrops=irPulseQueueDrops+1;
++    return;
++  }
+   if(!info || !bytes || length!=110 || bytes[0]!=0x52 || bytes[1]!=0x49 || bytes[3]!=5)return;
+   IrRx packet;memcpy(packet.mac,info->src_addr,6);packet.receivedUs=esp_timer_get_time();
+   memcpy(packet.bytes,bytes,110);
+@@ -682,6 +700,8 @@
+       // dashboard/status publication. The snapshot remains byte-for-byte
+       // available inside wire; recorder output cannot influence either
+       // movement or health admission.
++      const auto& syncWire=movement.latest();
++      irSync.type5(packet.receivedUs,syncWire.completedPulses,syncWire.bootId,syncWire.sequence);
+       naviSyncRecorder.addIr(
+         packet.receivedUs,packet.mac,
+         movementResult == ngr_nav::RxResult::Reset ? 2 : 1,
+@@ -694,6 +714,30 @@
+   irHealth.tick(esp_timer_get_time());
+ }
+ 
++// Runs after the original navigation/control services. Hall comparison is
++// delayed, never the navigation decision. A Hall must precede this loop's
++// Type-5 drain, so pre-Hall arrivals queued at detection can enter history.
++static void serviceIrSync(uint64_t drainedAfterUs){
++  if(irPulseQueueDrops!=handledPulseDrops){
++    irSync.transportGap();handledPulseDrops=irPulseQueueDrops;
++  }
++  IrPulseRx pulse;
++  const unsigned count=irPulseQ?uxQueueMessagesWaiting(irPulseQ):0;
++  for(unsigned i=0;i<count && xQueueReceive(irPulseQ,&pulse,0)==pdTRUE;++i)
++    irSync.type6(pulse.mac,pulse.bytes,sizeof(pulse.bytes),pulse.receivedUs);
++  ir_sync::Hall h;
++  if(!irSync.nextHall(h) || h.capturedUs>=drainedAfterUs)return;
++  // If an applicable arrival is still waiting, defer only its diagnostic line.
++  IrRx next5;
++  if(irQ && xQueuePeek(irQ,&next5,0)==pdTRUE && next5.receivedUs<=h.capturedUs)return;
++  if(irPulseQ && xQueuePeek(irPulseQ,&pulse,0)==pdTRUE && pulse.receivedUs<=h.capturedUs)return;
++  char line[768];
++  const int n=irSync.format(line,sizeof(line),h,irQueueDrops,irPulseQueueDrops);
++  if(n>0 && n<int(sizeof(line)))Serial.print(line);
++  else ++irSync.hallDrops;
++  irSync.popHall(); // At most one comparison per loop; overflow is diagnostic only.
++}
++
+ static void onMqtt(char* t,byte* payload,unsigned int len){
+   CmdMsg c; strlcpy(c.topic,t,sizeof(c.topic));
+   unsigned n = len < sizeof(c.payload)-1 ? len : sizeof(c.payload)-1;
+@@ -870,6 +914,7 @@
+     if(!ngr_nav::validMac(mac)){warn("IR PAIR: invalid unicast MAC");return;}
+     movement.pair(mac);pairing.putBytes("ir_mac",mac,6);
+     irHealth.pair(mac,esp_timer_get_time());
++    irSync.pair(mac,esp_timer_get_time());
+     irCarCoupled=false;
+     warn("IR source paired; new movement frame, no position change");return;
+   }
+@@ -1150,8 +1195,11 @@
+   uint8_t savedMac[6]{};if(pairing.getBytesLength("ir_mac")==6)pairing.getBytes("ir_mac",savedMac,6);
+   movement.pair(savedMac);
+   irHealth.pair(savedMac,esp_timer_get_time());
++  irSync.pair(savedMac,esp_timer_get_time());
+   pubQ  =xQueueCreate(48,sizeof(PubMsg));    // holds ~5 s while the broker is away
+   cmdQ  =xQueueCreate(16,sizeof(CmdMsg));
++  // Static diagnostic allocation cannot exhaust the control queues' heap.
++  irPulseQ=xQueueCreateStatic(32,sizeof(IrPulseRx),irPulseQueueStorage,&irPulseQueueControl);
+   naviSyncRefreshContext();
+   Serial.printf("[BOOT] %s \"%s\" — %s\n",SKETCH_NAME,BUILD_SUBTITLE,LOCO_NAME);
+   Serial.printf("[BOOT] %s %s — PROXIMAL recovery active; not field accepted.\n",SKETCH_NAME,BUILD_CLASS);
+@@ -1277,6 +1325,7 @@
+ }
+ 
+ void loop(){
++  const uint64_t syncDrainAfterUs=esp_timer_get_time();
+   CmdMsg c;while(cmdQ && xQueueReceive(cmdQ,&c,0)==pdTRUE)handleCommand(c);
+   serviceMovement();
+   observationHold=actualPwm==0 && commandedPwm==0;
+@@ -1285,6 +1334,7 @@
+     if(j.windowOnly){publishHallWindow(j);continue;}
+     if(j.serial>handledEventSerial)handledEventSerial=j.serial;
+     if(j.epoch!=navEpoch){++staleJudged;continue;}
++    irSync.hall(j.serial,j.capturedUs); // Record only; never supply NAVI evidence.
+     const auto point=movement.at(j.capturedUs,esp_timer_get_time());
+     const auto before=navigator.status();
+     NavObservation p;p.openedAtMs=j.openedAtMs;p.polarity=j.polarity;
+@@ -1336,5 +1386,6 @@
+   }
+   naviSyncRefreshContext();
+   serviceRamp(); serviceIna(); serviceIr(); serviceStatus(); serviceIrHealth();
++  serviceIrSync(syncDrainAfterUs);
+   delay(2);
+ }

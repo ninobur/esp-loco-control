@@ -1,0 +1,36 @@
+{
+  "source": "/Users/davidbrown/esp-loco-control/firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_SYNC_TEST.ino",
+  "source_sha256": "e0facae1241425f3a97e984a608011dd3b14b5c11ee7b6f8c9a69375dae14fa6",
+  "repo_head": "638c6354df39ab73dd758d58126d9eaaaf65c562",
+  "sketch": "/private/tmp/navi-ir-sync-review-yc0vuszl/firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_SYNC_TEST",
+  "stage": "/private/tmp/navi-ir-sync-review-yc0vuszl",
+  "fqbn": "esp32:esp32:esp32",
+  "core": "3.3.12",
+  "profile": "Current local LocoConfig.h: Otto 9950011 (uncommitted selector, retained unchanged)",
+  "branch": "claude/navi-ps-r1-20q-standards",
+  "client_date": "2026-10-12",
+  "baseline_sha256": "cb1ff012e27a1f8e07d9c527a99c1ba5a45910f3d856d89a287f5f8cc5e2b46c",
+  "header_sha256": {
+    "ExcursionDetectorX22R.h": "7367a4674d3b1854ca96915b194615678e5a17eda0925ef1dd1eab6e7b3ace41",
+    "HallObserver.h": "535f673a3c63836e58c3ce61fecdf0ceee99d76627ce97a6f0587c9eb65760e8",
+    "IrHealthMonitor.h": "9debcc04a462a98f0aca7cd7429bcee0123ad7916d3c300b4e870725d9dfd99d",
+    "IrSpeedTelemetry.h": "2ff54f2040d30c02d539437ef9bfb8a53bbed44bb8e30170d33abd4096e05d3e",
+    "LocoConfig.h": "b71763b80b7255230643c95c7dffdbec2dab5df7503a41121c22e99e41cadca5",
+    "MovementEvidence.h": "e85f7db66b9757863271dae886cb72a05641d5a96fca96cb4162f5564cfefc4b",
+    "NaviSyncRecorder.h": "58113d64abed8f566b461cac3dcc3f1f9e5e25fca1bf5d56b54cde081d0ef19b",
+    "Navigator.h": "363711f1e17f419bfb7428b2429b10d4416db7765e960a0925fd5c6da0e21cfa",
+    "Ops.h": "cfefaea7d9d9406d2c7e85ddfb86d5a637ea7fb4c24cc731e22bc67e60e124de",
+    "ProximalRecovery.h": "db2975024cab7f9f63eaee5a4e4ca3129806dc99a10c062cc3e234adcc911816",
+    "RecoveryControl.h": "666f12dfd64bd9271c4f387524b04c818c5e4ae35b4088443d9d7ce24a99c10d",
+    "RouteMap.h": "6fe9ec94c5dda116747db64640dc30a773f5ea3a21f5fc39cb3500f53f380e74",
+    "Stations.h": "f933bf66643a736b9286e06b672a94f18a177361e85410a8119a40f054e9a9c3"
+  },
+  "candidate_build": "FAIL: SyncPoint and Arduino prototype declaration ordering",
+  "baseline_build": "PASS: flash 1061611 / 1310720 bytes; RAM 106860 / 327680 bytes",
+  "libraries": {
+    "PubSubClient": "2.8",
+    "Adafruit INA219": "1.2.3",
+    "Adafruit BusIO": "1.17.4"
+  },
+  "host_probes": "Four defects reproduced, AddressSanitizer and UndefinedBehaviorSanitizer enabled; mocked RTOS queues/clock/locks and recorder sink; actual movement/health headers"
+}

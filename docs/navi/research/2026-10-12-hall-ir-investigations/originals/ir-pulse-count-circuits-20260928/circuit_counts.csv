@@ -1,0 +1,4 @@
+circuit,start_event,end_event,direction,start_selected_completed_pulses,end_selected_completed_pulses,selected_snapshot_delta,start_opening_bracket_low,start_opening_bracket_high,end_opening_bracket_low,end_opening_bracket_high,exact_opening_delta_low,exact_opening_delta_high,map_reference_mm,map_implied_mm_per_selected_pulse,station_stops,boundary_note
+1,315,488,CW,10625,15967,5342,10628,10631,15967,15969,5336,5341,52150,9.7622613253,"Patio; Grillers; Arches; Bamboo","Event 488 geographically reconstructed as MM000; NAVI classified it NON_LANDMARK_HALL"
+2,488,665,CW,15967,21352,5385,15967,15969,21355,21357,5386,5390,52150,9.6843082637,"Patio; Grillers; Arches; Bamboo","Event 488 geographically reconstructed as MM000; event 665 confirmed"
+3,665,836,CW,21352,26703,5351,21355,21357,26705,26707,5348,5352,52150,9.7458418987,"Patio; Grillers; Arches; Bamboo","Event 836 accepted at MM000 with POLARITY_DISCREPANCY and ONE_COHERENT_POSITION"

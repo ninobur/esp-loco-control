@@ -1,0 +1,4 @@
+from_serial,to_serial,onboard_pulses,onboard_mm,aligned_interpolated_mm,arrival_interpolated_mm,duration_s,speed_mm_s,from_alignment_us,to_alignment_us,missing_snapshot_positions_between_endpoints,delta_unreliable_samples,delta_saturated_samples,delta_sample_gaps,delta_open_aborts,delta_inferred_added,delta_inferred_removed
+239,240,29,279.908,276.04190486150037,276.1395106674754,1.875998,149.20484989856067,-115483,-88470,0,0,0,0,0,0,0
+432,433,31,299.212,299.9832680019608,301.43368589450256,1.235997,242.08149372530838,-93472,-129467,0,0,0,0,0,0,0
+608,609,32,308.864,304.32997299998533,308.51458285108674,1.214026,254.4130026869276,-112471,-126508,0,0,0,0,0,0,0

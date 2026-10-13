@@ -1,0 +1,5 @@
+REPRODUCED: dropping only Type-6 resets Type-5 history and invalidates the active IR/MM reference.
+REPRODUCED: packets arriving 10 ms before Hall are omitted when still queued at Hall capture.
+REPRODUCED: a different MAC/boot replaces the paired transmitter's Type-6 snapshot.
+REPRODUCED: the first valid cumulative event after a sequence gap is hidden in the Hall log.
+[IR_SYNC] hall=1 t_us=1003000 t5=10 t5_age_ms=3 t6=0 t6_age_ms=-1 t6_minus_t5=0 gaps=1 bad=0 authority=OBSERVE_ONLY

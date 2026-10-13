@@ -1,0 +1,131 @@
+--- /Users/davidbrown/esp-loco-control/firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_HEALTH/NAVI_COHERENCE_0_6_IR_HEALTH.ino	2026-09-27 18:01:49
++++ /Users/davidbrown/esp-loco-control/firmware/programs/NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_SYNC_TEST.ino	2026-10-12 17:49:58
+@@ -62,9 +62,9 @@
+ // build is running, so it advances with every behavioural change.
+ // The Hall detector has no refractory: its only timing rule is NAVI's 650 ms
+ // Hall-only fallback (Navigator.h), used only without valid MM-referenced IR.
+-#define SKETCH_NAME    "NAVI_COHERENCE_0_6_POSITION_STATIONS_R1_20Q3_SYNC_R1"
++#define SKETCH_NAME    "NAVI_COHERENCE_0_6_IR_SYNC_TEST"
+ #define BUILD_CLASS    "AUTO_ENABLED_FIELD_TEST"
+-#define BUILD_SUBTITLE "POSITION_STATIONS_R1 + 20Q3 + NSR1 native Hall/IR evidence recorder"
++#define BUILD_SUBTITLE "Observation-only Type-5 / Type-6 Hall opening timing comparison"
+ #define FIELD_ACCEPTED 0
+ 
+ // Types used in function signatures must appear before the Arduino
+@@ -82,9 +82,27 @@
+   // 20Q3: a detection is queued at detection. The 400 ms window follows as a
+   // separate windowOnly record: diagnostic telemetry with no NAV authority.
+   bool windowOnly;
++  SyncPoint type5AtOpening{},type6AtOpening{};
+ };
++// Experimental snapshots use receiver time only. Never enter NAVI judgment.
++struct SyncPoint { uint64_t receivedUs=0, pulses=0, boot=0; uint32_t seq=0; bool valid=false,continuous=false; };
++static portMUX_TYPE syncMux=portMUX_INITIALIZER_UNLOCKED;
++static SyncPoint syncType5{},syncType6{};
++static uint32_t syncType6Gap=0,syncType6Bad=0;
++struct __attribute__((packed)) SyncPulseWire {
++  uint16_t magic; uint8_t version,type; uint32_t sid,sequence;
++  uint64_t bootId,completedPulses,completedUs,intervalUs,nominalUm;
++  uint32_t pitchUm; uint8_t opticalReason; uint16_t span,crc;
++};
++static_assert(sizeof(SyncPulseWire)==61,"Type-6 contract mismatch");
++static uint16_t syncCrc(const uint8_t* data,size_t n){
++  uint16_t c=0xffff;
++  while(n--){c^=uint16_t(*data++)<<8;
++    for(int i=0;i<8;++i)c=(c&0x8000)?uint16_t((c<<1)^0x1021):uint16_t(c<<1);}
++  return c;
++}
+ struct HallDecisionMsg { BaselineOutcome d; uint32_t t; };
+-struct IrRx { uint8_t mac[6]; uint64_t receivedUs; uint8_t bytes[110]; };
++struct IrRx { uint8_t mac[6]; uint64_t receivedUs; uint8_t bytes[110]; uint16_t length; };
+ struct PubMsg { char topic[72]; char payload[1200]; uint16_t len; bool retain; };
+ struct CmdMsg { char topic[72]; char payload[64]; };
+ 
+@@ -629,6 +647,10 @@
+       if(!pending.serial){estopAsserted=true;continue;}
+       pending.openedAtMs=opening.detectedAtMs;
+       pending.capturedUs=esp_timer_get_time();
++      portENTER_CRITICAL(&syncMux);
++      pending.type5AtOpening=syncType5;
++      pending.type6AtOpening=syncType6;
++      portEXIT_CRITICAL(&syncMux);
+       pending.raw=opening.rawAtDetect;pending.baseline=opening.localRef;
+       pending.polarity=opening.polarity;pending.pwm=actualPwm;
+       pending.baselineAgeMs=opening.baselineAgeMs;
+@@ -656,9 +678,11 @@
+ }
+ 
+ static void onIr(const esp_now_recv_info_t* info,const uint8_t* bytes,int length){
+-  if(!info || !bytes || length!=110 || bytes[0]!=0x52 || bytes[1]!=0x49 || bytes[3]!=5)return;
++  if(!info || !bytes || length<4 || length>110 ||
++     bytes[0]!=0x52 || bytes[1]!=0x49 || bytes[2]!=1 ||
++     !((bytes[3]==5 && length==110) || (bytes[3]==6 && length==61)))return;
+   IrRx packet;memcpy(packet.mac,info->src_addr,6);packet.receivedUs=esp_timer_get_time();
+-  memcpy(packet.bytes,bytes,110);
++  memcpy(packet.bytes,bytes,length);packet.length=length;
+   if(irQ && xQueueSend(irQ,&packet,0)!=pdTRUE)irQueueDrops=irQueueDrops+1;
+ }
+ static void serviceMovement(){
+@@ -670,6 +694,28 @@
+   }
+   IrRx packet;
+   while(irQ && xQueueReceive(irQ,&packet,0)==pdTRUE){
++    if(packet.length==sizeof(SyncPulseWire) && packet.bytes[3]==6){
++      SyncPulseWire e{};memcpy(&e,packet.bytes,sizeof(e));
++      if(e.magic!=0x4952 || e.version!=1 || e.type!=6 || !e.bootId ||
++         !e.completedPulses || !e.completedUs || !e.pitchUm ||
++         e.completedPulses>UINT64_MAX/e.pitchUm ||
++         e.nominalUm!=e.completedPulses*uint64_t(e.pitchUm) ||
++         syncCrc(packet.bytes,59)!=e.crc){++syncType6Bad;continue;}
++      portENTER_CRITICAL(&syncMux);
++      const SyncPoint old=syncType6;
++      const bool same=old.valid && old.boot==e.bootId;
++      const uint32_t step=e.sequence-old.seq;
++      if(same && (step==0 || step>=0x80000000u ||
++                  e.completedPulses<=old.pulses)){
++        ++syncType6Bad;
++      }else{
++        if(same && (step!=1 || e.completedPulses-old.pulses!=1))++syncType6Gap;
++        syncType6={packet.receivedUs,e.completedPulses,e.bootId,e.sequence,true,
++                   same && step==1 && e.completedPulses-old.pulses==1};
++      }
++      portEXIT_CRITICAL(&syncMux);
++      continue; // Never feed Type-6 to the legacy Type-5 odometer.
++    }
+     if(ngr_nav::movementCrc(packet.bytes,108)==uint16_t(packet.bytes[108]|uint16_t(packet.bytes[109])<<8)){
+       memcpy(lastSeenMac,packet.mac,6);++seenFrames;
+     }
+@@ -682,6 +728,11 @@
+       // dashboard/status publication. The snapshot remains byte-for-byte
+       // available inside wire; recorder output cannot influence either
+       // movement or health admission.
++      const auto& latest=movement.latest();
++      portENTER_CRITICAL(&syncMux);
++      syncType5={packet.receivedUs,latest.completedPulses,latest.bootId,
++                 latest.sequence,true,true};
++      portEXIT_CRITICAL(&syncMux);
+       naviSyncRecorder.addIr(
+         packet.receivedUs,packet.mac,
+         movementResult == ngr_nav::RxResult::Reset ? 2 : 1,
+@@ -1285,6 +1336,21 @@
+     if(j.windowOnly){publishHallWindow(j);continue;}
+     if(j.serial>handledEventSerial)handledEventSerial=j.serial;
+     if(j.epoch!=navEpoch){++staleJudged;continue;}
++    // Diagnostic only: the exact snapshots seen by the Hall task at detection.
++    const auto a=j.type5AtOpening,b=j.type6AtOpening;
++    const bool aOk=a.valid && a.receivedUs<=j.capturedUs;
++    const bool bOk=b.valid && b.continuous && b.receivedUs<=j.capturedUs &&
++                   (!aOk || a.boot==b.boot);
++    Serial.printf("[IR_SYNC] hall=%lu t_us=%llu t5=%llu t5_age_ms=%lld "
++                  "t6=%llu t6_age_ms=%lld t6_minus_t5=%lld gaps=%lu bad=%lu "
++                  "authority=OBSERVE_ONLY\n",
++                  (unsigned long)j.serial,(unsigned long long)j.capturedUs,
++                  (unsigned long long)(aOk?a.pulses:0),
++                  aOk?(long long)((j.capturedUs-a.receivedUs)/1000):-1LL,
++                  (unsigned long long)(bOk?b.pulses:0),
++                  bOk?(long long)((j.capturedUs-b.receivedUs)/1000):-1LL,
++                  aOk&&bOk?(long long)b.pulses-(long long)a.pulses:0LL,
++                  (unsigned long)syncType6Gap,(unsigned long)syncType6Bad);
+     const auto point=movement.at(j.capturedUs,esp_timer_get_time());
+     const auto before=navigator.status();
+     NavObservation p;p.openedAtMs=j.openedAtMs;p.polarity=j.polarity;

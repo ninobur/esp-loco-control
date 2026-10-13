@@ -1,0 +1,16 @@
+PASS test_20q_standards
+PASS test_coherence
+PASS test_ir_health_monitor
+PASS test_ir_speed
+PASS test_navi_stop_display
+PASS test_navi_sync_recorder
+PASS test_proximal_recovery
+PASS test_station_correction
+PASS test_station_position
+PASS test_x22r_equivalence
+PASS shadow monitor: health/zero, watchdog, alignment, epoch boundaries, queued-loss fence, CRC/source/order, calibration/reboot and JSON sizing
+PASS 13 real health JSON payloads; maximum 638 bytes
+PASS source equivalence: 13 historical headers, Hall acquisition, Type-5 processing, MQTT/motor/station services, navigation/control loop
+PASS Type-6 isolation: 240 real NAVI judgments across 10 patterns; Type-5 state, health/MM reference, recorder output and full NavStatus agree with original; genuine Type-5 overflow retained
+PASS causal Hall selection, future exclusion, deferred backlog, post-gap raw counts, foreign source, sequence wrap/duplicate/reorder, pairing reset, history/diagnostic queue bounds, formatting bounds
+PASS all 10 original C++ suites, original JSON checks, source equivalence and new isolation/timing regression

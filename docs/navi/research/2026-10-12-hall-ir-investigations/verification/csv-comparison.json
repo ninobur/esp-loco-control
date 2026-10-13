@@ -1,0 +1,86 @@
+[
+  {
+    "path": "hall-field-analysis-20260929/opening-position/cw_ccw_peak_comparison.csv",
+    "byte_identical": true,
+    "original_sha256": "317144685c8b876bb2c10a5fd8c4b1de62c22f53f5b87f99083b893f5c0a7011",
+    "replayed_sha256": "317144685c8b876bb2c10a5fd8c4b1de62c22f53f5b87f99083b893f5c0a7011"
+  },
+  {
+    "path": "hall-field-analysis-20260929/opening-position/interval_opening_distances.csv",
+    "byte_identical": true,
+    "original_sha256": "412489edd85c4412033a7ccb206db7ec0c63c2bfd0378628032744b01436771b",
+    "replayed_sha256": "412489edd85c4412033a7ccb206db7ec0c63c2bfd0378628032744b01436771b"
+  },
+  {
+    "path": "hall-field-analysis-20260929/opening-position/magnet_opening_variation.csv",
+    "byte_identical": true,
+    "original_sha256": "b02899ada312488f553bd6ad56262dbae0f23546b09a1a42be5cb922115ffdbb",
+    "replayed_sha256": "b02899ada312488f553bd6ad56262dbae0f23546b09a1a42be5cb922115ffdbb"
+  },
+  {
+    "path": "hall-field-analysis-20260929/opening-position/opening_passages.csv",
+    "byte_identical": true,
+    "original_sha256": "f0ebadd6437ae7e672fda75912b4513e59ae0b5dd03ecb01715fe73b1204b6f9",
+    "replayed_sha256": "f0ebadd6437ae7e672fda75912b4513e59ae0b5dd03ecb01715fe73b1204b6f9"
+  },
+  {
+    "path": "hall-field-analysis-20260929/opening-map/calibrated_opening_intervals.csv",
+    "byte_identical": true,
+    "original_sha256": "3640b01cda6a4ab1767a931ef47f4886c69e812b51dddb365c32b3c428e0f95e",
+    "replayed_sha256": "3640b01cda6a4ab1767a931ef47f4886c69e812b51dddb365c32b3c428e0f95e"
+  },
+  {
+    "path": "hall-field-analysis-20260929/opening-map/full_loop_distances.csv",
+    "byte_identical": true,
+    "original_sha256": "e8c34837964b7435f34c1b80f52676ace921cee5705262eb641dd39031304681",
+    "replayed_sha256": "e8c34837964b7435f34c1b80f52676ace921cee5705262eb641dd39031304681"
+  },
+  {
+    "path": "hall-field-analysis-20260929/opening-map/held_out_candidate_trials.csv",
+    "byte_identical": true,
+    "original_sha256": "a19e8ab03c441e4d51dcbd8ffa4b78486f4bd2f64ea92007d7e4fee0a31cc458",
+    "replayed_sha256": "a19e8ab03c441e4d51dcbd8ffa4b78486f4bd2f64ea92007d7e4fee0a31cc458"
+  },
+  {
+    "path": "hall-field-analysis-20260929/opening-map/mm115_116_diagnostic.csv",
+    "byte_identical": true,
+    "original_sha256": "0d5e1c04fd2c90547006a7c81d414b00b10d9a9eb6c360f2a24f9a3e959fc9cb",
+    "replayed_sha256": "0d5e1c04fd2c90547006a7c81d414b00b10d9a9eb6c360f2a24f9a3e959fc9cb"
+  },
+  {
+    "path": "hall-field-analysis-20260929/morphology-candidate/candidate_replay.csv",
+    "byte_identical": true,
+    "original_sha256": "5094a4cecf4b322fe78c7993c837486ffa8ea9e7e92c0f009862510e4a9add97",
+    "replayed_sha256": "5094a4cecf4b322fe78c7993c837486ffa8ea9e7e92c0f009862510e4a9add97"
+  },
+  {
+    "path": "hall-field-analysis-20260929/morphology-candidate/candidate_separation.csv",
+    "byte_identical": true,
+    "original_sha256": "86cbbcb514f7bb2ff2ccd42a766037fcb978c12d24879459491b2e459eac2618",
+    "replayed_sha256": "86cbbcb514f7bb2ff2ccd42a766037fcb978c12d24879459491b2e459eac2618"
+  },
+  {
+    "path": "hall-field-analysis-20260929/morphology-candidate/held_out_morphology_predictions.csv",
+    "byte_identical": true,
+    "original_sha256": "154d63f1287326724b69332d0b628e4e63344880f65417f05a653cdd2129a24c",
+    "replayed_sha256": "154d63f1287326724b69332d0b628e4e63344880f65417f05a653cdd2129a24c"
+  },
+  {
+    "path": "hall-field-analysis-20260929/morphology-candidate/morphology_features.csv",
+    "byte_identical": true,
+    "original_sha256": "e6da80f4c5c0da066a6dd7bccdacc15fb33d183a198836fe44da6bd825b7fd22",
+    "replayed_sha256": "e6da80f4c5c0da066a6dd7bccdacc15fb33d183a198836fe44da6bd825b7fd22"
+  },
+  {
+    "path": "hall-field-analysis-20260929/morphology-candidate/synthetic_impostor_cases.csv",
+    "byte_identical": true,
+    "original_sha256": "6868e5a1bfc3e2557e3e99bb1a08a9db2ef55d8378a18af09f48099b3d08dc35",
+    "replayed_sha256": "6868e5a1bfc3e2557e3e99bb1a08a9db2ef55d8378a18af09f48099b3d08dc35"
+  },
+  {
+    "path": "hall-field-analysis-20260929/waveform-254-257/waveform_metrics.csv",
+    "byte_identical": true,
+    "original_sha256": "ba0f6659905f3617d88883e1f4da96fea79f988859ed33e344dc61ffde04e7ce",
+    "replayed_sha256": "ba0f6659905f3617d88883e1f4da96fea79f988859ed33e344dc61ffde04e7ce"
+  }
+]
