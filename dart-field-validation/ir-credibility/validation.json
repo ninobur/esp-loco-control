@@ -1,0 +1,15 @@
+{
+  "date": "2026-10-14",
+  "scope": "Isolated approved IR credibility policy evaluator; not integrated or activated",
+  "host_command": "c++ -std=c++17 -Wall -Wextra -Werror -fsanitize=address,undefined dart-field-validation/ir-credibility/test_ir_credibility.cpp -o /tmp/navi-ir-credibility-test && /tmp/navi-ir-credibility-test",
+  "result": "PASS 223 IR credibility assertions (policy evaluator only)",
+  "esp32_core_installed": "3.3.12",
+  "complete_sketch_compiled_this_increment": false,
+  "flashed": false,
+  "source_sha256": "d9e4a6317290bb79d7f2d2003bc47713ebd339600440c6e6b4a7b526deaac642",
+  "files": {
+    "NaviIrCredibility.h": "a5c8a364b543b8d99ba8c663159b794cf833c07e50257e56a394fa13038927f6",
+    "test_ir_credibility.cpp": "9d28d1326b66c92e61302f9da51316434d78a96c69d075d50a6ee34162d7c96f",
+    "APPROVED_RULES.txt": "d9e4a6317290bb79d7f2d2003bc47713ebd339600440c6e6b4a7b526deaac642"
+  }
+}

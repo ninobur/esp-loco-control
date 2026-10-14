@@ -1,0 +1,122 @@
+[
+  {
+    "arm": "NAVI_EWO_0_1_MM045_STOP",
+    "test": "test_map_adapter",
+    "compiled": true,
+    "exit": 0
+  },
+  {
+    "arm": "NAVI_EWO_0_1_MM045_STOP",
+    "test": "test_integrated_core",
+    "compiled": true,
+    "exit": 0
+  },
+  {
+    "arm": "NAVI_EWO_0_1_MM045_STOP",
+    "test": "test_recorder",
+    "compiled": true,
+    "exit": 0
+  },
+  {
+    "arm": "NAVI_EWO_0_1_MM045_STOP",
+    "test": "test_review_regressions",
+    "compiled": true,
+    "exit": 0
+  },
+  {
+    "arm": "NAVI_EWO_0_1_MM045_STOP",
+    "test": "test_ir_authority",
+    "compiled": true,
+    "exit": 0
+  },
+  {
+    "arm": "NAVI_EWO_0_1_MM045_STOP",
+    "test": "test_stop_overlay",
+    "compiled": true,
+    "exit": 0
+  },
+  {
+    "arm": "NAVI_EWO_0_1_MM045_STOP",
+    "test": "test_first_target_after_declare",
+    "compiled": true,
+    "exit": 0
+  },
+  {
+    "arm": "NAVI_EWO_0_1_MM045_STOP",
+    "test": "test_pwm_zero_localization",
+    "compiled": true,
+    "exit": 0
+  },
+  {
+    "arm": "NAVI_EWO_0_1_MM045_STOP",
+    "test": "test_ir_configuration",
+    "compiled": true,
+    "exit": 0
+  },
+  {
+    "arm": "NAVI_EWO_0_1_MM045_STOP",
+    "test": "test_pulse_observation",
+    "compiled": true,
+    "exit": 0
+  },
+  {
+    "arm": "NAVI_EWO_0_1_DART_EXPERIMENT_1",
+    "test": "test_map_adapter",
+    "compiled": true,
+    "exit": 0
+  },
+  {
+    "arm": "NAVI_EWO_0_1_DART_EXPERIMENT_1",
+    "test": "test_integrated_core",
+    "compiled": true,
+    "exit": 1
+  },
+  {
+    "arm": "NAVI_EWO_0_1_DART_EXPERIMENT_1",
+    "test": "test_recorder",
+    "compiled": true,
+    "exit": 0
+  },
+  {
+    "arm": "NAVI_EWO_0_1_DART_EXPERIMENT_1",
+    "test": "test_review_regressions",
+    "compiled": true,
+    "exit": -6
+  },
+  {
+    "arm": "NAVI_EWO_0_1_DART_EXPERIMENT_1",
+    "test": "test_ir_authority",
+    "compiled": true,
+    "exit": -6
+  },
+  {
+    "arm": "NAVI_EWO_0_1_DART_EXPERIMENT_1",
+    "test": "test_stop_overlay",
+    "compiled": true,
+    "exit": 0
+  },
+  {
+    "arm": "NAVI_EWO_0_1_DART_EXPERIMENT_1",
+    "test": "test_first_target_after_declare",
+    "compiled": true,
+    "exit": -6
+  },
+  {
+    "arm": "NAVI_EWO_0_1_DART_EXPERIMENT_1",
+    "test": "test_pwm_zero_localization",
+    "compiled": true,
+    "exit": -6
+  },
+  {
+    "arm": "NAVI_EWO_0_1_DART_EXPERIMENT_1",
+    "test": "test_ir_configuration",
+    "compiled": true,
+    "exit": 0
+  },
+  {
+    "arm": "NAVI_EWO_0_1_DART_EXPERIMENT_1",
+    "test": "test_pulse_observation",
+    "compiled": true,
+    "exit": 0
+  }
+]

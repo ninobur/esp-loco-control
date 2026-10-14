@@ -1,0 +1,8 @@
+{
+  "result": "PASS 223 assertions",
+  "source_sha256": {
+    "firmware/programs/NAVI_EWO_0_5/NaviIrCredibility.h": "a5c8a364b543b8d99ba8c663159b794cf833c07e50257e56a394fa13038927f6",
+    "firmware/programs/NAVI_EWO_0_5/tests/test_ir_credibility.cpp": "8b8a6d1a3e4ed9103a75c0926d8320a2972739f5f42a46731981164e9a4d7962"
+  },
+  "integration_active": false
+}

@@ -1,0 +1,17 @@
+FAIL: inside NAVI, median five plus mapped polarity and IR window confirms target
+FAIL: first threshold reading in qualifying population anchors clearance
+FAIL: IR update inside median window does not move the observed leading boundary
+FAIL: next target distance uses the leading boundary, not the later median point
+FAIL: clearance does not collect or replace reference
+FAIL: per-location 100-200 mm median replaces reference at 200 mm
+FAIL: without fresh IR, Hall cannot confirm another target
+FAIL: elapsed time cannot manufacture Hall confirmation or IR misses
+FAIL: normal miss fixture starts from confirmed MM0
+FAIL: consecutive Missed Magnets advance mapped target without moving physical origin
+FAIL: cumulative expected distance uses local tolerance for the current interval
+FAIL: confirmed target starts clearance before IR outage
+FAIL: stale IR holds target even after prior spatial collection
+FAIL: empty 100-200 mm interval is reported without inventing a median
+FAIL: correct CCW direction confirms the known target
+FAIL: Hall uses the latest received IR fact, not a stale earlier packet
+FAIL: 16 failures

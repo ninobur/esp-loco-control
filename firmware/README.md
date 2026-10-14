@@ -58,3 +58,22 @@ govern this cleanup and future handoffs, superseding the older catalog's practic
 of leaving a different build name behind a generic filename. Historical programs
 are not implicitly renamed. Keep evidence, controlling decisions and rollback
 provenance when updating this index.
+
+## October 14 EWO 0 4 and 0 5 experiments
+
+`programs/NAVI_EWO_0_4/` is the operator-renamed DART increment 1, based on
+`NAVI_EWO_0_1_MM045_STOP` at `85a2cf2a16d262abdf7258c60f60508b823913ee`.
+Its tested navigation code is preserved from the manifest-verified first
+increment. It implements dart comparison and diagnostic collection; it has no
+active IR credibility or historical timing authority. The original validation
+report is `dart-validation/REPORT.md`; its recorded old name remains historical
+provenance. NOT FIELD READY, NOT FLASHED; no production promotion.
+
+`programs/NAVI_EWO_0_5/` is the current unfinished continuation. It preserves the
+paused working edits and contains the approved provisional IR credibility
+evaluator and focused tests. The evaluator is not yet connected to the
+navigator. Timing-history policy, the no-observation stopping condition and
+OVERLAY behavior without fine IR remain unresolved. Its README and
+`dart-field-validation/ir-credibility/STATUS.md` describe the actual status.
+NOT FIELD READY, NOT FLASHED, NOT FULLY VALIDATED. Existing original EWO and
+COHERENCE R2 remain unchanged.

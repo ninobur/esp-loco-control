@@ -1,0 +1,30 @@
+[
+  {
+    "arm": "baseline",
+    "fqbn": "esp32:esp32:esp32",
+    "core": "/Users/davidbrown/Library/Arduino15/packages/esp32/hardware/esp32/3.3.12,/Users/davidbrown/Library/Arduino15/packages/esp32/hardware/esp32/3.3.12",
+    "options": "compiler.cpp.extra_flags=-I/tmp/navi-dart-build-config",
+    "credentials": "repository template placeholders, not deployment credentials",
+    "artifacts": [
+      {
+        "path": "/tmp/navi-dart-baseline-esp32-build/NAVI_EWO_0_1_MM045_STOP.ino.bin",
+        "sha256": "b7f172fb39b2aba06580aaf8868f0d0952ae2e4d07ff37e8368787893dd64411",
+        "bytes": 1018992
+      }
+    ]
+  },
+  {
+    "arm": "experiment",
+    "fqbn": "esp32:esp32:esp32",
+    "core": "/Users/davidbrown/Library/Arduino15/packages/esp32/hardware/esp32/3.3.12,/Users/davidbrown/Library/Arduino15/packages/esp32/hardware/esp32/3.3.12",
+    "options": "compiler.cpp.extra_flags=-I/tmp/navi-dart-build-config",
+    "credentials": "repository template placeholders, not deployment credentials",
+    "artifacts": [
+      {
+        "path": "/tmp/navi-dart-esp32-build/NAVI_EWO_0_1_DART_EXPERIMENT_1.ino.bin",
+        "sha256": "0cb4949ce4d8000a4c2d2fc1796c23a647642206d8a541627b6570d8cbc29003",
+        "bytes": 1033216
+      }
+    ]
+  }
+]

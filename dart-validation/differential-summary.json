@@ -1,0 +1,95 @@
+[
+  {
+    "case": "sep28_254_257",
+    "arm": "baseline",
+    "summary": "mm=127 confirmations=2 misses=0 core_bytes=6592",
+    "events": [
+      "2141648699,4,126,126,91134184,91134184,4966",
+      "2142865635,4,127,127,91452700,91452700,11049"
+    ]
+  },
+  {
+    "case": "sep28_254_257",
+    "arm": "experiment",
+    "summary": "openings=34 candidate=0 boundary=318516 origin=91452700 latest=91558872 ref=2074 incomplete=0 pending_hwm=17\nmm=127 confirmations=2 misses=0 core_bytes=15528",
+    "events": [
+      "2141837048,4,126,126,91134184,91192096,4995",
+      "2142866637,4,127,127,91452700,91452700,11060"
+    ]
+  },
+  {
+    "case": "sep28_425_426",
+    "arm": "baseline",
+    "summary": "mm=110 confirmations=2 misses=0 core_bytes=6592",
+    "events": [
+      "2552529635,4,109,109,135369300,135369300,18935",
+      "2578555638,4,110,110,135658860,135658860,149063"
+    ]
+  },
+  {
+    "case": "sep28_425_426",
+    "arm": "experiment",
+    "summary": "openings=8 candidate=1 boundary=310440 origin=135369300 latest=135678164 ref=1962 incomplete=0 pending_hwm=6\nmm=109 confirmations=1 misses=0 core_bytes=15528",
+    "events": [
+      "2552538637,4,109,109,135369300,135369300,18985"
+    ]
+  },
+  {
+    "case": "sep28_425_427_continued",
+    "arm": "baseline",
+    "summary": "mm=110 confirmations=2 misses=0 core_bytes=6592",
+    "events": [
+      "2552529635,4,109,109,135369300,135369300,18935",
+      "2578555638,4,110,110,135658860,135658860,149063"
+    ]
+  },
+  {
+    "case": "sep28_425_427_continued",
+    "arm": "experiment",
+    "summary": "openings=8 candidate=1 boundary=600000 origin=135658860 latest=135774684 ref=1962 incomplete=0 pending_hwm=6\nmm=110 confirmations=2 misses=0 core_bytes=15528",
+    "events": [
+      "2552538637,4,109,109,135369300,135369300,18985",
+      "2578815699,4,110,110,135658860,135697468,149075"
+    ]
+  },
+  {
+    "case": "oct09_early_synthetic",
+    "arm": "baseline",
+    "summary": "mm=64 confirmations=0 misses=1 core_bytes=6592",
+    "events": [
+      "18000,5,64,64,0,405384,0"
+    ]
+  },
+  {
+    "case": "oct09_early_synthetic",
+    "arm": "experiment",
+    "summary": "openings=1 candidate=0 boundary=399048 origin=250952 latest=405384 ref=2000 incomplete=0 pending_hwm=1\nmm=64 confirmations=1 misses=0 core_bytes=15528",
+    "events": [
+      "19000,4,64,64,250952,405384,20"
+    ]
+  },
+  {
+    "case": "oct13_mm017_1028000_synthetic",
+    "arm": "baseline",
+    "summary": "mm=17 confirmations=0 misses=0 core_bytes=6592",
+    "events": []
+  },
+  {
+    "case": "oct13_mm017_1028000_synthetic",
+    "arm": "experiment",
+    "summary": "openings=2 candidate=0 boundary=0 origin=0 latest=28956 ref=2000 incomplete=0 pending_hwm=2\nmm=17 confirmations=0 misses=0 core_bytes=15528",
+    "events": []
+  },
+  {
+    "case": "oct13_mm017_1179000_synthetic",
+    "arm": "baseline",
+    "summary": "mm=17 confirmations=0 misses=0 core_bytes=6592",
+    "events": []
+  },
+  {
+    "case": "oct13_mm017_1179000_synthetic",
+    "arm": "experiment",
+    "summary": "openings=2 candidate=0 boundary=0 origin=0 latest=28956 ref=2000 incomplete=0 pending_hwm=2\nmm=17 confirmations=0 misses=0 core_bytes=15528",
+    "events": []
+  }
+]

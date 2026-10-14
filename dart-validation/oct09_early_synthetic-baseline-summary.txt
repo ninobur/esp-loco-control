@@ -1,0 +1,1 @@
+mm=64 confirmations=0 misses=1 core_bytes=6592

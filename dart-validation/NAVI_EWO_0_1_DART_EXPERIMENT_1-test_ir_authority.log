@@ -1,0 +1,1 @@
+Assertion failed: (position.mm() == 1 && position.confirmedCount() == 1), function main, file test_ir_authority.cpp, line 65.

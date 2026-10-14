@@ -1,0 +1,309 @@
+CODEX — NAVI DART: Complete the Working Sketch for Field Testing
+
+Date: October 14, 2026
+Repository: ninobur/esp-loco-control
+Working foundation: NAVI_EWO_0_1_DART_EXPERIMENT_1
+Original baseline: NAVI_EWO_0_1_MM045_STOP, commit 85a2cf2a16d262abdf7258c60f60508b823913ee
+
+Assignment: Complete an operational NAVI DART sketch suitable for controlled field testing on Otto.
+
+We have spent considerable effort developing, reviewing, simulating, and refining NAVI’s geographic decision model. The essential architectural decisions are established.
+
+The next objective is to operate the locomotive, collect real evidence, and evaluate actual navigation performance.
+
+Do not initiate another broad architectural investigation. Do not substitute additional simulation studies for the requested working firmware.
+
+1. Governing objective
+
+NAVI must identify one qualifying geographic landmark at each expected mile-marker position.
+
+The navigation process is:
+
+Know target → Detect → Qualify → Compare → Select → Advance.
+
+The central innovation is the dart model: select the qualifying Hall observation closest to the expected geographic target.
+
+The model operates using either IR-measured distance or historically observed arrival time.
+
+The old ±15% distance gate and 650 ms fallback are eliminated completely.
+
+There is no automatic advancement without a qualifying Hall observation.
+
+2. Complete the existing DART implementation
+
+Continue from the implemented and host-tested NAVI_EWO_0_1_DART_EXPERIMENT_1.
+
+Do not start another architectural redesign or discard working code.
+
+Preserve:
+
+* Median-of-five, 70×2 Hall detection.
+* Successive elimination of candidates.
+* Closest-to-target comparison.
+* Immediate selection of a better qualifying candidate beyond the expected target.
+* Symmetrical completion when no better candidate appears.
+* Midpoint handling of equally qualified, equally distant candidates.
+* Consistent evaluated and saved IR coordinates.
+* Preserved observation and decision evidence.
+* One geographic advancement per selected target.
+
+Do not introduce morphology-based exclusions.
+
+Do not reinstate percentage-based distance gates.
+
+3. IR credibility
+
+Implement NAVI’s established evidence-based judgment.
+
+IR distance is useful when it is consistent with NAVI’s accumulated geographic knowledge.
+
+A magnetic encounter that is otherwise well supported must not be discarded merely because IR reports an unexpectedly short interval.
+
+NAVI should distinguish:
+
+A. Normal agreement
+
+The Hall observation, geographic sequence, and IR distance are consistent.
+
+Continue normal navigation.
+
+B. Isolated discrepancy
+
+A qualifying geographic observation disagrees with IR distance.
+
+Preserve the observation and discrepancy. Continue evaluating subsequent evidence.
+
+C. Repeated discrepancy
+
+Successive observations demonstrate that IR distance is no longer consistent with geographic reality.
+
+Withdraw IR’s authority for geographic selection, report the condition, and use historical timing.
+
+D. Restoration
+
+When subsequent evidence establishes that IR measurements have become consistent again, restore IR geographic authority.
+
+Do not treat a functioning packet stream as proof of accurate distance measurement.
+
+Do not invent arbitrary percentage gates.
+
+Use the existing accumulated observations, local and cumulative distance relationships, and documented operating context.
+
+If a numerical decision parameter is unavoidable, identify it explicitly and justify it from available evidence. Do not silently introduce one.
+
+4. Historical timing — the ticker tape
+
+Implement the agreed historical timing mechanism as NAVI’s alternative geographic measurement.
+
+This is not PWM-based distance estimation.
+
+NAVI records actual elapsed times between identified magnetic landmarks.
+
+Maintain bounded records indexed by geographic interval and direction.
+
+Use recent MM-to-MM timing for ordinary running.
+
+For station approaches, use previous successful traversal timing, including the elapsed time from throttle application following a station dwell.
+
+Preserve relevant stop, restart, and operating context.
+
+When IR is unavailable or has lost geographic credibility:
+
+1. Establish the expected arrival time of the next MM from applicable historical observations.
+2. Qualify Hall observations normally.
+3. Compare their arrival times against the expected target time.
+4. Select the closest qualifying observation using the same dart model.
+5. Advance once.
+
+Do not use a fixed 650 ms fallback.
+
+Do not implement PWM ticker-tape playback or closed-loop speed regulation.
+
+If no suitable historical timing record exists, report that limitation rather than inventing a prediction.
+
+5. Missing-magnet recognition
+
+Implement our agreed MM+1 versus MM+2 comparison.
+
+Suppose NAVI has identified MM090 and expects MM091.
+
+It knows the expected geographic positions of both MM091 and MM092.
+
+If a qualifying observation is closer to the expected position of MM092 than MM091, using the applicable distance or timing reference, NAVI concludes:
+
+MM091 was missed. The observation is more consistent with MM092. Stop and notify the operator.
+
+This applies even when MM091 and MM092 have the same polarity.
+
+Requirements:
+
+* Do not manufacture a Hall observation for MM091.
+* Do not silently advance through the missing target.
+* Preserve the actual observed evidence supporting MM092.
+* Initiate a controlled stop.
+* Report the missed target and observed geographic interpretation.
+* Require appropriate operator action before resuming.
+
+If Hall observations cease and NAVI cannot maintain geographic navigation, stop and notify the operator.
+
+Do not treat an ordinary interval between magnets as a sensor failure. Use the expected geographic progression and available movement evidence.
+
+6. Geographic reference
+
+Retain the existing 171-interval map for the initial field experiment.
+
+Do not automatically replace it with measurements from a single lap.
+
+The recent stability study found that individual Hall-to-Hall measurements vary because of pulse quantization, packet association, and other factors.
+
+The full-circuit IR measurement was highly repeatable, but local measurement accuracy remains less certain.
+
+Collect actual Hall-opening-to-Hall-opening distances during field operation.
+
+Preserve the distinction between:
+
+* Physical disc-magnet positions.
+* Hall magnetic-field opening positions.
+* IR cumulative coordinates.
+* NAVI’s selected geographic identities.
+
+Do not modify map calibration or stopping geometry during this experiment.
+
+7. Preserve TILE and STOP OVERLAY
+
+Preserve the existing twelve-tile rainbow-carpet architecture.
+
+The STOP OVERLAY is geographically anchored to the designated stopping tile and extends backward across eleven preceding tiles.
+
+Do not modify its established PWM settings, ramps, braking, dwell, departure, or stopping geometry.
+
+Preserve manual control, direction handling, STOP/GO, E-stop, and electrical protections.
+
+NAVI must supply selected geographic identity independently of fine IR availability.
+
+Verify that the OVERLAY receives the correct tile information and does not manufacture a fine-position measurement when IR is unavailable.
+
+8. Field-test instrumentation
+
+The working sketch must produce sufficient telemetry to explain its geographic decisions after a run.
+
+For each Hall observation, record:
+
+* Hall opening serial and timestamp.
+* ADC reference, polarity, and qualification.
+* Expected MM identity and polarity.
+* Expected distance or arrival time.
+* Measured IR distance and validity, when available.
+* Historical timing prediction, when applicable.
+* Candidate comparison and elimination.
+* Selected target and decision boundary.
+* Geographic advancement or missed-target judgment.
+* IR credibility status and reason for changes.
+* Current geographic anchor.
+* Relevant PWM, direction, stop, and restart context.
+
+Preserve the existing native Hall and IR recording facilities.
+
+Ensure that diagnostic recording cannot block Hall acquisition, motor control, or electrical protection.
+
+Verify that records actually reach the Pi recorder. Successful MQTT publication alone is insufficient.
+
+9. Controlled field-test sequence
+
+Prepare the sketch for a staged test on Otto.
+
+Stage A — Bench verification
+
+Compile with ESP32 core 3.3.12.
+
+Verify memory headroom, Hall sampling timing, candidate processing, queue behavior, and MQTT recording.
+
+Test the motor and STOP OVERLAY interfaces without operating the locomotive on the railroad.
+
+Stage B — Initial geographic trial
+
+With the operator supervising:
+
+1. Declare the initial geographic interval.
+2. Run a short controlled section containing several magnets.
+3. Verify that NAVI identifies the expected sequence.
+4. Confirm that selected Hall coordinates are preserved.
+5. Verify that repeated openings do not produce duplicate advancement.
+6. Inspect recorded decisions before extending the trial.
+
+Stage C — Full clockwise circuit
+
+If Stage B succeeds, conduct a complete clockwise circuit.
+
+Compare NAVI’s reported MM sequence against independently observed physical landmarks.
+
+Record Hall-to-Hall distances, decision latency, IR credibility judgments, and any unresolved events.
+
+Stage D — Repeated circuit
+
+Run a second clockwise circuit under comparable conditions.
+
+Measure the repeatability of Hall-opening distances and arrival times.
+
+Evaluate whether the historical timing system produces useful predictions.
+
+Stage E — Controlled degraded-IR evaluation
+
+Only after ordinary navigation is demonstrated, evaluate the no-IR timing mode under controlled conditions.
+
+Verify that it can identify successive magnets without the historical 650 ms fallback.
+
+Do not deliberately create unsafe track conditions or disable electrical protections.
+
+10. Required deliverables
+
+Provide:
+
+1. A complete, compilable experimental sketch.
+2. Exact source provenance and modified-file inventory.
+3. Host regression results, including known failures.
+4. ESP32 resource and timing results.
+5. Verified MQTT/Pi recording results.
+6. Field-test instructions and operator-visible diagnostics.
+7. A description of the IR credibility and timing rules actually implemented.
+8. A list of any remaining limitations affecting field operation.
+
+Do not claim field validation from host tests or simulation.
+
+Where a mechanism cannot be implemented defensibly from established evidence, identify the limitation and implement a clearly observable, conservative operating response rather than silently inventing geographic progress.
+
+11. Authorization
+
+This assignment authorizes Codex to complete the experimental firmware, compile it, run host tests, and prepare it for controlled hardware and field evaluation.
+
+Preserve the original EWO_0_1 and COHERENCE firmware.
+
+Do not modify the physical magnet map, IR calibration, or established STOP OVERLAY geometry.
+
+Do not flash or operate the locomotive without separate operator authorization.
+
+Do not merge into an operating branch.
+
+Commit and push only with separate authorization.
+
+Return a working sketch and a practical field-test procedure, not another architectural prospectus.
+
+⸻
+
+Governing principle
+
+NAVI is not navigating an unfamiliar railroad.
+
+It knows the map, recognizes magnetic landmarks, and accumulates experience from repeated journeys.
+
+Its job is to use that knowledge to make defensible geographic decisions.
+
+One target. One qualifying selection. One advancement.
+
+If a target is missed, stop and notify the operator.
+
+If IR becomes unreliable, use the historical timing evidence.
+
+If the evidence is insufficient to navigate, stop rather than invent a location.
+
+The next meaningful evidence should come from Otto running on the railroad.

@@ -1,0 +1,151 @@
+CODEX — NAVI EWO _0_4: IR Credibility Decision Rules
+
+Date: October 14, 2026
+Status: Approved provisional operating criteria, pending field validation.
+
+We have resolved the outstanding questions concerning IR inconsistency, withdrawal of geographic authority, and restoration.
+
+These decisions are intended for implementation in the working NAVI EWO _0_4 sketch.
+
+1. Governing principle
+
+NAVI trusts IR distance when it is consistent with established geographic knowledge.
+
+IR is a measurement instrument, not an independent geographic authority.
+
+NAVI determines geographic identity using qualified Hall observations and the dart-model comparison.
+
+When IR measurements contradict credible geographic evidence, NAVI must recognize the contradiction rather than repeatedly reject genuine magnets.
+
+The historical ±15% distance gate and 650 ms fallback are eliminated entirely.
+
+2. Provisional IR discrepancy criteria
+
+The current evidence is imperfect. We have therefore adopted temporary numerical criteria to permit field testing.
+
+Measured discrepancy	Classification	Action
+≤10 mm	Consistent	Continue normal operation
+>10 mm but <5 IR pulses	Inconsistent but possible	Record discrepancy; retain IR authority
+≥5 IR pulses	Impossible under the provisional operating rule	Withdraw IR geographic authority immediately
+
+At the installed nominal calibration:
+
+5 pulses × 9.652 mm = 48.260 mm.
+
+Exactly five pulses of discrepancy triggers withdrawal.
+
+These limits apply to the absolute difference between the measured Hall-to-Hall interval and the expected geographic interval.
+
+The 10 mm criterion is for IR credibility assessment only. It must not become a geographic candidate-acceptance gate.
+
+Likewise, the five-pulse criterion must not cause an otherwise qualifying Hall observation to be discarded.
+
+3. Immediate withdrawal
+
+One interval exhibiting a discrepancy of five or more IR pulses is sufficient to withdraw IR geographic authority.
+
+Do not require repeated failures.
+
+When withdrawal occurs:
+
+1. Preserve the qualifying Hall observation and geographic interpretation.
+2. Record the measured and expected distances.
+3. Record the discrepancy in millimeters and pulse equivalents.
+4. Mark IR as geographically unreliable.
+5. Continue collecting IR measurements.
+6. Switch geographic candidate comparison to the established historical timing dart model.
+7. Report the withdrawal and its supporting evidence.
+
+IR transport health and IR geographic credibility remain separate.
+
+A coherent stream of IR packets does not override evidence that its distance measurements are geographically impossible.
+
+4. Restoration of IR authority
+
+Withdrawal does not mean that IR measurements cease.
+
+The next independently identified 70×2 Hall opening establishes a fresh measurement reference.
+
+Measure the interval from that opening to the following identified Hall opening.
+
+If that new interval produces a possible distance measurement—meaning its discrepancy is less than five IR pulses—IR geographic authority may be restored.
+
+The new interval must have applicable IR measurements and a defensible geographic identification. Do not use IR’s disputed measurement as the sole proof of the identity needed to restore IR authority.
+
+Restoration must not retroactively validate the interval that caused withdrawal.
+
+Record the restoration event and its supporting measurement.
+
+A discrepancy greater than 10 mm but below five pulses remains inconsistent, but possible under the provisional rule.
+
+5. Geographic navigation during IR withdrawal
+
+The dart model remains NAVI’s sole geographic decision mechanism.
+
+When IR authority is withdrawn, NAVI uses applicable historical MM-to-MM arrival times as its comparison reference.
+
+There is no separate timer-based acceptance gate.
+
+If an observation is more consistent with MM+2 than MM+1, NAVI records the missed MM, stops, and notifies the operator.
+
+If NAVI cannot obtain sufficient Hall evidence to maintain navigation, it stops and notifies the operator.
+
+Do not manufacture Hall observations or geographic advancement.
+
+6. Field instrumentation
+
+Record every IR credibility transition with:
+
+* Current and expected MM.
+* Selected Hall opening ID.
+* Expected interval distance.
+* Measured interval distance.
+* Absolute and signed discrepancy.
+* IR pulse counts and measurement provenance.
+* Current IR authority state.
+* Withdrawal or restoration reason.
+* Geographic decision and selected measurement method.
+
+Preserve the observations needed to evaluate whether the provisional criteria are appropriate.
+
+7. Mandatory reassessment
+
+Both numerical criteria must be revisited after EWO _0_4 begins producing field data.
+
+Specifically:
+
+* The 10 mm inconsistency criterion.
+* The five-pulse withdrawal criterion.
+
+The earlier September 28 data included significant packet-association uncertainty. That limitation has since been addressed in the experimental implementation, but its improvement must be verified in actual operation.
+
+Do not treat the provisional values as permanent physical laws or modify them automatically during operation.
+
+8. Implementation boundaries
+
+Implement these criteria in the experimental EWO _0_4 navigation system.
+
+Preserve:
+
+* 70×2 Hall detection.
+* Closest-to-target geographic selection.
+* The original 171-interval map.
+* Existing IR calibration.
+* The TILE/STOP OVERLAY architecture.
+* Existing motor-control and electrical protections.
+
+Do not reinstate the ±15% gate, the 650 ms fallback, or automatic Hall-free geographic advancement.
+
+Do not change the numerical criteria without operator approval.
+
+⸻
+
+Governing decision
+
+More than 10 mm is inconsistent. Five or more IR pulses of discrepancy withdraws IR geographic authority immediately.
+
+Continue measuring IR while authority is withdrawn.
+
+A subsequent possible Hall-to-Hall measurement, beginning from a newly identified 70×2 opening, permits restoration.
+
+Geographic knowledge governs trust in the measurement—not the other way around.

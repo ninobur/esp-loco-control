@@ -1,0 +1,2 @@
+openings=8 candidate=1 boundary=600000 origin=135658860 latest=135774684 ref=1962 incomplete=0 pending_hwm=6
+mm=110 confirmations=2 misses=0 core_bytes=15528

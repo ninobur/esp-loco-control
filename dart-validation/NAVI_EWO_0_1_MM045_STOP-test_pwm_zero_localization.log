@@ -1,0 +1,1 @@
+PASS: PWM-zero movement holds until declaration; no later Hall/IR recovery or miss; dwell, context, frame faults and FT2 preserved

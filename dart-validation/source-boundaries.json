@@ -1,0 +1,66 @@
+[
+  {
+    "function": "hallTask",
+    "unchanged": true,
+    "sha256": "bdb24a60d8b76c454c6582739d89446d50696c20aff8803e43127d42d64e9fd3"
+  },
+  {
+    "function": "onIr",
+    "unchanged": true,
+    "sha256": "3ac6d6b1a2e30dc1a460d764a07a008631c2c653f10fa5530cabf14880990aba"
+  },
+  {
+    "function": "serviceIrIngress",
+    "unchanged": true,
+    "sha256": "80df404d1aa87e9e7e85754682feb062103781b590b7cd286580cbc67df60806"
+  },
+  {
+    "function": "handleCommand",
+    "unchanged": true,
+    "sha256": "de7a20e2bedea4f87d96a129fd5964ed83256b6799633d4407aa926335b79c05"
+  },
+  {
+    "function": "serviceRamp",
+    "unchanged": true,
+    "sha256": "4dcb96dd2de135c7e39587c8f2e34d2d88dfac92e31aac0d108c8cc804ff6492"
+  },
+  {
+    "function": "serviceBattery",
+    "unchanged": true,
+    "sha256": "27d929c0ad2008feb5c74a88c72294602acd6c1a61db2c2a86d666bf2455a442"
+  },
+  {
+    "function": "requestPwm",
+    "unchanged": true,
+    "sha256": "a1c93c1212a6a5b18bade8aaaf4cef9705db6d22e014e801de2a4df4c418fa23"
+  },
+  {
+    "function": "brakeStepMs",
+    "unchanged": true,
+    "sha256": "e8f0707235e58c630a8bb59b0807743d86ca18486bc4346238abb58d1f0b91c1"
+  },
+  {
+    "file": "NaviMapAdapter.h",
+    "unchanged": true
+  },
+  {
+    "file": "NaviEstop.h",
+    "unchanged": true
+  },
+  {
+    "file": "NaviCompatibility.h",
+    "unchanged": true
+  },
+  {
+    "file": "NaviPulseObservation.h",
+    "unchanged": true
+  },
+  {
+    "file": "NaviPulseTelemetry.h",
+    "unchanged": true
+  },
+  {
+    "file": "NaviSyncRecorder.h",
+    "unchanged": true
+  }
+]

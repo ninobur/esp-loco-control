@@ -1,0 +1,38 @@
+[
+  {
+    "case": "sep28_254_257",
+    "source": "/Users/davidbrown/NGR/NGR-Files/hall-field-analysis-20260929/sources/otto_navi_sync_20260928_101705.nsr",
+    "source_sha256": "3d9f0032d53fc647b1eb36fbdc579b9d6f7e06482bcd39db4505185b9b119cd7",
+    "seed_event": 253,
+    "end_event": 258,
+    "seed_mm": 125,
+    "anchor_um": 90854276,
+    "reference": 2007,
+    "fixture_sha256": "c09d3d37786e41dda39a8637e43656e522aa34405b00d06422e7461d1701166c",
+    "note": "Historical identity/reference seed, original five ADC values per batch. Native timestamps unavailable; all five receive batch timestamp. No physical truth assertion."
+  },
+  {
+    "case": "sep28_425_426",
+    "source": "/Users/davidbrown/NGR/NGR-Files/hall-field-analysis-20260929/sources/otto_navi_sync_20260928_101705.nsr",
+    "source_sha256": "3d9f0032d53fc647b1eb36fbdc579b9d6f7e06482bcd39db4505185b9b119cd7",
+    "seed_event": 424,
+    "end_event": 427,
+    "seed_mm": 108,
+    "anchor_um": 135050784,
+    "reference": 1956,
+    "fixture_sha256": "279c90b99c72113ec1415c69d15d708c29d3ef9283f1e75528d0f343401ea44e",
+    "note": "Historical identity/reference seed, original five ADC values per batch. Native timestamps unavailable; all five receive batch timestamp. No physical truth assertion."
+  },
+  {
+    "case": "sep28_425_427_continued",
+    "source": "/Users/davidbrown/NGR/NGR-Files/hall-field-analysis-20260929/sources/otto_navi_sync_20260928_101705.nsr",
+    "source_sha256": "3d9f0032d53fc647b1eb36fbdc579b9d6f7e06482bcd39db4505185b9b119cd7",
+    "seed_event": 424,
+    "end_event": 427,
+    "seed_mm": 108,
+    "anchor_um": 135050784,
+    "reference": 1956,
+    "fixture_sha256": "100946ec69de5a0025af7bb806aad0042c24bace2834e631ef6ae8d3a318ccf9",
+    "note": "Historical identity/reference seed, original five ADC values per batch. Native timestamps unavailable; all five receive batch timestamp. No physical truth assertion."
+  }
+]

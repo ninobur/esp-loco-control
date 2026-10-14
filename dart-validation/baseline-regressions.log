@@ -1,0 +1,12 @@
+PASS: 0 failures
+PASS: 0 failures
+PASS: 0 failures
+PASS: EWO NSR1 observation and decision records
+PASS: B1/B2, provisional boot reference, frame hold/redeclaration, causal time, cumulative loss
+PASS: stationary field, single/double reversal including missed MM, frame reset/redeclaration, 1s IR speed
+PASS: portable STOP geometry, both directions, cold entry, timed final/dwell, interruption, departure and repeat
+PASS: FT2 first target at 10/106/300/500 mm, onset safety, no first miss, normal second window/miss, polarity, context, reversal
+PASS: PWM-zero movement holds until declaration; no later Hall/IR recovery or miss; dwell, context, frame faults and FT2 preserved
+PASS: fixed Type-5 configuration, raw calibration metadata, real epochs, validity and diagnostic boundaries
+PASS native pulse measurements, source/boot/order/loss recovery, TX interoperability, wrap and wire validation
+PASS: 0 failures

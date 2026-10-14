@@ -1,0 +1,619 @@
+{
+  "files": [
+    {
+      "path": "dart-validation/NAVI_EWO_0_1_DART_EXPERIMENT_1-test_first_target_after_declare.log",
+      "bytes": 162,
+      "sha256": "d7bfb8944b201ee79ec9c5c06d987fe4bcea5c9026728b962c2ab3640dd43c57"
+    },
+    {
+      "path": "dart-validation/NAVI_EWO_0_1_DART_EXPERIMENT_1-test_integrated_core.log",
+      "bytes": 1120,
+      "sha256": "6ece2ac49e37ce191940265799402ea76b3ba0122684bc59cfd36d8742e0c6a5"
+    },
+    {
+      "path": "dart-validation/NAVI_EWO_0_1_DART_EXPERIMENT_1-test_ir_authority.log",
+      "bytes": 126,
+      "sha256": "480cfbc16a86878ed2f57817dff46c5b6c4201b6596b475ced6ad8ea1e0d183d"
+    },
+    {
+      "path": "dart-validation/NAVI_EWO_0_1_DART_EXPERIMENT_1-test_ir_configuration.log",
+      "bytes": 108,
+      "sha256": "c3df67ba0ffaa4fd0366dba8e14b245b25ea16a3d2fd3d977885e2916ef00683"
+    },
+    {
+      "path": "dart-validation/NAVI_EWO_0_1_DART_EXPERIMENT_1-test_map_adapter.log",
+      "bytes": 17,
+      "sha256": "103bedf9a437b672fa27b11a4343c0e7ed97fb4f10d91905712b06fafa30c7c7"
+    },
+    {
+      "path": "dart-validation/NAVI_EWO_0_1_DART_EXPERIMENT_1-test_pulse_observation.log",
+      "bytes": 111,
+      "sha256": "304d9ce0ebfb629190515ffd1c7f176c8e35e9bad127fbb1db61a69bba0e3a24"
+    },
+    {
+      "path": "dart-validation/NAVI_EWO_0_1_DART_EXPERIMENT_1-test_pwm_zero_localization.log",
+      "bytes": 133,
+      "sha256": "6d178197aae612455f8ce307398accbf3e05baeff653853b461b98a957dbcf26"
+    },
+    {
+      "path": "dart-validation/NAVI_EWO_0_1_DART_EXPERIMENT_1-test_recorder.log",
+      "bytes": 48,
+      "sha256": "2ef2e80de6b7760078164cd3be8feaa7a4ce1890ff41c8887db0d41c516621d4"
+    },
+    {
+      "path": "dart-validation/NAVI_EWO_0_1_DART_EXPERIMENT_1-test_review_regressions.log",
+      "bytes": 125,
+      "sha256": "3764c3cc09b8c7d78d722f86d93dd76c81299ceeb6738c5dab5ad9d6507559e4"
+    },
+    {
+      "path": "dart-validation/NAVI_EWO_0_1_DART_EXPERIMENT_1-test_stop_overlay.log",
+      "bytes": 113,
+      "sha256": "febe4395aace5312e7657bd16ddb6920ed20d3c1bc1136661fd0119b5b8771e6"
+    },
+    {
+      "path": "dart-validation/NAVI_EWO_0_1_MM045_STOP-test_first_target_after_declare.log",
+      "bytes": 129,
+      "sha256": "45fdc51bf66d64ebf4053bfc6c4867761b2b0df9d7d77c63decf4884e79a7428"
+    },
+    {
+      "path": "dart-validation/NAVI_EWO_0_1_MM045_STOP-test_integrated_core.log",
+      "bytes": 17,
+      "sha256": "103bedf9a437b672fa27b11a4343c0e7ed97fb4f10d91905712b06fafa30c7c7"
+    },
+    {
+      "path": "dart-validation/NAVI_EWO_0_1_MM045_STOP-test_ir_authority.log",
+      "bytes": 107,
+      "sha256": "2b1a9152f6a8725454c7db57740f77e8520de124adac0fc10d2845a289c67443"
+    },
+    {
+      "path": "dart-validation/NAVI_EWO_0_1_MM045_STOP-test_ir_configuration.log",
+      "bytes": 108,
+      "sha256": "c3df67ba0ffaa4fd0366dba8e14b245b25ea16a3d2fd3d977885e2916ef00683"
+    },
+    {
+      "path": "dart-validation/NAVI_EWO_0_1_MM045_STOP-test_map_adapter.log",
+      "bytes": 17,
+      "sha256": "103bedf9a437b672fa27b11a4343c0e7ed97fb4f10d91905712b06fafa30c7c7"
+    },
+    {
+      "path": "dart-validation/NAVI_EWO_0_1_MM045_STOP-test_pulse_observation.log",
+      "bytes": 111,
+      "sha256": "304d9ce0ebfb629190515ffd1c7f176c8e35e9bad127fbb1db61a69bba0e3a24"
+    },
+    {
+      "path": "dart-validation/NAVI_EWO_0_1_MM045_STOP-test_pwm_zero_localization.log",
+      "bytes": 131,
+      "sha256": "cae3159416a49bacd98980e81c9ce942af8e6620e79a5708b5cb95d5407d7f43"
+    },
+    {
+      "path": "dart-validation/NAVI_EWO_0_1_MM045_STOP-test_recorder.log",
+      "bytes": 48,
+      "sha256": "2ef2e80de6b7760078164cd3be8feaa7a4ce1890ff41c8887db0d41c516621d4"
+    },
+    {
+      "path": "dart-validation/NAVI_EWO_0_1_MM045_STOP-test_review_regressions.log",
+      "bytes": 96,
+      "sha256": "f7780dcdab12e400fdd4ddae880f810e415f9782fa0b844315b646b8a132c690"
+    },
+    {
+      "path": "dart-validation/NAVI_EWO_0_1_MM045_STOP-test_stop_overlay.log",
+      "bytes": 113,
+      "sha256": "febe4395aace5312e7657bd16ddb6920ed20d3c1bc1136661fd0119b5b8771e6"
+    },
+    {
+      "path": "dart-validation/REPORT.md",
+      "bytes": 14850,
+      "sha256": "c640b5e36fd6aca7638f2dbadfb8e0d7153049009daf9582abf3815ed1a53e56"
+    },
+    {
+      "path": "dart-validation/active-regressions.log",
+      "bytes": 546,
+      "sha256": "09391db424778d2bcd30e2138461f0e5496ac55611ddd1aa2024e020387667af"
+    },
+    {
+      "path": "dart-validation/baseline-regressions.log",
+      "bytes": 911,
+      "sha256": "c4d4bdd215b63d75f535e003f5df0eb67410b18a93d2df00a6bec1153467fc38"
+    },
+    {
+      "path": "dart-validation/benchmark-baseline.json",
+      "bytes": 107,
+      "sha256": "1dbde1edd0a625e0be745401923aaaedcd8f008c26f180ad931aeb0245f8b22b"
+    },
+    {
+      "path": "dart-validation/benchmark-experiment.json",
+      "bytes": 108,
+      "sha256": "7f1eed051d6da82879483c9514fdc1d01a157dc6642e37bd9c76e32f5da0e8eb"
+    },
+    {
+      "path": "dart-validation/benchmark.cpp",
+      "bytes": 919,
+      "sha256": "704519cd5fd42a4d0daccee88617ea2d6255c1c55c92c2bfdf769829276f4be3"
+    },
+    {
+      "path": "dart-validation/build-provenance.json",
+      "bytes": 1245,
+      "sha256": "06802525a4d34756d118541697282e290003b98b60245d7d50f69e2faba0babe"
+    },
+    {
+      "path": "dart-validation/check_boundaries.py",
+      "bytes": 1720,
+      "sha256": "dc4aa7ac6210717976cdfb766c520892907dec51b4f7e48dc26b431620c3434b"
+    },
+    {
+      "path": "dart-validation/dart-invariants.log",
+      "bytes": 30,
+      "sha256": "e9b6900f216096df24e2f95314ae404461394dd6299350f75a90feb95716d423"
+    },
+    {
+      "path": "dart-validation/dart-tests.log",
+      "bytes": 119,
+      "sha256": "0e75fa9d61e4ae02f111edc5bc82ee569e7b16b455c4b984d08762f0d90a2655"
+    },
+    {
+      "path": "dart-validation/diagnostic-traffic.json",
+      "bytes": 1928,
+      "sha256": "c24fd2e6b3ed5e36e364601ca9899835461f3d443b520d5b90b5240a563044c1"
+    },
+    {
+      "path": "dart-validation/differential-summary.json",
+      "bytes": 3178,
+      "sha256": "d3b5bc019e85a3f4159168151295a9d137472aa15dd92e5edccb8a6534bc7221"
+    },
+    {
+      "path": "dart-validation/esp32-baseline.log",
+      "bytes": 2206,
+      "sha256": "dc51ecbae9f82c1da99cb5df03df90409c23231da2bb79f1c6aa2250d1990038"
+    },
+    {
+      "path": "dart-validation/esp32-core-symbol.txt",
+      "bytes": 101,
+      "sha256": "16e587ff3b14c5f5be5fe7fa2af5e271863ac81f33040534707da8ab665fb781"
+    },
+    {
+      "path": "dart-validation/esp32-experiment.log",
+      "bytes": 209,
+      "sha256": "647a1d8d285bf13fdb3868f42b1a0d3e04ef13fdc082c8ffe9bbf83b87d758de"
+    },
+    {
+      "path": "dart-validation/inherited-results.json",
+      "bytes": 2469,
+      "sha256": "7203c2dd916fb043b84aca4e1709187c6dcaaca3b39850a1fcee9832659c6999"
+    },
+    {
+      "path": "dart-validation/inherited-summary.log",
+      "bytes": 2469,
+      "sha256": "7203c2dd916fb043b84aca4e1709187c6dcaaca3b39850a1fcee9832659c6999"
+    },
+    {
+      "path": "dart-validation/make_replay.py",
+      "bytes": 3746,
+      "sha256": "eea6f8b6de9a613d45f59263f75179ae585da3a910f7255a2528b2ae9aac06aa"
+    },
+    {
+      "path": "dart-validation/oct09_early-baseline-summary.txt",
+      "bytes": 47,
+      "sha256": "06082d66527858f1c0591d32bbfbf31a7461d7169f9ad4cff70d0a2b918fe6b3"
+    },
+    {
+      "path": "dart-validation/oct09_early-baseline.csv",
+      "bytes": 25,
+      "sha256": "004671b3c4eb4b827a2f6d80c5f8fcb241474dd730240b36a8d09f49550b4d96"
+    },
+    {
+      "path": "dart-validation/oct09_early-experiment-summary.txt",
+      "bytes": 151,
+      "sha256": "b09f18b2a8cd4fc6cded4b486e4c88582857028e0d4ec2f46151559c6495a50e"
+    },
+    {
+      "path": "dart-validation/oct09_early-experiment.csv",
+      "bytes": 31,
+      "sha256": "e3f9de85a02bf2eeada26df256304da02bf78b93e4922da3717aef54d741d6ee"
+    },
+    {
+      "path": "dart-validation/oct09_early_synthetic-baseline-summary.txt",
+      "bytes": 47,
+      "sha256": "06082d66527858f1c0591d32bbfbf31a7461d7169f9ad4cff70d0a2b918fe6b3"
+    },
+    {
+      "path": "dart-validation/oct09_early_synthetic-baseline.csv",
+      "bytes": 25,
+      "sha256": "004671b3c4eb4b827a2f6d80c5f8fcb241474dd730240b36a8d09f49550b4d96"
+    },
+    {
+      "path": "dart-validation/oct09_early_synthetic-diagnostics.jsonl",
+      "bytes": 1624,
+      "sha256": "44b859d20b37d407bbfedd3bc47ec353a979fe4c33574687644e73dbcb2950fa"
+    },
+    {
+      "path": "dart-validation/oct09_early_synthetic-experiment-summary.txt",
+      "bytes": 151,
+      "sha256": "df7442bed3dce3bdf2821ac7d7fce0be1672d13d3718b470440cbc681987c738"
+    },
+    {
+      "path": "dart-validation/oct09_early_synthetic-experiment.csv",
+      "bytes": 31,
+      "sha256": "e3f9de85a02bf2eeada26df256304da02bf78b93e4922da3717aef54d741d6ee"
+    },
+    {
+      "path": "dart-validation/oct09_early_synthetic.txt",
+      "bytes": 774,
+      "sha256": "3f7be02460bf57a79147d60e666872d70c1940dbcd1778d13c97235de091eb2a"
+    },
+    {
+      "path": "dart-validation/oct13_mm017_1028000_synthetic-baseline-summary.txt",
+      "bytes": 47,
+      "sha256": "9d04cdfedf324c60c13208f7ed9502374003743905a231ae060167cfb2507485"
+    },
+    {
+      "path": "dart-validation/oct13_mm017_1028000_synthetic-baseline.csv",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "dart-validation/oct13_mm017_1028000_synthetic-diagnostics.jsonl",
+      "bytes": 2136,
+      "sha256": "3a24c0732312e696b52297282caee3c225864e753fccd2f1e3a6ee937b66e755"
+    },
+    {
+      "path": "dart-validation/oct13_mm017_1028000_synthetic-experiment-summary.txt",
+      "bytes": 140,
+      "sha256": "5c2faf3119e5ddb0b6feef9994d9b26ee4cc74ffe8731da5f2160e759d57dc14"
+    },
+    {
+      "path": "dart-validation/oct13_mm017_1028000_synthetic-experiment.csv",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "dart-validation/oct13_mm017_1028000_synthetic.txt",
+      "bytes": 948,
+      "sha256": "64d124558292b3b850e3dacdb4cab969bf9b3a1b9f3a00d42d96e6d9eb652db6"
+    },
+    {
+      "path": "dart-validation/oct13_mm017_1179000_synthetic-baseline-summary.txt",
+      "bytes": 47,
+      "sha256": "9d04cdfedf324c60c13208f7ed9502374003743905a231ae060167cfb2507485"
+    },
+    {
+      "path": "dart-validation/oct13_mm017_1179000_synthetic-baseline.csv",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "dart-validation/oct13_mm017_1179000_synthetic-diagnostics.jsonl",
+      "bytes": 2136,
+      "sha256": "a5f86576bdb13c2eb89d0c289256d6cd43f1849baa33816692b88cb8c309f148"
+    },
+    {
+      "path": "dart-validation/oct13_mm017_1179000_synthetic-experiment-summary.txt",
+      "bytes": 140,
+      "sha256": "5c2faf3119e5ddb0b6feef9994d9b26ee4cc74ffe8731da5f2160e759d57dc14"
+    },
+    {
+      "path": "dart-validation/oct13_mm017_1179000_synthetic-experiment.csv",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "dart-validation/oct13_mm017_1179000_synthetic.txt",
+      "bytes": 948,
+      "sha256": "2fcdef63c1d8ace574287d2ea7b08ec961a8918e6cc19eea9d50b0906d1800d9"
+    },
+    {
+      "path": "dart-validation/production_replay.cpp",
+      "bytes": 2638,
+      "sha256": "726b0ac19da54db0cb2ed2a8e6bfa0bc87f49f6b58478b23e52cb2507f0732a3"
+    },
+    {
+      "path": "dart-validation/replay-generation.log",
+      "bytes": 8107,
+      "sha256": "47fb8639cd34f675854cedef0307bfadcbacfcfa92e39bd8821130892e9a9f0d"
+    },
+    {
+      "path": "dart-validation/replay-provenance.json",
+      "bytes": 1914,
+      "sha256": "7afddc0121da7cfb6fbfb3f4573b9990ad3fe04223e2e5b27bd1ab473e929557"
+    },
+    {
+      "path": "dart-validation/replay-run.log",
+      "bytes": 101,
+      "sha256": "976c14618939d3fcb8e910f881f4e637aa7f7b8f1e614a55d5ae37e9f91b39a8"
+    },
+    {
+      "path": "dart-validation/run_inherited.py",
+      "bytes": 1085,
+      "sha256": "fa2e33e147a58e3d77ac65f3b9e07836a8460604d3931efed4b0131d8bfcc463"
+    },
+    {
+      "path": "dart-validation/run_replays.py",
+      "bytes": 1812,
+      "sha256": "4936000950eb0d899d9996c5a7887e7196a6dda2c32f179b5ccf45d613c35b01"
+    },
+    {
+      "path": "dart-validation/sep28_254_257-baseline-summary.txt",
+      "bytes": 48,
+      "sha256": "67745605d3685f43e83ac28a79223e8143021c156cd72d2b6176740a3596caff"
+    },
+    {
+      "path": "dart-validation/sep28_254_257-baseline.csv",
+      "bytes": 89,
+      "sha256": "350aa8d36748ee180b9414fadf99aee9f1e80c1905c4ecc5238982c7b2c64d5e"
+    },
+    {
+      "path": "dart-validation/sep28_254_257-diagnostics.jsonl",
+      "bytes": 45797,
+      "sha256": "71c60a33017886be071dd968b4e8b8205f1ff838d7e3fd7e0288ee06ea0876c5"
+    },
+    {
+      "path": "dart-validation/sep28_254_257-experiment-summary.txt",
+      "bytes": 158,
+      "sha256": "7e7e29faea34cc415dccf499c22c0c4bf1f9e3fefacadb7cca66e83f25c63b4b"
+    },
+    {
+      "path": "dart-validation/sep28_254_257-experiment.csv",
+      "bytes": 89,
+      "sha256": "219f0e3c39ed8293cbfbee7d9bba32effd4d5cc5d7681752c9a604d1f6fa889f"
+    },
+    {
+      "path": "dart-validation/sep28_254_257.txt",
+      "bytes": 336491,
+      "sha256": "c09d3d37786e41dda39a8637e43656e522aa34405b00d06422e7461d1701166c"
+    },
+    {
+      "path": "dart-validation/sep28_425_426-baseline-summary.txt",
+      "bytes": 48,
+      "sha256": "57eaeeb4bb9c92a49500b8ead8dbb07371d2c0972f6f967bd75ca62e91b0a68d"
+    },
+    {
+      "path": "dart-validation/sep28_425_426-baseline.csv",
+      "bytes": 95,
+      "sha256": "0b4eb518e7997a9ffc4fa1b98f374854e36931cf14d07aadcf5c00c10242bdd5"
+    },
+    {
+      "path": "dart-validation/sep28_425_426-diagnostics.jsonl",
+      "bytes": 12128,
+      "sha256": "a0c4e38495f6aa988d5c35bd52adf5e46450929346688f5b8dd14c71593a9160"
+    },
+    {
+      "path": "dart-validation/sep28_425_426-experiment-summary.txt",
+      "bytes": 158,
+      "sha256": "9ff46ab2bc3529b33c4e492d06a428ff66ba56029fa9bcd4f6ea42633ff1f05d"
+    },
+    {
+      "path": "dart-validation/sep28_425_426-experiment.csv",
+      "bytes": 47,
+      "sha256": "b6e062bc7b2be6098a94719a06f28126de9e7fec699a3be87de07bf717943868"
+    },
+    {
+      "path": "dart-validation/sep28_425_426.txt",
+      "bytes": 3815736,
+      "sha256": "279c90b99c72113ec1415c69d15d708c29d3ef9283f1e75528d0f343401ea44e"
+    },
+    {
+      "path": "dart-validation/sep28_425_427_continued-baseline-summary.txt",
+      "bytes": 48,
+      "sha256": "57eaeeb4bb9c92a49500b8ead8dbb07371d2c0972f6f967bd75ca62e91b0a68d"
+    },
+    {
+      "path": "dart-validation/sep28_425_427_continued-baseline.csv",
+      "bytes": 95,
+      "sha256": "0b4eb518e7997a9ffc4fa1b98f374854e36931cf14d07aadcf5c00c10242bdd5"
+    },
+    {
+      "path": "dart-validation/sep28_425_427_continued-diagnostics.jsonl",
+      "bytes": 13361,
+      "sha256": "73b0f2a96bc964bde2bdf9d8594f168b98bcbc5e640d75963eed1a59a16438a3"
+    },
+    {
+      "path": "dart-validation/sep28_425_427_continued-experiment-summary.txt",
+      "bytes": 158,
+      "sha256": "c8641430008bde3bd69a426aa0dcc0b2d16d0a90758b16be4b289565ad0e1037"
+    },
+    {
+      "path": "dart-validation/sep28_425_427_continued-experiment.csv",
+      "bytes": 95,
+      "sha256": "322c26753fd32b3ae2b6c2445cd2020bfa3c26efa52442c7a5f64d8ee0793f9b"
+    },
+    {
+      "path": "dart-validation/sep28_425_427_continued.txt",
+      "bytes": 3918600,
+      "sha256": "100946ec69de5a0025af7bb806aad0042c24bace2834e631ef6ae8d3a318ccf9"
+    },
+    {
+      "path": "dart-validation/source-boundaries.json",
+      "bytes": 1542,
+      "sha256": "10764d39d8226816a1a1c57312b684927f96feb5a5ff70973a12606b7b0556e4"
+    },
+    {
+      "path": "dart-validation/source-boundaries.log",
+      "bytes": 157,
+      "sha256": "033480b7720c8e00fbdbd516977de976dedd9a7e168edf361b5527eee3be8aa4"
+    },
+    {
+      "path": "dart-validation/source-provenance.json",
+      "bytes": 12700,
+      "sha256": "7e9b2041add1f6291164ff908d5192ce30d7ac8f937b3fbc7e852dc26fbc68e5"
+    },
+    {
+      "path": "dart-validation/test_transport.py",
+      "bytes": 2875,
+      "sha256": "2cca70bde9cb0a674a2f3bb4f79033a4d2566ae5513af17c1f4f19353f687564"
+    },
+    {
+      "path": "dart-validation/transport-run.log",
+      "bytes": 66,
+      "sha256": "3f791a0d62cac6839d1557e1bcd6089967a8393721a885826bc4759c548ecfca"
+    },
+    {
+      "path": "dart-validation/transport-test.log",
+      "bytes": 65,
+      "sha256": "647ae2ca4ce4555c56c40d8e88d8bc72749c548c7366ec017baee6110d98a751"
+    },
+    {
+      "path": "dart-validation/transport_generated.cpp",
+      "bytes": 4216,
+      "sha256": "d123982e6c77798353c8363c07db1488e57f5f99d62eb3985d18958de367726e"
+    },
+    {
+      "path": "firmware/README.md",
+      "bytes": 4343,
+      "sha256": "acd96bf9328324213f87a6f9e7acc9bf174ab460511d4d8c4414f9f2532fd4fb"
+    },
+    {
+      "path": "firmware/programs/NAVI_EWO_0_1_DART_EXPERIMENT_1/EwoStationStop.h",
+      "bytes": 20105,
+      "sha256": "dcf551729a1313a278965523bfac0ebf1d01034790e48d7b4deeea4413ee6e93"
+    },
+    {
+      "path": "firmware/programs/NAVI_EWO_0_1_DART_EXPERIMENT_1/HISTORY.md",
+      "bytes": 28618,
+      "sha256": "db957de5d46bd731352852a4ab752721a974d34a7764980f291ad2362a8dc68c"
+    },
+    {
+      "path": "firmware/programs/NAVI_EWO_0_1_DART_EXPERIMENT_1/NAVI_EWO_0_1_DART_EXPERIMENT_1.ino",
+      "bytes": 59189,
+      "sha256": "1250aaa18dda646bdffa31234e9f844e690b2bc9f0faa169d3a35fbddaee740f"
+    },
+    {
+      "path": "firmware/programs/NAVI_EWO_0_1_DART_EXPERIMENT_1/NaviCompatibility.h",
+      "bytes": 2151,
+      "sha256": "57cca89e75be7efadb5c0062a2ad5e2bbfa24acaa0d1e2ed174a475d7b3a09a3"
+    },
+    {
+      "path": "firmware/programs/NAVI_EWO_0_1_DART_EXPERIMENT_1/NaviDartEvidence.h",
+      "bytes": 1236,
+      "sha256": "fee9b905de9c5e2cb8c30c24897a9e5fd16452dbad1daf4c5326adb99993fe54"
+    },
+    {
+      "path": "firmware/programs/NAVI_EWO_0_1_DART_EXPERIMENT_1/NaviDartTelemetry.h",
+      "bytes": 1947,
+      "sha256": "a1f6ef04eaa6c3a838676711246cbff31ba63a418e19154307492c5bb12dbab5"
+    },
+    {
+      "path": "firmware/programs/NAVI_EWO_0_1_DART_EXPERIMENT_1/NaviEstop.h",
+      "bytes": 1031,
+      "sha256": "67143b776cc158aaabcebfe903700476e60d7626432e2a241c4f3ca15834b976"
+    },
+    {
+      "path": "firmware/programs/NAVI_EWO_0_1_DART_EXPERIMENT_1/NaviIntegratedCore.h",
+      "bytes": 34498,
+      "sha256": "0e1e54317672714e5bd770b1f995fdd361f470485c4b7c6ddbbfda5fafc1ef6d"
+    },
+    {
+      "path": "firmware/programs/NAVI_EWO_0_1_DART_EXPERIMENT_1/NaviMapAdapter.h",
+      "bytes": 1012,
+      "sha256": "12473a28770c1327832fbf53614da9f5e43d1db0a6dd2e6b8b8402dbff2fa459"
+    },
+    {
+      "path": "firmware/programs/NAVI_EWO_0_1_DART_EXPERIMENT_1/NaviPulseObservation.h",
+      "bytes": 8107,
+      "sha256": "901bce17d34b37917f557e017bc83f0c7730f82b702471235babaf4f36cc9ecd"
+    },
+    {
+      "path": "firmware/programs/NAVI_EWO_0_1_DART_EXPERIMENT_1/NaviPulseTelemetry.h",
+      "bytes": 2822,
+      "sha256": "2d889320127d5e87cf4d7b702a0dd1e42c610de5c2347d44d39c7c7d2a3efbed"
+    },
+    {
+      "path": "firmware/programs/NAVI_EWO_0_1_DART_EXPERIMENT_1/NaviStopOverlay.h",
+      "bytes": 8209,
+      "sha256": "af354176cc7b426a8321faaf9dc81c20ee998a117678d7f75fd93653c6e0590e"
+    },
+    {
+      "path": "firmware/programs/NAVI_EWO_0_1_DART_EXPERIMENT_1/NaviSyncRecorder.h",
+      "bytes": 22336,
+      "sha256": "daaa3bb7b65ce9e805728b37748c91017f39e6aac806807b69ab6fcf541ce189"
+    },
+    {
+      "path": "firmware/programs/NAVI_EWO_0_1_DART_EXPERIMENT_1/README.md",
+      "bytes": 4398,
+      "sha256": "d41a264babd93964818a74217e6e46bc7912a4f9e2f69bc61282b82303e399d1"
+    },
+    {
+      "path": "firmware/programs/NAVI_EWO_0_1_DART_EXPERIMENT_1/run_tests.sh",
+      "bytes": 619,
+      "sha256": "c3fff86d847f4039eb5bbe8b9d08def4d3ca161ceb21b84336dce6f9a384ee8c"
+    },
+    {
+      "path": "firmware/programs/NAVI_EWO_0_1_DART_EXPERIMENT_1/tests/emit_records.cpp",
+      "bytes": 1836,
+      "sha256": "a0ff4bc68f543d30170d8b5d12f72bb3f2cb061cd994c4d0a509b18d4f312dd4"
+    },
+    {
+      "path": "firmware/programs/NAVI_EWO_0_1_DART_EXPERIMENT_1/tests/emit_telemetry_contract.cpp",
+      "bytes": 1694,
+      "sha256": "17a3fd88d5e8d784aadae888bce122ba24c13d50e0687cbf1c6492393955835f"
+    },
+    {
+      "path": "firmware/programs/NAVI_EWO_0_1_DART_EXPERIMENT_1/tests/test_dart.cpp",
+      "bytes": 6820,
+      "sha256": "ab00d2485ffc38a6d896628ad5df5abaf9a86f439cbecc2cdb62658822199d1d"
+    },
+    {
+      "path": "firmware/programs/NAVI_EWO_0_1_DART_EXPERIMENT_1/tests/test_dart_invariants.cpp",
+      "bytes": 4246,
+      "sha256": "0fe5da0130da306b5d0cbc5ebe5ec638c3ea21ea5ce75242d485fc33956e4a2b"
+    },
+    {
+      "path": "firmware/programs/NAVI_EWO_0_1_DART_EXPERIMENT_1/tests/test_first_target_after_declare.cpp",
+      "bytes": 7447,
+      "sha256": "a8c7843fb8881cc67bc1793de863b7b062b1760e6f46ced0718247b99fdb2c4a"
+    },
+    {
+      "path": "firmware/programs/NAVI_EWO_0_1_DART_EXPERIMENT_1/tests/test_integrated_core.cpp",
+      "bytes": 15005,
+      "sha256": "1765c15db4fb52c7d968f2d80dd4d6b2d1a573030e4711d342ea704bdc0aafae"
+    },
+    {
+      "path": "firmware/programs/NAVI_EWO_0_1_DART_EXPERIMENT_1/tests/test_ir_authority.cpp",
+      "bytes": 10009,
+      "sha256": "4fbef3b1e920a665c3896c42c8237541f982c39269b65a409e737259e8fbccd0"
+    },
+    {
+      "path": "firmware/programs/NAVI_EWO_0_1_DART_EXPERIMENT_1/tests/test_ir_configuration.cpp",
+      "bytes": 5358,
+      "sha256": "ca62428521486508d4e3936e460990e9ad4c4af2819d2dbbc110bc2845fa5417"
+    },
+    {
+      "path": "firmware/programs/NAVI_EWO_0_1_DART_EXPERIMENT_1/tests/test_map_adapter.cpp",
+      "bytes": 1236,
+      "sha256": "8842292877515dcee28f5dee2d88cfeb7460ea3ae4fab1c46fa61d983ba020a7"
+    },
+    {
+      "path": "firmware/programs/NAVI_EWO_0_1_DART_EXPERIMENT_1/tests/test_measured_station_stop.cpp",
+      "bytes": 8524,
+      "sha256": "0a1a9048e02754c541876fcccccc9217eba089a8f9d7f767e9866a1c13081bd7"
+    },
+    {
+      "path": "firmware/programs/NAVI_EWO_0_1_DART_EXPERIMENT_1/tests/test_operational_adapters.cpp",
+      "bytes": 3575,
+      "sha256": "5f27264403652cd667cf655dc5c438f8b91dc7aef10583fec268d2c4456a3a2f"
+    },
+    {
+      "path": "firmware/programs/NAVI_EWO_0_1_DART_EXPERIMENT_1/tests/test_pulse_observation.cpp",
+      "bytes": 9657,
+      "sha256": "db2b746a7c1cb9e1c44da411b4b92ad8bef6f1375805eb87a749dc1098559390"
+    },
+    {
+      "path": "firmware/programs/NAVI_EWO_0_1_DART_EXPERIMENT_1/tests/test_pwm_zero_localization.cpp",
+      "bytes": 6501,
+      "sha256": "3ed2d244b77069dbcf4dc41d41a68da221a2fbd88c509d504288c36345b16b54"
+    },
+    {
+      "path": "firmware/programs/NAVI_EWO_0_1_DART_EXPERIMENT_1/tests/test_recorder.cpp",
+      "bytes": 3888,
+      "sha256": "825f0b49b97407c731631f6385aef549fb107bd3a0cecc7371a364ba27120333"
+    },
+    {
+      "path": "firmware/programs/NAVI_EWO_0_1_DART_EXPERIMENT_1/tests/test_review_regressions.cpp",
+      "bytes": 5881,
+      "sha256": "d125765750fb91c93560b1bbd0ac69ca9499ec7c6b6616dcc2e5319e67544914"
+    },
+    {
+      "path": "firmware/programs/NAVI_EWO_0_1_DART_EXPERIMENT_1/tests/test_stop_overlay.cpp",
+      "bytes": 6628,
+      "sha256": "56d649bc47551faa5248d8a97266d070d20ca6ce080a99d1dc491691e445aac3"
+    }
+  ]
+}

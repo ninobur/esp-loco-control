@@ -1,0 +1,2 @@
+openings=34 candidate=0 boundary=318516 origin=91452700 latest=91558872 ref=2074 incomplete=0 pending_hwm=17
+mm=127 confirmations=2 misses=0 core_bytes=15528

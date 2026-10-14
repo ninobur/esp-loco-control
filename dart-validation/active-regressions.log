@@ -1,0 +1,8 @@
+PASS: 0 failures
+PASS: EWO NSR1 observation and decision records
+PASS: portable STOP geometry, both directions, cold entry, timed final/dwell, interruption, departure and repeat
+PASS: fixed Type-5 configuration, raw calibration metadata, real epochs, validity and diagnostic boundaries
+PASS native pulse measurements, source/boot/order/loss recovery, TX interoperability, wrap and wire validation
+host_native_samples=50000 elapsed_ns=6853375 core_bytes=15528 opening_bytes=96 diagnostic_bytes=184
+PASS 85 assertions
+PASS 643 invariant assertions
