@@ -1,0 +1,9 @@
+{
+  "bench_id": "NAVI_EWO_0_5_STOP_GO_HOST_21350369797f43b2945be61a67e7c6e6",
+  "published": 2,
+  "read_back_from_pi": 2,
+  "topic": "ngr/loco/9950011/diag/navi_decision",
+  "pi_file": "/home/david/NGR/telemetry/all_20261014.log",
+  "proof_sha256": "0ba9336dcbe186132329f07bfd64fac49ce4dbde3d8d52739368521e962aef0c",
+  "source": "Host production formatter; no locomotive commands"
+}

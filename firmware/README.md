@@ -75,7 +75,8 @@ throttle fallback. Mid-tile IR loss holds the current command until the next
 selected opening; the original final braking/dwell/departure executor remains.
 Eight active host executables and production motor/transport adapters pass;
 ESP32 core 3.3.12 compilation succeeds. Labelled host transition records reached
-the Pi MQTT recorder. Manual STOP/GO timing policy is still pending, and inherited
-regression failures remain documented. See `dart-field-validation/REVIEW.md`.
-NOT FIELD READY, NOT FLASHED; no production promotion. Original EWO and COHERENCE
+the Pi MQTT recorder. Manual STOP/GO now pauses/resumes both timing clocks without losing identity;
+inherited regression failures remain documented. See
+`dart-field-validation/STOP_GO_AND_OTTO_DEPLOYMENT_20261014.md` for the authorized
+Otto upload and stationary verification. Field acceptance is pending; no production promotion. Original EWO and COHERENCE
 R2 remain unchanged.

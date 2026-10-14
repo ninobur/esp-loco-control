@@ -18,6 +18,7 @@ static void previousLap(Fixture& f,uint64_t duration=1000000) {
 static void exact(Fixture& f,uint64_t coordinate,uint64_t after=1000000,int pole=0,bool measured=true) {
   DartOpening o{};o.id=++f.n.nextOpeningId_;o.serial=f.serial;
   o.timeUs=f.n.selectedTimeUs_+after;f.t=o.timeUs;
+  o.timingApplicable=f.n.runClock_.removedBefore(o.timeUs,o.manualPauseUs);
   o.pole=pole?pole:(f.n.target().polarity==HallOpeningPolarity::AboveReference?1:-1);
   o.pwm=40;o.direction=f.n.direction()>0?1:2;
   o.ir=f.n.irAt(f.t);o.ir.um=coordinate;o.ir.epoch=f.n.epochId_;o.ir.boot=1;
@@ -28,6 +29,15 @@ static void exact(Fixture& f,uint64_t coordinate,uint64_t after=1000000,int pole
 }
 static uint64_t spacing(const Fixture& f) {return uint64_t(navi_one::spanMm(f.n.mm(),f.n.direction()))*1000;}
 int main() {
+  // STOP time is removed without changing raw acquisition timestamps. Queued
+  // pre-STOP/during-STOP samples still associate after GO, including repeats.
+  {NaviRunClock clock;clock.stopped(true,100);CHECK(clock.now(150)==100);
+   clock.stopped(true,160);clock.stopped(false,200);
+   CHECK(clock.now(90)==90);CHECK(clock.now(150)==100);CHECK(clock.now(230)==130);
+   clock.stopped(true,250);clock.stopped(false,400);CHECK(clock.now(450)==200);
+   CHECK(clock.now(150)==100);CHECK(clock.now(300)==150);
+   for(unsigned i=0;i<17;++i){clock.stopped(true,500+i*100);clock.stopped(false,550+i*100);}
+   uint64_t removed=0;CHECK(!clock.removedBefore(90,removed));CHECK(clock.now(2200)==1100);}
   // Complete lap is immutable while the next lap is collected; no mixed laps.
   {DartTravelHistory h;h.begin(170,1);DartTravel t{};t.valid=true;t.intervalUs=1000000;
    uint8_t mm=170;for(int i=0;i<170;++i){auto to=navi_one::nextMarker(mm,1);h.record(mm,to,1,t);mm=to;CHECK(!h.get(170,1).valid);}
@@ -115,6 +125,32 @@ int main() {
    record.departureOffsetUs=6000000;f.n.irAuthority_=IrGeographicAuthority::Withdrawn;
    f.n.prepareMetric();f.n.replayPending();f.n.noteOperatingContext(3,f.n.selectedTimeUs_+7000000);
    CHECK(f.n.timingExpectedUs()==4000000);CHECK(f.n.metricOriginUs_==f.n.selectedTimeUs_+7000000);}
+  // Manual STOP/GO preserves the candidate, MM, selected coordinate and
+  // comparison origin. A long stop cannot trigger the MM+2 time deadline.
+  {Fixture f;f.start();previousLap(f);f.n.irAuthority_=IrGeographicAuthority::Withdrawn;
+   f.n.prepareMetric();f.n.replayPending();const auto origin=f.n.selectedTimeUs_;
+   exact(f,100000,250000);CHECK(f.n.candidateAvailable());const auto boundary=f.n.candidateBoundaryUm();
+   const auto identity=f.n.mm();const auto anchor=f.n.openingIrUm();
+   f.n.setManualStopped(true,origin+400000);f.n.noteOperatingContext(0);
+   f.t=origin+10000000;f.tick(2000);f.complete();
+   CHECK(!f.n.stopRequested());CHECK(f.n.mm()==identity);CHECK(f.n.openingIrUm()==anchor);
+   CHECK(f.n.candidateBoundaryUm()==boundary);CHECK(f.n.manualTimingPaused());
+   f.n.setManualStopped(false,origin+10400000);f.n.noteOperatingContext(1);
+   exact(f,300000,11000000);CHECK(f.n.mm()==18);CHECK(!f.n.stopRequested());
+   CHECK(f.n.selectedTimeUs()==origin+11000000);CHECK(f.n.selectedClockUs_==origin+1000000);
+   const auto& stored=f.n.travel_.banks_[f.n.travel_.writeBank_][identity];
+   CHECK(stored.valid);CHECK(stored.intervalUs==1000000);}
+  // A stopped interval can cross from healthy IR to timing without turning
+  // stopped wall time into movement. Existing PWM-zero movement latch wins.
+  {Fixture f;f.start();previousLap(f);const auto start=f.n.selectedTimeUs_;
+   f.n.setManualStopped(true,start+100000);f.n.noteOperatingContext(0);
+   f.t=start+10000000;f.pwm=0;f.tick(2000);f.complete();CHECK(!f.n.stopRequested());
+   f.n.setManualStopped(false,start+10100000);f.pwm=40;f.t=start+10100000;f.tick(2000);f.complete();
+   exact(f,0,11000000,0,false);
+   CHECK(f.n.mm()==18);CHECK(f.n.comparisonMetric()==DartMetric::Time);CHECK(!f.n.stopRequested());}
+  {Fixture f;f.start();previousLap(f);f.n.setManualStopped(true,f.t);f.pwm=0;f.ir(1);
+   CHECK(f.n.pwmZeroMovementRequiresDeclaration());f.n.setManualStopped(false,f.t+1000000);
+   f.pwm=40;f.field(-1);CHECK(f.n.mm()==17);CHECK(f.n.pwmZeroMovementRequiresDeclaration());}
   // Native MM017 repeated-opening evidence is retained without advancement.
   for(uint64_t delay:{1028000ULL,1179000ULL}){Fixture f;f.start();f.t+=delay;f.ir(3);f.field(1);f.complete();
     CHECK(f.n.mm()==17);CHECK(f.n.confirmedCount()==1);CHECK(f.n.openingCount()==2);}
@@ -149,7 +185,7 @@ int main() {
   // Exercise the formatter's widest numeric values, including signed minimum,
   // and its required-length contract rather than merely strlen(truncated).
   {DartRecord r{};auto& o=r.opening;
-   o.timeUs=o.firstTickUs=UINT64_MAX;o.id=o.serial=o.referenceVersion=UINT32_MAX;
+   o.timeUs=o.firstTickUs=o.manualPauseUs=UINT64_MAX;o.id=o.serial=o.referenceVersion=UINT32_MAX;
    o.median=o.reference=INT16_MIN;o.pole=-1;o.pwm=255;o.direction=2;
    auto& ir=o.ir;ir.um=ir.receivedUs=ir.capturedUs=ir.pulses=ir.epoch=ir.boot=UINT64_MAX;
    ir.sequence=UINT32_MAX;ir.applicable=true;r.intervalStart=ir;

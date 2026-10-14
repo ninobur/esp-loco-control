@@ -7,6 +7,7 @@
 #include "../NAVI_EYES_WIDE_OPEN/NaviEvidence.h"
 #include "NaviMapAdapter.h"
 #include "NaviDartEvidence.h"
+#include "NaviRunClock.h"
 #include "../../reference/NAVI_COHERENCE/IR_ARCHITECTURE_0_4/IrInstrument.h"
 
 namespace navi_eyes {
@@ -249,6 +250,7 @@ class NaviIntegratedCore {
     detectorLatched_=true;
     DartOpening o{};
     o.id=++nextOpeningId_; o.serial=sample.sampleSerial; o.timeUs=sample.timestampUs;
+    o.timingApplicable=runClock_.removedBefore(o.timeUs,o.manualPauseUs);
     o.firstTickUs=firstTickUs_; o.referenceVersion=referenceVersion_;
     o.median=hallMedian_; o.reference=activeReference_; o.pole=pole;
     o.pwm=sample.pwm; o.direction=sample.direction; o.ir=irAt(o.timeUs);
@@ -274,6 +276,7 @@ class NaviIntegratedCore {
     beginDecision(judgmentUs);
     if (!declared_ || stopRequested() || !haveHall_ || !lastHall_.pwm ||
         pwmZeroMovementRequiresDeclaration_) return;
+    if(runClock_.paused()) return;
     if (throughUs>processedHallUs_) throughUs=processedHallUs_;
     if (comparisonIncomplete_) { requestStop(DartStop::IncompleteEvidence); return; }
     if (!firstTargetAfterDeclare_ && !prepareMetric()) {
@@ -286,8 +289,10 @@ class NaviIntegratedCore {
     if(firstTargetAfterDeclare_) return;
     const DartIr progress=irAt(throughUs);
     if(metric_==DartMetric::Time) {
-      if(throughUs<metricOriginUs_) return;
-      x=throughUs-metricOriginUs_;
+      uint64_t removed=0;
+      if(!runClock_.removedBefore(throughUs,removed) || throughUs<removed ||
+         throughUs-removed<metricOriginUs_) return;
+      x=throughUs-removed-metricOriginUs_;
     } else {
       if(!progress.applicable || progress.epoch!=epochId_ || progress.um<physicalOriginUm_) return;
       x=progress.um-physicalOriginUm_;
@@ -306,6 +311,10 @@ class NaviIntegratedCore {
   IrGeographicAuthority irAuthority() const { return irAuthority_; }
   uint32_t selectedOpeningId() const { return priorSelection_.id; }
   uint64_t selectedDecisionUs() const { return selectedDecisionUs_; }
+  uint64_t selectedDecisionClockUs() const { return selectedDecisionClockUs_; }
+  void setManualStopped(bool stopped,uint64_t nowUs) { runClock_.stopped(stopped,nowUs); }
+  bool manualTimingPaused() const { return runClock_.paused(); }
+  uint64_t runningClockUs(uint64_t nowUs) const { return runClock_.now(nowUs); }
   uint32_t completedTimingLaps() const { return travel_.completedLaps(); }
   bool selectedAnchorAvailable() const { return targetOriginValid_; }
   bool fineIrAvailable(uint64_t nowUs) const {
@@ -338,12 +347,10 @@ class NaviIntegratedCore {
   size_t pendingHighWater() const { return pendingHighWater_; }
   void noteOperatingContext(uint8_t context, uint64_t departureUs=0) {
     if (context!=operatingContext_) intervalContextChanged_=true;
-    if(context==0 && priorSelectionValid_) timingInterrupted_=true;
-    if(metric_==DartMetric::Time && context==0 && !stopRequested())
-      requestStop(DartStop::TimingContextChanged);
     operatingContext_=context;
     if (departureUs) {
       departureUs_=departureUs;
+      departureClockUs_=runClock_.now(departureUs);
       if(metric_==DartMetric::Time && !stopRequested()) {
         if(!timingPrediction()) requestStop(DartStop::NoTimingHistory);
         else { invalidateMetric(); replayMetricPending_=true; replayPending(); }
@@ -586,6 +593,9 @@ class NaviIntegratedCore {
   bool restorationReferenceValid_=false;
   uint8_t restorationMm_=0;
   uint64_t selectedDecisionUs_=0;
+  NaviRunClock runClock_{};
+  uint64_t selectedClockUs_=0,selectedDecisionClockUs_=0,departureClockUs_=0;
+  bool selectedClockAvailable_=false;
   uint64_t selectedTimeUs_=0,metricOriginUs_=0,timeExpected_=0,timeSuccessor_=0;
   uint64_t bestMetricX_=0,tieMetricX_=0;
   bool replayMetricPending_=false;
@@ -602,14 +612,14 @@ class NaviIntegratedCore {
       expectedCumulativeUm_+uint64_t(navi_one::spanMm(uint8_t(target_.sequence),direction_))*1000;
   }
   bool timingPrediction() {
-    if(!selectedTimeUs_ || reverseTarget_ || timingInterrupted_) return false;
+    if(!selectedTimeUs_ || !selectedClockAvailable_ || reverseTarget_ || timingInterrupted_) return false;
     const auto& first=travel_.get(mm_,direction_);
     const auto& second=travel_.get(uint8_t(target_.sequence),direction_);
     if(!first.valid || !second.valid || first.lap!=second.lap) return false;
     const bool departed=departureUs_>selectedTimeUs_;
     if(departed && (!first.departureOffsetUs || first.departureOffsetUs>=first.intervalUs)) return false;
     timingSource_=first;
-    metricOriginUs_=departed?departureUs_:selectedTimeUs_;
+    metricOriginUs_=departed?departureClockUs_:selectedClockUs_;
     timeExpected_=departed?first.intervalUs-first.departureOffsetUs:first.intervalUs;
     if(second.intervalUs>UINT64_MAX-timeExpected_) return false;
     timeSuccessor_=timeExpected_+second.intervalUs;
@@ -642,8 +652,9 @@ class NaviIntegratedCore {
   }
   bool coordinate(const DartOpening& o,uint64_t& x) const {
     if(metric_==DartMetric::Time) {
-      if(o.timeUs<metricOriginUs_) return false;
-      x=o.timeUs-metricOriginUs_; return true;
+      if(!o.timingApplicable || o.timeUs<o.manualPauseUs ||
+         o.timeUs-o.manualPauseUs<metricOriginUs_) return false;
+      x=o.timeUs-o.manualPauseUs-metricOriginUs_; return true;
     }
     if(!o.ir.applicable || o.ir.epoch!=epochId_ || o.ir.um<physicalOriginUm_) return false;
     x=o.ir.um-physicalOriginUm_;return true;
@@ -666,6 +677,8 @@ class NaviIntegratedCore {
     pendingCount_=0; bestValid_=tieValid_=false; comparisonIncomplete_=false;
     metric_=DartMetric::Distance; metricOriginUs_=timeExpected_=timeSuccessor_=0;
     selectedTimeUs_=0; timingInterrupted_=false; timingLatched_=false;timingSource_={};
+    selectedClockUs_=selectedDecisionClockUs_=departureClockUs_=0;
+    selectedClockAvailable_=false;
     departureUs_=0; restorationReferenceValid_=false; replayMetricPending_=false;
     bestErrorUm_=boundaryUm_=0;
     priorSelectionValid_=false; cumulativeResidualUm_=previousResidualUm_=0;
@@ -757,6 +770,10 @@ class NaviIntegratedCore {
       ((chosen.ir.um%2+tie_.ir.um%2)/2) : chosen.ir.um) : 0;
     const uint64_t selectedTime=inferred ? chosen.timeUs/2+tie_.timeUs/2+
       (chosen.timeUs%2+tie_.timeUs%2)/2 : chosen.timeUs;
+    const uint64_t chosenClock=chosen.timeUs-chosen.manualPauseUs;
+    const uint64_t tiedClock=tie_.timeUs-tie_.manualPauseUs;
+    const uint64_t selectedClock=inferred?chosenClock/2+tiedClock/2+
+      (chosenClock%2+tiedClock%2)/2:chosenClock;
     const uint64_t consumedThrough=inferred?tie_.timeUs:chosen.timeUs;
     const uint8_t previousMm=mm_;
     DartRecord r{}; r.opening=chosen; r.partnerId=inferred?tie_.id:0;
@@ -807,11 +824,12 @@ class NaviIntegratedCore {
     else if(!reverseTarget_) {
       DartTravel travel;
       travel.valid=priorSelectionValid_ && !inferred && !timingInterrupted_ &&
-        chosen.timeUs>priorSelection_.timeUs;
-      if(travel.valid) travel.intervalUs=chosen.timeUs-priorSelection_.timeUs;
+        chosen.timingApplicable && priorSelection_.timingApplicable &&
+        chosenClock>selectedClockUs_;
+      if(travel.valid) travel.intervalUs=chosenClock-selectedClockUs_;
       travel.fromId=priorSelection_.id;travel.toId=chosen.id;travel.context=priorSelectionContext_;
       if(travel.valid && departureUs_>priorSelection_.timeUs && departureUs_<chosen.timeUs)
-        travel.departureOffsetUs=departureUs_-priorSelection_.timeUs;
+        travel.departureOffsetUs=departureClockUs_-selectedClockUs_;
       travel_.record(previousMm,uint8_t(target_.sequence),direction_,travel);
     } else travel_.begin(uint8_t(target_.sequence),direction_);
     if(priorSelectionValid_ && !inferred && chosen.timeUs>=priorSelection_.timeUs) {
@@ -840,6 +858,8 @@ class NaviIntegratedCore {
     if(r.transition!=IrCredibilityTransition::None) { r.reason=DartReason::CredibilityEvidence;enqueueDiagnostic(r); }
     priorSelection_=chosen;priorSelectionValid_=!inferred;
     selectedTimeUs_=selectedTime;selectedDecisionUs_=decisionUs_;
+    selectedClockUs_=selectedClock;selectedDecisionClockUs_=runClock_.now(decisionUs_);
+    selectedClockAvailable_=chosen.timingApplicable && (!inferred || tie_.timingApplicable);
     priorSelectionContext_=operatingContext_;timingInterrupted_=false;intervalContextChanged_=false;
     chooseTarget();++generation_;bestValid_=tieValid_=false;
     // Restoration takes effect for the NEXT target. The selected measurement

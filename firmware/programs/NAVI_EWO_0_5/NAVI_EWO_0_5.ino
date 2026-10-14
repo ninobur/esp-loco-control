@@ -4,7 +4,8 @@
  * MM+2 missing-target stop and Hall-synchronized throttle fallback.
  * Mid-tile IR loss holds the current command until another selected opening;
  * existing final braking/dwell/departure keeps its execution authority.
- * Manual STOP/GO clock handling still needs an explicit operator decision.
+ * Manual STOP pauses both timing clocks; GO resumes without redeclaration.
+ * Existing moved-while-stopped position safeguards remain in authority.
  * See dart-field-validation/REVIEW.md for verification and limitations.
  */
 /* EWO integrated working-sketch candidate. NOT FIELD ACCEPTED.
@@ -260,12 +261,12 @@ static void publishDart() {
   snprintf(operating,sizeof(operating),
     "{\"method\":%u,\"ir_authority\":%u,\"ir_class\":%u,\"stop\":%u,\"stop_reason\":\"%s\","
     "\"completed_laps\":%lu,\"selected_id\":%lu,\"tile_mode\":%u,\"tile_duration_us\":%llu,"
-    "\"tile_elapsed_us\":%llu,\"entry_pwm\":%u}",
+    "\"tile_elapsed_us\":%llu,\"entry_pwm\":%u,\"manual_timing_paused\":%u}",
     unsigned(navi.comparisonMetric()),unsigned(navi.irAuthority()),unsigned(navi.irCredibility()),
     unsigned(navi.stopReason()),navi.stopReasonText(),(unsigned long)navi.completedTimingLaps(),
     (unsigned long)navi.selectedOpeningId(),unsigned(lastTileTiming.mode),
     (unsigned long long)lastTileTiming.durationUs,(unsigned long long)lastTileTiming.elapsedUs,
-    unsigned(lastTileTiming.entryPwm));
+    unsigned(lastTileTiming.entryPwm),unsigned(navi.manualTimingPaused()));
   pub("diag/navi_operating",operating);
 }
 static void warn(const char* message, bool sticky = false) {
@@ -721,6 +722,7 @@ static void handleCommand(const CmdMsg& command) {
       reversePosition(travelDirection());
     }
   }
+  navi.setManualStopped(!autoRunning,esp_timer_get_time());
 }
 
 static void serviceBattery() {
@@ -793,8 +795,8 @@ static void serviceAutoCruise() {
   const uint64_t nowUs = esp_timer_get_time();
   const uint32_t nowMs = millis();
   static const int32_t targetUm = stopMarkerUm(45) + 150000;
+  navi.setManualStopped(!autoRunning,nowUs);
   if (!autoRunning) {
-    tileTiming.suspend(navi.selectedOpeningId());
     const StopView view = stopView(navi, targetUm, nowUs);
     const StopCommand command = stopOverlay.command(view.geography, view.available,
         navi.direction(), NAVI_BASE_CRUISE_PWM, actualPwm, rampTarget, nowMs, false);
@@ -816,7 +818,7 @@ static void serviceAutoCruise() {
   const StopView view = stopView(navi, targetUm, nowUs);
   const auto priorExecution=stopOverlay.execution();
   const uint8_t next=navi_one::nextMarker(navi.mm(),navi.direction());
-  lastTileTiming=tileTiming.command(view,navi.selectedOpeningId(),navi.selectedDecisionUs(),nowUs,
+  lastTileTiming=tileTiming.command(view,navi.selectedOpeningId(),navi.selectedDecisionClockUs(),navi.runningClockUs(nowUs),
       targetUm,navi.travelHistory(navi.mm(),navi.direction()),cruise,
       cruisePwmAt(next,navi.direction(),NAVI_BASE_CRUISE_PWM),uint8_t(commandedPwm));
   // Once final braking/dwell/departure is underway, its existing executor
@@ -1236,6 +1238,7 @@ void setup() {
 
 void loop() {
   serviceRamp();  // e-stop asserted by MQTT callback pre-empts evidence backlog
+  navi.setManualStopped(!autoRunning,esp_timer_get_time());
   serviceIrIngress(); // declaration must see IR already queued before it
   servicePwmZeroMovementHold(); // withdraw before queued AUTO/GO commands or station departure
   serviceNavigationStop();

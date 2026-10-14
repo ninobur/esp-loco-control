@@ -2,8 +2,8 @@
   {
     "case": "sep28_254_257",
     "records": 76,
-    "payload_bytes": 90571,
-    "max_payload_bytes": 1271,
+    "payload_bytes": 97031,
+    "max_payload_bytes": 1356,
     "selections": [
       {
         "mm": 126,
@@ -26,8 +26,8 @@
   {
     "case": "sep28_425_426",
     "records": 20,
-    "payload_bytes": 23838,
-    "max_payload_bytes": 1199,
+    "payload_bytes": 25538,
+    "max_payload_bytes": 1284,
     "selections": [
       {
         "mm": 109,
@@ -42,8 +42,8 @@
   {
     "case": "sep28_425_427_continued",
     "records": 22,
-    "payload_bytes": 26314,
-    "max_payload_bytes": 1279,
+    "payload_bytes": 28184,
+    "max_payload_bytes": 1364,
     "selections": [
       {
         "mm": 109,
@@ -66,8 +66,8 @@
   {
     "case": "oct09_early_synthetic",
     "records": 3,
-    "payload_bytes": 3379,
-    "max_payload_bytes": 1139,
+    "payload_bytes": 3634,
+    "max_payload_bytes": 1224,
     "selections": [
       {
         "mm": 64,
@@ -82,15 +82,15 @@
   {
     "case": "oct13_mm017_1028000_synthetic",
     "records": 4,
-    "payload_bytes": 4454,
-    "max_payload_bytes": 1117,
+    "payload_bytes": 4794,
+    "max_payload_bytes": 1202,
     "selections": []
   },
   {
     "case": "oct13_mm017_1179000_synthetic",
     "records": 4,
-    "payload_bytes": 4454,
-    "max_payload_bytes": 1117,
+    "payload_bytes": 4794,
+    "max_payload_bytes": 1202,
     "selections": []
   }
 ]

@@ -38,7 +38,7 @@ static void seed(uint8_t mm,bool fine=true) {
  Fixture f;f.start();navi=f.n;fakeUs=f.t;navi.mm_=mm;navi.chooseTarget();
  navi.expectedCumulativeUm_=uint64_t(spanMm(mm,1))*1000;
  navi.metric_=fine?DartMetric::Distance:DartMetric::Time;
- navi.selectedDecisionUs_=fakeUs;navi.priorSelection_.id=1;
+ navi.selectedDecisionUs_=navi.selectedDecisionClockUs_=fakeUs;navi.priorSelection_.id=1;
  navi.travel_.begin(mm,1);uint8_t at=mm;
  for(int i=0;i<171;++i){DartTravel t;t.valid=true;t.intervalUs=20000000;
   if(at==45)t.departureOffsetUs=15500000;
@@ -50,9 +50,20 @@ static void seed(uint8_t mm,bool fine=true) {
 int main(){
  seed(35);serviceAutoCruise();CHECK(rampTarget==85);
  fakeUs+=2000000;serviceAutoCruise();CHECK(rampTarget==85);CHECK(lastTileTiming.mode==TileTimingMode::HoldUntilOpening);
- navi.mm_=36;navi.chooseTarget();navi.priorSelection_.id=2;navi.metric_=DartMetric::Time;navi.selectedDecisionUs_=fakeUs;
+ navi.mm_=36;navi.chooseTarget();navi.priorSelection_.id=2;navi.metric_=DartMetric::Time;navi.selectedDecisionUs_=navi.selectedDecisionClockUs_=fakeUs;
  serviceAutoCruise();CHECK(actualPwm==75 && commandedPwm==75);CHECK(written==75);
  fakeUs+=10000000;serviceAutoCruise();CHECK(actualPwm==70 && commandedPwm==70);
+ // Manual STOP pauses the shared arrival/throttle clock and keeps this tile.
+ const auto selected=navi.selectedOpeningId();const auto origin=navi.metricOriginUs_;
+ autoRunning=false;serviceAutoCruise();CHECK(navi.manualTimingPaused());CHECK(!navi.stopRequested());
+ requestPwm(0,0,31);actualPwm=0;fakeUs+=60000000;serviceAutoCruise();
+ CHECK(actualPwm==0);CHECK(navi.selectedOpeningId()==selected);CHECK(navi.mm()==36);
+ CHECK(navi.metricOriginUs_==origin);CHECK(!navi.pwmZeroMovementRequiresDeclaration());
+ autoRunning=true;serviceAutoCruise();CHECK(!navi.manualTimingPaused());CHECK(!navi.stopRequested());
+ CHECK(actualPwm==70);CHECK(lastTileTiming.elapsedUs==10000000);CHECK(!lastTileTiming.entryNow);
+ // A second pause resumes the same clock, never restarts the tile.
+ autoRunning=false;serviceAutoCruise();fakeUs+=30000000;actualPwm=0;autoRunning=true;serviceAutoCruise();
+ CHECK(actualPwm==70);CHECK(lastTileTiming.elapsedUs==10000000);
  fakeUs+=15000000;serviceAutoCruise();CHECK(actualPwm==65);CHECK(navi.mm()==36);
  estopAsserted=true;serviceAutoCruise();serviceRamp();CHECK(actualPwm==0 && written==0);
  seed(45,false);serviceAutoCruise();CHECK(actualPwm==35);CHECK(rampTarget==0);CHECK(rampDownMs==300);

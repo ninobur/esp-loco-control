@@ -1,5 +1,10 @@
 # NAVI EWO 0 5 integration review — October 14, 2026
 
+**Historical review of commit `4b6fd66`.** The manual STOP/GO decision has since
+been settled and tested; see [the deployment follow-up](STOP_GO_AND_OTTO_DEPLOYMENT_20261014.md)
+for the current status. Statements below about pending approval and unflashed
+firmware describe that earlier review snapshot.
+
 **The settled rules are integrated, compiled and host tested. No locomotive was
 flashed or operated. Manual STOP/GO clock handling remains one explicit open
 operating decision; this is not a field-ready declaration.**

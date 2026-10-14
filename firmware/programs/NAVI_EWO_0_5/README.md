@@ -1,7 +1,7 @@
 # NAVI_EWO_0_5
 
 October 14, 2026. Experimental integration candidate. **Compiled and host tested;
-not flashed or field accepted. One manual STOP/GO timing decision remains.**
+manual STOP/GO rule settled and tested; field acceptance remains pending.**
 
 Foundation: `NAVI_EWO_0_1_MM045_STOP`,
 `85a2cf2a16d262abdf7258c60f60508b823913ee`. The separate, tested first DART
@@ -36,7 +36,7 @@ remain unchanged. The first-increment rollback and SHA-256 manifest remain in
 
 ## Verification and review
 
-[Current report](../../../dart-field-validation/REVIEW.md) records the test
+[Current deployment report](../../../dart-field-validation/STOP_GO_AND_OTTO_DEPLOYMENT_20261014.md) records the test
 results, failures, baseline comparisons, resource figures and limitations.
 [Operating decisions](../../../dart-field-validation/OPERATING_DECISIONS_20261014.md)
 record the subsequent operator answers. [IR criteria and integration](../../../dart-field-validation/ir-credibility/STATUS.md)
@@ -52,23 +52,27 @@ python3 dart-field-validation/run_replays.py
 python3 dart-field-validation/check_regressions.py
 ```
 
-Eight active host executables pass, including 223 policy, 85 DART and 376
+Eight active host executables pass, including 223 policy, 85 DART and 410
 integrated assertions. Extracted production motor/overlay and transport tests
-pass 62 and 712 assertions. Six identical-input baseline/proposed replays pass
+pass 76 and 712 assertions. Six identical-input baseline/proposed replays pass
 their assertions. Five inherited detector/window suites still fail, and one
 first-increment invariant suite now fails its superseded no-withdrawal
 expectation; those failures remain visible, not relabelled passes.
 
-ESP32 core 3.3.12 compilation succeeds: 1,053,907 B program, 80,668 B static RAM.
-Template credential placeholders were used; this is not a deployment image.
+ESP32 core 3.3.12 compilation succeeds: 1,055,591 B program, 81,404 B static RAM.
+The deployment build uses Otto’s existing private configuration; no credentials
+are included in the repository.
 Two explicitly labelled host-generated transition records reached the actual
 Pi MQTT log. This establishes Mac→broker→recorder receipt, not unflashed ESP32
 Wi-Fi delivery or field reliability.
 
-## Remaining operating choice
+## Manual STOP/GO
 
-During timing fallback, manual STOP/GO clock handling has been asked explicitly:
-pause/resume both arrival and throttle clocks, or require redeclaration? The
-old draft currently requests `TimingContextChanged`; it must not be treated as
-an approved policy. Scheduled station braking/dwell/departure is already settled.
-No flashing or live operation is authorized by this review package.
+Both arrival-comparison and tile-ramp clocks pause during manual STOP and resume
+on GO, retaining the selected MM, pending candidate and tile-ramp progress.
+Raw Hall timestamps stay intact. Actual scheduled station dwell/departure still
+counts; manual-stop duration is excluded from the next lap's timing reference.
+The existing moved-while-stopped declaration latch remains authoritative.
+David authorized the tested build to be flashed to USB-connected Otto. The
+current deployment report records whether upload and stationary checks have
+completed; build success alone is not field acceptance.

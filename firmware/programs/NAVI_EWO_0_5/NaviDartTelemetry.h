@@ -34,7 +34,8 @@ inline int formatDart(char* out,size_t size,const DartRecord& r,uint64_t boot) {
     "\"restore_ref\":%lu,\"independent_identity\":%u,\"timing_origin_us\":%llu,\"timing_lap\":%lu,"
     "\"timing_from_id\":%lu,\"timing_to_id\":%lu,\"from_id\":%lu,\"from_um\":%llu,"
     "\"from_pulses\":%llu,\"from_rx_us\":%llu,\"from_tx_us\":%llu,\"from_seq\":%lu,"
-    "\"from_epoch\":%llu,\"from_boot\":%llu,\"from_applicable\":%u,\"successor_target\":%u,\"error\":%llu,\"boundary\":%llu}",
+    "\"from_epoch\":%llu,\"from_boot\":%llu,\"from_applicable\":%u,\"successor_target\":%u,\"error\":%llu,\"boundary\":%llu,"
+    "\"open_manual_pause_us\":%llu,\"timing_applicable\":%u,\"timing_clock\":\"EXCLUDES_MANUAL_STOP\"}",
     unsigned(r.metric),r.metric==DartMetric::Time?"us":"um",
     (unsigned long long)r.expected,(unsigned long long)r.successorExpected,
     (unsigned long long)r.metricCoordinate,unsigned(r.anchorAvailable),unsigned(r.authority),unsigned(r.credibility),
@@ -46,7 +47,8 @@ inline int formatDart(char* out,size_t size,const DartRecord& r,uint64_t boot) {
     (unsigned long long)a.um,(unsigned long long)a.pulses,(unsigned long long)a.receivedUs,
     (unsigned long long)a.capturedUs,(unsigned long)a.sequence,(unsigned long long)a.epoch,
     (unsigned long long)a.boot,unsigned(a.applicable),unsigned(r.successorTarget),
-    (unsigned long long)r.errorUm,(unsigned long long)r.boundaryUm);
+    (unsigned long long)r.errorUm,(unsigned long long)r.boundaryUm,
+    (unsigned long long)o.manualPauseUs,unsigned(o.timingApplicable));
   return added<0?added:base-1+added;
 }
 }

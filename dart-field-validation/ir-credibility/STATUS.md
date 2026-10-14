@@ -25,7 +25,7 @@ transition are serialized through the production diagnostic formatter.
   The method changes without replaying one opening as two geographic advances.
 
 The isolated evaluator passes 223 assertions. Production integration passes
-376 assertions, including both error signs, exact limits, new-reference
+410 assertions, including both error signs, exact limits, new-reference
 restoration, repeated subthreshold residuals, missing coordinates and timing,
 and preservation of chosen anchors. The extracted telemetry fault test passes
 712 assertions. Two labelled withdrawal/restoration records were read back
@@ -33,7 +33,9 @@ from the Pi's actual MQTT file; see [recorder proof](../mqtt-recorder-result.jso
 
 The historical timing source, no-Hall deadline and mid-tile throttle transition
 are now settled in [the operator decisions](../OPERATING_DECISIONS_20261014.md).
-Only manual STOP/GO clock behavior remains an explicit pending clarification.
+Manual STOP/GO is also settled: pause/resume both timing clocks while retaining
+identity, subject to the existing moved-while-stopped declaration safeguard.
 The [review report](../REVIEW.md) records compilation and all test limitations.
 Neither the numerical criteria nor previous-lap timing reliability are field
-validated. No flash or live operation occurred.
+validated. See [the deployment follow-up](../STOP_GO_AND_OTTO_DEPLOYMENT_20261014.md) for
+the separately authorized upload and stationary verification status.

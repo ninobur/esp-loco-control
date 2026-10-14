@@ -16,9 +16,8 @@ struct TileTimingCommand {
 class NaviTileTiming {
  public:
   void reset() { mode_=TileTimingMode::Geographic; lastSelection_=0; durationUs_=0; }
-  void suspend(uint32_t selection) {
-    lastSelection_=selection; mode_=TileTimingMode::HoldUntilOpening;
-  }
+  // The caller supplies NAVI's running-clock coordinates. During manual STOP
+  // it does not execute this ramp; GO resumes the same stored entry/start.
   TileTimingCommand command(const StopView& view,uint32_t selection,
       uint64_t selectedDecisionUs,uint64_t nowUs,int32_t targetUm,
       const DartTravel& previousLap,uint8_t cruise,uint8_t nextCruise,

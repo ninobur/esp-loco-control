@@ -48,10 +48,20 @@ If final braking has already started, let the existing braking, dwell and
 departure sequence complete. STOP, E-stop, electrical protection and NAVI's
 navigation-failure intervention retain their authority.
 
-## One remaining clarification
+## Manual STOP → GO — settled by David
 
-An asynchronous question is pending: during timing fallback, should manual
-STOP/GO pause and resume the arrival-comparison and throttle-ramp clocks, or
-require a new declaration? The earlier draft invalidates timing on manual
-interruption. That behavior is not an approved answer and is not a field-ready
-policy. Scheduled station dwell/departure is already specified above.
+Pause and resume both timing clocks across manual STOP → GO, preserving the
+current geographic identity. The clocks pause during manual STOP and resume
+on GO. A new position declaration is not required merely because the train
+stopped and restarted. If the locomotive was physically moved while stopped,
+the existing position-declaration safeguards still apply.
+
+Implementation keeps raw observation timestamps intact and removes manual-stop
+duration only from the arrival-comparison and tile-ramp clocks. Scheduled
+station braking, dwell and departure retain their existing execution.
+
+## Deployment authorization
+
+David subsequently authorized flashing Otto, connected by USB, when the build
+passes review and tests. That authority supersedes the earlier no-flash limit.
+It does not itself authorize locomotive movement or changes to Pi services.

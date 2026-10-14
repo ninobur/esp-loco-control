@@ -11,11 +11,13 @@ struct DartIr {
 };
 struct DartOpening {
   uint64_t timeUs=0, firstTickUs=0;
+  uint64_t manualPauseUs=0;
   DartIr ir;
   uint32_t id=0, serial=0, referenceVersion=0;
   int16_t median=0, reference=0;
   int8_t pole=0;
   uint8_t pwm=0, direction=0;
+  bool timingApplicable=true;
 };
 enum class DartReason : uint8_t {
   Opening, Inapplicable, WrongPolarity, NoCoordinate, Candidate, Replaced,

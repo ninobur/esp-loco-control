@@ -53,12 +53,12 @@ static void publishDart() {
   snprintf(operating,sizeof(operating),
     "{\"method\":%u,\"ir_authority\":%u,\"ir_class\":%u,\"stop\":%u,\"stop_reason\":\"%s\","
     "\"completed_laps\":%lu,\"selected_id\":%lu,\"tile_mode\":%u,\"tile_duration_us\":%llu,"
-    "\"tile_elapsed_us\":%llu,\"entry_pwm\":%u}",
+    "\"tile_elapsed_us\":%llu,\"entry_pwm\":%u,\"manual_timing_paused\":%u}",
     unsigned(navi.comparisonMetric()),unsigned(navi.irAuthority()),unsigned(navi.irCredibility()),
     unsigned(navi.stopReason()),navi.stopReasonText(),(unsigned long)navi.completedTimingLaps(),
     (unsigned long)navi.selectedOpeningId(),unsigned(lastTileTiming.mode),
     (unsigned long long)lastTileTiming.durationUs,(unsigned long long)lastTileTiming.elapsedUs,
-    unsigned(lastTileTiming.entryPwm));
+    unsigned(lastTileTiming.entryPwm),unsigned(navi.manualTimingPaused()));
   pub("diag/navi_operating",operating);
 }
 static void serviceDartTelemetry() {
