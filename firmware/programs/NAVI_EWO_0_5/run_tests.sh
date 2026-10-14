@@ -7,6 +7,10 @@ for test in test_ir_credibility test_map_adapter test_recorder test_stop_overlay
   c++ -std=c++17 -Wall -Wextra -Werror -fsanitize=address,undefined "$here/tests/$test.cpp" -o "$build_dir/$test"
   "$build_dir/$test"
 done
+c++ -std=c++17 -Wall -Wextra -Werror -fsanitize=address,undefined \
+  -DARDUINO_ARCH_ESP32 -I"$here/tests/heap_fake" \
+  "$here/tests/test_word_storage.cpp" -o "$build_dir/test_word_storage"
+"$build_dir/test_word_storage"
 # Original detector/window and first-increment suites remain unedited in tests/.
 # Their 0_5 outcomes are recorded in dart-field-validation/regression-results.json;
 # active 0_5 behavior is exercised by test_ewo_0_5 and the extracted .ino adapters.

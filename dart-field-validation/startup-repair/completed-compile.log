@@ -1,0 +1,11 @@
+In file included from /Users/davidbrown/<PRIVATE_VALUE_REDACTED>/<PRIVATE_VALUE_REDACTED>-Files/navi-ewo-dart-experiment-1/firmware/programs/NAVI_EWO_0_5/../NAVI_ONE/variants/NAVI_ONE_X22/LocoConfig.h:74,
+                 from /Users/davidbrown/<PRIVATE_VALUE_REDACTED>/<PRIVATE_VALUE_REDACTED>-Files/navi-ewo-dart-experiment-1/firmware/programs/NAVI_EWO_0_5/NAVI_EWO_0_5.ino:43:
+/Users/davidbrown/<PRIVATE_VALUE_REDACTED>/<PRIVATE_VALUE_REDACTED>-Files/navi-ewo-dart-experiment-1/firmware/programs/NAVI_EWO_0_5/../NAVI_ONE/variants/NAVI_ONE_X22/LL_LocoConfig_9950011.h:49:9: warning: "BLYNK_AUTH_TOKEN" redefined
+   49 | #define BLYNK_AUTH_TOKEN BLYNK_AUTH_TOKEN_9950011
+      |         ^~~~~~~~~~~~~~~~
+In file included from /Users/davidbrown/<PRIVATE_VALUE_REDACTED>/<PRIVATE_VALUE_REDACTED>-Files/navi-ewo-dart-experiment-1/firmware/programs/NAVI_EWO_0_5/../NAVI_ONE/variants/NAVI_ONE_X22/LL_LocoConfig_9950011.h:7:
+/private/tmp/navi-ewo-0-5-deployment-config/credentials.h:16:9: note: this is the location of the previous definition
+   16 | #define BLYNK_AUTH_TOKEN "<PRIVATE_VALUE_REDACTED>"
+      |         ^~~~~~~~~~~~~~~~
+Sketch uses 1057275 bytes (80%) of program storage space. Maximum is 1310720 bytes.
+Global variables use 81412 bytes (24%) of dynamic memory, leaving 246268 bytes for local variables. Maximum is 327680 bytes.

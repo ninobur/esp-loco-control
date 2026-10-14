@@ -1,0 +1,5 @@
+ngr/loco/9950011/state/bootid {"sketch":"NAVI_COHERENCE_0_6_IR_SYNC_TEST_R2","loco":"9950011","boot_id":"E8171A1BE2A1EF0F","field_accepted":0,"auto_enabled":1,"hall_entry":70,"window_ms":400,"hall_only_guard_ms":650,"baseline":"X22R_LOCKED_NO_PWM_RECOVERY","ir_source":"ESPNOW_TYPE5","ir_bounds":"UNVALIDATED","ir_authority":"PHYSICAL_PROGRESS_GATE","normal_model":"EXPECT_CONFIRM_ADVANCE","recovery_word":10,"traffic_coordination":0,"ir_health_mode":"RECOVERY_MEASUREMENT","ir_window_pct":15,"sequence_authority":"PROXIMAL_UNIQUE_BETTER"}
+ngr/loco/9950011/state/connectivity {"wifi":1,"ip":"192.168.68.72","rssi":-25,"mqtt":1,"mqtt_state":0,"broker":"192.168.68.142","ir_radio":1,"ir_seen":0,"ir_coupled":0,"navi_sync":1,"udp_failures":72}
+ngr/loco/9950011/state/throttle 0
+ngr/loco/9950011/state/warning INA219 NOT FOUND — no battery protection this session
+Timed out

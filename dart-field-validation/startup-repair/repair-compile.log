@@ -1,0 +1,29 @@
+In file included from /Users/davidbrown/<PRIVATE_VALUE_REDACTED>/<PRIVATE_VALUE_REDACTED>-Files/navi-ewo-dart-experiment-1/firmware/programs/NAVI_EWO_0_5/../NAVI_ONE/variants/NAVI_ONE_X22/LocoConfig.h:74,
+                 from /Users/davidbrown/<PRIVATE_VALUE_REDACTED>/<PRIVATE_VALUE_REDACTED>-Files/navi-ewo-dart-experiment-1/firmware/programs/NAVI_EWO_0_5/NAVI_EWO_0_5.ino:43:
+/Users/davidbrown/<PRIVATE_VALUE_REDACTED>/<PRIVATE_VALUE_REDACTED>-Files/navi-ewo-dart-experiment-1/firmware/programs/NAVI_EWO_0_5/../NAVI_ONE/variants/NAVI_ONE_X22/LL_LocoConfig_9950011.h:49:9: warning: "BLYNK_AUTH_TOKEN" redefined
+   49 | #define BLYNK_AUTH_TOKEN BLYNK_AUTH_TOKEN_9950011
+      |         ^~~~~~~~~~~~~~~~
+In file included from /Users/davidbrown/<PRIVATE_VALUE_REDACTED>/<PRIVATE_VALUE_REDACTED>-Files/navi-ewo-dart-experiment-1/firmware/programs/NAVI_EWO_0_5/../NAVI_ONE/variants/NAVI_ONE_X22/LL_LocoConfig_9950011.h:7:
+/private/tmp/navi-ewo-0-5-deployment-config/credentials.h:16:9: note: this is the location of the previous definition
+   16 | #define BLYNK_AUTH_TOKEN "<PRIVATE_VALUE_REDACTED>"
+      |         ^~~~~~~~~~~~~~~~
+/Users/davidbrown/Documents/Arduino/libraries/Adafruit_INA219/Adafruit_INA219.cpp: In member function 'void Adafruit_INA219::setCalibration_32V_2A()':
+/Users/davidbrown/Documents/Arduino/libraries/Adafruit_INA219/Adafruit_INA219.cpp:266:53: warning: bitwise operation between different enumeration types '<unnamed enum>' and '<unnamed enum>' is deprecated [-Wdeprecated-enum-enum-conversion]
+  266 |   uint16_t config = INA219_CONFIG_BVOLTAGERANGE_32V |
+      |                     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+  267 |                     INA219_CONFIG_GAIN_8_320MV | INA219_CONFIG_BADCRES_12BIT |
+      |                     ~~~~~~~~~~~~~~~~~~~~~~~~~~       
+/Users/davidbrown/Documents/Arduino/libraries/Adafruit_INA219/Adafruit_INA219.cpp: In member function 'void Adafruit_INA219::setCalibration_32V_1A()':
+/Users/davidbrown/Documents/Arduino/libraries/Adafruit_INA219/Adafruit_INA219.cpp:377:53: warning: bitwise operation between different enumeration types '<unnamed enum>' and '<unnamed enum>' is deprecated [-Wdeprecated-enum-enum-conversion]
+  377 |   uint16_t config = INA219_CONFIG_BVOLTAGERANGE_32V |
+      |                     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+  378 |                     INA219_CONFIG_GAIN_8_320MV | INA219_CONFIG_BADCRES_12BIT |
+      |                     ~~~~~~~~~~~~~~~~~~~~~~~~~~       
+/Users/davidbrown/Documents/Arduino/libraries/Adafruit_INA219/Adafruit_INA219.cpp: In member function 'void Adafruit_INA219::setCalibration_16V_400mA()':
+/Users/davidbrown/Documents/Arduino/libraries/Adafruit_INA219/Adafruit_INA219.cpp:468:53: warning: bitwise operation between different enumeration types '<unnamed enum>' and '<unnamed enum>' is deprecated [-Wdeprecated-enum-enum-conversion]
+  468 |   uint16_t config = INA219_CONFIG_BVOLTAGERANGE_16V |
+      |                     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+  469 |                     INA219_CONFIG_GAIN_1_40MV | INA219_CONFIG_BADCRES_12BIT |
+      |                     ~~~~~~~~~~~~~~~~~~~~~~~~~        
+Sketch uses 1057011 bytes (80%) of program storage space. Maximum is 1310720 bytes.
+Global variables use 81412 bytes (24%) of dynamic memory, leaving 246268 bytes for local variables. Maximum is 327680 bytes.

@@ -1,0 +1,7 @@
+{
+  "pass": true,
+  "baseline": "44d0275",
+  "bytes": 286368,
+  "sha256": "268a53d775b6f99a2338033c933c32dd1d82b40f82d470ad984d7720b2f99306",
+  "counters": "records=773 consumption_drops=29 action_drops=46 native_drops=25 navi_drops=106"
+}

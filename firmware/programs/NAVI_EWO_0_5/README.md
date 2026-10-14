@@ -1,8 +1,9 @@
 # NAVI_EWO_0_5
 
-October 14, 2026. Experimental integration candidate. **Compiled and host tested,
-but failed stationary startup after upload. Not cleared for operation. Otto's
-previous COHERENCE R2 image has been restored and verified online.**
+October 14, 2026. Experimental integration candidate. **The startup-memory
+failure has been repaired. The updated EWO 0_5 is installed on Otto and has
+connected successfully on repeated stationary starts. Train-run clearance
+still requires confirming INA219 under normal battery power.**
 
 Foundation: `NAVI_EWO_0_1_MM045_STOP`,
 `85a2cf2a16d262abdf7258c60f60508b823913ee`. The separate, tested first DART
@@ -37,8 +38,10 @@ remain unchanged. The first-increment rollback and SHA-256 manifest remain in
 
 ## Verification and review
 
-[Current deployment report](../../../dart-field-validation/STOP_GO_AND_OTTO_DEPLOYMENT_20261014.md) records the test
-results, failures, baseline comparisons, resource figures and limitations.
+[Current startup-repair report](../../../dart-field-validation/startup-repair/REPORT.md)
+records the memory diagnosis, unchanged recorder capacities, verification and
+remaining power-system check. The [initial deployment report](../../../dart-field-validation/STOP_GO_AND_OTTO_DEPLOYMENT_20261014.md)
+preserves the original crash and R2 rollback.
 [Operating decisions](../../../dart-field-validation/OPERATING_DECISIONS_20261014.md)
 record the subsequent operator answers. [IR criteria and integration](../../../dart-field-validation/ir-credibility/STATUS.md)
 retain the original criteria and their interpretation.
@@ -60,14 +63,18 @@ their assertions. Five inherited detector/window suites still fail, and one
 first-increment invariant suite now fails its superseded no-withdrawal
 expectation; those failures remain visible, not relabelled passes.
 
-ESP32 core 3.3.12 compilation succeeds: 1,055,591 B program, 81,404 B static RAM.
+The additional word-storage test passes. The old/new production recorders emit
+773 byte-identical records across four record types, including deliberate
+overflow. Recorder capacities and all navigation/motor rules remain unchanged.
+
+ESP32 core 3.3.12 compilation succeeds: 1,057,275 B program, 81,412 B static RAM.
 The deployment build uses Otto’s existing private configuration; no credentials
 are included in the repository.
 Two explicitly labelled host-generated transition records reached the actual
-Pi MQTT log. This establishes Mac→broker→recorder receipt. The actual EWO 0_5
-board connected to Wi-Fi, timed out on MQTT, then aborted and rebooted; its
-hardware resource/timing gate failed. See the deployment report for the serial
-trace, decoded crash and verified rollback.
+Pi MQTT log. Subsequent hardware diagnosis identified ordinary-RAM exhaustion.
+Relocating unchanged record rings to word-only internal memory and increasing
+the loop stack resolved startup in the completed repair. See the current report
+for actual board/recorder evidence and its stationary-test limitations.
 
 ## Manual STOP/GO
 
@@ -76,6 +83,6 @@ on GO, retaining the selected MM, pending candidate and tile-ramp progress.
 Raw Hall timestamps stay intact. Actual scheduled station dwell/departure still
 counts; manual-stop duration is excluded from the next lap's timing reference.
 The existing moved-while-stopped declaration latch remains authoritative.
-David authorized the tested build to be flashed to USB-connected Otto. Upload
-verified, but stationary startup failed; these new clock rules are therefore
-not currently installed on Otto. No motion commands or field test were run.
+David authorized the tested build to be flashed to USB-connected Otto and the
+subsequent startup repair. The new clock rules are now installed. No motion
+commands or field test were run by the agent.

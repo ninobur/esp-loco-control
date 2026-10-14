@@ -1,5 +1,5 @@
 /* October 14 NAVI_EWO_0_5 working continuation of DART / NAVI_EWO_0_4.
- * Baseline 85a2cf2. NOT FIELD ACCEPTED; no flash authorized.
+ * Baseline 85a2cf2. NOT FIELD ACCEPTED; stationary diagnosis/flash authorized.
  * Integrated provisional IR credibility, previous-complete-lap timing,
  * MM+2 missing-target stop and Hall-synchronized throttle fallback.
  * Mid-tile IR loss holds the current command until another selected opening;
@@ -32,6 +32,8 @@
 #include <esp_now.h>
 #include <esp_wifi.h>
 #include <esp_timer.h>
+#include <esp_heap_caps.h>
+#include <esp_rom_sys.h>
 #include <limits.h>
 #include <atomic>
 
@@ -85,6 +87,7 @@ static constexpr char MQTT_BROKER[] = "192.168.68.142";
 // reviewed build and sustained-load/reconnect behavior remains unverified.
 static constexpr uint8_t PUB_QUEUE_DEPTH = 16;
 
+
 struct IrRx { uint8_t mac[6]; uint64_t receivedUs; uint16_t length;
   uint8_t pwmAtReceive, commandedAtReceive; navi_sync::Context contextAtReceive;
   uint8_t bytes[110]; };
@@ -93,6 +96,27 @@ static_assert(sizeof(PulseEventPacket)<=sizeof(IrRx::bytes),"Type-6 exceeds lega
 static_assert(sizeof(navi_pulse::Rx::bytes)==sizeof(PulseEventPacket),"pulse ingress size");
 struct PubMsg { char topic[72]; char payload[1200]; bool retain; };
 struct CmdMsg { char topic[72]; char payload[64]; uint64_t order; uint64_t receivedUs; };
+
+// The measured 8-KiB loop stack had only 492 bytes unused under stationary
+// acquisition/telemetry. Reserve another 4 KiB without changing task priority.
+SET_LOOP_TASK_STACK_SIZE(12 * 1024);
+
+// Startup diagnostics use ROM output so allocation failure reporting does not
+// itself need a heap-backed stdio mutex. No navigation or recording dependency.
+static std::atomic<uint32_t> startupAllocFailures{0};
+static void startupResources(const char* stage) {
+  esp_rom_printf("[RESOURCE] stage=%s free8=%u largest8=%u min8=%u free32=%u stack_free=%u alloc_failures=%u\n",
+    stage, unsigned(heap_caps_get_free_size(MALLOC_CAP_INTERNAL|MALLOC_CAP_8BIT)),
+    unsigned(heap_caps_get_largest_free_block(MALLOC_CAP_INTERNAL|MALLOC_CAP_8BIT)),
+    unsigned(heap_caps_get_minimum_free_size(MALLOC_CAP_INTERNAL|MALLOC_CAP_8BIT)),
+    unsigned(heap_caps_get_free_size(MALLOC_CAP_INTERNAL|MALLOC_CAP_32BIT)),
+    unsigned(uxTaskGetStackHighWaterMark(nullptr)), unsigned(startupAllocFailures.load()));
+}
+static void startupAllocationFailure(size_t requested, uint32_t caps, const char* function) {
+  if(startupAllocFailures.fetch_add(1)<8)
+    esp_rom_printf("[ALLOC_FAIL] bytes=%u caps=%08x function=%s\n",
+      unsigned(requested), unsigned(caps), function);
+}
 
 static NaviIntegratedCore navi;
 static NaviStopOverlay stopOverlay;
@@ -246,6 +270,7 @@ static void publishDart() {
     "\"incomplete_batch\":%lu,\"comparison_incomplete\":%u,\"candidate\":%u,"
     "\"processing_max_us\":%llu,\"hall_latency_max_us\":%llu,\"core_bytes\":%u,"
     "\"heap_free\":%u,\"heap_min\":%u,\"stack_hwm\":%u,"
+    "\"heap8_free\":%u,\"heap8_largest\":%u,\"alloc_failures\":%u,"
     "\"identity_available\":%u,\"mm\":%u,\"tile\":%u,\"fine_available\":%u}",
     (unsigned long)navi.diagnosticDrops(),(unsigned long)dartQueueDrops,(unsigned long)dartPublishDrops.load(),
     (unsigned long)dartPublishMessages.load(),(unsigned long)dartPublishBytes.load(),
@@ -254,7 +279,10 @@ static void publishDart() {
     unsigned(navi.comparisonIncomplete()),unsigned(navi.candidateAvailable()),
     (unsigned long long)dartMaxProcessingUs,(unsigned long long)dartMaxHallLatencyUs,
     unsigned(sizeof(navi)),unsigned(ESP.getFreeHeap()),unsigned(ESP.getMinFreeHeap()),
-    unsigned(uxTaskGetStackHighWaterMark(nullptr)),unsigned(view.identityAvailable),
+    unsigned(uxTaskGetStackHighWaterMark(nullptr)),
+    unsigned(heap_caps_get_free_size(MALLOC_CAP_INTERNAL|MALLOC_CAP_8BIT)),
+    unsigned(heap_caps_get_largest_free_block(MALLOC_CAP_INTERNAL|MALLOC_CAP_8BIT)),
+    unsigned(startupAllocFailures.load()),unsigned(view.identityAvailable),
     unsigned(view.identifiedMm),unsigned(view.tile),unsigned(view.fine));
   pub("diag/navi_status",payload);
   char operating[600];
@@ -970,6 +998,8 @@ static void serviceDartTelemetry() {
 
 static void networkTask(void*) {
   uint32_t nextConnect = 0, wifiDownSince = 0, nextIrInitAttempt = 0;
+  unsigned startupConnectReports=0;
+  startupResources("network_task");
   for (;;) {
     const uint32_t now = millis();
     const bool wifiConnected = WiFi.status() == WL_CONNECTED;
@@ -980,16 +1010,20 @@ static void networkTask(void*) {
       }
     } else wifiDownSince = 0;
     if (wifiConnected && !radioReady && now >= nextIrInitAttempt) {
+      startupResources("before_espnow");
       nextIrInitAttempt = now + 15000;
       const esp_err_t initResult = esp_now_init();
       const esp_err_t callbackResult = initResult == ESP_OK
           ? esp_now_register_recv_cb(onIr) : initResult;
       radioReady = callbackResult == ESP_OK;
+      startupResources("after_espnow");
       if (initResult == ESP_OK && !radioReady) esp_now_deinit();
       Serial.printf("[IR] radio=%s init_error=%d callback_error=%d\n",
                     radioReady ? "READY" : "FAILED", initResult, callbackResult);
     }
     if (wifiConnected && !mqtt.connected() && now >= nextConnect) {
+      const bool reportStartup=startupConnectReports++<3;
+      if(reportStartup) startupResources("before_mqtt");
       wifiClient.setConnectionTimeout(3000);
       nextConnect = now + 2000;
       char id[48], online[72];
@@ -1014,6 +1048,7 @@ static void networkTask(void*) {
         Serial.printf("[MQTT] connected broker=%s client=%s\n", MQTT_BROKER, id);
       }
       else Serial.printf("[MQTT] connect failed state=%d broker=%s\n", mqtt.state(), MQTT_BROKER);
+      if(reportStartup) startupResources("after_mqtt");
     }
     mqtt.loop();
     const bool mqttConnected = mqtt.connected();
@@ -1162,7 +1197,10 @@ void setup() {
   delay(300);
   pinMode(MOTOR_PWM_PIN, OUTPUT);
   digitalWrite(MOTOR_PWM_PIN, LOW);
+  heap_caps_register_failed_alloc_callback(startupAllocationFailure);
+  startupResources("before_recorder");
   recorder = new (std::nothrow) navi_sync::Recorder();
+  startupResources("after_recorder");
   if (!recorder || !recorder->storageReady()) {
     // No PWM peripheral or control task has been enabled yet.
     pinMode(MOTOR_PWM_PIN, OUTPUT); digitalWrite(MOTOR_PWM_PIN, LOW);
@@ -1191,6 +1229,7 @@ void setup() {
   pulseTransportQ=xQueueCreate(1,sizeof(navi_pulse::StatusRx));
   pulseLogQ=xQueueCreate(16,sizeof(navi_pulse::Report));
   pulseStatusQ=xQueueCreate(1,sizeof(navi_pulse::Report));
+  startupResources("after_queues");
   Serial.printf("[IR_PULSE] queues rx=%u transport=%u log=%u status=%u authority=OBSERVATION_ONLY\n",
     pulseQ!=nullptr,pulseTransportQ!=nullptr,pulseLogQ!=nullptr,pulseStatusQ!=nullptr);
   Serial.printf("[BOOT] queues hall=%u ir=%u pub=%u cmd=%u pub_depth=%u\n",
@@ -1215,15 +1254,19 @@ void setup() {
     writePwm(0); for (;;) delay(1000);
   }
   // Let Wi-Fi select the AP channel before starting ESP-NOW reception.
+  startupResources("before_wifi");
   WiFi.onEvent(onWifiDisconnect, ARDUINO_EVENT_WIFI_STA_DISCONNECTED);
   WiFi.mode(WIFI_STA);
   WiFi.begin(WIFI_SSID, WIFI_PASS);
+  startupResources("after_wifi_begin");
   Serial.printf("[NET] wifi=CONNECTING mqtt_broker=%s\n", MQTT_BROKER);
   mqtt.setServer(MQTT_BROKER, 1883);
   mqtt.setCallback(onMqtt);
-  mqtt.setBufferSize(2304);
+  const bool mqttBufferReady=mqtt.setBufferSize(2304);
+  esp_rom_printf("[RESOURCE] mqtt_buffer_ready=%u\n", unsigned(mqttBufferReady));
   if (xTaskCreatePinnedToCore(networkTask, "net", 8192, nullptr, 1, nullptr, 1) != pdPASS)
     Serial.println("[BOOT] WARNING: network task failed");
+  startupResources("after_network_task");
   char payload[420];
   snprintf(payload, sizeof(payload),
     "{\"sketch\":\"%s\",\"class\":\"%s\",\"boot_id\":\"%016llX\","

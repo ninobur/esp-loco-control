@@ -20,6 +20,10 @@ static int xQueueReceive(void*,DartRecord* record,int){if(q.empty())return 0;*re
 static unsigned millis(){return 0;}
 static uint64_t esp_timer_get_time(){return 0;}
 static unsigned uxTaskGetStackHighWaterMark(void*){return 0;}
+static constexpr unsigned MALLOC_CAP_INTERNAL=2048,MALLOC_CAP_8BIT=4;
+static unsigned heap_caps_get_free_size(unsigned){return 0;}
+static unsigned heap_caps_get_largest_free_block(unsigned){return 0;}
+static std::atomic<uint32_t> startupAllocFailures{0};
 static bool pub(const char*,const char*){return false;}
 static struct Esp{unsigned getFreeHeap(){return 0;}unsigned getMinFreeHeap(){return 0;}}ESP;
 static struct Mqtt{bool connected(){return online;}bool publish(const char*,const char*,bool){return success;}}mqtt;
@@ -38,6 +42,7 @@ static void publishDart() {
     "\"incomplete_batch\":%lu,\"comparison_incomplete\":%u,\"candidate\":%u,"
     "\"processing_max_us\":%llu,\"hall_latency_max_us\":%llu,\"core_bytes\":%u,"
     "\"heap_free\":%u,\"heap_min\":%u,\"stack_hwm\":%u,"
+    "\"heap8_free\":%u,\"heap8_largest\":%u,\"alloc_failures\":%u,"
     "\"identity_available\":%u,\"mm\":%u,\"tile\":%u,\"fine_available\":%u}",
     (unsigned long)navi.diagnosticDrops(),(unsigned long)dartQueueDrops,(unsigned long)dartPublishDrops.load(),
     (unsigned long)dartPublishMessages.load(),(unsigned long)dartPublishBytes.load(),
@@ -46,7 +51,10 @@ static void publishDart() {
     unsigned(navi.comparisonIncomplete()),unsigned(navi.candidateAvailable()),
     (unsigned long long)dartMaxProcessingUs,(unsigned long long)dartMaxHallLatencyUs,
     unsigned(sizeof(navi)),unsigned(ESP.getFreeHeap()),unsigned(ESP.getMinFreeHeap()),
-    unsigned(uxTaskGetStackHighWaterMark(nullptr)),unsigned(view.identityAvailable),
+    unsigned(uxTaskGetStackHighWaterMark(nullptr)),
+    unsigned(heap_caps_get_free_size(MALLOC_CAP_INTERNAL|MALLOC_CAP_8BIT)),
+    unsigned(heap_caps_get_largest_free_block(MALLOC_CAP_INTERNAL|MALLOC_CAP_8BIT)),
+    unsigned(startupAllocFailures.load()),unsigned(view.identityAvailable),
     unsigned(view.identifiedMm),unsigned(view.tile),unsigned(view.fine));
   pub("diag/navi_status",payload);
   char operating[600];

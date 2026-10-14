@@ -1,5 +1,9 @@
 # EWO 0 5 manual STOP/GO and Otto deployment — October 14, 2026
 
+**Later follow-up:** the [startup memory repair](startup-repair/REPORT.md) is
+now installed on Otto. The report below preserves the initial failure and
+rollback; its statement of installed firmware is historical.
+
 **Outcome: EWO 0_5 passed compilation and the active host checks but failed the
 stationary hardware startup gate. It is not cleared for operation. Otto has
 been restored to its exact prior installed COHERENCE R2 image; the restored

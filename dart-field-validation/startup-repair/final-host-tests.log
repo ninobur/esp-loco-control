@@ -1,0 +1,16 @@
+PASS 223 IR credibility assertions (policy evaluator only)
+PASS: 0 failures
+PASS: EWO NSR1 observation and decision records
+PASS: portable STOP geometry, both directions, cold entry, timed final/dwell, interruption, departure and repeat
+PASS: fixed Type-5 configuration, raw calibration metadata, real epochs, validity and diagnostic boundaries
+PASS native pulse measurements, source/boot/order/loss recovery, TX interoperability, wrap and wire validation
+host_native_samples=50000 elapsed_ns=7213125 core_bytes=29784 opening_bytes=104 diagnostic_bytes=336
+PASS 85 assertions
+widest_diagnostic_bytes=1911
+PASS 410 integrated EWO 0_5 assertions; core=29784 history=10992 record=336 bytes
+PASS: word-only storage, odd/even records, all bytes, wrap reuse, bounds, allocation failure and release
+PASS 76 actual .ino motor/overlay adapter assertions
+
+PASS 712 actual transport assertions; queue_drop=80 mqtt_drop=80
+
+{"pass": true, "baseline": "44d0275", "bytes": 238292, "sha256": "055709d4a7defe592e7168af29e5d2b3965f0c5be68ebe350e22d77c966d0d79", "counters": "records=369 consumption_drops=29 action_drops=46 native_drops=25"}

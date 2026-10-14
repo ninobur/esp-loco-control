@@ -1,0 +1,161 @@
+{
+  "app_sha256": "44a1088adb92ca56a5f5e4d0fa1dcaa62ce13b7ebba1abf2cf0239d87588c4d5",
+  "stationary_startup_pass": true,
+  "field_accepted": false,
+  "movement_commands_issued": false,
+  "ina219_detected": false,
+  "normal_battery_power_confirmed": false,
+  "boots": {
+    "645456DDC3FCE5AB": {
+      "first_pi_record": "2026-10-14T15:12:21.653",
+      "last_pi_record": "2026-10-14T15:13:42.976",
+      "record_span_seconds": 81.323,
+      "status_samples": 80,
+      "zero_throttle_reports": 80,
+      "metrics": {
+        "heap8_free": {
+          "min": 29204,
+          "max": 44020
+        },
+        "heap8_largest": {
+          "min": 26612,
+          "max": 40948
+        },
+        "heap_min": {
+          "min": 13816,
+          "max": 40796
+        },
+        "stack_hwm": {
+          "min": 4556,
+          "max": 6704
+        },
+        "alloc_failures": {
+          "min": 0,
+          "max": 0
+        },
+        "processing_max_us": {
+          "min": 25,
+          "max": 1027
+        },
+        "hall_latency_max_us": {
+          "min": 192147,
+          "max": 192147
+        }
+      },
+      "drop_counters": {
+        "hall_q_drop": {
+          "last": 709,
+          "after_first_10_records": 709
+        },
+        "ir_q_drop": {
+          "last": 0,
+          "after_first_10_records": 0
+        },
+        "nsr_hall_drop": {
+          "last": 4,
+          "after_first_10_records": 4
+        },
+        "nsr_native_drop": {
+          "last": 120,
+          "after_first_10_records": 120
+        },
+        "pub_drop": {
+          "last": 2,
+          "after_first_10_records": 2
+        }
+      }
+    },
+    "109584913DF9565C": {
+      "first_pi_record": "2026-10-14T15:13:42.983",
+      "last_pi_record": "2026-10-14T15:14:53.312",
+      "record_span_seconds": 70.329,
+      "status_samples": 72,
+      "zero_throttle_reports": 72,
+      "metrics": {
+        "heap8_free": {
+          "min": 28164,
+          "max": 44004
+        },
+        "heap8_largest": {
+          "min": 23540,
+          "max": 40948
+        },
+        "heap_min": {
+          "min": 8880,
+          "max": 40800
+        },
+        "stack_hwm": {
+          "min": 4608,
+          "max": 6704
+        },
+        "alloc_failures": {
+          "min": 0,
+          "max": 0
+        },
+        "processing_max_us": {
+          "min": 60,
+          "max": 1026
+        },
+        "hall_latency_max_us": {
+          "min": 126369,
+          "max": 126369
+        }
+      },
+      "drop_counters": {
+        "hall_q_drop": {
+          "last": 379,
+          "after_first_10_records": 379
+        },
+        "ir_q_drop": {
+          "last": 0,
+          "after_first_10_records": 0
+        },
+        "nsr_hall_drop": {
+          "last": 2,
+          "after_first_10_records": 2
+        },
+        "nsr_native_drop": {
+          "last": 107,
+          "after_first_10_records": 107
+        },
+        "pub_drop": {
+          "last": 2,
+          "after_first_10_records": 2
+        }
+      }
+    }
+  },
+  "udp": {
+    "summary": true,
+    "seconds": 75.0,
+    "packets_by_type": {
+      "6": 11328,
+      "5": 7615,
+      "1": 1542,
+      "2": 729,
+      "3": 73,
+      "7": 1,
+      "4": 2
+    },
+    "crc_failures": 0,
+    "boot_ids": [
+      "109584913DF9565C",
+      "645456DDC3FCE5AB"
+    ],
+    "max_ring_drops": {
+      "6": 280,
+      "5": 120,
+      "1": 4,
+      "2": 0,
+      "3": 4,
+      "7": 0,
+      "4": 0
+    },
+    "native_missing_serials": 0,
+    "native_nonzero_pwm": 0,
+    "native_gap_count": 365518,
+    "gap_p50_us": 46,
+    "gap_p99_us": 864,
+    "gap_max_us": 4028
+  }
+}

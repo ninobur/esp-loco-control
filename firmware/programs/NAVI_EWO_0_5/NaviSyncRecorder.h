@@ -10,6 +10,7 @@
 #include <string.h>
 #include <memory>
 #include <new>
+#include "NaviWordStorage.h"
 #include "../../common/IrMovementWire.h"
 
 #ifndef NAVI_SYNC_ENTER_CRITICAL
@@ -245,7 +246,10 @@ struct __attribute__((packed)) IrWire {
 
 class Recorder {
  public:
-  bool storageReady() const { return bool(trace_); }
+  bool storageReady() const {
+    return nativeRing_.ready() && naviRing_.ready() && trace_ &&
+           trace_->consumption.ready() && trace_->action.ready();
+  }
   void begin(uint32_t locoId, uint32_t sessionId, uint64_t locoBootId) {
     if (!storageReady()) return;
     NAVI_SYNC_ENTER_CRITICAL();
@@ -355,7 +359,7 @@ class Recorder {
       naviTail_ = (naviTail_ + 1) % NAVI_RING_RECORDS;
       --naviCount_;
     }
-    naviRing_[naviHead_] = out;
+    naviRing_.put(naviHead_, out);
     naviHead_ = (naviHead_ + 1) % NAVI_RING_RECORDS;
     ++naviCount_;
     NAVI_SYNC_EXIT_CRITICAL();
@@ -395,7 +399,7 @@ class Recorder {
   bool popNavi(NaviWire& out) {
     NAVI_SYNC_ENTER_CRITICAL();
     if (!naviCount_) { NAVI_SYNC_EXIT_CRITICAL(); return false; }
-    out = naviRing_[naviTail_];
+    naviRing_.get(naviTail_, out);
     naviTail_ = (naviTail_ + 1) % NAVI_RING_RECORDS;
     --naviCount_;
     NAVI_SYNC_EXIT_CRITICAL();
@@ -404,7 +408,7 @@ class Recorder {
   bool popNativeHall(NativeHallWire& out) {
     NAVI_SYNC_ENTER_CRITICAL();
     if (!nativeCount_) { NAVI_SYNC_EXIT_CRITICAL(); return false; }
-    out = nativeRing_[nativeTail_];
+    nativeRing_.get(nativeTail_, out);
     nativeTail_ = (nativeTail_ + 1) % NATIVE_HALL_RING_BATCHES;
     --nativeCount_;
     NAVI_SYNC_EXIT_CRITICAL();
@@ -462,7 +466,7 @@ class Recorder {
       ++consumptionDrops_; consumptionTail_ = (consumptionTail_ + 1) % CONSUMPTION_BATCHES;
       --consumptionCount_;
     }
-    trace_->consumption[consumptionHead_] = trace_->current;
+    trace_->consumption.put(consumptionHead_, trace_->current);
     consumptionHead_ = (consumptionHead_ + 1) % CONSUMPTION_BATCHES;
     ++consumptionCount_;
     NAVI_SYNC_EXIT_CRITICAL();
@@ -472,7 +476,7 @@ class Recorder {
   bool popConsumption(ConsumptionWire& out) {
     NAVI_SYNC_ENTER_CRITICAL();
     if (!consumptionCount_) { NAVI_SYNC_EXIT_CRITICAL(); return false; }
-    out = trace_->consumption[consumptionTail_];
+    trace_->consumption.get(consumptionTail_, out);
     consumptionTail_ = (consumptionTail_ + 1) % CONSUMPTION_BATCHES;
     --consumptionCount_;
     NAVI_SYNC_EXIT_CRITICAL(); return true;
@@ -492,14 +496,14 @@ class Recorder {
     if (actionCount_ == ACTION_RECORDS) {
       ++actionDrops_; actionTail_ = (actionTail_ + 1) % ACTION_RECORDS; --actionCount_;
     }
-    trace_->action[actionHead_] = out;
+    trace_->action.put(actionHead_, out);
     actionHead_ = (actionHead_ + 1) % ACTION_RECORDS; ++actionCount_;
     NAVI_SYNC_EXIT_CRITICAL();
   }
   bool popAction(ActionWire& out) {
     NAVI_SYNC_ENTER_CRITICAL();
     if (!actionCount_) { NAVI_SYNC_EXIT_CRITICAL(); return false; }
-    out = trace_->action[actionTail_]; actionTail_ = (actionTail_ + 1) % ACTION_RECORDS;
+    trace_->action.get(actionTail_, out); actionTail_ = (actionTail_ + 1) % ACTION_RECORDS;
     --actionCount_; NAVI_SYNC_EXIT_CRITICAL(); return true;
   }
 
@@ -543,7 +547,7 @@ class Recorder {
       nativeTail_ = (nativeTail_ + 1) % NATIVE_HALL_RING_BATCHES;
       --nativeCount_;
     }
-    nativeRing_[nativeHead_] = nativeCurrent_;
+    nativeRing_.put(nativeHead_, nativeCurrent_);
     nativeHead_ = (nativeHead_ + 1) % NATIVE_HALL_RING_BATCHES;
     ++nativeCount_;
     NAVI_SYNC_EXIT_CRITICAL();
@@ -567,12 +571,13 @@ class Recorder {
   HallWire hallCurrent_{};
   HallWire hallRing_[HALL_RING_BATCHES]{};
   IrWire irRing_[IR_RING_RECORDS]{};
-  NaviWire naviRing_[NAVI_RING_RECORDS]{};
+  WordStorage<NaviWire,NAVI_RING_RECORDS> naviRing_;
   NativeHallWire nativeCurrent_{};
-  NativeHallWire nativeRing_[NATIVE_HALL_RING_BATCHES]{};
+  WordStorage<NativeHallWire,NATIVE_HALL_RING_BATCHES> nativeRing_;
   struct TraceStorage {
-    ConsumptionWire current{}, consumption[CONSUMPTION_BATCHES]{};
-    ActionWire action[ACTION_RECORDS]{};
+    ConsumptionWire current{};
+    WordStorage<ConsumptionWire,CONSUMPTION_BATCHES> consumption;
+    WordStorage<ActionWire,ACTION_RECORDS> action;
   };
   std::unique_ptr<TraceStorage> trace_{new (std::nothrow) TraceStorage{}};
   uint16_t consumptionHead_ = 0, consumptionTail_ = 0, consumptionCount_ = 0;

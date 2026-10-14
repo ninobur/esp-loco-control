@@ -28,6 +28,10 @@ static int xQueueReceive(void*,DartRecord* record,int){if(q.empty())return 0;*re
 static unsigned millis(){return 0;}
 static uint64_t esp_timer_get_time(){return 0;}
 static unsigned uxTaskGetStackHighWaterMark(void*){return 0;}
+static constexpr unsigned MALLOC_CAP_INTERNAL=2048,MALLOC_CAP_8BIT=4;
+static unsigned heap_caps_get_free_size(unsigned){return 0;}
+static unsigned heap_caps_get_largest_free_block(unsigned){return 0;}
+static std::atomic<uint32_t> startupAllocFailures{0};
 static bool pub(const char*,const char*){return false;}
 static struct Esp{unsigned getFreeHeap(){return 0;}unsigned getMinFreeHeap(){return 0;}}ESP;
 static struct Mqtt{bool connected(){return online;}bool publish(const char*,const char*,bool){return success;}}mqtt;

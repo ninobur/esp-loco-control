@@ -38,6 +38,6 @@ identity, subject to the existing moved-while-stopped declaration safeguard.
 The [review report](../REVIEW.md) records compilation and all test limitations.
 Neither the numerical criteria nor previous-lap timing reliability are field
 validated. See [the deployment follow-up](../STOP_GO_AND_OTTO_DEPLOYMENT_20261014.md) for
-the separately authorized upload and stationary verification status: upload
-verified, but EWO 0_5 failed startup and was replaced by Otto's original R2
-image. These authority rules are not currently running on Otto.
+the initial failed upload and rollback. The subsequent
+[startup resource repair](../startup-repair/REPORT.md) is now installed on Otto,
+including these authority rules. Railway validation is still outstanding.
