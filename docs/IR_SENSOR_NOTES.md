@@ -254,6 +254,17 @@ this may be acceptable — but it should be a decision, not an oversight.
 
 ## Mechanical
 
+> **As-built correction, 2026-08-14.** The subsections below are DESIGN
+> RECOMMENDATIONS, most of which were never implemented. They had begun to
+> be quoted as though they described the real hardware. The mount actually
+> in service is a **glued 3D-printed box** with the sensor a **tight press
+> fit into the aperture**, otherwise **closed (no weep slot)**, attached
+> with **double-sided tape** (screwing to the truck is impractical), and
+> with **virtually no standoff** because the plastic spokes are offset
+> inboard of the wheel flange. There are no slotted mounting holes. Photos
+> and the as-built description: `hardware/ir-mount/`. The "present mount is
+> a foam block" note below is also superseded — it is printed now.
+
 **Mount to the truck, not the body.** On a bogie car the truck swivels under
 the body on every curve, changing both standoff and radial position on the tape
 band by several millimetres, continuously, through the curve. That is a moving
