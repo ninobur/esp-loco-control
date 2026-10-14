@@ -2,6 +2,7 @@
 #include <stdint.h>
 #include <stddef.h>
 #include "NaviDartOperations.h"
+#include "NaviIrCredibility.h"
 namespace navi_eyes {
 struct DartIr {
   uint64_t um=0, receivedUs=0, capturedUs=0, pulses=0, epoch=0, boot=0;
@@ -31,11 +32,18 @@ struct DartRecord {
   bool inferred=false, intervalValid=false, residualValid=false;
   DartMetric metric=DartMetric::Distance;
   DartStop stop=DartStop::None;
-  DartCredibility credibility=DartCredibility::NominalUnverified;
+  IrIntervalClassification credibility=IrIntervalClassification::Unavailable;
+  IrGeographicAuthority authority=IrGeographicAuthority::Retained;
+  IrCredibilityTransition transition=IrCredibilityTransition::None;
+  DartIr intervalStart;
+  uint32_t intervalStartId=0, restorationStartId=0;
+  uint64_t measuredIntervalUm=0, expectedIntervalUm=0;
+  bool anchorAvailable=false, independentIdentity=false;
   uint64_t expected=0, successorExpected=0, metricCoordinate=0, timingOriginUs=0;
   uint32_t timingFromId=0, timingToId=0;
-  uint16_t timingObservations=0;
+  uint32_t timingLap=0;
   int8_t expectedPole=0;
+  uint8_t successorTarget=0;
 };
 // Diagnostic ring only: overflow never enters navigation or measurement state.
 struct DartTiming {

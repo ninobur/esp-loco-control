@@ -1,0 +1,48 @@
+{
+  "unchanged_functions": [
+    "onWifiDisconnect",
+    "recorderContext",
+    "refreshRecorderContext",
+    "recordInput",
+    "recordAction",
+    "serviceObservationLoss",
+    "pub",
+    "warn",
+    "clearWarning",
+    "writePwm",
+    "brakeStepMs",
+    "requestPwm",
+    "serviceRamp",
+    "withdraw",
+    "servicePwmZeroMovementHold",
+    "movementCrc",
+    "hallTask",
+    "onIr",
+    "serviceIrIngress",
+    "pulseReport",
+    "servicePulseIngress",
+    "eventName",
+    "publishEvents",
+    "travelDirection",
+    "reversePosition",
+    "onMqtt",
+    "handleCommand",
+    "serviceBattery",
+    "recordStop",
+    "syncSend",
+    "syncDrain",
+    "servicePulseTelemetry",
+    "networkTask",
+    "serviceStatus"
+  ],
+  "changed_functions": [
+    "publishDart",
+    "opsNow",
+    "declarePosition",
+    "serviceAutoCruise",
+    "serviceDartTelemetry"
+  ],
+  "new_functions": [
+    "serviceNavigationStop"
+  ]
+}

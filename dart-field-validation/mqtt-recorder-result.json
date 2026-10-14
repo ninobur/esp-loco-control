@@ -1,0 +1,12 @@
+{
+  "bench_id": "NAVI_EWO_0_5_HOST_VALIDATION_023d8d13d249405799b07cf86b7925b3",
+  "records_published": 2,
+  "records_read_back_from_pi": 2,
+  "topic": "ngr/loco/9950011/diag/navi_decision",
+  "pi_file": "/home/david/NGR/telemetry/all_20261014.log",
+  "source": "Mac host executing the production formatter; not the ESP32",
+  "pi_service": "ngr-runlog.service",
+  "retained": false,
+  "proof_sha256": "6663e741e02622820b54e825319ed2437248b5e4bbd231561fff63d106d9ae5b",
+  "native_adc_recorder": "ngr-navi-sync-record.service observed inactive; unchanged"
+}

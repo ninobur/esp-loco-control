@@ -53,6 +53,7 @@ class NaviIntegratedCore {
     if (mm >= navi_one::ROUTE_N || (direction != 1 && direction != -1)) return;
     beginDecision(nowUs);
     resetDartContext();
+    travel_.interrupt();
     stopReason_=DartStop::None;
     contextSinceUs_ = nowUs;
     declared_ = true;
@@ -89,7 +90,8 @@ class NaviIntegratedCore {
     const int8_t oldDirection = direction_;
     const int64_t oldInterval = int64_t(navi_one::spanMm(mm_, oldDirection)) * 1000;
     const int64_t newInterval = int64_t(navi_one::spanMm(mm_, direction)) * 1000;
-    const bool coherent = irApplicable(nowUs) && relationshipReliable_ &&
+    const bool coherent = irAuthority_==IrGeographicAuthority::Retained &&
+                          irApplicable(nowUs) && relationshipReliable_ &&
                           targetOriginValid_ && latestIr_.nominalUm >= physicalOriginUm_ &&
                           latestIr_.nominalUm - physicalOriginUm_ <= INT64_MAX / 2 &&
                           expectedCumulativeUm_ <= INT64_MAX / 2;
@@ -107,6 +109,7 @@ class NaviIntegratedCore {
     const uint64_t distanceToTarget = reversible ? uint64_t(seekCurrentMm ?
         -newPosition : newInterval - newPosition) : 0;
     resetDartContext();
+    travel_.interrupt();
     contextSinceUs_ = nowUs;
     firstTargetAfterDeclare_ = false;
     direction_ = direction;
@@ -191,7 +194,9 @@ class NaviIntegratedCore {
     // distance rulings. A zero-displacement dwell leaves a known coordinate alone.
     if (pwm == 0 || pwmZeroMovementRequiresDeclaration_) return;
     if (!irApplicable(decisionUs_)) return;
-    setDistanceHolding(!relationshipReliable_ || !targetOriginValid_);
+    setDistanceHolding(metric_!=DartMetric::Distance ||
+        irAuthority_!=IrGeographicAuthority::Retained ||
+        !relationshipReliable_ || !targetOriginValid_);
     // Spatial reference progression follows Hall acquisition time below,
     // not a newer packet drained ahead of queued ADC observations.
     // A packet is not a mapped landmark; only an operator declaration or a
@@ -222,7 +227,8 @@ class NaviIntegratedCore {
     batch_[batchCount_++] = sample.raw; batchLastSerial_ = sample.sampleSerial;
     // Preserve spatial-reference mechanism, but never return before detection.
     const DartIr sampleIr=irAt(sample.timestampUs);
-    if (sample.pwm && spatialPhase_ != SpatialPhase::None &&
+    if (sample.pwm && irAuthority_==IrGeographicAuthority::Retained &&
+        metric_==DartMetric::Distance && spatialPhase_ != SpatialPhase::None &&
         sampleIr.applicable && relationshipReliable_) {
       updateSpatialPhase(sampleIr.um);
       collectSpatial(sample.raw,sampleIr.um);
@@ -259,6 +265,7 @@ class NaviIntegratedCore {
     pending_[pendingCount_++]=o;
     if(pendingCount_>pendingHighWater_) pendingHighWater_=pendingCount_;
     evaluateOpening(o);
+    if(replayMetricPending_) replayPending();
   }
 
   // Caller supplies only a fully processed native acquisition frontier. This
@@ -269,17 +276,16 @@ class NaviIntegratedCore {
         pwmZeroMovementRequiresDeclaration_) return;
     if (throughUs>processedHallUs_) throughUs=processedHallUs_;
     if (comparisonIncomplete_) { requestStop(DartStop::IncompleteEvidence); return; }
-    if (!firstTargetAfterDeclare_ && !prepareMetric()) return;
+    if (!firstTargetAfterDeclare_ && !prepareMetric()) {
+      if(replayMetricPending_) replayPending();
+      return;
+    }
     uint64_t x=0;
+    // A declaration names an interval, not an exact Hall position. The
+    // MM+2 stop rule starts after the first selected geographic landmark.
+    if(firstTargetAfterDeclare_) return;
     const DartIr progress=irAt(throughUs);
-    if(firstTargetAfterDeclare_) {
-      // Declared interval has no exact opening coordinate. Full mapped span
-      // from declaration is only a conservative search extent, never an anchor.
-      if(!targetOriginValid_ || !progress.applicable || progress.um<physicalOriginUm_) {
-        requestStop(DartStop::NoApplicableReference); return;
-      }
-      x=progress.um-physicalOriginUm_;
-    } else if(metric_==DartMetric::Time) {
+    if(metric_==DartMetric::Time) {
       if(throughUs<metricOriginUs_) return;
       x=throughUs-metricOriginUs_;
     } else {
@@ -296,7 +302,15 @@ class NaviIntegratedCore {
   DartStop stopReason() const { return stopReason_; }
   const char* stopReasonText() const { return dartStopName(stopReason_); }
   DartMetric comparisonMetric() const { return metric_; }
-  DartCredibility irCredibility() const { return credibility_; }
+  IrIntervalClassification irCredibility() const { return credibility_; }
+  IrGeographicAuthority irAuthority() const { return irAuthority_; }
+  uint32_t selectedOpeningId() const { return priorSelection_.id; }
+  uint64_t selectedDecisionUs() const { return selectedDecisionUs_; }
+  uint32_t completedTimingLaps() const { return travel_.completedLaps(); }
+  bool selectedAnchorAvailable() const { return targetOriginValid_; }
+  bool fineIrAvailable(uint64_t nowUs) const {
+    int64_t offset=0; return physicalOffsetUm(nowUs,offset);
+  }
   uint64_t selectedTimeUs() const { return selectedTimeUs_; }
   uint64_t timingExpectedUs() const { return timeExpected_; }
   const DartTravel& travelHistory(uint8_t mm,int8_t direction) const { return travel_.get(mm,direction); }
@@ -328,7 +342,13 @@ class NaviIntegratedCore {
     if(metric_==DartMetric::Time && context==0 && !stopRequested())
       requestStop(DartStop::TimingContextChanged);
     operatingContext_=context;
-    if (departureUs) departureUs_=departureUs;
+    if (departureUs) {
+      departureUs_=departureUs;
+      if(metric_==DartMetric::Time && !stopRequested()) {
+        if(!timingPrediction()) requestStop(DartStop::NoTimingHistory);
+        else { invalidateMetric(); replayMetricPending_=true; replayPending(); }
+      }
+    }
   }
   const DartTiming& timing(size_t index) const { return timing_[index%kTimingCapacity]; }
   size_t timingCount() const { return timingCount_; }
@@ -382,7 +402,8 @@ class NaviIntegratedCore {
   bool physicalOffsetUm(uint64_t nowUs, int64_t& offsetUm) const {
     if (!declared_ || !physicalPositionAnchored_ || !positionReliable_ ||
         pwmZeroMovementRequiresDeclaration_ || !relationshipReliable_ ||
-        !targetOriginValid_ || metric_==DartMetric::Time || stopRequested() || !irApplicable(nowUs) ||
+        !targetOriginValid_ || irAuthority_==IrGeographicAuthority::Withdrawn ||
+        metric_==DartMetric::Time || stopRequested() || !irApplicable(nowUs) ||
         latestIr_.nominalUm < physicalOriginUm_ ||
         latestIr_.nominalUm - physicalOriginUm_ > INT64_MAX / 2 ||
         expectedCumulativeUm_ > INT64_MAX / 2) return false;
@@ -396,6 +417,8 @@ class NaviIntegratedCore {
   bool relationshipReliable() const { return relationshipReliable_; }
   bool pwmZeroMovementRequiresDeclaration() const { return pwmZeroMovementRequiresDeclaration_; }
   const char* irDistanceState(uint64_t nowUs) const {
+    if (irAuthority_==IrGeographicAuthority::Withdrawn) return "IR_GEOGRAPHIC_AUTHORITY_WITHDRAWN";
+    if(metric_==DartMetric::Time) return "PREVIOUS_LAP_TIMING";
     if (!haveIr_) return "NO_IR_SOURCE";
     if (frameLost_) return "FRAME_LOST_REDECLARE";
     // A physical-movement hold is not an instrument fault. A separate frame
@@ -557,9 +580,15 @@ class NaviIntegratedCore {
   DartTravelHistory travel_{};
   DartMetric metric_=DartMetric::Distance;
   DartStop stopReason_=DartStop::None;
-  DartCredibility credibility_=DartCredibility::NominalUnverified;
+  IrIntervalClassification credibility_=IrIntervalClassification::Unavailable;
+  IrGeographicAuthority irAuthority_=IrGeographicAuthority::Retained;
+  DartOpening restorationReference_{};
+  bool restorationReferenceValid_=false;
+  uint8_t restorationMm_=0;
+  uint64_t selectedDecisionUs_=0;
   uint64_t selectedTimeUs_=0,metricOriginUs_=0,timeExpected_=0,timeSuccessor_=0;
   uint64_t bestMetricX_=0,tieMetricX_=0;
+  bool replayMetricPending_=false;
   uint8_t priorSelectionContext_=0;
   bool timingInterrupted_=false, timingLatched_=false;
   DartTravel timingSource_{};
@@ -573,18 +602,16 @@ class NaviIntegratedCore {
       expectedCumulativeUm_+uint64_t(navi_one::spanMm(uint8_t(target_.sequence),direction_))*1000;
   }
   bool timingPrediction() {
-    if(!selectedTimeUs_ || reverseTarget_ || timingInterrupted_ || !operatingContext_) return false;
+    if(!selectedTimeUs_ || reverseTarget_ || timingInterrupted_) return false;
     const auto& first=travel_.get(mm_,direction_);
     const auto& second=travel_.get(uint8_t(target_.sequence),direction_);
+    if(!first.valid || !second.valid || first.lap!=second.lap) return false;
     const bool departed=departureUs_>selectedTimeUs_;
-    if(!first.valid || !second.valid || (departed ? !first.departureUs :
-       first.context!=priorSelectionContext_ || first.departureUs)) return false;
-    // A successor traversal with an intervening dwell has no prediction from
-    // the current marker until its actual departure. Do not predict a dwell.
-    if(second.departureUs) return false;
+    if(departed && (!first.departureOffsetUs || first.departureOffsetUs>=first.intervalUs)) return false;
     timingSource_=first;
     metricOriginUs_=departed?departureUs_:selectedTimeUs_;
-    timeExpected_=departed?first.departureUs:first.intervalUs;
+    timeExpected_=departed?first.intervalUs-first.departureOffsetUs:first.intervalUs;
+    if(second.intervalUs>UINT64_MAX-timeExpected_) return false;
     timeSuccessor_=timeExpected_+second.intervalUs;
     return true;
   }
@@ -592,16 +619,26 @@ class NaviIntegratedCore {
     if(stopRequested()) return false;
     if(metric_==DartMetric::Time) return true;
     if(canCompare()) return true;
-    credibility_=DartCredibility::Unavailable;
     if(!timingPrediction()) { requestStop(DartStop::NoTimingHistory); return false; }
     metric_=DartMetric::Time; timingLatched_=true; invalidateMetric();
+    spatialPhase_=SpatialPhase::None;
     recordDart({},DartReason::MetricChanged);
-    // Pending openings keep their original acquisition timestamp and IR data.
-    for(size_t i=0;i<pendingCount_ && !stopRequested();++i) {
-      const uint32_t generation=generation_; evaluateOpening(pending_[i]);
-      if(generation_!=generation) break;
+    // Re-evaluate frozen observations exactly once in the new units. Never
+    // recursively process the caller's opening again under a different target.
+    replayMetricPending_=true;
+    return false;
+  }
+  void replayPending() {
+    if(replayingPending_) return;
+    replayingPending_=true; replayMetricPending_=false;
+    size_t i=0;
+    while(i<pendingCount_ && !stopRequested()) {
+      const uint32_t generation=generation_;
+      const DartOpening later=pending_[i]; evaluateOpening(later);
+      if(replayMetricPending_) { replayMetricPending_=false; i=0; }
+      else if(generation_!=generation) i=0; else ++i;
     }
-    return !stopRequested();
+    replayingPending_=false;
   }
   bool coordinate(const DartOpening& o,uint64_t& x) const {
     if(metric_==DartMetric::Time) {
@@ -612,11 +649,15 @@ class NaviIntegratedCore {
     x=o.ir.um-physicalOriginUm_;return true;
   }
   void decorate(DartRecord& r) const {
-    r.metric=metric_;r.stop=stopReason_;r.credibility=credibility_;
+    r.metric=metric_;r.stop=stopReason_;r.credibility=credibility_;r.authority=irAuthority_;
+    r.anchorAvailable=targetOriginValid_;
     r.expected=expectedMetric();r.successorExpected=successorExpected();
-    r.metricCoordinate=bestMetricX_;r.timingOriginUs=metricOriginUs_;
+    r.successorTarget=navi_one::nextMarker(uint8_t(target_.sequence),direction_);
+    uint64_t coordinateValue=0;
+    if(coordinate(r.opening,coordinateValue)) r.metricCoordinate=coordinateValue;
+    r.timingOriginUs=metricOriginUs_;
     r.timingFromId=timingSource_.fromId;r.timingToId=timingSource_.toId;
-    r.timingObservations=timingSource_.observations;
+    r.timingLap=timingSource_.lap;
     r.expectedPole=target_.polarity==HallOpeningPolarity::AboveReference?1:-1;
   }
 
@@ -625,7 +666,7 @@ class NaviIntegratedCore {
     pendingCount_=0; bestValid_=tieValid_=false; comparisonIncomplete_=false;
     metric_=DartMetric::Distance; metricOriginUs_=timeExpected_=timeSuccessor_=0;
     selectedTimeUs_=0; timingInterrupted_=false; timingLatched_=false;timingSource_={};
-    departureUs_=0;
+    departureUs_=0; restorationReferenceValid_=false; replayMetricPending_=false;
     bestErrorUm_=boundaryUm_=0;
     priorSelectionValid_=false; cumulativeResidualUm_=previousResidualUm_=0;
     intervalContextChanged_=true; ++generation_;
@@ -648,7 +689,8 @@ class NaviIntegratedCore {
     return {};
   }
   bool canCompare() const {
-    return declared_ && !pwmZeroMovementRequiresDeclaration_ && targetOriginValid_ &&
+    return irAuthority_==IrGeographicAuthority::Retained &&
+      declared_ && !pwmZeroMovementRequiresDeclaration_ && targetOriginValid_ &&
       relationshipReliable_ && irApplicable(decisionUs_) && !comparisonIncomplete_;
   }
   void enqueueDiagnostic(const DartRecord& r) {
@@ -657,7 +699,7 @@ class NaviIntegratedCore {
     diagnostics_[diagHead_]=r; diagHead_=next;
   }
   void recordDart(const DartOpening& o,DartReason reason) {
-    DartRecord r{}; r.opening=o; r.reason=reason; r.target=target_.sequence;
+    DartRecord r{}; r.opening=o; r.reason=reason; r.target=target_.sequence;r.previousMm=mm_;
     r.decisionUs=decisionUs_; r.generation=generation_; r.anchorUm=physicalOriginUm_;
     r.errorUm=bestErrorUm_; r.boundaryUm=boundaryUm_; r.partnerId=tieValid_?tie_.id:0;
     r.context=operatingContext_; r.cumulativeUm=cumulativeResidualUm_;
@@ -672,7 +714,10 @@ class NaviIntegratedCore {
       best_=o; bestValid_=true; tieValid_=false;bestMetricX_=0;
       selectBest(DartReason::Selected); return;
     }
-    if(!prepareMetric()) { recordDart(o,DartReason::NoCoordinate); return; }
+    if(!prepareMetric()) {
+      if(!replayMetricPending_) recordDart(o,DartReason::NoCoordinate);
+      return;
+    }
     uint64_t x=0;
     if(!coordinate(o,x)) { recordDart(o,DartReason::NoCoordinate); return; }
     const uint64_t d=expectedMetric();
@@ -683,7 +728,7 @@ class NaviIntegratedCore {
     const uint64_t nextError=x>next?x-next:next-x;
     if(next && nextError<error &&
        o.pole==(nextTarget.polarity==HallOpeningPolarity::AboveReference?1:-1)) {
-      best_=o;bestValid_=true;bestMetricX_=x;++missedCount_;
+      best_=o;bestValid_=true;bestMetricX_=x;bestErrorUm_=error;++missedCount_;
       requestStop(DartStop::MissedTarget);push(EwoEventKind::MissedMagnet);return;
     }
     if(o.pole!=(target_.polarity==HallOpeningPolarity::AboveReference?1:-1)) {
@@ -704,87 +749,118 @@ class NaviIntegratedCore {
   void selectBest(DartReason reason) {
     if(!bestValid_ || comparisonIncomplete_ || stopRequested()) return;
     const DartOpening chosen=best_; const bool inferred=tieValid_;
-    const uint64_t selected=tieValid_ ? best_.ir.um/2+tie_.ir.um/2+
-      ((best_.ir.um%2+tie_.ir.um%2)/2) : best_.ir.um;
-    const uint64_t consumedThrough=tieValid_?tie_.timeUs:chosen.timeUs;
-    const uint8_t previousMm=mm_;
-    DartRecord r{}; r.opening=chosen; r.partnerId=tieValid_?tie_.id:0;
-    r.inferred=inferred; r.reason=reason; r.target=target_.sequence;
-    r.generation=generation_; r.previousMm=previousMm; r.decisionUs=decisionUs_;
-    r.errorUm=bestErrorUm_; r.boundaryUm=boundaryUm_; r.anchorUm=selected;
-    r.context=operatingContext_; r.departureUs=departureUs_; r.priorResidualUm=previousResidualUm_;
+    const DartMetric selectedMethod=metric_;
+    const bool first=firstTargetAfterDeclare_;
     const bool measured=chosen.ir.applicable && chosen.ir.epoch==epochId_ &&
       (!inferred || (tie_.ir.applicable && tie_.ir.epoch==chosen.ir.epoch));
+    const uint64_t selected=measured ? (inferred ? chosen.ir.um/2+tie_.ir.um/2+
+      ((chosen.ir.um%2+tie_.ir.um%2)/2) : chosen.ir.um) : 0;
     const uint64_t selectedTime=inferred ? chosen.timeUs/2+tie_.timeUs/2+
       (chosen.timeUs%2+tie_.timeUs%2)/2 : chosen.timeUs;
-    if(!firstTargetAfterDeclare_ && targetOriginValid_ && measured && selected>=physicalOriginUm_ &&
-        selected-physicalOriginUm_<=INT64_MAX && expectedCumulativeUm_<=INT64_MAX) {
-      r.residualValid=true;
-      r.residualUm=int64_t(selected-physicalOriginUm_)-int64_t(expectedCumulativeUm_);
-      // Diagnostic accumulation cannot affect the coordinate or comparator.
-      if((r.residualUm>0 && cumulativeResidualUm_>INT64_MAX-r.residualUm) ||
-         (r.residualUm<0 && cumulativeResidualUm_<INT64_MIN-r.residualUm)) cumulativeResidualUm_=0;
-      cumulativeResidualUm_+=r.residualUm;
-      credibility_=r.residualUm==0?DartCredibility::ExactAgreement:
-        previousResidualUm_ && r.residualUm==-previousResidualUm_?DartCredibility::CompensatingResiduals:
-        previousResidualUm_?DartCredibility::RepeatedResidualUnresolved:DartCredibility::IsolatedResidual;
-      previousResidualUm_=r.residualUm;
-    }
-    r.cumulativeUm=cumulativeResidualUm_;
-    if(priorSelectionValid_ && !inferred && chosen.timeUs>=priorSelection_.timeUs) {
-      r.intervalUs=chosen.timeUs-priorSelection_.timeUs;
-      r.intervalValid=!intervalContextChanged_;
-      DartTiming t{}; t.fromUs=priorSelection_.timeUs; t.toUs=chosen.timeUs;
-      t.fromId=priorSelection_.id; t.toId=chosen.id; t.fromMm=previousMm;
-      t.toMm=target_.sequence; t.direction=direction_; t.context=operatingContext_;
-      t.departureUs=departureUs_; t.valid=r.intervalValid;
-      if(!timingInterrupted_ && !reverseTarget_ && metric_==DartMetric::Distance &&
-         operatingContext_ && priorSelectionContext_ && measured) {
-        const uint64_t afterDeparture=departureUs_>priorSelection_.timeUs && departureUs_<chosen.timeUs ?
-          chosen.timeUs-departureUs_ : 0;
-        travel_.save(previousMm,direction_,r.intervalUs,afterDeparture,
-          priorSelectionContext_,priorSelection_.id,chosen.id);
+    const uint64_t consumedThrough=inferred?tie_.timeUs:chosen.timeUs;
+    const uint8_t previousMm=mm_;
+    DartRecord r{}; r.opening=chosen; r.partnerId=inferred?tie_.id:0;
+    r.inferred=inferred; r.reason=reason; r.target=target_.sequence;
+    r.generation=generation_; r.previousMm=previousMm; r.decisionUs=decisionUs_;
+    r.errorUm=bestErrorUm_; r.boundaryUm=boundaryUm_;
+    r.context=operatingContext_; r.departureUs=departureUs_;
+    r.priorResidualUm=previousResidualUm_;
+    decorate(r); // expected target and prediction belong to THIS decision.
+    r.anchorUm=selected; r.anchorAvailable=measured;
+    r.independentIdentity=!inferred && (first || selectedMethod==DartMetric::Time);
+    r.intervalStart=priorSelection_.ir;r.intervalStartId=priorSelection_.id;
+    r.expectedIntervalUm=uint64_t(navi_one::spanMm(previousMm,direction_))*1000;
+    const bool measuredInterval=priorSelectionValid_ && !inferred && !reverseTarget_ &&
+      measured && priorSelection_.ir.applicable &&
+      chosen.ir.epoch==priorSelection_.ir.epoch && chosen.ir.boot==priorSelection_.ir.boot &&
+      chosen.ir.um>=priorSelection_.ir.um;
+    if(measuredInterval) {
+      r.measuredIntervalUm=chosen.ir.um-priorSelection_.ir.um;
+      IrCredibilityInput input;
+      input.expectedUm=r.expectedIntervalUm; input.measuredUm=r.measuredIntervalUm;
+      input.installedPitchUm=ir_movement::kInstalledPitchUm;
+      input.measurementApplicable=input.identifiedHallInterval=true;
+      input.authority=irAuthority_;
+      input.freshIndependentReferenceAfterWithdrawal=restorationReferenceValid_ &&
+        restorationReference_.id==priorSelection_.id && restorationMm_==previousMm;
+      input.followingIdentityIndependentOfDisputedIr=r.independentIdentity;
+      const auto result=evaluateIrCredibility(input);
+      r.residualValid=result.discrepancyAvailable;
+      r.residualUm=result.signedDiscrepancyUm;
+      r.transition=result.transition; r.restorationStartId=restorationReferenceValid_?restorationReference_.id:0;
+      credibility_=result.classification; irAuthority_=result.authority;
+      if(r.residualValid) {
+        if((r.residualUm>0 && cumulativeResidualUm_>INT64_MAX-r.residualUm) ||
+           (r.residualUm<0 && cumulativeResidualUm_<INT64_MIN-r.residualUm)) cumulativeResidualUm_=0;
+        cumulativeResidualUm_+=r.residualUm;previousResidualUm_=r.residualUm;
       }
-      timing_[timingHead_]=t; timingHead_=(timingHead_+1)%kTimingCapacity;
+    } else credibility_=IrIntervalClassification::Unavailable;
+    r.cumulativeUm=cumulativeResidualUm_;r.credibility=credibility_;r.authority=irAuthority_;
+    // Withdrawal opening is never its own fresh restoration reference. The
+    // next independently identified actual opening starts a NEW measurement.
+    if(irAuthority_==IrGeographicAuthority::Withdrawn && r.transition!=IrCredibilityTransition::Withdraw &&
+        r.independentIdentity && measured) {
+      restorationReference_=chosen;restorationReferenceValid_=true;restorationMm_=uint8_t(target_.sequence);
+    } else restorationReferenceValid_=false;
+
+    if(first) travel_.begin(uint8_t(target_.sequence),direction_);
+    else if(!reverseTarget_) {
+      DartTravel travel;
+      travel.valid=priorSelectionValid_ && !inferred && !timingInterrupted_ &&
+        chosen.timeUs>priorSelection_.timeUs;
+      if(travel.valid) travel.intervalUs=chosen.timeUs-priorSelection_.timeUs;
+      travel.fromId=priorSelection_.id;travel.toId=chosen.id;travel.context=priorSelectionContext_;
+      if(travel.valid && departureUs_>priorSelection_.timeUs && departureUs_<chosen.timeUs)
+        travel.departureOffsetUs=departureUs_-priorSelection_.timeUs;
+      travel_.record(previousMm,uint8_t(target_.sequence),direction_,travel);
+    } else travel_.begin(uint8_t(target_.sequence),direction_);
+    if(priorSelectionValid_ && !inferred && chosen.timeUs>=priorSelection_.timeUs) {
+      r.intervalUs=chosen.timeUs-priorSelection_.timeUs;r.intervalValid=!timingInterrupted_;
+      DartTiming t{}; t.fromUs=priorSelection_.timeUs; t.toUs=chosen.timeUs;
+      t.fromId=priorSelection_.id;t.toId=chosen.id;t.fromMm=previousMm;
+      t.toMm=target_.sequence;t.direction=direction_;t.context=operatingContext_;
+      t.departureUs=departureUs_;t.valid=r.intervalValid;
+      timing_[timingHead_]=t;timingHead_=(timingHead_+1)%kTimingCapacity;
       if(timingCount_<kTimingCapacity) ++timingCount_;
     }
-    firstTargetAfterDeclare_=false; physicalPositionAnchored_=true;
-    openingSerial_=chosen.serial; openingIrUm_=selected; physicalOriginUm_=selected;
-    inferredAnchor_=inferred; mm_=uint8_t(target_.sequence); positionReliable_=true;
-    reverseTarget_=false; ++confirmedCount_;
+    firstTargetAfterDeclare_=false;physicalPositionAnchored_=true;
+    openingSerial_=chosen.serial;
+    // Unknown coordinates stay explicitly unavailable. Never substitute a map
+    // coordinate, latest packet, or synthetic zero for a measured anchor.
+    if(measured) openingIrUm_=physicalOriginUm_=selected;
+    inferredAnchor_=inferred;mm_=uint8_t(target_.sequence);positionReliable_=true;
+    reverseTarget_=false;++confirmedCount_;
     targetOriginValid_=relationshipReliable_=measured;
+    if(measured) frameLost_=false;
     expectedCumulativeUm_=uint64_t(navi_one::spanMm(mm_,direction_))*1000;
-    if(physicalOriginUm_!=r.anchorUm || openingIrUm_!=r.anchorUm) {
-      ++anchorMismatches_; r.reason=DartReason::AnchorMismatch;
+    if(measured && (physicalOriginUm_!=r.anchorUm || openingIrUm_!=r.anchorUm)) {
+      ++anchorMismatches_;r.reason=DartReason::AnchorMismatch;
     }
-    if(timingLatched_ && measured) credibility_=DartCredibility::RestorationUnproven;
-    decorate(r); enqueueDiagnostic(r); push(EwoEventKind::TargetConfirmed);
-    priorSelection_=chosen; priorSelectionValid_=!inferred;
-    selectedTimeUs_=selectedTime;priorSelectionContext_=operatingContext_;timingInterrupted_=false;
-    intervalContextChanged_=false;
-    chooseTarget(); ++generation_; bestValid_=tieValid_=false;
-    if(metric_==DartMetric::Time && !timingPrediction()) requestStop(DartStop::NoTimingHistory);
+    enqueueDiagnostic(r);push(EwoEventKind::TargetConfirmed);
+    if(r.transition!=IrCredibilityTransition::None) { r.reason=DartReason::CredibilityEvidence;enqueueDiagnostic(r); }
+    priorSelection_=chosen;priorSelectionValid_=!inferred;
+    selectedTimeUs_=selectedTime;selectedDecisionUs_=decisionUs_;
+    priorSelectionContext_=operatingContext_;timingInterrupted_=false;intervalContextChanged_=false;
+    chooseTarget();++generation_;bestValid_=tieValid_=false;
+    // Restoration takes effect for the NEXT target. The selected measurement
+    // and the method which identified this target remain unchanged in records.
+    if(irAuthority_==IrGeographicAuthority::Retained && measured && irApplicable(decisionUs_)) {
+      metric_=DartMetric::Distance;timingLatched_=false;
+    } else {
+      metric_=DartMetric::Time;timingLatched_=true;
+      if(!timingPrediction()) requestStop(DartStop::NoTimingHistory);
+    }
+    if(metric_!=selectedMethod) recordDart(chosen,DartReason::MetricChanged);
     spatialOriginUm_=selected;
     spatialPhase_=measured && metric_==DartMetric::Distance?SpatialPhase::Clearance:SpatialPhase::None;
     for(auto& occupied:spatialOccupied_) occupied=false;
-    spatialCount_=0;
-    if(measured) push(EwoEventKind::SpatialClearance);
-    setDistanceHolding(!measured || !irApplicable(decisionUs_));
+    spatialCount_=0;if(spatialPhase_==SpatialPhase::Clearance) push(EwoEventKind::SpatialClearance);
+    setDistanceHolding(metric_!=DartMetric::Distance || !measured || !irApplicable(decisionUs_));
     size_t kept=0;
     for(size_t i=0;i<pendingCount_;++i)
       if(pending_[i].timeUs>consumedThrough) pending_[kept++]=pending_[i];
     pendingCount_=kept;
-    // Bounded iterative replay: a backlog must not grow the loop task stack
-    // by recursively selecting one target per retained opening.
-    if(replayingPending_) return;
-    replayingPending_=true;
-    size_t i=0;
-    while(i<pendingCount_) {
-      const uint32_t generation=generation_;
-      const DartOpening later=pending_[i]; evaluateOpening(later);
-      if(generation_!=generation) i=0; else ++i;
-    }
-    replayingPending_=false;
+    replayPending();
   }
 
   void beginDecision(uint64_t nowUs) { decisionUs_ = nowUs; ++consumptionId_; }

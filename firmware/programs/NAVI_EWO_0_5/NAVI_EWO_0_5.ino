@@ -1,8 +1,11 @@
 /* October 14 NAVI_EWO_0_5 working continuation of DART / NAVI_EWO_0_4.
- * Baseline 85a2cf2. NOT FIELD READY: paused operating-policy draft; approved
- * IR credibility evaluator is tested separately but not yet wired into NAVI.
- * Timing, missing-target and fine-position fallback decisions remain pending.
- * Overlay command behavior unchanged; no flash authorized.
+ * Baseline 85a2cf2. NOT FIELD ACCEPTED; no flash authorized.
+ * Integrated provisional IR credibility, previous-complete-lap timing,
+ * MM+2 missing-target stop and Hall-synchronized throttle fallback.
+ * Mid-tile IR loss holds the current command until another selected opening;
+ * existing final braking/dwell/departure keeps its execution authority.
+ * Manual STOP/GO clock handling still needs an explicit operator decision.
+ * See dart-field-validation/REVIEW.md for verification and limitations.
  */
 /* EWO integrated working-sketch candidate. NOT FIELD ACCEPTED.
  * 2026-10-09: repeating portable MM045 STOP overlay, five-second zero-PWM
@@ -46,6 +49,7 @@
 #include "../NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_HEALTH/RouteMap.h"
 #include "NaviIntegratedCore.h"
 #include "NaviStopOverlay.h"
+#include "NaviTileTiming.h"
 #include "NaviDartTelemetry.h"
 #include "NaviEstop.h"
 #include "NaviCompatibility.h"
@@ -91,6 +95,8 @@ struct CmdMsg { char topic[72]; char payload[64]; uint64_t order; uint64_t recei
 
 static NaviIntegratedCore navi;
 static NaviStopOverlay stopOverlay;
+static NaviTileTiming tileTiming;
+static TileTimingCommand lastTileTiming;
 static std::atomic<uint32_t> dartPublishDrops{0}, dartPublishBytes{0}, dartPublishMessages{0};
 static uint32_t dartQueueDrops=0;
 static QueueHandle_t dartQ=nullptr;
@@ -250,6 +256,17 @@ static void publishDart() {
     unsigned(uxTaskGetStackHighWaterMark(nullptr)),unsigned(view.identityAvailable),
     unsigned(view.identifiedMm),unsigned(view.tile),unsigned(view.fine));
   pub("diag/navi_status",payload);
+  char operating[600];
+  snprintf(operating,sizeof(operating),
+    "{\"method\":%u,\"ir_authority\":%u,\"ir_class\":%u,\"stop\":%u,\"stop_reason\":\"%s\","
+    "\"completed_laps\":%lu,\"selected_id\":%lu,\"tile_mode\":%u,\"tile_duration_us\":%llu,"
+    "\"tile_elapsed_us\":%llu,\"entry_pwm\":%u}",
+    unsigned(navi.comparisonMetric()),unsigned(navi.irAuthority()),unsigned(navi.irCredibility()),
+    unsigned(navi.stopReason()),navi.stopReasonText(),(unsigned long)navi.completedTimingLaps(),
+    (unsigned long)navi.selectedOpeningId(),unsigned(lastTileTiming.mode),
+    (unsigned long long)lastTileTiming.durationUs,(unsigned long long)lastTileTiming.elapsedUs,
+    unsigned(lastTileTiming.entryPwm));
+  pub("diag/navi_operating",operating);
 }
 static void warn(const char* message, bool sticky = false) {
   if (sticky) warnSticky = true;
@@ -325,6 +342,16 @@ static void servicePwmZeroMovementHold() {
   if (reportedDisplacements != navi.pwmZeroDisplacements() || autoEnrolled || autoRunning) {
     reportedDisplacements = navi.pwmZeroDisplacements();
     withdraw(kPwmZeroMovementWarning);
+  }
+}
+
+// Durable navigation-failure latch; reporting/transport failures cannot clear
+// it. Existing manual positioning and explicit declaration remain available.
+static void serviceNavigationStop() {
+  static bool reported=false;
+  if(!navi.stopRequested()) { reported=false;return; }
+  if(!reported || autoRunning || autoEnrolled) {
+    withdraw(navi.stopReasonText());reported=true;
   }
 }
 
@@ -532,7 +559,7 @@ static int8_t travelDirection() {
 static Ops opsNow() {
   Ops o;
   o.positionKnown = navi.declared() && navi.positionReliable() &&
-                    !navi.pwmZeroMovementRequiresDeclaration();
+                    !navi.pwmZeroMovementRequiresDeclaration() && !navi.stopRequested();
   o.enrolled = autoEnrolled; o.running = autoRunning;
   o.estopped = estopped; o.lowVoltage = lowVoltage;
   o.forward = motorDirection; o.actualPwm = actualPwm;
@@ -546,6 +573,7 @@ static void declarePosition(uint8_t mm, int8_t direction, const char* interval) 
               actualPwm, commandedPwm, direction);
   navi.declare(mm, direction, now);
   stopOverlay.reset();  // Explicit declaration/reposition starts a new operation.
+  tileTiming.reset();
   warnSticky = false; pub("state/warning", "", true);
   char value[20]; snprintf(value, sizeof(value), "%u", mm);
   pub("state/start_mm", value, true);
@@ -766,6 +794,7 @@ static void serviceAutoCruise() {
   const uint32_t nowMs = millis();
   static const int32_t targetUm = stopMarkerUm(45) + 150000;
   if (!autoRunning) {
+    tileTiming.suspend(navi.selectedOpeningId());
     const StopView view = stopView(navi, targetUm, nowUs);
     const StopCommand command = stopOverlay.command(view.geography, view.available,
         navi.direction(), NAVI_BASE_CRUISE_PWM, actualPwm, rampTarget, nowMs, false);
@@ -773,6 +802,8 @@ static void serviceAutoCruise() {
     navi.noteOperatingContext(0);
     return;  // Observe execution progress, never command the motor under Manual.
   }
+  if(navi.stopRequested()) { serviceNavigationStop();return; }
+  if(estopped || estopAsserted || lowVoltage) return;
   if (!navi.declared() || !navi.positionReliable()) {
     withdraw("Position relationship unreliable; AUTO withdrawn. Manual available.");
     return;
@@ -783,14 +814,33 @@ static void serviceAutoCruise() {
   // Select one active overlay instruction before the single actuator request.
   const uint8_t cruise = cruisePwmAt(navi.mm(), navi.direction(), NAVI_BASE_CRUISE_PWM);
   const StopView view = stopView(navi, targetUm, nowUs);
-  const StopCommand command = stopOverlay.command(view.geography, view.available,
-      navi.direction(), cruise, actualPwm, rampTarget, nowMs, true);
-  if (rampTarget != command.pwm) {
-    const uint16_t upMs = command.execution == StopExecution::Released
-        ? STOP_RESTART_STEP_UP_MS : AUTO_STEP_UP_MS;
-    const uint16_t downMs = command.execution == StopExecution::Braking
-        ? STOP_FINAL_STEP_DOWN_MS : AUTO_STEP_DOWN_MS;
-    requestPwm(command.pwm, upMs, downMs);
+  const auto priorExecution=stopOverlay.execution();
+  const uint8_t next=navi_one::nextMarker(navi.mm(),navi.direction());
+  lastTileTiming=tileTiming.command(view,navi.selectedOpeningId(),navi.selectedDecisionUs(),nowUs,
+      targetUm,navi.travelHistory(navi.mm(),navi.direction()),cruise,
+      cruisePwmAt(next,navi.direction(),NAVI_BASE_CRUISE_PWM),uint8_t(commandedPwm));
+  // Once final braking/dwell/departure is underway, its existing executor
+  // retains authority; losing IR must not restart or interrupt it.
+  if(lastTileTiming.missingHistory && priorExecution==StopExecution::Geographic) {
+    navi.requestStop(DartStop::NoTimingHistory);serviceNavigationStop();return;
+  }
+  const StopCommand command = stopOverlay.command(lastTileTiming.geography,lastTileTiming.available,
+      navi.direction(),cruise,actualPwm,rampTarget,nowMs,true);
+  const bool entry=lastTileTiming.entryNow && priorExecution==StopExecution::Geographic;
+  const bool timed=lastTileTiming.mode==TileTimingMode::Ramp &&
+      command.execution==StopExecution::Geographic && command.overlay;
+  // Apply the authorized entry or time-interpolated PWM directly, still below
+  // manual, E-stop and electrical protection. No PWM-derived distance exists.
+  if((entry || timed) && !estopped && !estopAsserted && !lowVoltage) {
+    const int value=constrain(int(entry?lastTileTiming.entryPwm:command.pwm),0,int(NAVI_MAX_OPERATING_PWM));
+    const bool changed=entry || value!=actualPwm;
+    rampTarget=value;commandedPwm=value;actualPwm=value;
+    if(changed) { writePwm(value);recordAction(navi_sync::ActionKind::RequestedPwm); }
+  }
+  if(rampTarget!=command.pwm) {
+    const uint16_t upMs=command.execution==StopExecution::Released?STOP_RESTART_STEP_UP_MS:AUTO_STEP_UP_MS;
+    const uint16_t downMs=command.execution==StopExecution::Braking?STOP_FINAL_STEP_DOWN_MS:AUTO_STEP_DOWN_MS;
+    requestPwm(command.pwm,upMs,downMs);
   }
   dartContext=command.releasedNow ? 3 : command.overlay ? 2 : 1;
   if(command.releasedNow) dartAwaitDeparture=true;
@@ -908,7 +958,7 @@ static void servicePulseTelemetry() {
 static void serviceDartTelemetry() {
   DartRecord record;
   for(unsigned i=0;i<2 && dartQ && xQueueReceive(dartQ,&record,0)==pdTRUE;++i) {
-    char payload[1200],topic[72]; const int size=formatDart(payload,sizeof(payload),record,bootId);
+    char payload[2048],topic[72]; const int size=formatDart(payload,sizeof(payload),record,bootId);
     snprintf(topic,sizeof(topic),"ngr/loco/%s/diag/navi_decision",LOCO_NAME);
     if(size<0 || size>=int(sizeof(payload)) || !mqtt.connected() || !mqtt.publish(topic,payload,false))
       ++dartPublishDrops;
@@ -1169,7 +1219,7 @@ void setup() {
   Serial.printf("[NET] wifi=CONNECTING mqtt_broker=%s\n", MQTT_BROKER);
   mqtt.setServer(MQTT_BROKER, 1883);
   mqtt.setCallback(onMqtt);
-  mqtt.setBufferSize(1408);
+  mqtt.setBufferSize(2304);
   if (xTaskCreatePinnedToCore(networkTask, "net", 8192, nullptr, 1, nullptr, 1) != pdPASS)
     Serial.println("[BOOT] WARNING: network task failed");
   char payload[420];
@@ -1188,6 +1238,7 @@ void loop() {
   serviceRamp();  // e-stop asserted by MQTT callback pre-empts evidence backlog
   serviceIrIngress(); // declaration must see IR already queued before it
   servicePwmZeroMovementHold(); // withdraw before queued AUTO/GO commands or station departure
+  serviceNavigationStop();
   CmdMsg command;
   while (cmdQ && xQueueReceive(cmdQ, &command, 0) == pdTRUE) handleCommand(command);
   HallSample observation;
@@ -1207,6 +1258,7 @@ void loop() {
   }
   serviceObservationLoss();
   navi.completeComparison(navi.processedHallUs(),esp_timer_get_time());
+  serviceNavigationStop();
   publishEvents();
   serviceAutoCruise();
   publishDart();

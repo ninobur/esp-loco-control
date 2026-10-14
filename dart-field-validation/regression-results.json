@@ -1,0 +1,56 @@
+[
+  {
+    "test": "test_integrated_core",
+    "compile_exit": 0,
+    "run_exit": 1,
+    "output": "FAIL: inside NAVI, median five plus mapped polarity and IR window confirms target\nFAIL: first threshold reading in qualifying population anchors clearance\nFAIL: IR update inside median window does not move the observed leading boundary\nFAIL: next target distance uses the leading boundary, not the later median point\nFAIL: clearance does not collect or replace reference\nFAIL: per-location 100-200 mm median replaces reference at 200 mm\nFAIL: without fresh IR, Hall cannot confirm another target\nFAIL: elapsed time cannot manufacture Hall confirmation or IR misses\nFAIL: normal miss fixture starts from confirmed MM0\nFAIL: consecutive Missed Magnets advance mapped target without moving physical origin\nFAIL: cumulative expected distance uses local tolerance for the current interval\nFAIL: confirmed target starts clearance before IR outage\nFAIL: stale IR holds target even after prior spatial collection\nFAIL: empty 100-200 mm interval is reported without inventing a median\nFAIL: correct CCW direction confirms the known target\nFAIL: Hall uses the latest received IR fact, not a stale earlier packet\nFAIL: 16 failures\n"
+  },
+  {
+    "test": "test_review_regressions",
+    "compile_exit": 0,
+    "run_exit": -6,
+    "output": "Assertion failed: (n.confirmedCount()==1 && n.spatialPhase()==1), function first, file test_review_regressions.cpp, line 33.\n"
+  },
+  {
+    "test": "test_ir_authority",
+    "compile_exit": 0,
+    "run_exit": -6,
+    "output": "Assertion failed: (position.mm() == 1 && position.confirmedCount() == 1), function main, file test_ir_authority.cpp, line 65.\n"
+  },
+  {
+    "test": "test_first_target_after_declare",
+    "compile_exit": 0,
+    "run_exit": -6,
+    "output": "Assertion failed: (r.n.mm() == 44 && r.n.confirmedCount() == 1 && r.n.missedCount() == 0), function fieldCase, file test_first_target_after_declare.cpp, line 62.\n"
+  },
+  {
+    "test": "test_pwm_zero_localization",
+    "compile_exit": 0,
+    "run_exit": -6,
+    "output": "Assertion failed: (n.confirmedCount() == 1 && n.relationshipReliable()), function Run, file test_pwm_zero_localization.cpp, line 18.\n"
+  },
+  {
+    "test": "test_dart",
+    "compile_exit": 0,
+    "run_exit": 0,
+    "output": "host_native_samples=50000 elapsed_ns=4841958 core_bytes=29032 opening_bytes=96 diagnostic_bytes=328\nPASS 85 assertions\n"
+  },
+  {
+    "test": "test_dart_invariants",
+    "compile_exit": 0,
+    "run_exit": 1,
+    "output": "FAIL line 24: f.n.confirmedCount()==3\n"
+  },
+  {
+    "test": "test_operational_adapters",
+    "compile_exit": 0,
+    "run_exit": 0,
+    "output": "PASS: EWO operations admission and start-within-station adapter\n"
+  },
+  {
+    "test": "test_measured_station_stop",
+    "compile_exit": 0,
+    "run_exit": 0,
+    "output": "PASS: adaptive approach/hold, missed -10 Hall IR entry, accepted Station 0 brake, CCW surveyed distance, nominal fallback visibility, physical stop\n"
+  }
+]

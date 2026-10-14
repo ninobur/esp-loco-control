@@ -1,0 +1,2 @@
+openings=2 candidate=0 boundary=0 origin=0 latest=28956 ref=2000 incomplete=0 pending_hwm=2
+mm=17 confirmations=0 misses=0 core_bytes=29032

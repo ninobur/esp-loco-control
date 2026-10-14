@@ -130,6 +130,7 @@ struct StopCommand {
 // There is no admission history, speed controller, or position integration.
 class NaviStopOverlay {
  public:
+  StopExecution execution() const { return execution_; }
   void reset() {
     execution_ = StopExecution::Geographic;
     zeroTiming_ = wasEnabled_ = geographicOverlay_ = false;

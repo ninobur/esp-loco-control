@@ -1,78 +1,39 @@
-# NAVI EWO 0 5 IR credibility implementation status
+# NAVI EWO 0 5 IR credibility integration
 
-October 14, 2026. The operator-approved rules are preserved verbatim in
-[APPROVED_RULES.txt](APPROVED_RULES.txt). The operator subsequently named the
-prior DART increment `NAVI_EWO_0_4` and this continuation `NAVI_EWO_0_5`; the
-supplied rules retain their original title as historical evidence. They replace the earlier proposed
-requirement for repeated discrepancies: **one interval at five pulses or more
-withdraws IR geographic authority.** These provisional criteria require field
-reassessment and must not change automatically.
+October 14, 2026. The original operator criteria remain verbatim in
+[APPROVED_RULES.txt](APPROVED_RULES.txt). Its 0_4 title predates the numbering
+clarification; the integrated continuation is now `NAVI_EWO_0_5`.
 
-The numeric policy evaluator and its focused test now live in
-[`NAVI_EWO_0_5`](../../firmware/programs/NAVI_EWO_0_5/README.md).
-The earlier staged files here remain a record of the original isolated test.
-The evaluator is not yet called by the navigator. The working sketch retains
-the paused, untested draft edits; timing, missing-target and OVERLAY decisions
-remain outstanding. This is not a complete operational build.
+The evaluator is now called by the actual navigator after a unique geographic
+selection. Credibility limits never reject Hall candidates. Signed and absolute
+residuals, pulse equivalents, both endpoint IDs and measurements, source/boot/
+epoch/receiver-time provenance, expected distance, comparison method and
+transition are serialized through the production diagnostic formatter.
 
-## Implemented approved rules
+- ≤10,000 µm absolute discrepancy: consistent, retain authority.
+- >10,000 and <48,260 µm: inconsistent but possible, retain authority.
+- ≥48,260 µm: immediate withdrawal, preserving the geographic identification.
+- Continue acquisition while withdrawn. The withdrawal opening is not its own
+  restoration reference. The next independently identified real opening starts
+  the new interval; its independently identified successor can restore authority
+  if both endpoint measurements are applicable and discrepancy is <48,260 µm.
+  An interval >10 mm may restore authority while remaining inconsistent.
+- Fresh packets alone do not restore geographic authority. Missing measurement,
+  an inferred midpoint, a changed frame or reversed traversal cannot certify a
+  measured restoration interval. No pulses or mapped coordinates are fabricated.
+- Subsequent selections use the previous complete lap's timing during withdrawal.
+  The method changes without replaying one opening as two geographic advances.
 
-- Absolute discrepancy at or below 10,000 µm is consistent.
-- Above 10,000 µm but below five installed pulse pitches is inconsistent but
-  possible; IR authority remains retained.
-- At or above five pulse pitches, withdraw immediately. Installed pitch remains
-  9,652 µm; the withdrawal boundary is exactly 48,260 µm.
-- Restoration requires a possible interval below five pulses, a fresh
-  independently identified reference after withdrawal, and an independently
-  supported following identification. A discrepancy above 10 mm may restore
-  authority while remaining classified inconsistent.
-- Missing or inapplicable measurements are unavailable evidence. They cannot
-  alone withdraw or restore geographic credibility. Transport applicability
-  remains a separate concern.
+The isolated evaluator passes 223 assertions. Production integration passes
+376 assertions, including both error signs, exact limits, new-reference
+restoration, repeated subthreshold residuals, missing coordinates and timing,
+and preservation of chosen anchors. The extracted telemetry fault test passes
+712 assertions. Two labelled withdrawal/restoration records were read back
+from the Pi's actual MQTT file; see [recorder proof](../mqtt-recorder-result.json).
 
-The evaluator has no candidate filtering, geographic selection, calibration,
-motor, timing-history or telemetry side effects. This follows the governing
-principles of NAVI-owned judgment and preserving measurement disagreement.
-It consumes NAVI's endpoint identification conclusions; it cannot establish
-independence from the residual itself.
-
-## Verification
-
-The host test includes the staged evaluator directly and the existing installed
-pitch constant. All **223 assertions pass** with address and undefined-behavior
-sanitizers and warnings treated as errors. Cases include both signs of error,
-10 mm exactly, 10 mm plus 1 µm, five pulses minus 1 µm, exactly five pulses,
-larger discrepancies, immediate withdrawal, repeated subthreshold errors,
-restoration with a still-inconsistent possible interval, missing independent
-endpoint evidence, and unavailable or unrepresentable measurements.
-
-The 31-file first-increment rollback snapshot matches its saved SHA-256
-manifest. ESP32 core 3.3.12 is installed. This pass has not compiled an integrated
-EWO_0_5 sketch, exercised actual production candidate selection with this policy,
-measured ESP32 runtime, or verified MQTT delivery. No flash, operation, commit,
-push or live-system change occurred.
-
-## Integration still required
-
-NAVI must derive the independence inputs from actual geographic decisions:
-after withdrawal at one selected opening, the next independently identified
-70×2 opening starts the restoration measurement, and its following identified
-opening supplies the second endpoint. Merely receiving coherent IR packets or
-passing the residual threshold cannot supply those identity conclusions.
-
-Integration must retain both endpoint measurements and provenance, selected
-opening IDs, MM identities, expected/measured distances, signed/absolute errors,
-pulse equivalents, comparison method, and authority transition reasons. It must
-switch the next target comparison without consuming the same Hall observation
-twice or altering the selected coordinate. The staged evaluator does not yet
-implement this endpoint tracking or serialization.
-
-Required clarifications remain:
-
-1. Historical timing sufficiency, predictor and stop/restart applicability.
-2. The missing-target stop condition when there is no Hall observation to
-   compare with MM+2.
-3. The permitted STOP OVERLAY action without fine IR position.
-
-No default was chosen for those operating decisions. The approved IR rules
-settle the credibility thresholds; they do not specify the remaining policies.
+The historical timing source, no-Hall deadline and mid-tile throttle transition
+are now settled in [the operator decisions](../OPERATING_DECISIONS_20261014.md).
+Only manual STOP/GO clock behavior remains an explicit pending clarification.
+The [review report](../REVIEW.md) records compilation and all test limitations.
+Neither the numerical criteria nor previous-lap timing reliability are field
+validated. No flash or live operation occurred.

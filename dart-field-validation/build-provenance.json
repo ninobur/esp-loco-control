@@ -1,0 +1,13 @@
+{
+  "core": "esp32:esp32@3.3.12",
+  "fqbn": "esp32:esp32:esp32",
+  "credential_configuration": "firmware/config/credentials_template.h placeholders via /tmp/navi-dart-build-config; not deployment credentials",
+  "program_bytes": 1053907,
+  "static_ram_bytes": 80668,
+  "ram_remainder_before_runtime_allocations": 247012,
+  "esp32_navi_object_bytes": 28992,
+  "elf_sha256": "6c9f50e1526e2d7a0c68c2ca439e6222c81708c95978bfcbda5448fc5030febd",
+  "bin_sha256": "b909016148094d6405921f1b777cef6d85f5753d2828a80144ca58baf2c6d94c",
+  "source_manifest": "source-verification.json",
+  "flash_performed": false
+}

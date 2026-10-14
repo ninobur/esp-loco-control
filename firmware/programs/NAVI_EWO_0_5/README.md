@@ -1,63 +1,74 @@
 # NAVI_EWO_0_5
 
-October 14, 2026. **Unfinished experimental continuation; not field ready, not
-flashed, and not fully validated.**
+October 14, 2026. Experimental integration candidate. **Compiled and host tested;
+not flashed or field accepted. One manual STOP/GO timing decision remains.**
 
-The operator's EWO_0_x numbering names the tested DART increment `NAVI_EWO_0_4`
-and this continuation `NAVI_EWO_0_5`. The original foundation remains
-`NAVI_EWO_0_1_MM045_STOP` at `85a2cf2a16d262abdf7258c60f60508b823913ee`.
-The directory, primary `.ino` and runtime `SKETCH_NAME` agree.
+Foundation: `NAVI_EWO_0_1_MM045_STOP`,
+`85a2cf2a16d262abdf7258c60f60508b823913ee`. The separate, tested first DART
+increment is [NAVI_EWO_0_4](../NAVI_EWO_0_4/README.md), unchanged by this work.
+The original EWO source, COHERENCE R2, shared dependencies, map and calibration
+remain unchanged. The first-increment rollback and SHA-256 manifest remain in
+`dart-field-validation/`.
 
-## Source and status
+## Implemented
 
-The first-increment navigation code is preserved separately in
-[`NAVI_EWO_0_4`](../NAVI_EWO_0_4/README.md), with its original rollback snapshot
-and manifest in `dart-field-validation/`.
+- Median-five 70×2 observations, causal IR association, closest-to-target
+  selection, midpoint ties and one advancement per selected target.
+- Selected-coordinate anchoring; no historical percentage admission gate or
+  650 ms fallback. Every observed opening enters the bounded diagnostic path.
+- Approved provisional IR credibility: absolute discrepancy ≤10 mm consistent;
+  >10 mm and <48.260 mm inconsistent but possible; ≥48.260 mm immediately
+  withdraws IR authority. Geographic selection is preserved. Restoration needs
+  a new independently selected opening followed by an independently selected
+  opening with an applicable, possible interval. No automatic recalibration.
+- The immediately preceding complete lap supplies directed interval timing.
+  Two bounded banks keep the current partial lap separate. There is no average,
+  older-lap substitution or PWM-derived position. Actual station departure is
+  recorded separately from the preceding dwell.
+- MM+2 missing-target stop with no invented advancement; unavailable timing
+  evidence also stops navigation.
+- Geographic identity reaches STOP OVERLAY without fabricated fine position.
+  Mid-tile IR loss holds the command; the next selected Hall opening starts
+  that tile's entry-to-entry PWM ramp over the previous lap's traversal time.
+  Existing final braking, dwell and departure remain in their original executor.
+- Bounded decision/provenance, authority-transition and resource diagnostics.
+  Type-6 and morphology remain observation-only.
 
-This directory preserves the later paused draft edits in `NaviIntegratedCore.h`,
-`NaviDartEvidence.h` and `NaviDartOperations.h`. Those edits contain unfinished
-historical timing and stopping behavior. They have not passed complete
-validation or received approval for their undefined operating parameters.
-They must not be treated as an operational build.
+## Verification and review
 
-`NaviIrCredibility.h` implements the subsequently approved numerical rules:
-up to 10 mm is consistent; more than 10 mm but below five installed IR pulses
-is inconsistent but possible; exactly five pulses or more withdraws geographic
-measurement authority immediately. Restoration requires a possible interval
-from a new independently identified reference to the following independently
-identified opening. The 9.652 mm installed pulse pitch remains unchanged.
+[Current report](../../../dart-field-validation/REVIEW.md) records the test
+results, failures, baseline comparisons, resource figures and limitations.
+[Operating decisions](../../../dart-field-validation/OPERATING_DECISIONS_20261014.md)
+record the subsequent operator answers. [IR criteria and integration](../../../dart-field-validation/ir-credibility/STATUS.md)
+retain the original criteria and their interpretation.
 
-The credibility evaluator is tested separately and is **not yet called by the
-navigator**. It neither qualifies Hall candidates nor changes their identity.
-Endpoint tracking, transitions between comparison methods and complete
-credibility telemetry remain integration work. The approved rules and test
-scope are recorded in
-[`STATUS.md`](../../../dart-field-validation/ir-credibility/STATUS.md).
-
-## Focused verification
-
-From the repository root:
+Run from the repository root:
 
 ```sh
-c++ -std=c++17 -Wall -Wextra -Werror -fsanitize=address,undefined \
-  firmware/programs/NAVI_EWO_0_5/tests/test_ir_credibility.cpp \
-  -o /tmp/navi-ewo-0-5-ir-credibility-test
-/tmp/navi-ewo-0-5-ir-credibility-test
+sh firmware/programs/NAVI_EWO_0_5/run_tests.sh
+python3 dart-field-validation/test_runtime.py
+python3 dart-field-validation/test_transport.py
+python3 dart-field-validation/run_replays.py
+python3 dart-field-validation/check_regressions.py
 ```
 
-The full `run_tests.sh` also contains inherited and DART tests. The unfinished
-operating-policy draft has not passed that full suite; the earlier 0_4 verdict
-must not be applied to 0_5. ESP32 core 3.3.12 is installed; the integrated 0_5
-sketch has not been compiled or tested on hardware.
+Eight active host executables pass, including 223 policy, 85 DART and 376
+integrated assertions. Extracted production motor/overlay and transport tests
+pass 62 and 712 assertions. Six identical-input baseline/proposed replays pass
+their assertions. Five inherited detector/window suites still fail, and one
+first-increment invariant suite now fails its superseded no-withdrawal
+expectation; those failures remain visible, not relabelled passes.
 
-## Decisions still required
+ESP32 core 3.3.12 compilation succeeds: 1,053,907 B program, 80,668 B static RAM.
+Template credential placeholders were used; this is not a deployment image.
+Two explicitly labelled host-generated transition records reached the actual
+Pi MQTT log. This establishes Mac→broker→recorder receipt, not unflashed ESP32
+Wi-Fi delivery or field reliability.
 
-- Historical timing sufficiency, prediction method and stop/restart context.
-- The no-Hall-observation condition for declaring a missed target and stopping.
-- Permitted STOP OVERLAY behavior when geographic identity is known but fine
-  IR position is unavailable.
+## Remaining operating choice
 
-No default is authorized by the version naming instruction. Retain the map,
-calibration, 70×2 detection, dart model, STOP OVERLAY geometry and programming,
-manual controls and electrical protections. No commit, push, flash or live
-operation is authorized by this change.
+During timing fallback, manual STOP/GO clock handling has been asked explicitly:
+pause/resume both arrival and throttle clocks, or require redeclaration? The
+old draft currently requests `TimingContextChanged`; it must not be treated as
+an approved policy. Scheduled station braking/dwell/departure is already settled.
+No flashing or live operation is authorized by this review package.

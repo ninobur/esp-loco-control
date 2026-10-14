@@ -69,11 +69,13 @@ active IR credibility or historical timing authority. The original validation
 report is `dart-validation/REPORT.md`; its recorded old name remains historical
 provenance. NOT FIELD READY, NOT FLASHED; no production promotion.
 
-`programs/NAVI_EWO_0_5/` is the current unfinished continuation. It preserves the
-paused working edits and contains the approved provisional IR credibility
-evaluator and focused tests. The evaluator is not yet connected to the
-navigator. Timing-history policy, the no-observation stopping condition and
-OVERLAY behavior without fine IR remain unresolved. Its README and
-`dart-field-validation/ir-credibility/STATUS.md` describe the actual status.
-NOT FIELD READY, NOT FLASHED, NOT FULLY VALIDATED. Existing original EWO and
-COHERENCE R2 remain unchanged.
+`programs/NAVI_EWO_0_5/` integrates provisional IR credibility, immediately
+preceding complete-lap timing, MM+2 missing-target stopping and Hall-synchronized
+throttle fallback. Mid-tile IR loss holds the current command until the next
+selected opening; the original final braking/dwell/departure executor remains.
+Eight active host executables and production motor/transport adapters pass;
+ESP32 core 3.3.12 compilation succeeds. Labelled host transition records reached
+the Pi MQTT recorder. Manual STOP/GO timing policy is still pending, and inherited
+regression failures remain documented. See `dart-field-validation/REVIEW.md`.
+NOT FIELD READY, NOT FLASHED; no production promotion. Original EWO and COHERENCE
+R2 remain unchanged.
