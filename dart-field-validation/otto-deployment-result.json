@@ -1,0 +1,61 @@
+{
+  "date": "2026-10-14",
+  "source_commit": "83889d9921e7231fd41e082ce5579165481d7a89",
+  "sketch": "NAVI_EWO_0_5",
+  "app_sha256": "f4470e670e3503c4af2a2f5b2758e7de2a7ec862eb8801d11fe56c7fc3c8a7a4",
+  "compile_core": "esp32:esp32@3.3.12",
+  "active_host_checks": "PASS; inherited failures remain documented",
+  "upload": "PASS; hashes verified",
+  "stationary_gate": "FAIL; MQTT timeout then abort/reboot",
+  "failure_location": "lock_init_generic in Wi-Fi logging path",
+  "runtime_resource_measurements": "unavailable; no successful EWO loopstat receipt",
+  "field_cleared": false,
+  "motion_commands_issued": false,
+  "rollback": {
+    "sketch": "NAVI_COHERENCE_0_6_IR_SYNC_TEST_R2",
+    "bytes": 4194304,
+    "backup_sha256": "16049713b534acfd978df0592e4af4625da1bd0484178ec39776fdcda418e2b8",
+    "upload_hash_verified": true,
+    "previous_boot_id": "B1D4169F542C2B54",
+    "restored_boot_id": "7A67A7D7538F82FD",
+    "actual_pi_recorder_receipt": true,
+    "zero_throttle_records": 65,
+    "pi_first_record": "2026-10-14T14:43:42.248",
+    "pi_last_record": "2026-10-14T14:45:10.054"
+  },
+  "hardware_warning": "INA219 NOT FOUND on EWO and restored R2 in USB session; power state unconfirmed",
+  "evidence": {
+    "otto-0_5-upload.log": {
+      "bytes": 6027,
+      "sha256": "7544c167db329404c0cdc6095a2ec033dcf4bfa70c7f444306f6c84c43dac940"
+    },
+    "otto-0_5-serial-stationary.log": {
+      "bytes": 2238,
+      "sha256": "78802ee2267937aa63dd2058b262a5145c5b76f754a72da47de343979ba6b00f"
+    },
+    "otto-0_5-crash-decoded.txt": {
+      "bytes": 3156,
+      "sha256": "3c5900048ad9c56644c5575248f27258a1d7e14124c67e39c68a64e963348dce"
+    },
+    "otto-0_5-mqtt-stationary.log": {
+      "bytes": 6361,
+      "sha256": "680c6094f9968cc58955c20acb3d4c9e76227d14855f71e569536a9b923fd847"
+    },
+    "otto-0_5-loopstat-stationary.log": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "otto-rollback-upload.log": {
+      "bytes": 4507,
+      "sha256": "5dd1dfa9ccfd4b8e24e49a8a3dd6812b8e6ecc9c45e30757e8055ee0c0c87c12"
+    },
+    "otto-rollback-mqtt.log": {
+      "bytes": 6139,
+      "sha256": "ad60fe392af8ff36e84ce865b7d2ebae56375fb72f559b629dc831069fe1a968"
+    },
+    "otto-rollback-pi-proof.log": {
+      "bytes": 16520,
+      "sha256": "36c79be7a807090b4e6a9f6076ebf95e129462a4209595a0e1453b30f49cb94c"
+    }
+  }
+}

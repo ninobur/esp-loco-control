@@ -78,5 +78,7 @@ ESP32 core 3.3.12 compilation succeeds. Labelled host transition records reached
 the Pi MQTT recorder. Manual STOP/GO now pauses/resumes both timing clocks without losing identity;
 inherited regression failures remain documented. See
 `dart-field-validation/STOP_GO_AND_OTTO_DEPLOYMENT_20261014.md` for the authorized
-Otto upload and stationary verification. Field acceptance is pending; no production promotion. Original EWO and COHERENCE
-R2 remain unchanged.
+Otto upload: writes verified, but EWO 0_5 timed out on MQTT and rebooted during
+stationary startup. NOT CLEARED FOR OPERATION. Otto's exact previous COHERENCE
+R2 image was restored and verified online at zero throttle. Original EWO and
+COHERENCE R2 sources remain unchanged; no production promotion.

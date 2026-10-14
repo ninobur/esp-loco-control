@@ -1,5 +1,10 @@
 # EWO 0 5 manual STOP/GO and Otto deployment — October 14, 2026
 
+**Outcome: EWO 0_5 passed compilation and the active host checks but failed the
+stationary hardware startup gate. It is not cleared for operation. Otto has
+been restored to its exact prior installed COHERENCE R2 image; the restored
+boot and zero throttle were read back from the Pi recorder.**
+
 David settled the remaining operating rule: **manual STOP pauses both timing
 clocks; GO resumes them while preserving geographic identity.** A stop alone
 does not require redeclaration. Existing safeguards still require declaration
@@ -67,12 +72,58 @@ rollback remain unchanged.
 
 ## Upload and stationary verification
 
-At this source-review checkpoint, the passing deployment build is prepared for
-the authorized upload. Upload result, exact firmware commit, new boot identity,
-MQTT receipt and stationary resource checks will be recorded below after the
-actual operation. No motion commands have been issued.
+The authorized image was built from commit
+`83889d9921e7231fd41e082ce5579165481d7a89`. Application SHA-256:
+`f4470e670e3503c4af2a2f5b2758e7de2a7ec862eb8801d11fe56c7fc3c8a7a4`.
+The [upload log](otto-0_5-upload.log) confirms successful writes and hash
+verification. No motion commands were issued.
 
-Field acceptance still requires David's railway test. At boot there is no
-previous complete lap: normal IR must first supply that lap before timing
-fallback has a reference. The Pi MQTT recorder is active; the separate native
-ADC recorder service was observed inactive and has not been changed.
+The [stationary serial capture](otto-0_5-serial-stationary.log) then showed
+Wi-Fi association, MQTT connection timeout (`state=-4`), and an abort/reboot.
+Its embedded ELF identifier matches the compiled ELF. No fresh EWO 0_5 boot
+record reached MQTT; old retained R2 messages are not evidence of an EWO boot.
+The EWO loop-stat capture is empty. Consequently actual EWO heap margin, Hall
+sampling timing, queue behavior and live diagnostic throughput are **unverified**.
+
+The [decoded backtrace](otto-0_5-crash-decoded.txt) enters
+`lock_init_generic` from UART/console logging in the Wi-Fi timer path. Runtime
+lock allocation/resource pressure is the leading explanation, not a confirmed
+allocation budget or identified offending buffer. The upstream ESP-IDF
+[lock implementation](https://raw.githubusercontent.com/espressif/esp-idf/v5.5.5/components/newlib/src/locks.c)
+aborts when mutex creation fails; its source line numbers differ from the
+packaged ELF, so this supports the interpretation rather than proving the exact
+packaged implementation. No buffer reduction, navigation change or speculative
+startup workaround was made after the failure.
+
+The USB session also reported `INA219 NOT FOUND — no battery protection this
+session`. The restored firmware reports the same warning. Battery/INA219 power
+conditions were not established, so this is neither a diagnosis of permanent
+hardware failure nor clearance for powered operation.
+
+## Verified restoration and remaining gate
+
+The [rollback upload](otto-rollback-upload.log) restored all 4,194,304 bytes of
+the successful pre-upload backup; the written hash verified. The new R2 boot
+ID is **7A67A7D7538F82FD**, distinct from pre-upload **B1D4169F542C2B54**.
+[Live MQTT capture](otto-rollback-mqtt.log) and
+[readback from the Pi recorder](otto-rollback-pi-proof.log) establish that the
+restored `NAVI_COHERENCE_0_6_IR_SYNC_TEST_R2` reconnected and reported zero
+throttle. The Pi records the fresh boot at `2026-10-14T14:43:42.248`; subsequent
+loop-stat records report zero Hall/IR/publication/command queue drops during
+this stationary observation. These are R2 results, not EWO acceptance evidence.
+
+The EWO 0_5 STOP/GO change is implemented and host tested but is **not currently
+running on Otto**. The [deployment result](otto-deployment-result.json) records
+firmware identity, outcome and evidence hashes. The original build provenance
+remains the pre-upload record; later status documentation does not rewrite it.
+
+Further work must diagnose the startup resource failure, propose a bounded
+correction, obtain approval, and repeat the stationary hardware gate before
+any field test. This follows [AGENTS.md](../AGENTS.md): “If an approved design
+or implementation does not work, STOP and report what happened.” The failure
+does not authorize a different navigation design or changed recording limits.
+
+At a future EWO boot there will be no previous complete lap: normal IR must
+first supply that lap before timing fallback has a reference. The Pi MQTT
+recorder remains active; the separate native ADC recorder service was observed
+inactive and has not been changed. No Pi services were modified.

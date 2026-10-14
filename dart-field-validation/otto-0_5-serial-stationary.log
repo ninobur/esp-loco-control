@@ -1,0 +1,36 @@
+[MQTT] connect failed state=-4 broker=192.168.68.142
+[NET] wifi=CONNECTED ip=192.168.68.73 rssi=-32 mqtt=DISCONNECTED mqtt_state=-4
+
+abort() was called at PC 0x400831a3 on core 0
+
+
+Backtrace: 0x4008bd9c:0x3ffbc810 0x4008bd61:0x3ffbc830 0x40092379:0x3ffbc850 0x400831a3:0x3ffbc8d0 0x400831e6:0x3ffbc8f0 0x40083349:0x3ffbc920 0x400f1ba9:0x3ffbc940 0x400f6309:0x3ffbc970 0x4000bd83:0x3ffbc990 0x4000182a:0x3ffbc9b0 0x400f5949:0x3ffbc9d0 0x400f6309:0x3ffbc9f0 0x40089105:0x3ffbca10 0x400884b5:0x3ffbca30 0x4008850b:0x3ffbca50 0x400889b1:0x3ffbca70 0x40179ddf:0x3ffbcaa0 0x40179c8d:0x3ffbcac0 0x401701f9:0x3ffbcde0 0x40092165:0x3ffbce10 0x400922b1:0x3ffbce40 0x40144bf3:0x3ffbce90 0x4015300e:0x3ffbcf00 0x40164727:0x3ffbcf20 0x4015bb5e:0x3ffbcf40 0x40129832:0x3ffbcf60 0x4008cbe5:0x3ffbcf90
+
+
+
+
+ELF file SHA256: a3468e9cd
+
+Rebooting...
+ets Jul 29 2019 12:21:46
+
+rst:0xc (SW_CPU_RESET),boot:0x13 (SPI_FAST_FLASH_BOOT)
+configsip: 0, SPIWP:0xee
+clk_drv:0x00,q_drv:0x00,d_drv:0x00,cs0_drv:0x00,hd_drv:0x00,wp_drv:0x00
+mode:DIO, clock div:1
+load:0x3fff0030,len:4876
+ho 0 tail 12 room 4
+load:0x40078000,len:16532
+load:0x40080400,len:3500
+entry 0x400805b4
+[IR_PULSE] queues rx=1 transport=1 log=1 status=1 authority=OBSERVATION_ONLY
+[BOOT] queues hall=1 ir=1 pub=1 cmd=1 pub_depth=16
+[BOOT] profile loco=9950011 id=9950011 mqtt_broker=192.168.68.142 sync_host=192.168.68.142 ir=ALL_VALID_TYPE5_TO_NAVI
+[BOOT] ir_radio=WAITING_FOR_WIFI paired_mac=38:18:2B:30:8C:2C display_only=1
+[NET] wifi=CONNECTING mqtt_broker=192.168.68.142
+[WARN] INA219 NOT FOUND — no battery protection this session
+[BOOT] NAVI_EWO_0_5 — integration candidate, not field accepted
+[NET] wifi=DISCONNECTED wifi_status=6 mqtt=DISCONNECTED mqtt_state=-1
+[IR_PULSE] kind=STATUS valid=0 event_valid=0 same_source=0 boot=0000000000000000 seq=0 completed=0 t_us=0 dt_us=0 pkph=nan legacy_valid=0 legacy_pkph=nan age_ms=0 flags=1024 disc=0 invalid=0 rxdrop=0 logdrop=0 mqttdrop=1 authority=OBSERVATION_ONLY
+[IR_LEDGER] boot=0000000000000000 first=0 last=0 received=0 missing=0 duplicate=0 out_of_order=0 rxdrop=0 invalid=0 tx_valid=0 generated=0 sent=0 fail=0 drop=0 reception_pct=nan authority=OBSERVATION_ONLY
+[IR] radio=READY init_error=0 callback_error=0

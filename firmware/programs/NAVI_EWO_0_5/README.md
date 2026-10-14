@@ -1,7 +1,8 @@
 # NAVI_EWO_0_5
 
-October 14, 2026. Experimental integration candidate. **Compiled and host tested;
-manual STOP/GO rule settled and tested; field acceptance remains pending.**
+October 14, 2026. Experimental integration candidate. **Compiled and host tested,
+but failed stationary startup after upload. Not cleared for operation. Otto's
+previous COHERENCE R2 image has been restored and verified online.**
 
 Foundation: `NAVI_EWO_0_1_MM045_STOP`,
 `85a2cf2a16d262abdf7258c60f60508b823913ee`. The separate, tested first DART
@@ -63,8 +64,10 @@ ESP32 core 3.3.12 compilation succeeds: 1,055,591 B program, 81,404 B static RAM
 The deployment build uses Otto’s existing private configuration; no credentials
 are included in the repository.
 Two explicitly labelled host-generated transition records reached the actual
-Pi MQTT log. This establishes Mac→broker→recorder receipt, not unflashed ESP32
-Wi-Fi delivery or field reliability.
+Pi MQTT log. This establishes Mac→broker→recorder receipt. The actual EWO 0_5
+board connected to Wi-Fi, timed out on MQTT, then aborted and rebooted; its
+hardware resource/timing gate failed. See the deployment report for the serial
+trace, decoded crash and verified rollback.
 
 ## Manual STOP/GO
 
@@ -73,6 +76,6 @@ on GO, retaining the selected MM, pending candidate and tile-ramp progress.
 Raw Hall timestamps stay intact. Actual scheduled station dwell/departure still
 counts; manual-stop duration is excluded from the next lap's timing reference.
 The existing moved-while-stopped declaration latch remains authoritative.
-David authorized the tested build to be flashed to USB-connected Otto. The
-current deployment report records whether upload and stationary checks have
-completed; build success alone is not field acceptance.
+David authorized the tested build to be flashed to USB-connected Otto. Upload
+verified, but stationary startup failed; these new clock rules are therefore
+not currently installed on Otto. No motion commands or field test were run.
