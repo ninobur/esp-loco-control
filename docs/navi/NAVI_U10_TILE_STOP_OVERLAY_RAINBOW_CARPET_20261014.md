@@ -47,3 +47,25 @@ The new NAVI candidate-comparison mechanism chooses one qualifying geographic ta
 **Decision:** Preserve the TILE/STOP OVERLAY twelve-tile architecture and preset-PWM operation. Do not redesign speed control or add a separate station controller. Investigate the one-marker stopping discrepancy and request authorization before any code changes.
 
 **Governing test:** Is the rainbow carpet anchored to the correct stopping tile, laid backward in the correct direction, and delivering the intended PWM on each tile?
+
+
+## October 14 addendum — Magnetic-field openings versus visible disc magnets
+
+**Operator clarification and instruction to Codex:** The apparent one-marker-short STOP landing must not be treated as an established firmware defect. The operator observed stopping position relative to the **round, physical disc magnet**, whereas NAVI's navigation coordinate is based on the **Hall opening at the leading magnetic field**. The opening normally occurs before the Hall sensor reaches the disc itself. The locomotive also continues moving after opening during its final PWM ramp.
+
+In the present MM045 STOP experiment, the programmed point described as between two magnets is in NAVI's **field-opening coordinate frame**: between successive detected magnetic-field openings, not necessarily halfway between the centers of two visible disc magnets. The physical stopping position was observed near or on a disc magnet. That physical landmark is useful and repeatable, provided the same translation convention is used consistently. This is an operator observation and interpretation, not a measured universal field-opening-to-disc offset.
+
+A second observation from October 13 supports investigating this distinction: the operator saw the Hall sensor mount physically **before** the disc magnet while NAVI described its position as **between magnets**. This apparent disagreement may arise from using the disc center versus magnetic opening as the position reference, rather than an incorrect MM identity. Also distinguish the physical Hall sensor location from the locomotive's own reference point.
+
+### Consequences for source reconciliation and field evaluation
+
+1. **Preserve the existing STOP geometry and PWM ramps.** No offset adjustment or firmware change is authorized by this clarification.
+2. For Codex's source audit, explicitly identify whether each reported coordinate is relative to a Hall opening, a physical disc center, an MM-to-MM tile boundary, or a locomotive/sensor reference point. Do not assume these are interchangeable.
+3. Inspect the exact MM045 +150 mm calculation in the operational EWO_0_1 source and explain its reference frame. A numerical +150 mm from a Hall opening is not necessarily +150 mm from the visible disc magnet.
+4. Reinterpret the October 9 short-landing report and October 13 observed Hall-mount discrepancy using this distinction. Report what can be established from the actual code and field observations; do **not** invent an opening-to-center offset or claim that this alone proves the stopping discrepancy resolved.
+5. Treat the observed landing near the disc as a potentially useful **physical station landmark**. Future field notes should name the measured physical point (Hall sensor, locomotive nose, etc.) and the disc landmark used.
+6. If source evidence reveals an actual geographic indexing or coordinate error, report it separately and seek approval before modifying firmware.
+
+**Governing conclusion:** NAVI navigates using detected magnetic-field openings. The operator assesses stops using visible physical landmarks. The coordinate-frame distinction must be explicit before diagnosing or correcting a stopping-position discrepancy.
+
+**Codex action requested:** Read this addendum together with the rainbow-carpet U10 model and the October 14 source reconciliation. Incorporate the coordinate-frame distinction into the architectural and field-evidence interpretation. Research/documentation only; do not change firmware, calibration, maps, or STOP geometry without separate authorization.
