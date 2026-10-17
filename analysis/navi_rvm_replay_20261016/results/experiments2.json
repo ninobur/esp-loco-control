@@ -1,0 +1,239 @@
+{
+ "E1d_skip_021-022_and_123-124": {
+  "summary": {
+   "out_of_sample": {
+    "err_online": {
+     "n": 758,
+     "median_abs": 2.8,
+     "p95_abs": 9.1,
+     "max_abs": 301.5,
+     "wrong_identity": 1
+    },
+    "err_retro": {
+     "n": 758,
+     "median_abs": 3.2,
+     "p95_abs": 10.1,
+     "max_abs": 38.6,
+     "wrong_identity": 0
+    }
+   },
+   "in_sample": {
+    "err_online": {
+     "n": 342,
+     "median_abs": 3.3,
+     "p95_abs": 9.1,
+     "max_abs": 11.3,
+     "wrong_identity": 0
+    },
+    "err_retro": {
+     "n": 342,
+     "median_abs": 3.8,
+     "p95_abs": 10.2,
+     "max_abs": 12.0,
+     "wrong_identity": 0
+    }
+   }
+  },
+  "teleports": {
+   "steps": 93481,
+   "jumps_gt_60mm": 65,
+   "jumps_gt_150mm": 33,
+   "max_jump_mm": 897.0
+  },
+  "around_withdrawal_1": {
+   "err_online": {
+    "n": 58,
+    "median_abs": 2.7,
+    "p95_abs": 9.3,
+    "max_abs": 32.8,
+    "wrong_identity": 0
+   },
+   "err_retro": {
+    "n": 58,
+    "median_abs": 4.4,
+    "p95_abs": 10.3,
+    "max_abs": 32.8,
+    "wrong_identity": 0
+   }
+  },
+  "around_withdrawal_2": {
+   "err_online": {
+    "n": 48,
+    "median_abs": 4.1,
+    "p95_abs": 8.8,
+    "max_abs": 10.0,
+    "wrong_identity": 0
+   },
+   "err_retro": {
+    "n": 48,
+    "median_abs": 4.6,
+    "p95_abs": 10.3,
+    "max_abs": 11.0,
+    "wrong_identity": 0
+   }
+  }
+ },
+ "live_jumps_base": {
+  "n": 81,
+  "with_pwm0_or_ir_stop_within_2s": 68,
+  "while_cruising": 13
+ },
+ "online_vs_retro_at_openings_mm": {
+  "q50": 1.0,
+  "q95": 3.0,
+  "q99": 5.0,
+  "max": 291.0
+ },
+ "ensemble_discovery": {
+  "lap_to_lap_noise_counts": 0.69,
+  "by_k": {
+   "4": {
+    "runs": 483,
+    "width_mm_q": [
+     10.0,
+     43.0,
+     63.0
+    ],
+    "gap_hist_mm": {
+     "0-10": 216,
+     "10-25": 93,
+     "25-50": 2,
+     "50-100": 2,
+     "100-150": 36,
+     "150-200": 93,
+     "200-300": 40,
+     "300-2000": 0
+    }
+   },
+   "6": {
+    "runs": 395,
+    "width_mm_q": [
+     8.0,
+     43.0,
+     59.299999999999955
+    ],
+    "gap_hist_mm": {
+     "0-10": 127,
+     "10-25": 95,
+     "25-50": 1,
+     "50-100": 0,
+     "100-150": 5,
+     "150-200": 57,
+     "200-300": 109,
+     "300-2000": 0
+    }
+   },
+   "10": {
+    "runs": 292,
+    "width_mm_q": [
+     5.550000000000001,
+     47.0,
+     57.0
+    ],
+    "gap_hist_mm": {
+     "0-10": 39,
+     "10-25": 81,
+     "25-50": 0,
+     "50-100": 0,
+     "100-150": 0,
+     "150-200": 1,
+     "200-300": 168,
+     "300-2000": 2
+    }
+   }
+  },
+  "merge_gap_25mm": {
+   "ensembles": 173,
+   "width_mm_q05_50_95": [
+    73.6,
+    92.0,
+    148.8
+   ],
+   "multi_part": 170,
+   "parts_max": 3,
+   "with_one_opening": 171,
+   "with_none": 2,
+   "with_two_plus": 0
+  },
+  "merge_gap_50mm": {
+   "ensembles": 172,
+   "width_mm_q05_50_95": [
+    74.55,
+    92.0,
+    148.89999999999998
+   ],
+   "multi_part": 170,
+   "parts_max": 3,
+   "with_one_opening": 171,
+   "with_none": 1,
+   "with_two_plus": 0
+  },
+  "merge_gap_100mm": {
+   "ensembles": 172,
+   "width_mm_q05_50_95": [
+    74.55,
+    92.0,
+    148.89999999999998
+   ],
+   "multi_part": 170,
+   "parts_max": 3,
+   "with_one_opening": 171,
+   "with_none": 1,
+   "with_two_plus": 0
+  }
+ },
+ "mainlobe_template_rms_removed_counts": {
+  "CW_L1": 3.42,
+  "CCW_L1": 3.41
+ },
+ "E5_mainlobe_only_template": {
+  "summary": {
+   "err_online": {
+    "n": 1100,
+    "median_abs": 3.4,
+    "p95_abs": 9.8,
+    "max_abs": 308.8,
+    "wrong_identity": 2
+   },
+   "err_retro": {
+    "n": 1100,
+    "median_abs": 3.1,
+    "p95_abs": 9.9,
+    "max_abs": 40.6,
+    "wrong_identity": 0
+   }
+  },
+  "teleports": {
+   "steps": 93479,
+   "jumps_gt_60mm": 165,
+   "jumps_gt_150mm": 40,
+   "max_jump_mm": 637.0
+  }
+ },
+ "normal_variation_1s_cost_from_CW_lap2": {
+  "n_seconds": 393,
+  "quantiles": {
+   "0.5": 6.641119708551767,
+   "0.9": 13.888383752529355,
+   "0.99": 22.13141751778504,
+   "0.999": 61.301014162390544,
+   "1.0": 67.59619503089885
+  }
+ },
+ "beyond_max_of_normal": {
+  "n_seconds": 7,
+  "fraction": 0.0024,
+  "clusters": [
+   {
+    "t0": 3564,
+    "t1": 3564,
+    "max_cost": 168.0
+   },
+   {
+    "t0": 3788,
+    "t1": 3796,
+    "max_cost": 292.3
+   }
+  ]
+ }
+}

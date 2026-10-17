@@ -1,0 +1,120 @@
+{
+ "W_1200_cells_1mm": {
+  "summary": {
+   "err_online": {
+    "n": 1100,
+    "median_abs": 3.0,
+    "p95_abs": 9.3,
+    "max_abs": 1535.2,
+    "wrong_identity": 10
+   },
+   "err_retro": {
+    "n": 1100,
+    "median_abs": 3.4,
+    "p95_abs": 10.3,
+    "max_abs": 1535.2,
+    "wrong_identity": 9
+   }
+  },
+  "teleports": {
+   "steps": 93479,
+   "jumps_gt_60mm": 71,
+   "jumps_gt_150mm": 32,
+   "max_jump_mm": 601.0
+  },
+  "runtime_s": 11.3
+ },
+ "W_800_cells_1mm": {
+  "summary": {
+   "err_online": {
+    "n": 1100,
+    "median_abs": 3.0,
+    "p95_abs": 9.3,
+    "max_abs": 1535.2,
+    "wrong_identity": 10
+   },
+   "err_retro": {
+    "n": 1100,
+    "median_abs": 3.4,
+    "p95_abs": 10.3,
+    "max_abs": 1535.2,
+    "wrong_identity": 9
+   }
+  },
+  "teleports": {
+   "steps": 93479,
+   "jumps_gt_60mm": 75,
+   "jumps_gt_150mm": 33,
+   "max_jump_mm": 567.0
+  },
+  "runtime_s": 9.5
+ },
+ "W_500_cells_1mm": {
+  "summary": {
+   "err_online": {
+    "n": 1100,
+    "median_abs": 3.5,
+    "p95_abs": 603.0,
+    "max_abs": 971.2,
+    "wrong_identity": 117
+   },
+   "err_retro": {
+    "n": 1100,
+    "median_abs": 4.0,
+    "p95_abs": 603.5,
+    "max_abs": 967.2,
+    "wrong_identity": 115
+   }
+  },
+  "teleports": {
+   "steps": 93479,
+   "jumps_gt_60mm": 146,
+   "jumps_gt_150mm": 14,
+   "max_jump_mm": 314.0
+  },
+  "runtime_s": 8.1
+ },
+ "W_800_boot2": {
+  "summary": {
+   "err_online": {
+    "n": 87,
+    "median_abs": 2.9,
+    "p95_abs": 8.6,
+    "max_abs": 21.2,
+    "wrong_identity": 0
+   },
+   "err_retro": {
+    "n": 87,
+    "median_abs": 2.8,
+    "p95_abs": 9.7,
+    "max_abs": 22.2,
+    "wrong_identity": 0
+   }
+  }
+ },
+ "unexpected_stationarity": {
+  "longest_in_CW_lap2_s": 0,
+  "episodes_longer_than_lap2_max": [
+   {
+    "min": 139,
+    "max": 163,
+    "size": 25
+   },
+   {
+    "min": 389,
+    "max": 671,
+    "size": 283
+   },
+   {
+    "min": 3057,
+    "max": 3080,
+    "size": 24
+   },
+   {
+    "min": 3557,
+    "max": 3561,
+    "size": 5
+   }
+  ]
+ }
+}

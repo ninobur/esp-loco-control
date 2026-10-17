@@ -1,0 +1,32 @@
+{
+ "CW_L1_vs_CW_L2": {
+  "windows_with_structure": 175,
+  "lag_mm_quantiles": [
+   -5.3,
+   -4.0,
+   -1.0,
+   1.5,
+   5.0
+  ],
+  "mad_counts_quantiles": [
+   2.5,
+   3.6
+  ],
+  "level_diff_median": 0.8091029062827602
+ },
+ "CW_L1_vs_CCW_L1": {
+  "windows_with_structure": 175,
+  "lag_mm_quantiles": [
+   -111.0,
+   -103.0,
+   -99.0,
+   -94.0,
+   -86.0
+  ],
+  "mad_counts_quantiles": [
+   3.5,
+   5.0
+  ],
+  "level_diff_median": 1.0141551516217078
+ }
+}

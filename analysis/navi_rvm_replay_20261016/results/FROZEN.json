@@ -1,0 +1,42 @@
+{
+ "frozen_utc": "2026-10-17T06:44:36.260219Z",
+ "params": {
+  "sigma0": 1.5,
+  "pos_jitter_mm": 2.5,
+  "amp_frac": 0.02,
+  "init_margin_mm": 50.0,
+  "pwm_cap": 4.0,
+  "tau_pwm_s": 0.6,
+  "sv_frac": 0.05,
+  "sv_abs": 8.0,
+  "si_frac": 0.08,
+  "si_abs": 12.0,
+  "ir_cap": 4.0,
+  "w_pwm": 1.0,
+  "w_ir": 1.0,
+  "w_hall": 1.0,
+  "kmax": 30,
+  "beam": 1000000000.0,
+  "W": 2400,
+  "hub_hall": 3.0
+ },
+ "boot2_holdout_untouched": true,
+ "files": {
+  "scripts/aligner.py": "f3d5230ee6c563045eb7df04966816ee231a8a6e37545367dd3c688997d31fdf",
+  "scripts/blocks.py": "b510e3c6c72fc91b2fbfac60fa7409dece58704ff652312313bb4be619d9d212",
+  "scripts/compare_templates.py": "335deade0ede78a06241569a536c777005c899069046a0ce5dc9d6c77045e6d9",
+  "scripts/context.py": "b9434ed87a8c8cfc7b166e711bb7ef88e2ca40627c2cc5a66a6864ed481c427b",
+  "scripts/e1.py": "82e41dc8279796836cc913af431db2ec5ffca4167505e35b54dace3958424fa3",
+  "scripts/peek.py": "9ca502a8d0a59460fee871cf18fd19491b05fdfe5e6f6105bdda59a09f7f6ad3",
+  "scripts/score.py": "d76467f397854782c8e65c2096d7582397488ec96312fffba2e86eef40b290fa",
+  "scripts/speed_model.py": "cc75aef6ca690091b5a1b358c19dedea9b5b12a75afc5461827ef5778ed4013d",
+  "scripts/template.py": "7a82ebd89afbc6fdae6e7d2a77ecb2924219b00df572028a341aae1622e67014",
+  "derived/template_CCW_L1.npy": "e448b2db919d022f2fd140e679d0f106b075ce04c53135c1894dbe3e51d2115a",
+  "derived/template_CW_L1.npy": "4058a30c0d9fe0cce51b5cc731be6e11a9153a156eacdaef9b2af3d458030965",
+  "derived/template_CW_L2.npy": "a953523c1fbbc00dc1fca4de4d010043f8559fa6db07d9fad4c04ea0b6c53d89",
+  "derived/speed_model_CCW_L1.csv": "4d77c4d36a26c07e2aa0828b10d6055905504514d6005c07bc559fec4c3e6079",
+  "derived/speed_model_CW_L1.csv": "106a732fbeb2f1b6d7d4bbe923f82524f62b947fb4ed542be2f5a426504c2f24",
+  "derived/speed_model_CW_L2.csv": "587619b169433a83dad44a09463abfcdd8785ca2b407754c5368eaef2285c7c9"
+ },
+ "development_note": "Parameters and fixes were developed iteratively on boot 15549e9385faa4d5 E1 results (see report). Boot 4d8083de79a0e299 not run before this freeze."
+}
