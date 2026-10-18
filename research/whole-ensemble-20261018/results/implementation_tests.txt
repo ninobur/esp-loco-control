@@ -1,0 +1,9 @@
+test_complete_function_endpoints_and_slope (test_functional.FunctionalTests.test_complete_function_endpoints_and_slope) ... ok
+test_integral_matches_dense_gaussian (test_functional.FunctionalTests.test_integral_matches_dense_gaussian) ... ok
+test_joint_path_matches_exhaustive_partitions (test_functional.FunctionalTests.test_joint_path_matches_exhaustive_partitions) ... ok
+test_shared_background_matches_dense_curvature_prior (test_functional.FunctionalTests.test_shared_background_matches_dense_curvature_prior) ... ok
+
+----------------------------------------------------------------------
+Ran 4 tests in 0.019s
+
+OK

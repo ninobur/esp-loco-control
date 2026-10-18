@@ -1,0 +1,16 @@
+{
+  "preserved_control_files": 80,
+  "portable_eligibility_byte_identical": [
+    "data/eligible_spans.csv",
+    "data/eligibility_15549e9385faa4d5.csv.gz",
+    "data/eligibility_4d8083de79a0e299.csv.gz",
+    "sources/movement_brackets.csv.gz",
+    "results/eligibility_intervals.csv",
+    "results/eligibility_summary.csv",
+    "results/seed_eligibility_diagnostic.csv"
+  ],
+  "eval_spans_both": 89,
+  "all_ADC_bins_exactly_once": true,
+  "no_cross_exclusion_states": true,
+  "shared_overlapping_MM_ids": true
+}

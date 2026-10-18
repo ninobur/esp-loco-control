@@ -1,0 +1,207 @@
+{
+  "A": {
+    "objects_MM": 771,
+    "closed_MM": 735,
+    "censored_MM": 36,
+    "BL_states": 823,
+    "closed_unit_hypotheses": 681,
+    "review_all": {
+      "reviewed": 30,
+      "eligible_fields": 28,
+      "censored_fields": 2,
+      "complete": 1,
+      "not_completely_recognized": 27,
+      "principal_in_BL": 0,
+      "principal_and_secondary_same_MM": 28,
+      "leading_and_principal_same_MM": 27,
+      "secondary_in_BL": 0,
+      "recovery_in_BL": 23,
+      "lobe_grouped": 3,
+      "all_landmarks_grouped": 2,
+      "duplicate_or_split_fields": 3,
+      "polarity_n": 28,
+      "polarity_correct": 28,
+      "boundary_n": 28,
+      "boundary_median_outside_range_ms": {
+        "start": 19.99999999998181,
+        "end": 20.000000000010232,
+        "midpoint": 12.499999999818101
+      },
+      "baseline_cores": 20,
+      "baseline_cores_with_MM": 10,
+      "contained_false_MM": 0,
+      "explicit_BL_core": 10,
+      "baseline_boundary_n": 10,
+      "baseline_boundary_median_outside_range_ms": {
+        "start": 9.999999999990905,
+        "end": 0.0
+      },
+      "units": 18,
+      "complete_units": 0
+    },
+    "review_focus": {
+      "reviewed": 12,
+      "eligible_fields": 11,
+      "censored_fields": 1,
+      "complete": 0,
+      "not_completely_recognized": 11,
+      "principal_in_BL": 0,
+      "principal_and_secondary_same_MM": 11,
+      "leading_and_principal_same_MM": 11,
+      "secondary_in_BL": 0,
+      "recovery_in_BL": 11,
+      "lobe_grouped": 0,
+      "all_landmarks_grouped": 0,
+      "duplicate_or_split_fields": 0,
+      "polarity_n": 11,
+      "polarity_correct": 11,
+      "boundary_n": 11,
+      "boundary_median_outside_range_ms": {
+        "start": 39.99999999996362,
+        "end": 30.00000000020009,
+        "midpoint": 35.00000000002501
+      },
+      "baseline_cores": 8,
+      "baseline_cores_with_MM": 5,
+      "contained_false_MM": 0,
+      "explicit_BL_core": 3,
+      "baseline_boundary_n": 3,
+      "baseline_boundary_median_outside_range_ms": {
+        "start": 30.00000000020009,
+        "end": 0.0
+      },
+      "units": 7,
+      "complete_units": 0
+    },
+    "annotation_associations": {
+      "mm": 603,
+      "mm_edge_censored": 15,
+      "excluded": 5
+    },
+    "focused_annotation_associations": {
+      "mm": 76
+    },
+    "provisional_map_polarity_n": 618,
+    "provisional_map_polarity_correct": 618,
+    "raw_model_amplitude_quantiles": [
+      0.7360751207949128,
+      142.79827699386186,
+      171.45595836629724,
+      183.20444362577567,
+      275.09150907441096
+    ],
+    "breadth_seconds_quantiles": [
+      0.02,
+      0.64,
+      0.64,
+      1.15,
+      3.3
+    ]
+  },
+  "B": {
+    "objects_MM": 727,
+    "closed_MM": 692,
+    "censored_MM": 35,
+    "BL_states": 780,
+    "closed_unit_hypotheses": 639,
+    "review_all": {
+      "reviewed": 30,
+      "eligible_fields": 28,
+      "censored_fields": 2,
+      "complete": 2,
+      "not_completely_recognized": 26,
+      "principal_in_BL": 0,
+      "principal_and_secondary_same_MM": 28,
+      "leading_and_principal_same_MM": 26,
+      "secondary_in_BL": 0,
+      "recovery_in_BL": 24,
+      "lobe_grouped": 4,
+      "all_landmarks_grouped": 3,
+      "duplicate_or_split_fields": 0,
+      "polarity_n": 28,
+      "polarity_correct": 28,
+      "boundary_n": 28,
+      "boundary_median_outside_range_ms": {
+        "start": 9.999999999990905,
+        "end": 19.99999999998181,
+        "midpoint": 7.500000000078444
+      },
+      "baseline_cores": 20,
+      "baseline_cores_with_MM": 8,
+      "contained_false_MM": 0,
+      "explicit_BL_core": 12,
+      "baseline_boundary_n": 12,
+      "baseline_boundary_median_outside_range_ms": {
+        "start": 9.999999999990905,
+        "end": 0.0
+      },
+      "units": 18,
+      "complete_units": 0
+    },
+    "review_focus": {
+      "reviewed": 12,
+      "eligible_fields": 11,
+      "censored_fields": 1,
+      "complete": 0,
+      "not_completely_recognized": 11,
+      "principal_in_BL": 0,
+      "principal_and_secondary_same_MM": 11,
+      "leading_and_principal_same_MM": 11,
+      "secondary_in_BL": 0,
+      "recovery_in_BL": 11,
+      "lobe_grouped": 0,
+      "all_landmarks_grouped": 0,
+      "duplicate_or_split_fields": 0,
+      "polarity_n": 11,
+      "polarity_correct": 11,
+      "boundary_n": 11,
+      "boundary_median_outside_range_ms": {
+        "start": 29.99999999974534,
+        "end": 20.000000000038654,
+        "midpoint": 29.99999999974534
+      },
+      "baseline_cores": 8,
+      "baseline_cores_with_MM": 4,
+      "contained_false_MM": 0,
+      "explicit_BL_core": 4,
+      "baseline_boundary_n": 4,
+      "baseline_boundary_median_outside_range_ms": {
+        "start": 19.99999999998181,
+        "end": 0.0
+      },
+      "units": 7,
+      "complete_units": 0
+    },
+    "annotation_associations": {
+      "mm": 604,
+      "mm_edge_censored": 14,
+      "excluded": 5
+    },
+    "focused_annotation_associations": {
+      "mm": 76
+    },
+    "provisional_map_polarity_n": 618,
+    "provisional_map_polarity_correct": 618,
+    "raw_model_amplitude_quantiles": [
+      0.4529214670436347,
+      151.60802837830798,
+      173.4453847519395,
+      184.188682422179,
+      275.1562232807372
+    ],
+    "breadth_seconds_quantiles": [
+      0.02,
+      0.64,
+      0.64,
+      1.28,
+      3.74
+    ]
+  },
+  "reference_coverage": {
+    "labels_with_unambiguous_reference": 171,
+    "missing_labels": [],
+    "single_reference_labels": [
+      16
+    ]
+  }
+}

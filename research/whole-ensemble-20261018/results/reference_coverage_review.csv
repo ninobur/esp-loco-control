@@ -1,0 +1,17 @@
+boot,mm,direction,opening_serial,opening_us,match_status,eligible_at_opening,partition
+15549e9385faa4d5,15,CW,4214695,843305512.0,matched_supported_activity,True,train
+15549e9385faa4d5,15,CW,7881900,1576746506.0,matched_supported_activity,True,train
+15549e9385faa4d5,15,CCW,15028330,3006032496.0,matched_supported_activity,True,train
+15549e9385faa4d5,16,CW,4345365,869440379.0,matched_supported_activity,True,train
+15549e9385faa4d5,16,CW,8013045,1602975522.0,matched_supported_activity,True,train
+15549e9385faa4d5,16,CCW,14893455,2979057510.0,censored_edge,True,train
+15549e9385faa4d5,63,CW,5420465,1084459507.0,matched_supported_activity,True,train
+15549e9385faa4d5,63,CW,8534060,1707178877.0,matched_supported_activity,True,train
+15549e9385faa4d5,63,CCW,14490880,2898542496.0,matched_supported_activity,True,train
+15549e9385faa4d5,108,CW,1788305,358027496.0,matched_supported_activity,True,train
+15549e9385faa4d5,108,CW,5863585,1173083664.0,matched_supported_activity,True,train
+15549e9385faa4d5,108,CW,8975050,1795376496.0,matched_supported_activity,True,train
+15549e9385faa4d5,108,CCW,14029760,2806318966.0,matched_supported_activity,True,train
+15549e9385faa4d5,157,CW,3696325,739631501.0,missing_native_serial,False,train
+15549e9385faa4d5,157,CW,7470975,1494562729.0,matched_supported_activity,True,train
+15549e9385faa4d5,157,CCW,15581370,3116640496.0,matched_supported_activity,True,train

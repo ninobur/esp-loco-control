@@ -1,0 +1,30 @@
+[
+  {
+    "model": "A",
+    "span_id": "15549e9385faa4d5_99721_99970",
+    "observations": 249,
+    "states": 5,
+    "exact_array_reproduction": true
+  },
+  {
+    "model": "A",
+    "span_id": "15549e9385faa4d5_111675_112036",
+    "observations": 361,
+    "states": 8,
+    "exact_array_reproduction": true
+  },
+  {
+    "model": "B",
+    "span_id": "15549e9385faa4d5_99721_99970",
+    "observations": 249,
+    "states": 3,
+    "exact_array_reproduction": true
+  },
+  {
+    "model": "B",
+    "span_id": "15549e9385faa4d5_111675_112036",
+    "observations": 361,
+    "states": 8,
+    "exact_array_reproduction": true
+  }
+]

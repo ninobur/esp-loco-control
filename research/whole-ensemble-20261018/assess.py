@@ -35,6 +35,11 @@ def morphology(name,obs,spans,review):
         row.update(principal_state=p['state'],principal_object=p['id'],principal_censored=p['censored'])
         features=[r.principal_s,r.leading_s,r.lobe_s,r.recovery_s]
         owners=[at(obs,t,r.boot) for t in features]
+        # Descriptive decomposition; does not alter the frozen completeness test.
+        row['principal_and_secondary_same_MM']=p['state']=='mm' and not p['censored'] and owners[2] is not None and owners[2]['id']==p['id']
+        row['leading_and_principal_same_MM']=p['state']=='mm' and not p['censored'] and owners[1] is not None and owners[1]['id']==p['id']
+        row['secondary_state']='unavailable' if owners[2] is None else owners[2]['state']
+        row['recovery_state']='unavailable' if owners[3] is None else owners[3]['state']
         row['lobe_grouped']=p['state']=='mm' and not p['censored'] and all(o and o['id']==p['id'] for o in [owners[0],owners[2],owners[3]])
         row['all_landmarks_grouped']=p['state']=='mm' and not p['censored'] and all(o and o['id']==p['id'] for o in owners)
         neighbors=review[(review.case_id==r.case_id)&(review.ordinal!=r.ordinal)]
@@ -95,6 +100,9 @@ def summarize(rows,baselines,checked,focus=False):
     return dict(reviewed=len(rows),eligible_fields=len(eligible),censored_fields=len(rows)-len(eligible),
         complete=sum(r.get('complete',False) for r in eligible),not_completely_recognized=sum(not r.get('complete',False) for r in eligible),
         principal_in_BL=sum(r['principal_state']=='bl' for r in eligible),
+        principal_and_secondary_same_MM=sum(r.get('principal_and_secondary_same_MM',False) for r in eligible),
+        leading_and_principal_same_MM=sum(r.get('leading_and_principal_same_MM',False) for r in eligible),
+        secondary_in_BL=sum(r.get('secondary_state')=='bl' for r in eligible),recovery_in_BL=sum(r.get('recovery_state')=='bl' for r in eligible),
         lobe_grouped=sum(r.get('lobe_grouped',False) for r in eligible),all_landmarks_grouped=sum(r.get('all_landmarks_grouped',False) for r in eligible),
         duplicate_or_split_fields=sum(r.get('duplicate_or_split',False) for r in eligible),
         polarity_n=sum('polarity_correct' in r for r in eligible),polarity_correct=sum(r.get('polarity_correct',False) for r in eligible),
@@ -109,10 +117,19 @@ def summarize(rows,baselines,checked,focus=False):
 
 def main():
     spans=pd.read_csv(ROOT/'data/eligible_spans.csv');review=pd.read_csv(ROOT/'sources/morphology_adjudication.csv')
-    train=read('training_final'); audit=[]
+    training_summary=[]
+    for iteration in range(3):
+        d=pd.read_csv(ROOT/f'results/training_{iteration}.csv');m=d[(d.state=='mm')&~d.censored]
+        training_summary.append(dict(update=iteration,MM=len(m),BL=len(d[(d.state=='bl')&~d.censored]),
+            no_opening=int((m.annotation_count==0).sum()),single_opening=int((m.annotation_count==1).sum()),
+            multiple_openings=int((m.annotation_count>1).sum()),median_abs_excursion=float(m.principal_adc.abs().median()),
+            median_breadth_s=float(m.breadth_s.median())))
+    save('training_summary',training_summary)
+    train=read('training_2'); final_train=read('training_final'); audit=[]
     for mm in range(171):
         exact=[o for o in train if o['state']=='mm' and not o['censored'] and o['annotation_mms']==str(mm)]
-        audit.append(dict(mm=mm,unambiguous_closed_reference_count=len(exact),reference_ids=';'.join(o['id'] for o in exact)))
+        audit.append(dict(mm=mm,unambiguous_closed_reference_count=len(exact),reference_ids=';'.join(o['id'] for o in exact),
+                          final_replay_unambiguous_count=sum(o['state']=='mm' and not o['censored'] and o['annotation_mms']==str(mm) for o in final_train)))
     save('all171_reference_audit',audit)
     seeds=pd.read_csv(OLD/'data/annotation_seeds.csv');allaccount=[];metrics={}
     polarity=json.loads((OLD/'sources/route_polarity.json').read_text())['polarity']

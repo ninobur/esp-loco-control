@@ -1,0 +1,3 @@
+boot,portable_source,source_sha256,bins_20ms,valid_bins,native_observations,eligible_bins,excluded_bins
+15549e9385faa4d5,statistical-shape-20261018/data/hall20_15549e9385faa4d5.csv.gz,fe02ed805fa010f666e02056212fd4c297e1f06f4ab76002a2b409880208a691,192192,191123,19125072,101234,90958
+4d8083de79a0e299,statistical-shape-20261018/data/hall20_4d8083de79a0e299.csv.gz,f0b07b159c1ede23cfc246f4d3d1837dfaa34a16748411eadd608fedcb46dcc4,40716,40581,4059264,10262,30454
