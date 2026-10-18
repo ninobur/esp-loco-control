@@ -1,0 +1,16 @@
+{
+  "status": "PASS",
+  "checks": [
+    "portable evidence hashes",
+    "reference/evaluation ID disjointness",
+    "171 reference labels",
+    "21 B models and geographic scope",
+    "all unresolved intervals retained",
+    "full and focus continuous denominators",
+    "gain/offset and uniform-width arithmetic invariance",
+    "every source bin contributes",
+    "reported confusion counts recomputed"
+  ],
+  "model_sha256": "1ae49f93c7569560e62a816a9793598fbf0e8311f51bd0fb3464ff0791d7d490",
+  "physical_ground_truth_validated": false
+}

@@ -1,0 +1,224 @@
+{
+  "paired_focus": {
+    "B_minus_A_correct_fraction": 0.013245033112582781,
+    "cluster_by_MM_percentile_interval_95": [
+      0.0,
+      0.03424657534246575
+    ],
+    "bootstrap_replicates": 10000,
+    "B_only_correct": 2,
+    "A_only_correct": 0,
+    "meaning": "Exploratory uncertainty across 21 correlated geographic clusters; not independent field trials"
+  },
+  "polarity": {
+    "resolved_envelopes": 578,
+    "profile_vs_envelope_agree": 578,
+    "profile_positive_vs_map_North_agree": 578,
+    "meaning": "ADC sign contingency with declared map; not independent polarity ground truth"
+  },
+  "boundaries": [
+    {
+      "focus": false,
+      "model": "A",
+      "n": 571,
+      "polarity_agrees": 571,
+      "start_error_ms_median": -220.0,
+      "start_error_ms_median_absolute": 220.0,
+      "start_error_ms_p95_absolute": 620.0,
+      "end_error_ms_median": 140.0,
+      "end_error_ms_median_absolute": 140.0,
+      "end_error_ms_p95_absolute": 460.0,
+      "midpoint_error_ms_median": -40.0,
+      "midpoint_error_ms_median_absolute": 40.0,
+      "midpoint_error_ms_p95_absolute": 140.0
+    },
+    {
+      "focus": true,
+      "model": "A",
+      "n": 71,
+      "polarity_agrees": 71,
+      "start_error_ms_median": -260.0,
+      "start_error_ms_median_absolute": 260.0,
+      "start_error_ms_p95_absolute": 780.0,
+      "end_error_ms_median": 180.0,
+      "end_error_ms_median_absolute": 180.0,
+      "end_error_ms_p95_absolute": 510.0,
+      "midpoint_error_ms_median": -50.0,
+      "midpoint_error_ms_median_absolute": 60.0,
+      "midpoint_error_ms_p95_absolute": 185.0
+    },
+    {
+      "focus": true,
+      "model": "B_union",
+      "n": 70,
+      "polarity_agrees": 70,
+      "start_error_ms_median": -300.0,
+      "start_error_ms_median_absolute": 300.0,
+      "start_error_ms_p95_absolute": 941.9999999999999,
+      "end_error_ms_median": 220.0,
+      "end_error_ms_median_absolute": 220.0,
+      "end_error_ms_p95_absolute": 623.9999999999998,
+      "midpoint_error_ms_median": -60.0,
+      "midpoint_error_ms_median_absolute": 60.0,
+      "midpoint_error_ms_p95_absolute": 160.99999999999994
+    }
+  ],
+  "continuous_aggregate": [
+    {
+      "focus": false,
+      "model": "A",
+      "MM_annotation_total": 623,
+      "MM_annotation_unresolved": 45,
+      "detections": 4794,
+      "matched": 571,
+      "missed": 7,
+      "possible_lobe_splits": 33,
+      "inside_BL": 1431,
+      "unassigned": 2759,
+      "BL_bins": 44638,
+      "BL_bins_as_MM": 26037,
+      "candidate_windows": 309716,
+      "unresolved_windows": 28603,
+      "matched_fraction_all_MM": 0.9165329052969502,
+      "BL_time_correct_fraction": 0.41670773780187287,
+      "evaluation_seconds": 2396.36
+    },
+    {
+      "focus": true,
+      "model": "A",
+      "MM_annotation_total": 76,
+      "MM_annotation_unresolved": 4,
+      "detections": 477,
+      "matched": 71,
+      "missed": 1,
+      "possible_lobe_splits": 1,
+      "inside_BL": 239,
+      "unassigned": 166,
+      "BL_bins": 7183,
+      "BL_bins_as_MM": 4409,
+      "candidate_windows": 32322,
+      "unresolved_windows": 2174,
+      "matched_fraction_all_MM": 0.9342105263157895,
+      "BL_time_correct_fraction": 0.3861896143672561,
+      "evaluation_seconds": 267.2
+    },
+    {
+      "focus": true,
+      "model": "B_union",
+      "MM_annotation_total": 76,
+      "MM_annotation_unresolved": 4,
+      "detections": 592,
+      "matched": 70,
+      "missed": 2,
+      "possible_lobe_splits": 1,
+      "inside_BL": 307,
+      "unassigned": 214,
+      "BL_bins": 7183,
+      "BL_bins_as_MM": 5174,
+      "candidate_windows": 32322,
+      "unresolved_windows": 2174,
+      "matched_fraction_all_MM": 0.9210526315789473,
+      "BL_time_correct_fraction": 0.27968815258248647,
+      "evaluation_seconds": 267.2
+    }
+  ],
+  "observed_variation": [
+    {
+      "kind": "BL",
+      "decision": "BL",
+      "n": 548,
+      "rms_adc_quantiles": [
+        0.258831055642908,
+        1.1744551952363027,
+        1.758595695879615,
+        2.568009102881571,
+        3.099016475999844
+      ],
+      "width_ms_quantiles": [
+        520.0,
+        640.0,
+        920.0,
+        3111.999999999998,
+        27760.0
+      ]
+    },
+    {
+      "kind": "BL",
+      "decision": "MM",
+      "n": 1,
+      "rms_adc_quantiles": [
+        0.9619033384866744,
+        0.9619033384866744,
+        0.9619033384866744,
+        0.9619033384866744,
+        0.9619033384866744
+      ],
+      "width_ms_quantiles": [
+        620.0,
+        620.0,
+        620.0,
+        620.0,
+        620.0
+      ]
+    },
+    {
+      "kind": "BL",
+      "decision": "unresolved",
+      "n": 69,
+      "rms_adc_quantiles": null,
+      "width_ms_quantiles": null
+    },
+    {
+      "kind": "MM",
+      "decision": "BL",
+      "n": 16,
+      "rms_adc_quantiles": [
+        20.73966101178144,
+        22.851895488547406,
+        35.43817375030585,
+        66.01809779496266,
+        70.9636937465555
+      ],
+      "width_ms_quantiles": [
+        1440.0,
+        1620.0,
+        3750.0,
+        7350.0,
+        8760.0
+      ]
+    },
+    {
+      "kind": "MM",
+      "decision": "MM",
+      "n": 562,
+      "rms_adc_quantiles": [
+        39.943245473643906,
+        49.80088112675961,
+        65.42913968049511,
+        78.75941128134923,
+        103.01902096507789
+      ],
+      "width_ms_quantiles": [
+        240.0,
+        300.0,
+        420.0,
+        1040.0,
+        2220.0
+      ]
+    },
+    {
+      "kind": "MM",
+      "decision": "unresolved",
+      "n": 45,
+      "rms_adc_quantiles": null,
+      "width_ms_quantiles": null
+    }
+  ],
+  "type_shape_association": {
+    "disk_markers": 101,
+    "bar_markers": 70,
+    "mean_phase_squared_difference": 0.03261638968514409,
+    "label_permutation_p": 0.0001999600079984003,
+    "caution": "Descriptive geographic association, installation/sensor/direction confounded; not proof that separate recognition families are necessary"
+  }
+}

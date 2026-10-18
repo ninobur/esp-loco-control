@@ -1,0 +1,32 @@
+{
+  "status": "PASS",
+  "clean_reproduction_directory": "/var/folders/f_/glhkxsk51b5dfpgyh6n0v6y80000gn/T/ngr-shape-portable-kjw3ek2a",
+  "native_archive_used": false,
+  "prior_models_or_results_used": false,
+  "identical_artifacts": [
+    "models/models.json",
+    "results/analysis.json",
+    "results/boundary_sensitivity.json",
+    "results/checks.json",
+    "results/continuous_events.csv",
+    "results/continuous_summary.csv",
+    "results/coverage.csv",
+    "results/interval_decisions.csv",
+    "results/interval_summary.json",
+    "results/paired_focus.csv",
+    "results/plot_cases.csv",
+    "results/polarity.csv",
+    "results/scan_spans.json",
+    "results/score_distributions.csv",
+    "results/type_strata.csv",
+    "results/validation.json",
+    "results/variation.json",
+    "figures/all_171_reference_atlas.png",
+    "figures/continuous_failure.png",
+    "figures/geographic_comparison.png",
+    "figures/models_and_separation.png",
+    "figures/successes_and_failures.png",
+    "figures/variation.png"
+  ],
+  "python": "3.12.14 (main, Aug 25 2026, 13:50:33) [Clang 22.1.3 ]"
+}

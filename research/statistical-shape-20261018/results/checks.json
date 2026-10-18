@@ -1,0 +1,8 @@
+{
+  "positive_gain_and_offset_max_error": 1.1302070390684094e-13,
+  "negative_gain_shape_max_error": 1.8851586958135158e-13,
+  "uniform_width_resampling_max_error": 8.992806499463768e-15,
+  "every_source_bin_affects_profile": true,
+  "all_171_reference_MM_present": true,
+  "all_21_B_models_present": true
+}

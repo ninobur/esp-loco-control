@@ -155,6 +155,8 @@ def main():
         x,p,s=features(traces[boot].adc.to_numpy(),ann.loc[ix,'lo'],ann.loc[ix,'hi'])
         X[ix]=x;pol[ix]=p;rms[ix]=s
     bad=(ann.reason!='').to_numpy()|~np.isfinite(X).all(axis=1)
+    # Masked gaps have no interpretable amplitude or principal-polarity estimate.
+    rms[bad]=np.nan;pol[bad]=0
     train=(ann.split=='train').to_numpy()&~bad
     pooled={k:np.r_[X[train&(ann.kind==k)],X[train&(ann.kind==k),::-1]].var(axis=0) for k in ['MM','BL']}
     def construct(mask):
@@ -207,7 +209,9 @@ def main():
     for quantity,values in [('rms_adc',rms),('width_ms',(ann.hi-ann.lo).to_numpy()*20)]:
         cuts=np.quantile(values[train&(ann.kind=='MM')],[.25,.5,.75])
         for name,z in decisions[decisions.kind=='MM'].groupby('model'):
-            for j,q in z.groupby(np.searchsorted(cuts,z[quantity],side='right')):
+            strata=np.searchsorted(cuts,z[quantity],side='right')
+            strata[(z.decision=='unresolved').to_numpy()]=-1
+            for j,q in z.groupby(strata):
                 variation.append(dict(model=name,quantity=quantity,stratum=int(j),cutpoints=cuts.tolist(),**metric(q)))
     (ROOT/'results/variation.json').write_text(json.dumps(variation,indent=2)+'\n')
     # Annotation-envelope sensitivity; unchanged models and decision rule.
@@ -226,10 +230,11 @@ def main():
     scan_rows=[];scan_summary=[];span_rows=[]
     full=[]
     for boot,t in traces.items():
-        ranges=[(0,len(t))] if boot!=BOOT else [(int(np.searchsorted(t.us,1840213501)),int(np.searchsorted(t.us,2745450837))),
-                                               (int(np.searchsorted(t.us,3167014139)),len(t))]
-        for lo,hi in ranges:
-            ids=ann[(ann.boot==boot)&(ann.kind=='MM')&(ann.split=='eval')&(ann.lo>=lo)&(ann.hi<=hi)].id.tolist()
+        clock_ranges=[(0,len(t)*DT)] if boot!=BOOT else [(1840213501,2745450837),(3167014139,len(t)*DT)]
+        for start_us,end_us in clock_ranges:
+            lo=int(np.ceil(start_us/DT));hi=int(end_us//DT)
+            ids=ann[(ann.boot==boot)&(ann.kind=='MM')&(ann.split=='eval')&
+                    (ann.opening_us>=start_us)&(ann.opening_us<end_us)].id.tolist()
             full.append(dict(id=f'full_{boot}_{lo}',boot=boot,direction='mixed',lo=lo,hi=hi,ids=ids))
     for focus in [False,True]:
         for span in (spans(ann,True) if focus else full):

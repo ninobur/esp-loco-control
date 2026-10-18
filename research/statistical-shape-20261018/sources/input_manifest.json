@@ -1,0 +1,88 @@
+{
+  "base_commit": "6aea978ae45e7164d176dfdda6d38ff41e8f272b",
+  "inputs": [
+    {
+      "path": "/Users/davidbrown/NGR/NGR-Files/hall-ground-20261015/derived/native_4d8083de79a0e299.bin",
+      "sha256": "2f8e93036d7c5ce6f0ff13eade0adf47b249d7fda0d11c4a290052d1db438356",
+      "samples": 4059264,
+      "first_us": 1931705,
+      "last_us": 814302573,
+      "portable_file": "data/hall20_4d8083de79a0e299.csv.gz",
+      "portable_sha256": "f0b07b159c1ede23cfc246f4d3d1837dfaa34a16748411eadd608fedcb46dcc4",
+      "discontinuities": 12
+    },
+    {
+      "path": "/Users/davidbrown/NGR/NGR-Files/hall-ground-20261015/derived/native_15549e9385faa4d5.bin",
+      "sha256": "a3cc9c6538e9aa3871a4e3357e96c7a76ef4c3f97ba282c52c610e718c7c4002",
+      "samples": 19125072,
+      "first_us": 1375316,
+      "last_us": 3843832414,
+      "portable_file": "data/hall20_15549e9385faa4d5.csv.gz",
+      "portable_sha256": "fe02ed805fa010f666e02056212fd4c297e1f06f4ab76002a2b409880208a691",
+      "discontinuities": 134
+    },
+    {
+      "path": "/Users/davidbrown/NGR/NGR-Files/hall-ground-20261015/derived/selected_matches.csv",
+      "sha256": "3d3250a8ad3d5e834808c9d0db5137f798104c6b16b88b1ca75e65d5f550ac69",
+      "used_columns": [
+        "boot",
+        "mm",
+        "direction",
+        "opening_serial",
+        "opening_us",
+        "match_status"
+      ],
+      "meaning": "NAVI selected labels; location and selection bias, not physical truth"
+    },
+    {
+      "path": "/Users/davidbrown/NGR/NGR-Files/hall-ground-20261015/derived/batches.csv.gz",
+      "sha256": "3b00ee32698119b53d387e770eb780e1dfb22dee59d3e6360dab390e3f7d94fd"
+    }
+  ],
+  "native_dtype": [
+    [
+      "serial",
+      "<u4"
+    ],
+    [
+      "us",
+      "<u8"
+    ],
+    [
+      "adc",
+      "<i2"
+    ],
+    [
+      "pwm",
+      "|u1"
+    ],
+    [
+      "direction",
+      "|u1"
+    ]
+  ],
+  "bin_us": 20000,
+  "annotation_status": "unverified NAVI geography + research envelope convention",
+  "nsr": {
+    "path": "/Users/davidbrown/NGR/NGR-Files/navi-ewo-dart-experiment-1/field-records/20261015_IR_WAVE_1_ACCURACY/sources/native.nsr",
+    "sha256": "123e51116ea964ce6a268cf441c8f0a440c56b1409e5b1b65e7f403da8eb6e8d",
+    "previous_payload_verification": {
+      "source": "/Users/davidbrown/NGR/NGR-Files/navi-ewo-dart-experiment-1/field-records/20261015_IR_WAVE_1_ACCURACY/sources/native.nsr",
+      "sha256": "123e51116ea964ce6a268cf441c8f0a440c56b1409e5b1b65e7f403da8eb6e8d",
+      "validated_frames": 1370029,
+      "crc_errors": 0,
+      "arrays": {
+        "4d8083de79a0e299": {
+          "samples": 4059264,
+          "sha256": "2f8e93036d7c5ce6f0ff13eade0adf47b249d7fda0d11c4a290052d1db438356",
+          "payload_identical": true
+        },
+        "15549e9385faa4d5": {
+          "samples": 19125072,
+          "sha256": "a3cc9c6538e9aa3871a4e3357e96c7a76ef4c3f97ba282c52c610e718c7c4002",
+          "payload_identical": true
+        }
+      }
+    }
+  }
+}
