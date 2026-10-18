@@ -2,7 +2,7 @@
 import itertools,unittest
 import numpy as np
 from scipy.special import logsumexp
-from functional import basis, make_prior, gains, prefixes, coarse_path, matrices, refine
+from functional import basis, make_prior, gains, prefixes, coarse_path, matrices, refine, smooth
 
 class FunctionalTests(unittest.TestCase):
     def test_complete_function_endpoints_and_slope(self):
@@ -21,6 +21,13 @@ class FunctionalTests(unittest.TestCase):
         logp=-.5*(np.linalg.slogdet(dense)[1]+err@np.linalg.solve(dense,err)+n*np.log(2*np.pi))
         base=-.5*(np.sum(y*y*weight)-np.sum(np.log(weight))+n*np.log(2*np.pi))
         self.assertAlmostEqual(got,logp-base,places=10)
+
+    def test_shared_background_matches_dense_curvature_prior(self):
+        for n in (3,4,9):
+            y=np.cos(np.arange(n));weight=np.linspace(.5,2,n);strength=7.
+            d=np.diff(np.eye(n),n=2,axis=0)
+            expected=np.linalg.solve(np.diag(weight)+strength*d.T@d+np.eye(n)*1e-9,weight*y)
+            np.testing.assert_allclose(smooth(y,weight,strength),expected,rtol=1e-11,atol=1e-11)
 
     def test_joint_path_matches_exhaustive_partitions(self):
         n=16; y=np.array([0.,1.,2.,0.]*4)

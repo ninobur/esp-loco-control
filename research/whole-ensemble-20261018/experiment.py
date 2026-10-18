@@ -1,4 +1,4 @@
-"""Reproducible construction and blinded ADC replay. Geography is evaluated post hoc."""
+"""Reproducible construction and geography-free ADC replay. Geography is evaluated post hoc."""
 import os
 os.environ.setdefault('OPENBLAS_NUM_THREADS','1')
 os.environ.setdefault('OMP_NUM_THREADS','1')
@@ -36,13 +36,16 @@ def objects_for(span,wave,result,model,iteration,seed):
     return out
 
 def replay(spans,waves,seeds,model,name,iteration,plots=False):
-    rows=[]; begun=time.monotonic()
+    rows=[]; fits={}; begun=time.monotonic()
     for i,span in enumerate(spans.itertuples(index=False)):
         y=waves[span.boot].adc.iloc[span.lo:span.hi].to_numpy(float)
         result=infer(y,model)
         obs=objects_for(span,waves[span.boot],result,name,iteration,seeds); rows.extend(obs)
+        if name in ('A','B'):
+            for key in ('baseline','field','precision'): fits[span.id+'__'+key]=result[key]
         if plots and i<6: plot_span(span,y,result,name,i)
         print(f'{name} update={iteration} {i+1}/{len(spans)} n={len(y)} mm={sum(o["state"]=="mm" for o in obs)} elapsed={time.monotonic()-begun:.1f}',flush=True)
+    if name in ('A','B'): np.savez_compressed(ROOT/f'results/fits_{name}_{iteration}.npz',**fits)
     return rows
 
 def moments(rows,state,default):
@@ -79,23 +82,36 @@ def initial(spans,waves):
       initialization=dict(amp_rms=amp,background_second_difference_scale=scale))
 
 def conditional(rows,model):
+    # Reference evidence for B is restricted to MM050–MM070 and adjacent BL.
+    # Noise/background inference is identical to A; it is not a geographic input.
+    focused=[o for o in rows if o['state']=='mm' and not o['censored'] and
+             o['annotation_count']==1 and 50<=int(o['annotation_mms'])<=70]
+    associated={}
+    groups={}
+    for o in rows: groups.setdefault(o['span_id'],[]).append(o)
+    neighbors={}
+    for o in focused:
+        same=groups[o['span_id']];j=next(i for i,v in enumerate(same) if v['id']==o['id'])
+        neighbors[o['id']]=[v for v in same[max(0,j-1):j+2] if v['state']=='bl' and not v['censored']]
+        for v in neighbors[o['id']]: associated[v['id']]=v
+    focused_mm,nm=moments(focused,'mm',model['mm'])
+    focused_bl,nb=moments(list(associated.values()),'bl',model['bl'])
+    if not nm or not nb: raise RuntimeError('No geographic reference constructed; cannot evaluate Model B')
     reference=[]; mm_means=[]; bl_means=[]
     for mm in range(50,71):
-        mmobs=[o for o in rows if o['state']=='mm' and not o['censored'] and o['annotation_mms']==str(mm)]
-        blobs=[]
-        for o in mmobs:
-            same=[v for v in rows if v['span_id']==o['span_id']]
-            j=next(i for i,v in enumerate(same) if v['id']==o['id'])
-            blobs.extend(v for v in same[max(0,j-1):j+2] if v['state']=='bl' and not v['censored'])
+        mmobs=[o for o in focused if o['annotation_mms']==str(mm)]
+        blobs={v['id']:v for o in mmobs for v in neighbors[o['id']]}
+        blobs=list(blobs.values())
         reference.append(dict(mm=mm,magnetic_n=len(mmobs),baseline_n=len(blobs),
                               magnetic_ids=';'.join(o['id'] for o in mmobs),baseline_ids=';'.join(o['id'] for o in blobs)))
         if mmobs:
             means=[canonical(np.array(o['mean']),np.array(o['cov']))[0] for o in mmobs]
-            # One pooled-distribution pseudo-observation, fixed before evaluation.
-            mm_means.append((np.sum(means,axis=0)+np.array(model['mm']['mean']))/(len(means)+1))
-        if blobs: bl_means.append((np.sum([o['mean'] for o in blobs],axis=0)+np.array(model['bl']['mean']))/(len(blobs)+1))
-    if not mm_means or not bl_means: raise RuntimeError('No geographic reference constructed; cannot evaluate Model B')
-    b=dict(model); b['mm']=dict(model['mm'],means=np.array(mm_means).tolist()); b['bl']=dict(model['bl'],means=np.array(bl_means).tolist())
+            # One focused-pool pseudo-observation for each conditional mean.
+            mm_means.append((np.sum(means,axis=0)+np.array(focused_mm['mean']))/(len(means)+1))
+        if blobs: bl_means.append((np.sum([o['mean'] for o in blobs],axis=0)+np.array(focused_bl['mean']))/(len(blobs)+1))
+    b=dict(model); b['mm']=dict(focused_mm,means=np.array(mm_means).tolist()); b['bl']=dict(focused_bl,means=np.array(bl_means).tolist())
+    b['geographic_reference']=dict(magnets=list(range(50,71)),magnetic_observations=nm,unique_baseline_observations=nb,
+                                  covariance='full covariance pooled within focused cohort, shared by geographic means')
     return b,reference
 
 def save_rows(path,rows):
@@ -121,6 +137,11 @@ def plot_span(s,y,r,name,i):
     axs[0].set_title(f'{name}: {s.boot} {s.start_us/1e6:.2f}–{s.end_us/1e6:.2f}; red MM, blue BL; edges censored')
     fig.tight_layout(); fig.savefig(ROOT/f'figures/{name}_{i:02d}.png',dpi=130); plt.close(fig)
 
+def frozen_inputs():
+    paths=['models/A.json','models/B.json','functional.py','experiment.py','data/eligible_spans.csv',
+           'sources/morphology_adjudication.csv','sources/MORPHOLOGY_REVIEW.md']
+    return {p:hashlib.sha256((ROOT/p).read_bytes()).hexdigest() for p in paths}
+
 def main():
     ap=argparse.ArgumentParser(); ap.add_argument('stage',choices=['train','evaluate']); args=ap.parse_args()
     spans,seeds,waves=load_data(); train=spans[spans.partition=='train']; evaluation=spans[spans.partition=='eval']
@@ -136,7 +157,9 @@ def main():
         rows=replay(train,waves,seeds,model,'A_train',3,True); save_rows(ROOT/'results/training_final',rows)
         dump(ROOT/'models/A.json',model); b,refs=conditional(rows,model); dump(ROOT/'models/B.json',b)
         pd.DataFrame(refs).to_csv(ROOT/'results/geographic_references.csv',index=False)
+        dump(ROOT/'models/FREEZE.json',frozen_inputs())
     else:
+        assert json.loads((ROOT/'models/FREEZE.json').read_text())==frozen_inputs(), 'Frozen input changed before evaluation'
         for name in ('A','B'):
             model=json.loads((ROOT/f'models/{name}.json').read_text())
             rows=replay(evaluation,waves,seeds,model,name,0,True)

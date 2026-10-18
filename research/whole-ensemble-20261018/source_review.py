@@ -7,11 +7,14 @@ import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 ROOT=Path(__file__).resolve().parent
-ap=argparse.ArgumentParser(); ap.add_argument('--archive',type=Path,required=True); a=ap.parse_args()
-src=a.archive/'navi-rvm-baseline-extent-20261017/derived/anatomical_cases.csv'
-d=pd.read_csv(src); d=d[d.class_name=='within_ensemble_trough'].copy()
-d.to_csv(ROOT/'sources/prior_lobe_morphology.csv',index=False)
-(ROOT/'sources/morphology_manifest.json').write_text(json.dumps({'path':str(src),'sha256':hashlib.sha256(src.read_bytes()).hexdigest(),'meaning':'Prior waveform-morphology interpretation, not independently surveyed physical geography. No recognition predictions used.'},indent=2)+'\n')
+ap=argparse.ArgumentParser(); ap.add_argument('--archive',type=Path); a=ap.parse_args()
+if a.archive:
+    src=a.archive/'navi-rvm-baseline-extent-20261017/derived/anatomical_cases.csv'
+    d=pd.read_csv(src);d=d[d.class_name=='within_ensemble_trough'].copy()
+    d.to_csv(ROOT/'sources/prior_lobe_morphology.csv',index=False)
+    (ROOT/'sources/morphology_manifest.json').write_text(json.dumps({'path':str(src),'sha256':hashlib.sha256(src.read_bytes()).hexdigest(),'meaning':'Prior waveform-morphology interpretation, not independently surveyed physical geography. No recognition predictions used.'},indent=2)+'\n')
+else:
+    d=pd.read_csv(ROOT/'sources/prior_lobe_morphology.csv')
 wave=pd.read_csv(ROOT.parent/'statistical-shape-20261018/data/hall20_15549e9385faa4d5.csv.gz')
 mask=pd.read_csv(ROOT/'data/eligibility_15549e9385faa4d5.csv.gz')
 evalcases=d[((d.seed_us>=1840213501)&(d.seed_us<2745450837))|(d.seed_us>=3167014139)]

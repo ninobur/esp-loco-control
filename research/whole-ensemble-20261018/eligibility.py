@@ -28,19 +28,23 @@ def runs(values):
     return list(zip(cut[:-1],cut[1:]))
 
 def main():
-    ap=argparse.ArgumentParser();ap.add_argument('--archive',type=Path,required=True);args=ap.parse_args()
-    archive=args.archive.resolve();prior=archive/'navi-ewo-dart-experiment-1/field-records'
-    quality=prior/'20261016_HALL_GROUND_PHASE2/derived/ir_quality_source.csv'
-    source=prior/'20261015_IR_WAVE_1_ACCURACY/derived/native_ir.jsonl'
-    snapshots=[]
-    for line in open(source):
-        r=json.loads(line);w=r['wire']
-        snapshots.append(dict(boot=r['boot'],us=r['rx_us'],pwm_actual=r['pwm_actual'],
-            pwm_commanded=r['pwm_commanded'],ctx_flags=r['ctx_flags'],readiness=r['readiness'],
-            completed_pulses=w['completed_pulses'],source_us=w['captured_us']))
-    state=pd.DataFrame(snapshots).drop_duplicates(['boot','us'])
-    q=pd.read_csv(quality,dtype={'irboot':str}).merge(state,on=['boot','us'],validate='one_to_one')
-    q.to_csv(ROOT/'sources/movement_snapshots.csv.gz',index=False,compression={'method':'gzip','mtime':0})
+    ap=argparse.ArgumentParser();ap.add_argument('--archive',type=Path);args=ap.parse_args()
+    if args.archive:
+        archive=args.archive.resolve();prior=archive/'navi-ewo-dart-experiment-1/field-records'
+        quality=prior/'20261016_HALL_GROUND_PHASE2/derived/ir_quality_source.csv'
+        source=prior/'20261015_IR_WAVE_1_ACCURACY/derived/native_ir.jsonl'
+        snapshots=[]
+        for line in open(source):
+            r=json.loads(line);w=r['wire']
+            snapshots.append(dict(boot=r['boot'],us=r['rx_us'],pwm_actual=r['pwm_actual'],
+                pwm_commanded=r['pwm_commanded'],ctx_flags=r['ctx_flags'],readiness=r['readiness'],
+                completed_pulses=w['completed_pulses'],source_us=w['captured_us']))
+        state=pd.DataFrame(snapshots).drop_duplicates(['boot','us'])
+        q=pd.read_csv(quality,dtype={'irboot':str}).merge(state,on=['boot','us'],validate='one_to_one')
+        q.to_csv(ROOT/'sources/movement_snapshots.csv.gz',index=False,compression={'method':'gzip','mtime':0})
+    else:
+        # Portable replay from the fully preserved source-state/quality table.
+        q=pd.read_csv(ROOT/'sources/movement_snapshots.csv.gz',dtype={'irboot':str})
     pairs=[];span_rows=[];coverage=[];source_manifest=[]
     for boot,z in q.groupby('boot'):
         z=z.sort_values('us').reset_index(drop=True)
@@ -118,12 +122,13 @@ def main():
     cov=pd.DataFrame(coverage);cov.to_csv(ROOT/'results/eligibility_intervals.csv',index=False)
     totals=cov.groupby(['partition','status']).agg(intervals=('duration_s','size'),seconds=('duration_s','sum')).reset_index()
     totals.to_csv(ROOT/'results/eligibility_summary.csv',index=False)
-    for p in [source,quality,archive/'hall-ground-20261015/derived/stop_context.csv']:
-        source_manifest.append(dict(path=str(p),sha256=sha(p)))
-    (ROOT/'sources/movement_manifest.json').write_text(json.dumps(dict(inputs=source_manifest,
-        policy='Clean/nonheld tracking runs bracketed by actual completed-pulse advances. Interpulse continuity explicitly distinguished; trim before first/after last advance. No stale, held or optical-quality gap bridged. No PWM-only inference.',
-        confirmed_stationary_intervals=0,
-        confirmation_limitation='No independent source-clock-aligned physical stationary confirmation supplied yet. Stop-supported and stale/no-pulse intervals are conservatively uncertain, excluded.'),indent=2)+'\n')
+    if args.archive:
+        for p in [source,quality,archive/'hall-ground-20261015/derived/stop_context.csv']:
+            source_manifest.append(dict(path=str(p),sha256=sha(p)))
+        (ROOT/'sources/movement_manifest.json').write_text(json.dumps(dict(inputs=source_manifest,
+            policy='Clean/nonheld tracking runs bracketed by actual completed-pulse advances. Interpulse continuity explicitly distinguished; trim before first/after last advance. No stale, held or optical-quality gap bridged. No PWM-only inference.',
+            confirmed_stationary_intervals=0,
+            confirmation_limitation='No independent source-clock-aligned physical stationary confirmation supplied yet. Stop-supported and stale/no-pulse intervals are conservatively uncertain, excluded.'),indent=2)+'\n')
     print(totals.to_string(index=False))
     print('Eligible spans:',len(spans),'longest seconds:',spans.duration_s.max())
     seeds=pd.read_csv(PREVIOUS/'data/annotation_seeds.csv');out=[]

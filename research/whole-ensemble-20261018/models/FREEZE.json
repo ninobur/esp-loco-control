@@ -1,0 +1,9 @@
+{
+  "models/A.json": "bf4facb00dc9dc15a9769027a075399afeac56c6ecc44e90ade4780f41d6873f",
+  "models/B.json": "ce57baec6755244af6eaa16e71425a7cd7ed3752233b2060c6f43f5702e891c6",
+  "functional.py": "1828ba1e55155cc0d595bd9bbc5ce2ad5d86fcb753490b216e13e43488704e54",
+  "experiment.py": "49a323ace6b5533c59ee374946d12f8c8b7004dcb3fe641cb120c0f2d8d41e9f",
+  "data/eligible_spans.csv": "d2d6a5cce4fb3894eefc735d5efe824f73856f8a3c7795a904c42bfd0bbf3e5c",
+  "sources/morphology_adjudication.csv": "27979f6fe3e4db02cd2a9b45b14ae3bf9f7f6209fafdae5c2e992f9b24958c4f",
+  "sources/MORPHOLOGY_REVIEW.md": "f96fd2f7df29c695a711e0f74eff24055cf182c3971855e514804f05802ee632"
+}

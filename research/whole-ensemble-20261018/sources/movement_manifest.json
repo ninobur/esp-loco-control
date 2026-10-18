@@ -1,0 +1,19 @@
+{
+  "inputs": [
+    {
+      "path": "/Users/davidbrown/NGR/NGR-Files/navi-ewo-dart-experiment-1/field-records/20261015_IR_WAVE_1_ACCURACY/derived/native_ir.jsonl",
+      "sha256": "6bd0b95705465ac10472aa76957dab2ed8b142b94e75f1ad640abb622fa19f94"
+    },
+    {
+      "path": "/Users/davidbrown/NGR/NGR-Files/navi-ewo-dart-experiment-1/field-records/20261016_HALL_GROUND_PHASE2/derived/ir_quality_source.csv",
+      "sha256": "ab7f3b0eff3437cb8981a9cae158684bd3498239c752455bb8507f12e77d03a4"
+    },
+    {
+      "path": "/Users/davidbrown/NGR/NGR-Files/hall-ground-20261015/derived/stop_context.csv",
+      "sha256": "585a44227b61b8ccbbb0bb23b6880fd9503daa405b5c2e5281cb0a20bd6a16a0"
+    }
+  ],
+  "policy": "Clean/nonheld tracking runs bracketed by actual completed-pulse advances. Interpulse continuity explicitly distinguished; trim before first/after last advance. No stale, held or optical-quality gap bridged. No PWM-only inference.",
+  "confirmed_stationary_intervals": 0,
+  "confirmation_limitation": "No independent source-clock-aligned physical stationary confirmation supplied yet. Stop-supported and stale/no-pulse intervals are conservatively uncertain, excluded."
+}
