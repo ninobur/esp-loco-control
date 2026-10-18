@@ -1,0 +1,6 @@
+invalid_optics_pwm0_hold=1 ir_applicable=0 position_reliable=1 console={"state":"NORMAL","mm":108,"target":109,"dir":1,"session_dir":"CW","position_reliable":1,"ir_distance_state":"RVM_IR_UNAVAILABLE","reference_ready":1,"boot_reference":"PROVISIONAL_OR_SPATIAL","authority":"NAVI_EWO"}
+replayed_pre_fault_high_water_packet_accepted=1 epoch=3
+ccw_mm120_arches_missing_history=1 timing_ready=1 table_direction=1
+cw_mm14_timed_pwm=0 section=3 execution=0 release_after_10s=0 duration_us=24879419
+navigation_stop_requests_zero_in_manual=1
+rvm_sized_console_row_truncated=1 retained_bytes=255

@@ -1,0 +1,207 @@
+{
+  "candidate": "d18fe67e52deda91720be4384cd77c8f53c62cf0",
+  "host": "macOS-26.6.2-arm64-arm-64bit",
+  "compiler": "Apple clang version 21.0.0 (clang-2100.1.1.101)\nTarget: arm64-apple-darwin25.6.0\nThread model: posix\nInstalledDir: /Library/Developer/CommandLineTools/usr/bin\n",
+  "files": {
+    "firmware/test-programs/NAVI_RVM/IrInstrument.h": {
+      "sha256": "6384d7150282b94a173d873f053d0cd39f50210ebe52075a7782ff7cfb706fad",
+      "lines": 74
+    },
+    "firmware/test-programs/NAVI_RVM/IrMovementContract.h": {
+      "sha256": "d700f3916482d41900157e6277bf76ebdbf6432d9397917f0bf8a89d7493cfe2",
+      "lines": 95
+    },
+    "firmware/test-programs/NAVI_RVM/IrMovementDetector.h": {
+      "sha256": "adc70c64504adbf46dda5c8a5ca9bb53511fd799f4f0aaa8ae57d30cacb37193",
+      "lines": 110
+    },
+    "firmware/test-programs/NAVI_RVM/IrMovementWire.h": {
+      "sha256": "8897f1397952c931865ab97d5eb4d27c1650e3d856c8700c598d68c94331d4a1",
+      "lines": 40
+    },
+    "firmware/test-programs/NAVI_RVM/LL_LocoConfig_9950011.h": {
+      "sha256": "912b41c41f9c5871548a84acdbc8af90f1cea09f20752960774a9d81182a50f8",
+      "lines": 264
+    },
+    "firmware/test-programs/NAVI_RVM/LL_LocoConfig_9950012.h": {
+      "sha256": "7a9e5b1088271099eea664b48fc688c94420ad144d9352927e0c36f32de80f06",
+      "lines": 183
+    },
+    "firmware/test-programs/NAVI_RVM/LocoConfig.h": {
+      "sha256": "13f3e07dbe936905ff53ab33de8dca11bb0b1322bebc1e8feb968a3eaa001118",
+      "lines": 7
+    },
+    "firmware/test-programs/NAVI_RVM/NAVI_RVM.ino": {
+      "sha256": "8693c410169363670e64755b6f8e95a433e5890f048e3e926beffc79b831fae3",
+      "lines": 1527
+    },
+    "firmware/test-programs/NAVI_RVM/NaviCompatibility.h": {
+      "sha256": "57cca89e75be7efadb5c0062a2ad5e2bbfa24acaa0d1e2ed174a475d7b3a09a3",
+      "lines": 43
+    },
+    "firmware/test-programs/NAVI_RVM/NaviCore.h": {
+      "sha256": "71191f6684fe3907d4cfeb1625f2633e8f83b90f40f9e382253339fca3b7791d",
+      "lines": 12
+    },
+    "firmware/test-programs/NAVI_RVM/NaviDartEvidence.h": {
+      "sha256": "a9f758dc03f966eda9adac97f1add574ddcdb9a268225aee72846fc5bb19fbf6",
+      "lines": 64
+    },
+    "firmware/test-programs/NAVI_RVM/NaviDartOperations.h": {
+      "sha256": "319787c3b892bbbba130c5bbd9f94448e32463f6021935b23bdb9b156d750ad6",
+      "lines": 91
+    },
+    "firmware/test-programs/NAVI_RVM/NaviDartTelemetry.h": {
+      "sha256": "84fd4831d39956c3f65a13bc61b52f7a2e82397d511a47ba8c277346269040e3",
+      "lines": 85
+    },
+    "firmware/test-programs/NAVI_RVM/NaviEstop.h": {
+      "sha256": "67143b776cc158aaabcebfe903700476e60d7626432e2a241c4f3ca15834b976",
+      "lines": 34
+    },
+    "firmware/test-programs/NAVI_RVM/NaviEvidence.h": {
+      "sha256": "76bf8f908857b45dadd6d9d914491cfa776176b468e7d7fefbb36f161b61faba",
+      "lines": 40
+    },
+    "firmware/test-programs/NAVI_RVM/NaviIntegratedCore.h": {
+      "sha256": "3afd9401547b9a46e8728ef6a8cb93a79316a7db5a401e6cd3b73cf9853c334c",
+      "lines": 226
+    },
+    "firmware/test-programs/NAVI_RVM/NaviIrCredibility.h": {
+      "sha256": "5ec59abe2eedfd9c7b403537a131084ff2bc9d33ef65fce18d264147ce0d85ff",
+      "lines": 78
+    },
+    "firmware/test-programs/NAVI_RVM/NaviMapAdapter.h": {
+      "sha256": "87d49a011384b0879cbc4d7d6c7e895a17e40ce19244a3f2ab37404d26a02251",
+      "lines": 26
+    },
+    "firmware/test-programs/NAVI_RVM/NaviPulseObservation.h": {
+      "sha256": "53ec234192932a51bdaa27ddfd2efb7add9adf178e4a70b414cd4869811a9810",
+      "lines": 183
+    },
+    "firmware/test-programs/NAVI_RVM/NaviPulseTelemetry.h": {
+      "sha256": "2d889320127d5e87cf4d7b702a0dd1e42c610de5c2347d44d39c7c7d2a3efbed",
+      "lines": 39
+    },
+    "firmware/test-programs/NAVI_RVM/NaviResourceDiagnostics.h": {
+      "sha256": "d581f43b0e1f696d4dea7b2c8b78cd70b3d83057e18d5a7bc8cf27507d716f1a",
+      "lines": 116
+    },
+    "firmware/test-programs/NAVI_RVM/NaviRunClock.h": {
+      "sha256": "d1a14541b1ac977aa06b5f00142e49325866eeafffb68401814b87393f85c32b",
+      "lines": 61
+    },
+    "firmware/test-programs/NAVI_RVM/NaviStartupLap.h": {
+      "sha256": "78e21a15a91ffec0b135486925aede485b0d7eb41ce8089c2cc3ab8b00db131f",
+      "lines": 218
+    },
+    "firmware/test-programs/NAVI_RVM/NaviStations.h": {
+      "sha256": "290d13e8423f7ef314a4d789a79e40b4c285f7ffa27867f81d5aa332cbf53223",
+      "lines": 46
+    },
+    "firmware/test-programs/NAVI_RVM/NaviStopOverlay.h": {
+      "sha256": "cf1a11fa5ebfef72992ea6cfa6257105207e8b8bce7730c06e3fc98491c32bd1",
+      "lines": 217
+    },
+    "firmware/test-programs/NAVI_RVM/NaviSyncRecorder.h": {
+      "sha256": "51f9100c94475c3ba95d2920d0773693cf1e49ebf0a0950369e88ff15d832b29",
+      "lines": 589
+    },
+    "firmware/test-programs/NAVI_RVM/NaviTileTiming.h": {
+      "sha256": "d9b43506a5ed3ea08dee62c4496414937b58b4a31f2d21f030ab02c645262ad5",
+      "lines": 87
+    },
+    "firmware/test-programs/NAVI_RVM/NaviWarnings.h": {
+      "sha256": "deb5d0e50f7f14bc8d0bfaef03c121ecd4f76ac8237f684df8a23a9012250339",
+      "lines": 19
+    },
+    "firmware/test-programs/NAVI_RVM/NaviWordStorage.h": {
+      "sha256": "5ed3661172abc2ea3bcd8ab238a8316525bf32beae307df513a9328b182a33da",
+      "lines": 62
+    },
+    "firmware/test-programs/NAVI_RVM/Ops.h": {
+      "sha256": "cfefaea7d9d9406d2c7e85ddfb86d5a637ea7fb4c24cc731e22bc67e60e124de",
+      "lines": 197
+    },
+    "firmware/test-programs/NAVI_RVM/PulseEventEvidence.h": {
+      "sha256": "83ca78d810e710acabc80953ae2ffac77f1d4c214586d877ed989922f31e37e7",
+      "lines": 44
+    },
+    "firmware/test-programs/NAVI_RVM/PulseTransportStatus.h": {
+      "sha256": "d779dfce063b2db605eab44b6cdd694dc3484c09ae1b7d00a58e9523c2e85ad5",
+      "lines": 19
+    },
+    "firmware/test-programs/NAVI_RVM/README.md": {
+      "sha256": "6a40d80005b6d29a420fc070adfb3f8923dc423cf34ae75eca710c5bf2cd8e7c",
+      "lines": 32
+    },
+    "firmware/test-programs/NAVI_RVM/RouteMap.h": {
+      "sha256": "550bf844623b21e614c4be4dcfbb9f560064ce7d23cc0aea27407833173a61ae",
+      "lines": 201
+    },
+    "firmware/test-programs/NAVI_RVM/RvmCalibration.h": {
+      "sha256": "6a972862fa5202dbc57dd5672436169d7e473f3b878b94b65f4c8ce2ec204c31",
+      "lines": 7
+    },
+    "firmware/test-programs/NAVI_RVM/RvmRecognizer.h": {
+      "sha256": "040630bcc02e526a8f4b4fea501bc5defb8b9871ac4156660b0b814b842b5cf3",
+      "lines": 194
+    },
+    "firmware/test-programs/NAVI_RVM/RvmReference.h": {
+      "sha256": "09ed9d887aaec3422934394354396932c851d0569e3e630fe0cde4ec111c52cd",
+      "lines": 22272
+    },
+    "firmware/test-programs/NAVI_RVM/RvmTypes.h": {
+      "sha256": "1310b90b9ad4b9836b5a38013a31513fdd239f1fd5de3d7b53e8492c7f6ebfdc",
+      "lines": 22
+    },
+    "firmware/test-programs/NAVI_RVM/credentials.example.h": {
+      "sha256": "ef73f4c6063d481fd17bce6b94cee27981336da1f96b877b60c2f6854a740c52",
+      "lines": 7
+    }
+  },
+  "results": {
+    "deterministic": {
+      "exit": 0
+    },
+    "calibration_cw": {
+      "exit": 0,
+      "all_decision_fields_match_candidate_evidence": true,
+      "runtime": "blocks=1210 tokens=21 last_mm=145 unreachable=0 pattern_stop=0 stall=0 recognizer_bytes=12592 host_mean_us=3.36843 host_max_us=39.75",
+      "fixture_sha256": "15f53114f1ce66d1078a2cf7d80b0135128d210a5b6cf9438a98292f0b166923"
+    },
+    "evaluation_ccw": {
+      "exit": 0,
+      "all_decision_fields_match_candidate_evidence": true,
+      "runtime": "blocks=1495 tokens=12 last_mm=109 unreachable=0 pattern_stop=0 stall=0 recognizer_bytes=12592 host_mean_us=4.18664 host_max_us=9.125",
+      "fixture_sha256": "bdad42c9b6d53b1bcbf05d9f30b43ba928896bc80128e656539eeebe604a7f22"
+    },
+    "evaluation_wrap_cw": {
+      "exit": 0,
+      "all_decision_fields_match_candidate_evidence": true,
+      "runtime": "blocks=1400 tokens=17 last_mm=3 unreachable=0 pattern_stop=0 stall=0 recognizer_bytes=12592 host_mean_us=3.62675 host_max_us=7.333",
+      "fixture_sha256": "19260699d112b2eef98cc26b92f22995c11ef1d200af9baaaf38e88cf2ce3f93"
+    },
+    "grillers_stall": {
+      "exit": 0,
+      "all_decision_fields_match_candidate_evidence": true,
+      "runtime": "blocks=350 tokens=0 last_mm=63 unreachable=0 pattern_stop=0 stall=0 recognizer_bytes=12592 host_mean_us=2.66907 host_max_us=15.584",
+      "fixture_sha256": "da0c585a2c39eaae32ec46f4c2d2740ec591dda82be646a19962315c93a2d3e8"
+    },
+    "heldout_cw": {
+      "exit": 0,
+      "all_decision_fields_match_candidate_evidence": true,
+      "runtime": "blocks=1550 tokens=10 last_mm=156 unreachable=0 pattern_stop=0 stall=0 recognizer_bytes=12592 host_mean_us=3.68314 host_max_us=6.167",
+      "fixture_sha256": "a21811fa0c6de50b4688b1ff83ba9a5c471237ddbd8aa0c373c957f536e7cbb3"
+    },
+    "multilobe_cw": {
+      "exit": 0,
+      "all_decision_fields_match_candidate_evidence": true,
+      "runtime": "blocks=950 tokens=7 last_mm=163 unreachable=0 pattern_stop=0 stall=0 recognizer_bytes=12592 host_mean_us=2.91454 host_max_us=5.75",
+      "fixture_sha256": "fe977fb9509f411d43e76b26f4fb8c98804f3d1534791b3f2d6399b9838dcec3"
+    },
+    "authority-probes": {
+      "exit": 0
+    }
+  }
+}

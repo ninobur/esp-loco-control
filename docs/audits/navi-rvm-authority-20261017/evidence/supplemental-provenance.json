@@ -1,0 +1,26 @@
+{
+  "prior-0120-pwm-zero-movement-requires-operator-position-verification-and-declaration.md": {
+    "source": "/Users/davidbrown/NGR/NGR-Files/navi-ewo-dart-experiment-1/docs/decisions/0120-pwm-zero-movement-requires-operator-position-verification-and-declaration.md",
+    "sha256": "d6ac9c2d8df51552fcf244f3d8eb37215791e194d38bca4691322169299b25d5",
+    "tracked_at": "1529df572d3c416264e47f76068cf74c85272fbc",
+    "role": "Historical authority evidence, not a new governing document or candidate file"
+  },
+  "prior-0121-current-position-direction-and-overlay-determine-navi-operating-authority.md": {
+    "source": "/Users/davidbrown/NGR/NGR-Files/navi-ewo-dart-experiment-1/docs/decisions/0121-current-position-direction-and-overlay-determine-navi-operating-authority.md",
+    "sha256": "fa6642115cdea9766deefcbcbdfab72257a8d7ca02f752b43fff122c03143f79",
+    "tracked_at": "1529df572d3c416264e47f76068cf74c85272fbc",
+    "role": "Historical authority evidence, not a new governing document or candidate file"
+  },
+  "prior-0122-type5-pitch-is-configuration-and-calibration-metadata-has-no-runtime-authority.md": {
+    "source": "/Users/davidbrown/NGR/NGR-Files/navi-ewo-dart-experiment-1/docs/decisions/0122-type5-pitch-is-configuration-and-calibration-metadata-has-no-runtime-authority.md",
+    "sha256": "52df665e46fa35cee147243c60892f6c0b683f9f9bec462609da3fa6c97bd15e",
+    "tracked_at": "1529df572d3c416264e47f76068cf74c85272fbc",
+    "role": "Historical authority evidence, not a new governing document or candidate file"
+  },
+  "prior-ASSIGNMENT.txt": {
+    "source": "/Users/davidbrown/NGR/NGR-Files/navi-ewo-dart-experiment-1/ewo-0-6-validation/ASSIGNMENT.txt",
+    "sha256": "b467d3a9ed531cdfb63806df523f79250374f5a5c4c83e67b161bc632429771c",
+    "tracked_at": null,
+    "role": "Historical authority evidence, not a new governing document or candidate file"
+  }
+}

@@ -1,0 +1,1 @@
+blocks=1210 tokens=21 last_mm=145 unreachable=0 pattern_stop=0 stall=0 recognizer_bytes=12592 host_mean_us=3.36843 host_max_us=39.75

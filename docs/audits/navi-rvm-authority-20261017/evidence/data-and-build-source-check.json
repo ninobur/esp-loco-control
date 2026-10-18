@@ -1,0 +1,104 @@
+{
+  "reference_arrays": {
+    "cwCells": {
+      "type": "rvm::Cell",
+      "rows": 10453,
+      "first_line": 6,
+      "last_line": 10460
+    },
+    "cwPeaks": {
+      "type": "uint16_t",
+      "rows": 171,
+      "first_line": 10461,
+      "last_line": 10633
+    },
+    "cwSeams": {
+      "type": "uint16_t",
+      "rows": 171,
+      "first_line": 10634,
+      "last_line": 10806
+    },
+    "cwBaselines": {
+      "type": "int16_t",
+      "rows": 171,
+      "first_line": 10807,
+      "last_line": 10979
+    },
+    "cwSpeeds": {
+      "type": "uint16_t",
+      "rows": 156,
+      "first_line": 10980,
+      "last_line": 11137
+    },
+    "ccwCells": {
+      "type": "rvm::Cell",
+      "rows": 10453,
+      "first_line": 11139,
+      "last_line": 21593
+    },
+    "ccwPeaks": {
+      "type": "uint16_t",
+      "rows": 171,
+      "first_line": 21594,
+      "last_line": 21766
+    },
+    "ccwSeams": {
+      "type": "uint16_t",
+      "rows": 171,
+      "first_line": 21767,
+      "last_line": 21939
+    },
+    "ccwBaselines": {
+      "type": "int16_t",
+      "rows": 171,
+      "first_line": 21940,
+      "last_line": 22112
+    },
+    "ccwSpeeds": {
+      "type": "uint16_t",
+      "rows": 156,
+      "first_line": 22113,
+      "last_line": 22270
+    }
+  },
+  "candidate_matches_reported_compile_sources": {
+    "IrInstrument.h": true,
+    "IrMovementContract.h": true,
+    "IrMovementDetector.h": true,
+    "IrMovementWire.h": true,
+    "LL_LocoConfig_9950011.h": true,
+    "LL_LocoConfig_9950012.h": true,
+    "LocoConfig.h": true,
+    "NAVI_RVM.ino": true,
+    "NaviCompatibility.h": true,
+    "NaviCore.h": true,
+    "NaviDartEvidence.h": true,
+    "NaviDartOperations.h": true,
+    "NaviDartTelemetry.h": true,
+    "NaviEstop.h": true,
+    "NaviEvidence.h": true,
+    "NaviIntegratedCore.h": true,
+    "NaviIrCredibility.h": true,
+    "NaviMapAdapter.h": true,
+    "NaviPulseObservation.h": true,
+    "NaviPulseTelemetry.h": true,
+    "NaviResourceDiagnostics.h": true,
+    "NaviRunClock.h": true,
+    "NaviStartupLap.h": true,
+    "NaviStations.h": true,
+    "NaviStopOverlay.h": true,
+    "NaviSyncRecorder.h": true,
+    "NaviTileTiming.h": true,
+    "NaviWarnings.h": true,
+    "NaviWordStorage.h": true,
+    "Ops.h": true,
+    "PulseEventEvidence.h": true,
+    "PulseTransportStatus.h": true,
+    "RouteMap.h": true,
+    "RvmCalibration.h": true,
+    "RvmRecognizer.h": true,
+    "RvmReference.h": true,
+    "RvmTypes.h": true,
+    "credentials.example.h": true
+  }
+}

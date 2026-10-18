@@ -1,0 +1,34 @@
+{
+  "candidate": "d18fe67e52deda91720be4384cd77c8f53c62cf0",
+  "pinned_source_links_checked": 553,
+  "local_audit_links_checked": 32,
+  "source_files_unchanged": 39,
+  "historical_evidence_copies_unchanged": 4,
+  "audit_documents": {
+    "BEHAVIORAL_DEPENDENCY_MAP.md": {
+      "lines": 140,
+      "words": 1671
+    },
+    "BEHAVIORAL_AUTHORITY_LEDGER.md": {
+      "lines": 118,
+      "words": 4446
+    },
+    "REPORT.md": {
+      "lines": 193,
+      "words": 4345
+    },
+    "EVIDENCE_GUIDE.md": {
+      "lines": 100,
+      "words": 1466
+    },
+    "ARCHITECTURE_RECONCILIATION.md": {
+      "lines": 62,
+      "words": 2472
+    },
+    "CORRECTION_LEDGER.md": {
+      "lines": 144,
+      "words": 2631
+    }
+  },
+  "errors": []
+}

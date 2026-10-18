@@ -1,0 +1,351 @@
+CODEX — NAVI EWO_0_6: Complete Working Firmware for Field Testing
+
+Date: October 15, 2026
+Repository: ninobur/esp-loco-control
+Locomotive: Otto — 9950011
+Foundation: NAVI_EWO_0_5, commit 5c80fdd647ebf84962248309816325543577e611
+Resource patch: NAVI_EWO_0_5_RESOURCE_R1
+New build: NAVI_EWO_0_6
+
+Assignment: Implement, compile, and validate a complete EWO_0_6 field-test system, incorporating our settled operating decisions and the approved experimental IR detector change.
+
+The immediate objective is to return Otto to the railroad, operate a full consist through complete circuits, and collect reliable evidence.
+
+We have completed extensive architectural research. Do not initiate another broad design investigation.
+
+Build the working system. Let field testing answer the remaining questions.
+
+⸻
+
+1. Governing objective
+
+NAVI’s primary responsibility is reliable geographic navigation.
+
+The DART model identifies one qualifying Hall observation at each expected geographic target.
+
+The IR system measures movement. When IR measurements are geographically credible, DART uses distance to compare candidate magnetic observations.
+
+When IR is unavailable or unreliable, DART uses the previous lap’s recorded arrival times, when available.
+
+The governing sequence remains:
+
+Observe → Qualify → Compare → Select → Advance.
+
+Preserve the established principles:
+
+* One selected observation per geographic target.
+* No manufactured Hall events.
+* No automatic geographic advancement without a qualifying Hall observation.
+* No historical ±15% distance gate.
+* No 650 ms fallback rule.
+* No morphology-based exclusion of otherwise qualifying Hall observations.
+* No arbitrary global relocation or search of all 171 magnets.
+
+Do not redesign geographic DART.
+
+2. Build EWO_0_6 from the tested resource patch
+
+Use NAVI_EWO_0_5_RESOURCE_R1 as the immediate source foundation.
+
+Preserve the original EWO_0_5 and RESOURCE_R1 directories unchanged.
+
+Incorporate the completed resource corrections:
+
+1. Fixed-size Hall spatial-reference scratch buffer.
+2. Nonblocking, bounded console diagnostics.
+3. Allocation-free resource instrumentation.
+4. Explicit handling of critical startup allocation/task failures.
+
+Preserve the existing Hall acquisition, 70×2 detection, geographic comparison, motor control, manual STOP/GO, E-stop, electrical protections, and diagnostic recording.
+
+Verify that the resource changes do not alter navigation decisions.
+
+Do not add new resource optimizations without demonstrated need.
+
+3. Restore the four conventional station stops
+
+EWO_0_5 retained the MM045 station-stop demonstration.
+
+EWO_0_6 must restore normal operation at all four established NGR stations:
+
+* PATIO
+* BAMBOO
+* ARCHES
+* GRILLERS
+
+Use the existing geographic station designations from the repository’s established map and station configuration.
+
+Do not invent new station MM assignments.
+
+Preserve the twelve-tile rainbow-carpet architecture, preset PWM values, braking ramps, dwell, departure behavior, and manual control precedence.
+
+The existing magnetic-field-opening versus physical-disc-center convention remains unchanged.
+
+Verify all four station approaches in both geographic directions where supported.
+
+IR-unavailable tile control
+
+Preserve the previously agreed fallback:
+
+* If IR becomes unavailable mid-tile, maintain the current commanded PWM.
+* At the next accepted 70×2 Hall opening, establish the new tile.
+* Apply that tile’s designated entry PWM.
+* Begin a time-based ramp toward the following tile’s entry PWM.
+* Resynchronize at each subsequent accepted Hall opening.
+* If the existing final stopping ramp has begun, allow it to complete.
+
+Use applicable previous-lap tile times when available.
+
+Do not invent fine geographic position from missing IR measurements.
+
+If a required fallback timing reference is unavailable, preserve safe operating behavior and report the limitation.
+
+4. Historical timing — collect new evidence first
+
+Do not construct a historical timing map from older recordings for this build.
+
+The operator has explicitly deferred that work.
+
+EWO_0_3 recordings may contain useful historical arrival times, but we will first attempt to obtain fresh EWO_0_6 field data.
+
+Preserve the existing previous-lap timing mechanism.
+
+For every successfully identified interval, record:
+
+* Starting and ending MM.
+* Direction.
+* Hall opening timestamps.
+* Elapsed movement time.
+* Manual STOP/GO interruptions.
+* Station approach or departure context.
+* Whether the interval was geographically resolved.
+* Whether the timing is suitable for future use.
+
+A successful completed lap should provide the timing reference for the next lap.
+
+Use the immediately preceding successful lap, without averaging multiple laps.
+
+For station approaches, preserve the actual timing context, including throttle application after dwell.
+
+Initial operation without history
+
+The first circuit may have no timing fallback available.
+
+If IR authority is lost and no applicable previous-lap timing exists, NAVI must stop and notify the operator.
+
+Do not substitute a fixed timer, PWM-derived distance, or fabricated timing reference.
+
+Our immediate objective is to obtain complete circuits and establish real timing history.
+
+5. IR credibility — preserve the approved rules
+
+Retain the provisional criteria:
+
+Absolute interval discrepancy	Interpretation
+≤10 mm	Consistent
+>10 mm but <5 IR pulses	Inconsistent but possible
+≥5 IR pulses	Withdraw IR geographic authority
+
+At the installed calibration, five pulses correspond to 48.260 mm.
+
+The 10 mm criterion is diagnostic, not a geographic acceptance gate.
+
+The five-pulse threshold withdraws IR authority; it does not invalidate a qualifying Hall observation.
+
+Continue recording IR measurements after authority withdrawal.
+
+Operator redeclaration and reassessment
+
+Implement the approved recovery behavior:
+
+1. A new operator position declaration establishes a fresh geographic context.
+2. It permits a new IR credibility assessment.
+3. It does not automatically certify IR accuracy.
+4. Use a new, appropriately identified Hall opening as the measurement reference.
+5. Evaluate the subsequent Hall-to-Hall interval.
+6. Restore IR geographic authority only if that interval is possible under the provisional five-pulse rule.
+
+If IR fails again following this operator-initiated reassessment, stop and notify the operator.
+
+Do not enter an unlimited automatic withdrawal/recovery cycle.
+
+Record every transition and its supporting evidence.
+
+6. Dashboard and console notification
+
+The October 14 run demonstrated that IR authority could be withdrawn without an obvious operator-facing warning.
+
+Correct this.
+
+When IR geographic authority is withdrawn, display:
+
+IR Lost. Hall navigation only.
+
+Keep the message visible while IR authority remains withdrawn.
+
+When authority is restored, clear the warning.
+
+If navigation stops because no previous-lap timing is available, report the navigation stop separately.
+
+Detailed discrepancy values, pulse counts, and credibility transitions belong in the diagnostic records, not in the primary dashboard warning.
+
+Preserve the existing dashboard message contracts where possible.
+
+Verify that the warning actually appears in the dashboard, not merely in an MQTT diagnostic topic.
+
+7. PWM-zero IR behavior
+
+The operator has clarified that Otto and Toby stop when motor power is removed. Do not introduce speculative coasting behavior into this design.
+
+When applied PWM equals zero, IR observations must not contribute to authorized geographic distance.
+
+Requirements:
+
+* Continue raw optical sampling and diagnostic recording.
+* Preserve the underlying IR measurement stream.
+* Suppress the geographic use of stationary optical fluctuations.
+* Resume geographic use only under the appropriate movement and reference conditions.
+* Preserve existing externally imposed movement detection as a separate protection mechanism.
+
+Do not reset cumulative IR counts in a way that corrupts the measurement frame.
+
+The IR transmitter may not know the locomotive’s applied PWM, so enforce geographic authority in NAVI unless the existing architecture provides a better, verified mechanism.
+
+Do not confuse suppression of geographic distance with suppression of diagnostic evidence.
+
+8. Approved IR transmitter experiment — 5/12 completion threshold
+
+Prepare a separately named and identifiable experimental IR transmitter firmware.
+
+The existing production detector uses:
+
+* Opening threshold: 2/3 of the adaptive signal span.
+* Completion threshold: 1/3 of the adaptive signal span.
+
+For the experimental transmitter:
+
+* Preserve the opening threshold at 2/3.
+* Change the completion threshold to 5/12.
+* Preserve all other detector behavior unless a change is strictly required for the experiment.
+
+Do not change distance calibration, wheel pitch, pulses per revolution, or geographic map.
+
+The 5/12 modification permits shallower optical troughs to complete a cycle.
+
+Earlier replay recovered the four disputed October 14 troughs, but did not establish that the change improves physical counting accuracy across operating conditions.
+
+This is an authorized field experiment, not a validated detector replacement.
+
+Experimental controls
+
+Record the detector version and completion fraction at startup.
+
+Preserve the original transmitter firmware for rollback.
+
+Where practical, retain the ability to compare the unchanged 1/3 detector against the 5/12 detector on identical recorded ADC input.
+
+Do not manufacture pulses to make the measured distance agree with the map.
+
+Do not deploy the experimental whole-cycle recognizer.
+
+9. Continue Schoolboy’s Ear development separately
+
+The longer-term objective remains reliable recognition of complete optical cycles from the physical waveform.
+
+The October 14 investigations established:
+
+* Strong waveform repetition near 80–91 ms.
+* Recognizable optical excursions rejected by the current detector.
+* Useful causal waveform development within approximately 14–17 ms.
+* Limitations in the first morphology and timing-based recognizers.
+
+Continue collecting raw optical ADC evidence during EWO_0_6 operation.
+
+The 5/12 experiment may improve the existing detector, but it is not the final answer to waveform recognition.
+
+Do not delay EWO_0_6 waiting for a complete new optical-recognition architecture.
+
+10. Restore and verify recording
+
+The October 14 field test generated native Hall data, but the Pi was not receiving the native stream.
+
+Before moving operation, verify that the existing recording infrastructure is actually preserving:
+
+* Native Hall ADC samples.
+* IR optical ADC recordings.
+* Type-5 and Type-6 IR evidence.
+* Geographic DART decisions.
+* IR credibility transitions.
+* Previous-lap timing observations.
+* STOP OVERLAY actions.
+* Resource diagnostics.
+
+Verify receipt and storage on the Pi, not merely successful transmission from the locomotive.
+
+Preserve source timestamps, boot IDs, sample serials, and measurement provenance.
+
+Do not silently discard evidence because of diagnostic overload.
+
+Avoid changing recording formats unless necessary for compatibility.
+
+11. Verification
+
+Run the existing active production tests and focused regression suites.
+
+At minimum, verify:
+
+1. Geographic DART decisions remain unchanged under identical evidence.
+2. All four station-stop programs operate correctly.
+3. Manual STOP/GO and direction handling remain correct.
+4. IR withdrawal occurs at five or more pulses of discrepancy.
+5. Operator redeclaration permits fresh IR assessment.
+6. A second IR failure produces the agreed intervention.
+7. Dashboard and console warnings reflect actual IR authority.
+8. PWM-zero optical observations cannot create geographic distance.
+9. Previous-lap timing records are collected and reused correctly.
+10. Missing-target detection stops rather than inventing progress.
+11. Resource instrumentation and bounded console behavior remain operational.
+12. Native Hall and optical recordings reach their respective Pi recorders.
+
+Compile the locomotive firmware and experimental IR transmitter using their established board configurations.
+
+Do not represent host tests as field validation.
+
+12. Deliverables
+
+Return:
+
+1. Complete EWO_0_6 locomotive sketch, ready for controlled field testing.
+2. Separately identified 5/12 IR transmitter sketch.
+3. Exact source baselines and modified-file inventory.
+4. Compilation and regression results.
+5. Confirmation of the four restored station designations.
+6. Implemented IR credibility and redeclaration behavior.
+7. Dashboard warning verification.
+8. Recording verification, including actual Pi receipt where accessible.
+9. Resource changes and remaining limitations.
+10. A concise field-test procedure for Otto operating a full consist.
+
+Preserve original EWO_0_5, RESOURCE_R1, and production IR transmitter sources.
+
+Do not modify the 171-magnet map, wheel calibration, or established station stopping geometry.
+
+Do not merge into an operating branch.
+
+Do not flash or operate either device without separate operator authorization.
+
+Commit and push only with separate authorization.
+
+⸻
+
+Final objective
+
+EWO_0_6 is intended to produce reliable field evidence, not to complete another theoretical navigation model.
+
+We have working geographic DART, demonstrated station stopping, a resource-reliability correction, and a specific experimental improvement to optical pulse completion.
+
+The immediate goals are to run complete circuits, collect previous-lap timing, operate all four stations, and determine whether the 5/12 detector improves IR measurement reliability.
+
+Preserve uncertainty where it exists, but do not let unresolved research questions prevent a bounded, observable experiment.
+
+Build it, test it, and return it for operator-controlled field deployment.

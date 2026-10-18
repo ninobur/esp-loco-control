@@ -1,0 +1,4 @@
+/var/folders/f_/glhkxsk51b5dfpgyh6n0v6y80000gn/T/rvm-authority-audit-dauxc1gj/probes.cpp:45:13: warning: unused function 'servicePwmZeroMovementHold' [-Wunused-function]
+   45 | static void servicePwmZeroMovementHold() {
+      |             ^~~~~~~~~~~~~~~~~~~~~~~~~~
+1 warning generated.
