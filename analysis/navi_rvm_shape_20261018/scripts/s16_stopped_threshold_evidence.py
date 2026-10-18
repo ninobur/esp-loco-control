@@ -1,10 +1,12 @@
 """Evidence only (no design input): at the recorded 5 s station stops of boot 1,
 at what applied PWM did Otto's IR odometer stop advancing (arrival) and start
-advancing again (departure)? Compared with the operator's STOPPED convention
-(applied PWM < 25). IR is used here only to describe the recording; the firmware
+advancing again (departure)? Compared with the operator's STOPPED boundary
+(applied PWM < 15, ruled 2026-10-18; first ruling was < 25). The boundary is
+taken from stopgo.STOPPED_BELOW_PWM. IR is used here only to describe the recording; the firmware
 never reads IR."""
 import numpy as np, pandas as pd, json
 from common import *
+from stopgo import STOPPED_BELOW_PWM as TH
 N = np.dtype([('serial','<u4'),('us','<u8'),('adc','<i2'),('pwm','u1'),('direction','u1')])
 a = np.memmap(HG/f'native_{BOOT1}.bin', mode='r', dtype=N)
 us = a['us'][::50].astype(np.int64); pw = a['pwm'][::50].astype(int)      # 100 Hz
@@ -22,14 +24,15 @@ for i, j in zip(ss, ee):
     k1 = min(len(odo) - 1, j + 3000); after = np.where(odo[j:k1] - odo[j] > 1.0)[0]
     dep = j + after[0] if len(after) else None
     rows.append(dict(stop_s=us[i]/1e6, pwm_at_last_motion=int(pw[arr]) if arr is not None else None,
-                     still_moving_after_pwm_below25_s=(us[arr] - us[np.where(pw[k0:j] < 25)[0][0] + k0]) / 1e6 if arr is not None and (pw[k0:j] < 25).any() else None,
+                     still_moving_after_pwm_below_th_s=max(0.0, (us[arr] - us[k0 + np.where((pw[k0:j] < TH) & (np.arange(j - k0) >= np.where(pw[k0:j] >= TH)[0].max(initial=0)))[0][0]]) / 1e6) if arr is not None and (pw[k0:j] < TH).any() else None,
                      pwm_at_first_motion=int(pw[dep]) if dep is not None else None,
-                     moving_before_pwm25=(dep is not None and pw[dep] < 25),
-                     stationary_s_with_pwm_ge25_on_departure=(us[dep] - us[j + np.where(pw[j:k1] >= 25)[0][0]]) / 1e6 if dep is not None and (pw[j:k1] >= 25).any() else None))
+                     moving_before_pwm_th=(dep is not None and pw[dep] < TH),
+                     stationary_s_with_pwm_ge_th_on_departure=max(0.0, (us[dep] - us[j + np.where(pw[j:k1] >= TH)[0][0]]) / 1e6) if dep is not None and (pw[j:k1] >= TH).any() else None))
 r = pd.DataFrame(rows); r.to_csv(ROOT/'results'/'local'/'stopped_threshold_evidence.csv', index=False)
-summ = dict(stops=len(r), pwm_at_first_motion=r.pwm_at_first_motion.describe().to_dict(),
-            stationary_s_with_pwm_ge25_on_departure=r.stationary_s_with_pwm_ge25_on_departure.describe().to_dict(),
+summ = dict(threshold=TH, stops=len(r), pwm_at_first_motion=r.pwm_at_first_motion.describe().to_dict(),
+            stationary_s_with_pwm_ge_th_on_departure=r.stationary_s_with_pwm_ge_th_on_departure.describe().to_dict(),
             pwm_at_last_motion=r.pwm_at_last_motion.describe().to_dict(),
-            still_moving_after_pwm_below25_s=r.still_moving_after_pwm_below25_s.describe().to_dict())
+            still_moving_after_pwm_below_th_s=r.still_moving_after_pwm_below_th_s.describe().to_dict(),
+            arrivals_moving_below_th=int((r.pwm_at_last_motion < TH).sum()))
 json.dump(summ, open(ROOT/'results'/'local'/'stopped_threshold_evidence.json', 'w'), indent=1, default=float)
 print(r.to_string()); print(json.dumps(summ, indent=1, default=float))

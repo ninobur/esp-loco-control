@@ -120,7 +120,7 @@ This section belongs to
 
 | Script | What it does |
 |---|---|
-| `stopgo.py` | Python reference of `RvmPause.h`: the STOPPED rule (PWM < 25), startup admission, and the map from the waveform back to block ids |
+| `stopgo.py` | Python reference of `RvmPause.h`: the STOPPED rule (PWM < 15; first ruling < 25), startup admission, and the map from the waveform back to block ids |
 | `s16_stopped_threshold_evidence.py` | Evidence only. Reads the PWM at Otto's last and first motion at the 35 station stops, using the IR odometer for description |
 | `s17_stopgo_replay.py` | Boot 1 with the pause: leave-one-pass-out, the continuous replay for `s12` (`RVM_NAV_SUFFIX=_pause`), and C++ parity |
 | `s18_stopgo_suite.py` | The required STOP/GO cases on 18 real ensembles, run in Python and the firmware headers. Includes the measured-departure, measured-arrival and zero-shift variants |

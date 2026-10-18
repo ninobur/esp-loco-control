@@ -13,6 +13,69 @@
 > **Unchanged.** No operational firmware, Pi service, MQTT or dashboard
 > configuration was changed.
 
+> **REVISION: STOPPED = applied PWM < 15.** David ruled this after the first
+> version ("PWM <15 for sure"). The candidate now implements **< 15**.
+> §0A gives the current numbers. Sections 0–4 below record the results at the
+> first boundary (< 25) and remain as history. The commanded-stop results are
+> the same at both boundaries.
+
+## 0A. Current results (STOPPED = PWM < 15)
+
+**Commanded stops are fully preserved.** Every one of the 864 idealized STOP/GO
+cases is again invariant:
+- 18 real ensembles, CW and CCW;
+- stops at every position, from 1 s to 30 min, including repeated stops;
+- correct MM sequence throughout;
+- C++ equal to Python in all 1,260 runs.
+
+**Boot 1 with the pause.**
+- Leave-one-pass-out: 1,064 of 1,081 recognized once, 0 split, 0 on baseline.
+- The misses are unchanged: the 16 after the PWM-100 stall, and MM115 at the
+  final manual reversal.
+- Parity Python = C++ holds: 1,093 recognitions, identical.
+- Navigation replay: 31/31 recorded stops behave as before (30 correct; the one
+  exception follows a capture gap), with no duplicate counting.
+
+**Otto against the PWM < 15 boundary.** Source: `stopped_threshold_evidence.*`,
+35 recorded station stops.
+
+| | At < 25 | **At < 15** |
+|---|---|---|
+| Arrivals still moving after PWM fell below the boundary | 12 / 35 | **1 / 35** (0.43 s) |
+| Stationary time after PWM reached the boundary on departure, median (range) | 1.8 s (0.1–3.8 s) | **3.3 s (0.1–5.3 s)** |
+
+Below 15 he is indeed stopped. The arrival edge is now right.
+
+**On departure, Otto now stands still even longer at PWM ≥ 15** before he moves.
+Those stationary blocks are admitted to the waveform.
+
+**Stops with Otto's measured behaviour.** Each case is a 5 s stop; the figure is
+invariant cases out of 18 per position.
+
+| Variant | Baseline | Rising | Peak | Falling |
+|---|---|---|---|---|
+| Departure: still for 3.3 s (median) at PWM ≥ 15 | 18 | 0 | 0 | 0 |
+| Departure: still for 5.3 s (max) at PWM ≥ 15 | 17 | 0 | 0 | 1 |
+| Arrival: moving 0.43 s below 15 (worst recorded case, 1 of 35 stops) | 17 | 17 | 8 | 0 |
+| Both | 17 | 0 | 0 | 0 |
+
+**What this means for the field test.**
+
+- STOP/GO with the sensor car on the baseline works.
+- A stop with the sensor car over a magnet will almost always still lose that
+  magnet. The cause is the stationary start-up interval above PWM 15. The
+  navigator then reports CONTRADICTION at the next magnet, or, if polarities
+  agree, miscounts silently.
+- Holding still at the start is a property of Otto's motor. No STOPPED
+  threshold below his breakaway PWM (27–90) can exclude it.
+
+**Build.** It compiles unchanged in size: **980,207 B flash (74 %)**,
+**121,228 B static RAM (36 %)**. The authority check and unit checks pass.
+
+**Practical rule for the first test: stop with the sensor car on baseline.**
+
+---
+
 **Candidate**
 
 - Sketch: `firmware/test-programs/NAVI_RVM_SHAPE_MANUAL/NAVI_RVM_SHAPE_MANUAL.ino`
@@ -22,7 +85,7 @@
 
 ---
 
-## 0. Answer first
+## 0. Answer first (first boundary, PWM < 25; history)
 
 **The correction is implemented exactly as ruled, and it meets the acceptance
 criterion for commanded stops.** STOPPED is defined as applied PWM < 25.

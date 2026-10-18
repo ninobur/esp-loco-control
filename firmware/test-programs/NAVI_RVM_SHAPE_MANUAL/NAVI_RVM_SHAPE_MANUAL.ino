@@ -13,7 +13,7 @@
  * general composite) reads the 20 ms Hall tracing, recognizes complete magnetic
  * ensembles against the local baseline that precedes them, and the known route
  * polarity turns each completed MM -> BL -> MM piece into progression.
- * STOP/GO: while STOPPED (applied PWM < 25) the recognition waveform is paused
+ * STOP/GO: while STOPPED (applied PWM < 15) the recognition waveform is paused
  * (RvmPause.h): the unfinished ensemble, its baseline and the held candidate
  * survive the stop and are completed after it. PWM does nothing else. A
  * complete ensemble of the wrong polarity is a CONTRADICTION: reported, the
@@ -300,7 +300,7 @@ static void rvmTask(void*) {
     const bool got = blockQ && xQueueReceive(blockQ, &b, pdMS_TO_TICKS(100)) == pdTRUE;
     applyControl();                                   // declarations take effect at a block boundary
     if (!got) { publishSnapshot(); continue; }
-    // STOP/GO: a STOPPED block (applied PWM < 25) is not appended; everything
+    // STOP/GO: a STOPPED block (applied PWM < 15) is not appended; everything
     // already in the waveform, including an unfinished ensemble, is preserved.
     if (!waveformPause.admit(b.pwm)) { ++pausedBlocks; publishSnapshot(); continue; }
     const uint64_t t0 = esp_timer_get_time();

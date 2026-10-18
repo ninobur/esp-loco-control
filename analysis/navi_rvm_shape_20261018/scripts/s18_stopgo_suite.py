@@ -8,9 +8,9 @@ the uninterrupted run of the same stretch:
   invariant = same number of recognitions, same polarity, same centres (mapped
   back to the recorded stretch, within 1 block) and the same MM sequence.
 Ideal stops: the stop is exactly the PWM<25 interval.
-Measured-departure / arrival variants (from s16 evidence): Otto stays still for
-1.8 s (median) to 3.8 s (max) after PWM reaches 25, and can still be moving when
-PWM falls below 25. These are reported separately; nothing was tuned to them.
+Measured-departure / arrival variants use s16's evidence at the current STOPPED
+boundary: how long Otto stays still after PWM reaches it (median and max), and
+the longest he kept moving after PWM fell below it. These are reported separately; nothing was tuned to them.
 Zero-shift variant: the Hall level is offset after a 30 s stop (characterization)."""
 import numpy as np, pandas as pd, json, subprocess, tempfile, pathlib
 from common import *
@@ -31,6 +31,12 @@ CPP = tmp/'blocks_replay'
 subprocess.run(['c++', '-std=c++17', '-O2', '-Wall', '-Wextra', '-Werror', f'-I{SK}', str(REPO/'tests'/'navi_rvm_shape'/'blocks_replay.cpp'), '-o', str(CPP)], check=True)
 rng = np.random.default_rng(1018)
 PRE = 250                                         # 5 s declared stationary baseline
+# Measured on Otto at the current STOPPED boundary (s16 output, same threshold as stopgo.py):
+EV = json.load(open(ROOT/'results'/'local'/'stopped_threshold_evidence.json'))
+assert EV['threshold'] == G.STOPPED_BELOW_PWM
+TAIL_MED = round(EV['stationary_s_with_pwm_ge_th_on_departure']['50%'], 2)   # still stationary at PWM >= boundary
+TAIL_MAX = round(EV['stationary_s_with_pwm_ge_th_on_departure']['max'], 2)
+ARRIVE_MAX = round(max(EV['still_moving_after_pwm_below_th_s']['max'], 0.02), 2)  # still moving below the boundary
 
 truth = X.ens[(X.ens.source == 'OPENING') & ~X.ens.censored].sort_values('s_i').reset_index(drop=True)
 
@@ -74,13 +80,13 @@ def build(a, b, stops, depart_tail=0.0, arrive=0.0, shift=None):
     cut = sorted(stops); prev = 0; offset = 0.0
     for pos, sec in cut:
         if arrive:                                                     # still rolling while PWM already < 25
-            pwm0[max(prev, pos - int(arrive * 50)):pos] = 20
+            pwm0[max(prev, pos - int(arrive * 50)):pos] = G.STOPPED_BELOW_PWM - 5
         H.append(h0[prev:pos] + offset); C.append(c0[prev:pos]); P.append(pwm0[prev:pos]); O.append(np.arange(prev, pos, dtype=float))
         n = int(sec * 50); held = h0[pos] + offset
         H.append(held + rng.normal(0, sig, n)); C.append(np.repeat(c0[pos], n)); P.append(np.zeros(n, int)); O.append(np.full(n, pos - 0.5))
         if depart_tail:                                                # stationary although PWM >= 25
             m = int(depart_tail * 50)
-            H.append(held + rng.normal(0, sig, m)); C.append(np.repeat(c0[pos], m)); P.append(np.full(m, 30)); O.append(np.full(m, pos - 0.5))
+            H.append(held + rng.normal(0, sig, m)); C.append(np.repeat(c0[pos], m)); P.append(np.full(m, G.STOPPED_BELOW_PWM + 5)); O.append(np.full(m, pos - 0.5))
         if shift is not None: offset += shift
         prev = pos
     H.append(h0[prev:] + offset); C.append(c0[prev:]); P.append(pwm0[prev:]); O.append(np.arange(prev, n0, dtype=float))
@@ -127,10 +133,10 @@ for k, a, b in targets:
         case('repeated_stop_go', 'rising+peak+falling', [(pos['rising'], sec), (pos['peak'], sec), (pos['falling'], sec)])
     case('repeated_stop_go', 'five_1s_stops', [(pos['leading_lobe'], 1), (pos['rising'], 1), (pos['peak'], 1), (pos['falling'], 1), (pos['trailing_lobe'], 1)])
     for where in ('rising', 'peak', 'falling', 'baseline'):
-        for tail in (1.8, 3.8):
+        for tail in (TAIL_MED, TAIL_MAX):
             case('measured_departure_tail', where, [(pos[where], 5)], depart_tail=tail)
-        case('measured_arrival_creep', where, [(pos[where], 5)], arrive=0.5)
-        case('measured_arrival_and_departure', where, [(pos[where], 5)], depart_tail=1.8, arrive=0.5)
+        case('measured_arrival_creep', where, [(pos[where], 5)], arrive=ARRIVE_MAX)
+        case('measured_arrival_and_departure', where, [(pos[where], 5)], depart_tail=TAIL_MED, arrive=ARRIVE_MAX)
     for where in ('peak', 'baseline'):
         for sh in (2.0, 5.0, 10.0):
             case('zero_shift_after_30s', where, [(pos[where], 30)], shift=sh)

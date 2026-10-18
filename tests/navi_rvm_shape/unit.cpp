@@ -87,9 +87,9 @@ static void pauseTests() {
   WaveformPause p;
   CHECK(!p.admit(0));                       // never declared and stopped: not appended
   p.declared();
-  CHECK(p.admit(0) && p.admit(24));         // startup: declared stationary baseline is appended
-  CHECK(p.admit(25) && !p.paused());        // first moving block ends startup
-  CHECK(!p.admit(24) && p.paused());        // STOPPED = PWM < 25: paused
+  CHECK(p.admit(0) && p.admit(14));         // startup: declared stationary baseline is appended
+  CHECK(p.admit(15) && !p.paused());        // first moving block ends startup
+  CHECK(!p.admit(14) && p.paused());        // STOPPED = PWM < 15: paused
   CHECK(!p.admit(0) && p.paused());
   CHECK(p.admit(90) && !p.paused());        // resumed
   p.declared(); CHECK(p.admit(0));          // a new declaration is a new startup

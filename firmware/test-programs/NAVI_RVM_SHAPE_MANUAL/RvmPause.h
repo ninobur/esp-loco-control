@@ -1,14 +1,14 @@
 #pragma once
 // ---------------------------------------------------------------------------
 // WaveformPause — STOP/GO continuity (operator ruling 2026-10-18).
-// STOPPED = applied PWM < 25. While STOPPED, the 20 ms block is NOT appended to
+// STOPPED = applied PWM < 15 ("PWM < 15 for sure"; the first ruling was < 25). While STOPPED, the 20 ms block is NOT appended to
 // the recognition waveform: the developing ensemble, the preceding baseline and
 // the held candidate are preserved exactly as they were, and stationary Hall
 // values neither extend a magnetic plateau nor become baseline. Raw Hall is
 // still acquired and recorded. When PWM returns to the moving range the
 // waveform continues from the preserved state.
 //
-// A block is admitted when any of its reads had PWM >= 25. Startup is the one
+// A block is admitted when any of its reads had PWM >= 15. Startup is the one
 // exception: from the operator's declaration until the first moving block, the
 // stationary tracing IS the declared starting baseline (BL0), so it is admitted.
 //
@@ -20,7 +20,7 @@
 
 namespace rvm_shape {
 
-static constexpr uint8_t STOPPED_BELOW_PWM = 25;
+static constexpr uint8_t STOPPED_BELOW_PWM = 15;
 
 class WaveformPause {
  public:

@@ -1,5 +1,6 @@
 """STOP/GO WaveformPause, Python reference of firmware RvmPause.h.
-STOPPED = the highest applied PWM among a block's reads < 25. Such a block is not
+STOPPED = the highest applied PWM among a block's reads < 15 (operator ruling
+2026-10-18; the first ruling was < 25). Such a block is not
 appended to the recognition waveform, except from a declaration until the first
 moving block (the declared stationary starting baseline). Empty blocks carry PWM 0.
 The recognizer itself (rvm_local) is unchanged: it runs on the admitted blocks,
@@ -7,7 +8,7 @@ and positions are mapped back to tracing block ids."""
 import numpy as np
 from common import *
 
-STOPPED_BELOW_PWM = 25
+STOPPED_BELOW_PWM = 15
 
 
 def block_pwm(n_blocks):
