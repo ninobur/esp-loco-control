@@ -1,0 +1,36 @@
+{
+  "preserved_commit": "e50236db472ac419f31e5af72c8f114f9c543232",
+  "files": [
+    {
+      "path": "firmware/test-programs/NAVI_RVM_MANUAL_1_0/WaveformObserver.h",
+      "sha256": "8c3e27a1a358e0908ca3a30bdb721bd6c373d535da6a0714f4f85597ef586569",
+      "identical_to_preserved_commit": true
+    },
+    {
+      "path": "firmware/test-programs/NAVI_RVM_MANUAL_1_0/FixedReference.h",
+      "sha256": "22a85285714f70372b3502d643e9374109c4fb74b732d5a3c61d2bc47d09c70f",
+      "identical_to_preserved_commit": true
+    },
+    {
+      "path": "firmware/test-programs/NAVI_RVM_MANUAL_1_0/ManualControl.h",
+      "sha256": "90479e12edb109920231f4ae81123b555b4f35f8fab76b3857189cb25e1d480e",
+      "identical_to_preserved_commit": true
+    },
+    {
+      "path": "firmware/test-programs/NAVI_RVM_MANUAL_1_0/ReferenceTypes.h",
+      "sha256": "b393a83692c52b3768c9ba3de33122294cae826b29b00954e02c6ba510b2fe6a",
+      "identical_to_preserved_commit": true
+    },
+    {
+      "path": "tests/navi_rvm_manual/replay_actual.csv",
+      "sha256": "50311d51af0e19f66322f3b26c8e7fd4dec2478be8f320df2f01c4aee168cb9e",
+      "identical_to_preserved_commit": true
+    },
+    {
+      "path": "tests/navi_rvm_manual/results.json",
+      "sha256": "5a8a2fc274ed605bb8ee6b6204d5b399025c68584d20278572ef072f350080f5",
+      "identical_to_preserved_commit": true
+    }
+  ],
+  "trace_validation": "Same winning phase and retained-state relative costs within 1e-5 for all 1550 input blocks. No thresholds, models, inputs or firmware changed."
+}
