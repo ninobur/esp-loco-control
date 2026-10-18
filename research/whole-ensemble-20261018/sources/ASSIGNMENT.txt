@@ -1,0 +1,245 @@
+NAVI_RVM — Corrected Statistical Shape Recognition Experiment
+
+Assignment for Codex
+
+Repository:  ⁠ninobur/esp-loco-control
+
+Starting research commits:
+
+* 804f1a2 — Original statistical shape comparison
+* 8c40d6d — 70-count amplitude experiment
+
+Scope: Replace the experimental classifier, repeat the comparative evaluation, and report results.
+
+Research only. No locomotive firmware or operational changes.
+
+1. Why the previous experiment must be repeated
+
+Your architectural explanation established that the previous experiment did not test the recognition mechanism the operator requested.
+
+The implementation classified independently selected waveform windows. It did not recognize complete magnetic ensembles, establish their physical boundaries, identify associated lobes, or recognize the intervening baseline as part of a continuous MM–BL–MM pattern.
+
+Consequently, the reported 571 matches demonstrated correspondence between selected windows and provisional MM annotations—not recognition of 571 complete magnetic ensembles.
+
+The 70-count experiment eliminated many false detections, but it did not correct this architectural deficiency.
+
+We now want you to implement the actual recognition mechanism and repeat the comparison.
+
+Do not repair the previous sliding-window classifier. Replace it.
+
+2. Governing recognition concept
+
+The Hall tracing contains alternating recognizable structures:
+
+Baseline → Magnetic ensemble → Baseline → Magnetic ensemble
+
+Each magnetic ensemble includes:
+
+* Its principal positive or negative excursion.
+* Associated leading and trailing lobes.
+* Shoulders and other related waveform features.
+* The transition from baseline into the magnetic field.
+* The return from the magnetic field to baseline.
+
+A baseline is a recognizable, relatively level portion of the tracing. It may curve gently, including during locomotive deceleration.
+
+The fundamental navigation unit is:
+
+MM₁ → BL → MM₂
+
+Successive units overlap:
+
+MM₁ → BL → MM₂ → BL → MM₃
+
+Each physical magnet must be recognized as one ensemble and counted once.
+
+The model must recognize these structures as wholes, not construct them from independently accepted or rejected waveform fragments.
+
+3. The statistical recognition models
+
+Repeat the original comparison using a corrected recognition mechanism.
+
+Model A — General composite
+
+Construct a statistical model describing the general class of magnetic ensembles from all 171 Lowline magnets.
+
+Construct a corresponding baseline model.
+
+The model must learn the relationships among principal excursions, associated lobes, shoulders, and baseline transitions.
+
+Model B — Geographic-specific composite
+
+Construct statistical models from repeated recordings of individual magnets MM050–MM070 and their associated baselines.
+
+Use the same recognition mechanism as Model A.
+
+The difference between A and B must be the statistical reference, not the detector, preprocessing, or evaluation method.
+
+Determine whether individual geographic magnetic portraits provide a meaningful advantage over one general magnetic model.
+
+4. Required recognition behavior
+
+The corrected recognizer must:
+
+1. Recognize principal magnetic hills and valleys as characteristic shapes.
+2. Identify associated lobes and shoulders as belonging to their magnetic ensemble.
+3. Recognize baseline regions independently, including gently curving baselines.
+4. Establish the beginning and end of each complete ensemble through its transitions to and from baseline.
+5. Establish the corresponding baseline boundaries.
+6. Discount isolated spikes and insignificant baseline variations without treating them as magnets.
+7. Determine the principal polarity of each ensemble.
+8. Recognize the complete MM–BL–MM relationship.
+9. Preserve the overlapping relationship between successive units.
+10. Count each physical magnetic ensemble once.
+
+These are interrelated recognition responsibilities, not ten independent qualification gates.
+
+The recognizer must evaluate the continuous Hall tracing, not merely select independent windows that resemble magnetic fragments.
+
+Recognition timing
+
+RVM is retrospective.
+
+The recognizer may wait until the complete magnetic ensemble has been observed before establishing geographic progression.
+
+Do not optimize for earliest possible recognition.
+
+5. Amplitude and waveform shape
+
+Amplitude is meaningful evidence.
+
+The previous experiment failed partly because normalization made tiny baseline fluctuations resemble full-sized magnetic excursions.
+
+However, the 70-count requirement is an experimental finding, not a universal definition of a magnet.
+
+Do not simply retain the 70-count threshold as an independent admission gate.
+
+Instead, construct a statistical recognition model that considers amplitude together with waveform shape and surrounding baseline.
+
+A legitimate magnetic ensemble should be recognized because its complete structure resembles the magnetic class, not merely because its principal excursion exceeds a fixed numerical threshold.
+
+Preserve ordinary variation in amplitude and waveform breadth.
+
+Do not use speed estimates or predicted magnet arrival to qualify recognition.
+
+6. Exclude stationary magnetic recordings
+
+New requirement: Exclude magnetic observations recorded while the locomotive was stopped from both statistical model construction and recognition-accuracy evaluation.
+
+A stationary Hall sensor may remain within a magnetic field, producing a sustained signal that does not represent traversal of a magnetic ensemble.
+
+Such observations must not distort the learned magnetic shape.
+
+For this experiment:
+
+* Identify stationary intervals using the recorded operating state and available movement evidence.
+* Exclude stationary portions from the training and evaluation datasets.
+* Do not interpret a stationary magnetic level as a complete magnetic ensemble.
+* Do not create artificial ensemble boundaries by joining waveform portions across excluded stationary intervals.
+* Preserve the excluded observations in the source inventory.
+* Report the number and duration of excluded intervals and the evidence used to identify them.
+
+Important: PWM zero alone does not prove the locomotive is stationary, and nonzero PWM does not prove movement. Use the available recorded evidence to distinguish confirmed stationary intervals from uncertain movement.
+
+Movement evidence may be used only to determine dataset eligibility, never as an input to the magnetic recognizer.
+
+If a recording’s movement status cannot be established, mark it uncertain rather than silently treating it as moving.
+
+7. Explicit prohibitions
+
+Do not:
+
+1. Reuse the previous independent sliding-window classifier as the recognition mechanism.
+2. Use greedy nonoverlapping window selection as a substitute for physical ensemble grouping.
+3. Treat a 70-count excursion as sufficient evidence of a complete magnet.
+4. Recognize associated lobes as independent magnets and then rely on a separate rejection mechanism.
+5. Define ensemble boundaries solely by candidate-window endpoints.
+6. Define baselines solely as unclassified space between detected excursions.
+7. Use PWM, IR, speed estimates, elapsed travel distance, or predicted arrival times to qualify magnetic recognition.
+8. Introduce geographic recovery, missed-magnet compensation, or competing recovery hypotheses.
+9. Add navigation-triggered stopping or motor intervention.
+10. Modify locomotive firmware, operational services, or dashboard software.
+11. Add vestigial compatibility code or speculative future subsystems.
+
+Do not reproduce a prohibited mechanism under a different name.
+
+Numerical statistical calculations are expected. The prohibition concerns replacing complete-shape recognition with independent measurement gates.
+
+8. Evaluation
+
+Use the same source recordings and evaluation partitions wherever possible, after applying the stationary-exclusion policy.
+
+Clearly document any resulting changes to the dataset.
+
+Evaluate both models against identical eligible observations.
+
+Report:
+
+Measurement	Required result
+Complete ensembles recognized	Correctly grouped magnetic fields
+Missed ensembles	Genuine magnetic structures not recognized
+False magnets	Baseline structures incorrectly recognized
+Lobe ownership	Lobes assigned to the correct ensemble
+Duplicate counts	Multiple detections from one physical magnet
+Ensemble boundaries	Start, end, and midpoint accuracy
+Baseline boundaries	Correct transitions between MM and BL
+Polarity	Agreement with the known map
+MM–BL–MM recognition	Correct complete overlapping units
+Amplitude variation	Recognition across observed magnetic strengths
+Breadth variation	Recognition across observed traversal speeds
+
+Retain unresolved observations in the evaluation.
+
+Distinguish errors in the recognizer from errors or uncertainty in the existing geographic annotations.
+
+Comparison with previous experiments
+
+Preserve the original results from 804f1a2 and 8c40d6d.
+
+Report the new results alongside them, but do not imply direct numerical comparability where stationary exclusions or recognition definitions have changed.
+
+The previous results remain useful controls.
+
+9. Deliverables
+
+Create a new research branch.
+
+Commit and push:
+
+* Corrected statistical recognition model.
+* Reproducible construction and evaluation code.
+* Dataset inventory and stationary-exclusion report.
+* Model A versus Model B comparison.
+* Complete-ensemble and baseline recognition results.
+* Representative waveform plots.
+* Boundary and lobe-grouping analysis.
+* Architectural reconciliation explaining how the new recognizer differs from the previous classifier.
+* Limitations and unresolved questions.
+
+Make the complete research package accessible on GitHub for Claude’s independent review.
+
+Do not modify or deploy operational firmware.
+
+⸻
+
+10. Success criterion
+
+The experiment succeeds only if the recognizer demonstrates that it can identify complete magnetic ensembles and intervening baselines in continuous Hall recordings.
+
+Matching arbitrary candidate windows to provisional MM annotations is insufficient.
+
+The recognizer must demonstrate that it recognizes the characteristic magnetic field, including its associated lobes and return to baseline, as one physical ensemble.
+
+It must distinguish that structure from the baseline and recognize the overlapping MM–BL–MM progression.
+
+Then compare whether the general 171-magnet composite or the geographic-specific MM050–MM070 models accomplish that task more reliably.
+
+Final instruction
+
+We have repeatedly demonstrated that a collection of individually reasonable numerical qualifications does not necessarily produce reliable magnetic recognition.
+
+Do not build another system that detects fragments and then tries to determine which fragments should count.
+
+Build a statistical recognizer that understands the characteristic structure of an entire magnetic field and its relationship to the surrounding baseline.
+
+That is the experiment we intended to conduct.
