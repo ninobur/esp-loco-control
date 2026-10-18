@@ -1,0 +1,285 @@
+NGR NAVI_RVM — Independent Magnetic Shape Recognition Research
+
+Assignment for Codex
+
+Repository:  ⁠ninobur/esp-loco-control
+
+Scope: Research, statistical model construction, comparison, and evaluation only.
+
+No firmware development or modification is authorized.
+
+1. Objective
+
+Determine whether a statistical model of the characteristic shapes produced by the Lowline’s 171 magnetic mile markers can reliably distinguish magnetic ensembles (MM) from intervening baselines (BL) in continuous Hall recordings.
+
+Compare two approaches:
+
+Model A — General composite
+
+Construct a statistical shape model using all 171 magnetic ensembles and their associated baseline regions.
+
+The objective is to recognize what a magnetic ensemble generally looks like, rather than identify an individual magnet by its historical waveform.
+
+Model B — Geographic-specific composite
+
+Construct individual statistical shape models for MM050–MM070, using repeated recordings of each magnet and its associated baseline regions.
+
+Determine whether geographic-specific models provide a meaningful recognition advantage over the general composite.
+
+The central research question is whether Model A can recognize magnetic ensembles and baselines as reliably as Model B, without requiring individual magnetic portraits.
+
+2. Architectural rationale
+
+Previous NAVI development repeatedly converted magnetic recognition into collections of numerical measurements and acceptance gates.
+
+These included Hall amplitude thresholds, duration limits, PWM-derived movement estimates, predicted magnet arrival times, waveform-fidelity scores, and probabilistic geographic tracking.
+
+Although individually defensible, these mechanisms repeatedly produced false negatives, missed counts, or incorrect geographic interpretations.
+
+The operator’s hypothesis is simpler:
+
+Magnetic fields produce characteristic, recognizable waveform shapes. Baselines produce a different class of shapes. A recognizer should distinguish those classes directly.
+
+The existing 20-ms Hall recordings show prominent magnetic hills and valleys, associated lobes, and relatively level intervening regions.
+
+The purpose of this investigation is to determine whether those structures can be recognized statistically without requiring the exact amplitude, width, or historical appearance of an individual magnet.
+
+This is a test of the fundamental recognition mechanism, not a navigation-system reliability or recovery study.
+
+3. Governing recognition concept
+
+The fundamental pattern is:
+
+MM₁ → BL → MM₂
+
+Each magnetic ensemble includes its principal excursion and associated lobes and shoulders.
+
+The baseline is a recognizable intervening structure. It may be gently curved rather than perfectly horizontal.
+
+Successive units overlap:
+
+MM₁ → BL → MM₂ → BL → MM₃
+
+MM₂ belongs to both adjacent units but contributes only one geographic advancement.
+
+The model is retrospective. Recognition need not occur at the first departure from baseline. A completed magnetic structure may be evaluated before geographic identification.
+
+The known geographic map supplies expected polarity and sequence.
+
+The statistical recognizer determines whether the observed waveform is a magnetic ensemble or baseline. The geographic map determines which MM is expected.
+
+These responsibilities must remain separate.
+
+4. Source data
+
+Locate and inventory the existing native Hall recordings, particularly the October 15, 2026 recordings used in the earlier RVM investigations.
+
+Use the available 20-ms Hall tracing or reconstruct equivalent observations from native recordings.
+
+Identify:
+
+* Reference CW and CCW passages.
+* Repeated observations of MM000–MM170.
+* Repeated observations of MM050–MM070.
+* Associated baseline intervals.
+* Existing geographic annotations and their provenance.
+* Available recordings not used to construct the models.
+
+Preserve exact source paths, recording identifiers, sample ranges, and processing methods.
+
+Existing NAVI MM annotations may assist with preparing the research dataset, but they are not independent physical ground truth.
+
+Do not silently treat earlier navigation decisions as verified geography.
+
+5. Model construction
+
+Model A — General composite
+
+Build a statistical representation of the magnetic ensemble class from all 171 magnets.
+
+Include the characteristic relationships among:
+
+* Principal positive and negative excursions.
+* Associated leading and trailing lobes.
+* Shoulders and ordinary waveform variations.
+* Transitions between magnetic ensembles and baseline.
+
+Construct a corresponding statistical baseline model.
+
+Account for polarity by appropriate normalization or separate positive/negative shape families.
+
+Evaluate whether the recordings support one general family or distinguishable families, potentially including disk and ballast magnets.
+
+Do not assume separate families are required.
+
+Model B — Geographic-specific composite
+
+Construct statistical models for individual magnets MM050–MM070 from repeated recordings.
+
+Use the same underlying recognition methodology as Model A.
+
+The principal difference between A and B must be the reference model, not the detector, preprocessing, or scoring algorithm.
+
+This is necessary for a fair comparison.
+
+6. Width and amplitude independence
+
+The same physical magnetic structure may produce a broader or narrower time-domain waveform depending on locomotive speed.
+
+Its amplitude may also vary.
+
+Recognition must not depend on estimating locomotive speed or predicting when the next magnet will arrive.
+
+The recognizer should accommodate ordinary width and amplitude variation through its shape representation.
+
+Width may be measured after recognition and may eventually provide useful speed information. It must not serve as a geographic qualification gate.
+
+Any normalization or alignment must preserve the meaningful structure of the ensemble.
+
+In particular, do not permit a matching algorithm to skip significant lobes, compress an entire magnetic excursion into a small shoulder, or stretch insignificant features into a convincing match.
+
+The previous Codex RVM investigation demonstrated why unconstrained waveform alignment is unacceptable.
+
+7. Explicit prohibitions
+
+These prohibitions are governing requirements, not suggestions.
+
+Do not:
+
+1. Reuse or modify Claude’s existing probabilistic recognizer.
+2. Reuse or modify Codex’s previous RVM alignment kernel.
+3. Implement a PWM-based position estimator or geographic tracker.
+4. Use IR, PWM, locomotive speed, elapsed travel distance, or predicted magnet arrival to qualify magnetic recognition.
+5. Implement individual amplitude, width, or duration gates as substitutes for statistical shape recognition.
+6. Define magnets solely through Hall threshold crossings.
+7. Define baselines solely through elapsed duration or mapped distance.
+8. Require individual magnets to reproduce their own historical waveform portraits.
+9. Introduce geographic recovery, missed-magnet compensation, competing recovery hypotheses, or failure-management machinery.
+10. Implement navigation-triggered STOP, E-STOP, redeclaration, or motor-control behavior.
+11. Add automatic operation, station stopping, dispatcher functions, or CTO integration.
+12. Modify operational firmware, locomotive configuration, Pi services, or the existing dashboard.
+13. Retune recognition parameters separately for individual evaluation recordings.
+14. Add vestigial compatibility code, dormant subsystems, or speculative future features.
+
+Do not replace a prohibited mechanism with an equivalent mechanism under a different name.
+
+Numerical calculations are permitted and necessary for statistical shape recognition. The prohibition concerns independent measurement gates acquiring authority over recognition.
+
+8. Independent research requirement
+
+This investigation must be independent of Claude’s implementation.
+
+Codex may inspect prior research, recordings, and documented failures to understand the problem and avoid known defects.
+
+However, it must develop its own statistical shape-recognition method.
+
+Do not copy Claude’s model architecture, likelihood calculations, or implementation.
+
+Do not use the previous RVM dynamic-programming alignment kernel as the foundation.
+
+The objective is an independent engineering assessment of the operator’s hypothesis.
+
+9. Evaluation methodology
+
+Use the same source recordings and evaluation partitions for both models.
+
+Separate reference construction from evaluation.
+
+Where recordings have previously been examined during NAVI development, disclose that fact. Do not describe reused evidence as a fresh independent holdout.
+
+Evaluate:
+
+Criterion	Required comparison
+Magnetic recognition	Correctly recognized ensembles
+Baseline recognition	Correctly identified intervening baselines
+False positives	Baseline structures incorrectly identified as magnets
+False negatives	Magnetic ensembles not recognized
+Lobe grouping	Associated lobes incorrectly identified as separate magnets
+Polarity	Correct identification of principal polarity
+Ensemble boundaries	Beginning, end, and midpoint accuracy
+Width variation	Recognition across recorded operating speeds
+Amplitude variation	Recognition of taller and shorter versions of valid magnetic shapes
+
+Include MM050–MM070 as a focused comparison region.
+
+Evaluate Model A on additional geographic regions to determine whether its generalization extends beyond the comparison segment.
+
+Do not use Model B outside its defined geographic coverage.
+
+Report recognition decisions against existing annotations, identifying where those annotations are uncertain.
+
+Important methodological requirement
+
+A recognizer must not appear more accurate merely because it refuses to classify difficult observations.
+
+Report unresolved observations separately and include them in the evaluation.
+
+10. Required evidence
+
+Provide:
+
+* A description of the statistical representation used by each model.
+* The training and evaluation datasets.
+* The observed variation within magnetic ensembles and baselines.
+* Quantitative separation between the two classes.
+* Recognition results for Models A and B.
+* Representative successful and unsuccessful waveform comparisons.
+* The effect of amplitude and width variation.
+* Any evidence that disk and ballast magnets require different shape families.
+* An explanation of how the algorithm preserves complete ensembles and associated lobes.
+
+Identify cases where magnetic and baseline models overlap substantially.
+
+If the statistical models cannot distinguish the classes reliably, report that result.
+
+Do not introduce another recognition or recovery subsystem to conceal the limitation.
+
+11. Deliverables and repository requirements
+
+Create a dedicated research branch, for example:
+
+research/navi-rvm-statistical-shape-comparison-20261018
+
+Commit and push:
+
+1. Research report and conclusions.
+2. Model definitions and parameters.
+3. Reproducible model-construction and evaluation code.
+4. Dataset inventory and provenance.
+5. Evaluation results for Models A and B.
+6. Representative waveform plots.
+7. Explicit limitations and unresolved questions.
+
+Make the complete research package accessible on GitHub for independent review by Claude.
+
+Do not flash Otto or change any operational system.
+
+12. Success criterion
+
+The investigation succeeds if it provides credible evidence answering:
+
+Can NAVI reliably distinguish magnetic ensembles from baselines by recognizing their characteristic shapes, without individual measurement gates or movement-based geographic qualification?
+
+A successful result need not demonstrate a complete navigation system.
+
+If the general composite performs comparably to geographic-specific references, prefer the general model for its simplicity.
+
+If geographic-specific models perform substantially better, explain why and identify what information the general composite lacks.
+
+If neither performs adequately, report the failure without designing recovery machinery.
+
+⸻
+
+Final instruction to Codex
+
+The operator has repeatedly described the magnetic landscape as large, recognizable hills and valleys on a more-or-less level tracing.
+
+The existing recordings support investigating that observation directly.
+
+We are not asking you to build another navigation framework.
+
+We are asking you to determine whether a statistical recognizer can identify the characteristic shape of a magnetic field and distinguish it from the baseline between magnetic fields.
+
+Recognize what a magnet looks like—not when it should arrive, how far the locomotive should have traveled, or whether it resembles its individual historical portrait.
+
+Architectural fidelity, reproducibility, and an honest comparison of the two statistical models take precedence over algorithmic sophistication.
