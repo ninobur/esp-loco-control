@@ -1,0 +1,37 @@
+{
+  "source_hashes": {
+    "navi-rvm-replay-20261016/derived/template_CW_L1.npy": "4058a30c0d9fe0cce51b5cc731be6e11a9153a156eacdaef9b2af3d458030965",
+    "navi-rvm-replay-20261016/derived/speed_model_CW_L1.csv": "106a732fbeb2f1b6d7d4bbe923f82524f62b947fb4ed542be2f5a426504c2f24",
+    "navi-rvm-replay-20261016/derived/template_CCW_L1.npy": "e448b2db919d022f2fd140e679d0f106b075ce04c53135c1894dbe3e51d2115a",
+    "navi-rvm-replay-20261016/derived/speed_model_CCW_L1.csv": "4d77c4d36a26c07e2aa0828b10d6055905504514d6005c07bc559fec4c3e6079",
+    "navi-rvm-replay-20261016/derived/template_meta.json": "dc160d54e8f865d890aefa032efea133ddf6b987d5cd6418f7e9d2cfcc51cdcb",
+    "navi-rvm-replay-20261016/derived/map_positions.csv": "be9f842b7bec624cfd8bd5ff461b76cc533699179abaac2e459fde0a08579c00",
+    "navi-rvm-replay-20261016/derived/map_meta.json": "8b70d07312a1f5a99330b565a5b03ce4bb24e6e8f43493cb37109592e7406103"
+  },
+  "reference_passes": {
+    "CW_L1": {
+      "start_s": 1420.658776,
+      "end_s": 1840.213501,
+      "anchor_mm": 124,
+      "anchor_map_mm": 37879.0,
+      "odo_scale": 0.9998522610186357,
+      "odo_lap_mm": 52271.722571046805,
+      "cells_observed_frac": 0.13586790142354202
+    },
+    "CCW_L1": {
+      "start_s": 2745.450837,
+      "end_s": 3167.014139,
+      "anchor_mm": 121,
+      "anchor_map_mm": 36979.0,
+      "odo_scale": 1.002183221956047,
+      "odo_lap_mm": 52150.14465916908,
+      "cells_observed_frac": 0.14327261594979335
+    }
+  },
+  "limitations": [
+    "Single recorded pass per direction; no independently validated multi-day statistical corridor.",
+    "Spatial interpolation in inherited offline reference; no live Hall samples fabricated.",
+    "Reference peak/seam coordinates are waveform annotations, not edits to the geographic route map.",
+    "Labels from old NAVI are comparison evidence, not independent physical truth."
+  ]
+}

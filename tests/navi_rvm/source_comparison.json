@@ -1,0 +1,11 @@
+{
+  "source_matches_deployed_manifest": false,
+  "changed_source_paths": [
+    "firmware/programs/NAVI_EWO_0_6/NAVI_EWO_0_6.ino",
+    "firmware/programs/NAVI_EWO_0_6/NaviIntegratedCore.h",
+    "firmware/programs/NAVI_EWO_0_6/NaviDartEvidence.h",
+    "firmware/programs/NAVI_EWO_0_6/NaviDartOperations.h",
+    "firmware/programs/NAVI_EWO_0_6/NaviDartTelemetry.h"
+  ],
+  "note": "Source SHA values identify the imported local working snapshot. Do not call it the exact deployed source or field-accepted firmware. Controller snapshot and integration diff are committed for independent inspection."
+}

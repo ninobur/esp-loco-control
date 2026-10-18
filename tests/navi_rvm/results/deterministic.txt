@@ -1,0 +1,22 @@
+PASS geographically separated declarations and wrap; every token checked
+PASS flat map plus movement prior never emits
+PASS 60-minute PWM-zero waveform changes preserve phase, offset and token identity
+CORRUPTION ordinal=1 expected=3 actual=3 normal_us=1160001 corrupt_us=1160001
+CORRUPTION ordinal=2 expected=4 actual=4 normal_us=3160001 corrupt_us=3160001
+CORRUPTION ordinal=3 expected=5 actual=5 normal_us=5160001 corrupt_us=5160001
+CORRUPTION ordinal=4 expected=6 actual=6 normal_us=7160001 corrupt_us=7160001
+CORRUPTION ordinal=5 expected=7 actual=7 normal_us=9160001 corrupt_us=9160001
+CORRUPTION ordinal=6 expected=8 actual=8 normal_us=11160001 corrupt_us=11160001
+PASS gross 10-block corruption: every identity/time checked, no premature token
+ANOMALY mm=3 q=0.431979 bad=0 trusted=2 streak=0
+ANOMALY mm=4 q=0.618336 bad=1 trusted=2 streak=1
+ANOMALY mm=5 q=0.41827 bad=0 trusted=2 streak=0
+ANOMALY mm=6 q=0.397044 bad=0 trusted=6 streak=0
+ANOMALY mm=7 q=0.397068 bad=0 trusted=7 streak=0
+PASS one weak MM counts once, does not anchor, next normal MM resets quality run
+PASS five new-magnet incoherent assessments stop; shared MM not double counted
+PASS independent E-STOP assertion survives an older queued release
+PASS IR integrity judged from own counters; next clean packet immediately eligible
+PASS stationary Hall plus fresh stationary IR triggers stall; missing IR alone does not
+PASS manual/AUTO admission, direction lockout, unchanged station landmarks, braking/dwell/release
+recognizer_bytes=12592 adapter_bytes=16816

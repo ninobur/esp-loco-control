@@ -1,0 +1,14 @@
+{
+  "boot": "15549e9385faa4d5",
+  "start_s": 400.0,
+  "end_s": 407.0,
+  "declared_mm": 63,
+  "direction": 1,
+  "native_source": "hall-ground-20261015/derived/native_15549e9385faa4d5.bin",
+  "native_byte_range": [
+    31655760,
+    32215760
+  ],
+  "native_excerpt_sha256": "29293f13961a156ca207315bfb66712e9cc1455e637370bf87a7a72339b0b490",
+  "scoring_only_legacy_selections": []
+}

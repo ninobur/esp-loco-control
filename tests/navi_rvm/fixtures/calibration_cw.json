@@ -1,0 +1,204 @@
+{
+  "boot": "15549e9385faa4d5",
+  "start_s": 1840.8,
+  "end_s": 1865.0,
+  "declared_mm": 124,
+  "direction": 1,
+  "native_source": "hall-ground-20261015/derived/native_15549e9385faa4d5.bin",
+  "native_byte_range": [
+    146573392,
+    148509328
+  ],
+  "native_excerpt_sha256": "49155344b4a8a7c855ac1b87326dfcd64fbda776794647207a13b091784db997",
+  "scoring_only_legacy_selections": [
+    {
+      "boot": "15549e9385faa4d5",
+      "open_us": "1841296639",
+      "target": "125",
+      "previous_mm": "124",
+      "pole": "-1",
+      "dir": "1",
+      "pwm": "90"
+    },
+    {
+      "boot": "15549e9385faa4d5",
+      "open_us": "1842366649",
+      "target": "126",
+      "previous_mm": "125",
+      "pole": "1",
+      "dir": "1",
+      "pwm": "90"
+    },
+    {
+      "boot": "15549e9385faa4d5",
+      "open_us": "1843478506",
+      "target": "127",
+      "previous_mm": "126",
+      "pole": "1",
+      "dir": "1",
+      "pwm": "90"
+    },
+    {
+      "boot": "15549e9385faa4d5",
+      "open_us": "1844685496",
+      "target": "128",
+      "previous_mm": "127",
+      "pole": "-1",
+      "dir": "1",
+      "pwm": "90"
+    },
+    {
+      "boot": "15549e9385faa4d5",
+      "open_us": "1845772496",
+      "target": "129",
+      "previous_mm": "128",
+      "pole": "1",
+      "dir": "1",
+      "pwm": "90"
+    },
+    {
+      "boot": "15549e9385faa4d5",
+      "open_us": "1846975864",
+      "target": "130",
+      "previous_mm": "129",
+      "pole": "-1",
+      "dir": "1",
+      "pwm": "90"
+    },
+    {
+      "boot": "15549e9385faa4d5",
+      "open_us": "1848196497",
+      "target": "131",
+      "previous_mm": "130",
+      "pole": "1",
+      "dir": "1",
+      "pwm": "90"
+    },
+    {
+      "boot": "15549e9385faa4d5",
+      "open_us": "1849285497",
+      "target": "132",
+      "previous_mm": "131",
+      "pole": "1",
+      "dir": "1",
+      "pwm": "90"
+    },
+    {
+      "boot": "15549e9385faa4d5",
+      "open_us": "1850397496",
+      "target": "133",
+      "previous_mm": "132",
+      "pole": "-1",
+      "dir": "1",
+      "pwm": "90"
+    },
+    {
+      "boot": "15549e9385faa4d5",
+      "open_us": "1851478520",
+      "target": "134",
+      "previous_mm": "133",
+      "pole": "-1",
+      "dir": "1",
+      "pwm": "90"
+    },
+    {
+      "boot": "15549e9385faa4d5",
+      "open_us": "1852550496",
+      "target": "135",
+      "previous_mm": "134",
+      "pole": "1",
+      "dir": "1",
+      "pwm": "90"
+    },
+    {
+      "boot": "15549e9385faa4d5",
+      "open_us": "1853651763",
+      "target": "136",
+      "previous_mm": "135",
+      "pole": "1",
+      "dir": "1",
+      "pwm": "90"
+    },
+    {
+      "boot": "15549e9385faa4d5",
+      "open_us": "1854766523",
+      "target": "137",
+      "previous_mm": "136",
+      "pole": "-1",
+      "dir": "1",
+      "pwm": "90"
+    },
+    {
+      "boot": "15549e9385faa4d5",
+      "open_us": "1855940736",
+      "target": "138",
+      "previous_mm": "137",
+      "pole": "-1",
+      "dir": "1",
+      "pwm": "90"
+    },
+    {
+      "boot": "15549e9385faa4d5",
+      "open_us": "1857140401",
+      "target": "139",
+      "previous_mm": "138",
+      "pole": "-1",
+      "dir": "1",
+      "pwm": "90"
+    },
+    {
+      "boot": "15549e9385faa4d5",
+      "open_us": "1858260175",
+      "target": "140",
+      "previous_mm": "139",
+      "pole": "-1",
+      "dir": "1",
+      "pwm": "90"
+    },
+    {
+      "boot": "15549e9385faa4d5",
+      "open_us": "1859413509",
+      "target": "141",
+      "previous_mm": "140",
+      "pole": "-1",
+      "dir": "1",
+      "pwm": "90"
+    },
+    {
+      "boot": "15549e9385faa4d5",
+      "open_us": "1860573506",
+      "target": "142",
+      "previous_mm": "141",
+      "pole": "1",
+      "dir": "1",
+      "pwm": "90"
+    },
+    {
+      "boot": "15549e9385faa4d5",
+      "open_us": "1861735686",
+      "target": "143",
+      "previous_mm": "142",
+      "pole": "-1",
+      "dir": "1",
+      "pwm": "90"
+    },
+    {
+      "boot": "15549e9385faa4d5",
+      "open_us": "1863011496",
+      "target": "144",
+      "previous_mm": "143",
+      "pole": "1",
+      "dir": "1",
+      "pwm": "90"
+    },
+    {
+      "boot": "15549e9385faa4d5",
+      "open_us": "1864304215",
+      "target": "145",
+      "previous_mm": "144",
+      "pole": "1",
+      "dir": "1",
+      "pwm": "90"
+    }
+  ]
+}

@@ -1,0 +1,87 @@
+{
+  "compiler": "Apple clang version 21.0.0 (clang-2100.1.1.101)\nTarget: arm64-apple-darwin25.6.0\nThread model: posix\nInstalledDir: /Library/Developer/CommandLineTools/usr/bin\n",
+  "host": "macOS-26.6.2-arm64-arm-64bit",
+  "limits": "Recorded comparisons use fallible legacy labels. Host timing excludes firmware acquisition, queues, and network tasks.",
+  "frozen_sources": {
+    "RvmRecognizer.h": "040630bcc02e526a8f4b4fea501bc5defb8b9871ac4156660b0b814b842b5cf3",
+    "RvmReference.h": "09ed9d887aaec3422934394354396932c851d0569e3e630fe0cde4ec111c52cd",
+    "RvmCalibration.h": "6a972862fa5202dbc57dd5672436169d7e473f3b878b94b65f4c8ce2ec204c31"
+  },
+  "cases": {
+    "calibration_cw": {
+      "fixture_sha256": "15f53114f1ce66d1078a2cf7d80b0135128d210a5b6cf9438a98292f0b166923",
+      "runtime": "blocks=1210 tokens=21 last_mm=145 unreachable=0 pattern_stop=0 stall=0 recognizer_bytes=12592 host_mean_us=3.96543 host_max_us=23.958",
+      "tokens": 21,
+      "legacy_selections": 21,
+      "missing_legacy_ids": [],
+      "ids_without_legacy_label": [],
+      "min_rvm_minus_legacy_us": -711,
+      "max_rvm_minus_legacy_us": 100312,
+      "quality_assessments": 21,
+      "atypical_final_ids": []
+    },
+    "evaluation_ccw": {
+      "fixture_sha256": "bdad42c9b6d53b1bcbf05d9f30b43ba928896bc80128e656539eeebe604a7f22",
+      "runtime": "blocks=1495 tokens=12 last_mm=109 unreachable=0 pattern_stop=0 stall=0 recognizer_bytes=12592 host_mean_us=2.81965 host_max_us=8.792",
+      "tokens": 12,
+      "legacy_selections": 12,
+      "missing_legacy_ids": [],
+      "ids_without_legacy_label": [],
+      "min_rvm_minus_legacy_us": -156938,
+      "max_rvm_minus_legacy_us": 82865,
+      "quality_assessments": 11,
+      "atypical_final_ids": []
+    },
+    "evaluation_wrap_cw": {
+      "fixture_sha256": "19260699d112b2eef98cc26b92f22995c11ef1d200af9baaaf38e88cf2ce3f93",
+      "runtime": "blocks=1400 tokens=17 last_mm=3 unreachable=0 pattern_stop=0 stall=0 recognizer_bytes=12592 host_mean_us=2.87014 host_max_us=8.334",
+      "tokens": 17,
+      "legacy_selections": 17,
+      "missing_legacy_ids": [],
+      "ids_without_legacy_label": [],
+      "min_rvm_minus_legacy_us": 8890,
+      "max_rvm_minus_legacy_us": 92270,
+      "quality_assessments": 16,
+      "atypical_final_ids": []
+    },
+    "grillers_stall": {
+      "fixture_sha256": "da0c585a2c39eaae32ec46f4c2d2740ec591dda82be646a19962315c93a2d3e8",
+      "runtime": "blocks=350 tokens=0 last_mm=63 unreachable=0 pattern_stop=0 stall=0 recognizer_bytes=12592 host_mean_us=2.09441 host_max_us=13.25",
+      "tokens": 0,
+      "legacy_selections": 0,
+      "missing_legacy_ids": [],
+      "ids_without_legacy_label": [],
+      "min_rvm_minus_legacy_us": null,
+      "max_rvm_minus_legacy_us": null,
+      "quality_assessments": 0,
+      "atypical_final_ids": []
+    },
+    "heldout_cw": {
+      "fixture_sha256": "a21811fa0c6de50b4688b1ff83ba9a5c471237ddbd8aa0c373c957f536e7cbb3",
+      "runtime": "blocks=1550 tokens=10 last_mm=156 unreachable=0 pattern_stop=0 stall=0 recognizer_bytes=12592 host_mean_us=2.42123 host_max_us=4.292",
+      "tokens": 10,
+      "legacy_selections": 10,
+      "missing_legacy_ids": [],
+      "ids_without_legacy_label": [],
+      "min_rvm_minus_legacy_us": -982075,
+      "max_rvm_minus_legacy_us": 15112,
+      "quality_assessments": 9,
+      "atypical_final_ids": []
+    },
+    "multilobe_cw": {
+      "fixture_sha256": "fe977fb9509f411d43e76b26f4fb8c98804f3d1534791b3f2d6399b9838dcec3",
+      "runtime": "blocks=950 tokens=7 last_mm=163 unreachable=0 pattern_stop=0 stall=0 recognizer_bytes=12592 host_mean_us=2.20566 host_max_us=3.875",
+      "tokens": 7,
+      "legacy_selections": 7,
+      "missing_legacy_ids": [],
+      "ids_without_legacy_label": [],
+      "min_rvm_minus_legacy_us": -51539,
+      "max_rvm_minus_legacy_us": 77074,
+      "quality_assessments": 6,
+      "atypical_final_ids": []
+    }
+  },
+  "behavioral_failures": [
+    "Stationary Grillers excerpt: PWM=90 and recorded IR speed=0, but no stall E-STOP. Do not treat this as a passing behavioral test."
+  ]
+}

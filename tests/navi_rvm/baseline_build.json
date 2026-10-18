@@ -1,0 +1,20 @@
+{
+  "exit": 0,
+  "command": [
+    "arduino-cli",
+    "compile",
+    "--fqbn",
+    "esp32:esp32:esp32",
+    "--build-path",
+    "/tmp/navi-ewo-0-6-startup-lap-build",
+    "--build-property",
+    "compiler.cpp.extra_flags=-I/private/tmp/navi-ewo-0-5-deployment-config -Werror=format",
+    "/Users/davidbrown/NGR/NGR-Files/navi-ewo-dart-experiment-1/firmware/programs/NAVI_EWO_0_6"
+  ],
+  "core": "3.3.12",
+  "uploaded": false,
+  "program_bytes": 1070155,
+  "static_ram_bytes": 86420,
+  "bin_sha256": "e930f621bb488fab8f7169804725407e20550d5d3f51b33ba1088f1eb8b44243",
+  "elf_sha256": "2b50c9fd9ab9253fd693baf1384c343db2cc62fbfebf423619f32357a33270f7"
+}

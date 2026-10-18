@@ -1,0 +1,39 @@
+{
+  "start_epoch": 1792113840.0,
+  "end_epoch_exclusive": 1792118580.0,
+  "sources": {
+    "mqtt.log": {
+      "path": "/home/david/NGR/telemetry/all_20261015.log",
+      "snapshot_size": 120345084,
+      "snapshot_prefix_sha256": "cc0e5164205a32045f2f4d8889afba061aa3eaac8a36302a04fbcd9e3a597936",
+      "slice_start": 55307189,
+      "slice_end": 116728385,
+      "slice_size": 61421196,
+      "slice_sha256": "efaefff727a4bce5edb038b924a2afdbac91995027a0ac4ae0f90172fbf9d33b",
+      "records_in_time_window": 136279,
+      "prepended_header_bytes": 0
+    },
+    "optical.log": {
+      "path": "/home/david/NGR/ir_espnow/ir_espnow_raw_20261015.log",
+      "snapshot_size": 170967818,
+      "snapshot_prefix_sha256": "8e93db00aa4376602ec6e9a95201779957ce23f29af7430f0dfab8c175fccafb",
+      "slice_start": 106116842,
+      "slice_end": 170901137,
+      "slice_size": 64784295,
+      "slice_sha256": "303ad0127826142a992c810cb2ccff0e987713e453e485bb416ea7266ada41b1",
+      "records_in_time_window": 171254,
+      "prepended_header_bytes": 0
+    },
+    "native.nsr": {
+      "path": "/home/david/NGR/navi_sync/navi_sync_20261015_100403.nsr",
+      "snapshot_size": 4928402162,
+      "snapshot_prefix_sha256": "e166fcfa68394d00ed58c5543a42afeacdcd13bc92cf6f3d9b32a7166fc6e29b",
+      "slice_start": 3331022388,
+      "slice_end": 4718850776,
+      "slice_size": 1387828412,
+      "slice_sha256": "123e51116ea964ce6a268cf441c8f0a440c56b1409e5b1b65e7f403da8eb6e8d",
+      "records_in_time_window": 1370029,
+      "prepended_header_bytes": 24
+    }
+  }
+}

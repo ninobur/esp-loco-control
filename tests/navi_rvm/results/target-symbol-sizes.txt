@@ -1,0 +1,15 @@
+Target ELF symbols; sizes below are hexadecimal.
+3f41e908 00000028 V rvm_reference::cw
+3f414050 00000028 V rvm_reference::ccw
+3f41e930 00000138 V rvm_reference::cwSpeeds
+3f414078 00000138 V rvm_reference::ccwSpeeds
+3f41ea68 00000156 V rvm_reference::cwBaselines
+3f4141b0 00000156 V rvm_reference::ccwBaselines
+3f41ed14 00000156 V rvm_reference::cwPeaks
+3f41ebbe 00000156 V rvm_reference::cwSeams
+3f41445c 00000156 V rvm_reference::ccwPeaks
+3f414306 00000156 V rvm_reference::ccwSeams
+3ffc44a0 00004170 b navi
+3f41ee6a 0000a354 V rvm_reference::cwCells
+3f4145b2 0000a354 V rvm_reference::ccwCells
+Global adapter navi: 0x4170 = 16752 bytes. Both cell arrays: 2 * 0xa354 = 83624 bytes.

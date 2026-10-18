@@ -1,0 +1,123 @@
+{
+  "boot": "15549e9385faa4d5",
+  "start_s": 3167.6,
+  "end_s": 3197.5,
+  "declared_mm": 121,
+  "direction": -1,
+  "native_source": "hall-ground-20261015/derived/native_15549e9385faa4d5.bin",
+  "native_byte_range": [
+    252329552,
+    254720784
+  ],
+  "native_excerpt_sha256": "47fb70c1bab35c9e91dd2ed6d8295b4df3df530bbb15091cf504df20691e7563",
+  "scoring_only_legacy_selections": [
+    {
+      "boot": "15549e9385faa4d5",
+      "open_us": "3168316634",
+      "target": "120",
+      "previous_mm": "121",
+      "pole": "1",
+      "dir": "2",
+      "pwm": "90"
+    },
+    {
+      "boot": "15549e9385faa4d5",
+      "open_us": "3169572364",
+      "target": "119",
+      "previous_mm": "120",
+      "pole": "1",
+      "dir": "2",
+      "pwm": "90"
+    },
+    {
+      "boot": "15549e9385faa4d5",
+      "open_us": "3170814497",
+      "target": "118",
+      "previous_mm": "119",
+      "pole": "1",
+      "dir": "2",
+      "pwm": "81"
+    },
+    {
+      "boot": "15549e9385faa4d5",
+      "open_us": "3172224220",
+      "target": "117",
+      "previous_mm": "118",
+      "pole": "-1",
+      "dir": "2",
+      "pwm": "71"
+    },
+    {
+      "boot": "15549e9385faa4d5",
+      "open_us": "3173972409",
+      "target": "116",
+      "previous_mm": "117",
+      "pole": "-1",
+      "dir": "2",
+      "pwm": "60"
+    },
+    {
+      "boot": "15549e9385faa4d5",
+      "open_us": "3176315685",
+      "target": "115",
+      "previous_mm": "116",
+      "pole": "1",
+      "dir": "2",
+      "pwm": "50"
+    },
+    {
+      "boot": "15549e9385faa4d5",
+      "open_us": "3179262717",
+      "target": "114",
+      "previous_mm": "115",
+      "pole": "-1",
+      "dir": "2",
+      "pwm": "50"
+    },
+    {
+      "boot": "15549e9385faa4d5",
+      "open_us": "3182137496",
+      "target": "113",
+      "previous_mm": "114",
+      "pole": "1",
+      "dir": "2",
+      "pwm": "50"
+    },
+    {
+      "boot": "15549e9385faa4d5",
+      "open_us": "3185540496",
+      "target": "112",
+      "previous_mm": "113",
+      "pole": "1",
+      "dir": "2",
+      "pwm": "50"
+    },
+    {
+      "boot": "15549e9385faa4d5",
+      "open_us": "3189462503",
+      "target": "111",
+      "previous_mm": "112",
+      "pole": "1",
+      "dir": "2",
+      "pwm": "50"
+    },
+    {
+      "boot": "15549e9385faa4d5",
+      "open_us": "3193559507",
+      "target": "110",
+      "previous_mm": "111",
+      "pole": "1",
+      "dir": "2",
+      "pwm": "50"
+    },
+    {
+      "boot": "15549e9385faa4d5",
+      "open_us": "3197256612",
+      "target": "109",
+      "previous_mm": "110",
+      "pole": "1",
+      "dir": "2",
+      "pwm": "43"
+    }
+  ]
+}

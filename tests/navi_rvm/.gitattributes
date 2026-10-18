@@ -1,0 +1,4 @@
+# Preserve standard CSV CRLF bytes used by the recorded fixture SHA-256s.
+*.csv whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+# A unified diff represents an empty context line by one space.
+*.diff whitespace=-blank-at-eol

@@ -1,0 +1,16 @@
+{
+  "training": "calibration_cw.csv; CW lap 2, separate from CW lap 1 reference",
+  "pairs": 20,
+  "quiet_max": 0.158375,
+  "appearance_min": 1.07384,
+  "separated": true,
+  "threshold": 0.6161074999999999,
+  "quality_upper_envelope": 0.5,
+  "method": "Midpoint between largest quiet-interval evidence and smallest appearance evidence; quality is the rounded-up maximum finalized new-MM cost from a full calibration-only replay with classification disabled. One pass, no tuning against evaluation counts.",
+  "limitations": [
+    "Legacy opening labels are fallible timing comparators; calibration annotations are not independent field truth.",
+    "One evening, one locomotive, one CW excerpt. No held-out-day or CCW calibration.",
+    "Overlapping raw samples are averaged in disjoint blocks; integrated contrast is not a statistical probability."
+  ],
+  "header_sha256": "6a972862fa5202dbc57dd5672436169d7e473f3b878b94b65f4c8ce2ec204c31"
+}

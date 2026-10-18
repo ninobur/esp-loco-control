@@ -1,0 +1,106 @@
+--- local-EWO_0_6-snapshot/NAVI_EWO_0_6.ino
++++ NAVI_RVM/NAVI_RVM.ino
+@@ -1,12 +1,6 @@
+-/* EWO_0_6: October 15 field-test integration. See ewo-0-6-validation/ASSIGNMENT.txt.
+- * Preserves RESOURCE_R1 acquisition, DART comparison and resource corrections.
+- * STARTUP_LAP_R1: recorded October 15 CW lap 2 is compiled as the first-lap
+- * timing reference. See ewo-0-6-startup-lap-validation/REPORT.md.
+- * This revision is not flashed or field accepted. */
+-/* Historical design and provenance: see HISTORY.md and the preserved R1 source.
+- * Four mapped station centers replace the MM045 demonstration.
+- * This build has no deployment or movement authorization.
+- */
++/* NAVI_RVM field-test candidate, derived from Otto EWO_0_6 STARTUP_LAP_R1.
++ * Governing assignment and reconciliation: docs/NAVI_RVM_IMPLEMENTATION_RECONCILIATION.md.
++ * Fixed recorded waveform reference; no hardware deployment authorized. */
+ #include <Arduino.h>
+ #include <WiFi.h>
+ #include <WiFiUdp.h>
+@@ -25,7 +19,7 @@
+ // EWO hardware target: Otto's reviewed X22 profile. The profile supplies
+ // LOCO_ID, pins, motor/PWM, direction, IR pairing and battery configuration.
+ // Its legacy polarity macro is intentionally not a NAVI authority here.
+-#include "../NAVI_ONE/variants/NAVI_ONE_X22/LocoConfig.h"
++#include "LocoConfig.h"
+ #ifdef HALL_POLARITY_INVERTED
+ #undef HALL_POLARITY_INVERTED
+ #endif
+@@ -33,8 +27,8 @@
+ #define NAVI_MAX_OPERATING_PWM NORMAL_PWM
+ #endif
+ #include "credentials.h"
+-#include "../NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_HEALTH/Ops.h"
+-#include "../NAVI_COHERENCE/variants/NAVI_COHERENCE_0_6_IR_HEALTH/RouteMap.h"
++#include "Ops.h"
++#include "RouteMap.h"
+ #include "NaviIntegratedCore.h"
+ #include "NaviStopOverlay.h"
+ #include "NaviTileTiming.h"
+@@ -58,8 +52,8 @@
+ using namespace navi_one;
+ using namespace navi_eyes;
+ 
+-static constexpr char SKETCH_NAME[] = "NAVI_EWO_0_6";
+-static constexpr char BUILD_CLASS[] = "STARTUP_LAP_R1_NOT_FIELD_ACCEPTED";
++static constexpr char SKETCH_NAME[] = "NAVI_RVM";
++static constexpr char BUILD_CLASS[] = "RVM_FIXED_REFERENCE_NOT_FIELD_ACCEPTED";
+ static constexpr uint8_t NAVI_BASE_CRUISE_PWM = 90;
+ static constexpr uint8_t HALL_PIN = 33;
+ static constexpr uint8_t I2C_SDA = 21, I2C_SCL = 22;
+@@ -305,6 +299,26 @@
+   return true;
+ }
+ // Bounded loop-task tap. Queue/publish failure is never fed into NAVI.
++static void publishRvm() {
++  rvm::Token t;
++  while(navi.takeToken(t)) {
++    char row[1000];
++    const int size=snprintf(row,sizeof(row),
++      "{\"boot\":\"%016llX\",\"run\":%lu,\"ordinal\":%lu,\"expected_mm\":%d,\"committed_mm\":%d,"
++      "\"serial_first\":%lu,\"serial_last\":%lu,\"source_first_us\":%llu,\"source_last_us\":%llu,"
++      "\"commit_us\":%llu,\"consume_lag_us\":%llu,\"match_quality\":%.4f,\"progression_evidence\":%.4f,"
++      "\"applied_pwm\":%u,\"ir_integrity\":%u,\"trusted_mm\":%d,\"mismatch_streak\":%u,"
++      "\"model\":%lu,\"phase\":%.1f,\"reason\":\"%s\",\"token_log_drops\":%lu}",
++      (unsigned long long)t.boot,(unsigned long)t.run,(unsigned long)t.ordinal,t.expected,t.committed,
++      (unsigned long)t.firstSerial,(unsigned long)t.lastSerial,(unsigned long long)t.firstUs,
++      (unsigned long long)t.lastUs,(unsigned long long)t.commitUs,(unsigned long long)(t.commitUs-t.lastUs),
++      double(t.quality),double(t.evidence),unsigned(t.pwm),unsigned(t.irValid),t.trusted,unsigned(t.mismatches),
++      (unsigned long)t.model,double(t.phase),t.stopDecision?"LOSS_OF_PROGRESSION_ESTOP":t.mismatches>=5?"LOSS_OF_PATTERN_FIVE_NEW_PIECES":t.finalQuality?(t.atypical?"FINAL_ATYPICAL_NO_REANCHOR":"FINAL_COHERENT"):(t.atypical?"COUNTED_PROVISIONALLY_ATYPICAL":"EXPECTED_PIECE_APPEARED"),
++      (unsigned long)navi.diagnosticDrops());
++    if(size>0 && size<int(sizeof(row))) { pub("diag/rvm_decision",row);console.printf("[RVM] %s\n",row); }
++  }
++}
++
+ static void publishDart() {
+   DartRecord record;
+   for(unsigned i=0;i<2 && navi.takeDartRecord(record);++i) {
+@@ -458,6 +472,13 @@
+ static void serviceNavigationStop() {
+   static bool reported=false;
+   if(!navi.stopRequested()) { reported=false;return; }
++  if(navi.progressionStopped() && !estopAsserted) {
++    portENTER_CRITICAL(&estopMux);
++    orderedEstop.received(true); estopAsserted=true; estopped=true;
++    portEXIT_CRITICAL(&estopMux);
++    autoRunning=autoEnrolled=false; serviceRamp();
++    pub("state/estop","1",true);
++  }
+   if(!reported || autoRunning || autoEnrolled) {
+     char message[160]; snprintf(message,sizeof(message),"Navigation stopped: %s",navi.stopReasonText());
+     withdraw(message);reported=true;
+@@ -1375,6 +1396,7 @@
+   if (!recorder || !recorder->storageReady())
+     haltStartup(navi_resource::BootFault::Recorder,false);
+   bootId = (uint64_t(esp_random()) << 32) | esp_random();
++  navi.setBootId(bootId);
+   const bool startupTimingLoaded=navi.loadStartupTimingLap(LOCO_ID);
+   console.printf("[TIMING] startup_lap=%s source_boot=%016llX lap=%lu direction=CW intervals=171 current_run_laps=0\n",
+     startupTimingLoaded?"LOADED":"UNAVAILABLE",(unsigned long long)startup_lap::kRecordedBoot,
+@@ -1489,6 +1511,7 @@
+   navi.completeComparison(navi.processedHallUs(),esp_timer_get_time());
+   serviceNavigationStop();
+   publishEvents();
++  publishRvm();
+   serviceAutoCruise();
+   publishDart();
+   serviceIrWarning();

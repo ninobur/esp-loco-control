@@ -1,0 +1,105 @@
+{
+  "boot": "4d8083de79a0e299",
+  "start_s": 38.0,
+  "end_s": 69.0,
+  "declared_mm": 146,
+  "direction": 1,
+  "native_source": "hall-ground-20261015/derived/native_4d8083de79a0e299.bin",
+  "native_byte_range": [
+    2878544,
+    5358544
+  ],
+  "native_excerpt_sha256": "7e93659732b7ad50129f7807657751f2307a058be4e41a4643daaaaa3c03badc",
+  "scoring_only_legacy_selections": [
+    {
+      "boot": "4d8083de79a0e299",
+      "open_us": "39274542",
+      "target": "147",
+      "previous_mm": "146",
+      "pole": "1",
+      "dir": "1",
+      "pwm": "55"
+    },
+    {
+      "boot": "4d8083de79a0e299",
+      "open_us": "41883579",
+      "target": "148",
+      "previous_mm": "147",
+      "pole": "-1",
+      "dir": "1",
+      "pwm": "71"
+    },
+    {
+      "boot": "4d8083de79a0e299",
+      "open_us": "44020543",
+      "target": "149",
+      "previous_mm": "148",
+      "pole": "1",
+      "dir": "1",
+      "pwm": "60"
+    },
+    {
+      "boot": "4d8083de79a0e299",
+      "open_us": "46752616",
+      "target": "150",
+      "previous_mm": "149",
+      "pole": "-1",
+      "dir": "1",
+      "pwm": "51"
+    },
+    {
+      "boot": "4d8083de79a0e299",
+      "open_us": "50030852",
+      "target": "151",
+      "previous_mm": "150",
+      "pole": "1",
+      "dir": "1",
+      "pwm": "50"
+    },
+    {
+      "boot": "4d8083de79a0e299",
+      "open_us": "53540543",
+      "target": "152",
+      "previous_mm": "151",
+      "pole": "1",
+      "dir": "1",
+      "pwm": "50"
+    },
+    {
+      "boot": "4d8083de79a0e299",
+      "open_us": "56523543",
+      "target": "153",
+      "previous_mm": "152",
+      "pole": "1",
+      "dir": "1",
+      "pwm": "50"
+    },
+    {
+      "boot": "4d8083de79a0e299",
+      "open_us": "59694891",
+      "target": "154",
+      "previous_mm": "153",
+      "pole": "-1",
+      "dir": "1",
+      "pwm": "50"
+    },
+    {
+      "boot": "4d8083de79a0e299",
+      "open_us": "63215543",
+      "target": "155",
+      "previous_mm": "154",
+      "pole": "1",
+      "dir": "1",
+      "pwm": "50"
+    },
+    {
+      "boot": "4d8083de79a0e299",
+      "open_us": "68022027",
+      "target": "156",
+      "previous_mm": "155",
+      "pole": "-1",
+      "dir": "1",
+      "pwm": "43"
+    }
+  ]
+}

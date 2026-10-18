@@ -1,0 +1,78 @@
+{
+  "boot": "15549e9385faa4d5",
+  "start_s": 1487.0,
+  "end_s": 1506.0,
+  "declared_mm": 156,
+  "direction": 1,
+  "native_source": "hall-ground-20261015/derived/native_15549e9385faa4d5.bin",
+  "native_byte_range": [
+    118353104,
+    119873104
+  ],
+  "native_excerpt_sha256": "64d70a1b374a94258e85774c42f15f792de78f5f9632e26090907dcf34b514f5",
+  "scoring_only_legacy_selections": [
+    {
+      "boot": "15549e9385faa4d5",
+      "open_us": "1494562729",
+      "target": "157",
+      "previous_mm": "156",
+      "pole": "1",
+      "dir": "1",
+      "pwm": "40"
+    },
+    {
+      "boot": "15549e9385faa4d5",
+      "open_us": "1497391512",
+      "target": "158",
+      "previous_mm": "157",
+      "pole": "-1",
+      "dir": "1",
+      "pwm": "59"
+    },
+    {
+      "boot": "15549e9385faa4d5",
+      "open_us": "1499436496",
+      "target": "159",
+      "previous_mm": "158",
+      "pole": "-1",
+      "dir": "1",
+      "pwm": "72"
+    },
+    {
+      "boot": "15549e9385faa4d5",
+      "open_us": "1500862502",
+      "target": "160",
+      "previous_mm": "159",
+      "pole": "1",
+      "dir": "1",
+      "pwm": "82"
+    },
+    {
+      "boot": "15549e9385faa4d5",
+      "open_us": "1502464497",
+      "target": "161",
+      "previous_mm": "160",
+      "pole": "-1",
+      "dir": "1",
+      "pwm": "90"
+    },
+    {
+      "boot": "15549e9385faa4d5",
+      "open_us": "1503814060",
+      "target": "162",
+      "previous_mm": "161",
+      "pole": "1",
+      "dir": "1",
+      "pwm": "90"
+    },
+    {
+      "boot": "15549e9385faa4d5",
+      "open_us": "1505390765",
+      "target": "163",
+      "previous_mm": "162",
+      "pole": "-1",
+      "dir": "1",
+      "pwm": "90"
+    }
+  ]
+}
