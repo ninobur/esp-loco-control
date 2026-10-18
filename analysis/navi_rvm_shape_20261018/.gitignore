@@ -1,0 +1,5 @@
+# regenerable binaries / large intermediates (run scripts/run_all.sh)
+derived/*.npz
+results/**/separation.csv
+results/separation.csv
+__pycache__/
