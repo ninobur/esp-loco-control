@@ -140,10 +140,12 @@ def main():
     # Exact original controls include per-event matching, boundaries, scores and order.
     original_events=pd.read_csv(ORIGINAL/'results/continuous_events.csv')
     replay=pd.DataFrame(events);replay=replay[replay.condition.eq('original')].reset_index(drop=True)
-    pd.testing.assert_frame_equal(replay[original_events.columns],original_events,check_dtype=False,check_exact=True)
+    replay[original_events.columns].to_csv(ROOT/'results/original_events_replay.csv',index=False)
+    assert sha(ROOT/'results/original_events_replay.csv')==sha(ORIGINAL/'results/continuous_events.csv')
     original_summary=pd.read_csv(ORIGINAL/'results/continuous_summary.csv')
     replay=summary[summary.condition.eq('original')].reset_index(drop=True)
-    pd.testing.assert_frame_equal(replay[original_summary.columns],original_summary,check_dtype=False,check_exact=True)
+    replay[original_summary.columns].to_csv(ROOT/'results/original_summary_replay.csv',index=False)
+    assert sha(ROOT/'results/original_summary_replay.csv')==sha(ORIGINAL/'results/continuous_summary.csv')
     assert original_hashes()==before
     checks=dict(status='PASS',base_commit='804f1a2d9306d7c2d19c9ee1be69be4a5ca2fc30',
         minimum_excursion_adc=MIN_EXCURSION_ADC,original_artifacts_unchanged=len(before),

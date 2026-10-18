@@ -1,0 +1,12 @@
+{
+  "status": "PASS",
+  "inclusive_70_and_both_polarities": true,
+  "filter_before_overlap_suppression": true,
+  "principal_measured_before_phase_averaging": true,
+  "complete_candidate_features_unchanged": true,
+  "original_event_and_summary_CSVs_byte_identical": true,
+  "original_artifacts_unchanged": 51,
+  "model_sha256": "1ae49f93c7569560e62a816a9793598fbf0e8311f51bd0fb3464ff0791d7d490",
+  "candidate_audit_rows": 54526,
+  "fixed_partitions_and_unresolved_denominators": true
+}

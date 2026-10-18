@@ -1,0 +1,28 @@
+{
+  "status": "PASS",
+  "native_archive_used": false,
+  "models_refitted": false,
+  "prior_revised_outputs_used": false,
+  "identical_artifacts": [
+    "results/aggregate.csv",
+    "results/annotation_comparison.csv",
+    "results/boundaries.csv",
+    "results/candidate_audit.csv.gz",
+    "results/checks.json",
+    "results/comparison.json",
+    "results/continuous_events.csv",
+    "results/continuous_summary.csv",
+    "results/envelope_excursions.csv",
+    "results/newly_gained_matches.csv",
+    "results/newly_lost_matches.csv",
+    "results/original_events_replay.csv",
+    "results/original_hashes.json",
+    "results/original_summary_replay.csv",
+    "results/paired_summary.csv",
+    "results/validation.json",
+    "figures/boundary_comparison.png",
+    "figures/continuous_comparison.png",
+    "figures/remaining_limitations.png"
+  ],
+  "original_model_sha256": "1ae49f93c7569560e62a816a9793598fbf0e8311f51bd0fb3464ff0791d7d490"
+}

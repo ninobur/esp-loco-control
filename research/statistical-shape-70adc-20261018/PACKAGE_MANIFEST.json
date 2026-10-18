@@ -1,0 +1,146 @@
+{
+  "base_commit": "804f1a2d9306d7c2d19c9ee1be69be4a5ca2fc30",
+  "minimum_excursion_adc": 70,
+  "artifacts": [
+    {
+      "path": "ASSIGNMENT.md",
+      "bytes": 1764,
+      "sha256": "a6eb9fcc8401a4a1ee8c86a3ec561583fe9656603743f60fe3d691420e023896"
+    },
+    {
+      "path": "PROTOCOL.md",
+      "bytes": 4278,
+      "sha256": "c1ef09d82b456b5a04593a535ac58096bf6f30ba7f61fecdbcde18b75e60cba6"
+    },
+    {
+      "path": "README.md",
+      "bytes": 3936,
+      "sha256": "fecd8c2af82491dd852af82d43245e8a474926d06d55c1613998fd547e08038c"
+    },
+    {
+      "path": "REPORT.md",
+      "bytes": 12499,
+      "sha256": "dafdbb1a58e3d0f859835145dcf000fa7948c45568a633ea25efd8433b22f6b4"
+    },
+    {
+      "path": "checks.py",
+      "bytes": 3337,
+      "sha256": "789fcaa442ab5062470c0bc579cc1aa0e068b076beb13b91d92ee188e71e1732"
+    },
+    {
+      "path": "compare.py",
+      "bytes": 10644,
+      "sha256": "f67e029e44f16b4193e5c3fdba6add7eac4158184e408ac282ce7131c7c3d825"
+    },
+    {
+      "path": "figures/boundary_comparison.png",
+      "bytes": 54706,
+      "sha256": "4186b9a8a0855bbdc8f94bec704a775ec63f3e14f6eed27c5714ef680b963d1b"
+    },
+    {
+      "path": "figures/continuous_comparison.png",
+      "bytes": 223121,
+      "sha256": "63635e197b062c612d6b2fb0ab9e6bd8efe84cd9d621dc2c5ae2fe061bc9e002"
+    },
+    {
+      "path": "figures/remaining_limitations.png",
+      "bytes": 99023,
+      "sha256": "b6e4675f693b971a27047a6ed586036a127e234eff5958b25e4870915bc869b6"
+    },
+    {
+      "path": "repeat.py",
+      "bytes": 9205,
+      "sha256": "aebdb30473f9ad10ff4c1d1c822a29cdebff2712f798ee9c9bc79bff77f31287"
+    },
+    {
+      "path": "results/aggregate.csv",
+      "bytes": 1006,
+      "sha256": "32caf18c0851e2e32a1cead1d8996ea194d488b482cfe3ff149096edeec1f954"
+    },
+    {
+      "path": "results/annotation_comparison.csv",
+      "bytes": 193460,
+      "sha256": "1057057945f1a71c62ff40ad08ab78d13556a6f9b900852a1193f6a7b6eb92c8"
+    },
+    {
+      "path": "results/boundaries.csv",
+      "bytes": 2215,
+      "sha256": "a1ce4b5300abe76627a93338bec9dbc50fb0b426dd765a38cff702896d21dc2a"
+    },
+    {
+      "path": "results/candidate_audit.csv.gz",
+      "bytes": 2010327,
+      "sha256": "0f8b7cf2278d656d22e2d2f747b674eeb456989f560595532e800329b28f2131"
+    },
+    {
+      "path": "results/checks.json",
+      "bytes": 485,
+      "sha256": "1ed8220047eed98270c86d81d60e21798e70ef73d1ba22c573f2cc5dc6d5d8a9"
+    },
+    {
+      "path": "results/comparison.json",
+      "bytes": 14131,
+      "sha256": "a12688652d36c4237b3364af9aa278d6193c90ffe9a208a05fabc0d6a7566a1d"
+    },
+    {
+      "path": "results/continuous_events.csv",
+      "bytes": 1235308,
+      "sha256": "7dfee5f88ac166a60f4f2b1c67a4ab758288400abe6464409b509e4fcebb9e36"
+    },
+    {
+      "path": "results/continuous_summary.csv",
+      "bytes": 2912,
+      "sha256": "0e522db314200888def1887e59c4ff999defd6e196eb0a577150b603ab0fa857"
+    },
+    {
+      "path": "results/envelope_excursions.csv",
+      "bytes": 203305,
+      "sha256": "5c3fc4611dddef406f973257a7fa254c0ae540937d79d82a0e4c6f2d6506a7b9"
+    },
+    {
+      "path": "results/newly_gained_matches.csv",
+      "bytes": 361,
+      "sha256": "9a461589bd6ae2e02fad3608609170405883a4d283fb3d8d9008e8efc82ca106"
+    },
+    {
+      "path": "results/newly_lost_matches.csv",
+      "bytes": 361,
+      "sha256": "9a461589bd6ae2e02fad3608609170405883a4d283fb3d8d9008e8efc82ca106"
+    },
+    {
+      "path": "results/original_events_replay.csv",
+      "bytes": 682461,
+      "sha256": "3c74914fe0111e5350dd17043155df76e086305707816d768f631089714ee6e8"
+    },
+    {
+      "path": "results/original_hashes.json",
+      "bytes": 5019,
+      "sha256": "7d64cd957d8d127ded0513360c6d7a309f996ad7a5e03b9e543fd5acc9476008"
+    },
+    {
+      "path": "results/original_summary_replay.csv",
+      "bytes": 1309,
+      "sha256": "b602e43b629b8a4e4e1301ce2d92cb3c2d8fde2ecd7a53d6f4ce71855d371b51"
+    },
+    {
+      "path": "results/paired_summary.csv",
+      "bytes": 130,
+      "sha256": "380ee7cc725be579fa88a1465b0b9e8c9f1b89a2d6ce1ef122049b81d70e1d28"
+    },
+    {
+      "path": "results/portable_reproduction.json",
+      "bytes": 943,
+      "sha256": "9ddd80066143cd1eedd5d25b367e08a0326f889df67c2ef52df9c7b306523a2c"
+    },
+    {
+      "path": "results/validation.json",
+      "bytes": 403,
+      "sha256": "2785fcee6b9010bb4fc1f0df9b80078d3f75bdb2a18b0fa5e10e44e8ae650286"
+    },
+    {
+      "path": "verify_portable.py",
+      "bytes": 1512,
+      "sha256": "1714032ff82fad96343239b7426d1ddeaf6918d91345677c1da82c0789556d1f"
+    }
+  ]
+}

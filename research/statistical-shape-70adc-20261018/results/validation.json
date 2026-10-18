@@ -1,0 +1,11 @@
+{
+  "status": "PASS",
+  "base_commit": "804f1a2d9306d7c2d19c9ee1be69be4a5ca2fc30",
+  "minimum_excursion_adc": 70.0,
+  "original_artifacts_unchanged": 51,
+  "original_events_exactly_reproduced": 5873,
+  "original_summary_rows_exactly_reproduced": 11,
+  "model_sha256": "1ae49f93c7569560e62a816a9793598fbf0e8311f51bd0fb3464ff0791d7d490",
+  "models_refitted": false,
+  "full_profile_max_difference": 0.0
+}
