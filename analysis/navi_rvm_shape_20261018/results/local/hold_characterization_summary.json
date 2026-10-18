@@ -1,0 +1,156 @@
+[
+ {
+  "where": "peak",
+  "hold_s": 0,
+  "cases": 4,
+  "held_counted_once": 4,
+  "held_missed": 0,
+  "held_split": 0,
+  "next5_recognized": 20,
+  "extra": 8,
+  "next5_of": 20
+ },
+ {
+  "where": "peak",
+  "hold_s": 1,
+  "cases": 4,
+  "held_counted_once": 0,
+  "held_missed": 4,
+  "held_split": 0,
+  "next5_recognized": 20,
+  "extra": 8,
+  "next5_of": 20
+ },
+ {
+  "where": "peak",
+  "hold_s": 3,
+  "cases": 4,
+  "held_counted_once": 0,
+  "held_missed": 4,
+  "held_split": 0,
+  "next5_recognized": 18,
+  "extra": 8,
+  "next5_of": 20
+ },
+ {
+  "where": "peak",
+  "hold_s": 5,
+  "cases": 4,
+  "held_counted_once": 0,
+  "held_missed": 4,
+  "held_split": 0,
+  "next5_recognized": 17,
+  "extra": 8,
+  "next5_of": 20
+ },
+ {
+  "where": "peak",
+  "hold_s": 8,
+  "cases": 4,
+  "held_counted_once": 0,
+  "held_missed": 4,
+  "held_split": 0,
+  "next5_recognized": 17,
+  "extra": 8,
+  "next5_of": 20
+ },
+ {
+  "where": "peak",
+  "hold_s": 15,
+  "cases": 4,
+  "held_counted_once": 0,
+  "held_missed": 4,
+  "held_split": 0,
+  "next5_recognized": 15,
+  "extra": 8,
+  "next5_of": 20
+ },
+ {
+  "where": "peak",
+  "hold_s": 30,
+  "cases": 4,
+  "held_counted_once": 0,
+  "held_missed": 4,
+  "held_split": 0,
+  "next5_recognized": 10,
+  "extra": 8,
+  "next5_of": 20
+ },
+ {
+  "where": "rising_half",
+  "hold_s": 0,
+  "cases": 4,
+  "held_counted_once": 4,
+  "held_missed": 0,
+  "held_split": 0,
+  "next5_recognized": 20,
+  "extra": 8,
+  "next5_of": 20
+ },
+ {
+  "where": "rising_half",
+  "hold_s": 1,
+  "cases": 4,
+  "held_counted_once": 0,
+  "held_missed": 4,
+  "held_split": 0,
+  "next5_recognized": 20,
+  "extra": 8,
+  "next5_of": 20
+ },
+ {
+  "where": "rising_half",
+  "hold_s": 3,
+  "cases": 4,
+  "held_counted_once": 0,
+  "held_missed": 4,
+  "held_split": 0,
+  "next5_recognized": 20,
+  "extra": 8,
+  "next5_of": 20
+ },
+ {
+  "where": "rising_half",
+  "hold_s": 5,
+  "cases": 4,
+  "held_counted_once": 0,
+  "held_missed": 4,
+  "held_split": 0,
+  "next5_recognized": 20,
+  "extra": 8,
+  "next5_of": 20
+ },
+ {
+  "where": "rising_half",
+  "hold_s": 8,
+  "cases": 4,
+  "held_counted_once": 0,
+  "held_missed": 4,
+  "held_split": 0,
+  "next5_recognized": 20,
+  "extra": 8,
+  "next5_of": 20
+ },
+ {
+  "where": "rising_half",
+  "hold_s": 15,
+  "cases": 4,
+  "held_counted_once": 0,
+  "held_missed": 4,
+  "held_split": 0,
+  "next5_recognized": 20,
+  "extra": 8,
+  "next5_of": 20
+ },
+ {
+  "where": "rising_half",
+  "hold_s": 30,
+  "cases": 4,
+  "held_counted_once": 0,
+  "held_missed": 4,
+  "held_split": 0,
+  "next5_recognized": 19,
+  "extra": 8,
+  "next5_of": 20
+ }
+]

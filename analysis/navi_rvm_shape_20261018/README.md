@@ -94,3 +94,21 @@ leave-one-pass-out within that one evening.
   family cross-tabulations and the per-passage family.
 - `experiment_folds.json` lists the folds, the region passes and the training
   sizes.
+
+## Field-candidate work, 2026-10-18: the local baseline
+
+This section belongs to
+[`docs/NAVI_RVM_SHAPE_MANUAL_FIELD_CANDIDATE_20261018.md`](../../docs/NAVI_RVM_SHAPE_MANUAL_FIELD_CANDIDATE_20261018.md).
+Its results are in `results/local/`.
+
+| Script | What it does |
+|---|---|
+| `rvm_local.py` | The local-baseline sequential recognizer. It is the reference for `RvmShape.h` |
+| `s10_local_experiment.py` | Leave-one-pass-out evaluation of Model A with the local baseline. Same folds and scoring as `s03` |
+| `s11_nav_replay.py` | Builds the deployable model (`model_A.json`, all of boot 1), then replays navigation from the recorded declarations |
+| `s12_nav_harness.py` | Evaluation harness, not firmware. It re-declares after each CONTRADICTION from the annotation, attributes every break to a cause, and checks STOP/GO |
+| `s13_export_model.py` | Generates `firmware/.../RvmShapeModel.h` |
+| `s14_firmware_parity.py` | Compiles `tests/navi_rvm_shape/replay.cpp` with the sketch headers and runs it on the native boot-1 binary. It compares the result with `rvm_local.py` and writes `parity.json` |
+| `s15_hold_characterization.py` | **Synthetic** characterization: what happens when the Hall level is held inside an ensemble. It is software behaviour, not railway evidence |
+
+To reproduce, run these in order: `s10`, `s11`, `s12`, `s13`, `s14`, `s15`.

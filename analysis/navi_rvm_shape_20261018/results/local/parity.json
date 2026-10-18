@@ -1,0 +1,30 @@
+{
+ "blocks_cpp": 192123,
+ "blocks_python": 192124,
+ "nan_pattern_identical": true,
+ "max_abs_block_diff": 0.00012090773816453293,
+ "ensembles_python": 1097,
+ "ensembles_cpp": 1097,
+ "matched_within_2_blocks": 1097,
+ "identical_centre": 1097,
+ "polarity_same": 1097,
+ "max_llr_diff": 0.00037169190906638505,
+ "python_only": [],
+ "cpp_only": [],
+ "cpp_runtime": {
+  "native_reads": 19125072,
+  "blocks": 192123,
+  "windows_scored": 2508839,
+  "push_mean_us": 11.1,
+  "push_max_us": 532.1,
+  "output_drops": 0,
+  "first_block_us": 1360000,
+  "sizeof_recognizer": 63704
+ },
+ "cpp_nav_events": {
+  "NO_CLAIM": 956,
+  "MM": 135,
+  "DECLARE": 6,
+  "CONTRADICTION": 6
+ }
+}
