@@ -119,3 +119,12 @@ Before a firmware-related commit is considered complete:
 
 Decision 0018 governs this catalog. Decision 0003 continues to govern the
 one-control-sketch rule.
+
+### NAVI_RVM_MANUAL_1_0 draft (2026-10-18)
+
+`test-programs/NAVI_RVM_MANUAL_1_0/` contains **incomplete experimental components**,
+not a buildable or flashable sketch. Implementation stopped after a focused
+recognition replay disagreed with the recording's geographic comparison labels.
+The assignment, architecture limitations, host checks, and outstanding work are
+in [the review record](../docs/navi_rvm_manual/REVIEW.md). No production lineage or
+operational firmware changed; no field acceptance or promotion is claimed.

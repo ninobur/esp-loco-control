@@ -1,0 +1,64 @@
+{
+  "status": "BLOCKED: recognition replay discrepancy; draft only, not a complete sketch",
+  "host_compile": {
+    "command": [
+      "c++",
+      "-std=c++17",
+      "-O2",
+      "-Wall",
+      "-Wextra",
+      "-Werror",
+      "-Ifirmware/test-programs/NAVI_RVM_MANUAL_1_0",
+      "tests/navi_rvm_manual/check.cpp",
+      "-o",
+      "/private/tmp/navi-rvm-manual-check"
+    ],
+    "returncode": 0,
+    "output": ""
+  },
+  "unit_checks": {
+    "returncode": 0,
+    "output": "PASS manual ramp, direction, STOP, E-STOP, neutral, battery, reference dimensions, PWM-only no geographic advancement\n"
+  },
+  "replay": {
+    "command": [
+      "/private/tmp/navi-rvm-manual-check",
+      "tests/navi_rvm/fixtures/heldout_cw.csv",
+      "146",
+      "1"
+    ],
+    "fixture_sha256": "a21811fa0c6de50b4688b1ff83ba9a5c471237ddbd8aa0c373c957f536e7cbb3",
+    "actual": [
+      147,
+      148,
+      149,
+      150,
+      153,
+      157,
+      158,
+      160
+    ],
+    "legacy_comparison_labels": [
+      147,
+      148,
+      149,
+      150,
+      151,
+      152,
+      153,
+      154,
+      155,
+      156
+    ],
+    "sequence_equal": false,
+    "qualification": "Legacy selections are comparison evidence, not independently surveyed ground truth. Completion times differ from legacy event-open times."
+  },
+  "esp32_compile": "NOT RUN: sketch integration stopped",
+  "hardware_testing": "NOT RUN; no flashing",
+  "files_sha256": {
+    "firmware/test-programs/NAVI_RVM_MANUAL_1_0/WaveformObserver.h": "8c3e27a1a358e0908ca3a30bdb721bd6c373d535da6a0714f4f85597ef586569",
+    "firmware/test-programs/NAVI_RVM_MANUAL_1_0/FixedReference.h": "22a85285714f70372b3502d643e9374109c4fb74b732d5a3c61d2bc47d09c70f",
+    "firmware/test-programs/NAVI_RVM_MANUAL_1_0/ManualControl.h": "90479e12edb109920231f4ae81123b555b4f35f8fab76b3857189cb25e1d480e",
+    "firmware/test-programs/NAVI_RVM_MANUAL_1_0/ReferenceTypes.h": "b393a83692c52b3768c9ba3de33122294cae826b29b00954e02c6ba510b2fe6a"
+  }
+}
