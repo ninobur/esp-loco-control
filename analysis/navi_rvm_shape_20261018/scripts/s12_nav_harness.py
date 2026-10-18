@@ -13,7 +13,9 @@ import s10_local_experiment as X
 from s11_nav_replay import Navigator, ROUTE_POL
 OUT = ROOT/'results'/'local'
 det = None
-nr0 = pd.read_csv(OUT/'nav_replay.csv')
+import os
+SUF = os.environ.get('RVM_NAV_SUFFIX', '')          # '' = s11 replay; '_pause' = s17 STOP/GO replay
+nr0 = pd.read_csv(OUT/f'nav_replay{SUF}.csv')
 rec = nr0[nr0.event != 'DECLARE'].copy()                     # all recognitions in time order
 truth = X.ens.copy(); t_s = X.t_us/1e6
 truth['t_mid'] = t_s[((truth.s_i+truth.e_i)/2).astype(int).clip(0, len(t_s)-1)]
@@ -42,7 +44,7 @@ for t, k, r in ev:
     if st == 'CONTRADICTION' and r.truth_mm >= 0:
         d = nav.dir; nav.declare(int(r.truth_mm), int((r.truth_mm + d) % 171), d) if d > 0 else nav.declare(int((r.truth_mm - 1) % 171), int(r.truth_mm), d)
         out[-1]['harness_redeclared'] = True; last_ok_t = r.t_s
-o = pd.DataFrame(out); o.to_csv(OUT/'nav_harness.csv', index=False)
+o = pd.DataFrame(out); o.to_csv(OUT/f'nav_harness{SUF}.csv', index=False)
 cl = o[o.event == 'MM']
 brk = o[(o.event == 'CONTRADICTION') | ((o.event == 'MM') & (o.correct == False))]
 # STOP/GO continuity
@@ -58,7 +60,7 @@ for s0, s1 in stops:
     if len(between_events): continue          # not a continuous tracking stretch
     sg.append(dict(stop_s=round(s0, 1), dur_s=round(s1-s0, 1), mm_before=int(before.mm.iloc[0]), ok_before=bool(before.correct.iloc[0]),
                    mm_after=int(after.mm.iloc[0]), ok_after=bool(after.correct.iloc[0]), consecutive=int(after.mm.iloc[0]) == (int(before.mm.iloc[0]) + nav.dir) % 171 or True))
-sg = pd.DataFrame(sg); sg.to_csv(OUT/'stopgo.csv', index=False)
+sg = pd.DataFrame(sg); sg.to_csv(OUT/f'stopgo{SUF}.csv', index=False)
 # duplicate counting: any truth passage matched by two MM claims
 dup = cl[cl.truth_mm >= 0].groupby('truth_mm').t.apply(lambda s: (np.diff(np.sort(s.values)) < 1.0).any()).sum()
 summ = dict(mm_claims=len(cl), correct=int((cl.correct == True).sum()), wrong=int((cl.correct == False).sum()),
@@ -66,5 +68,5 @@ summ = dict(mm_claims=len(cl), correct=int((cl.correct == True).sum()), wrong=in
             breaks=brk[['t', 'event', 'mm', 'expected', 'truth_mm', 'pol', 'gap_lost_between', 'recognized_between', 'annotated_between']].to_dict('records'),
             stop_go_checked=len(sg), stop_go_all_correct=bool((sg.ok_before & sg.ok_after).all()) if len(sg) else None,
             duplicate_counts=int(dup))
-json.dump(summ, open(OUT/'nav_harness_summary.json', 'w'), indent=1, default=str)
+json.dump(summ, open(OUT/f'nav_harness_summary{SUF}.json', 'w'), indent=1, default=str)
 print(json.dumps(summ, indent=1, default=str))

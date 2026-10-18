@@ -2,6 +2,10 @@
 
 2026-10-18 · Claude (Opus 5.5) · Development, integration, compilation and offline testing only
 
+> **Update 2026-10-18.** STOP/GO continuity is now implemented. See
+> [`NAVI_RVM_SHAPE_MANUAL_STOPGO_20261018.md`](NAVI_RVM_SHAPE_MANUAL_STOPGO_20261018.md),
+> which supersedes §6.1 below.
+>
 > **Status.** This is a compilable candidate. It is **not field accepted** and
 > **has not been flashed**. No locomotive, Pi service, MQTT or dashboard
 > configuration was changed. No upload command exists in the build script.

@@ -1,0 +1,115 @@
+{
+ "lopo_with_pause": {
+  "with_extent": 1081,
+  "recognized_once": 1064,
+  "missed": 17,
+  "split": 0,
+  "unmatched": 2,
+  "unmatched_on_ground": 0,
+  "unmatched_on_other_activity": 2,
+  "polarity_ok": 1075,
+  "polarity_checked": 1075,
+  "d_mid_ms": {
+   "median": 15.0,
+   "p95": 50.0,
+   "max": 170.0
+  },
+  "missed_list": [
+   {
+    "mm": 130,
+    "t_s": 674.23
+   },
+   {
+    "mm": 131,
+    "t_s": 675.39
+   },
+   {
+    "mm": 132,
+    "t_s": 676.47
+   },
+   {
+    "mm": 133,
+    "t_s": 677.53
+   },
+   {
+    "mm": 134,
+    "t_s": 678.57
+   },
+   {
+    "mm": 135,
+    "t_s": 679.65
+   },
+   {
+    "mm": 136,
+    "t_s": 680.71
+   },
+   {
+    "mm": 137,
+    "t_s": 681.79
+   },
+   {
+    "mm": 138,
+    "t_s": 682.95
+   },
+   {
+    "mm": 139,
+    "t_s": 684.13
+   },
+   {
+    "mm": 140,
+    "t_s": 685.21
+   },
+   {
+    "mm": 141,
+    "t_s": 686.33
+   },
+   {
+    "mm": 142,
+    "t_s": 687.45
+   },
+   {
+    "mm": 143,
+    "t_s": 688.57
+   },
+   {
+    "mm": 144,
+    "t_s": 689.77
+   },
+   {
+    "mm": 145,
+    "t_s": 691.03
+   },
+   {
+    "mm": 115,
+    "t_s": 3798.43
+   }
+  ]
+ },
+ "parity": {
+  "python": 1093,
+  "cpp": 1093,
+  "same_count": true,
+  "identical_waveform_centre": 1093,
+  "identical_block_id": 1093,
+  "polarity_same": 1093,
+  "max_llr_diff": 0.00033553213647508073,
+  "cpp_runtime": {
+   "pause": 1,
+   "paused_blocks": 63463,
+   "native_reads": 19125072,
+   "blocks": 192123,
+   "windows_scored": 1466403,
+   "push_mean_us": 6.42,
+   "push_max_us": 515.7,
+   "output_drops": 0,
+   "first_block_us": 1360000,
+   "sizeof_recognizer": 68192
+  },
+  "cpp_nav_events": {
+   "NO_CLAIM": 952,
+   "MM": 135,
+   "DECLARE": 6,
+   "CONTRADICTION": 6
+  }
+ }
+}

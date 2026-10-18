@@ -47,6 +47,9 @@ struct Ensemble {
   uint32_t blStart = 0;      // block index where its reference baseline began
   float llr = 0, amp = 0, level = 0, noise = 0;
   int8_t pol = 0;            // +1 excursion above the baseline, -1 below
+  // The same points as caller block ids (tracing block numbers). The waveform
+  // may skip blocks (WaveformPause), so these are the true times.
+  uint32_t cId = 0, sId = 0, eId = 0, decidedId = 0, blStartId = 0;
 };
 
 class Recognizer {
@@ -54,23 +57,28 @@ class Recognizer {
   static constexpr uint32_t RING = 1024;          // > MAX_W + 2 + acceptance re-scan
   static_assert(RING > uint32_t(MAX_W) * 2 + 8, "ring too small");
 
-  // Declaration / startup: the baseline starts at block index `at` (<= blocks()).
-  void startBaseline(uint32_t at) {
+  // Declaration / startup: the baseline starts at waveform index `at` (<= blocks()).
+  // nextId = the caller's id of the next block to be pushed.
+  void startBaseline(uint32_t at, uint32_t nextId = 0) {
     active_ = true; held_ = false;
     if (at > n_) at = n_;
-    b_ = at; rebuildPrefix();
+    b_ = at; setBaselineId(nextId); rebuildPrefix();
     cursor_ = b_;
   }
   void stop() { active_ = false; held_ = false; }
   bool active() const { return active_; }
   uint32_t blocks() const { return n_; }
   uint32_t baselineStart() const { return b_; }
+  uint32_t baselineStartId() const { return bId_; }
   bool holding() const { return held_; }
 
   // Append the next 20 ms block. Returns true if one or more ensembles were accepted.
-  bool push(float hall, bool ccw) {
+  // `id` is the caller's block id (default: the waveform index itself).
+  bool push(float hall, bool ccw) { return push(hall, ccw, n_); }
+  bool push(float hall, bool ccw, uint32_t id) {
     const uint32_t i = n_;
-    h_[i % RING] = hall; ccw_[i % RING] = ccw;
+    h_[i % RING] = hall; ccw_[i % RING] = ccw; id_[i % RING] = id;
+    if (bIdPending_ && i == b_) { bId_ = id; bIdPending_ = false; }
     ++n_;
     if (active_) extendPrefix(i);
     bool any = false;
@@ -89,8 +97,8 @@ class Recognizer {
   struct Acc { double n, sx, sy, sxx, sxy, dn, ds; };   // sums over [b, i)
   struct Cand { double c, w, end; float llr, amp, lvl, noise; int8_t pol; };
 
-  float h_[RING]; bool ccw_[RING]; Acc p_[RING];
-  uint32_t n_ = 0, b_ = 0, cursor_ = 0;
+  float h_[RING]; bool ccw_[RING]; Acc p_[RING]; uint32_t id_[RING];
+  uint32_t n_ = 0, b_ = 0, bId_ = 0, cursor_ = 0; bool bIdPending_ = false;
   bool active_ = false, held_ = false;
   Cand B_{};
   uint32_t seq_ = 0, scored_ = 0, outDrops_ = 0;
@@ -98,6 +106,14 @@ class Recognizer {
   Ensemble out_[OUTQ]; uint32_t outHead_ = 0, outTail_ = 0;
 
   float hv(uint32_t i) const { return h_[i % RING]; }
+  // the baseline's first block id; if it has not been pushed yet, take the id it arrives with
+  void setBaselineId(uint32_t fallback) {
+    if (b_ < n_) { bId_ = id_[b_ % RING]; bIdPending_ = false; } else { bId_ = fallback; bIdPending_ = true; }
+  }
+  uint32_t idAt(double x) const {           // id of the waveform block containing x
+    uint32_t i = x <= 0 ? 0 : uint32_t(x); if (i >= n_) i = n_ - 1;
+    return id_[i % RING];
+  }
 
   // prefix p_[i] = sums over [b, i); p_[b] = 0
   void rebuildPrefix() {
@@ -174,10 +190,12 @@ class Recognizer {
     o.seq = ++seq_; o.c = B_.c; o.w = B_.w; o.s = B_.c - B_.w / 4; o.e = B_.c + B_.w / 4;
     o.decided = decided; o.blStart = b_; o.llr = B_.llr; o.amp = B_.amp; o.level = B_.lvl;
     o.noise = B_.noise; o.pol = B_.pol;
+    o.cId = idAt(o.c); o.sId = idAt(o.s); o.eId = idAt(o.e); o.decidedId = idAt(decided); o.blStartId = bId_;
     if (outHead_ - outTail_ < OUTQ) { out_[outHead_ % OUTQ] = o; ++outHead_; } else ++outDrops_;
     const double end = B_.end;
     held_ = false;
     b_ = uint32_t(ceil(end)); if (b_ > n_) b_ = n_;
+    setBaselineId(0);
     rebuildPrefix();
     cursor_ = b_ + MIN_BL + SCALES[0];
   }

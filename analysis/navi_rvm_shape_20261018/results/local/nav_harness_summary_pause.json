@@ -1,0 +1,399 @@
+{
+ "mm_claims": 1060,
+ "correct": 1047,
+ "wrong": 13,
+ "claims_on_unannotated": 4,
+ "breaks": [
+  {
+   "t": 125.59,
+   "event": "CONTRADICTION",
+   "mm": NaN,
+   "expected": 64.0,
+   "truth_mm": -1.0,
+   "pol": 1.0,
+   "gap_lost_between": [],
+   "recognized_between": 1.0,
+   "annotated_between": 0.0
+  },
+  {
+   "t": 288.93,
+   "event": "CONTRADICTION",
+   "mm": NaN,
+   "expected": 79.0,
+   "truth_mm": 80.0,
+   "pol": 1.0,
+   "gap_lost_between": [
+    79
+   ],
+   "recognized_between": 1.0,
+   "annotated_between": 2.0
+  },
+  {
+   "t": 674.35,
+   "event": "CONTRADICTION",
+   "mm": NaN,
+   "expected": 129.0,
+   "truth_mm": 130.0,
+   "pol": -1.0,
+   "gap_lost_between": [
+    129
+   ],
+   "recognized_between": 1.0,
+   "annotated_between": 2.0
+  },
+  {
+   "t": 765.53,
+   "event": "CONTRADICTION",
+   "mm": NaN,
+   "expected": 157.0,
+   "truth_mm": 159.0,
+   "pol": -1.0,
+   "gap_lost_between": [
+    157,
+    158
+   ],
+   "recognized_between": 1.0,
+   "annotated_between": 3.0
+  },
+  {
+   "t": 996.57,
+   "event": "MM",
+   "mm": 28.0,
+   "expected": 28.0,
+   "truth_mm": 29.0,
+   "pol": 1.0,
+   "gap_lost_between": [
+    28
+   ],
+   "recognized_between": 1.0,
+   "annotated_between": 2.0
+  },
+  {
+   "t": 997.85,
+   "event": "MM",
+   "mm": 29.0,
+   "expected": 29.0,
+   "truth_mm": 30.0,
+   "pol": 1.0,
+   "gap_lost_between": [
+    28
+   ],
+   "recognized_between": 2.0,
+   "annotated_between": 3.0
+  },
+  {
+   "t": 999.17,
+   "event": "MM",
+   "mm": 30.0,
+   "expected": 30.0,
+   "truth_mm": 31.0,
+   "pol": 1.0,
+   "gap_lost_between": [
+    28
+   ],
+   "recognized_between": 3.0,
+   "annotated_between": 4.0
+  },
+  {
+   "t": 1000.53,
+   "event": "MM",
+   "mm": 31.0,
+   "expected": 31.0,
+   "truth_mm": 32.0,
+   "pol": 1.0,
+   "gap_lost_between": [
+    28
+   ],
+   "recognized_between": 4.0,
+   "annotated_between": 5.0
+  },
+  {
+   "t": 1001.85,
+   "event": "CONTRADICTION",
+   "mm": NaN,
+   "expected": 32.0,
+   "truth_mm": 33.0,
+   "pol": -1.0,
+   "gap_lost_between": [
+    28
+   ],
+   "recognized_between": 5.0,
+   "annotated_between": 6.0
+  },
+  {
+   "t": 1447.71,
+   "event": "MM",
+   "mm": 147.0,
+   "expected": 147.0,
+   "truth_mm": -1.0,
+   "pol": 1.0,
+   "gap_lost_between": [
+    147
+   ],
+   "recognized_between": 1.0,
+   "annotated_between": 1.0
+  },
+  {
+   "t": 1551.93,
+   "event": "MM",
+   "mm": 13.0,
+   "expected": 13.0,
+   "truth_mm": 14.0,
+   "pol": 1.0,
+   "gap_lost_between": [
+    13
+   ],
+   "recognized_between": 1.0,
+   "annotated_between": 2.0
+  },
+  {
+   "t": 1576.97,
+   "event": "CONTRADICTION",
+   "mm": NaN,
+   "expected": 14.0,
+   "truth_mm": 15.0,
+   "pol": -1.0,
+   "gap_lost_between": [
+    13
+   ],
+   "recognized_between": 2.0,
+   "annotated_between": 3.0
+  },
+  {
+   "t": 1635.61,
+   "event": "CONTRADICTION",
+   "mm": NaN,
+   "expected": 41.0,
+   "truth_mm": 42.0,
+   "pol": 1.0,
+   "gap_lost_between": [
+    41
+   ],
+   "recognized_between": 1.0,
+   "annotated_between": 2.0
+  },
+  {
+   "t": 1711.87,
+   "event": "CONTRADICTION",
+   "mm": NaN,
+   "expected": 64.0,
+   "truth_mm": 65.0,
+   "pol": 1.0,
+   "gap_lost_between": [
+    64
+   ],
+   "recognized_between": 1.0,
+   "annotated_between": 2.0
+  },
+  {
+   "t": 1740.69,
+   "event": "CONTRADICTION",
+   "mm": NaN,
+   "expected": 89.0,
+   "truth_mm": 90.0,
+   "pol": 1.0,
+   "gap_lost_between": [
+    89
+   ],
+   "recognized_between": 1.0,
+   "annotated_between": 2.0
+  },
+  {
+   "t": 2250.55,
+   "event": "CONTRADICTION",
+   "mm": NaN,
+   "expected": 117.0,
+   "truth_mm": 118.0,
+   "pol": 1.0,
+   "gap_lost_between": [
+    117
+   ],
+   "recognized_between": 1.0,
+   "annotated_between": 2.0
+  },
+  {
+   "t": 2372.65,
+   "event": "MM",
+   "mm": 8.0,
+   "expected": 8.0,
+   "truth_mm": 9.0,
+   "pol": -1.0,
+   "gap_lost_between": [
+    8
+   ],
+   "recognized_between": 1.0,
+   "annotated_between": 2.0
+  },
+  {
+   "t": 2375.85,
+   "event": "MM",
+   "mm": 9.0,
+   "expected": 9.0,
+   "truth_mm": 10.0,
+   "pol": -1.0,
+   "gap_lost_between": [
+    8
+   ],
+   "recognized_between": 2.0,
+   "annotated_between": 3.0
+  },
+  {
+   "t": 2379.09,
+   "event": "CONTRADICTION",
+   "mm": NaN,
+   "expected": 10.0,
+   "truth_mm": 11.0,
+   "pol": 1.0,
+   "gap_lost_between": [
+    8
+   ],
+   "recognized_between": 3.0,
+   "annotated_between": 4.0
+  },
+  {
+   "t": 2446.71,
+   "event": "CONTRADICTION",
+   "mm": NaN,
+   "expected": 17.0,
+   "truth_mm": 18.0,
+   "pol": -1.0,
+   "gap_lost_between": [
+    17
+   ],
+   "recognized_between": 1.0,
+   "annotated_between": 2.0
+  },
+  {
+   "t": 2680.81,
+   "event": "MM",
+   "mm": 123.0,
+   "expected": 123.0,
+   "truth_mm": -1.0,
+   "pol": -1.0,
+   "gap_lost_between": [],
+   "recognized_between": 1.0,
+   "annotated_between": 0.0
+  },
+  {
+   "t": 2818.23,
+   "event": "MM",
+   "mm": 102.0,
+   "expected": 102.0,
+   "truth_mm": 101.0,
+   "pol": -1.0,
+   "gap_lost_between": [
+    102
+   ],
+   "recognized_between": 1.0,
+   "annotated_between": 2.0
+  },
+  {
+   "t": 2819.63,
+   "event": "CONTRADICTION",
+   "mm": NaN,
+   "expected": 101.0,
+   "truth_mm": 100.0,
+   "pol": 1.0,
+   "gap_lost_between": [
+    102
+   ],
+   "recognized_between": 2.0,
+   "annotated_between": 3.0
+  },
+  {
+   "t": 2849.17,
+   "event": "MM",
+   "mm": 76.0,
+   "expected": 76.0,
+   "truth_mm": -1.0,
+   "pol": 1.0,
+   "gap_lost_between": [
+    76
+   ],
+   "recognized_between": 1.0,
+   "annotated_between": 1.0
+  },
+  {
+   "t": 2909.63,
+   "event": "MM",
+   "mm": 57.0,
+   "expected": 57.0,
+   "truth_mm": -1.0,
+   "pol": -1.0,
+   "gap_lost_between": [
+    57
+   ],
+   "recognized_between": 1.0,
+   "annotated_between": 1.0
+  },
+  {
+   "t": 3006.19,
+   "event": "MM",
+   "mm": 16.0,
+   "expected": 16.0,
+   "truth_mm": 15.0,
+   "pol": -1.0,
+   "gap_lost_between": [
+    16
+   ],
+   "recognized_between": 1.0,
+   "annotated_between": 2.0
+  },
+  {
+   "t": 3009.37,
+   "event": "CONTRADICTION",
+   "mm": NaN,
+   "expected": 15.0,
+   "truth_mm": 14.0,
+   "pol": 1.0,
+   "gap_lost_between": [
+    16
+   ],
+   "recognized_between": 2.0,
+   "annotated_between": 3.0
+  },
+  {
+   "t": 3270.69,
+   "event": "CONTRADICTION",
+   "mm": NaN,
+   "expected": 73.0,
+   "truth_mm": 72.0,
+   "pol": -1.0,
+   "gap_lost_between": [
+    73
+   ],
+   "recognized_between": 1.0,
+   "annotated_between": 2.0
+  },
+  {
+   "t": 3355.19,
+   "event": "CONTRADICTION",
+   "mm": NaN,
+   "expected": 36.0,
+   "truth_mm": 34.0,
+   "pol": 1.0,
+   "gap_lost_between": [
+    36,
+    35
+   ],
+   "recognized_between": 1.0,
+   "annotated_between": 3.0
+  },
+  {
+   "t": 3466.03,
+   "event": "CONTRADICTION",
+   "mm": NaN,
+   "expected": 5.0,
+   "truth_mm": 4.0,
+   "pol": -1.0,
+   "gap_lost_between": [
+    5
+   ],
+   "recognized_between": 1.0,
+   "annotated_between": 2.0
+  }
+ ],
+ "stop_go_checked": 31,
+ "stop_go_all_correct": false,
+ "duplicate_counts": 0
+}

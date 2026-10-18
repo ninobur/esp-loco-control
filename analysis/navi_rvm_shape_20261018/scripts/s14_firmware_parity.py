@@ -30,7 +30,7 @@ with open(CPP_OUT/'decl.csv', 'w') as f:
 py = L.run(X.T, Em, Nm, [(i, 'decl') for i, *_ in rows])
 py.to_csv(OUT/'python_reference_detections.csv', index=False)
 # C++
-res = subprocess.run([str(BIN), str(HG/f'native_{BOOT1}.bin'), str(CPP_OUT/'decl.csv'), str(CPP_OUT)], capture_output=True, text=True, check=True)
+res = subprocess.run([str(BIN), str(HG/f'native_{BOOT1}.bin'), str(CPP_OUT/'decl.csv'), str(CPP_OUT), '--no-pause'], capture_output=True, text=True, check=True)
 stats = json.loads(res.stdout.strip().splitlines()[-1])
 cb = np.fromfile(CPP_OUT/'blocks.bin', dtype=np.float32)
 ph = X.h

@@ -3,3 +3,4 @@ derived/*.npz
 results/**/separation.csv
 results/separation.csv
 __pycache__/
+derived/*.npy

@@ -6,8 +6,13 @@ It is for Otto (9950011) only.
 **The full report:**
 [`docs/NAVI_RVM_SHAPE_MANUAL_FIELD_CANDIDATE_20261018.md`](../../../docs/NAVI_RVM_SHAPE_MANUAL_FIELD_CANDIDATE_20261018.md).
 
-Read its §6 before any powered run. **Stopping with the Hall sensor over a
-magnet is not handled.** That magnet is not counted.
+STOP/GO continuity (STOPPED = applied PWM < 25 pauses the recognition waveform) is described in
+[`docs/NAVI_RVM_SHAPE_MANUAL_STOPGO_20261018.md`](../../../docs/NAVI_RVM_SHAPE_MANUAL_STOPGO_20261018.md).
+That document also holds the build and flashing instructions.
+
+Read its §3 and §4 before any powered run. Commanded stops are fully preserved
+offline. On Otto, however, a stop with the sensor car over a magnet will usually
+still lose that magnet, because he stays still above PWM 25 when starting.
 
 **Control and navigation**
 

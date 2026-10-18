@@ -5,6 +5,7 @@
 #include <vector>
 #include <random>
 #include "RvmTracing.h"
+#include "RvmPause.h"
 #include "RvmShape.h"
 #include "RvmNavigator.h"
 static int fails = 0;
@@ -35,14 +36,14 @@ static void tracingTests() {
   Tracing t; std::vector<Block> out;
   auto emit = [&](const Block& b) { out.push_back(b); };
   uint32_t s = 0;
-  for (int i = 0; i < 100; ++i) t.add(1000000 + i * 200, 2000, 1, ++s, emit);          // block 0: 100 reads
-  for (int i = 0; i < 40; ++i)  t.add(1020000 + i * 200, 1900, 1, ++s, emit);          // block 1: 40 reads -> gap
-  for (int i = 0; i < 100; ++i) t.add(1060000 + i * 200, 1800, 2, ++s, emit);          // block 2 empty, block 3 ok
+  for (int i = 0; i < 100; ++i) t.add(1000000 + i * 200, 2000, 1, ++s, uint8_t(i < 50 ? 10 : 40), emit);          // block 0: 100 reads
+  for (int i = 0; i < 40; ++i)  t.add(1020000 + i * 200, 1900, 1, ++s, 0, emit);          // block 1: 40 reads -> gap
+  for (int i = 0; i < 100; ++i) t.add(1060000 + i * 200, 1800, 2, ++s, 0, emit);          // block 2 empty, block 3 ok
   s += 5;                                                                              // lost reads
-  for (int i = 0; i < 100; ++i) t.add(1080000 + i * 200, 1700, 2, ++s, emit);          // block 4 after a jump
-  t.add(1100000, 1, 0, ++s, emit);                                                     // closes block 4
+  for (int i = 0; i < 100; ++i) t.add(1080000 + i * 200, 1700, 2, ++s, 0, emit);          // block 4 after a jump
+  t.add(1100000, 1, 0, ++s, 0, emit);                                                     // closes block 4
   CHECK(out.size() == 5);
-  CHECK(out[0].n == 100 && fabsf(out[0].hall - 2000) < 1e-3f && out[0].dir == 1);
+  CHECK(out[0].n == 100 && fabsf(out[0].hall - 2000) < 1e-3f && out[0].dir == 1 && out[0].pwm == 40);
   CHECK(std::isnan(out[1].hall) && out[1].n == 40);
   CHECK(std::isnan(out[2].hall) && out[2].n == 0 && out[2].dir == 0);
   CHECK(std::isnan(out[3].hall));                                      // block before a serial jump
@@ -81,8 +82,50 @@ static void recognizerTests() {
   if (got.size() == 1) { CHECK(got[0].pol == 1); CHECK(fabs(got[0].c - 600) <= 6); }
 }
 
+
+static void pauseTests() {
+  WaveformPause p;
+  CHECK(!p.admit(0));                       // never declared and stopped: not appended
+  p.declared();
+  CHECK(p.admit(0) && p.admit(24));         // startup: declared stationary baseline is appended
+  CHECK(p.admit(25) && !p.paused());        // first moving block ends startup
+  CHECK(!p.admit(24) && p.paused());        // STOPPED = PWM < 25: paused
+  CHECK(!p.admit(0) && p.paused());
+  CHECK(p.admit(90) && !p.paused());        // resumed
+  p.declared(); CHECK(p.admit(0));          // a new declaration is a new startup
+}
+
+// The same bump with commanded stops inserted (PWM 0 blocks) must give exactly
+// the same recognition as without them.
+static void stopGoTests() {
+  std::mt19937 g(11);
+  const std::vector<float> v = bumpLine(1, 600, 5, g);
+  auto run = [&](const std::vector<int>& stopAt, int stopLen, std::vector<Ensemble>& got) {
+    static Recognizer r; r = Recognizer(); WaveformPause p; uint32_t id = 0;
+    std::normal_distribution<double> nz(0, 2.0);
+    for (size_t i = 0; i < v.size(); ++i) {
+      for (int sa : stopAt) if (int(i) == sa) for (int k = 0; k < stopLen; ++k) {
+        if (p.admit(0)) r.push(float(v[i] + nz(g)), false, id); ++id;   // held Hall while stopped
+      }
+      if (i == 100) { r.startBaseline(r.blocks(), id); p.declared(); }
+      if (p.admit(i < 100 ? 0 : 90)) r.push(v[i], false, id);
+      ++id;
+      Ensemble e; while (r.take(e)) got.push_back(e);
+    }
+  };
+  std::vector<Ensemble> ref; run({}, 0, ref);
+  CHECK(ref.size() == 1);
+  for (int at : {300, 585, 592, 600, 608, 615, 640}) for (int len : {50, 1500}) {
+    std::vector<Ensemble> got; run({at}, len, got);
+    CHECK(got.size() == 1);
+    if (got.size() == 1 && ref.size() == 1) { CHECK(got[0].pol == ref[0].pol); CHECK(fabs(got[0].c - ref[0].c) < 1e-9); CHECK(fabsf(got[0].llr - ref[0].llr) < 1e-6f); }
+  }
+  std::vector<Ensemble> rep; run({590, 600, 610}, 100, rep);           // repeated STOP/GO in one ensemble
+  CHECK(rep.size() == 1);
+}
+
 int main() {
-  navigatorTests(); tracingTests(); recognizerTests();
+  navigatorTests(); tracingTests(); recognizerTests(); pauseTests(); stopGoTests();
   printf("%s (%d failures)\n", fails ? "UNIT CHECKS FAILED" : "UNIT CHECKS PASSED", fails);
   return fails ? 1 : 0;
 }

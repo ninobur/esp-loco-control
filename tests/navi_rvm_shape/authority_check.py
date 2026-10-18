@@ -19,9 +19,15 @@ def used(body):
             or re.search(r'(?:\+\+|--)%s\b' % v, body)]
     return out
 bad = []
-for h in ['RvmShape.h', 'RvmNavigator.h', 'RvmTracing.h', 'RvmShapeModel.h']:
+# Recognizer and navigator: no PWM, actuator, safety or network symbol at all.
+for h in ['RvmShape.h', 'RvmNavigator.h', 'RvmShapeModel.h']:
     t = strip_comments((S / h).read_text())
-    for a in CALLS + STATE + ['Pwm', 'pwm', 'estop', 'Estop', 'throttle', 'motor', 'Arduino', 'mqtt']:
+    for a in CALLS + STATE + ['Pwm', 'pwm', 'PWM', 'estop', 'Estop', 'throttle', 'motor', 'Arduino', 'mqtt']:
+        if a in t: bad.append(f'{h} code mentions {a!r}')
+# Tracing carries the block's PWM; the pause reads it. Neither may touch an actuator or safety state.
+for h in ['RvmTracing.h', 'RvmPause.h']:
+    t = strip_comments((S / h).read_text())
+    for a in CALLS + STATE + ['estop', 'Estop', 'throttle', 'motor', 'Arduino', 'mqtt']:
         if a in t: bad.append(f'{h} code mentions {a!r}')
 src = strip_comments((S / 'NAVI_RVM_SHAPE_MANUAL.ino').read_text())
 # crude function splitter: top-level "static ... name(...) {" or "void name() {"
@@ -48,6 +54,9 @@ for f, u in uses.items():
 for f in NAV:
     if f not in funcs: bad.append(f'navigation function {f} not found')
     elif uses.get(f): bad.append(f'navigation function {f} touches {uses[f]}')
+# In the sketch, a block's PWM is read in exactly one place: the pause decision.
+pwm_reads = re.findall(r'\bb\.pwm\b[^;]*', src)
+if len(pwm_reads) != 1 or 'waveformPause.admit(b.pwm)' not in src: bad.append(f'block PWM used outside the pause: {pwm_reads}')
 report = dict(functions_with_actuator_access={f: u for f, u in uses.items() if u}, navigation_functions=NAV, violations=bad)
 print(json.dumps(report, indent=1))
 sys.exit(1 if bad else 0)

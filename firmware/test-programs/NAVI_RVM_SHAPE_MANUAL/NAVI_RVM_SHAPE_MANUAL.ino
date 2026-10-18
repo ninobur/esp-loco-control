@@ -12,7 +12,10 @@
  * Navigation watches. NAVI_RVM statistical shape recognition (Model A, the
  * general composite) reads the 20 ms Hall tracing, recognizes complete magnetic
  * ensembles against the local baseline that precedes them, and the known route
- * polarity turns each completed MM -> BL -> MM piece into progression. A
+ * polarity turns each completed MM -> BL -> MM piece into progression.
+ * STOP/GO: while STOPPED (applied PWM < 25) the recognition waveform is paused
+ * (RvmPause.h): the unfinished ensemble, its baseline and the held candidate
+ * survive the stop and are completed after it. PWM does nothing else. A
  * complete ensemble of the wrong polarity is a CONTRADICTION: reported, the
  * waveform preserved on the Pi, and no geographic claim until the operator
  * declares again. Nothing in navigation can reach the motor.
@@ -38,6 +41,7 @@
 #include "NaviEstop.h"
 #include "RouteMap.h"
 #include "RvmTracing.h"
+#include "RvmPause.h"
 #include "RvmShape.h"
 #include "RvmNavigator.h"
 
@@ -111,12 +115,14 @@ struct NavEvent {
 enum : uint8_t { EV_DECLARED = 1, EV_SUSPENDED = 2, EV_ENSEMBLE = 3 };
 struct NavSnapshot {
   uint8_t state = 0, last = 0, next = 0, contradicted = 0xFF; int8_t dir = 0;
-  uint32_t recognized = 0, advanced = 0, contradictions = 0, blocks = 0, blStart = 0, windows = 0, outDrops = 0;
-  bool holding = false, active = false;
+  uint32_t recognized = 0, advanced = 0, contradictions = 0, blocks = 0, blStart = 0, windows = 0, outDrops = 0, pausedBlocks = 0;
+  bool holding = false, active = false, paused = false;
   uint32_t maxPushUs = 0;
 };
 static rvm_shape::Recognizer recognizer;           // ~64 KB, static
 static rvm_shape::Navigator navigator;
+static rvm_shape::WaveformPause waveformPause;      // owned by rvmTask
+static uint32_t pausedBlocks = 0;
 static NavSnapshot navShared;
 static portMUX_TYPE navMux = portMUX_INITIALIZER_UNLOCKED;
 static std::atomic<uint64_t> firstBlockUs{0};
@@ -125,8 +131,8 @@ static std::atomic<uint32_t> rvmStackFree{0};
 static NavSnapshot navSnapshot() {
   portENTER_CRITICAL(&navMux); NavSnapshot s = navShared; portEXIT_CRITICAL(&navMux); return s;
 }
-static uint64_t blockUs(double index) {            // centre of block `index` on the boot clock
-  return firstBlockUs.load() + uint64_t(index * rvm_shape::Tracing::BLOCK_US) + rvm_shape::Tracing::BLOCK_US / 2;
+static uint64_t blockUs(uint32_t id) {             // centre of tracing block `id` on the boot clock
+  return firstBlockUs.load() + uint64_t(id) * rvm_shape::Tracing::BLOCK_US + rvm_shape::Tracing::BLOCK_US / 2;
 }
 
 // ------------------------------------------------------------ recorder --
@@ -242,7 +248,7 @@ static void hallTask(void*) {
       navi_sync::NativeHallItem item{};
       item.serial = serial; item.tUs = us; item.raw = int16_t(raw); item.pwm = uint8_t(actualPwm); item.direction = dirByte;
       recorder->addNativeHall(item, ctx);
-      tracing.add(us, uint16_t(raw), dirByte, serial, emit);
+      tracing.add(us, uint16_t(raw), dirByte, serial, uint8_t(actualPwm), emit);
       if (!firstBlockUs.load()) firstBlockUs.store(tracing.firstBlockUs());
     }
     wire.median = INT16_MIN;
@@ -259,7 +265,8 @@ static void publishSnapshot() {
   NavSnapshot s;
   s.state = uint8_t(navigator.state()); s.last = navigator.lastMm(); s.next = navigator.nextMm();
   s.dir = navigator.dir(); s.contradicted = navigator.contradictedMm();
-  s.blocks = recognizer.blocks(); s.blStart = recognizer.baselineStart(); s.holding = recognizer.holding();
+  s.blocks = recognizer.blocks(); s.blStart = recognizer.baselineStartId(); s.holding = recognizer.holding();
+  s.paused = waveformPause.paused(); s.pausedBlocks = pausedBlocks;
   s.active = recognizer.active(); s.windows = recognizer.windowsScored(); s.outDrops = recognizer.outputDrops();
   portENTER_CRITICAL(&navMux);
   s.recognized = navShared.recognized; s.advanced = navShared.advanced; s.contradictions = navShared.contradictions;
@@ -276,6 +283,7 @@ static void applyControl() {
       // Startup baseline: the Hall sensor is declared clear of a magnet, standing
       // still; the tracing from this block on is the first baseline (BL0).
       recognizer.startBaseline(recognizer.blocks());
+      waveformPause.declared();                     // stationary declared tracing = BL0 until first movement
       navigator.declare(c.last, c.next, c.dir);
       ev.kind = EV_DECLARED;
     } else {
@@ -292,8 +300,11 @@ static void rvmTask(void*) {
     const bool got = blockQ && xQueueReceive(blockQ, &b, pdMS_TO_TICKS(100)) == pdTRUE;
     applyControl();                                   // declarations take effect at a block boundary
     if (!got) { publishSnapshot(); continue; }
+    // STOP/GO: a STOPPED block (applied PWM < 25) is not appended; everything
+    // already in the waveform, including an unfinished ensemble, is preserved.
+    if (!waveformPause.admit(b.pwm)) { ++pausedBlocks; publishSnapshot(); continue; }
     const uint64_t t0 = esp_timer_get_time();
-    recognizer.push(b.hall, b.dir == 2);
+    recognizer.push(b.hall, b.dir == 2, b.index);
     const uint32_t took = uint32_t(esp_timer_get_time() - t0);
     rvm_shape::Ensemble e;
     while (recognizer.take(e)) {
@@ -327,12 +338,12 @@ static void publishNavState() {
     "{\"state\":\"%s\",\"mm\":%u,\"target\":%u,\"dir\":%d,\"session_dir\":\"%s\","
     "\"position_reliable\":%u,\"event\":\"%s\",\"contradicted_mm\":%s,"
     "\"recognized\":%lu,\"advanced\":%lu,\"contradictions\":%lu,"
-    "\"recognizer_active\":%u,\"holding_candidate\":%u,\"baseline_start_us\":%llu,"
+    "\"recognizer_active\":%u,\"holding_candidate\":%u,\"waveform_paused\":%u,\"baseline_start_us\":%llu,"
     "\"authority\":\"NAVI_RVM_SHAPE_OBSERVATION_ONLY\"}",
     stateName(s.state), s.last, s.next, s.dir, sessionDir > 0 ? "CW" : sessionDir < 0 ? "CCW" : "UNSET",
     s.state == uint8_t(rvm_shape::NavState::Tracking), lastNavEvent, contradicted,
     (unsigned long)s.recognized, (unsigned long)s.advanced, (unsigned long)s.contradictions,
-    s.active, s.holding, (unsigned long long)(s.active ? blockUs(s.blStart) : 0));
+    s.active, s.holding, s.paused, (unsigned long long)(s.active ? blockUs(s.blStart) : 0));
   pub("state/nav", payload, true);
   pub("state/nav_ready", s.state == uint8_t(rvm_shape::NavState::Tracking) ? "1" : "0", true);
 }
@@ -356,15 +367,15 @@ static void serviceNavEvents() {
       snprintf(row, sizeof(row),
         "{\"boot\":\"%016llX\",\"seq\":%lu,\"result\":\"%s\",\"mm\":%s,\"expected_mm\":%s,"
         "\"expected_polarity\":\"%s\",\"polarity\":\"%s\",\"dir\":%d,"
-        "\"midpoint_us\":%llu,\"start_us\":%llu,\"end_us\":%llu,\"window_ms\":%.0f,"
+        "\"midpoint_us\":%llu,\"start_us\":%llu,\"end_us\":%llu,\"waveform_window_ms\":%.0f,"
         "\"decided_us\":%llu,\"baseline_start_us\":%llu,\"llr\":%.3f,\"amplitude\":%.1f,"
         "\"baseline_level\":%.1f,\"baseline_noise\":%.2f,\"authority\":\"OBSERVATION_ONLY\"}",
         (unsigned long long)bootId, (unsigned long)e.seq, result, mm, expected,
         r == rvm_shape::NavResult::NoClaim ? "NA" : rvm_shape::expectedHallSign(ev.expected) > 0 ? "N" : "S",
         e.pol > 0 ? "N" : "S", ev.dir,
-        (unsigned long long)blockUs(e.c), (unsigned long long)blockUs(e.s), (unsigned long long)blockUs(e.e),
-        e.w * rvm_shape::Tracing::BLOCK_US / 1000.0, (unsigned long long)blockUs(e.decided),
-        (unsigned long long)blockUs(e.blStart), double(e.llr), double(e.amp), double(e.level), double(e.noise));
+        (unsigned long long)blockUs(e.cId), (unsigned long long)blockUs(e.sId), (unsigned long long)blockUs(e.eId),
+        e.w * rvm_shape::Tracing::BLOCK_US / 1000.0, (unsigned long long)blockUs(e.decidedId),
+        (unsigned long long)blockUs(e.blStartId), double(e.llr), double(e.amp), double(e.level), double(e.noise));
       pub("diag/rvm_ensemble", row);
       Serial.printf("[RVM] %s\n", row);
       if (r == rvm_shape::NavResult::Advanced) pub("mm/marker", row);
@@ -514,12 +525,12 @@ static void serviceStatus() {
   char payload[600];
   snprintf(payload, sizeof(payload),
     "{\"build\":\"%s\",\"class\":\"%s\",\"model\":\"%s\",\"pwm\":%d,\"commanded\":%d,\"estop\":%u,\"lowvolt\":%u,"
-    "\"nav\":\"%s\",\"blocks\":%lu,\"block_q_drop\":%lu,\"nav_event_drop\":%lu,\"ctl_drop\":%lu,"
+    "\"nav\":\"%s\",\"blocks\":%lu,\"paused_blocks\":%lu,\"block_q_drop\":%lu,\"nav_event_drop\":%lu,\"ctl_drop\":%lu,"
     "\"windows_scored\":%lu,\"rvm_out_drop\":%lu,\"rvm_push_max_us\":%lu,\"rvm_stack_free\":%lu,"
     "\"nsr_hall_drop\":%lu,\"nsr_native_drop\":%lu,\"nsr_udp_fail\":%lu,\"pub_drop\":%lu,\"cmd_drop\":%lu,"
     "\"heap_free\":%u,\"heap_min\":%u}",
     SKETCH_NAME, BUILD_CLASS, rvm_shape::MODEL_SHA256, int(actualPwm), int(commandedPwm), unsigned(estopped || estopAsserted), unsigned(lowVoltage),
-    stateName(s.state), (unsigned long)s.blocks, (unsigned long)blockQueueDrops.load(), (unsigned long)navEventDrops.load(),
+    stateName(s.state), (unsigned long)s.blocks, (unsigned long)s.pausedBlocks, (unsigned long)blockQueueDrops.load(), (unsigned long)navEventDrops.load(),
     (unsigned long)ctlDrops.load(), (unsigned long)s.windows, (unsigned long)s.outDrops, (unsigned long)s.maxPushUs,
     (unsigned long)rvmStackFree.load(), (unsigned long)recorder->hallDrops(), (unsigned long)recorder->nativeDrops(),
     (unsigned long)naviSyncUdpFailures, (unsigned long)pubDrops, (unsigned long)cmdDrops,

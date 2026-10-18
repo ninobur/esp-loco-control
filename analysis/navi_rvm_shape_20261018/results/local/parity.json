@@ -12,14 +12,16 @@
  "python_only": [],
  "cpp_only": [],
  "cpp_runtime": {
+  "pause": 0,
+  "paused_blocks": 0,
   "native_reads": 19125072,
   "blocks": 192123,
   "windows_scored": 2508839,
-  "push_mean_us": 11.1,
-  "push_max_us": 532.1,
+  "push_mean_us": 10.69,
+  "push_max_us": 508.0,
   "output_drops": 0,
   "first_block_us": 1360000,
-  "sizeof_recognizer": 63704
+  "sizeof_recognizer": 68192
  },
  "cpp_nav_events": {
   "NO_CLAIM": 956,

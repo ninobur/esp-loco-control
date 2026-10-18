@@ -112,3 +112,17 @@ Its results are in `results/local/`.
 | `s15_hold_characterization.py` | **Synthetic** characterization: what happens when the Hall level is held inside an ensemble. It is software behaviour, not railway evidence |
 
 To reproduce, run these in order: `s10`, `s11`, `s12`, `s13`, `s14`, `s15`.
+
+## STOP/GO continuity, 2026-10-18
+
+This section belongs to
+[`docs/NAVI_RVM_SHAPE_MANUAL_STOPGO_20261018.md`](../../docs/NAVI_RVM_SHAPE_MANUAL_STOPGO_20261018.md).
+
+| Script | What it does |
+|---|---|
+| `stopgo.py` | Python reference of `RvmPause.h`: the STOPPED rule (PWM < 25), startup admission, and the map from the waveform back to block ids |
+| `s16_stopped_threshold_evidence.py` | Evidence only. Reads the PWM at Otto's last and first motion at the 35 station stops, using the IR odometer for description |
+| `s17_stopgo_replay.py` | Boot 1 with the pause: leave-one-pass-out, the continuous replay for `s12` (`RVM_NAV_SUFFIX=_pause`), and C++ parity |
+| `s18_stopgo_suite.py` | The required STOP/GO cases on 18 real ensembles, run in Python and the firmware headers. Includes the measured-departure, measured-arrival and zero-shift variants |
+
+Results are in `results/local_pause/`, plus `results/local/stopped_threshold_evidence.*`.
