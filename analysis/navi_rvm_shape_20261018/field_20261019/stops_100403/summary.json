@@ -1,0 +1,100 @@
+{
+ "log": "combined.log",
+ "lines": 5692,
+ "first": "2026-10-19T10:00:13.352",
+ "last": "2026-10-19T10:10:49.003",
+ "boots": {
+  "8F9B71ED5DAF40BB": {
+   "recognitions": 78,
+   "results": {
+    "MM": 78
+   },
+   "longest_cw": {
+    "run": 78,
+    "at": 0,
+    "start_mm": 127
+   },
+   "longest_ccw": {
+    "run": 11,
+    "at": 20,
+    "start_mm": 157
+   },
+   "travel": "CW",
+   "mm_claims": 78,
+   "claims_agreeing_with_route": 78,
+   "claims_disagreeing": [],
+   "contradictions": [],
+   "first": "2026-10-19T10:00:13.448",
+   "last": "2026-10-19T10:05:44.104",
+   "stopgo": [
+    {
+     "wall": "2026-10-19T10:02:16.541",
+     "transition": "STOPPED_WAVEFORM_PAUSED",
+     "last_mm": 28,
+     "expected_mm": 29,
+     "candidate_held": 1,
+     "arrival_blocks_trimmed": 0,
+     "withheld_after_go_total": 0,
+     "stationary_low": 0.0,
+     "stationary_high": 0.0
+    },
+    {
+     "wall": "2026-10-19T10:05:19.483",
+     "transition": "PATTERN_RESUMED",
+     "last_mm": 28,
+     "expected_mm": 29,
+     "candidate_held": 1,
+     "arrival_blocks_trimmed": 507,
+     "withheld_after_go_total": 245,
+     "stationary_low": 1887.9,
+     "stationary_high": 1892.9
+    },
+    {
+     "wall": "2026-10-19T10:05:57.719",
+     "transition": "STOPPED_WAVEFORM_PAUSED",
+     "last_mm": 33,
+     "expected_mm": 34,
+     "candidate_held": 0,
+     "arrival_blocks_trimmed": 0,
+     "withheld_after_go_total": 245,
+     "stationary_low": 0.0,
+     "stationary_high": 0.0
+    },
+    {
+     "wall": "2026-10-19T10:06:17.343",
+     "transition": "PATTERN_RESUMED",
+     "last_mm": 33,
+     "expected_mm": 34,
+     "candidate_held": 0,
+     "arrival_blocks_trimmed": 187,
+     "withheld_after_go_total": 413,
+     "stationary_low": 2053.7,
+     "stationary_high": 2058.9
+    }
+   ]
+  }
+ },
+ "health": {
+  "heap_min": 8744,
+  "heap_free_min": 15940,
+  "block_q_drop": 0,
+  "nav_event_drop": 0,
+  "rvm_push_max_us": 226644,
+  "pub_drop": 0,
+  "cmd_drop": 0,
+  "nsr_native_drop": 215,
+  "nsr_udp_fail": 16,
+  "rvm_backlog_max": 325,
+  "rvm_stack_free": 5680,
+  "block_drop_times": []
+ },
+ "warnings": [],
+ "session_dirs": {
+  "CW": 448,
+  "UNSET": 254
+ },
+ "voltage": [
+  0.0,
+  16.3
+ ]
+}

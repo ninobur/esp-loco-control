@@ -330,3 +330,68 @@ Output: `analysis/navi_rvm_shape_20261018/field_20261019/cw_nostop_100013/`.
     the hold-back began, which started at the stop command (10:02:06).
   - On run 3 the stop was commanded about 22 s before standstill, so the last
     10 s of travel stayed held.
+
+---
+
+# Run 5, 2026-10-19 10:05: CW continuation with stops; **Otto rebooted mid-run**
+
+**David's account:** this run continued from run 4 with no new declaration, with
+a few stops on magnets. The run ended with the Hall sensor **on MM128**.
+
+| Log | Content | sha256 |
+|---|---|---|
+| `9950011_20261019_100013.log` | 10:00:13–10:04:02 (run 4, then rest) | `136b42beae9eee008b78a89503a60c420351e94d1a34c69f67ae02bb2d1da9fe` |
+| `9950011_20261019_100403.log` | 10:04:03–10:07:43 | `45e9876c79ac3c394c17a15ec2eaadbc3383dafa7aff4f5497e5a266a61a0cba` |
+| `9950011_20261019_100744.log` | 10:07:44–10:10:48 | `67bf6ab18f9ca623901af5f57f2c32fe009bd8bb0a982d8d86b3ce15af71622b` |
+
+Output: `analysis/navi_rvm_shape_20261018/field_20261019/stops_100403/`
+(analysed from the three files concatenated).
+
+## Observations
+
+1. **GO 1** (resumed 10:05:19, boot `8F9B71ED5DAF40BB`).
+   - Stationary range 1888–1893, which is baseline.
+   - 507 blocks trimmed, 245 withheld.
+   - Claims **MM029–MM033** followed: MM029 was the candidate held at the end of
+     run 4. The total for the boot is 78/78 claims agreeing with the route,
+     MM127 → MM033.
+2. **Stop 2** (10:05:57): last MM033, expected MM034.
+   - Stationary range **2054–2059** (baseline about 1,890), so **the sensor was
+     over MM034 (N)**.
+   - GO, pattern resumed at 10:06:17.3: 187 trimmed, 413 withheld in total.
+   - The released backlog peaked at **325 blocks** and was draining (289, 214,
+     144, 82, 66) with no block drops.
+3. **Reboot.**
+   - The last loopstat of the old boot was at 10:06:18.41 (PWM 38, backlog 66,
+     heap_free 27,664, heap_min 8,744, RVM stack at least 5,680 B free,
+     `block_q_drop 0`).
+   - The loopstats due at 10:06:19 and 10:06:20 are missing.
+   - `online 0` (LWT) then `online 1` at 10:06:21.16, with **new boot
+     `DAFB0CF10DD83178`**.
+   - Track voltage was 16.26 V and current 0.26 A just before; the INA219 does
+     not see the ESP32's 3.3 V rail.
+   - **MM034 was never claimed**: the old boot rebooted while its ensemble was
+     still in the backlog.
+4. **After the reboot:** the navigator was **UNSET** (no declaration), the
+   recognizer was inactive and there were no claims. David ran further stops and
+   a PWM 101 section to MM128 on the new boot, with no navigation.
+   - Its health: `block_q_drop 0`, `heap_min` at least 15,112.
+
+## What is not known
+
+- **The reset cause.** This build does not publish `esp_reset_reason()`, and
+  there is no serial capture, so watchdog, panic and brownout cannot be told
+  apart from MQTT.
+- **The timing.** The only established timing is that the old boot stopped
+  publishing about 1–2 s before it reset, about 3 s after a GO with a 325-block
+  backlog draining.
+  - That is the first GO in these runs with a backlog above 80.
+  - It is a correlation from **one** event, not a cause.
+
+## Consequence
+
+- A reboot silently ends navigation: the session returns to UNSET, and there is
+  no claim and no CONTRADICTION.
+- For about 95 magnets (MM034 → MM128) Otto ran with no geographic claims, and
+  nothing in navigation reported why except `state/bootid` and the `online`
+  flap.
