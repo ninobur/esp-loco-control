@@ -471,3 +471,45 @@ not MM033 (he misread it the first time).
   3**, not a recognition fault.
 - **Discrepancy closed.** As at run 3, the navigator's position at a final stop
   after a long ramp-down lags the real one until the next GO or declaration.
+
+---
+
+# Run 7, 2026-10-19 10:22: one exact lap, MM023–024 to MM023–024 (firmware `3a8953c`)
+
+**David's account:** a run of exactly 171 MMs, from between MM023 and MM024
+back to the same place.
+
+| Log | Content | sha256 |
+|---|---|---|
+| `9950011_20261019_101819.log` | 10:18:19–10:22:21: rest, boot, declaration | `e36efc6e5cf66dbc8727d62e70b068a31355baa0f96e165600589b0b73b5d823` |
+| `9950011_20261019_102237.log` | 10:22:37–10:25:52 (Otto offline at 10:25:52) | `6027475cbb68bc21cf452d2082ece4c32d4f2633cef43ed4186f3f7dd6f89708` |
+
+Output: `analysis/navi_rvm_shape_20261018/field_20261019/run7_101819/`.
+
+## Observations
+
+- **Boot** `FA9D779D889CC1F9` at 10:21:14 (an `online` flap), while
+  stationary and before the declaration (CW at 10:21:42).
+- **Navigation:** **171 recognitions, all 171 MM claims**, from MM024 through
+  to MM023. They are **171 unique magnets, every one on the route exactly once**.
+  - The polarity sequence matches the route CW from MM024 for all 171 (the best
+    CCW match is 11).
+  - 171/171 claims agree with the route-derived identity, with **no
+    CONTRADICTION, no miss and no extra**.
+- **Final stop** (10:25:26.8): last MM023, expected MM024, no candidate held.
+  This **agrees with the rest position between MM023 and MM024**, with no
+  hold-back lag at this stop.
+- **Margins:** minimum LLR **30.6**; waveform windows 0.24–1.50 s.
+- **Health:**
+  - `block_q_drop 0`, `rvm_backlog_max 0`, worst RVM step 101 ms.
+  - `heap_min 9,608` B, RVM stack at least 5,680 B free, `pub_drop 0`.
+  - NSR native drops 244, UDP failures 41.
+  - Battery 16.06–16.27 V.
+
+## Interpretation
+
+- **First exact closed lap.** NAVI_RVM_SHAPE_MANUAL navigated one complete lap
+  with every magnet claimed once, in order, and ended at the position David
+  observed.
+- **Not shown in this run:** stops over magnets (runs 3 and 5 cover those), CCW
+  travel, and Toby.
