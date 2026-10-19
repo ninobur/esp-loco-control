@@ -1,0 +1,68 @@
+{
+ "05D9583227F92717": {
+  "blocks": 14690,
+  "moving": 0,
+  "stationary": 0,
+  "unknown": 14690
+ },
+ "326C357476B624FC": {
+  "blocks": 83169,
+  "moving": 54244,
+  "stationary": 14143,
+  "unknown": 14782
+ },
+ "7D01A0617FD2AF78": {
+  "blocks": 82515,
+  "moving": 0,
+  "stationary": 0,
+  "unknown": 82515
+ },
+ "8C00F7FD5E4ED086": {
+  "blocks": 3803,
+  "moving": 0,
+  "stationary": 0,
+  "unknown": 3803
+ },
+ "8F9B71ED5DAF40BB": {
+  "blocks": 23260,
+  "moving": 7555,
+  "stationary": 12636,
+  "unknown": 3069
+ },
+ "B05694E24BFC6579": {
+  "blocks": 34263,
+  "moving": 0,
+  "stationary": 0,
+  "unknown": 34263
+ },
+ "B29BDF0E37C0CDA1": {
+  "blocks": 45997,
+  "moving": 33458,
+  "stationary": 6020,
+  "unknown": 6519
+ },
+ "DAFB0CF10DD83178": {
+  "blocks": 12317,
+  "moving": 8386,
+  "stationary": 3161,
+  "unknown": 770
+ },
+ "DCDA8770DA8A0D46": {
+  "blocks": 22453,
+  "moving": 0,
+  "stationary": 0,
+  "unknown": 22453
+ },
+ "EFD0225ADC42E524": {
+  "blocks": 21096,
+  "moving": 4049,
+  "stationary": 16214,
+  "unknown": 833
+ },
+ "FA9D779D889CC1F9": {
+  "blocks": 12728,
+  "moving": 7781,
+  "stationary": 4043,
+  "unknown": 904
+ }
+}
