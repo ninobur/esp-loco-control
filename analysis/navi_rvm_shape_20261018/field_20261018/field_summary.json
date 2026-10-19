@@ -1,0 +1,122 @@
+{
+ "recognitions": 521,
+ "results": {
+  "RECOGNIZED_NO_CLAIM": 520,
+  "CONTRADICTION": 1
+ },
+ "polarity_alignment": {
+  "CCW": {
+   "longest_exact_run": 11,
+   "at_recognition": 105,
+   "starting_mm": 157
+  },
+  "CW": {
+   "longest_exact_run": 521,
+   "at_recognition": 0,
+   "starting_mm": 42
+  },
+  "CCW_inverted": {
+   "longest_exact_run": 18,
+   "at_recognition": 44,
+   "starting_mm": 103
+  },
+  "CW_inverted": {
+   "longest_exact_run": 11,
+   "at_recognition": 91,
+   "starting_mm": 24
+  }
+ },
+ "stops": [
+  {
+   "wall": "2026-10-18T21:17:53.249",
+   "transition": "STOPPED_WAVEFORM_PAUSED",
+   "inside_ensemble": [],
+   "prev_mm": 110,
+   "s_after_prev": 8.84,
+   "next_mm": 111,
+   "arrival_trimmed": 0
+  },
+  {
+   "wall": "2026-10-18T21:18:38.249",
+   "transition": "PATTERN_RESUMED",
+   "inside_ensemble": [],
+   "prev_mm": 110,
+   "s_after_prev": 53.8,
+   "next_mm": 111,
+   "arrival_trimmed": 379
+  },
+  {
+   "wall": "2026-10-18T21:20:37.963",
+   "transition": "STOPPED_WAVEFORM_PAUSED",
+   "inside_ensemble": [],
+   "prev_mm": 47,
+   "s_after_prev": 5.76,
+   "next_mm": 48,
+   "arrival_trimmed": 0
+  },
+  {
+   "wall": "2026-10-18T21:21:02.849",
+   "transition": "PATTERN_RESUMED",
+   "inside_ensemble": [],
+   "prev_mm": 47,
+   "s_after_prev": 30.6,
+   "next_mm": 48,
+   "arrival_trimmed": 240
+  },
+  {
+   "wall": "2026-10-18T21:21:17.048",
+   "transition": "STOPPED_WAVEFORM_PAUSED",
+   "inside_ensemble": [],
+   "prev_mm": 49,
+   "s_after_prev": 10.36,
+   "next_mm": null,
+   "arrival_trimmed": 0
+  },
+  {
+   "wall": "2026-10-18T21:21:40.611",
+   "transition": "PATTERN_RESUMED",
+   "inside_ensemble": [],
+   "prev_mm": 49,
+   "s_after_prev": 33.88,
+   "next_mm": null,
+   "arrival_trimmed": 203
+  },
+  {
+   "wall": "2026-10-18T21:21:49.073",
+   "transition": "STOPPED_WAVEFORM_PAUSED",
+   "inside_ensemble": [],
+   "prev_mm": 49,
+   "s_after_prev": 42.38,
+   "next_mm": null,
+   "arrival_trimmed": 0
+  }
+ ],
+ "health": {
+  "heap_min": 8944,
+  "heap_free_min": 15996,
+  "block_q_drop": 44,
+  "nav_event_drop": 0,
+  "rvm_push_max_us": 3317470,
+  "rvm_stack_free_min": 5648,
+  "pub_drop": 0,
+  "nsr_native_drop": 101,
+  "nsr_udp_fail": 86
+ },
+ "block_drop_times": [
+  {
+   "wall": "2026-10-18T21:21:01.993",
+   "block_q_drop": 7,
+   "rvm_push_max_us": 2714418
+  },
+  {
+   "wall": "2026-10-18T21:21:37.960",
+   "block_q_drop": 37,
+   "rvm_push_max_us": 2714418
+  },
+  {
+   "wall": "2026-10-18T21:21:38.974",
+   "block_q_drop": 44,
+   "rvm_push_max_us": 3317470
+  }
+ ]
+}
