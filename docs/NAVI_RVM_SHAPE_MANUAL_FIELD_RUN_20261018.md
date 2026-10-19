@@ -280,3 +280,53 @@ oldest were released to the recognizer as the ring filled.
 whole final 10 s of travel. At a final stop the navigator's position is then up
 to about 10 s of travel (here six magnets) behind the real position, until the
 next GO or declaration. Recorded as evidence; no change made or proposed here.
+
+---
+
+# Run 4, 2026-10-19 10:00: CW, cruise at PWM 90, one final stop (firmware `3a8953c`)
+
+**David's plan:** CW at 90 with no stops, starting between MM126 and MM127;
+the stopping point is MM029–MM030.
+
+| Log | Content | sha256 |
+|---|---|---|
+| `9950011_20261019_100013.log` | 10:00:13–10:02:59, 1,687 lines (the declaration was in the one-second churn files just before) | `857c7fedbcf683e05c6aeec1ef43fcee68d0fb9ce9dc9e1252505b8cf5099833` |
+
+Output: `analysis/navi_rvm_shape_20261018/field_20261019/cw_nostop_100013/`.
+
+## Observations
+
+- **Boot** `8F9B71ED5DAF40BB` (a new boot after run 3), declared CW, last
+  MM126, next MM127.
+- **PWM:** commanded 90 from 10:00:14 to 10:01:45, then 55, then 43, then 0 at
+  10:02:06. Applied PWM fell below 15 at about 10:02:16.
+- **Navigation:** 73 recognitions, **all 73 MM claims**, MM127 → MM171 → MM028,
+  through the lap wrap.
+  - The polarity sequence matches the route CW from MM127 for all 73 (the best
+    CCW match is 11).
+  - 73/73 claims agree with the route-derived identity, with **no
+    CONTRADICTION, no miss and no extra**.
+- **Final stop** (10:02:16.5): last MM028, expected MM029, **candidate held**.
+  - MM028 was published at 10:02:02.6, before the stop was commanded, so there
+    was no hold-back lag on it.
+  - The held candidate is an ensemble already fed to the recognizer and awaiting
+    its acceptance (half its window beyond its end). That agrees with **MM029
+    passed and the sensor at rest between MM029 and MM030**, David's stopping
+    point.
+  - There was no GO, so MM029 is not yet confirmed (retrospective by design).
+- **Health:**
+  - `block_q_drop 0`, `rvm_backlog_max 0`, worst RVM step 164 ms.
+  - `heap_min 8,744` B, RVM stack at least 5,680 B free, `pub_drop 0`.
+  - NSR native drops 215, UDP failures 16.
+  - 16.0–16.3 V.
+
+## Interpretation
+
+- **Second clean cruise.** At PWM 90 there were 73 consecutive correct claims
+  across the lap boundary.
+- **The final position agrees with the field this time:** one magnet pending,
+  versus six on run 3.
+  - The difference matches the run-3 account. MM029 lay in blocks fed before
+    the hold-back began, which started at the stop command (10:02:06).
+  - On run 3 the stop was commanded about 22 s before standstill, so the last
+    10 s of travel stayed held.

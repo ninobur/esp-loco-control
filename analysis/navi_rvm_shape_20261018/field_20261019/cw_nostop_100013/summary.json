@@ -1,0 +1,66 @@
+{
+ "log": "field1019/run4/9950011_20261019_100013.log",
+ "lines": 1687,
+ "first": "2026-10-19T10:00:13.352",
+ "last": "2026-10-19T10:02:59.433",
+ "boots": {
+  "8F9B71ED5DAF40BB": {
+   "recognitions": 73,
+   "results": {
+    "MM": 73
+   },
+   "longest_cw": {
+    "run": 73,
+    "at": 0,
+    "start_mm": 127
+   },
+   "longest_ccw": {
+    "run": 11,
+    "at": 20,
+    "start_mm": 157
+   },
+   "travel": "CW",
+   "mm_claims": 73,
+   "claims_agreeing_with_route": 73,
+   "claims_disagreeing": [],
+   "contradictions": [],
+   "first": "2026-10-19T10:00:13.448",
+   "last": "2026-10-19T10:02:02.618",
+   "stopgo": [
+    {
+     "wall": "2026-10-19T10:02:16.541",
+     "transition": "STOPPED_WAVEFORM_PAUSED",
+     "last_mm": 28,
+     "expected_mm": 29,
+     "candidate_held": 1,
+     "arrival_blocks_trimmed": 0,
+     "withheld_after_go_total": 0,
+     "stationary_low": 0.0,
+     "stationary_high": 0.0
+    }
+   ]
+  }
+ },
+ "health": {
+  "heap_min": 8744,
+  "heap_free_min": 21428,
+  "block_q_drop": 0,
+  "nav_event_drop": 0,
+  "rvm_push_max_us": 164073,
+  "pub_drop": 0,
+  "cmd_drop": 0,
+  "nsr_native_drop": 215,
+  "nsr_udp_fail": 16,
+  "rvm_backlog_max": 0,
+  "rvm_stack_free": 5680,
+  "block_drop_times": []
+ },
+ "warnings": [],
+ "session_dirs": {
+  "CW": 241
+ },
+ "voltage": [
+  16.04,
+  16.3
+ ]
+}
