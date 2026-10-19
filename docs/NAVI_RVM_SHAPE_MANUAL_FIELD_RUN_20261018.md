@@ -163,3 +163,77 @@ are in `analysis/navi_rvm_shape_20261018/field_20261019/`.
   - a stop with the sensor over a magnet followed by a restart (arrival mirror
     and resumption);
   - a GO after a long hold-back (bounded feeding).
+
+---
+
+# Runs 2 and 3, 2026-10-19 morning: stops over magnets (firmware `3a8953c`)
+
+Logs were copied read-only from the Pi run logger. The outputs are in
+`analysis/navi_rvm_shape_20261018/field_20261019/{undeclared_093641,cw_stops_094533}/`.
+
+| Log | Content | sha256 |
+|---|---|---|
+| `9950011_20261019_093641.log` | Run 2, 09:36:41–09:45:11, **undeclared** (session UNSET) | `04f3849936202b414d1e4e3bbf9695cfe02153f0e8dc4d5eb076dbf4f507992e` |
+| `9950011_20261019_094533.log` | Run 3, 09:45:33–09:53:59 (    4855 lines; copied while Otto was still online) | `ebaab2ac08b2552b917067a9613c2baedf8e06fddca22d83f1f312fd54f944cf` |
+
+**David's account of run 3:** CW, "a few stops over magnets, a slow section
+approaching GRILLERS", not a full lap.
+
+## Run 2 (undeclared)
+
+There were no navigation claims; the recognizer is idle until a declaration.
+
+- **Warnings:** "DIRECTION REFUSED: too fast to reverse" and "stop fully first",
+  the admissibility rules acting as designed.
+- **Health:** `block_q_drop 0`, `heap_min 9,528`, `rvm_backlog_max 256`.
+
+## Run 3 (CW, stops over magnets)
+
+**Setup.** Boot `B05694E24BFC6579`, declared CW (last MM040, next MM041) at
+09:45:33.
+
+**Navigation.** 80 ensembles, **all 80 MM claims**, MM041 → MM120, unique and
+consecutive.
+- The polarity sequence matches the route CW from MM041 for all 80 (the best
+  CCW match is 10).
+- Every claim agrees with the route-derived identity (80/80).
+- **No CONTRADICTION, no miss, no extra.**
+
+**Stops.** 10 STOP/GO stops. The stationary level during the stop shows where
+the Hall sensor stood:
+
+| Stop | Expected next | Stationary range (baseline ≈ 1,900) | Where | Outcome |
+|---|---|---|---|---|
+| 09:46:36 (re-stop 09:46:42) | MM044 (N) | **1985–2001** | **over MM044** | MM044 claimed once at 09:47:10, 1.3 s after the final GO; real span 6.3 s, waveform window 2.3 s, LLR 28.2 |
+| 09:47:49 | MM048 (N) | **1999–2003** | **over MM048** | claimed once at 09:48:14; real span 22.5 s, window 4.5 s, LLR 17.5 |
+| 09:48:28 (60 s) | MM050 (S) | **1721–1725** | **over MM050**, deep in the field | claimed once at 09:49:31; real span 61.4 s, window 3.6 s, LLR 37.5 |
+| The 7 others | — | 1892–1906 | baseline | sequence continued |
+
+- **Arrival trims:** 2–16 blocks per stop.
+- **Blocks withheld after GO:** 972 in total, all stationary repetitions; no
+  magnet was lost.
+
+**Health.**
+- **`block_q_drop 0`:** the bounded-feeding fix held; backlog peaked at 80
+  blocks.
+- **The longest single RVM step was 1.73 s** (slow section). The queue absorbed
+  it.
+- `heap_min 9,648`, RVM stack at least 5,680 B free, `pub_drop 0`.
+
+**Margins.** Waveform windows ranged 0.24–8.88 s. The lowest LLR was **8.08**
+(slow section), against about 35–44 on the open line.
+
+## Interpretation
+
+- **The decisive track evidence.** This is the first track evidence for the
+  arrival mirror and the pattern-based resumption: **three stops with the Hall
+  sensor over a magnet**, including a repeated stop and a 60 s stop deep in a
+  South field. Each magnet was recognized once, with the right polarity, and the
+  geographic sequence continued without error.
+- **Not shown:**
+  - CCW stops over magnets;
+  - Toby;
+  - a full lap with stops.
+- **Watch item: margin.** The lower LLR margins in the slow section, minimum
+  8.1, say a slow passage is less clearly an ensemble to the model than a cruise
+  passage. It is observed, not acted on.

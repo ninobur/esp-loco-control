@@ -1,0 +1,43 @@
+{
+ "log": "9950011_20261019_093641.log",
+ "lines": 4790,
+ "first": "2026-10-19T09:36:41.887",
+ "last": "2026-10-19T09:45:11.129",
+ "boots": {},
+ "health": {
+  "heap_min": 9528,
+  "heap_free_min": 14952,
+  "block_q_drop": 0,
+  "nav_event_drop": 0,
+  "rvm_push_max_us": 6828,
+  "pub_drop": 0,
+  "cmd_drop": 0,
+  "nsr_native_drop": 107,
+  "nsr_udp_fail": 37,
+  "rvm_backlog_max": 256,
+  "rvm_stack_free": 6576,
+  "block_drop_times": []
+ },
+ "warnings": [
+  [
+   "2026-10-19T09:43:42.861",
+   "DIRECTION REFUSED: too fast to reverse"
+  ],
+  [
+   "2026-10-19T09:43:46.615",
+   "DIRECTION REFUSED: stop fully first"
+  ],
+  [
+   "2026-10-19T09:45:11.126",
+   ""
+  ]
+ ],
+ "session_dirs": {
+  "UNSET": 484,
+  "CW": 5
+ },
+ "voltage": [
+  16.25,
+  16.36
+ ]
+}
