@@ -237,3 +237,46 @@ the Hall sensor stood:
 - **Watch item: margin.** The lower LLR margins in the slow section, minimum
   8.1, say a slow passage is less clearly an ensemble to the model than a cruise
   passage. It is observed, not acted on.
+
+## Run 3 ending: the final stop (added after David's observation)
+
+**Observation (David):** run 3 ended at the final stop and did not continue.
+The Hall sensor came to rest **between MM126 and MM127**.
+
+**Log (full file, refetched after it closed):**
+
+| Log | Content | sha256 |
+|---|---|---|
+| `9950011_20261019_094533.log` | Run 3, complete, 5,347 lines, to 09:55:00 | `843a8d2720304a00448dbc423aa113ccfb9db2bc57ebe1307014ac631eee8770` |
+| `9950011_20261019_095501.log` | 09:55:01–09:56:39, PWM 0 throughout, Otto offline at 09:56:39 | `ef5fb4dd494ef466603e0221b0e0e0fc52601fc58b97809297ca5cf7b1d1348a` |
+
+- The commanded target was **0 from 09:52:40**; applied PWM ramped down from
+  116 to 0 by 09:53:03 (about 22 s).
+- The last claim was **MM120**, published 09:53:00.674. Its waveform midpoint is
+  block time 480.07 s and it was decided at 480.47 s.
+- STOP (`STOPPED_WAVEFORM_PAUSED`) at block time **491.31 s**, published
+  09:53:01.260: last MM120, expected MM121.
+- No GO and no declaration followed. `state/nav` still reported MM120 → 121,
+  `waveform_paused 1`, at 09:56:16.
+
+**Reconciliation.** MM120 was decided at block time 480.47 s but published at
+wall time 09:53:00.67, about **10.2 s after** the STOP block's own wall time
+would place it. That lag is the arrival hold-back: from the moment the stop
+was commanded, blocks were held in the 512-block ring (10.24 s), and only the
+oldest were released to the recognizer as the ring filled.
+
+- The 11.1 s of travel between MM120 (block 480.2 s) and the STOP (block
+  491.3 s) was therefore **still held in the ring** when Otto stopped.
+- Held blocks are released only at GO (after the arrival trim) or at a
+  declaration. Neither happened, so **MM121–MM126 were passed but never fed to
+  the recognizer, and never claimed.**
+- This is the designed retrospective behaviour (as with MM039 on the CW run),
+  not a recognition failure. The recognizer never saw those blocks, so whether
+  it would have recognized them is untested; the raw Hall for them is not in
+  the MQTT log.
+
+**What the field shows that was not anticipated.** With a long ramp-down
+(commanded 0 for 22 s before PWM fell below 15), the hold-back covers the
+whole final 10 s of travel. At a final stop the navigator's position is then up
+to about 10 s of travel (here six magnets) behind the real position, until the
+next GO or declaration. Recorded as evidence; no change made or proposed here.
