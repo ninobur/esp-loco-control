@@ -1,0 +1,106 @@
+{
+ "log": "combined.log",
+ "lines": 7955,
+ "first": "2026-10-19T10:28:50.667",
+ "last": "2026-10-19T10:44:33.081",
+ "boots": {
+  "B29BDF0E37C0CDA1": {
+   "recognitions": 165,
+   "results": {
+    "MM": 85,
+    "RECOGNIZED_NO_CLAIM": 79,
+    "CONTRADICTION": 1
+   },
+   "longest_cw": {
+    "run": 85,
+    "at": 0,
+    "start_mm": 24
+   },
+   "longest_ccw": {
+    "run": 11,
+    "at": 118,
+    "start_mm": 157
+   },
+   "travel": "CW",
+   "mm_claims": 85,
+   "claims_agreeing_with_route": 85,
+   "claims_disagreeing": [],
+   "contradictions": [
+    {
+     "seq": 86,
+     "wall": "2026-10-19T10:40:11.904",
+     "expected_mm": 109.0,
+     "expected_polarity": "N",
+     "polarity": "S",
+     "route_mm": 109
+    }
+   ],
+   "first": "2026-10-19T10:29:33.207",
+   "last": "2026-10-19T10:43:43.778",
+   "stopgo": [
+    {
+     "wall": "2026-10-19T10:28:51.092",
+     "transition": "STOPPED_WAVEFORM_PAUSED",
+     "last_mm": 0,
+     "expected_mm": 0,
+     "candidate_held": 0,
+     "arrival_blocks_trimmed": 0,
+     "withheld_after_go_total": 0,
+     "stationary_low": 0.0,
+     "stationary_high": 0.0
+    },
+    {
+     "wall": "2026-10-19T10:44:06.345",
+     "transition": "STOPPED_WAVEFORM_PAUSED",
+     "last_mm": 108,
+     "expected_mm": 109,
+     "candidate_held": 0,
+     "arrival_blocks_trimmed": 0,
+     "withheld_after_go_total": 0,
+     "stationary_low": 0.0,
+     "stationary_high": 0.0
+    }
+   ]
+  }
+ },
+ "health": {
+  "heap_min": 8996,
+  "heap_free_min": 18824,
+  "block_q_drop": 0,
+  "nav_event_drop": 0,
+  "rvm_push_max_us": 949504,
+  "pub_drop": 0,
+  "cmd_drop": 0,
+  "nsr_native_drop": 136,
+  "nsr_udp_fail": 35,
+  "rvm_backlog_max": 0,
+  "rvm_stack_free": 5680,
+  "block_drop_times": []
+ },
+ "warnings": [
+  [
+   "2026-10-19T10:29:16.078",
+   ""
+  ],
+  [
+   "2026-10-19T10:40:11.936",
+   "CONTRADICTION: expected MM109 (N), recognized S ensemble. No geographic claim until declared again."
+  ],
+  [
+   "2026-10-19T10:44:06.291",
+   "ESTOP"
+  ],
+  [
+   "2026-10-19T10:44:06.345",
+   "THROTTLE REFUSED: e-stop is set"
+  ]
+ ],
+ "session_dirs": {
+  "CW": 1046,
+  "UNSET": 25
+ },
+ "voltage": [
+  16.19,
+  16.28
+ ]
+}

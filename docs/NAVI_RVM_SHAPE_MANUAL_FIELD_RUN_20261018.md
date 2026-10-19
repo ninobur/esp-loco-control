@@ -513,3 +513,89 @@ Output: `analysis/navi_rvm_shape_20261018/field_20261019/run7_101819/`.
   observed.
 - **Not shown in this run:** stops over magnets (runs 3 and 5 cover those), CCW
   travel, and Toby.
+
+---
+
+# Run 8, 2026-10-19 10:29: slow full lap with stalls; **6 magnets missed, CONTRADICTION** (firmware `3a8953c`)
+
+**David's account:** one complete lap, CW, from MM023–024 back to MM023–024,
+**exactly 171 magnets**. There was lots of slow running, and "a few stops due to
+lack of motive power".
+
+| Source | Content | sha256 |
+|---|---|---|
+| `9950011_20261019_102850.log` | 10:28:50–10:29:16: boot, declaration (CW) | `2fffe179a11b27dfe63fcd585c56bdb08e3e66a74b4030a056658611468fcbf2` |
+| `9950011_20261019_102933.log` | 10:29:33–10:40:44 | `006f7c65b9f1bcbf2e869ad38b0239ca66915918abf5d820bb97f50f81a551b9` |
+| `9950011_20261019_104044.log` | 10:40:44–10:44:33 (e-stop 10:44:06, offline 10:44:33) | `58baa29fb9e3876e92edbaa902f47b4967230f26492a49cd8b92e91ad8fbd551` |
+| Last 80,000,000 bytes of Pi `/home/david/NGR/navi_sync/navi_sync_20261015_100403.nsr` (read-only `tail -c`) | Otto's **native 5 kHz Hall and applied PWM** for boot `B29BDF0E37C0CDA1`, Otto time 170–921 s; 3,754,416 reads, 0 bad frames | `7430ec7517a48500763a12b7ddfdf5a2e38c06063b129ca986c25c6f7ace9e37` |
+
+- MQTT analysis: `analysis/navi_rvm_shape_20261018/field_20261019/run8_102850/`.
+- NSR tail decoder:
+  `analysis/navi_rvm_shape_20261018/field_20261018/decode_nsr_tail.py`.
+
+## Observations (MQTT)
+
+- Boot `B29BDF0E37C0CDA1`, declared CW, last MM023, next MM024.
+- **165 recognitions:** 85 MM claims (**MM024 → MM108, 85/85 agree with the
+  route**), then 1 CONTRADICTION, then 79 `RECOGNIZED_NO_CLAIM`.
+- **CONTRADICTION** at 10:40:11.9: expected MM109 (N), recognized **S**. LLR
+  18.1, baseline level **1988.2** (the line is normally about 1,890), baseline
+  start 593.29 s (Otto time).
+- **Alignment.** With the first 85 fixed as MM024–MM108, the 80 later
+  recognitions match the route **80/80 only if they start at MM114**, running
+  MM114 → MM022. Every other offset from 0 to 11 matches 34–42/80.
+  **MM109–MM113 were not recognized.**
+- Only one STOP/GO transition, at the e-stop (10:44:06). **The stalls produced
+  no STOP:** the applied PWM stayed at or above 15.
+- **Health:** `block_q_drop 0`, worst RVM step **0.95 s**, `heap_min 8,996`.
+
+## Observations (native Hall, NSR)
+
+| Otto time (s) | Applied PWM | Hall | Reading |
+|---|---|---|---|
+| 590–592 | 32 | peak 2023 | MM108 passage |
+| 593–603 | 32 | 1887–1895, flat | baseline |
+| 604–606 | 32 | rises to about 2020 | approach to MM109 (N) |
+| **606–665** | **32–35** | **2020–2034, flat (sd ≤ 1)** | **stationary over MM109 for about 60 s with power applied: a stall** |
+| 665–667 | 35 → 48 | 2069, then back to 1886 | David raises PWM; Otto leaves MM109 |
+| 670, 673, 676, 679 | 61 | N peaks 2060–2082, clean | **MM110–MM113 passed at speed** |
+| 681–682 | 61 | S trough 1728 | MM114, the CONTRADICTION ensemble |
+| 902–903 | 29 | peak 2066 | approach to MM023 |
+| **903.5–911.5** | **29–38** | **about 2018, flat** | **second stall, over MM023, about 8.5 s** |
+| 912–917 | 41–48 | about 1894 | off MM023, on baseline |
+| 917.2 | → 0 | about 1894 | e-stop; rest between MM023 and MM024 |
+
+The 6 unrecognized magnets are MM109–MM113 and MM023:
+**165 recognized + 6 = 171**, which agrees with David's count.
+
+## Interpretation (separate from the observations)
+
+- **The stall is a case the STOP rule does not cover.** STOPPED is defined as
+  applied PWM below 15 (David's ruling). Here Otto stood still at **PWM 29–35**,
+  so the waveform was not paused and the stationary blocks were appended as
+  travel.
+- **MM109.** Its passage, including a 60 s plateau, is far wider than the widest
+  window (444 blocks, 8.88 s), so it could not be recognized as one ensemble.
+  The same holds for MM023 (passage about 11 s).
+- **MM110–MM113.** These passed cleanly at PWM 61, yet were not recognized.
+  - Inference, not yet replayed: no ensemble had been accepted since MM108, so
+    the local baseline line ran from 593.3 s **through the 60 s plateau at about
+    2,027**.
+  - The reported baseline level for the next recognition was **1988**, against
+    about 1,890 for the true line.
+  - Judged against that line, the N excursions of MM110–MM113 were not credible
+    ensembles. The large S trough of MM114 was, and its acceptance restarted the
+    baseline; from MM115 on, everything was normal.
+  - An offline replay of the native Hall through the Python reference (or the
+    C++ replay) would test this inference.
+- **The CONTRADICTION was correct behaviour.** The navigator expected N and saw
+  S, and it then made no further claims.
+
+## Open (for David)
+
+- **The stall case.** Applied PWM does not say whether Otto is moving: these
+  stalls happened at PWM 29–35, and the pause rule saw nothing. How a stall
+  should be treated, and what defines STOPPED, are your decisions. Nothing has
+  been changed.
+- **Replay.** Whether to run the offline replay of this native Hall to confirm
+  the baseline-contamination inference.
