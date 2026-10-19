@@ -133,7 +133,7 @@ baseline line and its noise already define whether the tracing is off-baseline:
   - In line with policy §8, the way to settle this is a **bounded track test**
     (slow crawls and stalls through magnets with the IR odometer recorded), not
     a synthetic scenario.
-- **MM023** is not recovered even with its plateau withheld. The cause is not
+- **MM023** (closed by David 2026-10-19: abnormal manual condition, not to be resolved) is not recovered even with its plateau withheld. The cause is not
   established; its approach overshoots (about 2,139) before settling at about
   2,018.
 - Toby has not been measured.

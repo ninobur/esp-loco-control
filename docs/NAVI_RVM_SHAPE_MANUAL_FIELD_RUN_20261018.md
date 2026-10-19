@@ -676,3 +676,10 @@ not investigated further.**
     were set by hand from the Hall record);
   - the MM023 miss;
   - any behaviour beyond this one recording.
+
+**David's ruling on MM023 (2026-10-19):**
+- The run-8 MM023 miss (a stall over the magnet at the end of a manual lap,
+  followed by an e-stop) **does not need to be resolved**. It is not a normal
+  operating condition under automatic operation.
+- It stays recorded as an unexplained observation, closed and not
+  investigated.
