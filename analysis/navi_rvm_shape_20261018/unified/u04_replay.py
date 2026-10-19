@@ -12,7 +12,7 @@ BD, DEV, OUT = pathlib.Path(sys.argv[1]), sys.argv[2], pathlib.Path(sys.argv[3])
 GRID = '--grid' in sys.argv; DATASETS = [a for a in sys.argv[4:] if not a.startswith('--')]
 # last magnet the Hall sensor certainly passed, from the operator's accounts (docs/NAVI_RVM_SHAPE_MANUAL_FIELD_RUN_20261018.md)
 TRUTH_END = {'05D9583227F92717': 38, 'B05694E24BFC6579': 126, '8F9B71ED5DAF40BB': 33, 'EFD0225ADC42E524': 23,
-             'FA9D779D889CC1F9': 23, 'B29BDF0E37C0CDA1': 23}
+             'FA9D779D889CC1F9': 23, 'B29BDF0E37C0CDA1': 23, 'RUN9': 22}   # RUN9: Hall at rest atop MM023 (David), so MM022 is the last completed magnet
 ROUTE = np.loadtxt(HERE.parent / 'scripts' / 'route_polarity.txt', dtype=int); RSGN = np.where(ROUTE == 1, 1, -1); NMM = len(ROUTE)
 mj = json.load(open(ROOT / 'results/local/model_A.json'))
 def gmm(c):
@@ -61,6 +61,8 @@ def load_nsr(bid, force_cw=False):
         i = int(np.argmin(np.abs(t_us - us)))
         if force_cw and dr < 0: last, nxt, dr = last - 1, last, 1   # Oct 18: declared CCW last 42 next 41; travel was CW from MM042: CW last 41, next 42
         decl.append((i, (last, nxt), dr))
+    if 'decl_idx' in z.files:                              # stitched run (u08): declaration stored with the tracing
+        decl = [(int(i), (int(l), int(x)), int(d)) for i, l, x, d in zip(z['decl_idx'], z['decl_last'], z['decl_next'], z['decl_dir'])]
     ccw = np.zeros(len(h), bool)
     if decl and decl[0][2] < 0: ccw[decl[0][0]:] = True
     irp = BD / f'ir_{bid}.npy'; irs = np.load(irp) if irp.exists() else np.full(len(h), -1, np.int8)

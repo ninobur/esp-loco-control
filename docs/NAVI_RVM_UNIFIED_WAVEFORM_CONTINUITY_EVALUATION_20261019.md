@@ -337,3 +337,93 @@ constants against F's three, all derived from Otto's data.
 5. **Settings to be ratified by David:** k = 50, band = 24, m = 16.
 
 **Rollback:** firmware `3a8953c` (current) and backup `NAVI_EWO_0_6`.
+
+---
+
+## Addendum: run 9 (2026-10-19 afternoon), stalls and very slow running
+
+**Recording.** Two boots, `51D70A9E33F7914F` and `9346B1291BD42CC8` (Otto
+rebooted 70 s in; see the field-run record). They were **joined on the first
+boot's clock**: `unified/u08_stitch.py`, with a reboot gap of 1.84 s.
+- The joined run was replayed with the field declaration (CW 023 → 024), as if
+  Otto had not rebooted.
+- IR truth covers the whole run.
+- Truth end: **MM022**, because David saw the Hall at rest atop MM023 (see the
+  discrepancy in the field-run record).
+- Results: `unified/results/run9/`.
+
+**Operating events** (IR stationary with applied PWM at or above 15, 1 s or
+longer):
+
+| Event | Detail |
+|---|---|
+| Stalls and powered standstills | **22** |
+| Over a magnet | +87, +130, +142, +98 ADC |
+| On shoulders | +31, −17 ADC |
+| Near the baseline | +8 to +10 ADC, including **28 s at PWM 89 at +9.6** |
+| On the baseline | the rest |
+| PWM < 15 stops | 2 (one over MM025, the final one) |
+| Throttle reductions reversed before reaching zero | 3 |
+
+**Recognition:**
+
+| | R0 | F | **U1 (pre-chosen)** |
+|---|---|---|---|
+| Recognitions | 167 | 166 | **169** |
+| Missed on route | MM025, MM031, MM032, MM049 | MM025, MM031, MM032, MM049 | **MM025, MM049** |
+| Extras | 0 | 0 | 0 |
+| Lowest LLR | **5.53** | **5.53** | **32.91** |
+| Max reporting delay | 0 s | 1.96 s | 0.99 s |
+| Stationary off-baseline kept | 40.6 s | 35.4 s | **0 s** |
+| Withheld while IR moving | 0 | 4.1 s | 23.4 s |
+
+- **MM025** lies across the reboot gap: Otto stopped over it at 105 s and the
+  reboot cut its passage. It is a joined-recording artifact.
+- **The "MM049" miss is shared by all mechanisms,** including R0.
+  - The Hall between MM048 (528.6 s) and the next S passage (540.4 s) is moving
+    baseline, so where the missing magnet lies is **not established**.
+  - It is a recognizer observation, not a continuity effect.
+- **R0 and F's lowest LLR of 5.53 is a near-miss** that the stalls produced. U1's
+  is 32.9.
+- **Navigation** (all mechanisms): after the MM025 miss the navigator
+  CONTRADICTs, so claims are 1. That miss is the reboot artifact.
+
+**Per stall** (`unified/results/run9/per_stall.csv`; share of the stall's
+blocks withheld):
+
+| Stall (Otto s) | Duration (s) | Offset vs baseline (ADC) | PWM | F | **U1 m16** | U1 m32 | U1 m8 |
+|---|---|---|---|---|---|---|---|
+| 110.2 | 2.2 | +90 | 15–29 | 100 % | **100 %** | 100 % | 100 % |
+| 116.2 | 10.4 | +133 | 30–40 | 0 % | **100 %** | 100 % | 100 % |
+| 137.4 | 12.5 | **+3.7** | 34–47 | 0 % | **15 %** | 0 % | 100 % |
+| 206.2 | 6.4 | +31 | 34–42 | 0 % | **100 %** | 100 % | 100 % |
+| 221.7 | 4.4 | +143 | 39–42 | 0 % | **100 %** | 100 % | 100 % |
+| 250.4 | 4.5 | +100 | 37 | 0 % | **100 %** | 100 % | 100 % |
+| 402.3 | 10.0 | **−18.6** | 37 | 0 % | **100 %** | **60 %** | 100 % |
+| 789.8 | 28.3 | **+9.8** | 89 | 0 % | **99 %** | **0 %** | 100 % |
+| 77.6 / 875.8 | 1.6 / 6.2 | −2.4 / −2.8 (baseline) | 41 / 15–47 | 0 / 100 % | **0 %** | 0 % | **79 / 96 %** |
+| 13 other baseline stalls | — | within ±1.2 | — | 0–5 % | **0 %** | 0 % | 0 % |
+
+**The parameter watch list, as found:**
+- **m (off-baseline margin; 16 × noise ≈ 8 ADC here) is the sensitive
+  choice.** Real stalls sat at +3.7, +9.8 and −18.6 ADC, within a factor of
+  about 2 of the threshold on both sides:
+  - at **m = 32** the 28 s stall at +9.8 is kept entirely, and 40 % of the
+    −18.6 stall leaks into the waveform;
+  - at **m = 8** baseline stalls are withheld, and recognitions drop to 168
+    (one lost);
+  - **m = 16 handled every stall here.** The +3.7 stall was only partly
+    withheld (15 %), which is harmless at that level.
+- **k and band:** across the 36-setting grid, recognitions were 168–169 with the
+  same two shared misses, and the lowest LLR stayed between 14.9 and 33.6
+  (lowest at k = 25, band 32). No setting lost a magnet except the m = 8 ones.
+- **False stall withholding** (blocks withheld while the IR shows movement):
+  23.4 s at the pre-chosen setting, 5–101 s across the grid (largest at
+  m = 8).
+
+**Assessment:**
+- **This run supports Outcome A.** The unified rule excluded every stall off the
+  baseline, kept every baseline stall, recovered MM031–MM032, and raised the
+  lowest LLR from 5.5 to 32.9.
+- **It also confirms the session sheet's concern:** the off-baseline margin has
+  roughly a factor-of-2 safety band on Otto's real stalls.

@@ -683,3 +683,85 @@ not investigated further.**
   operating condition under automatic operation.
 - It stays recorded as an unexplained observation, closed and not
   investigated.
+
+---
+
+# Run 9, 2026-10-19 14:28: slow lap with many stalls; **Otto rebooted 70 s in** (firmware `3a8953c`)
+
+**David's account:**
+- A full lap of 171 magnets, CW, from MM023–024 back to MM023–024.
+- Many stalls and some very slow running.
+- **The Hall sensor came to rest atop MM023.**
+
+**Sources** (read-only):
+
+| Source | sha256 |
+|---|---|
+| Last 100,000,000 bytes of the Pi NSR file | `58c181f3ebc748394acef9bbd883803c4231032d006c0e6b04b4dbcd26554043` |
+| IR log lines from epoch 1792445000 | `a2261db2fa7667a05987af1f1a2c52eabc7434ae6f0ae720610eda55582c0ee6` |
+| Pi MQTT, Otto, 14:20 onwards | `be244da3be311b96a331a5d1f9db16e8b9fd3b603479bbc77fed60fcc286f10c` |
+
+## Field observations
+
+1. **Boot `51D70A9E33F7914F`** at 14:28:23; declared CW 023 → 024 at 14:28:57.
+   MM024 was claimed at 14:29:40.
+2. **Stop over MM025.** Commanded 0; applied PWM below 15 at about 14:30:00,
+   with the Hall about 87 ADC above the baseline. GO at 14:30:01.7 (throttle
+   26 → 42).
+   - PATTERN_RESUMED at 14:30:02.05.
+   - **The released backlog reached 512 (the full ring)** and drained slowly:
+     490, 474, 458, 442, 426 at 1 s intervals.
+3. **Reboot.** The last loopstat was at 14:30:06.44 (heap_free 24,200,
+   heap_min 9,876, RVM stack at least 5,680 B free, `block_q_drop 0`), then
+   `online` 0/1 at 14:30:08.8 and **new boot `9346B1291BD42CC8`**.
+   - Navigation was UNSET for the rest of the run (until 14:43:29): **no claims
+     beyond MM024 in the field.**
+   - Battery 16.16 V, current 0.24 A.
+
+## Probable cause of this reboot and of run 5's (an inference, not confirmed)
+
+**Both unexplained reboots follow the same pattern:**
+
+| | Run 5 | Run 9 |
+|---|---|---|
+| GO | 10:06:17 | 14:30:01.7 |
+| Backlog after GO | 325 blocks | 512 blocks |
+| Last sign of life | last loopstat 10:06:18.4 | last loopstat 14:30:06.4 |
+| Reset | about 10:06:20, about 5–6 s after the backlog appeared (backlog 289 at 10:06:14) | about 14:30:07.8 (about 1 s before the new boot's first message), about 5–6 s after the backlog appeared |
+
+- Earlier GOs with small backlogs, which drained within 1–2 s, never rebooted:
+  run 3 (backlog 80) and run 5's first GO (backlog 5).
+- **Mechanism in the code** (`NAVI_RVM_SHAPE_MANUAL.ino`, `rvmTask`):
+  - while `waveformPause.backlog()` is non-zero, the Hall queue is polled with
+    a **zero timeout**;
+  - one waiting block is fed per pass;
+  - the loop never blocks.
+- `rvmTask` runs on **core 0** at priority 1, so the core-0 idle task (priority
+  0) is starved for as long as the backlog lasts.
+- The ESP32 task watchdog watches that idle task. Its usual timeout is 5 s, after
+  which it resets the chip. **The 5–6 s timing matches.**
+- This loop was introduced by the bounded-feeding fix (`3a8953c`, Claude).
+- **Not confirmed:** the build does not publish `esp_reset_reason()`, and there
+  was no serial capture.
+- **Possible fixes, none applied:**
+  - block for at least one tick per pass while draining;
+  - remove the backlog entirely (the unified continuity proposal has none).
+
+**Consequence on the current firmware:** any GO after a commanded stop whose
+held backlog takes more than about 5 s to drain is likely to reboot Otto and
+silently end navigation.
+
+## The rest-position discrepancy (unresolved, preserved)
+
+- **David's observation:** the Hall sensor came to rest atop MM023.
+- **The Hall record:**
+  - a complete N passage at 873–875 s (Otto time, boot A clock): a peak of
+    about 2,070, then back to 1,890;
+  - then IR-stationary from about 876 s, with the Hall at **1,889–1,893, the
+    baseline level**.
+- Every replay's route alignment identifies that passage as **MM023**. Ending at
+  MM022 instead would require an extra unexplained miss.
+- **Not reconciled.** Possibilities, none established:
+  - the sensor rests beyond MM023's field while the car is visually over the
+    marker;
+  - the identity of the last passage is off by one.
