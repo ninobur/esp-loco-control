@@ -599,3 +599,80 @@ The 6 unrecognized magnets are MM109–MM113 and MM023:
   been changed.
 - **Replay.** Whether to run the offline replay of this native Hall to confirm
   the baseline-contamination inference.
+
+## Run 8 offline replay (analysis only, David's approval 2026-10-19)
+
+**Source:** the last 115,000,000 bytes of the Pi NAVI sync recording, read only
+(Pi file size 8,652,695,604 B; Otto offline, so the file was static), sha256
+`03a67e20b05f491632c6e32e6281917158c1a62fa1d67a23cd1e4d239d567d3d`.
+
+- Boot `B29BDF0E37C0CDA1`: 4,596,912 native reads (Otto time 1.36–921.27 s)
+  and 920,256 legacy samples.
+- The legacy samples carry the firmware's own **commanded** PWM, so the replay
+  uses the real commanded target, not a proxy.
+- The declaration (CW, 23 → 24) is at Otto time 26.99 s, from `state/nav`
+  DECLARED `baseline_start_us`.
+
+**Script:**
+`analysis/navi_rvm_shape_20261018/field_20261019/run8_replay.py`.
+- Firmware path: `tests/navi_rvm_shape/replay.cpp` with the firmware headers,
+  `--drain 1` (bounded feeding).
+- Python reference: `stopgo.firmware_mask` + `rvm_local.run`, `model_A.json`.
+- Outputs: `field_20261019/run8_replay/`.
+
+**Recording gaps** (serial jumps in the NSR copy; reads that Otto had but the
+UDP recording lost): eight, the largest 912 reads at 410.4 s.
+**144 reads at 700.575 s** matter here.
+
+## Results
+
+**1. Firmware parity** (as run, stalls included):
+
+| Check | Result |
+|---|---|
+| C++ replay vs field recognitions | **164/164 matched** within 50 ms, same polarity |
+| Field recognitions not in the replay | 1: **700.37 s (S, MM123)** |
+| C++ vs Python | **164/164** matched both ways |
+| Navigator events | **identical to the field:** 85 MM (MM024–MM108), CONTRADICTION at 682.01 s expecting MM109 (LLR 18.094, baseline level 1988.241, as in the field), then NO_CLAIM |
+| Replay timing | `output_drops 0` |
+
+The one difference, at 700.37 s, falls exactly on the 144-read recording gap at
+700.575 s, inside MM123's passage. It is a recording artifact, not a firmware
+difference.
+
+**2. Counterfactual** (diagnostic only, not a proposal): only the two stall
+plateaus (606.0–665.0 s and 903.5–911.5 s, applied PWM 29–35) were set to
+applied PWM 0, so the existing pause rule treats them as STOPPED. Everything
+else is unchanged.
+
+| Check | Result |
+|---|---|
+| Recognitions | **169** (C++ = Python, 169/169) |
+| **New** | **MM109** (666.85 s, LLR 18.9), **MM110** (670.63), **MM111** (673.79), **MM112** (676.81), **MM113** (679.61), all N, LLR 42–43 |
+| Lost versus as-run | none |
+| Baseline level at the first recognition after MM108 | **1896.8** (as run: **1988.2**) |
+| Navigator | **99 MM claims**, MM024 → MM122, every one as expected; then a CONTRADICTION at 702.29 s expecting MM123 |
+
+The CONTRADICTION at MM123 comes from the **recording gap at 700.575 s**, which
+removed MM123 from the replay (Otto recognized it at 700.37 s in the field). It
+is not a result of the counterfactual.
+
+**MM023 is not recovered** by this counterfactual. Its passage (approach peak
+about 2,066–2,139 at 902–903 s, a plateau at about 2,018, exit at 911.5–912.5
+s, e-stop at 917.2 s) gives no recognition in either replay. **Not explained;
+not investigated further.**
+
+## What the replay establishes
+
+- **The firmware path reproduces the field exactly,** wherever the recording is
+  complete.
+- **The inference is supported.** The 60 s stall plateau over MM109 entered the
+  local baseline and raised it from about 1,897 to 1,988. MM110–MM113 then went
+  unrecognized, and the CONTRADICTION followed. With the plateau treated as
+  stopped, the same Hall data gives MM109–MM113 at normal margins (MM109 at the
+  low LLR of 18.9) and correct claims.
+- **Not established:**
+  - how a stall should be detected on the locomotive (here the stall intervals
+    were set by hand from the Hall record);
+  - the MM023 miss;
+  - any behaviour beyond this one recording.
