@@ -1,0 +1,39 @@
+{
+ "log": "9950011_20261019_085730.log",
+ "lines": 12897,
+ "first": "2026-10-19T08:57:30.092",
+ "last": "2026-10-19T09:28:27.220",
+ "boots": {},
+ "health": {
+  "heap_min": 9020,
+  "heap_free_min": 11244,
+  "block_q_drop": 0,
+  "nav_event_drop": 0,
+  "rvm_push_max_us": 3397,
+  "pub_drop": 0,
+  "cmd_drop": 0,
+  "nsr_native_drop": 166,
+  "nsr_udp_fail": 114,
+  "rvm_backlog_max": 0,
+  "rvm_stack_free": 7408,
+  "block_drop_times": []
+ },
+ "warnings": [
+  [
+   "2026-10-19T08:57:30.111",
+   "INA219 NOT FOUND \u2014 no battery protection this session"
+  ],
+  [
+   "2026-10-19T09:28:27.171",
+   ""
+  ]
+ ],
+ "session_dirs": {
+  "UNSET": 1774,
+  "CW": 12
+ },
+ "voltage": [
+  16.38,
+  16.38
+ ]
+}

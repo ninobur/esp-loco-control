@@ -101,3 +101,65 @@ log starts. The first record is `state/nav … "event":"DECLARED","mm":42,"targe
 
    Your decision is needed.
 4. **A stop over a magnet** remains to be tested on the track.
+
+---
+
+# CW run, 2026-10-19 morning (firmware `3a8953c`)
+
+Analysis by Claude (Opus 5.5). Logs were copied read-only from the Pi run
+logger (`/home/david/NGR/telemetry/runs/`).
+
+## Sources
+
+| Log | Content | sha256 |
+|---|---|---|
+| `9950011_20261019_092846.log` | **The CW run**, 09:28:46–09:33:00 (Otto offline at 09:33:00) | `0ddc40bdc71b1c292ff0ccef3235571af2ddda64483f18f34f6abc2aa72a1add` |
+| `9950011_20261019_085730.log` | 08:57–09:28: before the declaration (no recognitions; session UNSET, then CW) | `e2996fcb6d1f1b13c4c2b548b07d5e96d847b8c2f3359569e215070a3063abe2` |
+
+About 20 one-second run files at 09:28:27–45 are logger churn at the run
+boundary.
+
+The analysis script is
+`analysis/navi_rvm_shape_20261018/field_20261018/analyze_run.py`; its outputs
+are in `analysis/navi_rvm_shape_20261018/field_20261019/`.
+
+## Observations
+
+1. **Boot and power.** Boot `05D9583227F92717` (a reboot on track power after
+   the USB flash).
+   - The INA219 is present (16.30–16.38 V).
+   - The retained "INA219 NOT FOUND" warning from the USB boot was cleared at
+     the declaration.
+2. **Declaration.** CW, last MM040, next MM041 (09:28:46).
+3. **Recognition.** 169 ensembles, 09:28:46–09:32:20. **All 169 were MM
+   claims**, with no CONTRADICTION.
+   - The recognized polarity sequence matches the route **CW from MM041 for
+     all 169**. The longest CCW match is 11.
+   - Every MM claim agrees with that route-derived identity (169/169), MM041
+     through to MM038: **one full lap with no miss and no extra.**
+4. **STOP.** At 09:32:31: last MM038, expected MM039, **candidate held**
+   (an ensemble awaiting completion).
+   - No GO followed; Otto went offline at 09:33:00.
+   - MM039 was therefore not confirmed. This is the designed retrospective
+     behaviour: a magnet traversed while stopping is reported after the next
+     movement or declaration.
+   - Whether the sensor stood over MM039 cannot be decided from MQTT alone.
+5. **Health.**
+   - Block drops, backlog (`rvm_backlog_max`), event, publish and command
+     drops: all 0.
+   - Worst RVM step 66.6 ms; RVM stack at least 5,680 B free.
+   - Heap minimum 10,192 B.
+   - NSR native drops 102 (boot), UDP failures 3.
+
+## Interpretation
+
+- **First full-lap evidence.** This is the first full-lap field evidence of the
+  shape recognizer driving navigation. With the declared direction matching the
+  travel, it advanced 169 MMs, all consistent with the route, with no
+  CONTRADICTION.
+- **Bounded feeding not exercised.** It could not be confirmed because there
+  was no GO after a hold-back in this run.
+- **Still not tested on the track:**
+  - a stop with the sensor over a magnet followed by a restart (arrival mirror
+    and resumption);
+  - a GO after a long hold-back (bounded feeding).
