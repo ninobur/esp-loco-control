@@ -118,3 +118,40 @@ support nor exclude an electrical cause.
   plateau). Report creep sensitivity only for edge rests.
 - **The 0.1–19 mm/s range remains the gap** the test exists to fill. T1 (slowest
   crawl) and T4 (creep) are the trials that can reach it.
+
+## Correction and addition (David, 2026-10-19): throttle increase is not resumption
+
+David's clarification: **MM109 was a stall, not a commanded stop.** Otto slowed
+and stalled at PWM 32. The throttle stayed above zero, and David raised it until
+Otto moved again; STOP was never commanded. This was an exceptional operating
+condition, not ordinary STOP/GO.
+
+- Where this document says "the departure", it means **the resumption of
+  movement after a stall**.
+- The throttle increase and the resumption are **separate events**, measured
+  separately below (IR alignment as above).
+
+| Event | MM109: Otto time (s) | Applied PWM | MM023: Otto time (s) | Applied PWM |
+|---|---|---|---|---|
+| Stall: wheel stops | about 606.2 | 32 | about 903.3 | 29 |
+| **Throttle increase begins** (applied PWM first above the stall PWM) | **665.161** | 33 | **905.091** | 30 |
+| **Wheel resumes** (IR leaves its stationary band) | **666.447** | **41** | **911.942** | **39** |
+| First IR stripe edge | 666.689 | 43 | — | — |
+| Hall leaves its stationary band | 666.567 (2021 ± 6) | 42 | about 912.0 | — |
+
+**Observations:**
+- At MM109 the wheel resumed **1.29 s after** the throttle increase began, at
+  applied PWM 41.
+- At MM023 the applied PWM was raised from 29 to 34–36 at 905.1 s, and the wheel
+  stayed still for **6.85 s** with power applied. It resumed only at PWM 39.
+- In both cases the Hall left its stationary band within about 0.1 s of the
+  wheel, never with the throttle.
+
+**Implications:**
+- Applied PWM said "moving" through both stalls (32–36), and its increase did
+  not mark resumption. **PWM distinguishes neither stall from movement nor stall
+  from resumption.**
+- The Hall-based resumption (leaving the stationary range) coincided with the
+  wheel in both cases.
+- The run-8 stalls are exceptional events. They are evidence about stalls, not
+  about ordinary STOP/GO.
