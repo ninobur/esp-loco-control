@@ -397,9 +397,11 @@ Output: `analysis/navi_rvm_shape_20261018/field_20261019/stops_100403/`
   flap.
 
 **David, afterwards:**
-- He did not reboot Otto, and nothing was done to the loco at 10:06:20.
-- **Otto runs on battery**, so the 16.26 V reading is the battery, and there is
+- Otto runs on **battery**, so the 16.26 V reading is the battery, and there is
   no track-power interruption to consider.
-- The reset was therefore **spontaneous**. Its cause (watchdog, panic or
-  brownout of the 3.3 V rail) remains unknown, because the build does not
-  report it.
+- David doesn't believe he rebooted Otto, but **could have done it
+  absent-mindedly**.
+- **Status: cause undetermined. It is not established as a firmware fault.**
+  - If it is real, it will repeat. Watch \`state/bootid\` and the \`online\`
+    flap in later runs.
+  - No action has been taken or proposed for now (David, 2026-10-19).
