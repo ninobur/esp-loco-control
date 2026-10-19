@@ -54,9 +54,12 @@ for f, u in uses.items():
 for f in NAV:
     if f not in funcs: bad.append(f'navigation function {f} not found')
     elif uses.get(f): bad.append(f'navigation function {f} touches {uses[f]}')
-# In the sketch, a block's PWM is read in exactly one place: the pause decision.
-pwm_reads = re.findall(r'\bb\.pwm\b[^;]*', src)
-if len(pwm_reads) != 1 or 'waveformPause.admit(b.pwm)' not in src: bad.append(f'block PWM used outside the pause: {pwm_reads}')
+# In the sketch, a block's PWM is never read: the whole block goes to the pause
+# (RvmPause.h), which alone reads it, and only to pause / resume the waveform.
+pwm_reads = re.findall(r'\b(?:b|admitted\[\w+\]|blk|block)\.pwm\b[^;]*', src)
+if pwm_reads or 'waveformPause.admit(b, admitted)' not in src: bad.append(f'block PWM read in the sketch: {pwm_reads}')
+pause = strip_comments((S / 'RvmPause.h').read_text())
+if pause.count('.pwm') != 1: bad.append('RvmPause.h reads PWM more than once')
 report = dict(functions_with_actuator_access={f: u for f, u in uses.items() if u}, navigation_functions=NAV, violations=bad)
 print(json.dumps(report, indent=1))
 sys.exit(1 if bad else 0)

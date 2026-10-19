@@ -1,0 +1,149 @@
+[
+ {
+  "variant": "exit2_arr140",
+  "where": "after_completion",
+  "cases": 108,
+  "invariant": 88,
+  "mm_ok": 93
+ },
+ {
+  "variant": "exit2_arr140",
+  "where": "baseline",
+  "cases": 93,
+  "invariant": 76,
+  "mm_ok": 78
+ },
+ {
+  "variant": "exit2_arr140",
+  "where": "falling",
+  "cases": 108,
+  "invariant": 68,
+  "mm_ok": 71
+ },
+ {
+  "variant": "exit2_arr140",
+  "where": "leading_lobe",
+  "cases": 107,
+  "invariant": 99,
+  "mm_ok": 102
+ },
+ {
+  "variant": "exit2_arr140",
+  "where": "peak",
+  "cases": 107,
+  "invariant": 64,
+  "mm_ok": 68
+ },
+ {
+  "variant": "exit2_arr140",
+  "where": "rising",
+  "cases": 107,
+  "invariant": 63,
+  "mm_ok": 64
+ },
+ {
+  "variant": "exit2_arr140",
+  "where": "trailing_lobe",
+  "cases": 108,
+  "invariant": 101,
+  "mm_ok": 104
+ },
+ {
+  "variant": "exit2_arr35",
+  "where": "after_completion",
+  "cases": 108,
+  "invariant": 88,
+  "mm_ok": 93
+ },
+ {
+  "variant": "exit2_arr35",
+  "where": "baseline",
+  "cases": 93,
+  "invariant": 76,
+  "mm_ok": 78
+ },
+ {
+  "variant": "exit2_arr35",
+  "where": "falling",
+  "cases": 108,
+  "invariant": 98,
+  "mm_ok": 101
+ },
+ {
+  "variant": "exit2_arr35",
+  "where": "leading_lobe",
+  "cases": 107,
+  "invariant": 100,
+  "mm_ok": 102
+ },
+ {
+  "variant": "exit2_arr35",
+  "where": "peak",
+  "cases": 107,
+  "invariant": 99,
+  "mm_ok": 105
+ },
+ {
+  "variant": "exit2_arr35",
+  "where": "rising",
+  "cases": 107,
+  "invariant": 99,
+  "mm_ok": 101
+ },
+ {
+  "variant": "exit2_arr35",
+  "where": "trailing_lobe",
+  "cases": 108,
+  "invariant": 104,
+  "mm_ok": 107
+ },
+ {
+  "variant": "exit2_arr70",
+  "where": "after_completion",
+  "cases": 108,
+  "invariant": 88,
+  "mm_ok": 93
+ },
+ {
+  "variant": "exit2_arr70",
+  "where": "baseline",
+  "cases": 93,
+  "invariant": 76,
+  "mm_ok": 78
+ },
+ {
+  "variant": "exit2_arr70",
+  "where": "falling",
+  "cases": 108,
+  "invariant": 98,
+  "mm_ok": 101
+ },
+ {
+  "variant": "exit2_arr70",
+  "where": "leading_lobe",
+  "cases": 107,
+  "invariant": 100,
+  "mm_ok": 102
+ },
+ {
+  "variant": "exit2_arr70",
+  "where": "peak",
+  "cases": 107,
+  "invariant": 99,
+  "mm_ok": 105
+ },
+ {
+  "variant": "exit2_arr70",
+  "where": "rising",
+  "cases": 107,
+  "invariant": 99,
+  "mm_ok": 101
+ },
+ {
+  "variant": "exit2_arr70",
+  "where": "trailing_lobe",
+  "cases": 108,
+  "invariant": 104,
+  "mm_ok": 107
+ }
+]

@@ -1,0 +1,149 @@
+[
+ {
+  "variant": "envelope_both2",
+  "where": "after_completion",
+  "cases": 108,
+  "invariant": 88,
+  "mm_ok": 93
+ },
+ {
+  "variant": "envelope_both2",
+  "where": "baseline",
+  "cases": 93,
+  "invariant": 76,
+  "mm_ok": 78
+ },
+ {
+  "variant": "envelope_both2",
+  "where": "falling",
+  "cases": 108,
+  "invariant": 96,
+  "mm_ok": 101
+ },
+ {
+  "variant": "envelope_both2",
+  "where": "leading_lobe",
+  "cases": 107,
+  "invariant": 99,
+  "mm_ok": 102
+ },
+ {
+  "variant": "envelope_both2",
+  "where": "peak",
+  "cases": 107,
+  "invariant": 103,
+  "mm_ok": 106
+ },
+ {
+  "variant": "envelope_both2",
+  "where": "rising",
+  "cases": 107,
+  "invariant": 99,
+  "mm_ok": 101
+ },
+ {
+  "variant": "envelope_both2",
+  "where": "trailing_lobe",
+  "cases": 108,
+  "invariant": 104,
+  "mm_ok": 107
+ },
+ {
+  "variant": "envelope_exit2",
+  "where": "after_completion",
+  "cases": 108,
+  "invariant": 89,
+  "mm_ok": 93
+ },
+ {
+  "variant": "envelope_exit2",
+  "where": "baseline",
+  "cases": 93,
+  "invariant": 75,
+  "mm_ok": 78
+ },
+ {
+  "variant": "envelope_exit2",
+  "where": "falling",
+  "cases": 108,
+  "invariant": 11,
+  "mm_ok": 12
+ },
+ {
+  "variant": "envelope_exit2",
+  "where": "leading_lobe",
+  "cases": 107,
+  "invariant": 99,
+  "mm_ok": 102
+ },
+ {
+  "variant": "envelope_exit2",
+  "where": "peak",
+  "cases": 107,
+  "invariant": 0,
+  "mm_ok": 0
+ },
+ {
+  "variant": "envelope_exit2",
+  "where": "rising",
+  "cases": 107,
+  "invariant": 0,
+  "mm_ok": 1
+ },
+ {
+  "variant": "envelope_exit2",
+  "where": "trailing_lobe",
+  "cases": 108,
+  "invariant": 98,
+  "mm_ok": 101
+ },
+ {
+  "variant": "oracle",
+  "where": "after_completion",
+  "cases": 108,
+  "invariant": 88,
+  "mm_ok": 93
+ },
+ {
+  "variant": "oracle",
+  "where": "baseline",
+  "cases": 93,
+  "invariant": 76,
+  "mm_ok": 78
+ },
+ {
+  "variant": "oracle",
+  "where": "falling",
+  "cases": 108,
+  "invariant": 99,
+  "mm_ok": 102
+ },
+ {
+  "variant": "oracle",
+  "where": "leading_lobe",
+  "cases": 107,
+  "invariant": 99,
+  "mm_ok": 102
+ },
+ {
+  "variant": "oracle",
+  "where": "peak",
+  "cases": 107,
+  "invariant": 98,
+  "mm_ok": 104
+ },
+ {
+  "variant": "oracle",
+  "where": "rising",
+  "cases": 107,
+  "invariant": 99,
+  "mm_ok": 101
+ },
+ {
+  "variant": "oracle",
+  "where": "trailing_lobe",
+  "cases": 108,
+  "invariant": 104,
+  "mm_ok": 107
+ }
+]

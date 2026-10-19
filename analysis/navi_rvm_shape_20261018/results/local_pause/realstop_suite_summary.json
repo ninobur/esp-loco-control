@@ -1,0 +1,590 @@
+[
+ {
+  "variant": "all",
+  "where": "after_completion",
+  "cases": 108,
+  "invariant": 83,
+  "mm_ok": 93
+ },
+ {
+  "variant": "all",
+  "where": "baseline",
+  "cases": 93,
+  "invariant": 62,
+  "mm_ok": 78
+ },
+ {
+  "variant": "all",
+  "where": "falling",
+  "cases": 108,
+  "invariant": 7,
+  "mm_ok": 8
+ },
+ {
+  "variant": "all",
+  "where": "leading_lobe",
+  "cases": 107,
+  "invariant": 87,
+  "mm_ok": 104
+ },
+ {
+  "variant": "all",
+  "where": "peak",
+  "cases": 107,
+  "invariant": 0,
+  "mm_ok": 0
+ },
+ {
+  "variant": "all",
+  "where": "rising",
+  "cases": 107,
+  "invariant": 0,
+  "mm_ok": 0
+ },
+ {
+  "variant": "all",
+  "where": "trailing_lobe",
+  "cases": 108,
+  "invariant": 91,
+  "mm_ok": 107
+ },
+ {
+  "variant": "envelope_both2",
+  "where": "after_completion",
+  "cases": 108,
+  "invariant": 87,
+  "mm_ok": 93
+ },
+ {
+  "variant": "envelope_both2",
+  "where": "baseline",
+  "cases": 93,
+  "invariant": 64,
+  "mm_ok": 78
+ },
+ {
+  "variant": "envelope_both2",
+  "where": "falling",
+  "cases": 108,
+  "invariant": 85,
+  "mm_ok": 108
+ },
+ {
+  "variant": "envelope_both2",
+  "where": "leading_lobe",
+  "cases": 107,
+  "invariant": 89,
+  "mm_ok": 105
+ },
+ {
+  "variant": "envelope_both2",
+  "where": "peak",
+  "cases": 107,
+  "invariant": 83,
+  "mm_ok": 106
+ },
+ {
+  "variant": "envelope_both2",
+  "where": "rising",
+  "cases": 107,
+  "invariant": 95,
+  "mm_ok": 107
+ },
+ {
+  "variant": "envelope_both2",
+  "where": "trailing_lobe",
+  "cases": 108,
+  "invariant": 93,
+  "mm_ok": 107
+ },
+ {
+  "variant": "envelope_exit",
+  "where": "after_completion",
+  "cases": 108,
+  "invariant": 83,
+  "mm_ok": 93
+ },
+ {
+  "variant": "envelope_exit",
+  "where": "baseline",
+  "cases": 93,
+  "invariant": 62,
+  "mm_ok": 78
+ },
+ {
+  "variant": "envelope_exit",
+  "where": "falling",
+  "cases": 108,
+  "invariant": 7,
+  "mm_ok": 8
+ },
+ {
+  "variant": "envelope_exit",
+  "where": "leading_lobe",
+  "cases": 107,
+  "invariant": 87,
+  "mm_ok": 104
+ },
+ {
+  "variant": "envelope_exit",
+  "where": "peak",
+  "cases": 107,
+  "invariant": 0,
+  "mm_ok": 0
+ },
+ {
+  "variant": "envelope_exit",
+  "where": "rising",
+  "cases": 107,
+  "invariant": 0,
+  "mm_ok": 0
+ },
+ {
+  "variant": "envelope_exit",
+  "where": "trailing_lobe",
+  "cases": 108,
+  "invariant": 92,
+  "mm_ok": 107
+ },
+ {
+  "variant": "envelope_exit2",
+  "where": "after_completion",
+  "cases": 108,
+  "invariant": 83,
+  "mm_ok": 93
+ },
+ {
+  "variant": "envelope_exit2",
+  "where": "baseline",
+  "cases": 93,
+  "invariant": 62,
+  "mm_ok": 78
+ },
+ {
+  "variant": "envelope_exit2",
+  "where": "falling",
+  "cases": 108,
+  "invariant": 7,
+  "mm_ok": 8
+ },
+ {
+  "variant": "envelope_exit2",
+  "where": "leading_lobe",
+  "cases": 107,
+  "invariant": 88,
+  "mm_ok": 104
+ },
+ {
+  "variant": "envelope_exit2",
+  "where": "peak",
+  "cases": 107,
+  "invariant": 0,
+  "mm_ok": 0
+ },
+ {
+  "variant": "envelope_exit2",
+  "where": "rising",
+  "cases": 107,
+  "invariant": 0,
+  "mm_ok": 0
+ },
+ {
+  "variant": "envelope_exit2",
+  "where": "trailing_lobe",
+  "cases": 108,
+  "invariant": 93,
+  "mm_ok": 107
+ },
+ {
+  "variant": "exit2_arr140",
+  "where": "after_completion",
+  "cases": 108,
+  "invariant": 84,
+  "mm_ok": 93
+ },
+ {
+  "variant": "exit2_arr140",
+  "where": "baseline",
+  "cases": 93,
+  "invariant": 63,
+  "mm_ok": 78
+ },
+ {
+  "variant": "exit2_arr140",
+  "where": "falling",
+  "cases": 108,
+  "invariant": 55,
+  "mm_ok": 72
+ },
+ {
+  "variant": "exit2_arr140",
+  "where": "leading_lobe",
+  "cases": 107,
+  "invariant": 90,
+  "mm_ok": 105
+ },
+ {
+  "variant": "exit2_arr140",
+  "where": "peak",
+  "cases": 107,
+  "invariant": 61,
+  "mm_ok": 69
+ },
+ {
+  "variant": "exit2_arr140",
+  "where": "rising",
+  "cases": 107,
+  "invariant": 61,
+  "mm_ok": 67
+ },
+ {
+  "variant": "exit2_arr140",
+  "where": "trailing_lobe",
+  "cases": 108,
+  "invariant": 94,
+  "mm_ok": 107
+ },
+ {
+  "variant": "exit2_arr35",
+  "where": "after_completion",
+  "cases": 108,
+  "invariant": 85,
+  "mm_ok": 93
+ },
+ {
+  "variant": "exit2_arr35",
+  "where": "baseline",
+  "cases": 93,
+  "invariant": 63,
+  "mm_ok": 78
+ },
+ {
+  "variant": "exit2_arr35",
+  "where": "falling",
+  "cases": 108,
+  "invariant": 86,
+  "mm_ok": 108
+ },
+ {
+  "variant": "exit2_arr35",
+  "where": "leading_lobe",
+  "cases": 107,
+  "invariant": 90,
+  "mm_ok": 105
+ },
+ {
+  "variant": "exit2_arr35",
+  "where": "peak",
+  "cases": 107,
+  "invariant": 95,
+  "mm_ok": 106
+ },
+ {
+  "variant": "exit2_arr35",
+  "where": "rising",
+  "cases": 107,
+  "invariant": 96,
+  "mm_ok": 107
+ },
+ {
+  "variant": "exit2_arr35",
+  "where": "trailing_lobe",
+  "cases": 108,
+  "invariant": 94,
+  "mm_ok": 107
+ },
+ {
+  "variant": "exit2_arr70",
+  "where": "after_completion",
+  "cases": 108,
+  "invariant": 85,
+  "mm_ok": 93
+ },
+ {
+  "variant": "exit2_arr70",
+  "where": "baseline",
+  "cases": 93,
+  "invariant": 63,
+  "mm_ok": 78
+ },
+ {
+  "variant": "exit2_arr70",
+  "where": "falling",
+  "cases": 108,
+  "invariant": 86,
+  "mm_ok": 108
+ },
+ {
+  "variant": "exit2_arr70",
+  "where": "leading_lobe",
+  "cases": 107,
+  "invariant": 90,
+  "mm_ok": 105
+ },
+ {
+  "variant": "exit2_arr70",
+  "where": "peak",
+  "cases": 107,
+  "invariant": 95,
+  "mm_ok": 106
+ },
+ {
+  "variant": "exit2_arr70",
+  "where": "rising",
+  "cases": 107,
+  "invariant": 96,
+  "mm_ok": 107
+ },
+ {
+  "variant": "exit2_arr70",
+  "where": "trailing_lobe",
+  "cases": 108,
+  "invariant": 94,
+  "mm_ok": 107
+ },
+ {
+  "variant": "exit2_fast_stop",
+  "where": "after_completion",
+  "cases": 108,
+  "invariant": 85,
+  "mm_ok": 93
+ },
+ {
+  "variant": "exit2_fast_stop",
+  "where": "baseline",
+  "cases": 93,
+  "invariant": 63,
+  "mm_ok": 78
+ },
+ {
+  "variant": "exit2_fast_stop",
+  "where": "falling",
+  "cases": 108,
+  "invariant": 86,
+  "mm_ok": 108
+ },
+ {
+  "variant": "exit2_fast_stop",
+  "where": "leading_lobe",
+  "cases": 107,
+  "invariant": 90,
+  "mm_ok": 105
+ },
+ {
+  "variant": "exit2_fast_stop",
+  "where": "peak",
+  "cases": 107,
+  "invariant": 95,
+  "mm_ok": 106
+ },
+ {
+  "variant": "exit2_fast_stop",
+  "where": "rising",
+  "cases": 107,
+  "invariant": 96,
+  "mm_ok": 107
+ },
+ {
+  "variant": "exit2_fast_stop",
+  "where": "trailing_lobe",
+  "cases": 108,
+  "invariant": 94,
+  "mm_ok": 107
+ },
+ {
+  "variant": "oracle",
+  "where": "after_completion",
+  "cases": 108,
+  "invariant": 85,
+  "mm_ok": 93
+ },
+ {
+  "variant": "oracle",
+  "where": "baseline",
+  "cases": 93,
+  "invariant": 63,
+  "mm_ok": 78
+ },
+ {
+  "variant": "oracle",
+  "where": "falling",
+  "cases": 108,
+  "invariant": 86,
+  "mm_ok": 108
+ },
+ {
+  "variant": "oracle",
+  "where": "leading_lobe",
+  "cases": 107,
+  "invariant": 90,
+  "mm_ok": 105
+ },
+ {
+  "variant": "oracle",
+  "where": "peak",
+  "cases": 107,
+  "invariant": 94,
+  "mm_ok": 103
+ },
+ {
+  "variant": "oracle",
+  "where": "rising",
+  "cases": 107,
+  "invariant": 95,
+  "mm_ok": 107
+ },
+ {
+  "variant": "oracle",
+  "where": "trailing_lobe",
+  "cases": 108,
+  "invariant": 95,
+  "mm_ok": 107
+ },
+ {
+  "variant": "oracle_arr",
+  "where": "after_completion",
+  "cases": 108,
+  "invariant": 83,
+  "mm_ok": 93
+ },
+ {
+  "variant": "oracle_arr",
+  "where": "baseline",
+  "cases": 93,
+  "invariant": 62,
+  "mm_ok": 78
+ },
+ {
+  "variant": "oracle_arr",
+  "where": "falling",
+  "cases": 108,
+  "invariant": 8,
+  "mm_ok": 8
+ },
+ {
+  "variant": "oracle_arr",
+  "where": "leading_lobe",
+  "cases": 107,
+  "invariant": 89,
+  "mm_ok": 105
+ },
+ {
+  "variant": "oracle_arr",
+  "where": "peak",
+  "cases": 107,
+  "invariant": 0,
+  "mm_ok": 0
+ },
+ {
+  "variant": "oracle_arr",
+  "where": "rising",
+  "cases": 107,
+  "invariant": 0,
+  "mm_ok": 0
+ },
+ {
+  "variant": "oracle_arr",
+  "where": "trailing_lobe",
+  "cases": 108,
+  "invariant": 93,
+  "mm_ok": 107
+ },
+ {
+  "variant": "oracle_dep",
+  "where": "after_completion",
+  "cases": 108,
+  "invariant": 83,
+  "mm_ok": 93
+ },
+ {
+  "variant": "oracle_dep",
+  "where": "baseline",
+  "cases": 93,
+  "invariant": 62,
+  "mm_ok": 78
+ },
+ {
+  "variant": "oracle_dep",
+  "where": "falling",
+  "cases": 108,
+  "invariant": 7,
+  "mm_ok": 8
+ },
+ {
+  "variant": "oracle_dep",
+  "where": "leading_lobe",
+  "cases": 107,
+  "invariant": 89,
+  "mm_ok": 104
+ },
+ {
+  "variant": "oracle_dep",
+  "where": "peak",
+  "cases": 107,
+  "invariant": 0,
+  "mm_ok": 0
+ },
+ {
+  "variant": "oracle_dep",
+  "where": "rising",
+  "cases": 107,
+  "invariant": 0,
+  "mm_ok": 0
+ },
+ {
+  "variant": "oracle_dep",
+  "where": "trailing_lobe",
+  "cases": 108,
+  "invariant": 93,
+  "mm_ok": 107
+ },
+ {
+  "variant": "pwm15",
+  "where": "after_completion",
+  "cases": 108,
+  "invariant": 83,
+  "mm_ok": 93
+ },
+ {
+  "variant": "pwm15",
+  "where": "baseline",
+  "cases": 93,
+  "invariant": 62,
+  "mm_ok": 78
+ },
+ {
+  "variant": "pwm15",
+  "where": "falling",
+  "cases": 108,
+  "invariant": 7,
+  "mm_ok": 8
+ },
+ {
+  "variant": "pwm15",
+  "where": "leading_lobe",
+  "cases": 107,
+  "invariant": 87,
+  "mm_ok": 104
+ },
+ {
+  "variant": "pwm15",
+  "where": "peak",
+  "cases": 107,
+  "invariant": 0,
+  "mm_ok": 0
+ },
+ {
+  "variant": "pwm15",
+  "where": "rising",
+  "cases": 107,
+  "invariant": 0,
+  "mm_ok": 0
+ },
+ {
+  "variant": "pwm15",
+  "where": "trailing_lobe",
+  "cases": 108,
+  "invariant": 90,
+  "mm_ok": 107
+ }
+]

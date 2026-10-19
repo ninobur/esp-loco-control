@@ -51,7 +51,8 @@ if __name__ == '__main__':
     # declaration direction: from session_direction commands
     sd = pd.read_csv(RP / 'declarations.csv'); sd = sd[(sd.boot == BOOT1) & sd.topic.str.contains('session_direction')]
     dir_at = lambda us: (1 if sd[sd.t_us <= us].payload.iloc[-1] == 'CW' else -1)
-    events = [(int(r.i), 'decl', r) for r in dec.itertuples()] + [(float(r.decided), 'ens', r) for r in det.itertuples()]
+    det['accepted'] = det.groupby('seg').decided.cummax()   # acceptance order = row order; decided can step back after a wide window
+    events = [(int(r.i), 'decl', r) for r in dec.itertuples()] + [(float(r.accepted), 'ens', r) for r in det.itertuples()]
     events.sort(key=lambda e: (e[0], 0 if e[1] == 'decl' else 1))
     nav = Navigator(); rows = []
     truth = X.ens[X.ens.source != 'NO_EXTENT']

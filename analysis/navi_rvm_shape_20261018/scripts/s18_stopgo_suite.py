@@ -2,6 +2,8 @@
 Real recorded boot-1 stretches (moving throughout, no gaps) are given a declared
 stationary starting baseline (5 s at PWM 0) and then commanded stops are
 inserted: held Hall value (+ the stretch's own baseline noise) with PWM 0.
+Stationary blocks (the declared start and every stop) use Otto's REAL recorded
+stationary Hall fluctuation (realstop.stationary_noise).
 Every case runs through BOTH the Python reference (stopgo + rvm_local) and the
 firmware headers (tests/navi_rvm_shape/blocks_replay.cpp), and is compared with
 the uninterrupted run of the same stretch:
@@ -17,6 +19,7 @@ from common import *
 import rvm_shape as R
 import rvm_local as L
 import stopgo as G
+import realstop as RS
 import s10_local_experiment as X
 
 OUT = ROOT/'results'/'local_pause'; REPO = ROOT.parents[1]
@@ -56,7 +59,7 @@ def pick_targets(n=12, direction=1):
     return out
 
 def run_py(h, ccw, pwm):
-    keep = G.admit_mask(pwm, [0]); C = G.Compressed(h, ccw, keep)
+    keep = G.resumption_mask(h, pwm, [0]); C = G.Compressed(h, ccw, keep)
     det = L.run(L.Tracing(C.h, C.ccw), Em, Nm, [(0, 'decl')])
     if not len(det): return pd.DataFrame(columns=['c_id', 'c', 'pol'])
     det['c_id'] = [int(C.ids[min(int(np.floor(c)), len(C.ids) - 1)]) for c in det.c]
@@ -74,8 +77,8 @@ def run_cpp(h, ccw, pwm, last, nxt, d):
 def build(a, b, stops, depart_tail=0.0, arrive=0.0, shift=None):
     """stops: list of (orig_pos, seconds). Returns h, ccw, pwm, orig (recorded-stretch coordinate per block)."""
     h0 = X.h[a:b].astype(float); c0 = X.ccw[a:b]; n0 = len(h0)
-    sig = np.std(np.diff(h0[:100])) / np.sqrt(2)
-    H = [h0[0] + rng.normal(0, sig, PRE)]; C = [np.repeat(c0[0], PRE)]; P = [np.zeros(PRE, int)]; O = [np.full(PRE, -1.0)]
+    sig = RS.robust_noise(h0)
+    H = [h0[0] + RS.stationary_noise(PRE, rng)]; C = [np.repeat(c0[0], PRE)]; P = [np.zeros(PRE, int)]; O = [np.full(PRE, -1.0)]
     pwm0 = np.full(n0, 90); h0 = h0.copy()
     cut = sorted(stops); prev = 0; offset = 0.0
     for pos, sec in cut:
@@ -83,10 +86,10 @@ def build(a, b, stops, depart_tail=0.0, arrive=0.0, shift=None):
             pwm0[max(prev, pos - int(arrive * 50)):pos] = G.STOPPED_BELOW_PWM - 5
         H.append(h0[prev:pos] + offset); C.append(c0[prev:pos]); P.append(pwm0[prev:pos]); O.append(np.arange(prev, pos, dtype=float))
         n = int(sec * 50); held = h0[pos] + offset
-        H.append(held + rng.normal(0, sig, n)); C.append(np.repeat(c0[pos], n)); P.append(np.zeros(n, int)); O.append(np.full(n, pos - 0.5))
+        H.append(held + RS.stationary_noise(n, rng)); C.append(np.repeat(c0[pos], n)); P.append(np.zeros(n, int)); O.append(np.full(n, pos - 0.5))
         if depart_tail:                                                # stationary although PWM >= 25
             m = int(depart_tail * 50)
-            H.append(held + rng.normal(0, sig, m)); C.append(np.repeat(c0[pos], m)); P.append(np.full(m, G.STOPPED_BELOW_PWM + 5)); O.append(np.full(m, pos - 0.5))
+            H.append(held + RS.stationary_noise(m, rng)); C.append(np.repeat(c0[pos], m)); P.append(np.full(m, G.STOPPED_BELOW_PWM + 5)); O.append(np.full(m, pos - 0.5))
         if shift is not None: offset += shift
         prev = pos
     H.append(h0[prev:] + offset); C.append(c0[prev:]); P.append(pwm0[prev:]); O.append(np.arange(prev, n0, dtype=float))

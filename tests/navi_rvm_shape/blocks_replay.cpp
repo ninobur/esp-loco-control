@@ -19,8 +19,10 @@ int main(int argc, char** argv) {
     if (sscanf(line, "%31[^,],%d,%d", hs, &dir, &pwm) != 3) continue;
     const float hall = strtof(hs, nullptr);
     if (id == decl) { rec.startBaseline(rec.blocks(), id); pause.declared(); nav.declare(uint8_t(atoi(argv[3])), uint8_t(atoi(argv[4])), int8_t(atoi(argv[5]))); }
-    if (pause.admit(uint8_t(pwm))) {
-      rec.push(hall, dir == 2, id);
+    rvm_shape::Block blk{}; blk.index = id; blk.hall = hall; blk.dir = uint8_t(dir); blk.pwm = uint8_t(pwm);
+    rvm_shape::Block adm[2]; const int na = pause.admit(blk, adm);
+    for (int q = 0; q < na; ++q) {
+      rec.push(adm[q].hall, adm[q].dir == 2, adm[q].index);
       rvm_shape::Ensemble e;
       while (rec.take(e)) {
         const auto r = nav.onEnsemble(e.pol);

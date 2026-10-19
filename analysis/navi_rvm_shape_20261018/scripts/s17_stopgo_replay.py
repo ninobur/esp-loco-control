@@ -27,7 +27,7 @@ for f in range(X.NF):
     spans = [(X.edges[k], X.edges[k + 1]) for k in range(X.NF) if k != f]
     Em, Nm, info = X.build(train, spans, 40000)            # identical to s10 (same rng sequence)
     starts = [a] + [d for d in X.decl_i if a < d < b]
-    keep = G.admit_mask(pwm[a:b], [s - a for s in starts])
+    keep = G.resumption_mask(X.h[a:b], pwm[a:b], [s - a for s in starts])
     C = G.Compressed(X.h[a:b], X.ccw[a:b], keep)
     det = L.run(L.Tracing(C.h, C.ccw), Em, Nm, [(C.start_of(s - a), 'start') for s in starts])
     if len(det):
@@ -52,11 +52,11 @@ mj = json.load(open(ROOT/'results'/'local'/'model_A.json'))
 def gmm(c):
     g = R.GMM(len(c['w'])); g.w = np.array(c['w']); g.mu = np.array(c['mu']); g.S = np.array(c['S']); return g
 Em, Nm = gmm(mj['E']), gmm(mj['N'])
-keep = G.admit_mask(pwm, X.decl_i)
+keep = G.resumption_mask(X.h, pwm, X.decl_i)
 C = G.Compressed(X.h, X.ccw, keep)
 py = L.run(L.Tracing(C.h, C.ccw), Em, Nm, [(C.start_of(d), 'decl') for d in X.decl_i])
 py['c_id'] = np.floor(py.c).astype(int).map(lambda i: int(C.ids[min(i, len(C.ids) - 1)]))
-py['c_orig'] = C.to_ids(py.c); py['decided_orig'] = C.to_ids(py.decided)
+py['c_orig'] = C.to_ids(py.c); py['decided_orig'] = C.to_ids(py.groupby('seg').decided.cummax())   # acceptance order
 py.to_csv(OUT/'python_reference_detections.csv', index=False)
 sd = pd.read_csv(RP/'declarations.csv'); sd = sd[sd.boot == BOOT1]
 dir_at = lambda us: (1 if sd[(sd.t_us <= us) & sd.topic.str.contains('session_direction')].payload.iloc[-1] == 'CW' else -1)

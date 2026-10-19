@@ -1,0 +1,51 @@
+[
+ {
+  "variant": "exit2_fast_stop",
+  "where": "after_completion",
+  "cases": 108,
+  "invariant": 88,
+  "mm_ok": 93
+ },
+ {
+  "variant": "exit2_fast_stop",
+  "where": "baseline",
+  "cases": 93,
+  "invariant": 76,
+  "mm_ok": 78
+ },
+ {
+  "variant": "exit2_fast_stop",
+  "where": "falling",
+  "cases": 108,
+  "invariant": 98,
+  "mm_ok": 101
+ },
+ {
+  "variant": "exit2_fast_stop",
+  "where": "leading_lobe",
+  "cases": 107,
+  "invariant": 100,
+  "mm_ok": 102
+ },
+ {
+  "variant": "exit2_fast_stop",
+  "where": "peak",
+  "cases": 107,
+  "invariant": 99,
+  "mm_ok": 105
+ },
+ {
+  "variant": "exit2_fast_stop",
+  "where": "rising",
+  "cases": 107,
+  "invariant": 99,
+  "mm_ok": 101
+ },
+ {
+  "variant": "exit2_fast_stop",
+  "where": "trailing_lobe",
+  "cases": 108,
+  "invariant": 104,
+  "mm_ok": 107
+ }
+]

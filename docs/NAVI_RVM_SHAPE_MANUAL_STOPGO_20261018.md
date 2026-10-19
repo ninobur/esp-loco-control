@@ -13,6 +13,9 @@
 > **Unchanged.** No operational firmware, Pi service, MQTT or dashboard
 > configuration was changed.
 
+> **Superseded in part.** Pattern-based resumption after GO is now implemented; see
+> [`NAVI_RVM_SHAPE_MANUAL_RESUMPTION_20261018.md`](NAVI_RVM_SHAPE_MANUAL_RESUMPTION_20261018.md).
+>
 > **REVISION: STOPPED = applied PWM < 15.** David ruled this after the first
 > version ("PWM <15 for sure"). The candidate now implements **< 15**.
 > §0A gives the current numbers. Sections 0–4 below record the results at the

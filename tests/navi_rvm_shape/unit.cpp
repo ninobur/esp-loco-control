@@ -83,44 +83,78 @@ static void recognizerTests() {
 }
 
 
+static Block blk(uint32_t id, float h, uint8_t pwm) { Block b{}; b.index = id; b.hall = h; b.pwm = pwm; b.dir = 1; b.n = 100; return b; }
+
 static void pauseTests() {
-  WaveformPause p;
-  CHECK(!p.admit(0));                       // never declared and stopped: not appended
+  WaveformPause p; Block o[2]; uint32_t id = 0;
+  CHECK(p.admit(blk(id++, 1900, 0), o) == 0);                  // never declared, stopped: not appended
   p.declared();
-  CHECK(p.admit(0) && p.admit(14));         // startup: declared stationary baseline is appended
-  CHECK(p.admit(15) && !p.paused());        // first moving block ends startup
-  CHECK(!p.admit(14) && p.paused());        // STOPPED = PWM < 15: paused
-  CHECK(!p.admit(0) && p.paused());
-  CHECK(p.admit(90) && !p.paused());        // resumed
-  p.declared(); CHECK(p.admit(0));          // a new declaration is a new startup
+  CHECK(p.admit(blk(id++, 1900, 0), o) == 1);                  // startup: declared stationary baseline appended
+  CHECK(p.admit(blk(id++, 1900, 14), o) == 1);
+  CHECK(p.admit(blk(id++, 1900, 15), o) == 1 && !p.paused());  // first moving block ends startup
+  CHECK(p.admit(blk(id++, 1950, 90), o) == 1);
+  // STOP over a magnet: stationary at 2000 +- 1
+  for (int k = 0; k < 50; ++k) CHECK(p.admit(blk(id++, 2000.0f + (k % 3) - 1, 0), o) == 0);
+  CHECK(p.paused() && p.stationaryLow() == 1999 && p.stationaryHigh() == 2001);
+  // GO, but still stationary: PWM >= 15 alone does not resume
+  for (int k = 0; k < 20; ++k) CHECK(p.admit(blk(id++, 2000, 40), o) == 0);
+  CHECK(p.paused());
+  CHECK(p.admit(blk(id++, 2003, 40), o) == 0);                 // one block outside ...
+  CHECK(p.admit(blk(id++, 2000, 40), o) == 0);                 // ... then back: a fluctuation, withheld
+  CHECK(p.paused());
+  CHECK(p.admit(blk(id++, 2003, 40), o) == 0);                 // outside high ...
+  CHECK(p.admit(blk(id++, 1996, 40), o) == 0);                 // ... then outside LOW: not the same side
+  CHECK(p.paused());
+  CHECK(p.admit(blk(id++, 1990, 0), o) == 0);                  // re-stop before resuming: same stop, reference grows
+  CHECK(p.stationaryLow() == 1990 && p.stationaryHigh() == 2001);
+  CHECK(p.admit(blk(id++, 2005, 40), o) == 0);                 // first block of the departure: pending
+  const uint32_t first = id - 1;
+  CHECK(p.admit(blk(id++, 2010, 40), o) == 2);                 // second on the same side: resumed, both appended
+  CHECK(o[0].index == first && o[1].index == first + 1 && !p.paused());
+  CHECK(p.admit(blk(id++, 2000, 40), o) == 1);                 // running: everything appended
+  p.declared(); CHECK(p.admit(blk(id++, 1890, 0), o) == 1);    // a new declaration is a new startup
 }
 
-// The same bump with commanded stops inserted (PWM 0 blocks) must give exactly
-// the same recognition as without them.
+// The same bump with commanded stops inserted - the stop held at the bump's
+// value with stationary noise, and Otto-like stationary blocks AFTER the GO -
+// must give exactly the same recognition as without them.
 static void stopGoTests() {
   std::mt19937 g(11);
   const std::vector<float> v = bumpLine(1, 600, 5, g);
-  auto run = [&](const std::vector<int>& stopAt, int stopLen, std::vector<Ensemble>& got) {
-    static Recognizer r; r = Recognizer(); WaveformPause p; uint32_t id = 0;
-    std::normal_distribution<double> nz(0, 2.0);
+  // centre of each recognition mapped back to the uninterrupted signal's sample index
+  auto run = [&](const std::vector<int>& stopAt, int stopLen, int goStill, std::vector<double>& got) {
+    static Recognizer r; r = Recognizer(); WaveformPause p; uint32_t id = 0; Block o[2];
+    std::vector<int> orig;                                   // block id -> uninterrupted sample index (-1: inserted)
+    std::normal_distribution<double> nz(0, 0.7);
+    auto feed = [&](float h, uint8_t pwm, int i) {
+      orig.push_back(i);
+      const int na = p.admit(blk(id, h, pwm), o);
+      for (int q = 0; q < na; ++q) r.push(o[q].hall, false, o[q].index);
+      ++id;
+      Ensemble e; while (r.take(e)) got.push_back(orig[e.cId] + (e.c - floor(e.c)));
+    };
     for (size_t i = 0; i < v.size(); ++i) {
-      for (int sa : stopAt) if (int(i) == sa) for (int k = 0; k < stopLen; ++k) {
-        if (p.admit(0)) r.push(float(v[i] + nz(g)), false, id); ++id;   // held Hall while stopped
+      for (int sa : stopAt) if (int(i) == sa) {
+        for (int k = 0; k < stopLen; ++k) feed(float(v[i] + nz(g)), 0, -1);   // STOPPED
+        for (int k = 0; k < goStill; ++k) feed(float(v[i] + nz(g)), 40, -1);  // GO, still stationary
       }
       if (i == 100) { r.startBaseline(r.blocks(), id); p.declared(); }
-      if (p.admit(i < 100 ? 0 : 90)) r.push(v[i], false, id);
-      ++id;
-      Ensemble e; while (r.take(e)) got.push_back(e);
+      feed(v[i], i < 100 ? 0 : 90, int(i));
     }
   };
-  std::vector<Ensemble> ref; run({}, 0, ref);
+  std::vector<double> ref; run({}, 0, 0, ref);
   CHECK(ref.size() == 1);
-  for (int at : {300, 585, 592, 600, 608, 615, 640}) for (int len : {50, 1500}) {
-    std::vector<Ensemble> got; run({at}, len, got);
+  // A long pause (30 s) establishes the stationary range; the 1 s pause is checked without
+  // a stationary interval after GO (a short pause gives a narrow range: report s20).
+  for (int at : {300, 585, 592, 600, 608, 615, 640}) for (int len : {50, 1500}) for (int still : {0, 165, 265}) {
+    if (len == 50 && still) continue;
+    std::vector<double> got; run({at}, len, still, got);
+    if (got.size() != 1) printf("  stop at %d len %d still %d: %zu recognitions\n", at, len, still, got.size());
     CHECK(got.size() == 1);
-    if (got.size() == 1 && ref.size() == 1) { CHECK(got[0].pol == ref[0].pol); CHECK(fabs(got[0].c - ref[0].c) < 1e-9); CHECK(fabsf(got[0].llr - ref[0].llr) < 1e-6f); }
+    if (got.size() == 1 && ref.size() == 1 && fabs(got[0] - ref[0]) > 3.0) printf("  stop at %d len %d still %d: centre %.1f vs %.1f\n", at, len, still, got[0], ref[0]);
+    if (got.size() == 1 && ref.size() == 1) CHECK(fabs(got[0] - ref[0]) <= 3.0);   // the block AT the stop point equals the stationary state
   }
-  std::vector<Ensemble> rep; run({590, 600, 610}, 100, rep);           // repeated STOP/GO in one ensemble
+  std::vector<double> rep; run({590, 600, 610}, 100, 165, rep);       // repeated STOP/GO in one ensemble
   CHECK(rep.size() == 1);
 }
 

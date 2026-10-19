@@ -3,7 +3,7 @@
 // native.bin: packed records {u32 serial, u64 us, i16 adc, u8 pwm, u8 direction}
 //   (the hall-ground-20261015 extraction). PWM is read only to be ignored.
 // declarations.csv: block_index,last,next,dir  (tracing block index of each operator declaration)
-// The STOP/GO WaveformPause (RvmPause.h) is applied as in the firmware unless --no-pause.
+// The STOP/GO WaveformPause with pattern-based resumption (RvmPause.h) is applied as in the firmware unless --no-pause.
 // Writes out_dir/blocks.bin (float32 per block), out_dir/ensembles.csv, out_dir/nav.csv.
 // Uses exactly the firmware headers: RvmTracing.h, RvmPause.h, RvmShape.h, RvmNavigator.h.
 #include <cstdio>
@@ -51,9 +51,11 @@ int main(int argc, char** argv) {
       ++di;
     }
     fwrite(&b.hall, 4, 1, fb); ++nblocks;
-    if (usePause && !pause.admit(b.pwm)) { ++pausedBlocks; return; }
+    rvm_shape::Block adm[2]; int na = 1; adm[0] = b;
+    if (usePause) na = pause.admit(b, adm);
+    if (!na) { ++pausedBlocks; return; }
     auto t0 = std::chrono::steady_clock::now();
-    rec.push(b.hall, b.dir == 2, b.index);
+    for (int k = 0; k < na; ++k) rec.push(adm[k].hall, adm[k].dir == 2, adm[k].index);
     double us = std::chrono::duration<double, std::micro>(std::chrono::steady_clock::now() - t0).count();
     totalUs += us; if (us > maxStepUs) maxStepUs = us;
     rvm_shape::Ensemble e;

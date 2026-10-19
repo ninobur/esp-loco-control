@@ -126,3 +126,19 @@ This section belongs to
 | `s18_stopgo_suite.py` | The required STOP/GO cases on 18 real ensembles, run in Python and the firmware headers. Includes the measured-departure, measured-arrival and zero-shift variants |
 
 Results are in `results/local_pause/`, plus `results/local/stopped_threshold_evidence.*`.
+
+## Pattern-based STOP/GO resumption, 2026-10-18
+
+This section belongs to
+[`docs/NAVI_RVM_SHAPE_MANUAL_RESUMPTION_20261018.md`](../../docs/NAVI_RVM_SHAPE_MANUAL_RESUMPTION_20261018.md).
+
+| Script | What it does |
+|---|---|
+| `continuation.py` | Python reference of `RvmPause.h` resumption (`_rule`, two blocks). It also holds the analysis-only rules: one-block exit, and the arrival mirror (`envelope_both2`, not in firmware) |
+| `stopgo.resumption_mask` | The firmware pause: PWM < 15 plus pattern-based resumption |
+| `realstop.py` | Otto's measured station-stop tracks: IR pulse instants and PWM, real stationary Hall residuals. Used only to build test cases and the oracle |
+| `s19_realstop_suite.py` | Recorded magnet stretches replayed along the measured stop tracks. Variants: as built, oracles, rules, arrival-plateau tolerance |
+| `s20_false_resumption.py` | Premature-resumption rate of the rule on Otto's real stationary Hall |
+
+The `s18` and `s19` stops now use Otto's real stationary Hall. Results are in
+`results/local_pause/` (`realstop*_suite.*`, `false_resumption.csv`).

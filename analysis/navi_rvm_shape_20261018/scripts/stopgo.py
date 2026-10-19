@@ -21,6 +21,13 @@ def block_pwm(n_blocks):
     return out[:n_blocks]
 
 
+def resumption_mask(h, pwm, declarations):
+    """Firmware RvmPause.h: the PWM pause plus pattern-based resumption after GO
+    (continuation._rule, two consecutive blocks outside the stationary range)."""
+    import continuation as K
+    return K._rule(np.asarray(h, float), admit_mask(pwm, declarations), 2, declarations=declarations)
+
+
 def admit_mask(pwm, declarations):
     """declarations: block indices at which the operator declared (startup)."""
     keep = np.zeros(len(pwm), bool); startup = False; decl = set(int(d) for d in declarations)

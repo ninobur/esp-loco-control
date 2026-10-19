@@ -10,21 +10,15 @@ STOP/GO continuity (STOPPED = applied PWM < 15 pauses the recognition waveform) 
 [`docs/NAVI_RVM_SHAPE_MANUAL_STOPGO_20261018.md`](../../../docs/NAVI_RVM_SHAPE_MANUAL_STOPGO_20261018.md).
 That document also holds the build and flashing instructions.
 
-Read its §3 and §4 before any powered run. Commanded stops are fully preserved
-offline. On Otto, however, a stop with the sensor car over a magnet will usually
-still lose that magnet, because he stays still above PWM 15 when starting
-(3.3 s median).
+Pattern-based resumption is described in
+[`docs/NAVI_RVM_SHAPE_MANUAL_RESUMPTION_20261018.md`](../../../docs/NAVI_RVM_SHAPE_MANUAL_RESUMPTION_20261018.md).
+After GO, the waveform resumes only when the Hall tracing leaves the stationary
+state observed at the stop.
 
-**Control and navigation**
-
-- **The operator drives.** Throttle, direction, brake, STOP and E-STOP work from
-  the dashboard, and the low-voltage stop protects the battery.
-- **Navigation only watches.** It works in three steps:
-  1. It recognizes whole magnetic ensembles in the 20 ms Hall tracing, each
-     against the baseline that precedes it.
-  2. It checks each ensemble's polarity against the route map.
-  3. It reports the MM, or a CONTRADICTION.
-- **Navigation has no path to the motor.** This is checked statically.
+**Read its §4 (operating procedure) before any powered run.** If the sensor car
+may be over a magnet, stop quickly: either the STOP command, or the brake slider
+high before throttle 0. Otto also stands still on arrival while PWM is still at
+15 or above, and a slow stop over a magnet still loses that magnet.
 
 ## Build (compile only)
 

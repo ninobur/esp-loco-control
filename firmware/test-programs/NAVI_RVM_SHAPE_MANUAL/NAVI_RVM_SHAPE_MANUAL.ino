@@ -15,7 +15,8 @@
  * polarity turns each completed MM -> BL -> MM piece into progression.
  * STOP/GO: while STOPPED (applied PWM < 15) the recognition waveform is paused
  * (RvmPause.h): the unfinished ensemble, its baseline and the held candidate
- * survive the stop and are completed after it. PWM does nothing else. A
+ * survive the stop; after GO the waveform resumes only when the Hall pattern
+ * leaves the stationary state observed at the stop. PWM does nothing else. A
  * complete ensemble of the wrong polarity is a CONTRADICTION: reported, the
  * waveform preserved on the Pi, and no geographic claim until the operator
  * declares again. Nothing in navigation can reach the motor.
@@ -111,8 +112,10 @@ struct NavEvent {
   uint8_t mm, expected, last, next; int8_t dir;
   rvm_shape::Ensemble e;
   uint32_t blocks;
+  // STOP/GO transitions only
+  bool candidateHeld; uint32_t baselineStartId, stationaryBlocks, withheld; float stationaryLow, stationaryHigh;
 };
-enum : uint8_t { EV_DECLARED = 1, EV_SUSPENDED = 2, EV_ENSEMBLE = 3 };
+enum : uint8_t { EV_DECLARED = 1, EV_SUSPENDED = 2, EV_ENSEMBLE = 3, EV_STOPPED = 4, EV_RESUMED = 5 };
 struct NavSnapshot {
   uint8_t state = 0, last = 0, next = 0, contradicted = 0xFF; int8_t dir = 0;
   uint32_t recognized = 0, advanced = 0, contradictions = 0, blocks = 0, blStart = 0, windows = 0, outDrops = 0, pausedBlocks = 0;
@@ -275,6 +278,15 @@ static void publishSnapshot() {
   portEXIT_CRITICAL(&navMux);
 }
 static void postEvent(const NavEvent& ev) { if (!navEvQ || xQueueSend(navEvQ, &ev, 0) != pdTRUE) ++navEventDrops; }
+// STOP/GO transitions of the recognition waveform, for the Pi record (observation only).
+static void postPause(uint8_t kind, uint32_t blockId) {
+  NavEvent ev{}; ev.kind = kind; ev.blocks = blockId;
+  ev.last = navigator.lastMm(); ev.next = navigator.nextMm(); ev.dir = navigator.dir();
+  ev.candidateHeld = recognizer.holding(); ev.baselineStartId = recognizer.baselineStartId();
+  ev.stationaryLow = waveformPause.stationaryLow(); ev.stationaryHigh = waveformPause.stationaryHigh();
+  ev.stationaryBlocks = waveformPause.stationaryBlocks(); ev.withheld = waveformPause.withheldAfterGo();
+  postEvent(ev);
+}
 static void applyControl() {
   NavCtl c;
   while (ctlQ && xQueueReceive(ctlQ, &c, 0) == pdTRUE) {
@@ -300,11 +312,18 @@ static void rvmTask(void*) {
     const bool got = blockQ && xQueueReceive(blockQ, &b, pdMS_TO_TICKS(100)) == pdTRUE;
     applyControl();                                   // declarations take effect at a block boundary
     if (!got) { publishSnapshot(); continue; }
-    // STOP/GO: a STOPPED block (applied PWM < 15) is not appended; everything
-    // already in the waveform, including an unfinished ensemble, is preserved.
-    if (!waveformPause.admit(b.pwm)) { ++pausedBlocks; publishSnapshot(); continue; }
+    // STOP/GO: a STOPPED block (applied PWM < 15) is not appended; after GO,
+    // blocks that repeat the stationary state observed at the stop are withheld
+    // until the Hall pattern resumes developing (RvmPause.h). Everything already
+    // in the waveform, including an unfinished ensemble, is preserved.
+    const bool wasPaused = waveformPause.paused();
+    rvm_shape::Block admitted[2];
+    const int na = waveformPause.admit(b, admitted);
+    if (!wasPaused && waveformPause.paused()) postPause(EV_STOPPED, b.index);
+    if (wasPaused && !waveformPause.paused()) postPause(EV_RESUMED, na ? admitted[0].index : b.index);
+    if (!na) { ++pausedBlocks; publishSnapshot(); continue; }
     const uint64_t t0 = esp_timer_get_time();
-    recognizer.push(b.hall, b.dir == 2, b.index);
+    for (int k = 0; k < na; ++k) recognizer.push(admitted[k].hall, admitted[k].dir == 2, admitted[k].index);
     const uint32_t took = uint32_t(esp_timer_get_time() - t0);
     rvm_shape::Ensemble e;
     while (recognizer.take(e)) {
@@ -355,6 +374,22 @@ static void serviceNavEvents() {
       Serial.printf("[RVM] DECLARED last=MM%03u next=MM%03u dir=%d baseline_block=%lu\n", ev.last, ev.next, ev.dir, (unsigned long)ev.blocks);
     } else if (ev.kind == EV_SUSPENDED) {
       strlcpy(lastNavEvent, "SUSPENDED", sizeof(lastNavEvent));
+    } else if (ev.kind == EV_STOPPED || ev.kind == EV_RESUMED) {
+      // STOP: waveform paused with the unfinished ensemble preserved.
+      // RESUMED: the Hall pattern left the stationary state observed at the stop.
+      char row[420];
+      snprintf(row, sizeof(row),
+        "{\"boot\":\"%016llX\",\"transition\":\"%s\",\"block_us\":%llu,\"last_mm\":%u,\"expected_mm\":%u,"
+        "\"candidate_held\":%u,\"baseline_start_us\":%llu,\"stationary_blocks\":%lu,"
+        "\"stationary_low\":%.1f,\"stationary_high\":%.1f,\"withheld_after_go_total\":%lu,\"authority\":\"OBSERVATION_ONLY\"}",
+        (unsigned long long)bootId, ev.kind == EV_STOPPED ? "STOPPED_WAVEFORM_PAUSED" : "PATTERN_RESUMED",
+        (unsigned long long)blockUs(ev.blocks), ev.last, ev.next, unsigned(ev.candidateHeld),
+        (unsigned long long)blockUs(ev.baselineStartId), (unsigned long)ev.stationaryBlocks,
+        ev.kind == EV_STOPPED ? 0.0 : double(ev.stationaryLow), ev.kind == EV_STOPPED ? 0.0 : double(ev.stationaryHigh),
+        (unsigned long)ev.withheld);
+      pub("diag/rvm_stopgo", row);
+      Serial.printf("[RVM] %s\n", row);
+      strlcpy(lastNavEvent, ev.kind == EV_STOPPED ? "STOPPED" : "RESUMED", sizeof(lastNavEvent));
     } else {
       const auto r = rvm_shape::NavResult(ev.result);
       const char* result = r == rvm_shape::NavResult::Advanced ? "MM" : r == rvm_shape::NavResult::Contradiction ? "CONTRADICTION" : "RECOGNIZED_NO_CLAIM";
