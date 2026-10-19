@@ -1,0 +1,30 @@
+{
+ "drain_-1": {
+  "cpp": 1092,
+  "python": 1092,
+  "identical": true,
+  "max_llr_diff": 0.00032838723790007407,
+  "nav_events": {
+   "NO_CLAIM": 951,
+   "MM": 135,
+   "DECLARE": 6,
+   "CONTRADICTION": 6
+  },
+  "backlog_max": 0,
+  "push_max_us_host": 509.4
+ },
+ "drain_1": {
+  "cpp": 1092,
+  "python": 1092,
+  "identical": true,
+  "max_llr_diff": 0.00032838723790007407,
+  "nav_events": {
+   "NO_CLAIM": 951,
+   "MM": 135,
+   "DECLARE": 6,
+   "CONTRADICTION": 6
+  },
+  "backlog_max": 511,
+  "push_max_us_host": 500.3
+ }
+}

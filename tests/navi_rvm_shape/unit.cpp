@@ -87,7 +87,9 @@ static Block blk(uint32_t id, float h, uint8_t pwm, uint8_t cmd = 255) { Block b
 
 static void pauseTests() {
   static Block storage[HOLD_MAX]; WaveformPause p; p.begin(storage); uint32_t id = 0; std::vector<uint32_t> out;
-  auto feed = [&](float h, uint8_t pwm, uint8_t cmd = 255) { out.clear(); p.admit(blk(id++, h, pwm, cmd), [&](const Block& a) { out.push_back(a.index); }); return out.size(); };
+  auto sink = [&](const Block& a) { out.push_back(a.index); };
+  // feed one block and then everything waiting (immediate feeding)
+  auto feed = [&](float h, uint8_t pwm, uint8_t cmd = 255) { out.clear(); p.admit(blk(id++, h, pwm, cmd), sink); while (p.drainOne(sink)) {} return out.size(); };
   CHECK(feed(1900, 0) == 0);                                   // never declared, stopped: not appended
   p.declared([](const Block&) {});
   CHECK(feed(1900, 0) == 1 && feed(1900, 14) == 1);            // startup: declared stationary baseline appended
@@ -117,7 +119,7 @@ static void pauseTests() {
   CHECK(feed(2010, 40) == 2 && out[0] == id - 2 && !p.paused());   // second on the same side: resumed
   CHECK(feed(2000, 40) == 1);
   CHECK(feed(1960, 50, 0) == 0 && feed(1970, 45, 0) == 0);    // a stop commanded, blocks held ...
-  { int rel = 0; p.declared([&](const Block&) { ++rel; }); CHECK(rel == 2 && !p.holding()); }   // ... a declaration releases them
+  { int rel = 0; p.declared([&](const Block&) { ++rel; }); CHECK(rel == 2 && !p.holding() && !p.backlog()); }   // ... a declaration feeds them
   CHECK(feed(1890, 0) == 1);                                   // a new declaration is a new startup
 }
 
@@ -133,7 +135,9 @@ static void stopGoTests() {
     std::normal_distribution<double> nz(0, 0.7);
     auto feed = [&](float h, uint8_t pwm, uint8_t cmd, int i) {
       orig.push_back(i);
-      p.admit(blk(id, h, pwm, cmd), [&](const Block& a) { r.push(a.hall, false, a.index); });
+      auto push = [&](const Block& a) { r.push(a.hall, false, a.index); };
+      p.admit(blk(id, h, pwm, cmd), push);
+      p.drainOne(push);                                        // firmware schedule: one waiting block per pass
       ++id;
       Ensemble e; while (r.take(e)) got.push_back(orig[e.cId] + (e.c - floor(e.c)));
     };
@@ -146,6 +150,9 @@ static void stopGoTests() {
       if (i == 100) { p.declared([&](const Block& a) { r.push(a.hall, false, a.index); }); r.startBaseline(r.blocks(), id); }
       bool decel = false; for (int sa : stopAt) if (int(i) >= sa - 40 && int(i) < sa) decel = true;
       feed(v[i], i < 100 ? 0 : 90, decel ? 0 : 255, int(i));     // the stop is commanded 40 blocks before
+    }
+    while (p.drainOne([&](const Block& a) { r.push(a.hall, false, a.index); })) {
+      Ensemble e; while (r.take(e)) got.push_back(orig[e.cId] + (e.c - floor(e.c)));
     }
   };
   std::vector<double> ref; run({}, 0, 0, 0, ref);
@@ -161,8 +168,37 @@ static void stopGoTests() {
   CHECK(rep.size() == 1);
 }
 
+
+// Bounded feeding: released blocks wait in order and are fed by drainOne; a block
+// joining the waveform meanwhile goes behind them; a full ring feeds its oldest.
+static void backlogTests() {
+  static Block storage[HOLD_MAX]; WaveformPause p; p.begin(storage); uint32_t id = 0; std::vector<uint32_t> fed;
+  auto sink = [&](const Block& a) { fed.push_back(a.index); };
+  p.declared(sink); p.admit(blk(id++, 1900, 90), sink);                       // running
+  for (int k = 0; k < 100; ++k) p.admit(blk(id++, 1950, 40, 0), sink);        // stop commanded: 100 held
+  for (int k = 0; k < 20; ++k) p.admit(blk(id++, 1960 + k, 30, 0), sink);    // (moving on; held)
+  p.admit(blk(id++, 1980, 0, 0), sink);                                       // STOPPED
+  for (int k = 0; k < 10; ++k) p.admit(blk(id++, 1980.0f + (k % 2), 0, 0), sink);
+  const size_t before = fed.size();
+  p.admit(blk(id++, 1980, 40), sink);                                         // GO: trim + release, nothing fed yet
+  CHECK(fed.size() == before && p.backlog() > 0);
+  const uint16_t bl = p.backlog();
+  p.admit(blk(id++, 1990, 40), sink); p.admit(blk(id++, 1995, 40), sink);    // resumption: joins BEHIND the backlog
+  CHECK(fed.size() == before && p.backlog() == bl + 2);
+  for (int k = 0; k < 5; ++k) CHECK(p.drainOne(sink));                        // bounded portions, oldest first
+  CHECK(fed.size() == before + 5 && p.backlog() == bl - 3);
+  while (p.drainOne(sink)) {}
+  bool ordered = true; for (size_t k = 1; k < fed.size(); ++k) ordered &= fed[k] > fed[k - 1];
+  CHECK(ordered && fed.back() == id - 1);                                    // every block once, in order
+  // full ring: the oldest waiting block is fed at once
+  WaveformPause q; q.begin(storage); fed.clear(); id = 1000;
+  q.declared(sink); q.admit(blk(id++, 1900, 90), sink);
+  for (int k = 0; k < HOLD_MAX + 3; ++k) q.admit(blk(id++, 1900, 40, 0), sink);
+  CHECK(fed.size() == 1 + 3 && q.releasedEarly() == 3);
+}
+
 int main() {
-  navigatorTests(); tracingTests(); recognizerTests(); pauseTests(); stopGoTests();
+  navigatorTests(); tracingTests(); recognizerTests(); pauseTests(); backlogTests(); stopGoTests();
   printf("%s (%d failures)\n", fails ? "UNIT CHECKS FAILED" : "UNIT CHECKS PASSED", fails);
   return fails ? 1 : 0;
 }

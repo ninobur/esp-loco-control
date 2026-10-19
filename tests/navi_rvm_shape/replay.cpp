@@ -1,5 +1,8 @@
 // Host replay of the firmware recognition path on a recorded native Hall stream.
-//   replay <native.bin> <declarations.csv> <out_dir> [--no-pause | --cmd cmd.bin]
+//   replay <native.bin> <declarations.csv> <out_dir> [--no-pause | --cmd cmd.bin [--drain N]]
+// --drain N: feed at most N waiting (released) blocks per incoming block, as the
+// firmware's RVM task does under load (default: all at once). Remaining blocks are
+// fed at the end of the recording.
 // native.bin: packed records {u32 serial, u64 us, i16 adc, u8 pwm, u8 direction}
 //   (the hall-ground-20261015 extraction). PWM is read only to be ignored.
 // declarations.csv: block_index,last,next,dir  (tracing block index of each operator declaration)
@@ -35,8 +38,10 @@ int main(int argc, char** argv) {
   std::string out = argv[3];
   const bool usePause = !(argc > 4 && !strcmp(argv[4], "--no-pause"));
   std::vector<uint8_t> cmd;
+  int drainPerBlock = -1;
+  if (argc > 7 && !strcmp(argv[6], "--drain")) drainPerBlock = atoi(argv[7]);
   if (argc > 5 && !strcmp(argv[4], "--cmd")) { FILE* c = fopen(argv[5], "rb"); int ch; while (c && (ch = fgetc(c)) != EOF) cmd.push_back(uint8_t(ch)); if (c) fclose(c); }
-  static rvm_shape::WaveformPause pause; uint64_t pausedBlocks = 0;
+  static rvm_shape::WaveformPause pause; uint64_t pausedBlocks = 0; unsigned backlogMax = 0;
   static rvm_shape::Block holdStorage[rvm_shape::HOLD_MAX]; pause.begin(holdStorage);
   FILE* fb = fopen((out + "/blocks.bin").c_str(), "wb");
   FILE* fe = fopen((out + "/ensembles.csv").c_str(), "w");
@@ -76,14 +81,17 @@ int main(int argc, char** argv) {
     rvm_shape::Block bb = b; bb.cmd = b.index < cmd.size() ? cmd[b.index] : 255;
     int na = 0;
     if (usePause) pause.admit(bb, [&](const rvm_shape::Block& a) { ++na; pushOne(a); }); else { ++na; pushOne(bb); }
-    if (!na) ++pausedBlocks;
+    if (!na && !pause.backlog()) ++pausedBlocks;
+    for (int k = 0; usePause && (drainPerBlock < 0 || k < drainPerBlock) && pause.drainOne(pushOne); ++k) {}
+    if (pause.backlog() > backlogMax) backlogMax = pause.backlog();
   };
 
   Native r; uint64_t nrec = 0;
   while (fread(&r, sizeof r, 1, f) == 1) { tr.add(r.us, uint16_t(r.adc), r.direction, r.serial, r.pwm, 255, onBlock); ++nrec; }
+  while (usePause && pause.drainOne(pushOne)) {}
   fclose(f); fclose(fb); fclose(fe); fclose(fn);
-  printf("{\"pause\":%d,\"paused_blocks\":%llu,\"native_reads\":%llu,\"blocks\":%llu,\"windows_scored\":%u,\"push_mean_us\":%.2f,\"push_max_us\":%.1f,\"output_drops\":%u,\"first_block_us\":%llu,\"sizeof_recognizer\":%zu}\n",
-         int(usePause), (unsigned long long)pausedBlocks, (unsigned long long)nrec, (unsigned long long)nblocks, rec.windowsScored(), totalUs / nblocks, maxStepUs, rec.outputDrops(),
+  printf("{\"drain_per_block\":%d,\"backlog_max\":%u,\"pause\":%d,\"paused_blocks\":%llu,\"native_reads\":%llu,\"blocks\":%llu,\"windows_scored\":%u,\"push_mean_us\":%.2f,\"push_max_us\":%.1f,\"output_drops\":%u,\"first_block_us\":%llu,\"sizeof_recognizer\":%zu}\n",
+         drainPerBlock, backlogMax, int(usePause), (unsigned long long)pausedBlocks, (unsigned long long)nrec, (unsigned long long)nblocks, rec.windowsScored(), totalUs / nblocks, maxStepUs, rec.outputDrops(),
          (unsigned long long)tr.firstBlockUs(), sizeof(rvm_shape::Recognizer));
   return 0;
 }

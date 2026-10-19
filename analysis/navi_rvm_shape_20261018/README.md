@@ -157,3 +157,9 @@ The firmware rule is `continuation.pause_sequence`, called through
 Results: `results/local_pause/realstop_fw_suite.*` (measured stops),
 `stopgo_suite.*` (required cases) and `summary.json` (boot-1 leave-one-pass-out
 and parity).
+
+## Bounded feeding (field fix)
+
+`s21_feeding_parity.py` checks the firmware path on boot 1 against the Python
+reference under two schedules: released blocks fed immediately, and one per
+incoming block. Results are in `results/local_pause/feeding_parity.json`.

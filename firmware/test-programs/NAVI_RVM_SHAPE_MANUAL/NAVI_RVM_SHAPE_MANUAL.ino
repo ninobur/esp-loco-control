@@ -331,22 +331,33 @@ static void applyControl() {
 }
 static void rvmTask(void*) {
   for (;;) {
+    // Never wait while released blocks are still to be fed: take what is queued.
     rvm_shape::Block b;
-    const bool got = blockQ && xQueueReceive(blockQ, &b, pdMS_TO_TICKS(100)) == pdTRUE;
+    const TickType_t wait = waveformPause.backlog() ? 0 : pdMS_TO_TICKS(100);
+    const bool got = blockQ && xQueueReceive(blockQ, &b, wait) == pdTRUE;
     applyControl();                                   // declarations take effect at a block boundary
-    if (!got) { publishSnapshot(); continue; }
-    // STOP/GO: a STOPPED block (applied PWM < 15) is not appended; after GO,
-    // blocks that repeat the stationary state observed at the stop are withheld
-    // until the Hall pattern resumes developing (RvmPause.h). Everything already
-    // in the waveform, including an unfinished ensemble, is preserved.
-    const bool wasPaused = waveformPause.paused();
-    const uint64_t t0 = esp_timer_get_time();
-    int na = 0; uint32_t firstId = b.index;
-    waveformPause.admit(b, [&](const rvm_shape::Block& a) { if (!na++) firstId = a.index; feedRecognizer(a); });
-    const uint32_t took = uint32_t(esp_timer_get_time() - t0);
-    if (!wasPaused && waveformPause.paused()) postPause(EV_STOPPED, b.index);
-    if (wasPaused && !waveformPause.paused()) postPause(EV_RESUMED, firstId);
-    if (!na) { ++pausedBlocks; publishSnapshot(); continue; }
+    uint32_t took = 0;
+    if (got) {
+      // STOP/GO: a STOPPED block (applied PWM < 15) is not appended; after GO,
+      // blocks that repeat the stationary state observed at the stop are withheld
+      // until the Hall pattern resumes developing (RvmPause.h). Everything already
+      // in the waveform, including an unfinished ensemble, is preserved.
+      const bool wasPaused = waveformPause.paused();
+      int na = 0; uint32_t firstId = b.index;
+      const uint64_t t0 = esp_timer_get_time();
+      waveformPause.admit(b, [&](const rvm_shape::Block& a) { if (!na++) firstId = a.index; feedRecognizer(a); });
+      took = uint32_t(esp_timer_get_time() - t0);
+      if (!wasPaused && waveformPause.paused()) postPause(EV_STOPPED, b.index);
+      if (wasPaused && !waveformPause.paused()) postPause(EV_RESUMED, waveformPause.backlog() ? b.index : firstId);
+      if (waveformPause.paused() && !na) ++pausedBlocks;
+    }
+    // Released blocks (arrival hold-back after GO) are fed one per pass, and only
+    // while no new Hall block is waiting, so the Hall queue cannot overflow.
+    if (waveformPause.backlog() && (!blockQ || uxQueueMessagesWaiting(blockQ) == 0)) {
+      const uint64_t t0 = esp_timer_get_time();
+      waveformPause.drainOne(feedRecognizer);
+      const uint32_t d = uint32_t(esp_timer_get_time() - t0); if (d > took) took = d;
+    }
     portENTER_CRITICAL(&navMux); if (took > navShared.maxPushUs) navShared.maxPushUs = took; portEXIT_CRITICAL(&navMux);
     publishSnapshot();
     rvmStackFree.store(uxTaskGetStackHighWaterMark(nullptr));
@@ -571,13 +582,13 @@ static void serviceStatus() {
   snprintf(payload, sizeof(payload),
     "{\"build\":\"%s\",\"class\":\"%s\",\"model\":\"%s\",\"pwm\":%d,\"commanded\":%d,\"estop\":%u,\"lowvolt\":%u,"
     "\"nav\":\"%s\",\"blocks\":%lu,\"paused_blocks\":%lu,\"block_q_drop\":%lu,\"nav_event_drop\":%lu,\"ctl_drop\":%lu,"
-    "\"windows_scored\":%lu,\"rvm_out_drop\":%lu,\"rvm_push_max_us\":%lu,\"rvm_stack_free\":%lu,"
+    "\"windows_scored\":%lu,\"rvm_out_drop\":%lu,\"rvm_push_max_us\":%lu,\"rvm_stack_free\":%lu,\"rvm_backlog\":%u,\"rvm_backlog_max\":%u,"
     "\"nsr_hall_drop\":%lu,\"nsr_native_drop\":%lu,\"nsr_udp_fail\":%lu,\"pub_drop\":%lu,\"cmd_drop\":%lu,"
     "\"heap_free\":%u,\"heap_min\":%u}",
     SKETCH_NAME, BUILD_CLASS, rvm_shape::MODEL_SHA256, int(actualPwm), int(commandedPwm), unsigned(estopped || estopAsserted), unsigned(lowVoltage),
     stateName(s.state), (unsigned long)s.blocks, (unsigned long)s.pausedBlocks, (unsigned long)blockQueueDrops.load(), (unsigned long)navEventDrops.load(),
     (unsigned long)ctlDrops.load(), (unsigned long)s.windows, (unsigned long)s.outDrops, (unsigned long)s.maxPushUs,
-    (unsigned long)rvmStackFree.load(), (unsigned long)recorder->hallDrops(), (unsigned long)recorder->nativeDrops(),
+    (unsigned long)rvmStackFree.load(), unsigned(waveformPause.backlog()), unsigned(waveformPause.backlogHigh()), (unsigned long)recorder->hallDrops(), (unsigned long)recorder->nativeDrops(),
     (unsigned long)naviSyncUdpFailures, (unsigned long)pubDrops, (unsigned long)cmdDrops,
     unsigned(ESP.getFreeHeap()), unsigned(ESP.getMinFreeHeap()));
   pub("state/loopstat", payload);

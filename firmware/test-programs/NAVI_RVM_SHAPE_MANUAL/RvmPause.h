@@ -28,6 +28,15 @@
 // appended, before the resumed waveform. If the stop command is withdrawn
 // before PWM falls below 15, everything held is released unchanged.
 //
+// FEEDING (field fix 2026-10-18): releasing hundreds of held blocks at once made
+// one recognizer step last up to 3.3 s on the ESP32 and the Hall block queue
+// overflowed. Released blocks now wait, in order, at the front of the same ring
+// and the caller feeds them to the recognizer one at a time (drainOne) between
+// incoming blocks. A block that joins the waveform while a backlog exists goes
+// behind it, so the recognizer sees exactly the same blocks in the same order;
+// only WHEN it sees them changes. A declaration flushes the backlog first. If
+// the ring is full, its oldest block is fed at once.
+//
 // Startup: from the operator's declaration until the first moving block, the
 // stationary tracing IS the declared starting baseline (BL0) and is appended.
 // A declaration first releases anything still held back, unchanged.
@@ -50,31 +59,39 @@ enum class PauseState : uint8_t { Running = 0, Startup, Stopped, Awaiting };
 class WaveformPause {
  public:
   // Storage for HOLD_MAX blocks, supplied once by the caller (heap on the ESP32).
-  bool begin(Block* storage) { hold_ = storage; return hold_ != nullptr; }
-  // Operator declaration: anything held back is released first (it was traversed
-  // before the stop and belongs to the old context); then the startup baseline.
-  template <class F> void declared(F&& emit) { releaseAll(emit); state_ = PauseState::Startup; havePending_ = false; }
+  bool begin(Block* storage) { ring_ = storage; return ring_ != nullptr; }
+  // Operator declaration: anything held back or waiting is fed first (it was
+  // traversed before the stop and belongs to the old context); then startup.
+  template <class F> void declared(F&& emit) {
+    releaseAll(); while (drainOne(emit)) {}
+    state_ = PauseState::Startup; havePending_ = false;
+  }
+  // Feed the oldest waiting block to emit. false when nothing is waiting.
+  template <class F> bool drainOne(F&& emit) {
+    if (!released_) return false;
+    emit(ring_[head_]); head_ = uint16_t((head_ + 1) % HOLD_MAX); --released_;
+    return true;
+  }
+  uint16_t backlog() const { return released_; }
+  uint16_t backlogHigh() const { return backlogHigh_; }
 
-  // Feed one tracing block. emit(const Block&) is called for every block that
-  // joins the recognition waveform, oldest first.
+  // Feed one tracing block. emit(const Block&) is called directly for a block
+  // that joins the waveform when nothing is waiting (and for the ring's oldest
+  // block when it is full); otherwise the block waits for drainOne().
   template <class F> void admit(const Block& b, F&& emit) {
     const bool stopped = b.pwm < STOPPED_BELOW_PWM;
     switch (state_) {
       case PauseState::Startup:
         if (!stopped) state_ = PauseState::Running;
-        emit(b); return;
+        out(b, emit); return;
       case PauseState::Running:
         if (stopped) { state_ = PauseState::Stopped; n_ = 0; lo_ = INFINITY; hi_ = -INFINITY; havePending_ = false; observe(b.hall); return; }
-        if (b.cmd < STOPPED_BELOW_PWM && hold_) {        // stop commanded: hold back
-          if (held_ == HOLD_MAX) { emit(heldAt(0)); head_ = (head_ + 1) % HOLD_MAX; --held_; ++releasedEarly_; }
-          hold_[(head_ + held_) % HOLD_MAX] = b; ++held_;
-          return;
-        }
-        releaseAll(emit); emit(b); return;
+        if (b.cmd < STOPPED_BELOW_PWM && ring_) { hold(b, emit); return; }   // stop commanded: hold back
+        releaseAll(); out(b, emit); return;
       case PauseState::Stopped:
         if (stopped) { observe(b.hall); return; }
-        if (n_ == 0) { releaseAll(emit); state_ = PauseState::Running; emit(b); return; }
-        trimArrival(); releaseAll(emit);
+        if (n_ == 0) { releaseAll(); state_ = PauseState::Running; out(b, emit); return; }
+        trimArrival(); releaseAll();
         state_ = PauseState::Awaiting; havePending_ = false;
         awaiting(b, emit); return;
       case PauseState::Awaiting:
@@ -99,14 +116,30 @@ class WaveformPause {
   float lo_ = INFINITY, hi_ = -INFINITY;
   uint32_t n_ = 0, withheld_ = 0, resumptions_ = 0, trimmed_ = 0, lastTrim_ = 0, releasedEarly_ = 0;
   bool havePending_ = false; Block pending_{}; int8_t pendingSide_ = 0;
-  Block* hold_ = nullptr; uint16_t head_ = 0, held_ = 0;
+  // One ring: [head_, head_+released_) wait to be fed, then held_ blocks held back.
+  Block* ring_ = nullptr; uint16_t head_ = 0, released_ = 0, held_ = 0, backlogHigh_ = 0;
 
-  const Block& heldAt(uint16_t k) const { return hold_[(head_ + k) % HOLD_MAX]; }
+  const Block& heldAt(uint16_t k) const { return ring_[(head_ + released_ + k) % HOLD_MAX]; }
   void observe(float h) { if (isfinite(h)) { if (h < lo_) lo_ = h; if (h > hi_) hi_ = h; ++n_; } }
   int8_t side(float h) const { return (!isfinite(h) || (h >= lo_ && h <= hi_)) ? 0 : (h > hi_ ? 1 : -1); }
-  template <class F> void releaseAll(F&& emit) {
-    for (uint16_t k = 0; k < held_; ++k) emit(heldAt(k));
-    held_ = 0; head_ = 0;
+  template <class F> void makeRoom(F&& emit) {          // ring full: feed its oldest block now
+    if (uint16_t(released_ + held_) < HOLD_MAX) return;
+    if (!released_) { ++released_; --held_; ++releasedEarly_; }   // oldest held block becomes released
+    drainOne(emit);
+  }
+  template <class F> void out(const Block& b, F&& emit) {   // join the waveform, behind any backlog
+    if (!ring_ || (!released_ && !held_)) { emit(b); return; }
+    makeRoom(emit);
+    ring_[(head_ + released_) % HOLD_MAX] = b; ++released_;
+    if (released_ > backlogHigh_) backlogHigh_ = released_;
+  }
+  template <class F> void hold(const Block& b, F&& emit) {
+    makeRoom(emit);
+    ring_[(head_ + released_ + held_) % HOLD_MAX] = b; ++held_;
+  }
+  void releaseAll() {
+    released_ = uint16_t(released_ + held_); held_ = 0;
+    if (released_ > backlogHigh_) backlogHigh_ = released_;
   }
   void trimArrival() {                                 // newest first, mirror of the resumption rule
     int m = int(held_) - 1;
@@ -122,7 +155,7 @@ class WaveformPause {
     const int8_t s = side(b.hall);
     if (havePending_) {
       if (s != 0 && s == pendingSide_) {               // left the stationary state and stayed out: resumed
-        emit(pending_); emit(b); havePending_ = false;
+        out(pending_, emit); out(b, emit); havePending_ = false;
         state_ = PauseState::Running; ++resumptions_; return;
       }
       ++withheld_; havePending_ = false;               // the pending block was a fluctuation
