@@ -459,3 +459,15 @@ explanations, none established:
 
 A GO from this stop would release the held blocks and show which magnets they
 contain.
+
+**Resolution (David, afterwards):** the rest position was **just past MM023**,
+not MM033 (he misread it the first time).
+
+- MM019–MM023 are therefore **5 magnets** passed after the last claim. That is
+  consistent with the timing above (at most about 8 in about 11.7 s while
+  slowing).
+- Those passages lie in the final 10.2 s of travel, which is still in the
+  hold-back ring with no GO since. **It is the same mechanism as the end of run
+  3**, not a recognition fault.
+- **Discrepancy closed.** As at run 3, the navigator's position at a final stop
+  after a long ramp-down lags the real one until the next GO or declaration.
