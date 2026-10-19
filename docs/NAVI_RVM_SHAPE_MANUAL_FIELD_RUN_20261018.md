@@ -765,3 +765,10 @@ silently end navigation.
   - the sensor rests beyond MM023's field while the car is visually over the
     marker;
   - the identity of the last passage is off by one.
+
+**David's decision (2026-10-19), on the probable watchdog reboot:**
+- **No separate fix.** It is folded into the unified continuity implementation,
+  which removes the backlog and its drain loop entirely.
+- **Until then,** Otto stays on `3a8953c`. Any GO after a commanded stop whose
+  held backlog takes more than about 5 s to drain may reboot Otto and end
+  navigation (UNSET) without warning.
