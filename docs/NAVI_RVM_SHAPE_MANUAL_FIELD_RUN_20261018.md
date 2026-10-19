@@ -405,3 +405,57 @@ Output: `analysis/navi_rvm_shape_20261018/field_20261019/stops_100403/`
   - If it is real, it will repeat. Watch \`state/bootid\` and the \`online\`
     flap in later runs.
   - No action has been taken or proposed for now (David, 2026-10-19).
+
+---
+
+# Run 6, 2026-10-19 10:14: CW from MM127–128, final stop (firmware `3a8953c`)
+
+**David's account:** started from between MM127 and MM128, and stopped **just
+past MM033**; Otto is sitting still.
+
+| Log | Content | sha256 |
+|---|---|---|
+| `9950011_20261019_101407.log` | 10:14:07–10:14:51: boot, declaration | `a047f0869501d34ba4cedcd322826488fc64b0cf9f8167583bfdc2cc80ef8d19` |
+| `9950011_20261019_101452.log` | 10:14:52–10:18:10 | `5ba5d96443056066dfa629ed97b7b6b953df3091b598e8f8d60983080c72ed11` |
+
+Output: `analysis/navi_rvm_shape_20261018/field_20261019/run6_101407/`.
+
+## Observations
+
+- **New boot** `EFD0225ADC42E524` at 10:14:07, while stationary and before the
+  declaration (CW at 10:14:30).
+- **Navigation:** **62 claims, 62/62 agree with the route**, MM128 → MM170 →
+  MM000 → MM018. No CONTRADICTION, `block_q_drop 0`.
+- **PWM:** about 100. The stop was commanded at 10:16:03 (throttle to 0); PWM
+  coasted 98 → 74 by 10:16:12, with brake commands from 10:16:08, and fell
+  below 15 at 10:16:20.5.
+- **Hold-back:** from 10:16:03 the `blocks` counter stood still for about 10 s
+  (the 512-block ring filling). From 10:16:13 it rose at 50/s, with the oldest
+  held blocks released as newer ones arrived.
+  - So the claims for MM014–MM018, published 10:16:13–10:16:19, are passages
+    from about 10 s earlier.
+- **STOP** at 10:16:20.5: last MM018, expected MM019, no candidate, no GO since.
+  The held ring covers about the final 10.2 s of travel (Otto's block time
+  about 124.7–134.9 s; MM018's midpoint is at 123.15 s).
+
+## Discrepancy (unresolved)
+
+**David reports the rest position just past MM033. That is 15 magnets beyond
+the last claim (MM018).** The log's own timing makes 15 magnets in that interval
+hard to reconcile:
+
+- In this run, cruise spacing at PWM about 100 was **1.2–1.5 s per magnet**
+  (MM001–MM013).
+- From MM018 to standstill is **about 11.7 s** of travel, while PWM falls from
+  about 75 to 4. At cruise spacing that is at most about 8 magnets; slowing,
+  fewer.
+
+The observation is preserved as reported and is not reinterpreted. Possible
+explanations, none established:
+
+- a different rest point;
+- hold-back timing other than designed;
+- block timing not matching wall time.
+
+A GO from this stop would release the held blocks and show which magnets they
+contain.

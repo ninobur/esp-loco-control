@@ -1,0 +1,87 @@
+{
+ "log": "combined.log",
+ "lines": 2361,
+ "first": "2026-10-19T10:14:07.241",
+ "last": "2026-10-19T10:18:18.653",
+ "boots": {
+  "EFD0225ADC42E524": {
+   "recognitions": 62,
+   "results": {
+    "MM": 62
+   },
+   "longest_cw": {
+    "run": 62,
+    "at": 0,
+    "start_mm": 128
+   },
+   "longest_ccw": {
+    "run": 11,
+    "at": 19,
+    "start_mm": 157
+   },
+   "travel": "CW",
+   "mm_claims": 62,
+   "claims_agreeing_with_route": 62,
+   "claims_disagreeing": [],
+   "contradictions": [],
+   "first": "2026-10-19T10:14:52.733",
+   "last": "2026-10-19T10:16:19.509",
+   "stopgo": [
+    {
+     "wall": "2026-10-19T10:14:07.257",
+     "transition": "STOPPED_WAVEFORM_PAUSED",
+     "last_mm": 0,
+     "expected_mm": 0,
+     "candidate_held": 0,
+     "arrival_blocks_trimmed": 0,
+     "withheld_after_go_total": 0,
+     "stationary_low": 0.0,
+     "stationary_high": 0.0
+    },
+    {
+     "wall": "2026-10-19T10:16:20.495",
+     "transition": "STOPPED_WAVEFORM_PAUSED",
+     "last_mm": 18,
+     "expected_mm": 19,
+     "candidate_held": 0,
+     "arrival_blocks_trimmed": 0,
+     "withheld_after_go_total": 0,
+     "stationary_low": 0.0,
+     "stationary_high": 0.0
+    }
+   ]
+  }
+ },
+ "health": {
+  "heap_min": 9820,
+  "heap_free_min": 15544,
+  "block_q_drop": 0,
+  "nav_event_drop": 0,
+  "rvm_push_max_us": 65190,
+  "pub_drop": 0,
+  "cmd_drop": 0,
+  "nsr_native_drop": 108,
+  "nsr_udp_fail": 14,
+  "rvm_backlog_max": 0,
+  "rvm_stack_free": 5680,
+  "block_drop_times": []
+ },
+ "warnings": [
+  [
+   "2026-10-19T10:14:27.630",
+   "REFUSED: set session_direction first"
+  ],
+  [
+   "2026-10-19T10:14:34.084",
+   ""
+  ]
+ ],
+ "session_dirs": {
+  "CW": 274,
+  "UNSET": 25
+ },
+ "voltage": [
+  16.11,
+  16.28
+ ]
+}
