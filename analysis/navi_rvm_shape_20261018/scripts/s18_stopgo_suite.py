@@ -59,7 +59,7 @@ def pick_targets(n=12, direction=1):
     return out
 
 def run_py(h, ccw, pwm):
-    keep = G.resumption_mask(h, pwm, [0]); C = G.Compressed(h, ccw, keep)
+    keep = G.firmware_mask(h, pwm, [0]); C = G.Compressed(h, ccw, keep)
     det = L.run(L.Tracing(C.h, C.ccw), Em, Nm, [(0, 'decl')])
     if not len(det): return pd.DataFrame(columns=['c_id', 'c', 'pol'])
     det['c_id'] = [int(C.ids[min(int(np.floor(c)), len(C.ids) - 1)]) for c in det.c]
@@ -69,7 +69,9 @@ def run_py(h, ccw, pwm):
 def run_cpp(h, ccw, pwm, last, nxt, d):
     f = tmp/'blocks.csv'
     with open(f, 'w') as fh:
-        for v, c, p in zip(h, ccw, pwm): fh.write('%s,%d,%d\n' % ('nan' if not np.isfinite(v) else '%.6f' % v, 2 if c else 1, p))
+        import continuation as K
+        cmd = np.where(K.commanded_stop_proxy(pwm), 0, 255)
+        for v, c, p, q in zip(h, ccw, pwm, cmd): fh.write('%s,%d,%d,%d\n' % ('nan' if not np.isfinite(v) else '%.6f' % v, 2 if c else 1, p, q))
     out = subprocess.run([str(CPP), str(f), '0', str(last), str(nxt), str(d)], capture_output=True, text=True, check=True).stdout
     rows = [l.split(',') for l in out.strip().splitlines() if l]
     return pd.DataFrame([dict(c_id=int(r[1]), pol=int(r[5]), result=int(r[7]), mm=int(r[8])) for r in rows], columns=['c_id', 'pol', 'result', 'mm'])

@@ -1,14 +1,14 @@
 {
  "lopo_with_pause": {
   "with_extent": 1081,
-  "recognized_once": 1064,
-  "missed": 17,
+  "recognized_once": 1063,
+  "missed": 18,
   "split": 0,
   "unmatched": 2,
   "unmatched_on_ground": 0,
   "unmatched_on_other_activity": 2,
-  "polarity_ok": 1075,
-  "polarity_checked": 1075,
+  "polarity_ok": 1074,
+  "polarity_checked": 1074,
   "d_mid_ms": {
    "median": 15.0,
    "p95": 50.0,
@@ -80,33 +80,37 @@
     "t_s": 691.03
    },
    {
+    "mm": 114,
+    "t_s": 3797.57
+   },
+   {
     "mm": 115,
     "t_s": 3798.43
    }
   ]
  },
  "parity": {
-  "python": 1093,
-  "cpp": 1093,
+  "python": 1092,
+  "cpp": 1092,
   "same_count": true,
-  "identical_waveform_centre": 1093,
-  "identical_block_id": 1093,
-  "polarity_same": 1093,
-  "max_llr_diff": 0.000331677492525273,
+  "identical_waveform_centre": 1092,
+  "identical_block_id": 1092,
+  "polarity_same": 1092,
+  "max_llr_diff": 0.00032838723790007407,
   "cpp_runtime": {
    "pause": 1,
-   "paused_blocks": 63196,
+   "paused_blocks": 82622,
    "native_reads": 19125072,
    "blocks": 192123,
-   "windows_scored": 1465446,
-   "push_mean_us": 6.93,
-   "push_max_us": 555.1,
+   "windows_scored": 1294880,
+   "push_mean_us": 5.38,
+   "push_max_us": 505.3,
    "output_drops": 0,
    "first_block_us": 1360000,
    "sizeof_recognizer": 68192
   },
   "cpp_nav_events": {
-   "NO_CLAIM": 952,
+   "NO_CLAIM": 951,
    "MM": 135,
    "DECLARE": 6,
    "CONTRADICTION": 6

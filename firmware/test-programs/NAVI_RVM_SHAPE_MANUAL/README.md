@@ -15,10 +15,10 @@ Pattern-based resumption is described in
 After GO, the waveform resumes only when the Hall tracing leaves the stationary
 state observed at the stop.
 
-**Read its §4 (operating procedure) before any powered run.** If the sensor car
-may be over a magnet, stop quickly: either the STOP command, or the brake slider
-high before throttle 0. Otto also stands still on arrival while PWM is still at
-15 or above, and a slow stop over a magnet still loses that magnet.
+Read **§A** of that report: the arrival mirror is now implemented. From a
+commanded stop, blocks are held back, and those that repeat the stationary state
+are dropped at GO. In the offline tests, slow stops over a magnet are now
+recognized.
 
 ## Build (compile only)
 

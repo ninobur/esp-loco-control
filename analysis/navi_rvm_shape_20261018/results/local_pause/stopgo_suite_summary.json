@@ -32,7 +32,7 @@
    "case": "long_stop",
    "where": "peak",
    "cases": 18,
-   "invariant": 17,
+   "invariant": 12,
    "mm_sequence_ok": 18,
    "cpp_equal": 18
   },
@@ -40,8 +40,8 @@
    "case": "measured_arrival_and_departure",
    "where": "baseline",
    "cases": 18,
-   "invariant": 8,
-   "mm_sequence_ok": 11,
+   "invariant": 7,
+   "mm_sequence_ok": 10,
    "cpp_equal": 18
   },
   {
@@ -62,41 +62,41 @@
   },
   {
    "case": "measured_arrival_and_departure",
-   "where": "rising",
-   "cases": 18,
-   "invariant": 14,
-   "mm_sequence_ok": 18,
-   "cpp_equal": 18
-  },
-  {
-   "case": "measured_arrival_creep",
-   "where": "baseline",
-   "cases": 18,
-   "invariant": 8,
-   "mm_sequence_ok": 11,
-   "cpp_equal": 18
-  },
-  {
-   "case": "measured_arrival_creep",
-   "where": "falling",
-   "cases": 18,
-   "invariant": 0,
-   "mm_sequence_ok": 0,
-   "cpp_equal": 18
-  },
-  {
-   "case": "measured_arrival_creep",
-   "where": "peak",
-   "cases": 18,
-   "invariant": 0,
-   "mm_sequence_ok": 0,
-   "cpp_equal": 18
-  },
-  {
-   "case": "measured_arrival_creep",
    "where": "rising",
    "cases": 18,
    "invariant": 13,
+   "mm_sequence_ok": 18,
+   "cpp_equal": 18
+  },
+  {
+   "case": "measured_arrival_creep",
+   "where": "baseline",
+   "cases": 18,
+   "invariant": 7,
+   "mm_sequence_ok": 10,
+   "cpp_equal": 18
+  },
+  {
+   "case": "measured_arrival_creep",
+   "where": "falling",
+   "cases": 18,
+   "invariant": 0,
+   "mm_sequence_ok": 0,
+   "cpp_equal": 18
+  },
+  {
+   "case": "measured_arrival_creep",
+   "where": "peak",
+   "cases": 18,
+   "invariant": 0,
+   "mm_sequence_ok": 0,
+   "cpp_equal": 18
+  },
+  {
+   "case": "measured_arrival_creep",
+   "where": "rising",
+   "cases": 18,
+   "invariant": 12,
    "mm_sequence_ok": 18,
    "cpp_equal": 18
   },
@@ -112,7 +112,7 @@
    "case": "measured_departure_tail",
    "where": "falling",
    "cases": 36,
-   "invariant": 31,
+   "invariant": 24,
    "mm_sequence_ok": 35,
    "cpp_equal": 36
   },
@@ -120,7 +120,7 @@
    "case": "measured_departure_tail",
    "where": "peak",
    "cases": 36,
-   "invariant": 33,
+   "invariant": 23,
    "mm_sequence_ok": 35,
    "cpp_equal": 36
   },
@@ -128,7 +128,7 @@
    "case": "measured_departure_tail",
    "where": "rising",
    "cases": 36,
-   "invariant": 30,
+   "invariant": 26,
    "mm_sequence_ok": 35,
    "cpp_equal": 36
   },
@@ -136,7 +136,7 @@
    "case": "repeated_stop_go",
    "where": "five_1s_stops",
    "cases": 18,
-   "invariant": 14,
+   "invariant": 10,
    "mm_sequence_ok": 18,
    "cpp_equal": 18
   },
@@ -144,7 +144,7 @@
    "case": "repeated_stop_go",
    "where": "rising+peak+falling",
    "cases": 36,
-   "invariant": 20,
+   "invariant": 22,
    "mm_sequence_ok": 36,
    "cpp_equal": 36
   },
@@ -168,7 +168,7 @@
    "case": "stop",
    "where": "falling",
    "cases": 108,
-   "invariant": 95,
+   "invariant": 71,
    "mm_sequence_ok": 108,
    "cpp_equal": 108
   },
@@ -184,7 +184,7 @@
    "case": "stop",
    "where": "peak",
    "cases": 108,
-   "invariant": 102,
+   "invariant": 72,
    "mm_sequence_ok": 108,
    "cpp_equal": 108
   },
@@ -192,7 +192,7 @@
    "case": "stop",
    "where": "rising",
    "cases": 108,
-   "invariant": 93,
+   "invariant": 81,
    "mm_sequence_ok": 108,
    "cpp_equal": 108
   },
@@ -224,7 +224,7 @@
    "case": "zero_shift_after_30s",
    "where": "peak",
    "cases": 54,
-   "invariant": 49,
+   "invariant": 36,
    "mm_sequence_ok": 54,
    "cpp_equal": 54
   }
@@ -237,9 +237,9 @@
    "arrive": 0.43,
    "shift": NaN,
    "cases": 18,
-   "invariant": 8,
-   "mm_sequence_ok": 11,
-   "contradictions": 7.0
+   "invariant": 7,
+   "mm_sequence_ok": 10,
+   "contradictions": 8.0
   },
   {
    "case": "measured_arrival_and_departure",
@@ -267,50 +267,6 @@
    "case": "measured_arrival_and_departure",
    "where": "rising",
    "depart_tail": 3.34,
-   "arrive": 0.43,
-   "shift": NaN,
-   "cases": 18,
-   "invariant": 14,
-   "mm_sequence_ok": 18,
-   "contradictions": 0.0
-  },
-  {
-   "case": "measured_arrival_creep",
-   "where": "baseline",
-   "depart_tail": NaN,
-   "arrive": 0.43,
-   "shift": NaN,
-   "cases": 18,
-   "invariant": 8,
-   "mm_sequence_ok": 11,
-   "contradictions": 7.0
-  },
-  {
-   "case": "measured_arrival_creep",
-   "where": "falling",
-   "depart_tail": NaN,
-   "arrive": 0.43,
-   "shift": NaN,
-   "cases": 18,
-   "invariant": 0,
-   "mm_sequence_ok": 0,
-   "contradictions": 18.0
-  },
-  {
-   "case": "measured_arrival_creep",
-   "where": "peak",
-   "depart_tail": NaN,
-   "arrive": 0.43,
-   "shift": NaN,
-   "cases": 18,
-   "invariant": 0,
-   "mm_sequence_ok": 0,
-   "contradictions": 18.0
-  },
-  {
-   "case": "measured_arrival_creep",
-   "where": "rising",
-   "depart_tail": NaN,
    "arrive": 0.43,
    "shift": NaN,
    "cases": 18,
@@ -319,6 +275,50 @@
    "contradictions": 0.0
   },
   {
+   "case": "measured_arrival_creep",
+   "where": "baseline",
+   "depart_tail": NaN,
+   "arrive": 0.43,
+   "shift": NaN,
+   "cases": 18,
+   "invariant": 7,
+   "mm_sequence_ok": 10,
+   "contradictions": 8.0
+  },
+  {
+   "case": "measured_arrival_creep",
+   "where": "falling",
+   "depart_tail": NaN,
+   "arrive": 0.43,
+   "shift": NaN,
+   "cases": 18,
+   "invariant": 0,
+   "mm_sequence_ok": 0,
+   "contradictions": 18.0
+  },
+  {
+   "case": "measured_arrival_creep",
+   "where": "peak",
+   "depart_tail": NaN,
+   "arrive": 0.43,
+   "shift": NaN,
+   "cases": 18,
+   "invariant": 0,
+   "mm_sequence_ok": 0,
+   "contradictions": 18.0
+  },
+  {
+   "case": "measured_arrival_creep",
+   "where": "rising",
+   "depart_tail": NaN,
+   "arrive": 0.43,
+   "shift": NaN,
+   "cases": 18,
+   "invariant": 12,
+   "mm_sequence_ok": 18,
+   "contradictions": 0.0
+  },
+  {
    "case": "measured_departure_tail",
    "where": "baseline",
    "depart_tail": 3.34,
@@ -347,7 +347,7 @@
    "arrive": NaN,
    "shift": NaN,
    "cases": 18,
-   "invariant": 16,
+   "invariant": 12,
    "mm_sequence_ok": 18,
    "contradictions": 0.0
   },
@@ -358,7 +358,7 @@
    "arrive": NaN,
    "shift": NaN,
    "cases": 18,
-   "invariant": 15,
+   "invariant": 12,
    "mm_sequence_ok": 17,
    "contradictions": 1.0
   },
@@ -369,7 +369,7 @@
    "arrive": NaN,
    "shift": NaN,
    "cases": 18,
-   "invariant": 17,
+   "invariant": 12,
    "mm_sequence_ok": 18,
    "contradictions": 0.0
   },
@@ -380,7 +380,7 @@
    "arrive": NaN,
    "shift": NaN,
    "cases": 18,
-   "invariant": 16,
+   "invariant": 11,
    "mm_sequence_ok": 17,
    "contradictions": 1.0
   },
@@ -388,21 +388,21 @@
    "case": "measured_departure_tail",
    "where": "rising",
    "depart_tail": 3.34,
-   "arrive": NaN,
-   "shift": NaN,
-   "cases": 18,
-   "invariant": 16,
-   "mm_sequence_ok": 18,
-   "contradictions": 0.0
-  },
-  {
-   "case": "measured_departure_tail",
-   "where": "rising",
-   "depart_tail": 5.27,
    "arrive": NaN,
    "shift": NaN,
    "cases": 18,
    "invariant": 14,
+   "mm_sequence_ok": 18,
+   "contradictions": 0.0
+  },
+  {
+   "case": "measured_departure_tail",
+   "where": "rising",
+   "depart_tail": 5.27,
+   "arrive": NaN,
+   "shift": NaN,
+   "cases": 18,
+   "invariant": 12,
    "mm_sequence_ok": 17,
    "contradictions": 1.0
   },
@@ -446,7 +446,7 @@
    "arrive": NaN,
    "shift": 2.0,
    "cases": 18,
-   "invariant": 17,
+   "invariant": 12,
    "mm_sequence_ok": 18,
    "contradictions": 0.0
   },
@@ -457,7 +457,7 @@
    "arrive": NaN,
    "shift": 5.0,
    "cases": 18,
-   "invariant": 16,
+   "invariant": 13,
    "mm_sequence_ok": 18,
    "contradictions": 0.0
   },
@@ -468,7 +468,7 @@
    "arrive": NaN,
    "shift": 10.0,
    "cases": 18,
-   "invariant": 16,
+   "invariant": 11,
    "mm_sequence_ok": 18,
    "contradictions": 0.0
   }

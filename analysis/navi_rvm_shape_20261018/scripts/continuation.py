@@ -56,3 +56,86 @@ def envelope_exit2(H, C, P, k15):
 def envelope_both2(H, C, P, k15):
     """ANALYSIS ONLY: departure rule plus its mirror image on the arrival side."""
     return _rule(H, k15, 2, arrival=True)
+
+
+# ---------------------------------------------------------------------------
+# Firmware reference (RvmPause.h, arrival mirror approved 2026-10-18).
+# A sequential state machine identical to the C++, block by block.
+HOLD_MAX = 512        # hold-back capacity: the arrival plateau must fit (measured max 291 blocks)
+STOP_BELOW = 15
+
+
+def commanded_stop_proxy(pwm):
+    """Recordings carry applied PWM only. A commanded stop is taken to begin where
+    the final monotone descent into a PWM<15 pause starts (manual throttle 0 / STOP
+    set the target to 0 at that moment). Firmware uses its real commanded target."""
+    pwm = np.asarray(pwm); out = np.zeros(len(pwm), bool)
+    for i in range(1, len(pwm)):
+        if pwm[i] < STOP_BELOW <= pwm[i - 1]:
+            k = i
+            while k > 0 and pwm[k - 1] >= pwm[k]: k -= 1        # back to the top of the descent
+            while k < i and pwm[k + 1] == pwm[k]: k += 1        # the stop is commanded at the first decrease
+            out[k:i] = True
+    return out
+
+
+def pause_sequence(H, P, stopcmd, declarations=(), hold_max=HOLD_MAX, need=2):
+    """Returns keep: blocks appended to the recognition waveform (chronological)."""
+    n = len(H); keep = np.zeros(n, bool); decl = set(int(d) for d in declarations)
+    state = 'Running'; lo, hi = np.inf, -np.inf; nobs = 0
+    held = []                                             # held-back block indices (oldest first)
+    pend = None; pside = 0
+    side = lambda x: 0 if (not np.isfinite(x)) or lo <= x <= hi else (1 if x > hi else -1)
+
+    def release_all():
+        for j in held: keep[j] = True
+        held.clear()
+
+    def trim_and_release():                               # mirror rule on the arrival side
+        m = len(held) - 1
+        while m >= 0:
+            s0 = side(H[held[m]])
+            if s0 != 0 and all(m - q >= 0 and side(H[held[m - q]]) == s0 for q in range(need)): break
+            m -= 1
+        del held[m + 1:]
+        release_all()
+
+    for i in range(n):
+        if i in decl:                                     # declaration: held blocks are released to the old context first
+            release_all(); pend = None; state = 'Startup'
+        stopped = P[i] < STOP_BELOW
+        if state == 'Startup':
+            keep[i] = True
+            if not stopped: state = 'Running'
+            continue
+        if state == 'Running':
+            if stopped:
+                state = 'Stopped'; lo, hi = np.inf, -np.inf; nobs = 0; pend = None
+                if np.isfinite(H[i]): lo, hi, nobs = H[i], H[i], 1
+                continue
+            if stopcmd[i]:
+                held.append(i)
+                if len(held) > hold_max: keep[held.pop(0)] = True
+            else:
+                release_all(); keep[i] = True
+            continue
+        if state == 'Stopped':
+            if stopped:
+                if np.isfinite(H[i]): lo, hi, nobs = min(lo, H[i]), max(hi, H[i]), nobs + 1
+                continue
+            if nobs == 0:
+                release_all(); state = 'Running'; keep[i] = True; continue
+            trim_and_release(); state = 'Awaiting'; pend = None
+        if state == 'Awaiting':
+            if stopped:
+                pend = None; state = 'Stopped'
+                if np.isfinite(H[i]): lo, hi, nobs = min(lo, H[i]), max(hi, H[i]), nobs + 1
+                continue
+            s = side(H[i])
+            if pend is not None:
+                if s != 0 and s == pside:
+                    keep[pend] = True; keep[i] = True; pend = None; state = 'Running'; continue
+                pend = None
+            if s != 0: pend, pside = i, s
+    # end of data: blocks still held stay held, as on the locomotive (no GO followed)
+    return keep

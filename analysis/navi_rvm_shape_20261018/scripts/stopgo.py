@@ -21,6 +21,14 @@ def block_pwm(n_blocks):
     return out[:n_blocks]
 
 
+def firmware_mask(h, pwm, declarations, stopcmd=None):
+    """Firmware RvmPause.h (current): PWM pause, pattern-based resumption, and the
+    arrival mirror on the commanded-stop hold-back. Startup handling included."""
+    import continuation as K
+    if stopcmd is None: stopcmd = K.commanded_stop_proxy(pwm)
+    return K.pause_sequence(np.asarray(h, float), np.asarray(pwm), stopcmd, declarations)
+
+
 def resumption_mask(h, pwm, declarations):
     """Firmware RvmPause.h: the PWM pause plus pattern-based resumption after GO
     (continuation._rule, two consecutive blocks outside the stationary range)."""

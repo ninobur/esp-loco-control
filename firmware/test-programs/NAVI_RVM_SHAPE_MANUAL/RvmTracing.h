@@ -7,14 +7,15 @@
 // holds fewer than half of its nominal 100 reads or touches a serial jump
 // (lost reads). Route direction of a block = that of its last read
 // (1 = CW, 2 = CCW, 0 = undeclared), as in the recordings. pwm = the highest
-// applied PWM among the block's reads (carried for WaveformPause only).
+// applied PWM among the block's reads; cmd = the commanded (target) PWM at the
+// block's last read. Both are carried for WaveformPause only.
 // ---------------------------------------------------------------------------
 #include <stdint.h>
 #include <math.h>
 
 namespace rvm_shape {
 
-struct Block { uint32_t index; float hall; uint8_t dir; uint16_t n; uint8_t pwm; };
+struct Block { uint32_t index; float hall; uint8_t dir; uint16_t n; uint8_t pwm; uint8_t cmd; };
 
 class Tracing {
  public:
@@ -23,7 +24,7 @@ class Tracing {
 
   // Feed one native read. Completed blocks (including empty ones) are passed to
   // emit(Block) in order. Returns the number emitted.
-  template <class F> int add(uint64_t us, uint16_t adc, uint8_t dir, uint32_t serial, uint8_t pwm, F&& emit) {
+  template <class F> int add(uint64_t us, uint16_t adc, uint8_t dir, uint32_t serial, uint8_t pwm, uint8_t cmd, F&& emit) {
     const uint64_t blk = us / BLOCK_US;
     int emitted = 0;
     if (!started_) { started_ = true; base_ = blk; cur_ = 0; reset(); lastSerial_ = serial; }
@@ -39,7 +40,7 @@ class Tracing {
       }
       if (jump) bad_ = true;                   // the block after the jump
     }
-    sum_ += adc; ++n_; dir_ = dir; if (pwm > pwm_) pwm_ = pwm;
+    sum_ += adc; ++n_; dir_ = dir; cmd_ = cmd; if (pwm > pwm_) pwm_ = pwm;
     return emitted;
   }
   uint64_t firstBlockUs() const { return base_ * BLOCK_US; }
@@ -47,10 +48,10 @@ class Tracing {
  private:
   bool started_ = false, bad_ = false;
   uint64_t base_ = 0; uint32_t cur_ = 0, lastSerial_ = 0;
-  double sum_ = 0; uint16_t n_ = 0; uint8_t dir_ = 0, pwm_ = 0;
-  void reset() { sum_ = 0; n_ = 0; bad_ = false; dir_ = 0; pwm_ = 0; }
+  double sum_ = 0; uint16_t n_ = 0; uint8_t dir_ = 0, pwm_ = 0, cmd_ = 0;
+  void reset() { sum_ = 0; n_ = 0; bad_ = false; dir_ = 0; pwm_ = 0; cmd_ = 0; }
   template <class F> int flush(F&& emit) {
-    Block b; b.index = cur_; b.n = n_; b.dir = dir_; b.pwm = pwm_;
+    Block b; b.index = cur_; b.n = n_; b.dir = dir_; b.pwm = pwm_; b.cmd = cmd_;
     b.hall = (n_ >= MIN_READS && !bad_) ? float(sum_ / n_) : NAN;
     emit(b); return 1;
   }

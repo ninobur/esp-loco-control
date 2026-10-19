@@ -16,7 +16,9 @@
  * STOP/GO: while STOPPED (applied PWM < 15) the recognition waveform is paused
  * (RvmPause.h): the unfinished ensemble, its baseline and the held candidate
  * survive the stop; after GO the waveform resumes only when the Hall pattern
- * leaves the stationary state observed at the stop. PWM does nothing else. A
+ * leaves the stationary state observed at the stop, and the stationary arrival
+ * blocks held back since the operator commanded the stop are dropped. PWM and
+ * the commanded target do nothing else. A
  * complete ensemble of the wrong polarity is a CONTRADICTION: reported, the
  * waveform preserved on the Pi, and no geographic claim until the operator
  * declares again. Nothing in navigation can reach the motor.
@@ -113,7 +115,7 @@ struct NavEvent {
   rvm_shape::Ensemble e;
   uint32_t blocks;
   // STOP/GO transitions only
-  bool candidateHeld; uint32_t baselineStartId, stationaryBlocks, withheld; float stationaryLow, stationaryHigh;
+  bool candidateHeld; uint32_t baselineStartId, stationaryBlocks, withheld, arrivalTrimmed; float stationaryLow, stationaryHigh;
 };
 enum : uint8_t { EV_DECLARED = 1, EV_SUSPENDED = 2, EV_ENSEMBLE = 3, EV_STOPPED = 4, EV_RESUMED = 5 };
 struct NavSnapshot {
@@ -122,7 +124,7 @@ struct NavSnapshot {
   bool holding = false, active = false, paused = false;
   uint32_t maxPushUs = 0;
 };
-static rvm_shape::Recognizer recognizer;           // ~64 KB, static
+static rvm_shape::Recognizer recognizer;           // ~68 KB, static
 static rvm_shape::Navigator navigator;
 static rvm_shape::WaveformPause waveformPause;      // owned by rvmTask
 static uint32_t pausedBlocks = 0;
@@ -251,7 +253,7 @@ static void hallTask(void*) {
       navi_sync::NativeHallItem item{};
       item.serial = serial; item.tUs = us; item.raw = int16_t(raw); item.pwm = uint8_t(actualPwm); item.direction = dirByte;
       recorder->addNativeHall(item, ctx);
-      tracing.add(us, uint16_t(raw), dirByte, serial, uint8_t(actualPwm), emit);
+      tracing.add(us, uint16_t(raw), dirByte, serial, uint8_t(actualPwm), uint8_t(commandedPwm), emit);
       if (!firstBlockUs.load()) firstBlockUs.store(tracing.firstBlockUs());
     }
     wire.median = INT16_MIN;
@@ -285,23 +287,44 @@ static void postPause(uint8_t kind, uint32_t blockId) {
   ev.candidateHeld = recognizer.holding(); ev.baselineStartId = recognizer.baselineStartId();
   ev.stationaryLow = waveformPause.stationaryLow(); ev.stationaryHigh = waveformPause.stationaryHigh();
   ev.stationaryBlocks = waveformPause.stationaryBlocks(); ev.withheld = waveformPause.withheldAfterGo();
+  ev.arrivalTrimmed = waveformPause.lastArrivalTrim();
   postEvent(ev);
+}
+// Append one block to the recognition waveform and hand any completed ensemble
+// to the navigator (observation only).
+static void feedRecognizer(const rvm_shape::Block& a) {
+  recognizer.push(a.hall, a.dir == 2, a.index);
+  rvm_shape::Ensemble e;
+  while (recognizer.take(e)) {
+    NavEvent ev{}; ev.kind = EV_ENSEMBLE; ev.e = e; ev.expected = navigator.nextMm(); ev.blocks = recognizer.blocks();
+    const auto r = navigator.onEnsemble(e.pol);
+    ev.result = uint8_t(r); ev.mm = navigator.lastMm(); ev.last = navigator.lastMm(); ev.next = navigator.nextMm(); ev.dir = navigator.dir();
+    portENTER_CRITICAL(&navMux);
+    ++navShared.recognized;
+    if (r == rvm_shape::NavResult::Advanced) ++navShared.advanced;
+    if (r == rvm_shape::NavResult::Contradiction) ++navShared.contradictions;
+    portEXIT_CRITICAL(&navMux);
+    postEvent(ev);
+  }
 }
 static void applyControl() {
   NavCtl c;
   while (ctlQ && xQueueReceive(ctlQ, &c, 0) == pdTRUE) {
-    NavEvent ev{}; ev.blocks = recognizer.blocks();
+    NavEvent ev{};
     if (c.kind == CTL_DECLARE) {
-      // Startup baseline: the Hall sensor is declared clear of a magnet, standing
-      // still; the tracing from this block on is the first baseline (BL0).
+      // Anything still held back from a stop was traversed before it: release it
+      // into the old context first. Then the startup baseline: the Hall sensor is
+      // declared clear of a magnet, standing still; the tracing from the next
+      // block on is the first baseline (BL0).
+      waveformPause.declared(feedRecognizer);
       recognizer.startBaseline(recognizer.blocks());
-      waveformPause.declared();                     // stationary declared tracing = BL0 until first movement
       navigator.declare(c.last, c.next, c.dir);
       ev.kind = EV_DECLARED;
     } else {
       navigator.suspend();
       ev.kind = EV_SUSPENDED;
     }
+    ev.blocks = recognizer.blocks();
     ev.last = navigator.lastMm(); ev.next = navigator.nextMm(); ev.dir = navigator.dir();
     publishSnapshot(); postEvent(ev);
   }
@@ -317,26 +340,13 @@ static void rvmTask(void*) {
     // until the Hall pattern resumes developing (RvmPause.h). Everything already
     // in the waveform, including an unfinished ensemble, is preserved.
     const bool wasPaused = waveformPause.paused();
-    rvm_shape::Block admitted[2];
-    const int na = waveformPause.admit(b, admitted);
-    if (!wasPaused && waveformPause.paused()) postPause(EV_STOPPED, b.index);
-    if (wasPaused && !waveformPause.paused()) postPause(EV_RESUMED, na ? admitted[0].index : b.index);
-    if (!na) { ++pausedBlocks; publishSnapshot(); continue; }
     const uint64_t t0 = esp_timer_get_time();
-    for (int k = 0; k < na; ++k) recognizer.push(admitted[k].hall, admitted[k].dir == 2, admitted[k].index);
+    int na = 0; uint32_t firstId = b.index;
+    waveformPause.admit(b, [&](const rvm_shape::Block& a) { if (!na++) firstId = a.index; feedRecognizer(a); });
     const uint32_t took = uint32_t(esp_timer_get_time() - t0);
-    rvm_shape::Ensemble e;
-    while (recognizer.take(e)) {
-      NavEvent ev{}; ev.kind = EV_ENSEMBLE; ev.e = e; ev.expected = navigator.nextMm(); ev.blocks = recognizer.blocks();
-      const auto r = navigator.onEnsemble(e.pol);
-      ev.result = uint8_t(r); ev.mm = navigator.lastMm(); ev.last = navigator.lastMm(); ev.next = navigator.nextMm(); ev.dir = navigator.dir();
-      portENTER_CRITICAL(&navMux);
-      ++navShared.recognized;
-      if (r == rvm_shape::NavResult::Advanced) ++navShared.advanced;
-      if (r == rvm_shape::NavResult::Contradiction) ++navShared.contradictions;
-      portEXIT_CRITICAL(&navMux);
-      postEvent(ev);
-    }
+    if (!wasPaused && waveformPause.paused()) postPause(EV_STOPPED, b.index);
+    if (wasPaused && !waveformPause.paused()) postPause(EV_RESUMED, firstId);
+    if (!na) { ++pausedBlocks; publishSnapshot(); continue; }
     portENTER_CRITICAL(&navMux); if (took > navShared.maxPushUs) navShared.maxPushUs = took; portEXIT_CRITICAL(&navMux);
     publishSnapshot();
     rvmStackFree.store(uxTaskGetStackHighWaterMark(nullptr));
@@ -381,12 +391,12 @@ static void serviceNavEvents() {
       snprintf(row, sizeof(row),
         "{\"boot\":\"%016llX\",\"transition\":\"%s\",\"block_us\":%llu,\"last_mm\":%u,\"expected_mm\":%u,"
         "\"candidate_held\":%u,\"baseline_start_us\":%llu,\"stationary_blocks\":%lu,"
-        "\"stationary_low\":%.1f,\"stationary_high\":%.1f,\"withheld_after_go_total\":%lu,\"authority\":\"OBSERVATION_ONLY\"}",
+        "\"stationary_low\":%.1f,\"stationary_high\":%.1f,\"withheld_after_go_total\":%lu,\"arrival_blocks_trimmed\":%lu,\"authority\":\"OBSERVATION_ONLY\"}",
         (unsigned long long)bootId, ev.kind == EV_STOPPED ? "STOPPED_WAVEFORM_PAUSED" : "PATTERN_RESUMED",
         (unsigned long long)blockUs(ev.blocks), ev.last, ev.next, unsigned(ev.candidateHeld),
         (unsigned long long)blockUs(ev.baselineStartId), (unsigned long)ev.stationaryBlocks,
         ev.kind == EV_STOPPED ? 0.0 : double(ev.stationaryLow), ev.kind == EV_STOPPED ? 0.0 : double(ev.stationaryHigh),
-        (unsigned long)ev.withheld);
+        (unsigned long)ev.withheld, (unsigned long)(ev.kind == EV_STOPPED ? 0 : ev.arrivalTrimmed));
       pub("diag/rvm_stopgo", row);
       Serial.printf("[RVM] %s\n", row);
       strlcpy(lastNavEvent, ev.kind == EV_STOPPED ? "STOPPED" : "RESUMED", sizeof(lastNavEvent));
@@ -678,6 +688,8 @@ void setup() {
   delay(300);
   recorder = new (std::nothrow) navi_sync::Recorder();
   if (!recorder || !recorder->storageReady()) haltStartup("recorder storage", false);
+  // The 8 KB arrival hold-back buffer lives on the heap (the static DRAM segment is full).
+  if (!waveformPause.begin(new (std::nothrow) rvm_shape::Block[rvm_shape::HOLD_MAX])) haltStartup("hold-back storage", false);
   bootId = (uint64_t(esp_random()) << 32) | esp_random();
   uint32_t session = esp_random(); if (!session) session = 1;
   recorder->begin(LOCO_ID, session, bootId);

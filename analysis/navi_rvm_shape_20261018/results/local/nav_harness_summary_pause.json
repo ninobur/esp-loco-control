@@ -147,7 +147,7 @@
    "annotated_between": 2.0
   },
   {
-   "t": 1576.97,
+   "t": 1576.89,
    "event": "CONTRADICTION",
    "mm": NaN,
    "expected": 14.0,
@@ -183,7 +183,7 @@
     64
    ],
    "recognized_between": 1.0,
-   "annotated_between": 2.0
+   "annotated_between": 3.0
   },
   {
    "t": 1740.69,
@@ -327,7 +327,7 @@
    "annotated_between": 1.0
   },
   {
-   "t": 3006.19,
+   "t": 3006.23,
    "event": "MM",
    "mm": 16.0,
    "expected": 16.0,

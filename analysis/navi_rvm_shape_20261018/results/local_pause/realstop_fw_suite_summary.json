@@ -1,0 +1,198 @@
+[
+ {
+  "variant": "envelope_exit2",
+  "where": "after_completion",
+  "cases": 108,
+  "invariant": 83,
+  "mm_ok": 93
+ },
+ {
+  "variant": "envelope_exit2",
+  "where": "baseline",
+  "cases": 93,
+  "invariant": 62,
+  "mm_ok": 78
+ },
+ {
+  "variant": "envelope_exit2",
+  "where": "falling",
+  "cases": 108,
+  "invariant": 7,
+  "mm_ok": 8
+ },
+ {
+  "variant": "envelope_exit2",
+  "where": "leading_lobe",
+  "cases": 107,
+  "invariant": 88,
+  "mm_ok": 104
+ },
+ {
+  "variant": "envelope_exit2",
+  "where": "peak",
+  "cases": 107,
+  "invariant": 0,
+  "mm_ok": 0
+ },
+ {
+  "variant": "envelope_exit2",
+  "where": "rising",
+  "cases": 107,
+  "invariant": 0,
+  "mm_ok": 0
+ },
+ {
+  "variant": "envelope_exit2",
+  "where": "trailing_lobe",
+  "cases": 108,
+  "invariant": 93,
+  "mm_ok": 107
+ },
+ {
+  "variant": "firmware",
+  "where": "after_completion",
+  "cases": 108,
+  "invariant": 87,
+  "mm_ok": 93
+ },
+ {
+  "variant": "firmware",
+  "where": "baseline",
+  "cases": 93,
+  "invariant": 64,
+  "mm_ok": 78
+ },
+ {
+  "variant": "firmware",
+  "where": "falling",
+  "cases": 108,
+  "invariant": 85,
+  "mm_ok": 108
+ },
+ {
+  "variant": "firmware",
+  "where": "leading_lobe",
+  "cases": 107,
+  "invariant": 89,
+  "mm_ok": 105
+ },
+ {
+  "variant": "firmware",
+  "where": "peak",
+  "cases": 107,
+  "invariant": 83,
+  "mm_ok": 106
+ },
+ {
+  "variant": "firmware",
+  "where": "rising",
+  "cases": 107,
+  "invariant": 95,
+  "mm_ok": 107
+ },
+ {
+  "variant": "firmware",
+  "where": "trailing_lobe",
+  "cases": 108,
+  "invariant": 93,
+  "mm_ok": 107
+ },
+ {
+  "variant": "oracle",
+  "where": "after_completion",
+  "cases": 108,
+  "invariant": 85,
+  "mm_ok": 93
+ },
+ {
+  "variant": "oracle",
+  "where": "baseline",
+  "cases": 93,
+  "invariant": 63,
+  "mm_ok": 78
+ },
+ {
+  "variant": "oracle",
+  "where": "falling",
+  "cases": 108,
+  "invariant": 86,
+  "mm_ok": 108
+ },
+ {
+  "variant": "oracle",
+  "where": "leading_lobe",
+  "cases": 107,
+  "invariant": 90,
+  "mm_ok": 105
+ },
+ {
+  "variant": "oracle",
+  "where": "peak",
+  "cases": 107,
+  "invariant": 94,
+  "mm_ok": 103
+ },
+ {
+  "variant": "oracle",
+  "where": "rising",
+  "cases": 107,
+  "invariant": 95,
+  "mm_ok": 107
+ },
+ {
+  "variant": "oracle",
+  "where": "trailing_lobe",
+  "cases": 108,
+  "invariant": 95,
+  "mm_ok": 107
+ },
+ {
+  "variant": "pwm15",
+  "where": "after_completion",
+  "cases": 108,
+  "invariant": 83,
+  "mm_ok": 93
+ },
+ {
+  "variant": "pwm15",
+  "where": "baseline",
+  "cases": 93,
+  "invariant": 62,
+  "mm_ok": 78
+ },
+ {
+  "variant": "pwm15",
+  "where": "falling",
+  "cases": 108,
+  "invariant": 7,
+  "mm_ok": 8
+ },
+ {
+  "variant": "pwm15",
+  "where": "leading_lobe",
+  "cases": 107,
+  "invariant": 87,
+  "mm_ok": 104
+ },
+ {
+  "variant": "pwm15",
+  "where": "peak",
+  "cases": 107,
+  "invariant": 0,
+  "mm_ok": 0
+ },
+ {
+  "variant": "pwm15",
+  "where": "rising",
+  "cases": 107,
+  "invariant": 0,
+  "mm_ok": 0
+ },
+ {
+  "variant": "pwm15",
+  "where": "trailing_lobe",
+  "cases": 108,
+  "invariant": 90,
+  "mm_ok": 107
+ }
+]

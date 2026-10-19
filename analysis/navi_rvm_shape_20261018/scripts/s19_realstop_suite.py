@@ -107,6 +107,7 @@ def run_suite(variants, n_profiles=6, tag='realstop'):
                     fast = k15.copy(); fast[arr[:-keep_n] if len(arr) > keep_n else []] = False
                     masks[f'exit2_arr{keep_n}'] = K._rule(H, fast, 2) & fast
                 masks['exit2_fast_stop'] = masks['exit2_arr17']
+                masks['firmware'] = G.firmware_mask(H, P, [0])         # RvmPause.h as built (arrival mirror included)
                 for vname in variants:
                     det = recognize(H, C, masks[vname])
                     got = np.interp(det.c_blk.values, np.arange(len(O)), O) if len(det) else np.array([])

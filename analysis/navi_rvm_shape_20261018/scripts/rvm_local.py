@@ -113,9 +113,12 @@ def run(T, Em, Nm, starts, stop=None, chunk=500):
     starts = sorted(starts)
     for si, (s0, tag) in enumerate(starts):
         seg_end = starts[si + 1][0] if si + 1 < len(starts) else n
+        # As on the locomotive: with seg_end blocks available, windows ending at
+        # e <= seg_end - 2 have been scored (a window needs the block after its end).
+        seg_lim = seg_end - 1
         b = s0; cursor = s0; B = None
-        while cursor < seg_end:
-            hi = min(cursor + chunk, seg_end)
+        while cursor < seg_lim:
+            hi = min(cursor + chunk, seg_lim)
             cand = score_windows(T, b, cursor, hi, Em, Nm)
             accepted_at = None
             for r in cand.itertuples():
@@ -127,7 +130,7 @@ def run(T, Em, Nm, starts, stop=None, chunk=500):
                     B = r._asdict()
                 elif cs < B['c'] + B['w'] / 4 and ce > B['c'] - B['w'] / 4:
                     if r.llr > B['llr']: B = r._asdict()
-            if accepted_at is None and B is not None and hi >= B['end'] + B['w'] / 2:
+            if accepted_at is None and B is not None and hi - 1 >= B['end'] + B['w'] / 2:   # last scored end
                 accepted_at = B['end'] + B['w'] / 2
             if accepted_at is not None:
                 acc.append(dict(c=B['c'], w=B['w'], s=B['c'] - B['w'] / 4, e=B['c'] + B['w'] / 4, llr=B['llr'], pol=B['pol'],

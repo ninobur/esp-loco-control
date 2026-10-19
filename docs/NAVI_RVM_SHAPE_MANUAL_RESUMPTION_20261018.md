@@ -13,6 +13,97 @@
 > **Unchanged.** No operational firmware, Pi service, MQTT or dashboard
 > configuration was changed.
 
+> **UPDATE: arrival mirror implemented** (approved by David 2026-10-18).
+> §A below is current. §0–§6 record the state before it and remain as history.
+
+## A. Arrival mirror (current candidate)
+
+**Mechanism** (`RvmPause.h`; Python reference `continuation.pause_sequence`):
+
+1. **Hold-back.** From the moment the operator **commands** a stop (target
+   PWM < 15), the 20 ms blocks are held back instead of appended, up to the most
+   recent **512** (10.2 s). Older ones are released in order.
+2. **At STOP.** Applied PWM < 15: the stationary range is observed as before.
+3. **At GO.** The held blocks are judged against that range, newest first:
+   - blocks inside it, or single excursions, are stationary arrival repetitions
+     and are **dropped**;
+   - the walk stops at the first block that is outside the range together with
+     the block before it on the same side, where the magnetic structure was
+     still developing;
+   - the rest is appended. Then the resumption rule (§1) applies.
+4. **Withdrawn stop, or a declaration.** If the stop command is withdrawn before
+   PWM < 15, or the operator declares, everything held is released unchanged,
+   into the old context first.
+
+Retraction is never needed: blocks are held before the recognizer sees them, so
+no announced recognition is ever withdrawn.
+
+**Why 512 blocks.** Otto's measured arrival plateau is up to 291 blocks
+(median 153). A manual ramp at brake 0 from a PWM-35 stop is about 400 blocks.
+512 is a buffer capacity, not a recognition criterion. It is a constant for you
+to ratify.
+
+**Results**
+
+| Measured stop over a magnet (MM correct, of ~107) | Rising | Peak | Falling |
+|---|---|---|---|
+| `2f75899` (PWM < 15 only) | 0 | 0 | 8 |
+| `fbb5b53` (resumption only) | 0 | 0 | 8 |
+| **Current (resumption + arrival mirror), Otto's slow recorded arrivals** | **107** | **106** | **108** |
+| Oracle (every truly stationary block removed) | 107 | 103 | 108 |
+
+- **Required cases:** all 864 count the same magnets once, with the correct MM
+  sequence and 0 CONTRADICTIONs. Midpoint within 2 blocks. C++ = Python in all
+  1,260 runs.
+- **Measured restart tail:** 141/144 (unchanged).
+- **Unit checks** cover hold-back, withdrawn stop, capacity, arrival trim, and a
+  bump with an arrival plateau of 150 or 290 blocks plus a stop and a restart
+  tail.
+- **Boot 1.**
+  - Leave-one-pass-out: **1,063 / 1,081** recognized once, 0 split, 0 on
+    baseline, polarity 100 %.
+  - Misses: the 16 after the PWM-100 stall, plus MM114 and MM115, traversed
+    while stopping at the very end of the recording with no GO and no
+    declaration after them.
+  - Parity: Python = C++, **1,092 = 1,092**, identical centres, block ids and
+    polarity.
+  - Navigation: 1,047 correct claims, 0 duplicates. The 31 station stops behave
+    as before.
+- **Build:** **982,135 B flash (74 %)**, **121,292 B static RAM (37 %)**, plus
+  the 8 KB hold-back buffer on the heap at startup. The sketch halts with PWM 0
+  if that allocation fails. The authority check passes: only `RvmPause.h` reads
+  a block's PWM and commanded target.
+
+**What changes for the operator**
+
+- **Stopping speed.** Slow stops over a magnet now work in the offline tests;
+  the quick-stop rule in §4 is no longer required. Premature resumption after
+  very short stops still applies (§0.5): stay stopped about 6 s or more before
+  GO over a magnet.
+- **Delayed reports.**
+  - While a stop is commanded, recognition is delayed up to 10 s; nothing is
+    lost.
+  - A magnet traversed while stopping is reported only after the train moves
+    again or you declare. That is retrospective, as intended.
+- **Not covered.**
+  - A train still rolling after PWM falls below 15: rare, 1 of 35 recorded stops
+    for 0.43 s. That part of the waveform is paused away, and at the peak or
+    falling flank that magnet is lost.
+  - A stall at running PWM (not a commanded stop): as before.
+
+**Corrections made during this step (disclosed)**
+
+- **Declaration handling.** The first version discarded held blocks at a
+  declaration. That lost magnets traversed during the deceleration before a
+  relocation stop (MM020–021, MM122–123 on boot 1). Fixed: they are released.
+- **Python boundaries.** The Python reference could see one block past a
+  declaration, and released held blocks at the end of data. The firmware does
+  neither, so both were aligned to it.
+- **Leave-one-pass-out harness.** It now computes the pause over the whole
+  record, so a declaration at a fold end releases as on the locomotive.
+
+---
+
 **Candidate**
 
 - Sketch: `firmware/test-programs/NAVI_RVM_SHAPE_MANUAL/NAVI_RVM_SHAPE_MANUAL.ino`

@@ -142,3 +142,18 @@ This section belongs to
 
 The `s18` and `s19` stops now use Otto's real stationary Hall. Results are in
 `results/local_pause/` (`realstop*_suite.*`, `false_resumption.csv`).
+
+## Arrival mirror (current firmware rule)
+
+The firmware rule is `continuation.pause_sequence`, called through
+`stopgo.firmware_mask`. Its parts:
+
+- **Arrival hold-back** while a stop is commanded. The recordings carry applied
+  PWM only, so `commanded_stop_proxy` takes the first decrease of the final
+  descent into a pause.
+- **Trim** at GO.
+- **Resumption.**
+
+Results: `results/local_pause/realstop_fw_suite.*` (measured stops),
+`stopgo_suite.*` (required cases) and `summary.json` (boot-1 leave-one-pass-out
+and parity).

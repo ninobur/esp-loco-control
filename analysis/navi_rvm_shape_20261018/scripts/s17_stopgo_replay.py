@@ -21,13 +21,14 @@ np.save(D/'block_pwm_boot1.npy', pwm)
 
 # ---- 1. LOPO ----
 TR, UM, DET = [], [], []
+KEEP_ALL = G.firmware_mask(X.h, pwm, sorted(set(list(X.decl_i) + [int(e) for e in X.edges[:-1]])))
 for f in range(X.NF):
     a, b = X.edges[f], X.edges[f + 1]
     train = X.ens[(X.ens.fold != f) & ~X.ens.censored & X.ens.source.isin(['OPENING', 'SEQUENCE'])]
     spans = [(X.edges[k], X.edges[k + 1]) for k in range(X.NF) if k != f]
     Em, Nm, info = X.build(train, spans, 40000)            # identical to s10 (same rng sequence)
     starts = [a] + [d for d in X.decl_i if a < d < b]
-    keep = G.resumption_mask(X.h[a:b], pwm[a:b], [s - a for s in starts])
+    keep = KEEP_ALL[a:b]      # pause computed over the whole record, so a declaration at a fold end releases held blocks as on the loco
     C = G.Compressed(X.h[a:b], X.ccw[a:b], keep)
     det = L.run(L.Tracing(C.h, C.ccw), Em, Nm, [(C.start_of(s - a), 'start') for s in starts])
     if len(det):
@@ -52,7 +53,7 @@ mj = json.load(open(ROOT/'results'/'local'/'model_A.json'))
 def gmm(c):
     g = R.GMM(len(c['w'])); g.w = np.array(c['w']); g.mu = np.array(c['mu']); g.S = np.array(c['S']); return g
 Em, Nm = gmm(mj['E']), gmm(mj['N'])
-keep = G.resumption_mask(X.h, pwm, X.decl_i)
+keep = G.firmware_mask(X.h, pwm, X.decl_i)
 C = G.Compressed(X.h, X.ccw, keep)
 py = L.run(L.Tracing(C.h, C.ccw), Em, Nm, [(C.start_of(d), 'decl') for d in X.decl_i])
 py['c_id'] = np.floor(py.c).astype(int).map(lambda i: int(C.ids[min(i, len(C.ids) - 1)]))
@@ -82,7 +83,9 @@ with open(tmp/'decl.csv', 'w') as fh:
     for r, i in zip(X.decl.itertuples(), X.decl_i):
         a_, b_ = map(int, r.payload.split('-')); d = dir_at(r.t_us)
         fh.write('%d,%d,%d,%d\n' % ((i,) + ((a_, b_) if d > 0 else (b_, a_)) + (d,)))
-res = subprocess.run([str(tmp/'replay'), str(HG/f'native_{BOOT1}.bin'), str(tmp/'decl.csv'), str(tmp/'out')], capture_output=True, text=True, check=True)
+import continuation as K
+np.where(K.commanded_stop_proxy(pwm), 0, 255).astype(np.uint8).tofile(tmp/'cmd.bin')   # commanded target per block
+res = subprocess.run([str(tmp/'replay'), str(HG/f'native_{BOOT1}.bin'), str(tmp/'decl.csv'), str(tmp/'out'), '--cmd', str(tmp/'cmd.bin')], capture_output=True, text=True, check=True)
 stats = json.loads(res.stdout.strip().splitlines()[-1])
 ce = pd.read_csv(tmp/'out'/'ensembles.csv'); ce.to_csv(OUT/'cpp_detections.csv', index=False)
 cn = pd.read_csv(tmp/'out'/'nav.csv'); cn.to_csv(OUT/'cpp_nav.csv', index=False)
