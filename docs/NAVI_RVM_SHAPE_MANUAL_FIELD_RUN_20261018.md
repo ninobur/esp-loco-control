@@ -395,3 +395,11 @@ Output: `analysis/navi_rvm_shape_20261018/field_20261019/stops_100403/`
 - For about 95 magnets (MM034 → MM128) Otto ran with no geographic claims, and
   nothing in navigation reported why except `state/bootid` and the `online`
   flap.
+
+**David, afterwards:**
+- He did not reboot Otto, and nothing was done to the loco at 10:06:20.
+- **Otto runs on battery**, so the 16.26 V reading is the battery, and there is
+  no track-power interruption to consider.
+- The reset was therefore **spontaneous**. Its cause (watchdog, panic or
+  brownout of the 3.3 V rail) remains unknown, because the build does not
+  report it.
