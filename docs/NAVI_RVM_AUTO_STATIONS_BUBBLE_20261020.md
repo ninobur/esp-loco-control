@@ -336,3 +336,38 @@ This is risk 3 of this record ("Toby over a magnet, without continuity").
 | 13:29:46 | Toby not tracking: link LOST, last confirmed role FOLLOWER, so `LOST_STOP` at MM059, braked and held |
 | 13:33:16 | Toby redeclared at 066: link KNOWN, resume |
 | 13:33:51 | braking for the Grillers platform |
+
+### Follower touches the leader at stations (13:40–13:51)
+
+**David's report:** "Now TOBY is following. Toby touches the back of Otto at
+stations with no 3 car consist, just the power cars."
+
+**Source:** `state/station` in Toby `9950012_20261020_133938.log` and Otto
+`9950011_20261020_134253.log`.
+
+**Defect (revision 2): the release comes too early.** "Leader leaves the
+platform" was implemented as the leader's overlay reaching RELEASED, which is
+the end of its 5 s dwell. At that moment the leader is still standing on the
+platform. Otto in particular needs many seconds to start, because he is
+stationary until PWM rises well above 15. The follower, released at once,
+runs its last 5 MM and stops at the same place.
+
+Bamboo, 13:51:
+
+| Time | Otto (leader) | Toby (follower) |
+|---|---|---|
+| 13:51:03.5 | RELEASED at committed **MM158**; it had landed 1 MM past 157 | released from HOLD at **MM154** |
+| 13:51:15.3 | committed **MM160**, only 2 MM in 12 s | brakes for the platform at committed **MM157**, then lands about 1 MM past |
+
+That leaves about 2 MM between Hall sensors, less both bodies, which is
+consistent with contact.
+
+**What worked:** every bubble hold before release kept about 5 MM. For
+example, Toby held at 152 while Otto was dwelling at 158 (13:50:55).
+
+**At rest, leaders commit station+1:** MM158 for Bamboo, 64 for Grillers and
+109 for Arches. Toby once committed 159 for Bamboo.
+
+**Proposed fix, not yet built:** the leader has left only when its committed
+MM is at least **3 MM past the station centre**. Until then the platform
+stays OCCUPIED and the follower keeps holding.
