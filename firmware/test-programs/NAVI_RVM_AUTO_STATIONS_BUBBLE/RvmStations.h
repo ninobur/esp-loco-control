@@ -29,7 +29,9 @@
 //   its committed MM lies between our holding point (exclusive) and the
 //   station MM (inclusive) and it has not released this station.
 //   "Leader leaves the platform" = that is no longer true (its dwell released
-//   it, or it is past the station).
+//   it, or it is past the station). A follower already stopped at the holding
+//   point then waits FOLLOWER_START_DELAY_MS (2 s, operator 2026-10-20) before
+//   moving up; one still approaching the holding point switches at once.
 //   Pairing, dynamic roles, the role echo and the silence rule: see "peer"
 //   below. A locomotive that has never been paired runs singly.
 //   The decision is taken from 16 MM out (11 + 5), so the follower runs the
@@ -49,9 +51,18 @@ namespace rvm_ops {
 using navi_one::ROUTE_N;
 using navi_one::routeMod;
 
-static constexpr uint8_t BUBBLE_HOLD_MM = 5;       // operator 2026-10-20; adjust here
+static constexpr uint8_t BUBBLE_HOLD_MM = 5;       // operator 2026-10-20: where the follower stands, MM before the station
+// Operator 2026-10-20: the leader (or a solo train) begins braking 10 MM
+// before the station centre (the carpet's first reduction, 90 -> 80, is at
+// 10 MM); the follower begins braking 15 MM before it, i.e. the same carpet
+// ending BUBBLE_HOLD_MM earlier. No extra lead.
+static constexpr uint8_t HOLD_BRAKE_LEAD_MM = 0;
+static constexpr uint8_t HOLD_TARGET_MM = BUBBLE_HOLD_MM + HOLD_BRAKE_LEAD_MM;   // carpet stopping MM for the hold
 static constexpr uint32_t PEER_STALE_MS = 2000;     // 8 missed 4 Hz packets
 static constexpr uint32_t STOP_DWELL_MS = 5000;     // EWO_0_6 kStopDwellMs
+// Operator 2026-10-20: a follower stopped at the holding point starts toward
+// the platform FOLLOWER_START_DELAY_MS after the leader on the platform starts.
+static constexpr uint32_t FOLLOWER_START_DELAY_MS = 2000;
 
 // ----------------------------------------------------- rainbow carpet (EWO) --
 static constexpr int32_t kStopMm = 1000000;
@@ -241,28 +252,27 @@ inline const char* occupancyName(Occupancy o) {
                case Occupancy::Lost: return "PEER_LOST"; default: return "NO_PEER"; }
 }
 
-// Is the leader in station `si`, as seen from `pos` travelling `dir`? Only
-// asked with a KNOWN link. The leader must be AHEAD of us.
+// Is the leader stopped at station `si` (final braking, dwell, or waiting for
+// us), as seen from `pos` travelling `dir`? Only asked with a KNOWN link. The
+// leader must be AHEAD of us, within the carpet beyond the platform (it may
+// have rolled past the centre MM). Operator 2026-10-20: the follower's hold
+// applies only if the leader is stopped at the station, braking included.
 inline Occupancy stationOccupancy(const PeerPacket& p, uint8_t si, uint8_t pos, int8_t dir) {
-  const uint8_t s = STATIONS[si].mm;
-  const uint8_t toStation = aheadMm(pos, s, dir);
+  const uint8_t toStation = aheadMm(pos, STATIONS[si].mm, dir);
   const uint8_t toPeer = aheadMm(pos, p.lastMm, dir);
-  const bool working = p.station == si;
   const StopExecution ex = StopExecution(p.execution);
-  // Braking or dwelling for this platform, anywhere ahead of us within the
-  // carpet beyond it (it may have rolled past the centre MM): occupied.
-  if (working && (ex == StopExecution::Braking || ex == StopExecution::Dwell) &&
-      toPeer <= toStation + 11) return Occupancy::Occupied;
-  if (toPeer > toStation + 2) return Occupancy::Free;                 // beyond the platform, or behind us
-  const uint8_t hold = before(s, dir, BUBBLE_HOLD_MM);
-  const uint8_t into = aheadMm(hold, p.lastMm, dir);                  // 0 = at the holding point
-  const bool between = into >= 1 && into <= BUBBLE_HOLD_MM;           // (hold, station]
-  const bool releasedHere = working && ex == StopExecution::Released;
-  if (between && !releasedHere) return Occupancy::Occupied;
+  if (p.station == si && (ex == StopExecution::Braking || ex == StopExecution::Dwell) &&
+      toPeer >= 1 && toPeer <= toStation + 11) return Occupancy::Occupied;
   return Occupancy::Free;
 }
 
+// Has the follower arrived? It is stopped at the holding point of our station.
+
 // ------------------------------------------------------------------- driver --
+// CONVOY (operator 2026-10-20, "Always"): a confirmed LEADER does not leave the
+// platform until the follower has arrived: stopped (applied PWM 0) at the
+// holding point of this station. Then the leader starts; the follower moves up
+// FOLLOWER_START_DELAY_MS later. Unpaired: no wait.
 // Target kinds: PLATFORM (the station stop); HOLD (bubble: the same carpet 5 MM
 // earlier); STOP_NOW (bubble: occupied when already inside 5 MM: stop at once,
 // fast ramp); LOST_STOP (paired peer lost, follower: a carpet stop at the next MM).
@@ -274,6 +284,10 @@ inline Occupancy stationOccupancy(const PeerPacket& p, uint8_t si, uint8_t pos, 
 //   when the link is KNOWN again.
 enum class TargetKind : uint8_t { Platform = 0, Hold, StopNow, LostStop };
 enum class BubbleState : uint8_t { None = 0, Approaching, Holding };
+// Has the follower arrived? It is stopped at the holding point of our station.
+inline bool followerArrived(const PeerPacket& p, uint8_t si) {
+  return p.station == si && BubbleState(p.bubble) == BubbleState::Holding;
+}
 inline const char* targetKindName(TargetKind k) {
   switch (k) { case TargetKind::Platform: return "PLATFORM"; case TargetKind::Hold: return "HOLD";
                case TargetKind::StopNow: return "STOP_NOW"; default: return "LOST_STOP"; }
@@ -318,7 +332,7 @@ class StationDriver {
  public:
   void reset() {
     overlay_.reset(); station_ = NO_STATION; kind_ = TargetKind::Platform; target_ = 0; dir_ = 0;
-    held_ = platformHeld_ = paired_ = false; lastRole_ = Role::None;
+    held_ = platformHeld_ = paired_ = freeTiming_ = false; lastRole_ = Role::None;
   }
   uint8_t station() const { return station_; }
   StopExecution execution() const { return overlay_.execution(); }
@@ -368,17 +382,26 @@ class StationDriver {
       }
     } else {
       out.occupancy = link == Link::Known ? stationOccupancy(v.p, station_, in.pos, in.dir) : Occupancy::NoPeer;
-      platformHeld_ = false;                         // the other is known (or there is none): a held platform may release
+      // A held platform may release unless we are the confirmed leader and the follower has not arrived.
+      const bool convoyWait = link == Link::Known && lastRole_ == Role::Leader && !followerArrived(v.p, station_);
+      if (!convoyWait) platformHeld_ = false;
       const bool blocked = out.occupancy == Occupancy::Occupied;
-      if (blocked && !platformStopUnderway && toStation <= 11 + BUBBLE_HOLD_MM) {
+      if (blocked && !platformStopUnderway && toStation <= 11 + HOLD_TARGET_MM) {
         if (kind_ == TargetKind::Platform) {
-          // The same carpet, BUBBLE_HOLD_MM earlier; inside that distance: stop here.
-          if (toStation > BUBBLE_HOLD_MM) setTarget(TargetKind::Hold, before(s, in.dir, BUBBLE_HOLD_MM), out);
+          // The same carpet, HOLD_TARGET_MM earlier (stands ~BUBBLE_HOLD_MM short); inside that: stop here.
+          if (toStation > HOLD_TARGET_MM) setTarget(TargetKind::Hold, before(s, in.dir, HOLD_TARGET_MM), out);
           else setTarget(TargetKind::StopNow, in.pos, out);
         }
       } else if (!blocked && kind_ != TargetKind::Platform) {
-        setTarget(TargetKind::Platform, s, out);     // the leader has left the platform / the peer is back
+        // The leader has left the platform / the peer is back. Stopped at the
+        // holding point: wait FOLLOWER_START_DELAY_MS, then move up.
+        if (!held_) setTarget(TargetKind::Platform, s, out);
+        else {
+          if (!freeTiming_) { freeTiming_ = true; freeSinceMs_ = in.nowMs; }
+          if (uint32_t(in.nowMs - freeSinceMs_) >= FOLLOWER_START_DELAY_MS) setTarget(TargetKind::Platform, s, out);
+        }
       }
+      if (blocked) freeTiming_ = false;
     }
 
     if (held_ || platformHeld_) {                    // stopped and waiting: stay at zero
@@ -392,28 +415,32 @@ class StationDriver {
           out.cmd.execution == StopExecution::Dwell || out.cmd.execution == StopExecution::Released)) {
         held_ = true;                                // latched until released by the peer
         out.cmd = StopCommand{}; out.cmd.pwm = 0; out.cmd.overlay = true; out.cmd.execution = StopExecution::Braking;
-      } else if (kind_ == TargetKind::Platform && link == Link::Lost &&
+      } else if (kind_ == TargetKind::Platform &&
+                 (link == Link::Lost || (link == Link::Known && lastRole_ == Role::Leader && !followerArrived(v.p, station_))) &&
                  (out.cmd.releasedNow || (out.cmd.execution == StopExecution::Released && in.appliedPwm == 0))) {
-        platformHeld_ = true;                        // the dwell may not release us while the peer is lost
+        platformHeld_ = true;                        // peer lost, or (convoy) the follower has not arrived: stay
         out.cmd = StopCommand{}; out.cmd.pwm = 0; out.cmd.overlay = true; out.cmd.execution = StopExecution::Dwell;
       }
     }
     out.station = station_; out.kind = kind_; out.targetMm = target_; out.platformHeld = platformHeld_;
     out.urgent = kind_ == TargetKind::StopNow;
+    // HOLDING = stopped and waiting (applied PWM 0). Operator 2026-10-20: the
+    // leader departs when the follower stops (PWM = 0), not when it starts braking.
     out.bubble = (kind_ == TargetKind::Platform && !platformHeld_) ? BubbleState::None
-               : ((held_ || platformHeld_) ? BubbleState::Holding : BubbleState::Approaching);
+               : ((held_ || platformHeld_) && in.appliedPwm == 0 ? BubbleState::Holding : BubbleState::Approaching);
     return out;
   }
 
  private:
   NaviStopOverlay overlay_;
   uint8_t station_ = NO_STATION, target_ = 0; int8_t dir_ = 0;
-  bool held_ = false, platformHeld_ = false, paired_ = false;
+  bool held_ = false, platformHeld_ = false, paired_ = false, freeTiming_ = false;
+  uint32_t freeSinceMs_ = 0;
   Role lastRole_ = Role::None;
   TargetKind kind_ = TargetKind::Platform;
   void setTarget(TargetKind k, uint8_t mm, DriveOutput& out) {
     if (k == kind_ && mm == target_ && station_ != NO_STATION && !out.targetChanged) return;
-    kind_ = k; target_ = mm; overlay_.reset(); held_ = false; out.targetChanged = true;
+    kind_ = k; target_ = mm; overlay_.reset(); held_ = false; freeTiming_ = false; out.targetChanged = true;
   }
 };
 

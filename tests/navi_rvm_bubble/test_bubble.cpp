@@ -114,8 +114,8 @@ int main() {
     CHECK(minGap >= 2.0, "dir %d: follower closed to %.2f MM of the leader", dir, minGap);
     CHECK(holds >= 1, "dir %d: the follower never held", dir);
     for (auto m : bHoldMm) {
-      bool ok = false; for (auto& s : STATIONS) if (m == before(s.mm, dir, BUBBLE_HOLD_MM)) ok = true;
-      CHECK(ok, "dir %d: hold target MM%u is not 5 MM before a station", dir, m);
+      bool ok = false; for (auto& s : STATIONS) if (m == before(s.mm, dir, HOLD_TARGET_MM)) ok = true;
+      CHECK(ok, "dir %d: hold target MM%u is not HOLD_TARGET_MM before a station", dir, m);
     }
     CHECK(a.stops.size() >= 6 && b.stops.size() >= 6, "dir %d: trains stopped serving stations", dir);
   }
@@ -140,7 +140,8 @@ int main() {
   {
     PeerPacket p; p.reliable = 1; p.dir = 1; p.lastMm = 55; p.station = 1; p.execution = uint8_t(StopExecution::Geographic);
     CHECK(stationOccupancy(p, 1, 60, 1) == Occupancy::Free, "peer behind (MM55) while we are at MM60 for Grillers");
-    p.lastMm = 61; CHECK(stationOccupancy(p, 1, 57, 1) == Occupancy::Occupied, "peer at MM61, between hold 58 and 63");
+    p.lastMm = 61; CHECK(stationOccupancy(p, 1, 57, 1) == Occupancy::Free, "peer at MM61 but not stopped at the station: free");
+    p.execution = uint8_t(StopExecution::Braking); CHECK(stationOccupancy(p, 1, 57, 1) == Occupancy::Occupied, "peer in final braking for Grillers");
     p.lastMm = 64; p.execution = uint8_t(StopExecution::Released); CHECK(stationOccupancy(p, 1, 57, 1) == Occupancy::Free, "peer released and past");
     p.lastMm = 63; p.execution = uint8_t(StopExecution::Dwell); CHECK(stationOccupancy(p, 1, 52, 1) == Occupancy::Occupied, "peer dwelling at the platform");
     p.execution = uint8_t(StopExecution::Released); CHECK(stationOccupancy(p, 1, 52, 1) == Occupancy::Free, "leader leaves the platform");
@@ -204,6 +205,44 @@ int main() {
     auto o = d.step(in); CHECK(o.link == Link::Known && o.role == Role::Leader, "confirmed leader");
     in.peer.p.role = uint8_t(Role::Leader); in.nowMs = 1100;
     o = d.step(in); CHECK(o.link == Link::Lost, "both claiming leader must be LOST");
+  }
+  // ---- T11: a follower stopped at the holding point starts FOLLOWER_START_DELAY_MS after the platform frees.
+  {
+    Loco a, b; init(a, 1, 50, 1); init(b, 2, 40, 1); Radio atA, atB;
+    uint32_t heldAt = 0, freeAt = 0, movedAt = 0;
+    for (uint32_t t = 0; t < 200000 && !movedAt; t += DT) {
+      exchange(atA, b, t); exchange(atB, a, t); step(a, atA.view, t); step(b, atB.view, t);
+      if (!heldAt && b.last.kind == TargetKind::Hold && b.last.bubble == BubbleState::Holding && b.applied == 0) heldAt = t;
+      if (heldAt && !freeAt && b.last.occupancy == Occupancy::Free) freeAt = t;
+      if (freeAt && b.target > 0) movedAt = t;
+    }
+    printf("T11: follower stopped at the holding point %.2f s, platform free %.2f s, follower moves %.2f s (delay %.2f s)\n",
+           heldAt / 1000.0, freeAt / 1000.0, movedAt / 1000.0, (movedAt - freeAt) / 1000.0);
+    CHECK(heldAt && freeAt && movedAt, "follower must stop at the holding point, then move after the platform frees");
+    CHECK(movedAt - freeAt >= FOLLOWER_START_DELAY_MS, "follower moved %u ms after the platform freed", unsigned(movedAt - freeAt));
+    CHECK(movedAt - freeAt <= FOLLOWER_START_DELAY_MS + 100, "follower waited too long: %u ms", unsigned(movedAt - freeAt));
+  }
+  // ---- T12: convoy. Follower far behind: the leader waits on each platform until the follower is held,
+  // then starts; the follower moves up 2 s later. Many laps, both directions, no deadlock, no contact.
+  for (int8_t dir : {int8_t(1), int8_t(-1)}) {
+    Loco a, b; init(a, 1, dir > 0 ? 50 : 120, dir); init(b, 2, dir > 0 ? 5 : 165, dir); Radio atA, atB;
+    double minGap = 1e9; int waits = 0; bool wasHeld = false; uint32_t longestWait = 0, heldSince = 0;
+    for (uint32_t t = 0; t < 1500000; t += DT) {
+      exchange(atA, b, t); exchange(atB, a, t); step(a, atA.view, t); step(b, atB.view, t);
+      if (t > 5000) minGap = std::min(minGap, std::min(gap(b, a), gap(a, b)));
+      const bool held = a.last.platformHeld;
+      // the leader may start only once the follower stands at PWM 0
+      if (wasHeld && !held && a.target > 0) CHECK(b.applied == 0 || atA.view.p.bubble == uint8_t(BubbleState::Holding),
+          "dir %d: leader released while the follower was still moving (pwm %d)", dir, b.applied);
+      if (held && !wasHeld) { ++waits; heldSince = t; }
+      if (!held && wasHeld) longestWait = std::max(longestWait, t - heldSince);
+      wasHeld = held;
+    }
+    printf("T12 dir %+d: leader A stops %zu, follower B stops %zu, leader convoy waits %d (longest %.1f s), min gap %.2f MM, A role %s\n",
+           dir, a.stops.size(), b.stops.size(), waits, longestWait / 1000.0, minGap, roleName(a.last.confirmedRole));
+    CHECK(waits >= 3, "dir %d: the leader never waited for the follower", dir);
+    CHECK(a.stops.size() >= 8 && b.stops.size() >= 8, "dir %d: convoy stalled (deadlock?)", dir);
+    CHECK(minGap >= 3.0, "dir %d: trains closed to %.2f MM", dir, minGap);
   }
   printf("%s (%d failures)\n", failures ? "FAILED" : "PASSED", failures);
   return failures ? 1 : 0;

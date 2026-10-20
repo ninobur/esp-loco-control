@@ -371,3 +371,57 @@ example, Toby held at 152 while Otto was dwelling at 158 (13:50:55).
 **Proposed fix, not yet built:** the leader has left only when its committed
 MM is at least **3 MM past the station centre**. Until then the platform
 stays OCCUPIED and the follower keeps holding.
+
+---
+
+## Revision 3, 2026-10-20: convoy, follower start delay, holding geometry
+
+**Field findings on revision 2:**
+
+- Toby nudged Otto at stations, and tapped him at Arches as Otto was starting
+  out. Revision 2 released the follower at the end of the leader's dwell.
+- David: "the follower is stopping 2 mile markers too close", and later "by
+  about 5 MM", at Arches.
+
+**Operator rulings (2026-10-20):**
+
+1. "Put a 2 second delay for the follower to start at the hold point (after the
+   leader at the platform starts) to move up to the station."
+2. "The braking for the follower needs to start 15 MM before station center.
+   The Leader (or the train if solo operation) begins braking 10 MM before
+   station center." On the EWO carpet the first reduction (90 → 80) is at
+   10 MM, so the leader and solo trains were already right. The follower's
+   carpet is the same, ending 5 MM earlier. **No extra braking lead**: a lead
+   added briefly in between was removed.
+3. "This rule applies to the follower only if the Leader is stopped at the
+   station" ("braking or standing").
+4. "However, the leader must wait at the platform for the follower to arrive
+   before starting out" ("Always (convoy)").
+5. "The leader departs when the follower stops (PWM = 0). The follower moves up
+   2 seconds later."
+
+**Changes (`RvmStations.h`):**
+
+- **Occupied** means the leader is in final braking, dwell or convoy wait for
+  this station, ahead within 11 MM beyond it. The "leader between the holding
+  point and the platform" case is removed.
+- **Convoy:** a confirmed leader does not leave the platform until the
+  follower reports HOLDING for that station.
+- **HOLDING** now means stopped (applied PWM 0) and waiting.
+- **Follower start:** a follower stopped at the holding point moves up
+  `FOLLOWER_START_DELAY_MS` (2000) after the platform frees, that is, after
+  the leader starts.
+- Constants: `BUBBLE_HOLD_MM` 5, `HOLD_BRAKE_LEAD_MM` 0,
+  `FOLLOWER_START_DELAY_MS` 2000.
+
+**Host tests (12, all pass):**
+
+- **T3:** the follower holds 5 MM short at every station.
+- **T11:** the follower moves 2.00 s after the leader starts.
+- **T12, convoy, both directions, about 25 minutes of model time:** the
+  leader waited at every platform until the follower stood at PWM 0, with
+  16 waits and the longest 62.7 s. There was no deadlock. The minimum gap was
+  5.0 MM.
+- **T6:** a dead leader on the main line now leaves only 2.7 MM in the model.
+
+**Compile:** both locomotives build cleanly. **Not flashed.**
