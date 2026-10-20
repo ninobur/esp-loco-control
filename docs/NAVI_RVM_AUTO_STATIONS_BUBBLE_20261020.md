@@ -147,3 +147,24 @@ occupancy, peer), `state/auto`, `state/auto_running`, plus the existing
 
 The previous firmware is `8986c5f` (Otto) and `8f343b0` (Toby). Both
 backups are recorded in their flash records.
+
+---
+
+## Flash record, 2026-10-20
+
+David authorized it: "Yes, flash Otto and Toby with NAVI_RVM_AUTO_STATIONS_BUBBLE
+(119ad9b) … Otto first." He then added: "No need to back up either." **No backup
+was taken.** Rollback means rebuilding `8986c5f` (Otto) or `8f343b0` (Toby) from
+git and flashing it.
+
+### Otto (9950011)
+
+| | |
+|---|---|
+| Port | `/dev/cu.wchusbserial110`. MAC read first: `68:09:47:ac:4e:b4` (Otto), ESP32-D0WD-V3 rev 3.1 |
+| Image | `119ad9b`, Otto build; app `.bin` sha256 starts `b0929ae9cab7eedb` |
+| Upload | arduino-cli at 115200 baud; bootloader, partitions, boot_app0 and application all "Hash of data verified" |
+| MQTT `state/bootid` | `NAVI_RVM_AUTO_STATIONS_BUBBLE`, class `EXPERIMENTAL_AUTO_STATIONS_BUBBLE_GATE70_NOT_FIELD_ACCEPTED`, boot `16FC79DFB73B319C`, model `330cdc007da3445b`, continuity `HALL_ONLY_K50_B24_M16`, `auto PRESENT`, `bubble_hold_mm 5` |
+| `state/station` | `espnow 1`, occupancy `NO_PEER` (Toby not yet flashed) |
+| `state/loopstat` | `heap_free` 33.7–35.8 KB, **`heap_min` 12,052 B**; `block_q_drop` 0, `cmd_drop` 0; `pub_drop` 5 at boot; Pi recording `nsr_native_drop` 303 at boot |
+| `state/warning` | **INA219 NOT FOUND.** Booted on USB, so there is no battery protection until Otto reboots on track power |
