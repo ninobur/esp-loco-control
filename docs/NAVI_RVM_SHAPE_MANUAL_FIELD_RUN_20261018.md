@@ -904,3 +904,109 @@ The end of the run, from `diag/rvm_ensemble` and `diag/rvm_stopgo`:
 - On these sections, the "crawl slower than recorded" limitation is bounded by
   Otto himself.
 - **Not shown:** sections not driven, Toby, CCW.
+
+---
+
+# Run 12, 2026-10-19 18:03–18:41: Otto CCW (`8986c5f`) and Toby CW (`8f343b0`)
+
+**David's account:**
+- Otto, CCW: a contradiction at MM101.
+- Toby, CW: a contradiction, a restart (re-declaration), then another
+  contradiction.
+
+**Sources** (read-only):
+
+| Source | sha256 |
+|---|---|
+| Otto logs `9950011_20261019_180350/182115` (combined) | `003ad683156ead089c43763b1ae97dc3352a3a0e9d784227c8313ee667edcc78` |
+| Toby logs `9950012_20261019_182334/183514/183655/183927` (combined) | `8dc8a6fbe353a0d70de8a14610f734d72df89215a4322e56fffb5a86c5d2bc47` |
+| NSR from 18:03 (276,357,669 B) | `bf7b3365bccbef575f47bad6e8dce7816a4ee59c45312652170361a9c2d11bb4` |
+
+Output: `field_20261019/run12_otto_ccw/`, `field_20261019/run12_toby_cw/`.
+`analyze_run.py` now takes the loco id as an optional third argument.
+
+## Otto CCW (boot `3B1BE1D923CB81FD`, declared CCW 041 → 040)
+
+- **623 MM claims, 623/623 agreeing with the route** (about 3.6 laps, CCW from
+  MM040).
+- **Health:** `block_q_drop 0`, `pub_drop 0`, `heap_min` 9,456, worst recognizer
+  step 0.65 s, no reboot.
+- **The contradiction** (18:19:19.1, Otto time 966.27 s): expected MM101 (S),
+  recognized **N**.
+
+| Recognition | Window (s) | LLR | Amplitude |
+|---|---|---|---|
+| **The contradicting ensemble** | 965.43–967.05 | **3.4** | **12.4 ADC** (baseline 1889.9, noise 0.71) |
+| Real magnets before it (MM105–MM102) | — | 37.9–41.0 | 165–192 ADC |
+| Real MM101 after it (S, recognized as NO_CLAIM) | 969.37–970.95 | 40.9 | 183.6 ADC |
+
+- **It was not a magnet.** It was a small baseline bump that the model scored
+  just above zero.
+- **It coincided with an Otto-side recording loss:**
+  - `nsr_native_drop` rose from 102 to 181 during it;
+  - the NSR recording has a 0.8 s gap (965.8–966.6 s);
+  - so the exact Hall that produced it is not in the Pi record.
+- **Firmware replay of the recording:** it matches the field everywhere except
+  where the recording has gaps (386, 393, 394, 491, 948.7 and 966 s). Field
+  recognitions inside those gaps cannot be reproduced. The replay therefore
+  CONTRADICTs earlier (at 386 s, a recording gap), which is not field
+  behaviour.
+
+## Toby CW (boot `6A31DD995673D123`)
+
+- **Field:** declared CW 039 → 040 (18:34:52) and later 070 → 071 (18:36:54).
+  - 46 recognitions; 18 MM claims, which do not match the route;
+  - 2 CONTRADICTIONs (expected MM050, then MM079);
+  - **15,855 blocks withheld**;
+  - E-STOP at 18:41.
+- **Toby's Hall differs from Otto's:**
+
+| | Toby | Otto |
+|---|---|---|
+| Block noise (√π/2 · mean \|Δ\|) moving | **5.7** | 0.5–0.9 |
+| Block noise standing | 0.4 | 0.4 |
+| Level standing at the start | 1915 | — |
+| Level moving at PWM 47–90 | **about 1863** (−52) | — |
+| Level drift over the run | 1837–1897 (60 ADC) | stays near 1890 |
+
+  The motor visibly affects Toby's Hall.
+- **Offline replay of Toby's native Hall** (Python reference, which matches the
+  firmware path; it reproduces the field's 46 recognitions, 18 claims and 2
+  contradictions with continuity on):
+
+| | Recognitions | MM claims | Route from MM040 | Withheld |
+|---|---|---|---|---|
+| **Without continuity** (R0) | **205** | **204**, 1 CONTRADICTION | **203 matched, 0 missed, 2 extra** | — |
+| With continuity (firmware) | 46 | 18, 2 CONTRADICTIONs | 36 matched, 3 missed, 10 extra | 23,745 blocks |
+
+## Interpretation
+
+- **Toby:**
+  - **The shape model recognizes Toby's magnets**, even though it was trained
+    on Otto.
+  - **The continuity rule breaks it.** Its baseline level is taken at the
+    declaration, standing still, and Toby's moving baseline sits about 50 ADC
+    away and keeps drifting. Normal moving baseline is then "off the baseline";
+    every flat 1 s stretch of it is withheld, which removes the baselines the
+    recognizer needs.
+  - The 16 × noise margin is measured on the standstill noise (0.4, floor 0.5),
+    while Toby's moving noise is 5.7.
+- **Otto:**
+  - One false recognition (12 ADC, LLR 3.4) in about 700 ended the session,
+    because navigation makes no further claims after a CONTRADICTION.
+  - Its cause is not established. It coincides with an Otto-side
+    recording-buffer drop, which suggests a processing or acquisition
+    disturbance at that moment.
+
+## Open for David (nothing changed)
+
+1. **Toby's continuity baseline.**
+   - **Options:** follow the recognizer's own local baseline (the line through
+     the last recognized baseline, as §10 of the evaluation suggested for
+     firmware), or establish the baseline while moving.
+   - **Alternative:** run Toby without continuity until decided.
+   - Each is a design change.
+2. **Otto's low-amplitude false ensemble** (12 ADC, LLR 3.4). Your rules exclude
+   an amplitude admission gate. **The choice:** treat it as an isolated
+   acquisition disturbance and keep watching, or investigate the Otto-side
+   drops.

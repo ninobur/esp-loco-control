@@ -9,6 +9,7 @@ import sys, struct, json, pathlib, numpy as np
 sys.path.insert(0, '/Users/davidbrown/NGR/NGR-Files/navi-ewo-dart-experiment-1/field-records/20261015_IR_WAVE_1_ACCURACY/sources/decoder_support')
 import navi_sync_format as F
 SRC, OUT = sys.argv[1], pathlib.Path(sys.argv[2]); OUT.mkdir(parents=True, exist_ok=True)
+LOCOS = {int(x) for x in (sys.argv[3].split(',') if len(sys.argv) > 3 else ['9950011'])}   # e.g. 9950011,9950012
 NATIVE = np.dtype([('serial', '<u4'), ('us', '<u8'), ('adc', '<i2'), ('pwm', 'u1'), ('direction', 'u1')])
 WIRE = np.dtype([('dt', '<u2'), ('raw', '<u2', (5,)), ('median', '<i2'), ('pwm', 'u1'), ('command', 'u1'), ('flags', 'u1'), ('reserved', 'u1')])
 buf = np.memmap(SRC, mode='r', dtype=np.uint8); mv = memoryview(buf)
@@ -23,7 +24,7 @@ while p + F.FRAME_LEN <= len(buf):
         if q < 0: break
         p = p + F.FRAME_LEN + 1 + q - F.FRAME_LEN; continue
     p += F.FRAME_LEN + n
-    if h.loco_id != 9950011: continue
+    if h.loco_id not in LOCOS: continue
     k = '%016X' % h.loco_boot_id
     if h.rec_type == 5: nat.setdefault(k, []).append(np.frombuffer(pl, dtype=NATIVE).copy())
     elif h.rec_type == 1:

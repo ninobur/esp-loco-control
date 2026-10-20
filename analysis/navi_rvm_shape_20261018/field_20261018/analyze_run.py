@@ -11,10 +11,12 @@ Read only."""
 import json, sys, pathlib, numpy as np, pandas as pd
 HERE = pathlib.Path(__file__).resolve().parent
 LOG, OUT = sys.argv[1], pathlib.Path(sys.argv[2]); OUT.mkdir(parents=True, exist_ok=True)
+LOCO = sys.argv[3] if len(sys.argv) > 3 else '9950011'          # 9950012 for Toby
 R = np.loadtxt(HERE.parent / 'scripts' / 'route_polarity.txt', dtype=int); sgn = np.where(R == 1, 1, -1)
 rows = [l.rstrip('\n').split('\t') for l in open(LOG, encoding='utf-8', errors='replace')]
 L = pd.DataFrame([r[:3] for r in rows if len(r) >= 3], columns=['t', 'topic', 'payload'])
-L['topic'] = L.topic.str.replace('ngr/loco/9950011/', '', regex=False)
+L = L[L.topic.str.startswith(f'ngr/loco/{LOCO}/')].copy()
+L['topic'] = L.topic.str.replace(f'ngr/loco/{LOCO}/', '', regex=False)
 def get(tp):
     out = []
     for t, p in L[L.topic == tp][['t', 'payload']].values:
