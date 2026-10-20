@@ -292,3 +292,8 @@ David authorized it: "flash both. Toby first. No backup." No backup was taken.
 **The peer link on revision 2 is not yet verified.** Toby was `online 0`
 (unplugged from USB) when Otto came up. Check `state/station` `peer_rx`, `link`
 and `role` once both are powered on the track.
+
+## Field, 2026-10-20: first run on revision 2
+
+David's report: "running. 1st stops successful." This is the operator's
+observation. No log has been analysed yet.
