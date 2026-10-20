@@ -30,8 +30,10 @@
 //   station MM (inclusive) and it has not released this station.
 //   "Leader leaves the platform" = that is no longer true (its dwell released
 //   it, or it is past the station). A follower already stopped at the holding
-//   point then waits FOLLOWER_START_DELAY_MS (2 s, operator 2026-10-20) before
-//   moving up; one still approaching the holding point switches at once.
+//   point then waits a random 2-5 s (operator 2026-10-20) before moving up;
+//   one still approaching the holding point switches at once.
+//   FOLLOW THE LEADER (operator 2026-10-20): beyond stations, the same carpet
+//   anchored 5 MM behind the leader's committed MM caps the follower anywhere.
 //   Pairing, dynamic roles, the role echo and the silence rule: see "peer"
 //   below. A locomotive that has never been paired runs singly.
 //   The decision is taken from 16 MM out (11 + 5), so the follower runs the
@@ -60,9 +62,12 @@ static constexpr uint8_t HOLD_BRAKE_LEAD_MM = 0;
 static constexpr uint8_t HOLD_TARGET_MM = BUBBLE_HOLD_MM + HOLD_BRAKE_LEAD_MM;   // carpet stopping MM for the hold
 static constexpr uint32_t PEER_STALE_MS = 2000;     // 8 missed 4 Hz packets
 static constexpr uint32_t STOP_DWELL_MS = 5000;     // EWO_0_6 kStopDwellMs
-// Operator 2026-10-20: a follower stopped at the holding point starts toward
-// the platform FOLLOWER_START_DELAY_MS after the leader on the platform starts.
-static constexpr uint32_t FOLLOWER_START_DELAY_MS = 2000;
+// Operator 2026-10-20: a follower stopped behind the leader (at a station's
+// holding point or anywhere on the line) moves up a random 2-5 s after the
+// leader starts; a convoy leader starts a random 0-3 s after the follower
+// stands at PWM 0.
+static constexpr uint32_t FOLLOWER_START_DELAY_MIN_MS = 2000, FOLLOWER_START_DELAY_MAX_MS = 5000;
+static constexpr uint32_t LEADER_START_DELAY_MIN_MS = 0, LEADER_START_DELAY_MAX_MS = 3000;
 
 // ----------------------------------------------------- rainbow carpet (EWO) --
 static constexpr int32_t kStopMm = 1000000;
@@ -219,7 +224,7 @@ inline Role deriveRole(uint8_t pos, uint8_t peerPos, int8_t dir) {
 
 // What this locomotive broadcasts (ESP-NOW, 4 Hz).
 struct __attribute__((packed)) PeerPacket {
-  uint8_t magic = 0xB7, version = 2;
+  uint8_t magic = 0xB7, version = 3;
   uint32_t locoId = 0, seq = 0;
   uint8_t reliable = 0;      // TRACKING with a committed MM
   int8_t dir = 0;            // +1 CW, -1 CCW, 0 unset
@@ -229,8 +234,9 @@ struct __attribute__((packed)) PeerPacket {
   uint8_t autoRunning = 0;
   uint8_t bubble = 0;        // BubbleState
   uint8_t role = 0;          // Role it derived (role echo)
+  uint8_t pwm = 0;           // applied PWM (0 = standing): the follower sees the leader start
 };
-static_assert(sizeof(PeerPacket) == 18, "PeerPacket layout");
+static_assert(sizeof(PeerPacket) == 19, "PeerPacket layout");
 
 struct PeerView {
   bool everSeen = false;     // a peer packet has been received this boot
@@ -272,7 +278,8 @@ inline Occupancy stationOccupancy(const PeerPacket& p, uint8_t si, uint8_t pos, 
 // CONVOY (operator 2026-10-20, "Always"): a confirmed LEADER does not leave the
 // platform until the follower has arrived: stopped (applied PWM 0) at the
 // holding point of this station. Then the leader starts; the follower moves up
-// FOLLOWER_START_DELAY_MS later. Unpaired: no wait.
+// a random 2-5 s later. The leader starts a random 0-3 s after the follower
+// stands at PWM 0. Unpaired: no wait.
 // Target kinds: PLATFORM (the station stop); HOLD (bubble: the same carpet 5 MM
 // earlier); STOP_NOW (bubble: occupied when already inside 5 MM: stop at once,
 // fast ramp); LOST_STOP (paired peer lost, follower: a carpet stop at the next MM).
@@ -324,6 +331,8 @@ struct DriveOutput {
   Role role = Role::None;            // derived now (broadcast as the echo)
   Role confirmedRole = Role::None;   // last role the other confirmed
   bool paired = false, platformHeld = false;
+  bool followHeld = false, followCapped = false;   // follow-the-leader carpet
+  uint8_t gapToPeer = 0xFF;                        // MM to the leader ahead (follower only)
   bool targetChanged = false;
   bool urgent = false;       // STOP_NOW: brake at the fast AUTO ramp, not the gentle station ramp
 };
@@ -333,7 +342,9 @@ class StationDriver {
   void reset() {
     overlay_.reset(); station_ = NO_STATION; kind_ = TargetKind::Platform; target_ = 0; dir_ = 0;
     held_ = platformHeld_ = paired_ = freeTiming_ = false; lastRole_ = Role::None;
+    followHeld_ = peerMoved_ = arrivalTiming_ = false;
   }
+  void seed(uint32_t s) { rng_ = s ? s : 0x9E3779B9u; }
   uint8_t station() const { return station_; }
   StopExecution execution() const { return overlay_.execution(); }
 
@@ -369,6 +380,14 @@ class StationDriver {
     }
     const uint8_t s = STATIONS[station_].mm;
     const uint8_t toStation = aheadMm(in.pos, s, in.dir);
+    // CONVOY: the follower has arrived (stands at PWM 0 behind us at this
+    // station); we may start a random LEADER_START_DELAY after that.
+    bool convoyReady = false;
+    if (link == Link::Known && lastRole_ == Role::Leader && followerArrived(v.p, station_)) {
+      if (!arrivalTiming_) { arrivalTiming_ = true; arrivalMs_ = in.nowMs; leaderDelayMs_ = randRange(LEADER_START_DELAY_MIN_MS, LEADER_START_DELAY_MAX_MS); }
+      convoyReady = uint32_t(in.nowMs - arrivalMs_) >= leaderDelayMs_;
+    } else arrivalTiming_ = false;
+    const bool convoyWaitNow = link == Link::Known && lastRole_ == Role::Leader && !convoyReady;
     const bool platformStopUnderway = kind_ == TargetKind::Platform &&
         (ex == StopExecution::Braking || ex == StopExecution::Dwell || platformHeld_);
     const bool nonPlatformStopUnderway = kind_ != TargetKind::Platform && held_;
@@ -383,8 +402,7 @@ class StationDriver {
     } else {
       out.occupancy = link == Link::Known ? stationOccupancy(v.p, station_, in.pos, in.dir) : Occupancy::NoPeer;
       // A held platform may release unless we are the confirmed leader and the follower has not arrived.
-      const bool convoyWait = link == Link::Known && lastRole_ == Role::Leader && !followerArrived(v.p, station_);
-      if (!convoyWait) platformHeld_ = false;
+      if (!convoyWaitNow) platformHeld_ = false;
       const bool blocked = out.occupancy == Occupancy::Occupied;
       if (blocked && !platformStopUnderway && toStation <= 11 + HOLD_TARGET_MM) {
         if (kind_ == TargetKind::Platform) {
@@ -394,11 +412,11 @@ class StationDriver {
         }
       } else if (!blocked && kind_ != TargetKind::Platform) {
         // The leader has left the platform / the peer is back. Stopped at the
-        // holding point: wait FOLLOWER_START_DELAY_MS, then move up.
+        // holding point: wait a random 2-5 s, then move up.
         if (!held_) setTarget(TargetKind::Platform, s, out);
         else {
-          if (!freeTiming_) { freeTiming_ = true; freeSinceMs_ = in.nowMs; }
-          if (uint32_t(in.nowMs - freeSinceMs_) >= FOLLOWER_START_DELAY_MS) setTarget(TargetKind::Platform, s, out);
+          if (!freeTiming_) { freeTiming_ = true; freeSinceMs_ = in.nowMs; holdDelayMs_ = randRange(FOLLOWER_START_DELAY_MIN_MS, FOLLOWER_START_DELAY_MAX_MS); }
+          if (uint32_t(in.nowMs - freeSinceMs_) >= holdDelayMs_) setTarget(TargetKind::Platform, s, out);
         }
       }
       if (blocked) freeTiming_ = false;
@@ -416,18 +434,54 @@ class StationDriver {
         held_ = true;                                // latched until released by the peer
         out.cmd = StopCommand{}; out.cmd.pwm = 0; out.cmd.overlay = true; out.cmd.execution = StopExecution::Braking;
       } else if (kind_ == TargetKind::Platform &&
-                 (link == Link::Lost || (link == Link::Known && lastRole_ == Role::Leader && !followerArrived(v.p, station_))) &&
+                 (link == Link::Lost || convoyWaitNow) &&
                  (out.cmd.releasedNow || (out.cmd.execution == StopExecution::Released && in.appliedPwm == 0))) {
         platformHeld_ = true;                        // peer lost, or (convoy) the follower has not arrived: stay
         out.cmd = StopCommand{}; out.cmd.pwm = 0; out.cmd.overlay = true; out.cmd.execution = StopExecution::Dwell;
       }
     }
+    // ---- FOLLOW THE LEADER, anywhere (operator 2026-10-20: "The locomotives
+    // must know where the other locomotive is located"). The same rainbow
+    // carpet, anchored BUBBLE_HOLD_MM behind the leader's committed MM, caps
+    // our PWM; at its end we stop and stay until the leader has moved on, then
+    // move up after a random 2-5 s. The slower of station and follow wins.
+    out.gapToPeer = 0xFF;
+    if (link == Link::Known && lastRole_ == Role::Follower && role == Role::Follower) {
+      const uint8_t gap = aheadMm(in.pos, v.p.lastMm, in.dir);
+      out.gapToPeer = gap;
+      const int dLead = int(gap) - int(BUBBLE_HOLD_MM);
+      if (followHeld_) {
+        // The leader has started: its applied PWM is up, or its committed MM has moved on.
+        const bool moved = v.p.pwm > 0 || (v.p.lastMm != heldPeerMm_ && aheadMm(heldPeerMm_, v.p.lastMm, in.dir) <= ROUTE_N / 2);
+        if (moved && !peerMoved_) { peerMoved_ = true; moveSeenMs_ = in.nowMs; followDelayMs_ = randRange(FOLLOWER_START_DELAY_MIN_MS, FOLLOWER_START_DELAY_MAX_MS); }
+        if (!moved && v.p.pwm == 0 && v.p.lastMm == heldPeerMm_) peerMoved_ = false;   // it stopped again before we left
+        // Move up after the delay. If the leader has not yet cleared a whole MM, a
+        // standing gap of BUBBLE_HOLD_MM is still respected (dLead > 0) or we go
+        // once it has been moving for the delay (its committed MM lags ~1 s).
+        if (peerMoved_ && uint32_t(in.nowMs - moveSeenMs_) >= followDelayMs_ && (dLead > 0 || v.p.pwm > 0)) followHeld_ = false;
+      } else if (dLead <= 0 && v.p.pwm == 0) {
+        followHeld_ = true; heldPeerMm_ = v.p.lastMm; peerMoved_ = false;   // leader standing 5 MM ahead or closer
+      }
+      if (followHeld_) {
+        out.followHeld = true;
+        if (out.cmd.pwm != 0 || out.cmd.execution == StopExecution::Geographic || out.cmd.execution == StopExecution::Released) {
+          out.cmd.pwm = 0; out.cmd.overlay = true; out.cmd.execution = StopExecution::Braking;
+        }
+      } else if (dLead <= 11) {
+        // dLead <= 0 here only after release behind a leader under power whose
+        // committed MM has not moved on yet: creep at the carpet's last step.
+        const StopGeography g = stopGeography(0, int32_t(dLead > 0 ? dLead : 1) * kStopMm, 1);
+        if (g.applicable() && g.pwm < out.cmd.pwm) { out.cmd.pwm = g.pwm; out.cmd.overlay = true; out.followCapped = true; }
+      }
+    } else { followHeld_ = false; peerMoved_ = false; }
+
     out.station = station_; out.kind = kind_; out.targetMm = target_; out.platformHeld = platformHeld_;
     out.urgent = kind_ == TargetKind::StopNow;
     // HOLDING = stopped and waiting (applied PWM 0). Operator 2026-10-20: the
     // leader departs when the follower stops (PWM = 0), not when it starts braking.
-    out.bubble = (kind_ == TargetKind::Platform && !platformHeld_) ? BubbleState::None
-               : ((held_ || platformHeld_) && in.appliedPwm == 0 ? BubbleState::Holding : BubbleState::Approaching);
+    const bool waiting = held_ || platformHeld_ || followHeld_;
+    out.bubble = (kind_ == TargetKind::Platform && !platformHeld_ && !followHeld_) ? BubbleState::None
+               : (waiting && in.appliedPwm == 0 ? BubbleState::Holding : BubbleState::Approaching);
     return out;
   }
 
@@ -435,7 +489,15 @@ class StationDriver {
   NaviStopOverlay overlay_;
   uint8_t station_ = NO_STATION, target_ = 0; int8_t dir_ = 0;
   bool held_ = false, platformHeld_ = false, paired_ = false, freeTiming_ = false;
-  uint32_t freeSinceMs_ = 0;
+  uint32_t freeSinceMs_ = 0, holdDelayMs_ = FOLLOWER_START_DELAY_MIN_MS;
+  bool followHeld_ = false, peerMoved_ = false, arrivalTiming_ = false;
+  uint8_t heldPeerMm_ = 0;
+  uint32_t moveSeenMs_ = 0, followDelayMs_ = FOLLOWER_START_DELAY_MIN_MS, arrivalMs_ = 0, leaderDelayMs_ = 0;
+  uint32_t rng_ = 0x9E3779B9u;
+  uint32_t randRange(uint32_t lo, uint32_t hi) {           // xorshift32, inclusive range
+    rng_ ^= rng_ << 13; rng_ ^= rng_ >> 17; rng_ ^= rng_ << 5;
+    return hi > lo ? lo + rng_ % (hi - lo + 1) : lo;
+  }
   Role lastRole_ = Role::None;
   TargetKind kind_ = TargetKind::Platform;
   void setTarget(TargetKind k, uint8_t mm, DriveOutput& out) {

@@ -34,7 +34,7 @@ static void init(Loco& l, uint32_t id, uint8_t start, int8_t dir) { l.id = id; l
 
 static PeerPacket packetOf(const Loco& l) {
   PeerPacket p; p.locoId = l.id; p.reliable = l.tracking; p.dir = l.dir; p.lastMm = l.committed;
-  p.station = l.last.station; p.execution = uint8_t(l.last.cmd.execution); p.autoRunning = l.autoOn; p.bubble = uint8_t(l.last.bubble); p.role = uint8_t(l.last.role);
+  p.station = l.last.station; p.execution = uint8_t(l.last.cmd.execution); p.autoRunning = l.autoOn; p.bubble = uint8_t(l.last.bubble); p.role = uint8_t(l.last.role); p.pwm = uint8_t(l.applied);
   return p;
 }
 
@@ -206,7 +206,7 @@ int main() {
     in.peer.p.role = uint8_t(Role::Leader); in.nowMs = 1100;
     o = d.step(in); CHECK(o.link == Link::Lost, "both claiming leader must be LOST");
   }
-  // ---- T11: a follower stopped at the holding point starts FOLLOWER_START_DELAY_MS after the platform frees.
+  // ---- T11: a follower stopped at the holding point starts 2-5 s after the platform frees.
   {
     Loco a, b; init(a, 1, 50, 1); init(b, 2, 40, 1); Radio atA, atB;
     uint32_t heldAt = 0, freeAt = 0, movedAt = 0;
@@ -219,8 +219,8 @@ int main() {
     printf("T11: follower stopped at the holding point %.2f s, platform free %.2f s, follower moves %.2f s (delay %.2f s)\n",
            heldAt / 1000.0, freeAt / 1000.0, movedAt / 1000.0, (movedAt - freeAt) / 1000.0);
     CHECK(heldAt && freeAt && movedAt, "follower must stop at the holding point, then move after the platform frees");
-    CHECK(movedAt - freeAt >= FOLLOWER_START_DELAY_MS, "follower moved %u ms after the platform freed", unsigned(movedAt - freeAt));
-    CHECK(movedAt - freeAt <= FOLLOWER_START_DELAY_MS + 100, "follower waited too long: %u ms", unsigned(movedAt - freeAt));
+    CHECK(movedAt - freeAt >= FOLLOWER_START_DELAY_MIN_MS, "follower moved %u ms after the platform freed", unsigned(movedAt - freeAt));
+    CHECK(movedAt - freeAt <= FOLLOWER_START_DELAY_MAX_MS + 100, "follower waited too long: %u ms", unsigned(movedAt - freeAt));
   }
   // ---- T12: convoy. Follower far behind: the leader waits on each platform until the follower is held,
   // then starts; the follower moves up 2 s later. Many laps, both directions, no deadlock, no contact.
@@ -243,6 +243,56 @@ int main() {
     CHECK(waits >= 3, "dir %d: the leader never waited for the follower", dir);
     CHECK(a.stops.size() >= 8 && b.stops.size() >= 8, "dir %d: convoy stalled (deadlock?)", dir);
     CHECK(minGap >= 3.0, "dir %d: trains closed to %.2f MM", dir, minGap);
+  }
+  // ---- T13: the leader is paused on the open line (operator cmd/stop). The follower must stop behind it,
+  // stay, and move on 2-5 s after the leader has moved. Several pause points, both directions.
+  for (int8_t dir : {int8_t(1), int8_t(-1)}) for (uint32_t pauseAt : {20000u, 60000u, 130000u}) {
+    Loco a, b; init(a, 1, dir > 0 ? 70 : 100, dir); init(b, 2, dir > 0 ? 50 : 120, dir); Radio atA, atB;
+    double minGap = 1e9; uint32_t t = 0; bool bStopped = false;
+    for (; t < pauseAt; t += DT) { exchange(atA, b, t); exchange(atB, a, t); step(a, atA.view, t); step(b, atB.view, t); }
+    const bool aWasAuto = a.autoOn; a.autoOn = false; a.target = 0; a.downMs = 31;      // operator pause: fast ramp to 0
+    for (; t < pauseAt + 120000; t += DT) {
+      exchange(atA, b, t); exchange(atB, a, t); step(a, atA.view, t); step(b, atB.view, t);
+      if (a.applied > 0) a.target = 0;                                                  // the pause holds
+      minGap = std::min(minGap, gap(b, a));
+      if (b.applied == 0 && b.last.followHeld) bStopped = true;
+    }
+    a.autoOn = aWasAuto;                                                                 // operator GO
+    uint32_t aMovedAt = 0, bMovedAt = 0;
+    for (; t < pauseAt + 260000; t += DT) {
+      exchange(atA, b, t); exchange(atB, a, t); step(a, atA.view, t); step(b, atB.view, t);
+      minGap = std::min(minGap, gap(b, a));
+      if (!aMovedAt && a.applied > 0) aMovedAt = t;                                   // the leader starts
+      if (aMovedAt && !bMovedAt && b.target > 0) bMovedAt = t;
+    }
+    printf("T13 dir %+d pause@%us: follower stopped behind %u, min gap %.2f MM, follower moved %.1f s after the leader started\n",
+           dir, pauseAt / 1000, unsigned(bStopped), minGap, bMovedAt && aMovedAt ? (bMovedAt - aMovedAt) / 1000.0 : -1.0);
+    CHECK(bStopped, "dir %d: follower must stop behind a paused leader", dir);
+    CHECK(minGap >= 1.5, "dir %d: follower closed to %.2f MM of a paused leader", dir, minGap);
+    CHECK(bMovedAt && bMovedAt - aMovedAt >= FOLLOWER_START_DELAY_MIN_MS, "dir %d: follower did not wait after the leader moved", dir);
+  }
+  // ---- T14: random delays stay in range and vary.
+  {
+    StationDriver d; d.seed(12345); uint32_t lo = ~0u, hi = 0;
+    for (int i = 0; i < 2000; ++i) {
+      DriveInput in; in.reliable = true; in.pos = 52; in.dir = 1; in.enabled = true; in.nowMs = 1000 + i;
+      (void)d.step(in);
+    }
+    // exercise the follower move-up delay directly through repeated holds is model-heavy; sample the
+    // generator through the convoy path instead: several seeds, record leader start delays.
+    for (uint32_t seed = 1; seed <= 40; ++seed) {
+      Loco a, b; init(a, 1, 50, 1); init(b, 2, 40, 1); a.drv.seed(seed * 7919); b.drv.seed(seed * 104729); Radio atA, atB;
+      uint32_t arrived = 0, started = 0;
+      for (uint32_t t = 0; t < 90000 && !started; t += DT) {
+        exchange(atA, b, t); exchange(atB, a, t); step(a, atA.view, t); step(b, atB.view, t);
+        if (!arrived && a.last.platformHeld && atA.view.p.bubble == uint8_t(BubbleState::Holding)) arrived = t;
+        if (arrived && !started && a.target > 0) started = t;
+      }
+      if (arrived && started) { lo = std::min(lo, started - arrived); hi = std::max(hi, started - arrived); }
+    }
+    printf("T14: convoy leader start delay after follower PWM 0: %.2f .. %.2f s\n", lo / 1000.0, hi / 1000.0);
+    CHECK(lo != ~0u && hi <= LEADER_START_DELAY_MAX_MS + 300, "leader start delay out of range (max %u)", hi);
+    CHECK(hi - lo >= 1000, "leader start delay does not vary (%u..%u)", lo, hi);
   }
   printf("%s (%d failures)\n", failures ? "FAILED" : "PASSED", failures);
   return failures ? 1 : 0;

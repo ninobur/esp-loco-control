@@ -316,6 +316,7 @@ static void feedRecognizer(const rvm_shape::Block& a) {
   recognizer.push(a.hall, a.dir == 2, a.index);
   rvm_shape::Ensemble e;
   while (recognizer.take(e)) {
+    continuity.onEnsemble(e.level, e.noise);          // the ensemble is complete: close, follow the recognizer's baseline
     NavEvent ev{}; ev.kind = EV_ENSEMBLE; ev.e = e; ev.expected = navigator.nextMm(); ev.blocks = recognizer.blocks();
     const auto r = navigator.onEnsemble(e.pol);
     ev.result = uint8_t(r); ev.mm = navigator.lastMm(); ev.last = navigator.lastMm(); ev.next = navigator.nextMm(); ev.dir = navigator.dir();
@@ -495,7 +496,7 @@ static void withdrawAuto(const char* why) {
 static void onPeer(const esp_now_recv_info_t* info, const uint8_t* bytes, int length) {
   if (!info || !bytes || length != int(sizeof(rvm_ops::PeerPacket))) { ++peerRxRejected; return; }
   rvm_ops::PeerPacket p; memcpy(&p, bytes, sizeof(p));
-  if (p.magic != 0xB7 || p.version != 2 || p.locoId == uint32_t(LOCO_ID)) { ++peerRxRejected; return; }
+  if (p.magic != 0xB7 || p.version != 3 || p.locoId == uint32_t(LOCO_ID)) { ++peerRxRejected; return; }
   portENTER_CRITICAL(&peerMux);
   peerRx = p; peerRxMs = millis(); peerSeen = true; ++peerRxCount;
   portEXIT_CRITICAL(&peerMux);
@@ -517,7 +518,7 @@ static void servicePeerTx() {
   p.locoId = uint32_t(LOCO_ID); p.seq = ++peerTxSeq;
   p.reliable = s.state == uint8_t(rvm_shape::NavState::Tracking); p.dir = s.dir; p.lastMm = s.last;
   p.station = lastDrive.station; p.execution = uint8_t(lastDrive.cmd.execution);
-  p.autoRunning = autoRunning; p.bubble = uint8_t(lastDrive.bubble); p.role = uint8_t(lastDrive.role);
+  p.autoRunning = autoRunning; p.bubble = uint8_t(lastDrive.bubble); p.role = uint8_t(lastDrive.role); p.pwm = uint8_t(actualPwm < 0 ? 0 : actualPwm > 255 ? 255 : actualPwm);
   if (esp_now_send(BROADCAST_MAC, reinterpret_cast<const uint8_t*>(&p), sizeof(p)) != ESP_OK) ++peerTxFail;
 }
 static void publishStation(bool force) {
@@ -846,6 +847,7 @@ void setup() {
   // The 1 s continuity delay line (50 blocks, 800 B) lives on the heap (the static DRAM segment is full).
   if (!continuity.begin(new (std::nothrow) rvm_shape::Block[rvm_shape::CONT_K])) haltStartup("continuity storage", false);
   bootId = (uint64_t(esp_random()) << 32) | esp_random();
+  stationDriver.seed(esp_random());                  // random 2-5 s / 0-3 s start delays
   uint32_t session = esp_random(); if (!session) session = 1;
   recorder->begin(LOCO_ID, session, bootId);
   naviSyncDestValid = naviSyncDest.fromString(NAVI_SYNC_HOST);

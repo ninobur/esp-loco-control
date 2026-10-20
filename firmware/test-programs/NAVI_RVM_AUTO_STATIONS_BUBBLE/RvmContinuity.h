@@ -30,6 +30,21 @@
 // the level follows an exponential mean (time constant 250 blocks = 5 s) of the
 // blocks within M * noise of it.
 //
+// INSIDE AN OPEN ENSEMBLE ONLY (operator, 2026-10-20). "On baseline: a flat
+// tracing is simply baseline. Inside a magnetic ensemble: if the tracing stops
+// changing, the locomotive may have stopped over the magnet; the encounter
+// remains open until the tracing resumes progressing and the ensemble is
+// completed." So a block is withheld only while an ensemble is OPEN:
+//   OPEN   when a block entering the delay line departs >= CONT_OPEN_ADC (70,
+//          the recognizer's excursion gate) from the reference level;
+//   CLOSED when the recognizer accepts an ensemble (onEnsemble), which also
+//          sets the reference to the recognizer's own baseline level and noise.
+// While closed, the reference follows the moving baseline (blocks within
+// CONT_TRACK_ADC, time constant CONT_TRACK_TAU) and nothing is withheld, so a
+// drifting moving baseline (Otto +10 ADC at MM137-141, Toby's motor shift)
+// can no longer be mistaken for a stall. Field cases: Otto CONTRADICTION at
+// MM141 and Toby at MM064, 2026-10-20.
+//
 // LOAD. One block in, at most one block out, per 20 ms: no backlog, no burst.
 // Storage: K blocks.
 // ---------------------------------------------------------------------------
@@ -50,6 +65,9 @@ static constexpr double CONT_M = 16.0;             // off-baseline margin, x bas
 static constexpr uint16_t CONT_INIT = 50;          // blocks establishing the declared baseline
 static constexpr double CONT_TAU = 250.0;          // baseline-level time constant (blocks)
 static constexpr double CONT_NOISE_FLOOR = 0.5;
+static constexpr double CONT_OPEN_ADC = 70.0;      // = RvmShape MIN_EXCURSION_ADC
+static constexpr double CONT_TRACK_ADC = 35.0;     // closed: baseline tracking capture
+static constexpr double CONT_TRACK_TAU = 50.0;     // closed: tracking time constant (blocks, 1 s)
 static_assert(CONT_K >= CONT_INIT, "the declared baseline must lie inside the delay line");
 
 // One pending operator declaration; applied when its block leaves the delay line.
@@ -72,6 +90,14 @@ class HallContinuity {
     pend_[nPend_++] = ContDecl{index, last, next, dir, true}; return true;
   }
   void cancelDeclarations() { nPend_ = 0; }
+  // The recognizer accepted an ensemble: it is complete. Close, and take the
+  // recognizer's reference baseline (the moving baseline it judged it against).
+  void onEnsemble(double level, double noise) {
+    open_ = false;
+    if (isfinite(level)) { level_ = level; haveLevel_ = true; }
+    if (isfinite(noise)) noise_ = noise > CONT_NOISE_FLOOR ? noise : CONT_NOISE_FLOOR;
+  }
+  bool open() const { return open_; }
   uint8_t pendingDeclarations() const { return nPend_; }
 
   // Admit the newest block. emit(const Block&) receives each block that joins the
@@ -81,6 +107,7 @@ class HallContinuity {
   template <class E, class D> void admit(const Block& b, E&& emit, D&& onDeclare) {
     for (uint8_t k = 0; k < nPend_; ++k) if (!pend_[k].assigned) { pend_[k].index = b.index; pend_[k].assigned = true; }
     ring_[(head_ + count_) % CONT_K] = b; ++count_; ++admitted_;
+    if (haveLevel_ && declaredOnce_ && isfinite(b.hall) && fabs(double(b.hall) - level_) >= CONT_OPEN_ADC) open_ = true;
     if (count_ == CONT_K) {
       float lo = INFINITY, hi = -INFINITY; bool finite = true;
       for (uint16_t k = 0; k < CONT_K; ++k) {
@@ -115,7 +142,7 @@ class HallContinuity {
   uint64_t admitted_ = 0, decided_ = 0;            // ordinals of blocks admitted / decided
   int64_t lastFlatStart_ = -1000000;
   ContDecl pend_[MAX_PEND]; uint8_t nPend_ = 0;
-  bool haveLevel_ = false, declaredOnce_ = false, withholding_ = false;
+  bool haveLevel_ = false, declaredOnce_ = false, withholding_ = false, open_ = false;
   double level_ = 0, noise_ = CONT_NOISE_FLOOR;
   uint32_t withheldTotal_ = 0, withheldRun_ = 0, lastId_ = 0; float lastHall_ = NAN;
 
@@ -140,7 +167,7 @@ class HallContinuity {
     // declarations whose block this is take effect first
     for (uint8_t k = 0; k < nPend_;) {
       if (pend_[k].assigned && pend_[k].index == b.index) {
-        initBaseline(); declaredOnce_ = true;
+        initBaseline(); declaredOnce_ = true; open_ = false;
         const ContDecl d = pend_[k];
         for (uint8_t q = k + 1; q < nPend_; ++q) pend_[q - 1] = pend_[q];
         --nPend_;
@@ -150,8 +177,8 @@ class HallContinuity {
     const bool flat = lastFlatStart_ >= ord - (CONT_K - 1);
     const float h = b.hall;
     const bool off = haveLevel_ && isfinite(h) && fabs(double(h) - level_) > CONT_M * noise_;
-    if (haveLevel_ && isfinite(h) && fabs(double(h) - level_) <= CONT_M * noise_) level_ += (double(h) - level_) / CONT_TAU;
-    const bool withhold = RVM_CONTINUITY_ENABLED && declaredOnce_ && flat && off;
+    if (!open_ && haveLevel_ && isfinite(h) && fabs(double(h) - level_) <= CONT_TRACK_ADC) level_ += (double(h) - level_) / CONT_TRACK_TAU;
+    const bool withhold = RVM_CONTINUITY_ENABLED && declaredOnce_ && open_ && flat && off;
     lastId_ = b.index; lastHall_ = h;
     if (withhold) { ++withheldTotal_; withheldRun_ = withholding_ ? withheldRun_ + 1 : 1; }
     withholding_ = withhold;

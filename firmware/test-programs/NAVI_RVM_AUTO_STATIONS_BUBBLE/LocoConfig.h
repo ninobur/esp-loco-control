@@ -27,7 +27,7 @@
 #define RVM_CONTINUITY_ENABLED 1
 #elif NAVI_LOCO == 9950012
 #include "LL_LocoConfig_9950012.h"
-#define RVM_CONTINUITY_ENABLED 0
+#define RVM_CONTINUITY_ENABLED 1   // 2026-10-20: open-ensemble rule restores it for Toby
 #else
 #error "NAVI_LOCO must be 9950011 (Otto) or 9950012 (Toby)"
 #endif
