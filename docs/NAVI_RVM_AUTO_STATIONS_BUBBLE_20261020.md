@@ -168,3 +168,28 @@ git and flashing it.
 | `state/station` | `espnow 1`, occupancy `NO_PEER` (Toby not yet flashed) |
 | `state/loopstat` | `heap_free` 33.7–35.8 KB, **`heap_min` 12,052 B**; `block_q_drop` 0, `cmd_drop` 0; `pub_drop` 5 at boot; Pi recording `nsr_native_drop` 303 at boot |
 | `state/warning` | **INA219 NOT FOUND.** Booted on USB, so there is no battery protection until Otto reboots on track power |
+
+### Toby (9950012)
+
+| | |
+|---|---|
+| Port | `/dev/cu.wchusbserial110`. MAC read first: `ec:e3:34:78:a2:60` (Toby) |
+| Image | `119ad9b`, Toby build (`-DNAVI_LOCO=9950012`); app `.bin` sha256 starts `b9678aef1d6dea02` |
+| Upload | arduino-cli at 115200 baud; all four regions "Hash of data verified" |
+| MQTT `state/bootid` | `NAVI_RVM_AUTO_STATIONS_BUBBLE`, boot `91CB945C5997633C`, model `330cdc007da3445b`, **continuity `OFF`**, `auto PRESENT`, `bubble_hold_mm 5` |
+| `state/loopstat` | `heap_free` 34.0 KB, `heap_min` 22,560 B, `block_q_drop` 0, `pub_drop` 0 |
+| Peer link | **Both locomotives receive each other.** Toby sees Otto (9950011, reliable, CW, MM040); Otto sees Toby (undeclared, reliable 0) |
+
+**Observations after both flashes**
+
+- **Otto is in STOP_NOW** with occupancy UNKNOWN, by design, because Toby is
+  powered but not yet declared. Declaring Toby clears it. At that moment Otto
+  was declared at MM040 CW, with AUTO enlisted but not running.
+- **`peer_rx_rejected`** reached 6,836 on Otto and 87 on Toby. These are
+  ESP-NOW frames of the wrong length or magic from other devices on the
+  channel. They are rejected and harmless, but they indicate other ESP-NOW
+  traffic.
+- **Toby's `state/warning`** read "THROTTLE REFUSED: e-stop is set". Toby's
+  `estop` is 0, so this looks like an earlier retained message.
+- **Neither locomotive has battery protection** until it reboots on track power
+  (INA219 not found after a USB boot). This was confirmed on Otto.
