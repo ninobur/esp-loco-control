@@ -26,6 +26,13 @@
 // itself, and the baseline's start is fixed by the previous recognition, which
 // used its own predecessor, back to the declared startup baseline.
 //
+// EXCURSION GATE (operator, 2026-10-20). A window is a candidate only if its
+// principal excursion from the reference level is >= MIN_EXCURSION_ADC (70)
+// ADC counts, measured on the same 20 ms tracing points the shape is built
+// from. Applied before holding, so a small wander can neither be accepted nor
+// block a real magnet. Run 12's false MM101 ensemble was 12.4 counts; the
+// smallest real ensemble that night was 104.
+//
 // DECISION. The best LLR>0 window is held; a later window whose core (middle
 // half) overlaps the held core and scores higher replaces it. The held window
 // is accepted once the tracing has run half its own width beyond its end. On
@@ -51,6 +58,8 @@ struct Ensemble {
   // may skip blocks (WaveformPause), so these are the true times.
   uint32_t cId = 0, sId = 0, eId = 0, decidedId = 0, blStartId = 0;
 };
+
+static constexpr float MIN_EXCURSION_ADC = 70.0f;
 
 class Recognizer {
  public:
@@ -208,7 +217,7 @@ class Recognizer {
       const uint32_t W = SCALES[k];
       if (e < W) continue;
       Cand c;
-      if (score(e, W, c) && c.llr > 0) cs[nc++] = c;
+      if (score(e, W, c) && c.llr > 0 && c.amp >= MIN_EXCURSION_ADC) cs[nc++] = c;
     }
     // highest LLR first at a given end (same order as the offline reference)
     for (int i = 1; i < nc; ++i) for (int j = i; j > 0 && cs[j].llr > cs[j - 1].llr; --j) { Cand t = cs[j]; cs[j] = cs[j - 1]; cs[j - 1] = t; }

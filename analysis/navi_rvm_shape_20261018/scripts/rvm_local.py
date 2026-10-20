@@ -84,6 +84,9 @@ def win_bounds(c, W):
     return np.floor(c - W / 2).astype(int), np.ceil(c + W / 2).astype(int)   # [start, end)
 
 
+MIN_EXCURSION_ADC = 70.0
+
+
 def score_windows(T, b, end_lo, end_hi, Em, Nm):
     """All grid windows with end in [end_lo, end_hi) and start >= b + MIN_BL."""
     out = []
@@ -98,7 +101,7 @@ def score_windows(T, b, end_lo, end_hi, Em, Nm):
         v &= nbl >= MIN_BL
         if not v.any(): continue
         llr = np.full(len(c), -np.inf); llr[v] = Em.score(F[v]) - Nm.score(F[v])
-        k = llr > 0
+        k = (llr > 0) & (A >= MIN_EXCURSION_ADC)   # operator 70-count excursion gate (2026-10-20)
         if k.any():
             out.append(pd.DataFrame(dict(end=ends[k], c=c[k], w=W, llr=llr[k], pol=p[k], amp=A[k], lvl=lvl[k])))
     if not out: return pd.DataFrame(columns=['end', 'c', 'w', 'llr', 'pol', 'amp', 'lvl'])
