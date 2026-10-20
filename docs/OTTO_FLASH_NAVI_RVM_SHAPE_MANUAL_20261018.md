@@ -121,3 +121,10 @@ David's request: "Please flash Otto via USB."
 
 **Rollback:** rebuild and flash `NAVI_RVM_SHAPE_MANUAL` at `3a8953c`
 (`tools/navi_rvm_shape/build.sh`, same upload command with that sketch path).
+
+**Battery reboot, 17:30.** New boot `D004D9A3888E8394`. Fresh (non-retained)
+`telem/voltage` reads 16.15 V, and battery telemetry is published only when the
+INA219 was found at boot. **Battery protection is therefore active.**
+- The `state/warning` "INA219 NOT FOUND" seen afterwards is the **retained**
+  message left by the USB boot.
+- This build does not clear it at boot; it clears at the next declaration.
