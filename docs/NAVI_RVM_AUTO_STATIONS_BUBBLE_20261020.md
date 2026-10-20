@@ -508,3 +508,19 @@ build's continuity:
 |---|---|---|
 | Otto | 997,639 B | `ea51faef78974535` |
 | Toby | 997,639 B | `35b1dbac047c34e5` |
+
+### Flash of revision 4 (`97dcefb`)
+
+David authorized it: "you may flash when you are ready. Both locos are
+connected by USB." No backup was taken.
+
+| Locomotive | Port / MAC | MQTT after boot |
+|---|---|---|
+| Otto | `/dev/cu.wchusbserial10`, `68:09:47:ac:4e:b4` | boot `516ECF85E3A28531`, continuity on, `auto PRESENT`, ESP-NOW 1, `peer_rx` 127 (v3 packets from Toby), link SOLO (undeclared); `heap_free` 35.6 KB, **`heap_min` 9,188 B** |
+| Toby | `/dev/cu.wchusbserial110`, `ec:e3:34:78:a2:60` | boot `937A04FBA91AB044`, continuity on, `auto PRESENT`, ESP-NOW 1, `peer_rx` 129, link SOLO; `heap_free` 29.9 KB, **`heap_min` 8,856 B** |
+
+Both applications were written with hash verification. The bootloader and
+partitions were unchanged and verified.
+
+**Watch item:** `heap_min` is back to about 9 KB, against about 17 KB on
+revision 2 after boot. No failures so far.
