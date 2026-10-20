@@ -51,16 +51,18 @@ for boot, e in (E.groupby('boot') if len(E) else []):
         claims_disagreeing=claims[~claims.route_agrees][['seq', 'wall', 'mm', 'route_mm']].to_dict('records'),
         contradictions=e[e.result == 'CONTRADICTION'][['seq', 'wall', 'expected_mm', 'expected_polarity', 'polarity', 'route_mm']].to_dict('records'),
         first=e.wall.iloc[0], last=e.wall.iloc[-1],
-        stopgo=sg[['wall', 'transition', 'last_mm', 'expected_mm', 'candidate_held', 'arrival_blocks_trimmed', 'withheld_after_go_total',
-                   'stationary_low', 'stationary_high']].to_dict('records') if len(sg) else [])
+        # NAVI_RVM_SHAPE_MANUAL STOP/GO fields, or NAVI_RVM_CONTINUITY_MANUAL continuity fields (whichever exist)
+        stopgo=sg.reindex(columns=[c for c in ['wall', 'transition', 'last_mm', 'expected_mm', 'candidate_held', 'arrival_blocks_trimmed',
+                   'withheld_after_go_total', 'stationary_low', 'stationary_high', 'hall', 'baseline_level', 'baseline_noise',
+                   'withheld_run_blocks', 'withheld_total'] if c in sg.columns]).to_dict('records') if len(sg) else [])
 if len(LS):
     LS['wall'] = pd.to_datetime(LS.wall)
     h = dict(heap_min=int(LS.heap_min.min()), heap_free_min=int(LS.heap_free.min()), block_q_drop=int(LS.block_q_drop.max()),
              nav_event_drop=int(LS.nav_event_drop.max()), rvm_push_max_us=int(LS.rvm_push_max_us.max()),
              pub_drop=int(LS.pub_drop.max()), cmd_drop=int(LS.cmd_drop.max()),
              nsr_native_drop=int(LS.nsr_native_drop.max()), nsr_udp_fail=int(LS.nsr_udp_fail.max()))
-    for k in ('rvm_backlog_max', 'rvm_stack_free'):
-        if k in LS: h[k] = int(LS[k].max()) if k == 'rvm_backlog_max' else int(LS[LS[k] > 0][k].min()) if (LS[k] > 0).any() else None
+    for k in ('rvm_backlog_max', 'rvm_stack_free', 'withheld_blocks'):
+        if k in LS: h[k] = int(LS[k].max()) if k in ('rvm_backlog_max', 'withheld_blocks') else int(LS[LS[k] > 0][k].min()) if (LS[k] > 0).any() else None
     h['block_drop_times'] = LS[LS.block_q_drop.diff().fillna(0) > 0][['wall', 'block_q_drop', 'rvm_push_max_us']].astype(str).to_dict('records')
     summary['health'] = h
 summary['warnings'] = L[L.topic == 'state/warning'][['t', 'payload']].drop_duplicates('payload').values.tolist()
