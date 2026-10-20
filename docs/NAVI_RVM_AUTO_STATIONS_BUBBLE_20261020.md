@@ -287,3 +287,8 @@ David authorized it: "flash both. Toby first. No backup." No backup was taken.
 | Locomotive | Port / MAC | Upload | MQTT verification |
 |---|---|---|---|
 | Toby | `/dev/cu.wchusbserial110`, `ec:e3:34:78:a2:60` | 115200, all four regions verified; app sha256 `cb0b131ba39c1f9e…` | boot `09BB68BE14E87D8F`, continuity OFF, `auto PRESENT`; `state/station` shows `paired`/`link`/`role` fields, `espnow 1`, link SOLO; `heap_free` 35.5 KB, `heap_min` 16,348 B |
+| Otto | `/dev/cu.wchusbserial110`, `68:09:47:ac:4e:b4` | 115200, all four regions verified; app sha256 `aa14d81be5995880…` | boot `CF896167044E6813`, continuity `HALL_ONLY_K50_B24_M16`, `auto PRESENT`; `espnow 1`, link SOLO; `heap_free` 32.9 KB, `heap_min` 17,784 B; drops 0 |
+
+**The peer link on revision 2 is not yet verified.** Toby was `online 0`
+(unplugged from USB) when Otto came up. Check `state/station` `peer_rx`, `link`
+and `role` once both are powered on the track.
