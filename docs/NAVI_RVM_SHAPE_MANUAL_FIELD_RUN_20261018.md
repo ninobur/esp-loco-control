@@ -841,3 +841,66 @@ The end of the run, from `diag/rvm_ensemble` and `diag/rvm_stopgo`:
 **This is the parameter watch-list item M (16 × noise), seen in the field.**
 - A stall whose level sits at the margin is only partly withheld.
 - Here recognition was unaffected (correct claim, LLR 36). No change was made.
+
+---
+
+# Run 11, 2026-10-19 17:43–18:03: slow-crawl test on NAVI_RVM_CONTINUITY_MANUAL
+
+**David's account:**
+- Slow run complete.
+- **Otto does not move with PWM below 30 on the sections tested.**
+
+**Sources** (read-only):
+
+| Source | sha256 |
+|---|---|
+| `9950011_20261019_174346.log` | `9451dc4d91a91c9aad694bc64d065875772bb2d169bcfd84240e620763680743` |
+| NSR bytes 8,872,657,000 + 135,000,000 | `a1c777cbf780e004ce371c2a464fd6f84fd06a1ea4c94a79090129ac55e7b330` |
+| IR log, epoch 1792456900–1792458250 | `e8ac6ab4c5c158aac2199064aa4370ceb1b3f56acbea9ea0f26eef6d8d44d352` |
+
+**Scripts:** `unified/u11_slow_run.py`. **Output:**
+`field_20261019/run11_slow/` (`summary.json`, `slow_run_continuity.json`).
+
+## Observations
+
+- **Boot** `D004D9A3888E8394`, continuing from run 10 (no new declaration).
+- **Navigation: 86 recognitions, all MM claims, 86/86 agreeing with the route**,
+  MM125 → MM039. No CONTRADICTION.
+- **Health:** `block_q_drop 0`, `pub_drop 0`, `heap_min` 9,464, lowest
+  `heap_free` 22,988, worst recognizer step 0.94 s.
+- **Movement:**
+  - IR moving 498.5 s, stationary 197.6 s.
+  - Applied PWM while moving: p5 28, median 32, p95 46.
+- **Long withheld runs:**
+
+| Over | Duration | Offset from the baseline |
+|---|---|---|
+| MM001 | 89.5 s | −135 ADC |
+| near MM162 | 1.1 s and 4.3 s | −153 / −45 ADC |
+| near MM168 | 2.9 s | +69 ADC |
+
+  Each is followed by the correct next claim.
+
+**The slow-crawl question** (does real slow movement develop faster than the
+24 ADC band?):
+- **26 magnet passages** had a core of at least 1 s with the IR moving
+  throughout, at PWM 27–32.
+- Their flattest 1 s change was **at least 34 ADC** (MM015 at PWM 32); p5 61,
+  median 135.
+- **None was at or below the 24 ADC band.**
+- Withheld while the IR showed movement: **20.9 s of 498.5 s (4 %)**.
+  - These were the near-baseline onset and edge blocks of passages (limitation
+    3), a median of 9 % (max 26 %) of a moving passage's core.
+  - Recognition was unaffected: lowest LLR among the moving passages 35.1, every
+    claim correct.
+
+## Interpretation
+
+- **Otto's slowest real running on these sections** (PWM 28–32; David: no
+  movement below 30) still develops magnetic structure faster than the 24 ADC
+  per 1 s band.
+- **The margin is about ×1.4 at the slowest passage seen** (34 against 24), and
+  much larger at the median.
+- On these sections, the "crawl slower than recorded" limitation is bounded by
+  Otto himself.
+- **Not shown:** sections not driven, Toby, CCW.
