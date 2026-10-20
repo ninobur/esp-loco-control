@@ -7,7 +7,9 @@
    call none of the actuator functions.
 Exit 1 on any violation. Prints the call map."""
 import re, sys, pathlib, json
-S = pathlib.Path(__file__).resolve().parents[2] / 'firmware/test-programs/NAVI_RVM_CONTINUITY_MANUAL'
+import os
+SKETCH = os.environ.get('RVM_SKETCH', 'NAVI_RVM_CONTINUITY_MANUAL')        # or NAVI_RVM_CONTINUITY_MANUAL_TOBY
+S = pathlib.Path(__file__).resolve().parents[2] / 'firmware/test-programs' / SKETCH
 CALLS = ['ledcWrite', 'writePwm', 'requestPwm', 'digitalWrite']
 STATE = ['rampTarget', 'actualPwm', 'commandedPwm', 'motorDirection', 'estopped', 'estopAsserted', 'brakeValue',
          'lowVoltage', 'rampUpMs', 'rampDownMs']
@@ -30,7 +32,7 @@ for h in ['RvmTracing.h', 'RvmContinuity.h']:
     t = strip_comments((S / h).read_text())
     for a in CALLS + STATE + ['estop', 'Estop', 'throttle', 'motor', 'Arduino', 'mqtt']:
         if a in t: bad.append(f'{h} code mentions {a!r}')
-src = strip_comments((S / 'NAVI_RVM_CONTINUITY_MANUAL.ino').read_text())
+src = strip_comments((S / f'{SKETCH}.ino').read_text())
 # crude function splitter: top-level "static ... name(...) {" or "void name() {"
 funcs = {}
 for m in re.finditer(r'^(?:static\s+)?[\w:<>\*&\s]+?\b(\w+)\s*\([^;{]*\)\s*\{', src, re.M):
