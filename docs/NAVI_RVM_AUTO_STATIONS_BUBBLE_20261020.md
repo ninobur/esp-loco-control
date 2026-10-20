@@ -279,3 +279,11 @@ the sketch.
   **redeclare** the one you want to run.
 - Both trains must be declared in the same direction. Opposite directions,
   once paired, read as LOST.
+
+### Flash of revision 2 (`1bf6454`)
+
+David authorized it: "flash both. Toby first. No backup." No backup was taken.
+
+| Locomotive | Port / MAC | Upload | MQTT verification |
+|---|---|---|---|
+| Toby | `/dev/cu.wchusbserial110`, `ec:e3:34:78:a2:60` | 115200, all four regions verified; app sha256 `cb0b131ba39c1f9e…` | boot `09BB68BE14E87D8F`, continuity OFF, `auto PRESENT`; `state/station` shows `paired`/`link`/`role` fields, `espnow 1`, link SOLO; `heap_free` 35.5 KB, `heap_min` 16,348 B |
