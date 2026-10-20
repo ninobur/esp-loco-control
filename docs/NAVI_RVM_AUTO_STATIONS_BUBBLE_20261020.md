@@ -193,3 +193,89 @@ git and flashing it.
   `estop` is 0, so this looks like an earlier retained message.
 - **Neither locomotive has battery protection** until it reboots on track power
   (INA219 not found after a USB boot). This was confirmed on Otto.
+
+---
+
+## Revision 2, 2026-10-20: dashboard GO, pairing, dynamic roles, silence rule
+
+**Field finding.** Otto (declared MM040 CW) and Toby (MM050 CW) were both
+enlisted in AUTO but would not start. Each reported `auto_running 0` and
+occupancy FREE. The dashboard's GO publishes `ngr/dispatcher/cmd/go/<loco>`,
+which is what NAVI_EWO_0_6 and QUORUM subscribe to. Revision 1 listened only
+on `ngr/loco/<id>/cmd/go`. **That was a defect in revision 1.**
+
+Earlier, a silent Toby that Otto had heard once held Otto in STOP_NOW for the
+rest of the boot.
+
+**Operator rulings:**
+
+- "The locos have to be able to run singly."
+- "If the locos are paired, then silence of the other loco means stop: at the
+  next station if you are the leader, initiate rainbow carpet stop if
+  follower."
+- "Dynamic roles is correct."
+- On the question of whether the locomotives negotiate their roles: build the
+  role echo.
+
+**Changes:**
+
+1. **Dashboard GO and STOP.** The sketch subscribes to
+   `ngr/dispatcher/cmd/go/<LOCO_NAME>` and `…/stop/<LOCO_NAME>`, handled as in
+   EWO_0_6.
+2. **Pairing.** A locomotive pairs once it hears the other fresh and TRACKING
+   while it is itself TRACKING. If it has never paired, it runs **singly**,
+   whatever else is on the radio. A **new declaration ends pairing**.
+3. **Dynamic roles.** Each locomotive derives its role from its own committed
+   MM and the other's broadcast MM, by the shorter way round the loop. ROUTE_N
+   is odd, so there is no tie. The same MM gives no role.
+4. **Role echo.** Each broadcasts its derived role (PeerPacket v2, 18 B). A
+   role is confirmed only while the other broadcasts the opposite role.
+5. **Link LOST while paired.** LOST means silent for 2 s, not tracking, a
+   different direction, the same MM, or unconfirmed or conflicting roles:
+   - **Last confirmed role LEADER:** run on to the next station, make the
+     platform stop, and **stay** there. The dwell does not release it.
+   - **FOLLOWER, or never confirmed:** start a **rainbow-carpet stop at the next
+     MM** (`LOST_STOP`) and stay there.
+   - A stop already under way is completed and held.
+   - Both resume when the link is KNOWN again.
+   - This replaces revision 1's stop-where-you-are on an unknown peer.
+6. **Telemetry.** `state/station` adds `paired`, `link`, `role`,
+   `confirmed_role`, `peer_role` and `platform_held`.
+
+**Host tests (10, all pass).**
+
+- **T1–T3 as before:**
+  - carpet values;
+  - solo laps with braking at the station MM;
+  - bubble hold at 58 (CW) and 68 (CCW), minimum gap 5.0 MM.
+- **T4, silent leader:** the follower made a `LOST_STOP` carpet stop, then
+  resumed and served 5 stations once heard again.
+- **T6, leader loses TRACKING** on the main line: the follower carpet-stopped
+  **3.8 MM** short. That margin is smaller than revision 1's fast stop
+  (6.4 MM), because the carpet stop is gentler, as ruled.
+- **T7, silent follower:** the leader stopped at its next platform and stayed
+  (`platform_held`).
+- **T8:** an undeclared peer on the radio leaves the locomotive running singly.
+- **T9:** after a redeclaration, the locomotive runs singly.
+- **T10:** both claiming leader gives LOST.
+- **T5:** occupancy geometry and role complementarity over the whole loop.
+
+**Compile:** esp32 3.3.12, real libraries. The only warnings are in the
+Adafruit INA219 library, unchanged from earlier builds.
+
+| Locomotive | Flash | Globals | app `.bin` sha256 (first 16) |
+|---|---|---|---|
+| Otto | 996,315 B | 121,532 B | `aa14d81be5995880` |
+| Toby | 996,159 B | 121,532 B | `cb0b131ba39c1f9e` |
+
+**Navigation is unchanged.** This revision touches only `RvmStations.h` and
+the sketch.
+
+**Not flashed.**
+
+**Operating notes:**
+
+- To run one train singly after a paired session, switch the other off and
+  **redeclare** the one you want to run.
+- Both trains must be declared in the same direction. Opposite directions,
+  once paired, read as LOST.

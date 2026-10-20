@@ -495,7 +495,7 @@ static void withdrawAuto(const char* why) {
 static void onPeer(const esp_now_recv_info_t* info, const uint8_t* bytes, int length) {
   if (!info || !bytes || length != int(sizeof(rvm_ops::PeerPacket))) { ++peerRxRejected; return; }
   rvm_ops::PeerPacket p; memcpy(&p, bytes, sizeof(p));
-  if (p.magic != 0xB7 || p.version != 1 || p.locoId == uint32_t(LOCO_ID)) { ++peerRxRejected; return; }
+  if (p.magic != 0xB7 || p.version != 2 || p.locoId == uint32_t(LOCO_ID)) { ++peerRxRejected; return; }
   portENTER_CRITICAL(&peerMux);
   peerRx = p; peerRxMs = millis(); peerSeen = true; ++peerRxCount;
   portEXIT_CRITICAL(&peerMux);
@@ -517,22 +517,26 @@ static void servicePeerTx() {
   p.locoId = uint32_t(LOCO_ID); p.seq = ++peerTxSeq;
   p.reliable = s.state == uint8_t(rvm_shape::NavState::Tracking); p.dir = s.dir; p.lastMm = s.last;
   p.station = lastDrive.station; p.execution = uint8_t(lastDrive.cmd.execution);
-  p.autoRunning = autoRunning; p.bubble = uint8_t(lastDrive.bubble);
+  p.autoRunning = autoRunning; p.bubble = uint8_t(lastDrive.bubble); p.role = uint8_t(lastDrive.role);
   if (esp_now_send(BROADCAST_MAC, reinterpret_cast<const uint8_t*>(&p), sizeof(p)) != ESP_OK) ++peerTxFail;
 }
 static void publishStation(bool force) {
   static uint32_t last = 0; static uint8_t lastExec = 0xFF, lastStation = 0xFE, lastKind = 0xFF, lastBubble = 0xFF;
   const auto& d = lastDrive;
-  const bool changed = uint8_t(d.cmd.execution) != lastExec || d.station != lastStation || uint8_t(d.kind) != lastKind || uint8_t(d.bubble) != lastBubble;
+  static uint8_t lastLink = 0xFF, lastRole = 0xFF;
+  const bool changed = uint8_t(d.cmd.execution) != lastExec || d.station != lastStation || uint8_t(d.kind) != lastKind ||
+                       uint8_t(d.bubble) != lastBubble || uint8_t(d.link) != lastLink || uint8_t(d.role) != lastRole;
+  lastLink = uint8_t(d.link); lastRole = uint8_t(d.role);
   if (!force && !changed && millis() - last < 1000) return;
   last = millis(); lastExec = uint8_t(d.cmd.execution); lastStation = d.station; lastKind = uint8_t(d.kind); lastBubble = uint8_t(d.bubble);
   const rvm_ops::PeerView v = peerView();
   const NavSnapshot s = navSnapshot();
-  char payload[600];
+  char payload[700];
   snprintf(payload, sizeof(payload),
     "{\"auto\":%u,\"running\":%u,\"mm\":%u,\"dir\":%d,\"station\":\"%s\",\"target_kind\":\"%s\",\"target_mm\":%u,"
     "\"section\":\"%s\",\"remaining_mm\":%ld,\"execution\":\"%s\",\"pwm_cmd\":%u,\"pwm\":%d,\"bubble\":\"%s\",\"occupancy\":\"%s\","
     "\"peer\":{\"seen\":%u,\"age_ms\":%lu,\"loco\":%lu,\"reliable\":%u,\"dir\":%d,\"mm\":%u,\"station\":%u,\"execution\":\"%s\",\"auto\":%u},"
+    "\"paired\":%u,\"link\":\"%s\",\"role\":\"%s\",\"confirmed_role\":\"%s\",\"peer_role\":\"%s\",\"platform_held\":%u,"
     "\"peer_rx\":%lu,\"peer_rx_rejected\":%lu,\"peer_tx_fail\":%lu,\"espnow\":%u,\"hold_mm\":%u}",
     unsigned(autoEnrolled), unsigned(autoRunning), s.last, s.dir,
     d.station < rvm_ops::STATION_COUNT ? rvm_ops::STATIONS[d.station].name : "NONE",
@@ -542,6 +546,8 @@ static void publishStation(bool force) {
     rvm_ops::occupancyName(d.occupancy),
     unsigned(v.everSeen), (unsigned long)v.ageMs, (unsigned long)v.p.locoId, unsigned(v.p.reliable), int(v.p.dir), v.p.lastMm,
     unsigned(v.p.station), rvm_ops::executionName(rvm_ops::StopExecution(v.p.execution & 3)), unsigned(v.p.autoRunning),
+    unsigned(d.paired), rvm_ops::linkName(d.link), rvm_ops::roleName(d.role), rvm_ops::roleName(d.confirmedRole),
+    rvm_ops::roleName(rvm_ops::Role(v.p.role > 2 ? 0 : v.p.role)), unsigned(d.platformHeld),
     (unsigned long)peerRxCount, (unsigned long)peerRxRejected, (unsigned long)peerTxFail, unsigned(espNowReady), unsigned(rvm_ops::BUBBLE_HOLD_MM));
   pub("state/station", payload, true);
 }
@@ -596,6 +602,10 @@ static void handleCommand(const CmdMsg& command) {
   activeCommandOrder = command.order; activeCommandReceivedUs = command.receivedUs;
   recordAction(navi_sync::ActionKind::CommandConsumed, command.topic, command.payload);
   const char* leaf = strrchr(command.topic, '/'); leaf = leaf ? leaf + 1 : command.topic;
+  // Dashboard GO/STOP: ngr/dispatcher/cmd/go/<LOCO_NAME>, .../stop/<LOCO_NAME> (as NAVI_EWO_0_6).
+  const bool dispatcher = strstr(command.topic, "/dispatcher/") != nullptr;
+  if (dispatcher && strstr(command.topic, "/go/")) leaf = "go";
+  else if (dispatcher && strstr(command.topic, "/stop/")) leaf = "stop";
   const Ops o = opsNow();
   if (!strcmp(leaf, "estop")) {
     bool stop = true;
@@ -788,6 +798,9 @@ static void networkTask(void*) {
           char topic[72]; snprintf(topic, sizeof(topic), "ngr/loco/%s/cmd/%s", LOCO_NAME, c); mqtt.subscribe(topic);
         }
         mqtt.subscribe("ngr/dispatcher/cmd/estop");   // fleet E-STOP is a safety channel, kept
+        { char topic[72];
+          snprintf(topic, sizeof(topic), "ngr/dispatcher/cmd/go/%s", LOCO_NAME); mqtt.subscribe(topic);
+          snprintf(topic, sizeof(topic), "ngr/dispatcher/cmd/stop/%s", LOCO_NAME); mqtt.subscribe(topic); }
         char boot[400];
         snprintf(boot, sizeof(boot),
           "{\"sketch\":\"%s\",\"class\":\"%s\",\"boot_id\":\"%016llX\",\"field_accepted\":0,"

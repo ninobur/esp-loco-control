@@ -30,11 +30,8 @@
 //   station MM (inclusive) and it has not released this station.
 //   "Leader leaves the platform" = that is no longer true (its dwell released
 //   it, or it is past the station).
-//   Unknown peer (heard before but silent for PEER_STALE_MS, not tracking, or
-//   travelling the other way): it may be standing anywhere ahead, so we stop
-//   where we are (STOP_NOW) and wait until it is known again. A peer never
-//   heard = no other train: no bubble. Consequence: both trains must be
-//   declared before GO (a powered, undeclared peer is Unknown).
+//   Pairing, dynamic roles, the role echo and the silence rule: see "peer"
+//   below. A locomotive that has never been paired runs singly.
 //   The decision is taken from 16 MM out (11 + 5), so the follower runs the
 //   whole carpet, shifted. Once stopped short it stays at zero (latched) until
 //   the platform is free, even if it rolled past its holding MM while braking.
@@ -195,9 +192,23 @@ inline uint8_t nearestStationAhead(uint8_t pos, int8_t dir) {
 }
 
 // ---------------------------------------------------------------------- peer --
-// What this locomotive broadcasts (ESP-NOW, 4 Hz) and what it knows of the other.
+// Dynamic roles (operator, 2026-10-20). No fixed leader: from its own committed
+// MM and the other's broadcast MM, each locomotive derives its role with the
+// same rule: the other is AHEAD within the shorter way round the loop => I am
+// the FOLLOWER, otherwise the LEADER (ROUTE_N is odd, so there is no tie; the
+// same MM => no role). Each broadcasts the role it derived (the role echo); a
+// role is CONFIRMED only while the other broadcasts the opposite role.
+enum class Role : uint8_t { None = 0, Leader, Follower };
+inline const char* roleName(Role r) { return r == Role::Leader ? "LEADER" : r == Role::Follower ? "FOLLOWER" : "NONE"; }
+inline Role opposite(Role r) { return r == Role::Leader ? Role::Follower : r == Role::Follower ? Role::Leader : Role::None; }
+inline Role deriveRole(uint8_t pos, uint8_t peerPos, int8_t dir) {
+  if (pos == peerPos) return Role::None;
+  return aheadMm(pos, peerPos, dir) <= ROUTE_N / 2 ? Role::Follower : Role::Leader;
+}
+
+// What this locomotive broadcasts (ESP-NOW, 4 Hz).
 struct __attribute__((packed)) PeerPacket {
-  uint8_t magic = 0xB7, version = 1;
+  uint8_t magic = 0xB7, version = 2;
   uint32_t locoId = 0, seq = 0;
   uint8_t reliable = 0;      // TRACKING with a committed MM
   int8_t dir = 0;            // +1 CW, -1 CCW, 0 unset
@@ -206,8 +217,9 @@ struct __attribute__((packed)) PeerPacket {
   uint8_t execution = 0;     // StopExecution at that station
   uint8_t autoRunning = 0;
   uint8_t bubble = 0;        // BubbleState
+  uint8_t role = 0;          // Role it derived (role echo)
 };
-static_assert(sizeof(PeerPacket) == 17, "PeerPacket layout");
+static_assert(sizeof(PeerPacket) == 18, "PeerPacket layout");
 
 struct PeerView {
   bool everSeen = false;     // a peer packet has been received this boot
@@ -215,30 +227,35 @@ struct PeerView {
   PeerPacket p;
 };
 
-enum class Occupancy : uint8_t { Free = 0, Occupied, Unknown, NoPeer };
+// PAIRING. Two locomotives are paired once one hears the other, fresh and
+// TRACKING, while it is itself TRACKING. Never paired = running singly: no
+// bubble, whatever else is on the radio. A new declaration ends pairing
+// (StationDriver::reset). LINK while paired: KNOWN = fresh, tracking, same
+// direction, different MM, and roles confirmed; anything else = LOST.
+enum class Link : uint8_t { Solo = 0, Known, Lost };
+inline const char* linkName(Link l) { return l == Link::Solo ? "SOLO" : l == Link::Known ? "KNOWN" : "LOST"; }
+
+enum class Occupancy : uint8_t { Free = 0, Occupied, NoPeer, Lost };
 inline const char* occupancyName(Occupancy o) {
   switch (o) { case Occupancy::Free: return "FREE"; case Occupancy::Occupied: return "OCCUPIED";
-               case Occupancy::Unknown: return "UNKNOWN"; default: return "NO_PEER"; }
+               case Occupancy::Lost: return "PEER_LOST"; default: return "NO_PEER"; }
 }
 
-// Is the leader in station `si`, as seen from `pos` travelling `dir`? The
-// leader must be AHEAD of us (same MM = cannot tell who leads = Unknown).
-inline Occupancy stationOccupancy(const PeerView& v, uint8_t si, uint8_t pos, int8_t dir) {
-  if (!v.everSeen) return Occupancy::NoPeer;
-  if (v.ageMs > PEER_STALE_MS || !v.p.reliable || v.p.dir != dir) return Occupancy::Unknown;
-  if (v.p.lastMm == pos) return Occupancy::Unknown;
+// Is the leader in station `si`, as seen from `pos` travelling `dir`? Only
+// asked with a KNOWN link. The leader must be AHEAD of us.
+inline Occupancy stationOccupancy(const PeerPacket& p, uint8_t si, uint8_t pos, int8_t dir) {
   const uint8_t s = STATIONS[si].mm;
   const uint8_t toStation = aheadMm(pos, s, dir);
-  const uint8_t toPeer = aheadMm(pos, v.p.lastMm, dir);
-  const bool working = v.p.station == si;
-  const StopExecution ex = StopExecution(v.p.execution);
+  const uint8_t toPeer = aheadMm(pos, p.lastMm, dir);
+  const bool working = p.station == si;
+  const StopExecution ex = StopExecution(p.execution);
   // Braking or dwelling for this platform, anywhere ahead of us within the
   // carpet beyond it (it may have rolled past the centre MM): occupied.
   if (working && (ex == StopExecution::Braking || ex == StopExecution::Dwell) &&
       toPeer <= toStation + 11) return Occupancy::Occupied;
   if (toPeer > toStation + 2) return Occupancy::Free;                 // beyond the platform, or behind us
   const uint8_t hold = before(s, dir, BUBBLE_HOLD_MM);
-  const uint8_t into = aheadMm(hold, v.p.lastMm, dir);                // 0 = at the holding point
+  const uint8_t into = aheadMm(hold, p.lastMm, dir);                  // 0 = at the holding point
   const bool between = into >= 1 && into <= BUBBLE_HOLD_MM;           // (hold, station]
   const bool releasedHere = working && ex == StopExecution::Released;
   if (between && !releasedHere) return Occupancy::Occupied;
@@ -246,10 +263,20 @@ inline Occupancy stationOccupancy(const PeerView& v, uint8_t si, uint8_t pos, in
 }
 
 // ------------------------------------------------------------------- driver --
-enum class TargetKind : uint8_t { Platform = 0, Hold, StopNow };
+// Target kinds: PLATFORM (the station stop); HOLD (bubble: the same carpet 5 MM
+// earlier); STOP_NOW (bubble: occupied when already inside 5 MM: stop at once,
+// fast ramp); LOST_STOP (paired peer lost, follower: a carpet stop at the next MM).
+// SILENCE RULE (operator, 2026-10-20): paired and the link is LOST =>
+//   LEADER (last confirmed role): go on to the next station, make the platform
+//     stop, and stay there;
+//   FOLLOWER (or never confirmed): initiate a rainbow-carpet stop at once.
+//   Either way a stop already under way is completed and held. Both resume
+//   when the link is KNOWN again.
+enum class TargetKind : uint8_t { Platform = 0, Hold, StopNow, LostStop };
 enum class BubbleState : uint8_t { None = 0, Approaching, Holding };
 inline const char* targetKindName(TargetKind k) {
-  return k == TargetKind::Platform ? "PLATFORM" : k == TargetKind::Hold ? "HOLD" : "STOP_NOW";
+  switch (k) { case TargetKind::Platform: return "PLATFORM"; case TargetKind::Hold: return "HOLD";
+               case TargetKind::StopNow: return "STOP_NOW"; default: return "LOST_STOP"; }
 }
 inline const char* executionName(StopExecution e) {
   switch (e) { case StopExecution::Geographic: return "GEOGRAPHIC"; case StopExecution::Braking: return "BRAKING";
@@ -279,18 +306,36 @@ struct DriveOutput {
   StopGeography geo;
   Occupancy occupancy = Occupancy::NoPeer;
   BubbleState bubble = BubbleState::None;
+  Link link = Link::Solo;
+  Role role = Role::None;            // derived now (broadcast as the echo)
+  Role confirmedRole = Role::None;   // last role the other confirmed
+  bool paired = false, platformHeld = false;
   bool targetChanged = false;
   bool urgent = false;       // STOP_NOW: brake at the fast AUTO ramp, not the gentle station ramp
 };
 
 class StationDriver {
  public:
-  void reset() { overlay_.reset(); station_ = NO_STATION; kind_ = TargetKind::Platform; target_ = 0; dir_ = 0; held_ = false; }
+  void reset() {
+    overlay_.reset(); station_ = NO_STATION; kind_ = TargetKind::Platform; target_ = 0; dir_ = 0;
+    held_ = platformHeld_ = paired_ = false; lastRole_ = Role::None;
+  }
   uint8_t station() const { return station_; }
   StopExecution execution() const { return overlay_.execution(); }
 
   DriveOutput step(const DriveInput& in) {
     DriveOutput out;
+    // ---- the other locomotive
+    const PeerView& v = in.peer;
+    const bool fresh = v.everSeen && v.ageMs <= PEER_STALE_MS && v.p.reliable;
+    if (fresh && in.reliable) paired_ = true;
+    const bool comparable = fresh && in.reliable && v.p.dir == in.dir && (in.dir == 1 || in.dir == -1);
+    const Role role = comparable ? deriveRole(in.pos, v.p.lastMm, in.dir) : Role::None;
+    const bool confirmed = role != Role::None && Role(v.p.role) == opposite(role);
+    if (confirmed) lastRole_ = role;
+    const Link link = !paired_ ? Link::Solo : confirmed ? Link::Known : Link::Lost;
+    out.link = link; out.role = role; out.confirmedRole = lastRole_; out.paired = paired_;
+
     if (!in.reliable || (in.dir != 1 && in.dir != -1)) {
       out.cmd = overlay_.command(StopGeography{}, false, in.dir, in.cruise, in.appliedPwm, in.commandedPwm, in.nowMs, in.enabled);
       out.station = station_; return out;
@@ -300,8 +345,8 @@ class StationDriver {
     const StopExecution ex = overlay_.execution();
     bool keep = station_ != NO_STATION && in.dir == dir_;
     if (keep && ex == StopExecution::Released) {
-      keep = mmGeography(in.pos, STATIONS[station_].mm, in.dir).applicable();
-    } else if (keep && (ex == StopExecution::Geographic)) {
+      keep = platformHeld_ || mmGeography(in.pos, STATIONS[station_].mm, in.dir).applicable();
+    } else if (keep && (ex == StopExecution::Geographic) && kind_ == TargetKind::Platform) {
       keep = nearestStationAhead(in.pos, in.dir) == station_;
     }
     if (!keep) {
@@ -309,27 +354,34 @@ class StationDriver {
       setTarget(TargetKind::Platform, STATIONS[station_].mm, out);
     }
     const uint8_t s = STATIONS[station_].mm;
-    out.occupancy = stationOccupancy(in.peer, station_, in.pos, in.dir);
-    const bool blocked = out.occupancy == Occupancy::Occupied || out.occupancy == Occupancy::Unknown;
     const uint8_t toStation = aheadMm(in.pos, s, in.dir);
     const bool platformStopUnderway = kind_ == TargetKind::Platform &&
-        (ex == StopExecution::Braking || ex == StopExecution::Dwell || ex == StopExecution::Released);
+        (ex == StopExecution::Braking || ex == StopExecution::Dwell || platformHeld_);
+    const bool nonPlatformStopUnderway = kind_ != TargetKind::Platform && held_;
 
-    if (out.occupancy == Occupancy::Unknown && !platformStopUnderway) {
-      // The other train's position is not known (silent, untracked, other
-      // direction): it may be standing anywhere ahead. Stop where we are.
-      if (kind_ != TargetKind::StopNow) setTarget(TargetKind::StopNow, in.pos, out);
-    } else if (blocked && !platformStopUnderway && toStation <= 11 + BUBBLE_HOLD_MM) {
-      if (kind_ == TargetKind::Platform) {
-        // The same carpet, BUBBLE_HOLD_MM earlier; inside that distance: stop here.
-        if (toStation > BUBBLE_HOLD_MM) setTarget(TargetKind::Hold, before(s, in.dir, BUBBLE_HOLD_MM), out);
-        else setTarget(TargetKind::StopNow, in.pos, out);
+    if (link == Link::Lost) {
+      out.occupancy = Occupancy::Lost;
+      const bool leader = lastRole_ == Role::Leader;
+      if (!platformStopUnderway && !nonPlatformStopUnderway) {
+        if (leader) { if (kind_ != TargetKind::Platform) setTarget(TargetKind::Platform, s, out); }
+        else if (kind_ != TargetKind::LostStop) setTarget(TargetKind::LostStop, navi_one::nextMarker(in.pos, in.dir), out);
       }
-    } else if (!blocked && kind_ != TargetKind::Platform) {
-      setTarget(TargetKind::Platform, s, out);       // the leader has left the platform
+    } else {
+      out.occupancy = link == Link::Known ? stationOccupancy(v.p, station_, in.pos, in.dir) : Occupancy::NoPeer;
+      platformHeld_ = false;                         // the other is known (or there is none): a held platform may release
+      const bool blocked = out.occupancy == Occupancy::Occupied;
+      if (blocked && !platformStopUnderway && toStation <= 11 + BUBBLE_HOLD_MM) {
+        if (kind_ == TargetKind::Platform) {
+          // The same carpet, BUBBLE_HOLD_MM earlier; inside that distance: stop here.
+          if (toStation > BUBBLE_HOLD_MM) setTarget(TargetKind::Hold, before(s, in.dir, BUBBLE_HOLD_MM), out);
+          else setTarget(TargetKind::StopNow, in.pos, out);
+        }
+      } else if (!blocked && kind_ != TargetKind::Platform) {
+        setTarget(TargetKind::Platform, s, out);     // the leader has left the platform / the peer is back
+      }
     }
 
-    if (held_) {                                     // stopped short of an occupied platform: stay at zero
+    if (held_ || platformHeld_) {                    // stopped and waiting: stay at zero
       out.geo = mmGeography(in.pos, target_, in.dir);
       out.cmd = StopCommand{}; out.cmd.pwm = 0; out.cmd.overlay = true; out.cmd.execution = StopExecution::Dwell;
     } else {
@@ -338,23 +390,29 @@ class StationDriver {
       out.cmd = overlay_.command(out.geo, true, in.dir, in.cruise, in.appliedPwm, in.commandedPwm, in.nowMs, in.enabled);
       if (kind_ != TargetKind::Platform && (out.cmd.execution == StopExecution::Braking ||
           out.cmd.execution == StopExecution::Dwell || out.cmd.execution == StopExecution::Released)) {
-        held_ = true;                                // latched until the platform is free
+        held_ = true;                                // latched until released by the peer
         out.cmd = StopCommand{}; out.cmd.pwm = 0; out.cmd.overlay = true; out.cmd.execution = StopExecution::Braking;
+      } else if (kind_ == TargetKind::Platform && link == Link::Lost &&
+                 (out.cmd.releasedNow || (out.cmd.execution == StopExecution::Released && in.appliedPwm == 0))) {
+        platformHeld_ = true;                        // the dwell may not release us while the peer is lost
+        out.cmd = StopCommand{}; out.cmd.pwm = 0; out.cmd.overlay = true; out.cmd.execution = StopExecution::Dwell;
       }
     }
-    out.station = station_; out.kind = kind_; out.targetMm = target_;
+    out.station = station_; out.kind = kind_; out.targetMm = target_; out.platformHeld = platformHeld_;
     out.urgent = kind_ == TargetKind::StopNow;
-    out.bubble = kind_ == TargetKind::Platform ? BubbleState::None
-               : (held_ ? BubbleState::Holding : BubbleState::Approaching);
+    out.bubble = (kind_ == TargetKind::Platform && !platformHeld_) ? BubbleState::None
+               : ((held_ || platformHeld_) ? BubbleState::Holding : BubbleState::Approaching);
     return out;
   }
 
  private:
   NaviStopOverlay overlay_;
-  uint8_t station_ = NO_STATION, target_ = 0; int8_t dir_ = 0; bool held_ = false;
+  uint8_t station_ = NO_STATION, target_ = 0; int8_t dir_ = 0;
+  bool held_ = false, platformHeld_ = false, paired_ = false;
+  Role lastRole_ = Role::None;
   TargetKind kind_ = TargetKind::Platform;
   void setTarget(TargetKind k, uint8_t mm, DriveOutput& out) {
-    if (k == kind_ && mm == target_ && station_ != NO_STATION && !out.targetChanged) { kind_ = k; target_ = mm; return; }
+    if (k == kind_ && mm == target_ && station_ != NO_STATION && !out.targetChanged) return;
     kind_ = k; target_ = mm; overlay_.reset(); held_ = false; out.targetChanged = true;
   }
 };
