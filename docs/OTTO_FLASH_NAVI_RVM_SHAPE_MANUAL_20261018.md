@@ -94,3 +94,30 @@ over MQTT, and record it". The change is described in
 battery protection this session".** Otto booted on USB power. After the first
 flash the INA219 was found once he rebooted with track power (16.39 V in the
 evening run). **Reboot him with track power before running.**
+
+---
+
+## Flash, 2026-10-19 17:23: NAVI_RVM_CONTINUITY_MANUAL `8986c5f` (unified Hall continuity)
+
+David's request: "Please flash Otto via USB."
+
+| | |
+|---|---|
+| Sketch | `firmware/test-programs/NAVI_RVM_CONTINUITY_MANUAL/NAVI_RVM_CONTINUITY_MANUAL.ino` |
+| Commit | `8986c5f` (equal to `origin/dev/navi-rvm-shape-manual-20261018`; sketch files clean) |
+| Build | rebuilt from that commit: 982,667 B flash (74 %), 121,324 B static RAM; credentials `firmware/config/credentials.h` |
+| Port | `/dev/cu.wchusbserial10`, MAC 68:09:47:ac:4e:b4 (Otto), ESP32-D0WD-V3 rev 3.1 |
+| Upload | `arduino-cli upload --fqbn esp32:esp32:esp32:UploadSpeed=115200`. Bootloader, partitions, boot_app0 and application: each "Hash of data verified". Hard reset via RTS. |
+
+**Verified over MQTT, read-only, after boot:**
+
+| Topic | Content |
+|---|---|
+| `state/bootid` | `NAVI_RVM_CONTINUITY_MANUAL`, boot `C3E5949A09F3C1F4`, model `330cdc007da3445b`, `continuity HALL_ONLY_K50_B24_M16`, `auto ABSENT` |
+| `online` | `1` |
+| `state/nav` | `UNSET`, `withholding 0` |
+| `state/loopstat` | `continuity HALL_ONLY_K50_B24_M16`, `rvm_delay_blocks 49`, `withheld_blocks 0`, `block_q_drop 0`, `pub_drop 0`; **`heap_free 35,400`** (was 26–28 KB on `3a8953c`), `heap_min 9,460` |
+| `state/warning` | "INA219 NOT FOUND — no battery protection this session". Otto booted on USB power, as after the previous flashes. **Reboot him on battery or track power before running.** |
+
+**Rollback:** rebuild and flash `NAVI_RVM_SHAPE_MANUAL` at `3a8953c`
+(`tools/navi_rvm_shape/build.sh`, same upload command with that sketch path).
