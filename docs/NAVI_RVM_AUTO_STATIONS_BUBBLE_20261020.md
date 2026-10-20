@@ -297,3 +297,42 @@ and `role` once both are powered on the track.
 
 David's report: "running. 1st stops successful." This is the operator's
 observation. No log has been analysed yet.
+
+### Toby's CONTRADICTION at MM064 (13:29:46), from the Pi run logs
+
+**David's report:** "toby restarted from grillers then stopped at 066-067. Otto
+the follower maintained spacing and stopped also. Toby reports Contradiction."
+
+**Source:** `9950012_20261020_132846.log`, Toby boot `E504D063D480E59C`.
+
+| seq | result | MM | polarity (got / map) | LLR | amplitude | baseline level |
+|---|---|---|---|---|---|---|
+| 1–13 | MM | 051–063 | all agree | 38.5–42.9 | 213–264 | 1822–1832 |
+| **14** | **CONTRADICTION** | expected 064 | **N / S** | **8.7** | 344 | **1657.3** (from 279.9 s) |
+| 15 | RECOGNIZED_NO_CLAIM | — | N | 39.5 | 188 | 1826.9 |
+
+**Interpretation** (consistent with the log; not observed on the track):
+
+1. **Toby landed with his sensor over MM064.** Braking for Grillers began when
+   MM063 was committed, about 1 s after the magnet. With the 300 ms-per-step
+   final brake he stood with his sensor over **MM064's field**, an S magnet
+   below the baseline.
+2. **The dwell became baseline.** Toby runs **without continuity**, so the
+   dwell's flat magnet field entered the recognizer as baseline. The reference
+   level fell to 1657, against 1822–1832 before.
+3. **The departure looked like an N ensemble.** On leaving, the return to the
+   true baseline measured against 1657 looked like a +344 N ensemble, where the
+   map has MM064 = S. That is a CONTRADICTION, and AUTO was withdrawn: a
+   controlled stop at about MM066–067.
+
+This is risk 3 of this record ("Toby over a magnet, without continuity").
+
+**Otto, the follower**, did what the rules require (Otto log `…_132853`):
+
+| Time | Otto |
+|---|---|
+| 13:29:17 | Toby on the Grillers platform: OCCUPIED, so HOLD at MM058 |
+| 13:29:34 | Toby leaves the platform: FREE, advance toward the platform (PWM 50) |
+| 13:29:46 | Toby not tracking: link LOST, last confirmed role FOLLOWER, so `LOST_STOP` at MM059, braked and held |
+| 13:33:16 | Toby redeclared at 066: link KNOWN, resume |
+| 13:33:51 | braking for the Grillers platform |
