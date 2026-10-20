@@ -1,0 +1,14 @@
+test_area_preserves_all_samples (test_cpr.Invariants) ... ok
+test_constant_background_and_time_order (test_cpr.Invariants) ... ok
+test_horizon_bounded_and_no_recognition (test_cpr.Invariants) ... ok
+test_native_loss_and_chunk_boundary (test_cpr.Invariants) ... ok
+test_native_threshold_and_second_sample (test_cpr.Invariants) ... ok
+test_no_completion_on_peak_or_reversal (test_cpr.Invariants) ... ok
+test_no_eof_or_gap_completion (test_cpr.Invariants) ... ok
+test_prefix_causality (test_cpr.Invariants) ... ok
+test_separated_encounters (test_cpr.Invariants) ... ok
+
+----------------------------------------------------------------------
+Ran 9 tests in 0.309s
+
+OK

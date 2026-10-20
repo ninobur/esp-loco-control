@@ -1,0 +1,6 @@
+{
+  "all_three_evaluation_replays_byte_identical_events_and_journals": true,
+  "cleanup_preserves_executable_AST": true,
+  "native_roundtrip_all_four_byte_identical": true,
+  "cli_native_csv_smoke_passed": true
+}

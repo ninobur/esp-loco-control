@@ -1,0 +1,361 @@
+{
+  "strong_and_weak_both_signs": {
+    "events": [
+      {
+        "start": 3.1,
+        "end": 4.64,
+        "completed": 5.12,
+        "amplitude": 170.2763839611091,
+        "polarity": 1,
+        "native70": true,
+        "scores": {
+          "pca": {
+            "distance": 36.9288647594409,
+            "threshold": 80.98523092402726,
+            "score": 0.5440049458637206,
+            "recognized": true
+          },
+          "template": {
+            "distance": 3.24859525378547,
+            "threshold": 19.03037640907023,
+            "score": 0.8292942197277228,
+            "recognized": true
+          },
+          "gaussian": {
+            "distance": 2.916748777759852,
+            "threshold": 16.55883785463821,
+            "score": 0.8238554659835107,
+            "recognized": true
+          }
+        }
+      },
+      {
+        "start": 5.96,
+        "end": 7.78,
+        "completed": 8.26,
+        "amplitude": 77.8326277337352,
+        "polarity": -1,
+        "native70": true,
+        "scores": {
+          "pca": {
+            "distance": 100.87651452596637,
+            "threshold": 80.98523092402726,
+            "score": -0.24561618674149654,
+            "recognized": false
+          },
+          "template": {
+            "distance": 31.61621211145884,
+            "threshold": 19.03037640907023,
+            "score": -0.6613550584522316,
+            "recognized": false
+          },
+          "gaussian": {
+            "distance": 30.48297803021217,
+            "threshold": 16.55883785463821,
+            "score": -0.8408887325189758,
+            "recognized": false
+          }
+        }
+      }
+    ],
+    "incomplete": []
+  },
+  "below_governing_amplitude": {
+    "events": [
+      {
+        "start": 2.98,
+        "end": 4.72,
+        "completed": 5.199999999999999,
+        "amplitude": 55.63893911638456,
+        "polarity": 1,
+        "native70": false,
+        "scores": {
+          "pca": {
+            "distance": 156.67376065536436,
+            "threshold": 80.98523092402726,
+            "score": -0.9345967019880572,
+            "recognized": false
+          },
+          "template": {
+            "distance": 56.871175904682374,
+            "threshold": 19.03037640907023,
+            "score": -1.9884419878093698,
+            "recognized": false
+          },
+          "gaussian": {
+            "distance": 55.81911006768296,
+            "threshold": 16.55883785463821,
+            "score": -2.37095577344806,
+            "recognized": false
+          }
+        }
+      }
+    ],
+    "incomplete": []
+  },
+  "asymmetric": {
+    "events": [
+      {
+        "start": 3.36,
+        "end": 5.3,
+        "completed": 5.779999999999999,
+        "amplitude": 170.65823680193841,
+        "polarity": 1,
+        "native70": true,
+        "scores": {
+          "pca": {
+            "distance": 45.70378054617511,
+            "threshold": 80.98523092402726,
+            "score": 0.4356528959082663,
+            "recognized": true
+          },
+          "template": {
+            "distance": 9.217184533391276,
+            "threshold": 19.03037640907023,
+            "score": 0.5156593681984033,
+            "recognized": true
+          },
+          "gaussian": {
+            "distance": 5.989782692639622,
+            "threshold": 16.55883785463821,
+            "score": 0.6382727613362157,
+            "recognized": true
+          }
+        }
+      }
+    ],
+    "incomplete": []
+  },
+  "secondary_lobe": {
+    "events": [
+      {
+        "start": 3.16,
+        "end": 4.94,
+        "completed": 5.42,
+        "amplitude": 169.92049623750063,
+        "polarity": 1,
+        "native70": true,
+        "scores": {
+          "pca": {
+            "distance": 24.70268699182562,
+            "threshold": 80.98523092402726,
+            "score": 0.6949729387695472,
+            "recognized": true
+          },
+          "template": {
+            "distance": 5.5916999930635285,
+            "threshold": 19.03037640907023,
+            "score": 0.7061697639149995,
+            "recognized": true
+          },
+          "gaussian": {
+            "distance": 4.636465595484578,
+            "threshold": 16.55883785463821,
+            "score": 0.7200005437467412,
+            "recognized": true
+          }
+        }
+      }
+    ],
+    "incomplete": []
+  },
+  "shoulder": {
+    "events": [
+      {
+        "start": 3.08,
+        "end": 5.16,
+        "completed": 5.64,
+        "amplitude": 193.59840930756752,
+        "polarity": 1,
+        "native70": true,
+        "scores": {
+          "pca": {
+            "distance": 36.863150162199204,
+            "threshold": 80.98523092402726,
+            "score": 0.5448163851408814,
+            "recognized": true
+          },
+          "template": {
+            "distance": 8.210122476192435,
+            "threshold": 19.03037640907023,
+            "score": 0.5685780302128265,
+            "recognized": true
+          },
+          "gaussian": {
+            "distance": 6.290327747247758,
+            "threshold": 16.55883785463821,
+            "score": 0.6201226316443573,
+            "recognized": true
+          }
+        }
+      }
+    ],
+    "incomplete": []
+  },
+  "close_separate": {
+    "events": [
+      {
+        "start": 3.42,
+        "end": 5.16,
+        "completed": 5.64,
+        "amplitude": 170.33165952517345,
+        "polarity": 1,
+        "native70": true,
+        "scores": {
+          "pca": {
+            "distance": 884.8336940995842,
+            "threshold": 80.98523092402726,
+            "score": -9.925864926280845,
+            "recognized": false
+          },
+          "template": {
+            "distance": 9.744711272017655,
+            "threshold": 19.03037640907023,
+            "score": 0.48793912098485104,
+            "recognized": true
+          },
+          "gaussian": {
+            "distance": 9.657375129556682,
+            "threshold": 16.55883785463821,
+            "score": 0.41678424450230334,
+            "recognized": true
+          }
+        }
+      }
+    ],
+    "incomplete": []
+  },
+  "close_without_sustained_return": {
+    "events": [
+      {
+        "start": 3.1,
+        "end": 5.14,
+        "completed": 5.62,
+        "amplitude": 164.3987052538596,
+        "polarity": 1,
+        "native70": true,
+        "scores": {
+          "pca": {
+            "distance": 774.5073265642465,
+            "threshold": 80.98523092402726,
+            "score": -8.56356261169171,
+            "recognized": false
+          },
+          "template": {
+            "distance": 15.057856930886796,
+            "threshold": 19.03037640907023,
+            "score": 0.2087462377407342,
+            "recognized": true
+          },
+          "gaussian": {
+            "distance": 15.129030282092142,
+            "threshold": 16.55883785463821,
+            "score": 0.08634709664395757,
+            "recognized": true
+          }
+        }
+      }
+    ],
+    "incomplete": []
+  },
+  "slow_baseline_drift": {
+    "events": [
+      {
+        "start": 3.08,
+        "end": 4.66,
+        "completed": 5.14,
+        "amplitude": 171.17934592064307,
+        "polarity": 1,
+        "native70": true,
+        "scores": {
+          "pca": {
+            "distance": 33.631832285820224,
+            "threshold": 80.98523092402726,
+            "score": 0.5847164735830606,
+            "recognized": true
+          },
+          "template": {
+            "distance": 3.432807612931139,
+            "threshold": 19.03037640907023,
+            "score": 0.8196143082437928,
+            "recognized": true
+          },
+          "gaussian": {
+            "distance": 3.1033723525911565,
+            "threshold": 16.55883785463821,
+            "score": 0.8125851355128835,
+            "recognized": true
+          }
+        }
+      }
+    ],
+    "incomplete": []
+  },
+  "abrupt_baseline_step": {
+    "events": [],
+    "incomplete": [
+      {
+        "kind": "incomplete",
+        "t": 16.0,
+        "id": 1,
+        "start": 3.68,
+        "reason": "end_of_recording",
+        "stored_bins": 616
+      }
+    ]
+  },
+  "correlated_noise": {
+    "events": [
+      {
+        "start": 3.08,
+        "end": 4.7,
+        "completed": 5.18,
+        "amplitude": 169.60363145286453,
+        "polarity": 1,
+        "native70": true,
+        "scores": {
+          "pca": {
+            "distance": 31.27879961437565,
+            "threshold": 80.98523092402726,
+            "score": 0.6137715573878095,
+            "recognized": true
+          },
+          "template": {
+            "distance": 4.005551503352105,
+            "threshold": 19.03037640907023,
+            "score": 0.789518009667797,
+            "recognized": true
+          },
+          "gaussian": {
+            "distance": 3.3305284832356254,
+            "threshold": 16.55883785463821,
+            "score": 0.7988670151569406,
+            "recognized": true
+          }
+        }
+      }
+    ],
+    "incomplete": []
+  },
+  "short_disturbance": {
+    "events": [],
+    "incomplete": []
+  },
+  "incomplete": {
+    "events": [],
+    "incomplete": [
+      {
+        "kind": "incomplete",
+        "t": 4.06,
+        "id": 1,
+        "start": 3.08,
+        "reason": "recording_gap",
+        "stored_bins": 48
+      }
+    ]
+  },
+  "stationary": {
+    "events": [],
+    "incomplete": []
+  }
+}

@@ -40,10 +40,10 @@ def read_annotations(name, a=-np.inf, b=np.inf):
     return sorted(rows, key=lambda r: r['start'])
 
 
-def run_record(name, cfg, a=-np.inf, b=np.inf):
-    with np.load(ROOT / f'data/{name}.npz') as source:
+def run_record(name, cfg, a=-np.inf, b=np.inf, data_path=None, native_path=None):
+    with np.load(data_path or ROOT / f'data/{name}.npz') as source:
         z = dict(source)
-    native = np.memmap(ROOT / f'raw/{name}.bin', dtype=NATIVE, mode='r')
+    native = np.memmap(native_path or ROOT / f'raw/{name}.bin', dtype=NATIVE, mode='r')
     indices = np.flatnonzero((z['t'] >= a) & (z['t'] < b))
     journal_rows = []
     s, gate = Segmenter(cfg, journal_rows.append), NativeRule()
@@ -121,7 +121,9 @@ def positives(replay, truth):
             if sum(iou(replay['events'][i], r) >= .1 for r in truth) == 1]
 
 
-def persist_replay(replay, model=None):
+def persist_replay(replay, model=None, output_dir=None):
+    output_dir = Path(output_dir) if output_dir else ROOT / 'results'
+    output_dir.mkdir(parents=True, exist_ok=True)
     name = replay['name']
     rows = []
     decisions = []
@@ -135,11 +137,11 @@ def persist_replay(replay, model=None):
         for kind, score in row['scores'].items():
             decisions.append(dict(kind='recognized' if score['recognized'] else 'unrecognized',
                                   t=e['completed'], id=e['id'], model=kind, **score))
-    dump(ROOT / f'results/{name}_events.json', rows)
-    with open(ROOT / f'results/{name}_journal.jsonl', 'w') as f:
+    dump(output_dir / f'{name}_events.json', rows)
+    with open(output_dir / f'{name}_journal.jsonl', 'w') as f:
         for row in sorted(replay['journal']+decisions, key=lambda r: r['t']):
             f.write(json.dumps(row, default=jsonable)+'\n')
-    np.savez_compressed(ROOT / f'results/{name}_trace.npz',
+    np.savez_compressed(output_dir / f'{name}_trace.npz',
                         **{k:replay[k] for k in ('t','hall','baseline','noise')})
 
 
@@ -185,7 +187,9 @@ def calibrate():
     dump(ROOT / 'models.json', dict(config=asdict(cfg), population=model.serialize(),
         calibration_cut_s=cut, training_objects=len(pos), calibration_objects=len(cp),
         frozen_before_evaluation=True))
-    persist_replay(tr, model); persist_replay(ca, model)
+    persist_replay(tr, model)
+    ca['name'] = 'otto_cw_calibration'
+    persist_replay(ca, model)
     dump(ROOT / 'results/calibration.json', dict(train=assess(tr, train_truth, model),
         calibration=assess(ca, cal_truth, model), training_objects=len(pos), calibration_objects=len(cp),
         frozen_model_sha256=sha(ROOT / 'models.json'), cut_s=cut))

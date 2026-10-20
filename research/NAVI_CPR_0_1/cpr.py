@@ -11,6 +11,11 @@ import numpy as np
 
 @dataclass(frozen=True)
 class Config:
+    """Research settings; sampling intervals and event times are in seconds.
+
+    The saved models.json contains the calibrated configuration. These defaults
+    are useful for isolated component tests, not an accepted locomotive policy.
+    """
     baseline: str = 'linear'
     return_s: float = .24
     dt: float = .02
@@ -31,6 +36,7 @@ class Baseline:
         self.updates = 0
 
     def predict(self, t):
+        """Predict from past admitted background without consuming this sample."""
         return self.level + self.slope * (t - self.at)
 
     def update(self, t, x):
@@ -40,7 +46,11 @@ class Baseline:
             return
         innovation = x - self.predict(t)
         if self.kind == 'ema':
-            self.level = self.predict(t) + (1 - math.exp(-.02 / 2)) * float(np.clip(innovation, -3*self.noise, 3*self.noise))
+            self.level = (
+                self.predict(t)
+                + (1 - math.exp(-.02 / 2))
+                * float(np.clip(innovation, -3*self.noise, 3*self.noise))
+            )
             self.at, self.slope = t, 0.
         self.updates += 1
         if self.updates % 5:
@@ -54,12 +64,16 @@ class Baseline:
                 e = yy - X @ beta
                 scale = max(.5, 1.4826 * float(np.median(abs(e - np.median(e)))))
                 w = np.minimum(1., 1.5 * scale / np.maximum(abs(e), 1e-9))
-                beta = np.linalg.lstsq(X * np.sqrt(w[:, None]), yy * np.sqrt(w), rcond=None)[0]
+                beta = np.linalg.lstsq(
+                    X * np.sqrt(w[:, None]), yy * np.sqrt(w), rcond=None
+                )[0]
             self.level, self.slope, self.at = float(beta[0]), float(beta[1]), t
             residual = yy - X @ beta
         else:
             residual = yy - self.level
-        self.noise = max(.5, 1.4826 * float(np.median(abs(residual - np.median(residual)))))
+        self.noise = max(
+            .5, 1.4826 * float(np.median(abs(residual - np.median(residual))))
+        )
 
     def initialize(self):
         if self.points:
@@ -80,22 +94,38 @@ class NativeRule:
 
     def feed(self, records, baseline):
         if not len(records):
-            self.last = None; self.latched = False
+            self.last = None
+            self.latched = False
             return []
         x = records['adc'].astype(float) - baseline
         sign = np.where(x >= 70, 1, np.where(x <= -70, -1, 0))
         ser = records['serial'].astype(np.int64)
         us = records['us']
         prior_sign = np.r_[self.last[1] if self.last else 0, sign[:-1]]
-        prior_serial = np.r_[self.last[0] if self.last else int(ser[0])-2, ser[:-1]]
-        pair = (sign != 0) & (sign == prior_sign) & (((ser-prior_serial) % (1 << 32)) == 1)
+        prior_serial = np.r_[
+            self.last[0] if self.last else int(ser[0])-2, ser[:-1]
+        ]
+        pair = (
+            (sign != 0)
+            & (sign == prior_sign)
+            & (((ser-prior_serial) % (1 << 32)) == 1)
+        )
         starts = np.flatnonzero(pair & ~np.r_[self.latched, pair[:-1]])
         self.latched = bool(pair[-1])
         self.last = (int(ser[-1]), int(sign[-1]))
-        return [dict(t=float(us[j])/1e6, polarity=int(sign[j]), baseline=baseline) for j in starts]
+        return [
+            dict(t=float(us[j])/1e6, polarity=int(sign[j]), baseline=baseline)
+            for j in starts
+        ]
 
 
 class Segmenter:
+    """Discover, follow, and complete encounters without classifying samples.
+
+    Baseline updates stop while an event develops. A sustained return completes
+    an event; peaks and polarity changes have no special state transitions.
+    An optional sink receives decisions. Internal diagnostic history is bounded.
+    """
     def __init__(self, config=Config(), sink=None):
         self.c = config
         self.base = Baseline(config.baseline, config.history)
@@ -128,6 +158,12 @@ class Segmenter:
         self.onset = 0
 
     def feed(self, t, x, witness=None):
+        """Consume one available Hall bin; return (completed_event, level, noise).
+
+        t is the bin END, when its value becomes available. A witness records
+        native acquisition evidence observed before this call. Completion is
+        timestamped now; the estimated physical end is reported retrospectively.
+        """
         c = self.c
         if self.last_t is not None and t <= self.last_t:
             raise ValueError('time must increase strictly')
@@ -138,10 +174,12 @@ class Segmenter:
             self.log('gap', t)
             # New baseline requires warmup; no hidden completion across missing data.
             self.base = Baseline(c.baseline, c.history)
-            self.warm = 0; self.quarantine = False
+            self.warm = 0
+            self.quarantine = False
             return None, float('nan'), float('nan')
         if self.warm < c.warmup:
-            self.base.update(t, x); self.warm += 1
+            self.base.update(t, x)
+            self.warm += 1
             if self.warm == c.warmup:
                 self.base.initialize()
                 self.log('baseline_ready', t, level=self.base.level,
@@ -201,7 +239,8 @@ class Segmenter:
                 self.base.update(p[0], p[1])
             self.active = None
             self.returning = []
-            self.pre.clear(); self.onset = 0
+            self.pre.clear()
+            self.onset = 0
             return event, b, noise
         return None, b, noise
 
@@ -218,16 +257,21 @@ def area_resample(x, n=64):
 
 
 def describe(event):
+    """Measure the completed curve, retaining physical scale beside shape."""
     r = np.array([p[3] for p in event['samples']])
     if not len(r) or np.max(abs(r)) <= 0:
         return None
-    k = int(np.argmax(abs(r))); amplitude = float(abs(r[k]))
+    k = int(np.argmax(abs(r)))
+    amplitude = float(abs(r[k]))
     polarity = 1 if r[k] >= 0 else -1
     canonical = r * polarity
     shape = area_resample(canonical / amplitude)
     duration = event['end'] - event['start']
     asym = k / max(1, len(r)-1)
-    opposite = float(np.maximum(-canonical, 0).sum() / max(np.maximum(canonical, 0).sum(), 1e-9))
+    opposite = float(
+        np.maximum(-canonical, 0).sum()
+        / max(np.maximum(canonical, 0).sum(), 1e-9)
+    )
     witness = [p[5] for p in event['samples'] if p[5] is not None]
     # Native proof is separate from normalized shape or statistical distance.
     return dict(shape=shape, amplitude=amplitude, duration=duration,
@@ -238,15 +282,24 @@ def describe(event):
 
 
 def cluster(X, k=8):
+    """Fit deterministic empirical shape families, with no waveform assumption."""
     # Deterministic farthest-first seeds, followed by Lloyd means.
     centres = [X[0]]
     for _ in range(min(k, len(X))-1):
-        d = np.min(np.sum((X[:, None, :] - np.array(centres)[None, :, :])**2, axis=2), axis=1)
+        d = np.min(
+            np.sum((X[:, None, :] - np.array(centres)[None, :, :])**2, axis=2),
+            axis=1,
+        )
         centres.append(X[int(np.argmax(d))])
     centres = np.array(centres)
     for _ in range(30):
-        ids = np.argmin(np.sum((X[:, None, :] - centres[None, :, :])**2, axis=2), axis=1)
-        new = np.array([X[ids == i].mean(0) if np.any(ids == i) else centres[i] for i in range(len(centres))])
+        ids = np.argmin(
+            np.sum((X[:, None, :] - centres[None, :, :])**2, axis=2), axis=1
+        )
+        new = np.array([
+            X[ids == i].mean(0) if np.any(ids == i) else centres[i]
+            for i in range(len(centres))
+        ])
         if np.max(abs(new-centres)) < 1e-8:
             break
         centres = new
@@ -271,7 +324,8 @@ class Population:
         cov = .5*cov + .5*np.diag(np.diag(cov)) + .01*np.eye(cov.shape[0])
         self.precision = np.linalg.inv(cov)
         ad = np.array([[math.log(d['amplitude']), math.log(d['duration'])] for d in train])
-        self.admean = ad.mean(0); self.adscale = np.maximum(ad.std(0), .1)
+        self.admean = ad.mean(0)
+        self.adscale = np.maximum(ad.std(0), .1)
         self.thresholds = {}
 
     def vector(self, d, reverse=False):
@@ -288,8 +342,10 @@ class Population:
         ad = np.array([math.log(d['amplitude']), math.log(d['duration'])])
         adcost = float(np.mean(((ad-self.admean)/self.adscale)**2))
         template = float(np.min(np.mean((self.templates-d['shape'])**2, axis=1)))*64 + adcost
-        s = d['shape']; phase = (np.arange(64)+.5)/64
-        w = np.maximum(s, 0); denom = max(w.sum(), 1e-9)
+        s = d['shape']
+        phase = (np.arange(64)+.5)/64
+        w = np.maximum(s, 0)
+        denom = max(w.sum(), 1e-9)
         centre = float(w @ phase/denom)
         width = max(.02, float(np.sqrt(w @ ((phase-centre)**2)/denom)))
         gaussian = np.exp(-.5*((phase-centre)/width)**2)
