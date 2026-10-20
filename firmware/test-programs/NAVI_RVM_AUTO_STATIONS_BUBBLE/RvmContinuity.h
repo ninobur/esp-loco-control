@@ -176,7 +176,11 @@ class HallContinuity {
     }
     const bool flat = lastFlatStart_ >= ord - (CONT_K - 1);
     const float h = b.hall;
-    const bool off = haveLevel_ && isfinite(h) && fabs(double(h) - level_) > CONT_M * noise_;
+    // Off the baseline: beyond 16 x noise AND beyond CONT_TRACK_ADC (35). Inside an open ensemble the
+    // baseline after a magnet can sit ~15 ADC from the one before it (Toby, Run 12); that is baseline,
+    // and withholding it would starve the recognizer of the very blocks that complete the ensemble.
+    const double offMargin = CONT_M * noise_ > CONT_TRACK_ADC ? CONT_M * noise_ : CONT_TRACK_ADC;
+    const bool off = haveLevel_ && isfinite(h) && fabs(double(h) - level_) > offMargin;
     if (!open_ && haveLevel_ && isfinite(h) && fabs(double(h) - level_) <= CONT_TRACK_ADC) level_ += (double(h) - level_) / CONT_TRACK_TAU;
     const bool withhold = RVM_CONTINUITY_ENABLED && declaredOnce_ && open_ && flat && off;
     lastId_ = b.index; lastHall_ = h;

@@ -425,3 +425,86 @@ stays OCCUPIED and the follower keeps holding.
 - **T6:** a dead leader on the main line now leaves only 2.7 MM in the model.
 
 **Compile:** both locomotives build cleanly. **Not flashed.**
+
+---
+
+## Revision 4, 2026-10-20: follow the leader, random starts, open-ensemble continuity
+
+**Field findings on revision 3** (the revision-2 build was still flashed):
+
+1. "I paused OTTO just now. Toby, the follower continued and ran into him. The
+   locomotives must know where the other locomotive is located." Spacing acted
+   at stations only.
+2. **Otto's CONTRADICTION at MM141** (13:36:40, boot `DD20D550…`). At PWM 90
+   his moving baseline rose about 10 ADC between MM137 and MM141 (1939 to
+   about 1950). Hall-only continuity, with a margin of 16 × 0.5 = 8 ADC,
+   withheld normal moving track in runs of 26, 48 and 32 blocks. The spliced
+   tracing degraded MM139 and MM140 (LLR 34.7 and 25.0) and then produced an N
+   ensemble at MM141, with baseline noise **10.1**; the map has S. The later
+   CONTRADICTIONs at 13:40 (MM156) and 13:42 (MM147) followed David's
+   declarations, which he reported as wrong.
+
+**Operator rulings:**
+
+- "Ideally, the move up delay would vary randomly between 2 and 5 seconds.
+  Also the leader start time will vary by 0-3 seconds after follower PWM=0."
+- Stops over a magnet: "On baseline: a flat tracing is simply baseline.
+  Nothing needs to happen. Inside a magnetic ensemble: if the tracing stops
+  changing, the locomotive may have stopped over the magnet. The encounter
+  remains open until the tracing resumes progressing and the ensemble is
+  completed … without relying on the throttle command."
+- On Claude's proposal (a leader-anchored carpet plus open-ensemble
+  continuity): "Yes. Right answer. Please build both."
+
+**Changes:**
+
+- **Follow the leader, anywhere** (`RvmStations.h`). The rainbow carpet,
+  anchored `BUBBLE_HOLD_MM` (5) behind the leader's committed MM, caps a
+  confirmed follower's PWM. At the end of the carpet the follower stops and
+  stays. Once the leader is under power it moves up after a random 2–5 s,
+  creeping at 43 until the leader's committed MM moves on. The slower of the
+  station carpet and the follow carpet wins.
+- **PeerPacket v3** (19 B) carries the applied PWM, so the follower sees the
+  leader start.
+- **Random delays** (xorshift, seeded from `esp_random()` at boot):
+  - the follower moves up 2–5 s after the leader starts, at stations and on
+    the line;
+  - a convoy leader starts 0–3 s after the follower stands at PWM 0.
+- **Continuity (`RvmContinuity.h`)** withholds only while an ensemble is
+  **OPEN**:
+  - it opens when a block departs at least 70 ADC from the reference;
+  - it closes when the recognizer accepts an ensemble, which also takes that
+    ensemble's baseline level and noise as the reference;
+  - while it is closed, the reference follows the moving baseline (±35 ADC,
+    τ = 1 s) and nothing is withheld;
+  - "off baseline" also needs at least **35 ADC**. In Toby's Run 12 the
+    baseline after a magnet sat about 15 ADC from the one before it, and
+    withholding it starved the recognizer.
+  - **Toby has continuity again.**
+  - **Known limit:** a stall on a shoulder within 35 ADC of the baseline is
+    not protected.
+
+**Host tests (14, all pass)** add the following:
+
+- **T13:** the leader is paused on the open line at three points, in both
+  directions. The follower stopped behind it every time and moved after it.
+  Minimum gap in the model: **2.2 MM**, from an abrupt pause at cruise.
+- **T14:** the convoy leader's start delay ranged 0.17–2.90 s.
+
+**Replay of every recorded boot** (`u12_open_continuity_replay.py`, results in
+`analysis/…/results/open_continuity_20261020/`), compared with the field
+build's continuity:
+
+| Recording | Result |
+|---|---|
+| Otto, 11 boots (Oct 15; Oct 18–19, including stall Run 9 and Runs 10–12) | **identical** claims, misses and contradictions; less withheld (none on clean runs) |
+| Toby, Run 12 | **203/203 correct, 0 CONTRADICTIONs, 0 misses**, against 10 correct and 8 wrong before |
+| Toby, today (`E504D063…`) | **MM064 claimed at 309.4 s**, where the field run contradicted. A later replay CONTRADICTION at MM157 follows Pi recording gaps (blocks 34662–34663) where the field run had none: a recording artifact |
+| Otto, today (`DD20D550…`) | The replay derails at MM113 with **both** rules, a place the field run passed cleanly, because the recording has 213 gap blocks. From a declaration after MM136, both rules pass MM137–147. The MM141 field failure needed the stale reference, so replay cannot test it. **From logged values:** every block withheld there was within 14 ADC of the level, and the new rule withholds nothing within 35 ADC or outside an open ensemble |
+
+**Compile:** both locomotives build cleanly.
+
+| Locomotive | Flash | app `.bin` sha256 (first 16) |
+|---|---|---|
+| Otto | 997,639 B | `ea51faef78974535` |
+| Toby | 997,639 B | `35b1dbac047c34e5` |
