@@ -128,3 +128,54 @@ INA219 was found at boot. **Battery protection is therefore active.**
 - The `state/warning` "INA219 NOT FOUND" seen afterwards is the **retained**
   message left by the USB boot.
 - This build does not clear it at boot; it clears at the next declaration.
+
+---
+
+## Toby flashed, 2026-10-19 18:30: NAVI_RVM_CONTINUITY_MANUAL_TOBY `8f343b0`
+
+David's request: "Toby is connected via USB. Please flash." Then: "Please make
+a new TOBY version."
+
+| | |
+|---|---|
+| Sketch | `firmware/test-programs/NAVI_RVM_CONTINUITY_MANUAL_TOBY/` (Toby profile 9950012; every other header identical to Otto's build) |
+| Commit | `8f343b0`; built with `tools/navi_rvm_continuity/build.sh --toby`: 982,667 B flash, 121,324 B static RAM; the binary contains `9950012` and the sketch name, and no `9950011` |
+| Port / chip | `/dev/cu.wchusbserial10`, MAC **ec:e3:34:78:a2:60**, ESP32-D0WD-V3 rev 3.1. Not Otto (68:09:47:ac:4e:b4), who stayed online over Wi-Fi throughout |
+| Previous firmware on Toby | `NAVI_COHERENCE_0_6_POSITION_STATIONS_R1_20Q3_SYNC_R1` (from `state/bootid`; AUTO-enabled experimental) |
+| Upload | 115200 baud; bootloader, partitions, boot_app0 and application: each "Hash of data verified" |
+
+**Backup before flashing.**
+- **What was saved:** flash 0x000000–0x290000 (bootloader, partition table,
+  otadata, both app slots), read in 512 KB chunks, two of which needed a retry.
+  It is at
+  `~/NGR/NGR-Files/otto-flash-backups/toby_before_NAVI_RVM_CONTINUITY_MANUAL_TOBY_0x0-0x290000_20261019.bin`
+  (2,686,976 B), sha256
+  `747fb8f1bc6361b2c979f6650dbc4e6622abd2da12218261d2e65218b9c8aec4`. It
+  contains `NAVI_COHERENCE_0_6_POSITION_STATIONS_R1_20Q3_SYNC_R1` and
+  `9950012`.
+- **What was not saved:** a full 4 MB read failed at 0x318000 (the CH340
+  "Corrupt data" problem), so the region from 0x290000 on is not backed up.
+- **Source:** the previous firmware's source is committed (`7b83179f`;
+  `NAVI_COHERENCE_0_6_IR_HEALTH` on `claude/navi-ps-r1-20q-standards`), but
+  the main checkout holds an uncommitted `LocoConfig.h` change for it.
+
+**Rollback:**
+
+```sh
+~/Library/Arduino15/packages/esp32/tools/esptool_py/5.3.1/esptool --chip esp32 --port /dev/cu.wchusbserial10 --baud 115200 write-flash 0 ~/NGR/NGR-Files/otto-flash-backups/toby_before_NAVI_RVM_CONTINUITY_MANUAL_TOBY_0x0-0x290000_20261019.bin
+```
+
+**Verified over MQTT, read-only, after boot:**
+
+| Topic | Content |
+|---|---|
+| `ngr/loco/9950012/state/bootid` | `NAVI_RVM_CONTINUITY_MANUAL_TOBY`, boot `D0A81F17EA3BE798`, model `330cdc007da3445b`, `continuity HALL_ONLY_K50_B24_M16`, `auto ABSENT` |
+| `online` | `1` |
+| `state/nav` | `UNSET` |
+| `state/loopstat` | `rvm_delay_blocks 49`, `block_q_drop 0`, `pub_drop 0` |
+| `telem/voltage` | **0.24 V**: the INA219 answers, but no battery or track power is connected (USB only) |
+| `state/warning` | "RELEASED by dispatcher": a retained message from the previous firmware |
+
+**Before running Toby:**
+- Connect the battery or track power, then reboot.
+- Check that `telem/voltage` is above 14 V.
