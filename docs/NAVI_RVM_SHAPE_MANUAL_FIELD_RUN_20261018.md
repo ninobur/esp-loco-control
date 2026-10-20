@@ -772,3 +772,57 @@ silently end navigation.
 - **Until then,** Otto stays on `3a8953c`. Any GO after a commanded stop whose
   held backlog takes more than about 5 s to drain may reboot Otto and end
   navigation (UNSET) without warning.
+
+---
+
+# Run 10, 2026-10-19 17:31: first run on NAVI_RVM_CONTINUITY_MANUAL `8986c5f`
+
+**David's account:** stopped between MM124 and MM125.
+
+| Log | sha256 |
+|---|---|
+| `9950011_20261019_172112.log` | `587d5bffe03b7e5d59ad5400222ab37e7c3308bb71c6cae55507359cc1854a94` |
+| `9950011_20261019_173147.log` | `1c64f3d753e083f75fae9fa7c08fd2128d6540b667ee9f64ca01d0e898f7be82` |
+
+Output: `analysis/navi_rvm_shape_20261018/field_20261019/run10_continuity/`.
+
+## Observations
+
+- **Boot** `D004D9A3888E8394` (battery). Declared CW 023 → 024 at 17:31:26.
+  **No reboot** during the run.
+- **Navigation:**
+  - **272 recognitions, all MM claims, 272/272 agreeing with the route**: MM024
+    → MM023 (one full lap) → MM124.
+  - **No CONTRADICTION.**
+  - The final state is MM124 → MM125, **matching David's stop between MM124 and
+    MM125**.
+- **Continuity:**
+  - 365 withheld runs, 5,228 blocks (104.6 s) in total.
+  - **4 runs of 1 s or longer**, each followed by the correct next claim:
+
+| Over | Duration | Offset from the baseline |
+|---|---|---|
+| MM038 | 29.9 s | −177 ADC |
+| MM065 | 32.3 s | +61 ADC |
+| MM119 | 16.4 s | +158 ADC |
+| MM121 shoulder | 5.1 s | **+7.9 ADC** (at the off-baseline margin) |
+
+  - **316 runs of 1–5 blocks.** These are mostly the first blocks of an
+    excursion lying within 24 ADC of a flat baseline: limitation 3 of the
+    delivery report. Each produces a DEVELOPMENT_STOPPED / RESUMED pair, so
+    `diag/rvm_stopgo` carried about 730 events in 10 minutes (`pub_drop 0`).
+- **Health:**
+  - `block_q_drop 0`, `nav_event_drop 0`, `pub_drop 0`, `cmd_drop 0`.
+  - Worst recognizer step 0.94 s; RVM stack at least 5,680 B free.
+  - `heap_min` 8,704 (since boot), lowest `heap_free` 10,284.
+  - NSR native drops 183, UDP failures 27.
+
+## Interpretation
+
+- **First field run of the unified Hall continuity:** a full lap plus 101
+  magnets, every claim correct, through four long stops or stalls over magnets.
+- **Open for David:**
+  - the volume of short DEVELOPMENT events: a reporting matter, not a
+    navigation one;
+  - the lowest `heap_free`, 10,284 B, lower than idle values (about 35 KB).
+    Neither was acted on.
