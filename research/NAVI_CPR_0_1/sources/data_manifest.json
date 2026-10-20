@@ -1,0 +1,75 @@
+{
+  "pi_path": "/home/david/NGR/navi_sync/navi_sync_20261015_100403.nsr",
+  "slice_start": 8652695604,
+  "slice_end_exclusive": 9281594685,
+  "slice_bytes": 628899081,
+  "slice_sha256": "a2b364546317c984fdc571d08b4e514e54e2a48d1302465e3bc854778ad573a6",
+  "bad_frames": 0,
+  "validated_frames": 750651,
+  "boots": {
+    "otto_cw": {
+      "reads": 9982608,
+      "bins": 99837,
+      "missing_bins": 14,
+      "serial_jumps": 3,
+      "start_s": 1.4000000000000001,
+      "end_s": 1998.14,
+      "boot": "D004D9A3888E8394",
+      "native_sha256": "747ee15e0590d0668bf0b7af06b02f9ba002d61a4b0550c6b108aadc409fca89",
+      "pi_offset_s": 1792456164.503655,
+      "comparison_source": "analysis/navi_rvm_shape_20261018/field_20261019/run10_continuity/ensembles_D004D9A3888E8394.csv",
+      "comparison_sha256": "d5b2f2bf5bf9e548963232f1ed03812d52478b5efaca1adfbb5174256796eaa8",
+      "continuation_comparison_source": "analysis/navi_rvm_shape_20261018/field_20261019/run11_slow/ensembles_D004D9A3888E8394.csv",
+      "continuation_comparison_sha256": "030a5df960776e8988c59ddc46befc78e86fdd27b8cedc1b86f256f17a38b708"
+    },
+    "otto_ccw": {
+      "reads": 9263952,
+      "bins": 92689,
+      "missing_bins": 54,
+      "serial_jumps": 6,
+      "start_s": 1.32,
+      "end_s": 1855.1000000000001,
+      "boot": "3B1BE1D923CB81FD",
+      "native_sha256": "dbab5d195809e4eccf7889319cd25135accae3dcc7bf0b67afc01793d72f69e1",
+      "pi_offset_s": 1792458188.482076,
+      "comparison_source": "analysis/navi_rvm_shape_20261018/field_20261019/run12_otto_ccw/ensembles_3B1BE1D923CB81FD.csv",
+      "comparison_sha256": "3842755efffc33ddd56179e2db522374f8bbc4bcb5ec141320b338e42934a4d7"
+    },
+    "toby_cw": {
+      "reads": 3536160,
+      "bins": 35395,
+      "missing_bins": 36,
+      "serial_jumps": 2,
+      "start_s": 1.32,
+      "end_s": 709.22,
+      "boot": "6A31DD995673D123",
+      "native_sha256": "e0578d70583d661ab79ad0cbe67a7dd69447d809327bd614fd5f0ed13ebd6360",
+      "pi_offset_s": 1792460019.770755,
+      "comparison_source": "analysis/navi_rvm_shape_20261018/field_20261019/run12_toby_cw/ensembles_6A31DD995673D123.csv",
+      "comparison_sha256": "4c9914aeb80fc59eaa21497a0136f41e63e5e8ef245e82eed42ba1680715a95d"
+    },
+    "otto_train": {
+      "reads": 8468560,
+      "bins": 85000,
+      "missing_bins": 359,
+      "serial_jumps": 45,
+      "start_s": 100.0,
+      "end_s": 1800.0,
+      "boot": "15549e9385faa4d5",
+      "source": "/Users/davidbrown/NGR/NGR-Files/hall-ground-20261015/derived/native_15549e9385faa4d5.bin",
+      "original_sha256": "a3cc9c6538e9aa3871a4e3357e96c7a76ef4c3f97ba282c52c610e718c7c4002",
+      "native_sha256": "b366bff8f17d28c64f7b666b68e171cef8521dcd1a791ecf6b147713506d0b20",
+      "source_native_rows": [
+        488277,
+        8956837
+      ]
+    }
+  },
+  "discarded_prefix_bytes": 0,
+  "trailing_bytes": 0,
+  "annotations": {
+    "source": "analysis/navi_rvm_shape_20261018/derived/annotation_boot1.csv",
+    "sha256": "41e004d0cd7e1505320431c272e0a59a1bc6f9d5f7875a1185c83f332bf86094",
+    "status": "ADC-derived boundaries; historical opening/sequence identity; not physical ground truth"
+  }
+}
