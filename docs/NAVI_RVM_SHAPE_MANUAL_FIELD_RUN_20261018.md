@@ -826,3 +826,18 @@ Output: `analysis/navi_rvm_shape_20261018/field_20261019/run10_continuity/`.
     navigation one;
   - the lowest `heap_free`, 10,284 B, lower than idle values (about 35 KB).
     Neither was acted on.
+
+**David, afterwards:** at the end he deliberately produced a few **stalls on
+magnets**.
+
+The end of the run, from `diag/rvm_ensemble` and `diag/rvm_stopgo`:
+
+| Time | What happened | Outcome |
+|---|---|---|
+| 17:40:20–17:40:36 | Stall **over MM119**, +158 ADC; 818 blocks (16.4 s) withheld | MM119 claimed once at 17:40:38.8 (LLR 39.2) |
+| 17:40:53–17:41:09 | Stall **on MM121's shoulder**, about ±8 ADC from the baseline: at the off-baseline margin (16 × noise ≈ 8.3 ADC) | **The tracing hovered across the margin.** Withholding switched on and off: 6 short runs at −7.2 to −8.2 ADC (6–33 blocks each), then 254 blocks (5.1 s) near +8 ADC. Part of that stationary plateau reached the recognizer. MM121 was still claimed once at 17:41:13.5 (LLR 36.1, window 4.5 s) |
+| afterwards | MM122, MM123, MM124 | all claimed correctly (LLR 41.6–43.2) |
+
+**This is the parameter watch-list item M (16 × noise), seen in the field.**
+- A stall whose level sits at the margin is only partly withheld.
+- Here recognition was unaffected (correct claim, LLR 36). No change was made.
