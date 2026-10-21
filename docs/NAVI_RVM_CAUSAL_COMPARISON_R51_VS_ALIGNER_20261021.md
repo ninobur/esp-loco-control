@@ -192,3 +192,38 @@ two declared boots never moved (10-20 r1, the STOP_NOW episode).
 
 **Reproduce:** `evaluate.py prepare | r51 | align <dataset> | score`. The inputs
 are listed in `collection.json`, built from the Pi capture and the run logs.
+
+---
+
+## Addendum: revision 5.1's baseline after a declaration conflicts with operating procedure (operator, 2026-10-21)
+
+**Operating procedure (David):** after a stop he ends AUTO, places the
+locomotive at **mid-interval, on baseline**, and declares there, **standing**.
+The standing reading at that spot is the intended baseline.
+
+**What revision 5.1 does instead:**
+
+- r5's motor-off pause ignores every reading below PWM 15, so the standing
+  mid-interval readings are discarded.
+- The recognizer's first baseline after the declaration is taken **from the
+  first seconds of motion**.
+- Pulling away from mid-interval, those readings come from the approach to the
+  next magnet, possibly inside its field.
+
+**Field example, 2026-10-21:**
+
+1. Declared at MM047 at 09:05:37.
+2. Moving from 09:06:51.
+3. MM048 was judged against a baseline of about 2024. Otto's cruising baseline
+   was 1980–1995.
+4. The continuity rule then withheld cruising as "off baseline" (more than
+   25 off), which caused the MM049 CONTRADICTION.
+
+David: "This method does not align physically with the way I am operating the
+railroad."
+
+**Origin:** a unilateral change in r5. It was made because both locomotives'
+Hall reads 40–52 counts differently with the motor off than moving.
+
+**No fix proposed.** How a standing declaration sets the baseline, given that
+motor-off shift, is a behaviour requirement for the operator to define.
