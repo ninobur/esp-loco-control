@@ -742,3 +742,58 @@ leader starts.
 | Toby | `29649155e2c980b5` |
 
 **Not flashed.**
+
+---
+
+## 2026-10-21, second run (revision 5.1) and operator corrections
+
+**David:** "This last time OTTO was 5 MM behind Toby at Grillers. By the way,
+THERE IS NO COAST. There is only a ramp. The loco stops when PWM is between 30
+and 15, depending on conditions. You must get rid of the coasting theory."
+
+**Correction to this record.** Every reference above to a "coast" or
+"coasting" is wrong and is withdrawn. The locomotive keeps moving **during the
+braking ramp** until the applied PWM falls to between 30 and 15, then it stops.
+The host model in `test_bubble.cpp` represents the same physics: speed is
+PWM/90 until PWM 20, and the 300 ms/step ramp takes several seconds to pass
+through that band. Its "landing past the target" is distance covered on the
+ramp. It is not coast. The model's numbers are not railway predictions.
+
+**Field spacing:** Otto, the follower, stood 5 MM behind Toby at Grillers.
+
+**Otto's second stop** (boot `671EDD80…`, after re-declaring at MM047 at
+09:05:37; the standing declaration took effect as r5.1 intended):
+
+1. Departure: PWM ramping 4 → 90 from 09:06:51. First recognition: MM048 at
+   09:07:01, LLR 38.6. Its reference baseline was **2024**, taken during the
+   departure (motor on, accelerating).
+2. At cruise, Otto's moving baseline read **1980–1995**, 30–45 below the
+   reference. Continuity withheld it (floor 25) in runs of 67, 74, 59 and 53
+   blocks.
+3. The spliced tracing (noise 17.1) gave an S ensemble where MM049 is N.
+   CONTRADICTION at 09:07:08, then a controlled stop.
+
+**Common factor in both of today's stops:** Otto's Hall behaves unlike
+yesterday from about 08:52.
+
+| Condition | 2026-10-20 | 2026-10-21 from 08:52 |
+|---|---|---|
+| Moving baseline | ~1895 | ~1990 |
+| Standing, motor off | 1940 ± 1 | wandering 1933–2148, spikes to 2235 |
+
+Toby, standing at the same time, read 1842 ± 2. David's visual check of the
+Hall and the INA219 found nothing out of order, and there was no disturbance.
+**Cause not established.**
+
+**Firmware weakness exposed** (not changed): a continuity reference error
+above 25 ADC makes continuity withhold *moving* baseline and splice the
+tracing. Both of today's failures were withheld at applied PWM 64–90. With the
+r5 motor-off pause, continuity's only remaining purpose is a stall with the
+motor on. Recorded stalls were at low PWM: Grillers at 32, and departures
+standing below about 40.
+
+**Proposal for the next session** (not decided): run the Hall continuity rule
+only while applied PWM < 50.
+
+**Status:** the locomotives are put away. **No flash until the next session.**
+r6 (`2b2940c`) is built and not flashed.

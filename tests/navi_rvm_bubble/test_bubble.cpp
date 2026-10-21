@@ -85,7 +85,7 @@ int main() {
   for (int8_t dir : {int8_t(1), int8_t(-1)}) {
     Loco a; init(a, 1, dir > 0 ? 20 : 150, dir); PeerView none;
     for (uint32_t t = 0; t < 900000; t += DT) step(a, none, t);
-    printf("T2 dir %+d: %zu stops (physical MM after the model's coast):", dir, a.stops.size()); for (auto m : a.stops) printf(" %u", m);
+    printf("T2 dir %+d: %zu stops (physical MM where the model's ramp ended):", dir, a.stops.size()); for (auto m : a.stops) printf(" %u", m);
     printf("; braking began at committed"); for (auto m : a.brakeAt) printf(" %u", m); printf("\n");
     CHECK(a.stops.size() >= 8, "dir %d: expected two laps of 4 stations, got %zu", dir, a.stops.size());
     CHECK(a.brakeAt.size() == a.stops.size() || a.brakeAt.size() == a.stops.size() + 1, "dir %d: %zu brakings for %zu stops", dir, a.brakeAt.size(), a.stops.size());
@@ -111,8 +111,8 @@ int main() {
     }
     printf("T3 dir %+d: A stops %zu, B stops %zu, B holds %d at", dir, a.stops.size(), b.stops.size(), holds);
     for (auto m : bHoldMm) printf(" %u", m); printf("; min gap %.2f MM\n", minGap);
-    // r6: avoidance stop only (5 MM behind the leader's committed MM). The model's ~3 MM coast
-    // brings the physical gap to ~2 MM; the field gap at rest was committed 5 (Grillers 2026-10-21).
+    // r6: avoidance stop only (5 MM behind the leader's committed MM). Distance covered during the
+    // model's braking ramp (no coast exists) brings the physical gap to ~2 MM in the model; the field gap at rest was committed 5 (Grillers 2026-10-21).
     CHECK(minGap >= 1.5, "dir %d: follower closed to %.2f MM of the leader", dir, minGap);
     CHECK(holds >= 1, "dir %d: the follower never held", dir);
     CHECK(a.stops.size() >= 6 && b.stops.size() >= 6, "dir %d: trains stopped serving stations", dir);
