@@ -669,3 +669,16 @@ block:
 |---|---|
 | Otto | `5cfc216426e2377b` |
 | Toby | `dc7b3d8777816c1d` |
+
+**Flash of r5.1 (`5b7a518`).** David authorized it: "flash revision 5.1
+(5b7a518) to Otto and Toby over USB, no backup, verify over MQTT". No backup
+was taken.
+
+| Locomotive | Port / MAC | MQTT after boot |
+|---|---|---|
+| Otto | `…serial110`, `68:09:47:ac:4e:b4` | boot `81A074309EC045EA`; `heap_min` 13,676 B; `block_q_drop` 0; ESP-NOW 1; `peer_rx` 117 |
+| Toby | `…serial10`, `ec:e3:34:78:a2:60` | boot `39B85830DD0CFC91`; `heap_min` 9,740 B; `block_q_drop` 0; ESP-NOW 1; `peer_rx` 102 |
+
+All applications were written with "Hash of data verified". **The two hear
+each other (r5 packets).** The standing-declaration fix is not yet verified on
+the locomotives, because it needs a declaration.
