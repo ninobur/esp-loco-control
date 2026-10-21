@@ -20,9 +20,14 @@
 // STATIONS (EWO_0_6, operator 2026-10-15: stop at the centres):
 //   PATIO 15, GRILLERS 63, ARCHES 108, BAMBOO 157.
 //
-// BUBBLE (operator, 2026-10-20). If the leader is in the station, the follower
-// performs the same stop, just BUBBLE_HOLD_MM (5) mile markers earlier, and
-// waits there. When the leader leaves the platform, the follower advances to
+// BUBBLE. Revision 6 (operator 2026-10-21): "we do not need a special stop
+// sequence when the locos are at the station. The follower can just use an
+// avoidance stop." The station-hold below is disabled; the follower stops
+// BUBBLE_HOLD_MM behind the leader by the follow-the-leader carpet, at stations
+// as anywhere. The convoy wait is kept ("It is more interesting if they are
+// interacting"). Original revision-3 text, for the record: if the leader is in
+// the station, the follower performs the same stop, just BUBBLE_HOLD_MM (5) mile
+// markers earlier, and waits there. When the leader leaves the platform, the follower advances to
 // the platform and makes its normal station stop.
 //   "Leader in the station" = the peer is fresh, tracking, travelling the same
 //   direction, and either reports this station with final braking or dwell, or
@@ -403,14 +408,12 @@ class StationDriver {
       out.occupancy = link == Link::Known ? stationOccupancy(v.p, station_, in.pos, in.dir) : Occupancy::NoPeer;
       // A held platform may release unless we are the confirmed leader and the follower has not arrived.
       if (!convoyWaitNow) platformHeld_ = false;
-      const bool blocked = out.occupancy == Occupancy::Occupied;
-      if (blocked && !platformStopUnderway && toStation <= 11 + HOLD_TARGET_MM) {
-        if (kind_ == TargetKind::Platform) {
-          // The same carpet, HOLD_TARGET_MM earlier (stands ~BUBBLE_HOLD_MM short); inside that: stop here.
-          if (toStation > HOLD_TARGET_MM) setTarget(TargetKind::Hold, before(s, in.dir, HOLD_TARGET_MM), out);
-          else setTarget(TargetKind::StopNow, in.pos, out);
-        }
-      } else if (!blocked && kind_ != TargetKind::Platform) {
+      // Operator 2026-10-21: no special station sequence for the follower. It
+      // uses the avoidance stop (follow the leader, below) at stations too.
+      // Occupancy is still computed, for telemetry only.
+      const bool blocked = false;
+      (void)toStation;
+      if (!blocked && kind_ != TargetKind::Platform) {
         // The leader has left the platform / the peer is back. Stopped at the
         // holding point: wait a random 2-5 s, then move up.
         if (!held_) setTarget(TargetKind::Platform, s, out);

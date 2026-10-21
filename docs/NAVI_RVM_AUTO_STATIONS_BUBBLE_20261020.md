@@ -682,3 +682,63 @@ was taken.
 All applications were written with "Hash of data verified". **The two hear
 each other (r5 packets).** The standing-declaration fix is not yet verified on
 the locomotives, because it needs a declaration.
+
+---
+
+## 2026-10-21 morning (revision 5.1 on both)
+
+**David:** "They accepted the location and auto. They performed well. Just not
+Otto stopped for a CONTRADICTION at CW 046-047 actual."
+
+- **Otto's CONTRADICTION** (08:54:21, boot `671EDD80…`): expected MM038 (S),
+  recognized N, while physically at 046–047.
+  - Claims MM153–037 were correct (LLR 36–44).
+  - From about 08:52:30 (MM011), Otto's moving reference baseline climbed from
+    about 1910 to 2040 over two minutes, at cruise. Yesterday the same stretch
+    was flat at 1895–1903.
+  - Continuity withheld flat cruising runs that sat 70 ADC above the reference
+    (51–59 blocks). The tracing was spliced (noise 9.0 at MM036, 5.8 at
+    MM037).
+  - **After the stop, motor off**, Otto's Hall still wandered between 1933 and
+    2148, with spikes to 2235, changing every few seconds. Toby, standing at
+    the same time, read 1842 ± 2. Yesterday Otto standing held 1940 ± 1.
+  - The INA219 bus reading also read 0.00 V intermittently (08:50:03–08:50:48,
+    and from 08:54:03).
+  - David checked the Hall and the INA219 visually: "Nothing appeared out of
+    order. No disturbance. Otto stopped very near a magnet."
+  - **Cause not established.** It is recorded as an open finding. The
+    navigator counted correctly until the Hall itself became unstable.
+- **Convoy at Grillers** (08:45:47): Otto, the follower, held at committed
+  MM058 behind Toby at the MM063 platform. Committed gap 5.
+
+## Revision 6, 2026-10-21: avoidance stop only
+
+**David:** "we do not need a special stop sequence when the locos are at the
+station. The follower can just use an avoidance stop." Convoy wait: "keep — it
+is more interesting if they are interacting."
+
+**Change.** The station-specific follower hold (HOLD 5 MM before the platform,
+and STOP_NOW inside it) is disabled. At stations, as anywhere, the follower
+stops by the follow-the-leader carpet, 5 MM behind the leader's committed MM.
+The convoy wait, the silence rule and each train's own platform stop are
+unchanged. The follower leaves its own platform after its 5 s dwell, capped
+behind the leader.
+
+**Consequence.** With the leader committed at the station MM, the follower
+stands where the station hold put it (Grillers this morning: 63 − 5 = 58). When
+the leader commits station+1, it stands 1 MM closer. The model's physical
+minimum gap is about 2.0 MM, against 5.0 with the station hold, because of its
+crude 3 MM coast. Adjust `BUBBLE_HOLD_MM` if the field shows it is too close.
+
+**Host tests (15, all pass, updated):** T3 and T12 check the avoidance stop at
+every station (minimum 2.0 MM in the model). T11: the follower moves after the
+leader starts.
+
+**Compile:**
+
+| Locomotive | App sha256 (first 16) |
+|---|---|
+| Otto | `fd22fe68804454bb` |
+| Toby | `29649155e2c980b5` |
+
+**Not flashed.**

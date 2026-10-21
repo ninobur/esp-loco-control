@@ -111,12 +111,10 @@ int main() {
     }
     printf("T3 dir %+d: A stops %zu, B stops %zu, B holds %d at", dir, a.stops.size(), b.stops.size(), holds);
     for (auto m : bHoldMm) printf(" %u", m); printf("; min gap %.2f MM\n", minGap);
-    CHECK(minGap >= 2.0, "dir %d: follower closed to %.2f MM of the leader", dir, minGap);
+    // r6: avoidance stop only (5 MM behind the leader's committed MM). The model's ~3 MM coast
+    // brings the physical gap to ~2 MM; the field gap at rest was committed 5 (Grillers 2026-10-21).
+    CHECK(minGap >= 1.5, "dir %d: follower closed to %.2f MM of the leader", dir, minGap);
     CHECK(holds >= 1, "dir %d: the follower never held", dir);
-    for (auto m : bHoldMm) {
-      bool ok = false; for (auto& s : STATIONS) if (m == before(s.mm, dir, HOLD_TARGET_MM)) ok = true;
-      CHECK(ok, "dir %d: hold target MM%u is not HOLD_TARGET_MM before a station", dir, m);
-    }
     CHECK(a.stops.size() >= 6 && b.stops.size() >= 6, "dir %d: trains stopped serving stations", dir);
   }
   // ---- T4: peer radio silent while the follower approaches: it holds and does not advance.
@@ -212,14 +210,14 @@ int main() {
     uint32_t heldAt = 0, freeAt = 0, movedAt = 0;
     for (uint32_t t = 0; t < 200000 && !movedAt; t += DT) {
       exchange(atA, b, t); exchange(atB, a, t); step(a, atA.view, t); step(b, atB.view, t);
-      if (!heldAt && b.last.kind == TargetKind::Hold && b.last.bubble == BubbleState::Holding && b.applied == 0) heldAt = t;
-      if (heldAt && !freeAt && b.last.occupancy == Occupancy::Free) freeAt = t;
+      if (!heldAt && b.last.followHeld && b.last.bubble == BubbleState::Holding && b.applied == 0) heldAt = t;
+      if (heldAt && !freeAt && a.applied > 0) freeAt = t;                    // the leader starts
       if (freeAt && b.target > 0) movedAt = t;
     }
-    printf("T11: follower stopped at the holding point %.2f s, platform free %.2f s, follower moves %.2f s (delay %.2f s)\n",
+    printf("T11: follower stopped behind the leader %.2f s, leader starts %.2f s, follower moves %.2f s (after %.2f s)\n",
            heldAt / 1000.0, freeAt / 1000.0, movedAt / 1000.0, (movedAt - freeAt) / 1000.0);
-    CHECK(heldAt && freeAt && movedAt, "follower must stop at the holding point, then move after the platform frees");
-    CHECK(movedAt - freeAt >= FOLLOWER_START_DELAY_MIN_MS, "follower moved %u ms after the platform freed", unsigned(movedAt - freeAt));
+    CHECK(heldAt && freeAt && movedAt, "follower must stop behind the leader, then move after the leader starts");
+    CHECK(movedAt - freeAt >= FOLLOWER_START_DELAY_MIN_MS, "follower moved %u ms after the leader started", unsigned(movedAt - freeAt));
     // (no upper bound: the follower also waits until the leader's committed MM has moved on)
   }
   // ---- T12: convoy. Follower far behind: the leader waits on each platform until the follower is held,
@@ -242,7 +240,7 @@ int main() {
            dir, a.stops.size(), b.stops.size(), waits, longestWait / 1000.0, minGap, roleName(a.last.confirmedRole));
     CHECK(waits >= 3, "dir %d: the leader never waited for the follower", dir);
     CHECK(a.stops.size() >= 8 && b.stops.size() >= 8, "dir %d: convoy stalled (deadlock?)", dir);
-    CHECK(minGap >= 3.0, "dir %d: trains closed to %.2f MM", dir, minGap);
+    CHECK(minGap >= 1.5, "dir %d: trains closed to %.2f MM", dir, minGap);
   }
   // ---- T13: the leader is paused on the open line (operator cmd/stop). The follower must stop behind it,
   // stay, and move on 2-5 s after the leader has moved. Several pause points, both directions.
