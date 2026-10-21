@@ -618,3 +618,11 @@ Look for unintended consequences."
 
 **Host tests:** 15, all pass. **Compile:** Otto app `1e4dec4b3ce69b03…`, Toby app
 `266ef7c60ef82d34…`, 997,499 B each. **Not flashed.**
+
+**Addition (field report, 2026-10-20):** "when i push END AUTO button, the
+process does not release the locos for auto operations." The dashboard's END
+AUTO publishes `ngr/loco/<id>/cmd/dispatcher_release`. Earlier revisions did
+not subscribe to it, which was a porting gap. It is now subscribed and handled
+as in NAVI_EWO_0_6: AUTO enlisted and running are both cleared, a controlled
+stop is made, `state/auto 0` is published, and the warning reads "RELEASED by
+dispatcher".

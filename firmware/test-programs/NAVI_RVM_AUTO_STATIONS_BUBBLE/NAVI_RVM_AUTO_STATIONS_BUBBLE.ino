@@ -626,6 +626,12 @@ static void handleCommand(const CmdMsg& command) {
     if (!want) { withdrawAuto(nullptr); return; }
     if (Refusal reason = admitAuto(o)) { warn(reason); return; }
     autoEnrolled = true; publishAuto();
+  } else if (!strcmp(leaf, "dispatcher_release")) {
+    // Dashboard END AUTO (as NAVI_EWO_0_6): leave AUTO with a controlled stop.
+    autoRunning = autoEnrolled = false;
+    requestPwm(0, 0, AUTO_STEP_DOWN_MS);
+    publishAuto();
+    warn("RELEASED by dispatcher");
   } else if (!strcmp(leaf, "go")) {
     if (Refusal reason = admitGo(o)) { warn(reason); return; }
     autoRunning = true; clearWarning(); publishAuto();
@@ -794,7 +800,7 @@ static void networkTask(void*) {
       if (mqtt.connect(id, online, 0, true, "0")) {
         mqtt.publish(online, "1", true);
         const char* commands[] = {"estop", "throttle", "direction", "brake", "stop", "auto", "go",
-                                  "session_direction", "start_mm", "start_interval"};
+                                  "session_direction", "start_mm", "start_interval", "dispatcher_release"};
         for (const char* c : commands) {
           char topic[72]; snprintf(topic, sizeof(topic), "ngr/loco/%s/cmd/%s", LOCO_NAME, c); mqtt.subscribe(topic);
         }
