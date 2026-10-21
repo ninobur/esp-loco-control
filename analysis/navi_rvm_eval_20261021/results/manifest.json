@@ -1,0 +1,219 @@
+{
+ "O_1015_boot1": {
+  "blocks": 192124,
+  "seconds": 3842.5,
+  "gaps": 1000,
+  "declarations": 6,
+  "ir": true
+ },
+ "O_1015_boot2": {
+  "blocks": 40620,
+  "seconds": 812.4,
+  "gaps": 41,
+  "declarations": 1,
+  "ir": true
+ },
+ "O_1018_326C3574": {
+  "blocks": 83169,
+  "seconds": 1663.4,
+  "gaps": 43,
+  "declarations": 1,
+  "ir": false
+ },
+ "O_1018_05D95832": {
+  "blocks": 14690,
+  "seconds": 293.8,
+  "gaps": 1,
+  "declarations": 1,
+  "ir": false
+ },
+ "O_1018_B05694E2": {
+  "blocks": 34263,
+  "seconds": 685.3,
+  "gaps": 8,
+  "declarations": 1,
+  "ir": false
+ },
+ "O_1018_8F9B71ED": {
+  "blocks": 23260,
+  "seconds": 465.2,
+  "gaps": 9,
+  "declarations": 1,
+  "ir": false
+ },
+ "O_1018_EFD0225A": {
+  "blocks": 21096,
+  "seconds": 421.9,
+  "gaps": 9,
+  "declarations": 1,
+  "ir": false
+ },
+ "O_1018_FA9D779D": {
+  "blocks": 12728,
+  "seconds": 254.6,
+  "gaps": 78,
+  "declarations": 1,
+  "ir": false
+ },
+ "O_1018_B29BDF0E": {
+  "blocks": 45997,
+  "seconds": 919.9,
+  "gaps": 37,
+  "declarations": 1,
+  "ir": false
+ },
+ "O_1018_7D01A061": {
+  "blocks": 82515,
+  "seconds": 1650.3,
+  "gaps": 88,
+  "declarations": 0,
+  "ir": false
+ },
+ "O_1018_8C00F7FD": {
+  "blocks": 3803,
+  "seconds": 76.1,
+  "gaps": 1,
+  "declarations": 0,
+  "ir": false
+ },
+ "O_1018_DAFB0CF1": {
+  "blocks": 12317,
+  "seconds": 246.3,
+  "gaps": 3,
+  "declarations": 0,
+  "ir": false
+ },
+ "O_1018_DCDA8770": {
+  "blocks": 22453,
+  "seconds": 449.1,
+  "gaps": 20,
+  "declarations": 0,
+  "ir": false
+ },
+ "O_1019_RUN9": {
+  "blocks": 44217,
+  "seconds": 884.3,
+  "gaps": 105,
+  "declarations": 1,
+  "ir": false
+ },
+ "O_1019_D004D9A3": {
+  "blocks": 62172,
+  "seconds": 1243.4,
+  "gaps": 0,
+  "declarations": 1,
+  "ir": false
+ },
+ "O_1019_3B1BE1D9": {
+  "blocks": 92689,
+  "seconds": 1853.8,
+  "gaps": 54,
+  "declarations": 1,
+  "ir": false
+ },
+ "T_1019_6A31DD99": {
+  "blocks": 35395,
+  "seconds": 707.9,
+  "gaps": 36,
+  "declarations": 2,
+  "ir": false
+ },
+ "O_1020_16FC79DF": {
+  "blocks": 13388,
+  "seconds": 267.8,
+  "gaps": 0,
+  "declarations": 0,
+  "ir": false
+ },
+ "O_1020_4ED44023": {
+  "blocks": 1714,
+  "seconds": 34.3,
+  "gaps": 1,
+  "declarations": 0,
+  "ir": false
+ },
+ "O_1020_7F7AC4AB": {
+  "blocks": 42001,
+  "seconds": 840.0,
+  "gaps": 13,
+  "declarations": 1,
+  "ir": false
+ },
+ "O_1020_CF896167": {
+  "blocks": 49581,
+  "seconds": 991.6,
+  "gaps": 1,
+  "declarations": 0,
+  "ir": false
+ },
+ "O_1020_DD20D550": {
+  "blocks": 157632,
+  "seconds": 3152.6,
+  "gaps": 213,
+  "declarations": 4,
+  "ir": false
+ },
+ "O_1020_E9EB68EC": {
+  "blocks": 6099,
+  "seconds": 122.0,
+  "gaps": 105,
+  "declarations": 0,
+  "ir": false
+ },
+ "O_1020_516ECF85": {
+  "blocks": 32245,
+  "seconds": 644.9,
+  "gaps": 130,
+  "declarations": 0,
+  "ir": false
+ },
+ "O_1020_5CE2BC5F": {
+  "blocks": 57681,
+  "seconds": 1153.6,
+  "gaps": 61,
+  "declarations": 1,
+  "ir": false
+ },
+ "O_1021_671EDD80": {
+  "blocks": 77054,
+  "seconds": 1541.1,
+  "gaps": 45,
+  "declarations": 2,
+  "ir": false
+ },
+ "T_1020_57E43F71": {
+  "blocks": 26148,
+  "seconds": 523.0,
+  "gaps": 1,
+  "declarations": 1,
+  "ir": false
+ },
+ "T_1020_91CB945C": {
+  "blocks": 4151,
+  "seconds": 83.0,
+  "gaps": 2832,
+  "declarations": 0,
+  "ir": false
+ },
+ "T_1020_E504D063": {
+  "blocks": 155052,
+  "seconds": 3101.0,
+  "gaps": 271,
+  "declarations": 2,
+  "ir": false
+ },
+ "T_1020_199278F9": {
+  "blocks": 52516,
+  "seconds": 1050.3,
+  "gaps": 7,
+  "declarations": 1,
+  "ir": false
+ },
+ "T_1021_33A0700E": {
+  "blocks": 93549,
+  "seconds": 1871.0,
+  "gaps": 21,
+  "declarations": 2,
+  "ir": false
+ }
+}

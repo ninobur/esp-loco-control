@@ -1,0 +1,320 @@
+[
+ {
+  "name": "O_1015_boot1",
+  "loco": "Otto",
+  "date": "2026-10-15",
+  "boot": "15549e9385faa4d5",
+  "native": "/Users/davidbrown/NGR/NGR-Files/hall-ground-20261015/derived/native_15549e9385faa4d5.bin",
+  "pkg_steps": true,
+  "notes": "aligner template source (in-sample); IR present"
+ },
+ {
+  "name": "O_1015_boot2",
+  "loco": "Otto",
+  "date": "2026-10-15",
+  "boot": "4d8083de79a0e299",
+  "native": "/Users/davidbrown/NGR/NGR-Files/hall-ground-20261015/derived/native_4d8083de79a0e299.bin",
+  "pkg_steps": true,
+  "notes": "10-16 holdout; IR present"
+ },
+ {
+  "name": "O_1018_326C3574",
+  "loco": "Otto",
+  "date": "2026-10-18/19",
+  "boot": "326C357476B624FC",
+  "native": "/private/tmp/claude-501/-Users-davidbrown-esp-loco-control/436690f5-1e96-479c-bf84-354c4170e7c7/scratchpad/uni/boots/native_326C357476B624FC.bin",
+  "npz": "/private/tmp/claude-501/-Users-davidbrown-esp-loco-control/436690f5-1e96-479c-bf84-354c4170e7c7/scratchpad/uni/boots/boot_326C357476B624FC.npz",
+  "tsv": "/private/tmp/claude-501/-Users-davidbrown-esp-loco-control/436690f5-1e96-479c-bf84-354c4170e7c7/scratchpad/uni/decl_events.tsv",
+  "notes": "declared CCW, travelled CW (force CW as in the 10-19 harness)",
+  "force_cw": true
+ },
+ {
+  "name": "O_1018_05D95832",
+  "loco": "Otto",
+  "date": "2026-10-18/19",
+  "boot": "05D9583227F92717",
+  "native": "/private/tmp/claude-501/-Users-davidbrown-esp-loco-control/436690f5-1e96-479c-bf84-354c4170e7c7/scratchpad/uni/boots/native_05D9583227F92717.bin",
+  "npz": "/private/tmp/claude-501/-Users-davidbrown-esp-loco-control/436690f5-1e96-479c-bf84-354c4170e7c7/scratchpad/uni/boots/boot_05D9583227F92717.npz",
+  "tsv": "/private/tmp/claude-501/-Users-davidbrown-esp-loco-control/436690f5-1e96-479c-bf84-354c4170e7c7/scratchpad/uni/decl_events.tsv",
+  "notes": "",
+  "force_cw": false
+ },
+ {
+  "name": "O_1018_B05694E2",
+  "loco": "Otto",
+  "date": "2026-10-18/19",
+  "boot": "B05694E24BFC6579",
+  "native": "/private/tmp/claude-501/-Users-davidbrown-esp-loco-control/436690f5-1e96-479c-bf84-354c4170e7c7/scratchpad/uni/boots/native_B05694E24BFC6579.bin",
+  "npz": "/private/tmp/claude-501/-Users-davidbrown-esp-loco-control/436690f5-1e96-479c-bf84-354c4170e7c7/scratchpad/uni/boots/boot_B05694E24BFC6579.npz",
+  "tsv": "/private/tmp/claude-501/-Users-davidbrown-esp-loco-control/436690f5-1e96-479c-bf84-354c4170e7c7/scratchpad/uni/decl_events.tsv",
+  "notes": "run 3: stops over magnets",
+  "force_cw": false
+ },
+ {
+  "name": "O_1018_8F9B71ED",
+  "loco": "Otto",
+  "date": "2026-10-18/19",
+  "boot": "8F9B71ED5DAF40BB",
+  "native": "/private/tmp/claude-501/-Users-davidbrown-esp-loco-control/436690f5-1e96-479c-bf84-354c4170e7c7/scratchpad/uni/boots/native_8F9B71ED5DAF40BB.bin",
+  "npz": "/private/tmp/claude-501/-Users-davidbrown-esp-loco-control/436690f5-1e96-479c-bf84-354c4170e7c7/scratchpad/uni/boots/boot_8F9B71ED5DAF40BB.npz",
+  "tsv": "/private/tmp/claude-501/-Users-davidbrown-esp-loco-control/436690f5-1e96-479c-bf84-354c4170e7c7/scratchpad/uni/decl_events.tsv",
+  "notes": "",
+  "force_cw": false
+ },
+ {
+  "name": "O_1018_EFD0225A",
+  "loco": "Otto",
+  "date": "2026-10-18/19",
+  "boot": "EFD0225ADC42E524",
+  "native": "/private/tmp/claude-501/-Users-davidbrown-esp-loco-control/436690f5-1e96-479c-bf84-354c4170e7c7/scratchpad/uni/boots/native_EFD0225ADC42E524.bin",
+  "npz": "/private/tmp/claude-501/-Users-davidbrown-esp-loco-control/436690f5-1e96-479c-bf84-354c4170e7c7/scratchpad/uni/boots/boot_EFD0225ADC42E524.npz",
+  "tsv": "/private/tmp/claude-501/-Users-davidbrown-esp-loco-control/436690f5-1e96-479c-bf84-354c4170e7c7/scratchpad/uni/decl_events.tsv",
+  "notes": "",
+  "force_cw": false
+ },
+ {
+  "name": "O_1018_FA9D779D",
+  "loco": "Otto",
+  "date": "2026-10-18/19",
+  "boot": "FA9D779D889CC1F9",
+  "native": "/private/tmp/claude-501/-Users-davidbrown-esp-loco-control/436690f5-1e96-479c-bf84-354c4170e7c7/scratchpad/uni/boots/native_FA9D779D889CC1F9.bin",
+  "npz": "/private/tmp/claude-501/-Users-davidbrown-esp-loco-control/436690f5-1e96-479c-bf84-354c4170e7c7/scratchpad/uni/boots/boot_FA9D779D889CC1F9.npz",
+  "tsv": "/private/tmp/claude-501/-Users-davidbrown-esp-loco-control/436690f5-1e96-479c-bf84-354c4170e7c7/scratchpad/uni/decl_events.tsv",
+  "notes": "",
+  "force_cw": false
+ },
+ {
+  "name": "O_1018_B29BDF0E",
+  "loco": "Otto",
+  "date": "2026-10-18/19",
+  "boot": "B29BDF0E37C0CDA1",
+  "native": "/private/tmp/claude-501/-Users-davidbrown-esp-loco-control/436690f5-1e96-479c-bf84-354c4170e7c7/scratchpad/uni/boots/native_B29BDF0E37C0CDA1.bin",
+  "npz": "/private/tmp/claude-501/-Users-davidbrown-esp-loco-control/436690f5-1e96-479c-bf84-354c4170e7c7/scratchpad/uni/boots/boot_B29BDF0E37C0CDA1.npz",
+  "tsv": "/private/tmp/claude-501/-Users-davidbrown-esp-loco-control/436690f5-1e96-479c-bf84-354c4170e7c7/scratchpad/uni/decl_events.tsv",
+  "notes": "run 8: stalls",
+  "force_cw": false
+ },
+ {
+  "name": "O_1018_7D01A061",
+  "loco": "Otto",
+  "date": "2026-10-18/19",
+  "boot": "7D01A0617FD2AF78",
+  "native": "/private/tmp/claude-501/-Users-davidbrown-esp-loco-control/436690f5-1e96-479c-bf84-354c4170e7c7/scratchpad/uni/boots/native_7D01A0617FD2AF78.bin",
+  "npz": "/private/tmp/claude-501/-Users-davidbrown-esp-loco-control/436690f5-1e96-479c-bf84-354c4170e7c7/scratchpad/uni/boots/boot_7D01A0617FD2AF78.npz",
+  "tsv": "/private/tmp/claude-501/-Users-davidbrown-esp-loco-control/436690f5-1e96-479c-bf84-354c4170e7c7/scratchpad/uni/decl_events.tsv",
+  "notes": "",
+  "force_cw": false
+ },
+ {
+  "name": "O_1018_8C00F7FD",
+  "loco": "Otto",
+  "date": "2026-10-18/19",
+  "boot": "8C00F7FD5E4ED086",
+  "native": "/private/tmp/claude-501/-Users-davidbrown-esp-loco-control/436690f5-1e96-479c-bf84-354c4170e7c7/scratchpad/uni/boots/native_8C00F7FD5E4ED086.bin",
+  "npz": "/private/tmp/claude-501/-Users-davidbrown-esp-loco-control/436690f5-1e96-479c-bf84-354c4170e7c7/scratchpad/uni/boots/boot_8C00F7FD5E4ED086.npz",
+  "tsv": "/private/tmp/claude-501/-Users-davidbrown-esp-loco-control/436690f5-1e96-479c-bf84-354c4170e7c7/scratchpad/uni/decl_events.tsv",
+  "notes": "",
+  "force_cw": false
+ },
+ {
+  "name": "O_1018_DAFB0CF1",
+  "loco": "Otto",
+  "date": "2026-10-18/19",
+  "boot": "DAFB0CF10DD83178",
+  "native": "/private/tmp/claude-501/-Users-davidbrown-esp-loco-control/436690f5-1e96-479c-bf84-354c4170e7c7/scratchpad/uni/boots/native_DAFB0CF10DD83178.bin",
+  "npz": "/private/tmp/claude-501/-Users-davidbrown-esp-loco-control/436690f5-1e96-479c-bf84-354c4170e7c7/scratchpad/uni/boots/boot_DAFB0CF10DD83178.npz",
+  "tsv": "/private/tmp/claude-501/-Users-davidbrown-esp-loco-control/436690f5-1e96-479c-bf84-354c4170e7c7/scratchpad/uni/decl_events.tsv",
+  "notes": "",
+  "force_cw": false
+ },
+ {
+  "name": "O_1018_DCDA8770",
+  "loco": "Otto",
+  "date": "2026-10-18/19",
+  "boot": "DCDA8770DA8A0D46",
+  "native": "/private/tmp/claude-501/-Users-davidbrown-esp-loco-control/436690f5-1e96-479c-bf84-354c4170e7c7/scratchpad/uni/boots/native_DCDA8770DA8A0D46.bin",
+  "npz": "/private/tmp/claude-501/-Users-davidbrown-esp-loco-control/436690f5-1e96-479c-bf84-354c4170e7c7/scratchpad/uni/boots/boot_DCDA8770DA8A0D46.npz",
+  "tsv": "/private/tmp/claude-501/-Users-davidbrown-esp-loco-control/436690f5-1e96-479c-bf84-354c4170e7c7/scratchpad/uni/decl_events.tsv",
+  "notes": "",
+  "force_cw": false
+ },
+ {
+  "name": "O_1019_RUN9",
+  "loco": "Otto",
+  "date": "2026-10-19",
+  "boot": "RUN9",
+  "native": "/private/tmp/claude-501/-Users-davidbrown-esp-loco-control/436690f5-1e96-479c-bf84-354c4170e7c7/scratchpad/run9/boots/native_RUN9.bin",
+  "npz": "/private/tmp/claude-501/-Users-davidbrown-esp-loco-control/436690f5-1e96-479c-bf84-354c4170e7c7/scratchpad/run9/boots/boot_RUN9.npz",
+  "tsv": null,
+  "notes": "run 9 stitched; 22 stalls"
+ },
+ {
+  "name": "O_1019_D004D9A3",
+  "loco": "Otto",
+  "date": "2026-10-19",
+  "boot": "D004D9A3888E8394",
+  "native": "/private/tmp/claude-501/-Users-davidbrown-esp-loco-control/436690f5-1e96-479c-bf84-354c4170e7c7/scratchpad/run11/boots/native_D004D9A3888E8394.bin",
+  "npz": "/private/tmp/claude-501/-Users-davidbrown-esp-loco-control/436690f5-1e96-479c-bf84-354c4170e7c7/scratchpad/run11/boots/boot_D004D9A3888E8394.npz",
+  "tsv": "/private/tmp/claude-501/-Users-davidbrown-esp-loco-control/444eac63-5fef-4191-97d3-9698df2d307d/scratchpad/decl_run10_11.tsv",
+  "notes": "runs 10-11: deliberate end stalls, slow crawl"
+ },
+ {
+  "name": "O_1019_3B1BE1D9",
+  "loco": "Otto",
+  "date": "2026-10-19",
+  "boot": "3B1BE1D923CB81FD",
+  "native": "/private/tmp/claude-501/-Users-davidbrown-esp-loco-control/436690f5-1e96-479c-bf84-354c4170e7c7/scratchpad/run12/boots/native_3B1BE1D923CB81FD.bin",
+  "npz": "/private/tmp/claude-501/-Users-davidbrown-esp-loco-control/436690f5-1e96-479c-bf84-354c4170e7c7/scratchpad/run12/boots/boot_3B1BE1D923CB81FD.npz",
+  "tsv": "/private/tmp/claude-501/-Users-davidbrown-esp-loco-control/436690f5-1e96-479c-bf84-354c4170e7c7/scratchpad/run12/otto_decl.tsv",
+  "notes": "run 12 CCW; MM101 false ensemble in field"
+ },
+ {
+  "name": "T_1019_6A31DD99",
+  "loco": "Toby",
+  "date": "2026-10-19",
+  "boot": "6A31DD995673D123",
+  "native": "/private/tmp/claude-501/-Users-davidbrown-esp-loco-control/436690f5-1e96-479c-bf84-354c4170e7c7/scratchpad/run12/boots/native_6A31DD995673D123.bin",
+  "npz": "/private/tmp/claude-501/-Users-davidbrown-esp-loco-control/436690f5-1e96-479c-bf84-354c4170e7c7/scratchpad/run12/boots/boot_6A31DD995673D123.npz",
+  "tsv": "/private/tmp/claude-501/-Users-davidbrown-esp-loco-control/436690f5-1e96-479c-bf84-354c4170e7c7/scratchpad/run12/toby_decl.tsv",
+  "notes": "run 12 Toby CW"
+ },
+ {
+  "name": "O_1020_16FC79DF",
+  "loco": "Otto",
+  "date": "2026-10-20",
+  "boot": "16FC79DFB73B319C",
+  "native": "/private/tmp/claude-501/-Users-davidbrown-esp-loco-control/444eac63-5fef-4191-97d3-9698df2d307d/scratchpad/dec20/native_16FC79DFB73B319C.bin",
+  "npz": "/private/tmp/claude-501/-Users-davidbrown-esp-loco-control/444eac63-5fef-4191-97d3-9698df2d307d/scratchpad/dec20/boot_16FC79DFB73B319C.npz",
+  "tsv": "/private/tmp/claude-501/-Users-davidbrown-esp-loco-control/444eac63-5fef-4191-97d3-9698df2d307d/scratchpad/9950011_20.tsv",
+  "notes": ""
+ },
+ {
+  "name": "O_1020_4ED44023",
+  "loco": "Otto",
+  "date": "2026-10-20",
+  "boot": "4ED44023D8FF4D3D",
+  "native": "/private/tmp/claude-501/-Users-davidbrown-esp-loco-control/444eac63-5fef-4191-97d3-9698df2d307d/scratchpad/dec20/native_4ED44023D8FF4D3D.bin",
+  "npz": "/private/tmp/claude-501/-Users-davidbrown-esp-loco-control/444eac63-5fef-4191-97d3-9698df2d307d/scratchpad/dec20/boot_4ED44023D8FF4D3D.npz",
+  "tsv": "/private/tmp/claude-501/-Users-davidbrown-esp-loco-control/444eac63-5fef-4191-97d3-9698df2d307d/scratchpad/9950011_20.tsv",
+  "notes": ""
+ },
+ {
+  "name": "O_1020_7F7AC4AB",
+  "loco": "Otto",
+  "date": "2026-10-20",
+  "boot": "7F7AC4AB326A2DC0",
+  "native": "/private/tmp/claude-501/-Users-davidbrown-esp-loco-control/444eac63-5fef-4191-97d3-9698df2d307d/scratchpad/dec20/native_7F7AC4AB326A2DC0.bin",
+  "npz": "/private/tmp/claude-501/-Users-davidbrown-esp-loco-control/444eac63-5fef-4191-97d3-9698df2d307d/scratchpad/dec20/boot_7F7AC4AB326A2DC0.npz",
+  "tsv": "/private/tmp/claude-501/-Users-davidbrown-esp-loco-control/444eac63-5fef-4191-97d3-9698df2d307d/scratchpad/9950011_20.tsv",
+  "notes": ""
+ },
+ {
+  "name": "O_1020_CF896167",
+  "loco": "Otto",
+  "date": "2026-10-20",
+  "boot": "CF896167044E6813",
+  "native": "/private/tmp/claude-501/-Users-davidbrown-esp-loco-control/444eac63-5fef-4191-97d3-9698df2d307d/scratchpad/dec20/native_CF896167044E6813.bin",
+  "npz": "/private/tmp/claude-501/-Users-davidbrown-esp-loco-control/444eac63-5fef-4191-97d3-9698df2d307d/scratchpad/dec20/boot_CF896167044E6813.npz",
+  "tsv": "/private/tmp/claude-501/-Users-davidbrown-esp-loco-control/444eac63-5fef-4191-97d3-9698df2d307d/scratchpad/9950011_20.tsv",
+  "notes": ""
+ },
+ {
+  "name": "O_1020_DD20D550",
+  "loco": "Otto",
+  "date": "2026-10-20",
+  "boot": "DD20D5500B8692EF",
+  "native": "/private/tmp/claude-501/-Users-davidbrown-esp-loco-control/444eac63-5fef-4191-97d3-9698df2d307d/scratchpad/dec20/native_DD20D5500B8692EF.bin",
+  "npz": "/private/tmp/claude-501/-Users-davidbrown-esp-loco-control/444eac63-5fef-4191-97d3-9698df2d307d/scratchpad/dec20/boot_DD20D5500B8692EF.npz",
+  "tsv": "/private/tmp/claude-501/-Users-davidbrown-esp-loco-control/444eac63-5fef-4191-97d3-9698df2d307d/scratchpad/9950011_20.tsv",
+  "notes": "MM141 CONTRADICTION in field"
+ },
+ {
+  "name": "O_1020_E9EB68EC",
+  "loco": "Otto",
+  "date": "2026-10-20",
+  "boot": "E9EB68ECB7C6D0DB",
+  "native": "/private/tmp/claude-501/-Users-davidbrown-esp-loco-control/444eac63-5fef-4191-97d3-9698df2d307d/scratchpad/dec20/native_E9EB68ECB7C6D0DB.bin",
+  "npz": "/private/tmp/claude-501/-Users-davidbrown-esp-loco-control/444eac63-5fef-4191-97d3-9698df2d307d/scratchpad/dec20/boot_E9EB68ECB7C6D0DB.npz",
+  "tsv": "/private/tmp/claude-501/-Users-davidbrown-esp-loco-control/444eac63-5fef-4191-97d3-9698df2d307d/scratchpad/9950011_20.tsv",
+  "notes": ""
+ },
+ {
+  "name": "O_1020_516ECF85",
+  "loco": "Otto",
+  "date": "2026-10-20",
+  "boot": "516ECF85E3A28531",
+  "native": "/private/tmp/claude-501/-Users-davidbrown-esp-loco-control/444eac63-5fef-4191-97d3-9698df2d307d/scratchpad/dec1650/native_516ECF85E3A28531.bin",
+  "npz": "/private/tmp/claude-501/-Users-davidbrown-esp-loco-control/444eac63-5fef-4191-97d3-9698df2d307d/scratchpad/dec1650/boot_516ECF85E3A28531.npz",
+  "tsv": "/private/tmp/claude-501/-Users-davidbrown-esp-loco-control/444eac63-5fef-4191-97d3-9698df2d307d/scratchpad/9950011_20.tsv",
+  "notes": ""
+ },
+ {
+  "name": "O_1020_5CE2BC5F",
+  "loco": "Otto",
+  "date": "2026-10-20",
+  "boot": "5CE2BC5F73BBEFBB",
+  "native": "/private/tmp/claude-501/-Users-davidbrown-esp-loco-control/444eac63-5fef-4191-97d3-9698df2d307d/scratchpad/dec1650/native_5CE2BC5F73BBEFBB.bin",
+  "npz": "/private/tmp/claude-501/-Users-davidbrown-esp-loco-control/444eac63-5fef-4191-97d3-9698df2d307d/scratchpad/dec1650/boot_5CE2BC5F73BBEFBB.npz",
+  "tsv": "/private/tmp/claude-501/-Users-davidbrown-esp-loco-control/444eac63-5fef-4191-97d3-9698df2d307d/scratchpad/9950011_20.tsv",
+  "notes": "Arches collision 17:21"
+ },
+ {
+  "name": "O_1021_671EDD80",
+  "loco": "Otto",
+  "date": "2026-10-21",
+  "boot": "671EDD803B6379D7",
+  "native": "/private/tmp/claude-501/-Users-davidbrown-esp-loco-control/444eac63-5fef-4191-97d3-9698df2d307d/scratchpad/dec21/native_671EDD803B6379D7.bin",
+  "npz": "/private/tmp/claude-501/-Users-davidbrown-esp-loco-control/444eac63-5fef-4191-97d3-9698df2d307d/scratchpad/dec21/boot_671EDD803B6379D7.npz",
+  "tsv": "/private/tmp/claude-501/-Users-davidbrown-esp-loco-control/444eac63-5fef-4191-97d3-9698df2d307d/scratchpad/9950011_21.tsv",
+  "notes": "MM038 and MM049 CONTRADICTIONs in field"
+ },
+ {
+  "name": "T_1020_57E43F71",
+  "loco": "Toby",
+  "date": "2026-10-20",
+  "boot": "57E43F71C9500E80",
+  "native": "/private/tmp/claude-501/-Users-davidbrown-esp-loco-control/444eac63-5fef-4191-97d3-9698df2d307d/scratchpad/dec20/native_57E43F71C9500E80.bin",
+  "npz": "/private/tmp/claude-501/-Users-davidbrown-esp-loco-control/444eac63-5fef-4191-97d3-9698df2d307d/scratchpad/dec20/boot_57E43F71C9500E80.npz",
+  "tsv": "/private/tmp/claude-501/-Users-davidbrown-esp-loco-control/444eac63-5fef-4191-97d3-9698df2d307d/scratchpad/9950012_20.tsv",
+  "notes": ""
+ },
+ {
+  "name": "T_1020_91CB945C",
+  "loco": "Toby",
+  "date": "2026-10-20",
+  "boot": "91CB945C5997633C",
+  "native": "/private/tmp/claude-501/-Users-davidbrown-esp-loco-control/444eac63-5fef-4191-97d3-9698df2d307d/scratchpad/dec20/native_91CB945C5997633C.bin",
+  "npz": "/private/tmp/claude-501/-Users-davidbrown-esp-loco-control/444eac63-5fef-4191-97d3-9698df2d307d/scratchpad/dec20/boot_91CB945C5997633C.npz",
+  "tsv": "/private/tmp/claude-501/-Users-davidbrown-esp-loco-control/444eac63-5fef-4191-97d3-9698df2d307d/scratchpad/9950012_20.tsv",
+  "notes": "2832 gap blocks (bad recording)"
+ },
+ {
+  "name": "T_1020_E504D063",
+  "loco": "Toby",
+  "date": "2026-10-20",
+  "boot": "E504D063D480E59C",
+  "native": "/private/tmp/claude-501/-Users-davidbrown-esp-loco-control/444eac63-5fef-4191-97d3-9698df2d307d/scratchpad/dec20/native_E504D063D480E59C.bin",
+  "npz": "/private/tmp/claude-501/-Users-davidbrown-esp-loco-control/444eac63-5fef-4191-97d3-9698df2d307d/scratchpad/dec20/boot_E504D063D480E59C.npz",
+  "tsv": "/private/tmp/claude-501/-Users-davidbrown-esp-loco-control/444eac63-5fef-4191-97d3-9698df2d307d/scratchpad/9950012_20.tsv",
+  "notes": "MM064 CONTRADICTION in field"
+ },
+ {
+  "name": "T_1020_199278F9",
+  "loco": "Toby",
+  "date": "2026-10-20",
+  "boot": "199278F93A2C3CB6",
+  "native": "/private/tmp/claude-501/-Users-davidbrown-esp-loco-control/444eac63-5fef-4191-97d3-9698df2d307d/scratchpad/dec1650/native_199278F93A2C3CB6.bin",
+  "npz": "/private/tmp/claude-501/-Users-davidbrown-esp-loco-control/444eac63-5fef-4191-97d3-9698df2d307d/scratchpad/dec1650/boot_199278F93A2C3CB6.npz",
+  "tsv": "/private/tmp/claude-501/-Users-davidbrown-esp-loco-control/444eac63-5fef-4191-97d3-9698df2d307d/scratchpad/9950012_20.tsv",
+  "notes": "Arches collision (follower)"
+ },
+ {
+  "name": "T_1021_33A0700E",
+  "loco": "Toby",
+  "date": "2026-10-21",
+  "boot": "33A0700EB51DAD29",
+  "native": "/private/tmp/claude-501/-Users-davidbrown-esp-loco-control/444eac63-5fef-4191-97d3-9698df2d307d/scratchpad/dec21/native_33A0700EB51DAD29.bin",
+  "npz": "/private/tmp/claude-501/-Users-davidbrown-esp-loco-control/444eac63-5fef-4191-97d3-9698df2d307d/scratchpad/dec21/boot_33A0700EB51DAD29.npz",
+  "tsv": "/private/tmp/claude-501/-Users-davidbrown-esp-loco-control/444eac63-5fef-4191-97d3-9698df2d307d/scratchpad/9950012_21.tsv"
+ }
+]

@@ -1,0 +1,1121 @@
+{
+ "O_1015_boot1": {
+  "loco": "Otto",
+  "date": "2026-10-15",
+  "notes": "aligner template source (in-sample); IR present",
+  "r51": {
+   "claims": 135,
+   "supported": 135,
+   "contradicted": 0,
+   "unsupported": 0,
+   "gap": 0,
+   "first_contradicted_claim": null,
+   "contradictions": 6,
+   "truth_points": [
+    {
+     "declared_last": 71,
+     "model_last": 63,
+     "err_mm": 8,
+     "model_stopped": true
+    },
+    {
+     "declared_last": 21,
+     "model_last": 78,
+     "err_mm": -57,
+     "model_stopped": true
+    },
+    {
+     "declared_last": 123,
+     "model_last": 31,
+     "err_mm": -79,
+     "model_stopped": true
+    },
+    {
+     "declared_last": 122,
+     "model_last": 13,
+     "err_mm": 62,
+     "model_stopped": true
+    },
+    {
+     "declared_last": 144,
+     "model_last": 102,
+     "err_mm": -42,
+     "model_stopped": true
+    }
+   ]
+  },
+  "align_live": {
+   "claims": 1115,
+   "supported": 936,
+   "contradicted": 14,
+   "unsupported": 163,
+   "gap": 2,
+   "first_contradicted_claim": 0,
+   "contradictions": 0,
+   "truth_points": [
+    {
+     "declared_last": 71,
+     "model_last": 72,
+     "err_mm": -1,
+     "model_stopped": false
+    },
+    {
+     "declared_last": 21,
+     "model_last": 21,
+     "err_mm": 0,
+     "model_stopped": false
+    },
+    {
+     "declared_last": 123,
+     "model_last": 123,
+     "err_mm": 0,
+     "model_stopped": false
+    },
+    {
+     "declared_last": 122,
+     "model_last": 123,
+     "err_mm": 1,
+     "model_stopped": false
+    },
+    {
+     "declared_last": 144,
+     "model_last": 141,
+     "err_mm": -3,
+     "model_stopped": false
+    }
+   ]
+  },
+  "align_lag1s": {
+   "claims": 1114,
+   "supported": 932,
+   "contradicted": 9,
+   "unsupported": 171,
+   "gap": 2,
+   "first_contradicted_claim": 830,
+   "contradictions": 0,
+   "truth_points": [
+    {
+     "declared_last": 71,
+     "model_last": 71,
+     "err_mm": 0,
+     "model_stopped": false
+    },
+    {
+     "declared_last": 21,
+     "model_last": 21,
+     "err_mm": 0,
+     "model_stopped": false
+    },
+    {
+     "declared_last": 123,
+     "model_last": 123,
+     "err_mm": 0,
+     "model_stopped": false
+    },
+    {
+     "declared_last": 122,
+     "model_last": 123,
+     "err_mm": 1,
+     "model_stopped": false
+    },
+    {
+     "declared_last": 144,
+     "model_last": 141,
+     "err_mm": -3,
+     "model_stopped": false
+    }
+   ]
+  }
+ },
+ "O_1015_boot2": {
+  "loco": "Otto",
+  "date": "2026-10-15",
+  "notes": "10-16 holdout; IR present",
+  "r51": {
+   "claims": 87,
+   "supported": 87,
+   "contradicted": 0,
+   "unsupported": 0,
+   "gap": 0,
+   "first_contradicted_claim": null,
+   "contradictions": 0,
+   "truth_points": []
+  },
+  "align_live": {
+   "claims": 87,
+   "supported": 84,
+   "contradicted": 0,
+   "unsupported": 3,
+   "gap": 0,
+   "first_contradicted_claim": null,
+   "contradictions": 0,
+   "truth_points": []
+  },
+  "align_lag1s": {
+   "claims": 87,
+   "supported": 84,
+   "contradicted": 0,
+   "unsupported": 3,
+   "gap": 0,
+   "first_contradicted_claim": null,
+   "contradictions": 0,
+   "truth_points": []
+  }
+ },
+ "O_1018_326C3574": {
+  "loco": "Otto",
+  "date": "2026-10-18/19",
+  "notes": "declared CCW, travelled CW (force CW as in the 10-19 harness)",
+  "r51": {
+   "claims": 222,
+   "supported": 222,
+   "contradicted": 0,
+   "unsupported": 0,
+   "gap": 0,
+   "first_contradicted_claim": null,
+   "contradictions": 1,
+   "truth_points": []
+  },
+  "align_live": {
+   "claims": 114,
+   "supported": 55,
+   "contradicted": 51,
+   "unsupported": 8,
+   "gap": 0,
+   "first_contradicted_claim": 0,
+   "contradictions": 0,
+   "truth_points": []
+  },
+  "align_lag1s": {
+   "claims": 114,
+   "supported": 41,
+   "contradicted": 20,
+   "unsupported": 53,
+   "gap": 0,
+   "first_contradicted_claim": 0,
+   "contradictions": 0,
+   "truth_points": []
+  }
+ },
+ "O_1018_05D95832": {
+  "loco": "Otto",
+  "date": "2026-10-18/19",
+  "notes": "",
+  "r51": {
+   "claims": 176,
+   "supported": 176,
+   "contradicted": 0,
+   "unsupported": 0,
+   "gap": 0,
+   "first_contradicted_claim": null,
+   "contradictions": 0,
+   "truth_points": []
+  },
+  "align_live": {
+   "claims": 176,
+   "supported": 168,
+   "contradicted": 3,
+   "unsupported": 5,
+   "gap": 0,
+   "first_contradicted_claim": 75,
+   "contradictions": 0,
+   "truth_points": []
+  },
+  "align_lag1s": {
+   "claims": 176,
+   "supported": 169,
+   "contradicted": 2,
+   "unsupported": 5,
+   "gap": 0,
+   "first_contradicted_claim": 73,
+   "contradictions": 0,
+   "truth_points": []
+  }
+ },
+ "O_1018_B05694E2": {
+  "loco": "Otto",
+  "date": "2026-10-18/19",
+  "notes": "run 3: stops over magnets",
+  "r51": {
+   "claims": 86,
+   "supported": 83,
+   "contradicted": 3,
+   "unsupported": 0,
+   "gap": 0,
+   "first_contradicted_claim": 3,
+   "contradictions": 0,
+   "truth_points": []
+  },
+  "align_live": {
+   "claims": 86,
+   "supported": 63,
+   "contradicted": 3,
+   "unsupported": 20,
+   "gap": 0,
+   "first_contradicted_claim": 15,
+   "contradictions": 0,
+   "truth_points": []
+  },
+  "align_lag1s": {
+   "claims": 85,
+   "supported": 56,
+   "contradicted": 3,
+   "unsupported": 26,
+   "gap": 0,
+   "first_contradicted_claim": 15,
+   "contradictions": 0,
+   "truth_points": []
+  }
+ },
+ "O_1018_8F9B71ED": {
+  "loco": "Otto",
+  "date": "2026-10-18/19",
+  "notes": "",
+  "r51": {
+   "claims": 1,
+   "supported": 1,
+   "contradicted": 0,
+   "unsupported": 0,
+   "gap": 0,
+   "first_contradicted_claim": null,
+   "contradictions": 1,
+   "truth_points": []
+  },
+  "align_live": {
+   "claims": 78,
+   "supported": 68,
+   "contradicted": 0,
+   "unsupported": 10,
+   "gap": 0,
+   "first_contradicted_claim": null,
+   "contradictions": 0,
+   "truth_points": []
+  },
+  "align_lag1s": {
+   "claims": 78,
+   "supported": 69,
+   "contradicted": 0,
+   "unsupported": 9,
+   "gap": 0,
+   "first_contradicted_claim": null,
+   "contradictions": 0,
+   "truth_points": []
+  }
+ },
+ "O_1018_EFD0225A": {
+  "loco": "Otto",
+  "date": "2026-10-18/19",
+  "notes": "",
+  "r51": {
+   "claims": 67,
+   "supported": 67,
+   "contradicted": 0,
+   "unsupported": 0,
+   "gap": 0,
+   "first_contradicted_claim": null,
+   "contradictions": 0,
+   "truth_points": []
+  },
+  "align_live": {
+   "claims": 66,
+   "supported": 65,
+   "contradicted": 0,
+   "unsupported": 1,
+   "gap": 0,
+   "first_contradicted_claim": null,
+   "contradictions": 0,
+   "truth_points": []
+  },
+  "align_lag1s": {
+   "claims": 66,
+   "supported": 65,
+   "contradicted": 0,
+   "unsupported": 1,
+   "gap": 0,
+   "first_contradicted_claim": null,
+   "contradictions": 0,
+   "truth_points": []
+  }
+ },
+ "O_1018_FA9D779D": {
+  "loco": "Otto",
+  "date": "2026-10-18/19",
+  "notes": "",
+  "r51": {
+   "claims": 80,
+   "supported": 80,
+   "contradicted": 0,
+   "unsupported": 0,
+   "gap": 0,
+   "first_contradicted_claim": null,
+   "contradictions": 1,
+   "truth_points": []
+  },
+  "align_live": {
+   "claims": 171,
+   "supported": 164,
+   "contradicted": 1,
+   "unsupported": 5,
+   "gap": 1,
+   "first_contradicted_claim": 82,
+   "contradictions": 0,
+   "truth_points": []
+  },
+  "align_lag1s": {
+   "claims": 171,
+   "supported": 166,
+   "contradicted": 0,
+   "unsupported": 5,
+   "gap": 0,
+   "first_contradicted_claim": null,
+   "contradictions": 0,
+   "truth_points": []
+  }
+ },
+ "O_1018_B29BDF0E": {
+  "loco": "Otto",
+  "date": "2026-10-18/19",
+  "notes": "run 8: stalls",
+  "r51": {
+   "claims": 99,
+   "supported": 98,
+   "contradicted": 1,
+   "unsupported": 0,
+   "gap": 0,
+   "first_contradicted_claim": 85,
+   "contradictions": 1,
+   "truth_points": []
+  },
+  "align_live": {
+   "claims": 212,
+   "supported": 89,
+   "contradicted": 31,
+   "unsupported": 92,
+   "gap": 0,
+   "first_contradicted_claim": 94,
+   "contradictions": 0,
+   "truth_points": []
+  },
+  "align_lag1s": {
+   "claims": 212,
+   "supported": 87,
+   "contradicted": 8,
+   "unsupported": 117,
+   "gap": 0,
+   "first_contradicted_claim": 92,
+   "contradictions": 0,
+   "truth_points": []
+  }
+ },
+ "O_1018_7D01A061": {
+  "loco": "Otto",
+  "date": "2026-10-18/19",
+  "notes": "",
+  "r51": {
+   "claims": 0,
+   "supported": 0,
+   "contradicted": 0,
+   "unsupported": 0,
+   "gap": 0,
+   "first_contradicted_claim": null,
+   "contradictions": 0,
+   "truth_points": []
+  }
+ },
+ "O_1018_8C00F7FD": {
+  "loco": "Otto",
+  "date": "2026-10-18/19",
+  "notes": "",
+  "r51": {
+   "claims": 0,
+   "supported": 0,
+   "contradicted": 0,
+   "unsupported": 0,
+   "gap": 0,
+   "first_contradicted_claim": null,
+   "contradictions": 0,
+   "truth_points": []
+  }
+ },
+ "O_1018_DAFB0CF1": {
+  "loco": "Otto",
+  "date": "2026-10-18/19",
+  "notes": "",
+  "r51": {
+   "claims": 0,
+   "supported": 0,
+   "contradicted": 0,
+   "unsupported": 0,
+   "gap": 0,
+   "first_contradicted_claim": null,
+   "contradictions": 0,
+   "truth_points": []
+  }
+ },
+ "O_1018_DCDA8770": {
+  "loco": "Otto",
+  "date": "2026-10-18/19",
+  "notes": "",
+  "r51": {
+   "claims": 0,
+   "supported": 0,
+   "contradicted": 0,
+   "unsupported": 0,
+   "gap": 0,
+   "first_contradicted_claim": null,
+   "contradictions": 0,
+   "truth_points": []
+  }
+ },
+ "O_1019_RUN9": {
+  "loco": "Otto",
+  "date": "2026-10-19",
+  "notes": "run 9 stitched; 22 stalls",
+  "r51": {
+   "claims": 1,
+   "supported": 1,
+   "contradicted": 0,
+   "unsupported": 0,
+   "gap": 0,
+   "first_contradicted_claim": null,
+   "contradictions": 1,
+   "truth_points": []
+  },
+  "align_live": {
+   "claims": 239,
+   "supported": 101,
+   "contradicted": 81,
+   "unsupported": 57,
+   "gap": 0,
+   "first_contradicted_claim": 4,
+   "contradictions": 0,
+   "truth_points": []
+  },
+  "align_lag1s": {
+   "claims": 239,
+   "supported": 117,
+   "contradicted": 41,
+   "unsupported": 81,
+   "gap": 0,
+   "first_contradicted_claim": 4,
+   "contradictions": 0,
+   "truth_points": []
+  }
+ },
+ "O_1019_D004D9A3": {
+  "loco": "Otto",
+  "date": "2026-10-19",
+  "notes": "runs 10-11: deliberate end stalls, slow crawl",
+  "r51": {
+   "claims": 0,
+   "supported": 0,
+   "contradicted": 0,
+   "unsupported": 0,
+   "gap": 0,
+   "first_contradicted_claim": null,
+   "contradictions": 1,
+   "truth_points": []
+  },
+  "align_live": {
+   "claims": 152,
+   "supported": 51,
+   "contradicted": 48,
+   "unsupported": 53,
+   "gap": 0,
+   "first_contradicted_claim": 0,
+   "contradictions": 0,
+   "truth_points": []
+  },
+  "align_lag1s": {
+   "claims": 152,
+   "supported": 39,
+   "contradicted": 6,
+   "unsupported": 107,
+   "gap": 0,
+   "first_contradicted_claim": 1,
+   "contradictions": 0,
+   "truth_points": []
+  }
+ },
+ "O_1019_3B1BE1D9": {
+  "loco": "Otto",
+  "date": "2026-10-19",
+  "notes": "run 12 CCW; MM101 false ensemble in field",
+  "r51": {
+   "claims": 4,
+   "supported": 4,
+   "contradicted": 0,
+   "unsupported": 0,
+   "gap": 0,
+   "first_contradicted_claim": null,
+   "contradictions": 1,
+   "truth_points": []
+  },
+  "align_live": {
+   "claims": 746,
+   "supported": 502,
+   "contradicted": 64,
+   "unsupported": 180,
+   "gap": 0,
+   "first_contradicted_claim": 7,
+   "contradictions": 0,
+   "truth_points": []
+  },
+  "align_lag1s": {
+   "claims": 746,
+   "supported": 466,
+   "contradicted": 80,
+   "unsupported": 200,
+   "gap": 0,
+   "first_contradicted_claim": 5,
+   "contradictions": 0,
+   "truth_points": []
+  }
+ },
+ "T_1019_6A31DD99": {
+  "loco": "Toby",
+  "date": "2026-10-19",
+  "notes": "run 12 Toby CW",
+  "r51": {
+   "claims": 173,
+   "supported": 173,
+   "contradicted": 0,
+   "unsupported": 0,
+   "gap": 0,
+   "first_contradicted_claim": null,
+   "contradictions": 1,
+   "truth_points": [
+    {
+     "declared_last": 70,
+     "model_last": 40,
+     "err_mm": 30,
+     "model_stopped": true
+    }
+   ]
+  },
+  "align_live": {
+   "claims": 120,
+   "supported": 67,
+   "contradicted": 49,
+   "unsupported": 4,
+   "gap": 0,
+   "first_contradicted_claim": 1,
+   "contradictions": 0,
+   "truth_points": [
+    {
+     "declared_last": 70,
+     "model_last": 55,
+     "err_mm": 15,
+     "model_stopped": false
+    }
+   ]
+  },
+  "align_lag1s": {
+   "claims": 120,
+   "supported": 75,
+   "contradicted": 33,
+   "unsupported": 12,
+   "gap": 0,
+   "first_contradicted_claim": 2,
+   "contradictions": 0,
+   "truth_points": [
+    {
+     "declared_last": 70,
+     "model_last": 55,
+     "err_mm": 15,
+     "model_stopped": false
+    }
+   ]
+  }
+ },
+ "O_1020_16FC79DF": {
+  "loco": "Otto",
+  "date": "2026-10-20",
+  "notes": "",
+  "r51": {
+   "claims": 0,
+   "supported": 0,
+   "contradicted": 0,
+   "unsupported": 0,
+   "gap": 0,
+   "first_contradicted_claim": null,
+   "contradictions": 0,
+   "truth_points": []
+  }
+ },
+ "O_1020_4ED44023": {
+  "loco": "Otto",
+  "date": "2026-10-20",
+  "notes": "",
+  "r51": {
+   "claims": 0,
+   "supported": 0,
+   "contradicted": 0,
+   "unsupported": 0,
+   "gap": 0,
+   "first_contradicted_claim": null,
+   "contradictions": 0,
+   "truth_points": []
+  }
+ },
+ "O_1020_7F7AC4AB": {
+  "loco": "Otto",
+  "date": "2026-10-20",
+  "notes": "",
+  "r51": {
+   "claims": 0,
+   "supported": 0,
+   "contradicted": 0,
+   "unsupported": 0,
+   "gap": 0,
+   "first_contradicted_claim": null,
+   "contradictions": 0,
+   "truth_points": []
+  },
+  "align_live": {
+   "claims": 0,
+   "supported": 0,
+   "contradicted": 0,
+   "unsupported": 0,
+   "gap": 0,
+   "first_contradicted_claim": null,
+   "contradictions": 0,
+   "truth_points": []
+  },
+  "align_lag1s": {
+   "claims": 0,
+   "supported": 0,
+   "contradicted": 0,
+   "unsupported": 0,
+   "gap": 0,
+   "first_contradicted_claim": null,
+   "contradictions": 0,
+   "truth_points": []
+  }
+ },
+ "O_1020_CF896167": {
+  "loco": "Otto",
+  "date": "2026-10-20",
+  "notes": "",
+  "r51": {
+   "claims": 0,
+   "supported": 0,
+   "contradicted": 0,
+   "unsupported": 0,
+   "gap": 0,
+   "first_contradicted_claim": null,
+   "contradictions": 0,
+   "truth_points": []
+  }
+ },
+ "O_1020_DD20D550": {
+  "loco": "Otto",
+  "date": "2026-10-20",
+  "notes": "MM141 CONTRADICTION in field",
+  "r51": {
+   "claims": 668,
+   "supported": 667,
+   "contradicted": 1,
+   "unsupported": 0,
+   "gap": 0,
+   "first_contradicted_claim": 78,
+   "contradictions": 3,
+   "truth_points": [
+    {
+     "declared_last": 154,
+     "model_last": 112,
+     "err_mm": 42,
+     "model_stopped": true
+    },
+    {
+     "declared_last": 144,
+     "model_last": 155,
+     "err_mm": -11,
+     "model_stopped": true
+    },
+    {
+     "declared_last": 151,
+     "model_last": 146,
+     "err_mm": 5,
+     "model_stopped": true
+    }
+   ]
+  },
+  "align_live": {
+   "claims": 383,
+   "supported": 227,
+   "contradicted": 110,
+   "unsupported": 46,
+   "gap": 0,
+   "first_contradicted_claim": 6,
+   "contradictions": 0,
+   "truth_points": [
+    {
+     "declared_last": 154,
+     "model_last": 30,
+     "err_mm": -47,
+     "model_stopped": false
+    },
+    {
+     "declared_last": 144,
+     "model_last": 158,
+     "err_mm": -14,
+     "model_stopped": false
+    },
+    {
+     "declared_last": 151,
+     "model_last": 148,
+     "err_mm": 3,
+     "model_stopped": false
+    }
+   ]
+  },
+  "align_lag1s": {
+   "claims": 383,
+   "supported": 202,
+   "contradicted": 49,
+   "unsupported": 132,
+   "gap": 0,
+   "first_contradicted_claim": 49,
+   "contradictions": 0,
+   "truth_points": [
+    {
+     "declared_last": 154,
+     "model_last": 30,
+     "err_mm": -47,
+     "model_stopped": false
+    },
+    {
+     "declared_last": 144,
+     "model_last": 158,
+     "err_mm": -14,
+     "model_stopped": false
+    },
+    {
+     "declared_last": 151,
+     "model_last": 148,
+     "err_mm": 3,
+     "model_stopped": false
+    }
+   ]
+  }
+ },
+ "O_1020_E9EB68EC": {
+  "loco": "Otto",
+  "date": "2026-10-20",
+  "notes": "",
+  "r51": {
+   "claims": 0,
+   "supported": 0,
+   "contradicted": 0,
+   "unsupported": 0,
+   "gap": 0,
+   "first_contradicted_claim": null,
+   "contradictions": 0,
+   "truth_points": []
+  }
+ },
+ "O_1020_516ECF85": {
+  "loco": "Otto",
+  "date": "2026-10-20",
+  "notes": "",
+  "r51": {
+   "claims": 0,
+   "supported": 0,
+   "contradicted": 0,
+   "unsupported": 0,
+   "gap": 0,
+   "first_contradicted_claim": null,
+   "contradictions": 0,
+   "truth_points": []
+  }
+ },
+ "O_1020_5CE2BC5F": {
+  "loco": "Otto",
+  "date": "2026-10-20",
+  "notes": "Arches collision 17:21",
+  "r51": {
+   "claims": 64,
+   "supported": 64,
+   "contradicted": 0,
+   "unsupported": 0,
+   "gap": 0,
+   "first_contradicted_claim": null,
+   "contradictions": 1,
+   "truth_points": []
+  },
+  "align_live": {
+   "claims": 100,
+   "supported": 44,
+   "contradicted": 34,
+   "unsupported": 22,
+   "gap": 0,
+   "first_contradicted_claim": 25,
+   "contradictions": 0,
+   "truth_points": []
+  },
+  "align_lag1s": {
+   "claims": 100,
+   "supported": 57,
+   "contradicted": 8,
+   "unsupported": 35,
+   "gap": 0,
+   "first_contradicted_claim": 41,
+   "contradictions": 0,
+   "truth_points": []
+  }
+ },
+ "O_1021_671EDD80": {
+  "loco": "Otto",
+  "date": "2026-10-21",
+  "notes": "MM038 and MM049 CONTRADICTIONs in field",
+  "r51": {
+   "claims": 169,
+   "supported": 168,
+   "contradicted": 1,
+   "unsupported": 0,
+   "gap": 0,
+   "first_contradicted_claim": 68,
+   "contradictions": 2,
+   "truth_points": [
+    {
+     "declared_last": 47,
+     "model_last": 37,
+     "err_mm": 10,
+     "model_stopped": true
+    }
+   ]
+  },
+  "align_live": {
+   "claims": 22,
+   "supported": 5,
+   "contradicted": 16,
+   "unsupported": 1,
+   "gap": 0,
+   "first_contradicted_claim": 1,
+   "contradictions": 0,
+   "truth_points": [
+    {
+     "declared_last": 47,
+     "model_last": 62,
+     "err_mm": -15,
+     "model_stopped": false
+    }
+   ]
+  },
+  "align_lag1s": {
+   "claims": 22,
+   "supported": 1,
+   "contradicted": 10,
+   "unsupported": 11,
+   "gap": 0,
+   "first_contradicted_claim": 1,
+   "contradictions": 0,
+   "truth_points": [
+    {
+     "declared_last": 47,
+     "model_last": 62,
+     "err_mm": -15,
+     "model_stopped": false
+    }
+   ]
+  }
+ },
+ "T_1020_57E43F71": {
+  "loco": "Toby",
+  "date": "2026-10-20",
+  "notes": "",
+  "r51": {
+   "claims": 0,
+   "supported": 0,
+   "contradicted": 0,
+   "unsupported": 0,
+   "gap": 0,
+   "first_contradicted_claim": null,
+   "contradictions": 0,
+   "truth_points": []
+  },
+  "align_live": {
+   "claims": 0,
+   "supported": 0,
+   "contradicted": 0,
+   "unsupported": 0,
+   "gap": 0,
+   "first_contradicted_claim": null,
+   "contradictions": 0,
+   "truth_points": []
+  },
+  "align_lag1s": {
+   "claims": 0,
+   "supported": 0,
+   "contradicted": 0,
+   "unsupported": 0,
+   "gap": 0,
+   "first_contradicted_claim": null,
+   "contradictions": 0,
+   "truth_points": []
+  }
+ },
+ "T_1020_91CB945C": {
+  "loco": "Toby",
+  "date": "2026-10-20",
+  "notes": "2832 gap blocks (bad recording)",
+  "r51": {
+   "claims": 0,
+   "supported": 0,
+   "contradicted": 0,
+   "unsupported": 0,
+   "gap": 0,
+   "first_contradicted_claim": null,
+   "contradictions": 0,
+   "truth_points": []
+  }
+ },
+ "T_1020_E504D063": {
+  "loco": "Toby",
+  "date": "2026-10-20",
+  "notes": "MM064 CONTRADICTION in field",
+  "r51": {
+   "claims": 106,
+   "supported": 105,
+   "contradicted": 1,
+   "unsupported": 0,
+   "gap": 0,
+   "first_contradicted_claim": 13,
+   "contradictions": 1,
+   "truth_points": [
+    {
+     "declared_last": 66,
+     "model_last": 66,
+     "err_mm": 0,
+     "model_stopped": false
+    }
+   ]
+  },
+  "align_live": {
+   "claims": 9,
+   "supported": 4,
+   "contradicted": 4,
+   "unsupported": 1,
+   "gap": 0,
+   "first_contradicted_claim": 1,
+   "contradictions": 0,
+   "truth_points": [
+    {
+     "declared_last": 66,
+     "model_last": 50,
+     "err_mm": 16,
+     "model_stopped": false
+    }
+   ]
+  },
+  "align_lag1s": {
+   "claims": 9,
+   "supported": 0,
+   "contradicted": 2,
+   "unsupported": 7,
+   "gap": 0,
+   "first_contradicted_claim": 0,
+   "contradictions": 0,
+   "truth_points": [
+    {
+     "declared_last": 66,
+     "model_last": 50,
+     "err_mm": 16,
+     "model_stopped": false
+    }
+   ]
+  }
+ },
+ "T_1020_199278F9": {
+  "loco": "Toby",
+  "date": "2026-10-20",
+  "notes": "Arches collision (follower)",
+  "r51": {
+   "claims": 90,
+   "supported": 89,
+   "contradicted": 1,
+   "unsupported": 0,
+   "gap": 0,
+   "first_contradicted_claim": 76,
+   "contradictions": 0,
+   "truth_points": []
+  },
+  "align_live": {
+   "claims": 1,
+   "supported": 0,
+   "contradicted": 0,
+   "unsupported": 1,
+   "gap": 0,
+   "first_contradicted_claim": null,
+   "contradictions": 0,
+   "truth_points": []
+  },
+  "align_lag1s": {
+   "claims": 1,
+   "supported": 1,
+   "contradicted": 0,
+   "unsupported": 0,
+   "gap": 0,
+   "first_contradicted_claim": null,
+   "contradictions": 0,
+   "truth_points": []
+  }
+ },
+ "T_1021_33A0700E": {
+  "loco": "Toby",
+  "date": "2026-10-21",
+  "notes": "",
+  "r51": {
+   "claims": 245,
+   "supported": 245,
+   "contradicted": 0,
+   "unsupported": 0,
+   "gap": 0,
+   "first_contradicted_claim": null,
+   "contradictions": 1,
+   "truth_points": [
+    {
+     "declared_last": 65,
+     "model_last": 65,
+     "err_mm": 0,
+     "model_stopped": false
+    }
+   ]
+  },
+  "align_live": {
+   "claims": 6,
+   "supported": 3,
+   "contradicted": 1,
+   "unsupported": 2,
+   "gap": 0,
+   "first_contradicted_claim": 0,
+   "contradictions": 0,
+   "truth_points": [
+    {
+     "declared_last": 65,
+     "model_last": 54,
+     "err_mm": 11,
+     "model_stopped": false
+    }
+   ]
+  },
+  "align_lag1s": {
+   "claims": 5,
+   "supported": 0,
+   "contradicted": 0,
+   "unsupported": 5,
+   "gap": 0,
+   "first_contradicted_claim": null,
+   "contradictions": 0,
+   "truth_points": [
+    {
+     "declared_last": 65,
+     "model_last": 54,
+     "err_mm": 11,
+     "model_stopped": false
+    }
+   ]
+  }
+ }
+}
