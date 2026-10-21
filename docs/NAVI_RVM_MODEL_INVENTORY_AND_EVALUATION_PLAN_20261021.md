@@ -154,3 +154,92 @@ cannot judge a model that has none.
 
 **No parameters will be tuned.** Both models run as they are. Failures are
 reported, not fixed.
+
+---
+
+## 5. Provenance check (operator request, 2026-10-21)
+
+> Establish whether the original October 16 aligner.py can be recovered …
+> Confirm that revision 5 firmware is preserved at a specific commit and that
+> the exact sketches currently installed on Otto and Toby are identified.
+> Report any source files whose original versions cannot be recovered.
+
+### 5.1 The 2026-10-16 aligner: recovered exactly
+
+**Searched:**
+
+- every git object store under `~/esp-loco-control*`, `~/NGR`, `~/Documents`;
+- the 236 unreachable blobs in `esp-loco-control`;
+- the bytecode cache;
+- Time Machine (no local snapshots; the backup destination was not mounted).
+
+**Result:** git has only one `aligner.py`, the post-freeze one (`bc7e2f9b…`).
+The bytecode cache was compiled from that same file.
+
+**Recovery from the 2026-10-16/17 session transcript**
+(`b18f2345-….jsonl`), which records every write and edit:
+
+| UTC 2026-10-17 | Operation |
+|---|---|
+| 06:33:40 | file written |
+| 06:34:20–06:43:19 | six scripted edits |
+| **06:44:36** | **FROZEN.json written** |
+| 06:45:14 | **one edit after the freeze**: an optional `steps_file=None` argument, and `np.load(D / (steps_file or f'steps_{boot}.npz'))` |
+
+The post-freeze edit is plumbing only: with `steps_file` unset, behaviour is
+identical. Reversing exactly that edit gives a file whose sha256 is
+**`f3d5230ee6c563045eb7df04966816ee231a8a6e37545367dd3c688997d31fdf`**, equal to
+`FROZEN.json`.
+
+That file is preserved at
+`analysis/navi_rvm_replay_20261016_frozen/aligner.py`.
+
+**The 10-16 boot-2 holdout ran with the post-freeze file.** Its only
+difference is the input-file argument, so the holdout claim stands once that
+difference is stated.
+
+**All other frozen files match their hashes:** `blocks.py`, `context.py`,
+`template.py`, `speed_model.py`, `score.py`, `e1.py`, `compare_templates.py`,
+`peek.py`, the three templates and the three speed models.
+
+**Not version-controlled:** the templates and speed models (`derived/`) exist
+only in `~/NGR/NGR-Files/navi-rvm-replay-20261016/derived/`. They are intact by
+hash, but not in git.
+
+### 5.2 Revision 5.1: preserved at a commit; installed images cannot be proven byte-for-byte
+
+- **Source.** Commit `5b7a518` on local branch `agent/navi-rvm-gated-peer-20261020`
+  in `~/esp-loco-control`. **Not pushed and not tagged.** Its only copy is this
+  Mac's repository.
+- **The flashed images are not preserved.** Their app sha256 at flash were Otto
+  `5cfc216426e2377b…` and Toby `dc7b3d8777816c1d…`. The scratch build folder was
+  overwritten by the r6 build.
+- **Rebuilds cannot reproduce the hashes.** Two rebuilds of `5b7a518` differ in
+  68 bytes: the embedded compile time (`__TIME__` in the app descriptor) and the
+  checksums derived from it. The size is identical (997,707 B). No
+  rebuild can reproduce a flashed hash, and hash comparison cannot identify the
+  installed image.
+- **Evidence for what is installed:**
+  1. **The flash records (`387d501`).** r5.1 was written to Otto (MAC
+     `68:09:47:ac:4e:b4`) and Toby (MAC `ec:e3:34:78:a2:60`) with "Hash of data
+     verified", boots `81A07430` and `39B85830`. No flash has happened since.
+  2. **Today's boot announcements** (Otto `671EDD80`, Toby `33A0700E`): sketch
+     `NAVI_RVM_AUTO_STATIONS_BUBBLE`, class
+     `EXPERIMENTAL_AUTO_STATIONS_BUBBLE_GATE70_NOT_FIELD_ACCEPTED`. These name
+     the sketch but **not the commit**. r1 through r6 all announce the same.
+  3. **Behaviour this morning matches r5.1:** `paused_blocks` in `loopstat`
+     (r5 and later), and a standing declaration that took effect (r5.1 only;
+     r5 refused AUTO).
+- **To prove it byte-for-byte:** read each locomotive's flash over USB
+  (read-only) and compare it with a rebuild of `5b7a518`, excluding the
+  compile-time fields. This needs the locomotives connected.
+
+### 5.3 What cannot be recovered
+
+| Item | Status |
+|---|---|
+| Flashed app images of r1–r5.1 | **lost** (build folders reused); rebuildable from their commits except the embedded compile time |
+| Commit identity in the firmware's boot message | **never recorded**; firmware names the sketch only |
+| `aligner.py` as frozen | recovered (above) |
+| 2026-10-16 templates and speed models | intact, but outside git |
+| Decoded tracings and declaration files used for the 10-18 to 10-21 replays | session scratch only; re-derivable from the Pi capture `navi_sync_20261015_100403.nsr` and the run logs, both intact on the Pi |
