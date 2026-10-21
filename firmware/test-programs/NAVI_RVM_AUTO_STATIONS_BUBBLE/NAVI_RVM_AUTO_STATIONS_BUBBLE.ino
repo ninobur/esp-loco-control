@@ -711,12 +711,12 @@ static void serviceStatus() {
   snprintf(payload, sizeof(payload),
     "{\"build\":\"%s\",\"class\":\"%s\",\"model\":\"%s\",\"pwm\":%d,\"commanded\":%d,\"estop\":%u,\"lowvolt\":%u,"
     "\"nav\":\"%s\",\"blocks\":%lu,\"withheld_blocks\":%lu,\"block_q_drop\":%lu,\"nav_event_drop\":%lu,\"ctl_drop\":%lu,"
-    "\"windows_scored\":%lu,\"rvm_out_drop\":%lu,\"rvm_push_max_us\":%lu,\"rvm_stack_free\":%lu,\"continuity\":\"%s\",\"rvm_delay_blocks\":%u,"
+    "\"paused_blocks\":%lu,\"windows_scored\":%lu,\"rvm_out_drop\":%lu,\"rvm_push_max_us\":%lu,\"rvm_stack_free\":%lu,\"continuity\":\"%s\",\"rvm_delay_blocks\":%u,"
     "\"nsr_hall_drop\":%lu,\"nsr_native_drop\":%lu,\"nsr_udp_fail\":%lu,\"pub_drop\":%lu,\"cmd_drop\":%lu,"
     "\"heap_free\":%u,\"heap_min\":%u}",
     SKETCH_NAME, BUILD_CLASS, rvm_shape::MODEL_SHA256, int(actualPwm), int(commandedPwm), unsigned(estopped || estopAsserted), unsigned(lowVoltage),
     stateName(s.state), (unsigned long)s.blocks, (unsigned long)s.withheldBlocks, (unsigned long)blockQueueDrops.load(), (unsigned long)navEventDrops.load(),
-    (unsigned long)ctlDrops.load(), (unsigned long)s.windows, (unsigned long)s.outDrops, (unsigned long)s.maxPushUs,
+    (unsigned long)ctlDrops.load(), (unsigned long)continuity.pausedTotal(), (unsigned long)s.windows, (unsigned long)s.outDrops, (unsigned long)s.maxPushUs,
     (unsigned long)rvmStackFree.load(), CONTINUITY, unsigned(continuity.delayBlocks()), (unsigned long)recorder->hallDrops(), (unsigned long)recorder->nativeDrops(),
     (unsigned long)naviSyncUdpFailures, (unsigned long)pubDrops, (unsigned long)cmdDrops,
     unsigned(ESP.getFreeHeap()), unsigned(ESP.getMinFreeHeap()));

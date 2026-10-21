@@ -524,3 +524,97 @@ partitions were unchanged and verified.
 
 **Watch item:** `heap_min` is back to about 9 KB, against about 17 KB on
 revision 2 after boot. No failures so far.
+
+---
+
+## Revision 5 (draft), 2026-10-20: the Arches collision
+
+**Field, about 17:21–17:22, on revision 4.** Otto led out of Arches. Toby
+followed and struck Otto's consist from behind. David: "looks like Otto stopped
+around 120".
+
+**Chain of causes, from the Pi logs and the 16:50 capture slice** (Otto boot
+`5CE2BC5F…`):
+
+1. **Otto's navigator froze at MM108 while he moved on.** He had stood on the
+   platform for about 10 minutes (an E-STOP). His motor-off Hall level crept
+   from 1892 to 1940. Under power his moving baseline settled at about
+   1880–1893. Revision 4's open-ensemble rule, armed by MM109 passing slowly
+   on departure, treated that moving baseline as a stall plateau. It withheld
+   it in runs of 57–172 blocks, so no further magnet was ever completed.
+   Replaying revision 4's continuity reproduces the freeze (CONTRADICTION
+   expecting MM109).
+2. **The roles inverted.** Toby's broadcast MM109 was "ahead" of Otto's frozen
+   108, so Otto became FOLLOWER and stopped at once (STOP_NOW) at about MM120
+   physically.
+3. **Toby had already been released to creep** because Otto's PWM was up
+   (revision 4's "leader under power" creep). With no check on the leader's
+   actual position, he ran into Otto.
+
+**Physical finding:** on both locomotives the Hall reads 40–52 ADC differently
+with the motor off than on, even on plain baseline:
+
+| Locomotive | Standing | Moving |
+|---|---|---|
+| Otto | about 1940 | about 1890 |
+| Toby | about 1915 | about 1863 |
+
+A long dwell creeps further. With the motor on but the train standing, at
+arrival (PWM about 30) and departure (PWM 15–40), the level sits 30–70 off the
+moving level. **No Hall-only rule separates a standing train from a stall on a
+magnet's flank.** Each Hall-only variant fixed one recorded case and broke
+another.
+
+**Operator ruling:** "Do what you do to make it work! Can use PWM for standing.
+Look for unintended consequences."
+
+**Changes:**
+
+1. **Motor off means paused** (`RvmContinuity.h`). A 20 ms block whose highest
+   applied PWM is below 15 (David's 2026-10-18 STOPPED rule) never enters the
+   delay line, the recognizer or continuity. Declarations take effect at the
+   first admitted block at or after them. PWM is used only to know the motor is
+   off, never as evidence of movement. `state/loopstat` now has
+   `paused_blocks`.
+2. **The continuity reference is the moving baseline only:** the recognizer's
+   own baseline level and noise at each recognized ensemble. There is **no
+   tracking between ensembles**, because a dwell creeps.
+3. **Withholding:** a block is withheld if it lies in a flat 1 s span more than
+   max(16 × noise, **25** ADC) off that reference, and only after the first
+   recognized ensemble since the declaration. The open-ensemble and
+   one-episode experiments are removed.
+4. **The follower never moves on throttle** (`RvmStations.h`). It is held
+   whenever it is within 5 MM of the leader's committed MM. It is released only
+   once the leader's MM has moved on far enough and the random 2–5 s has
+   elapsed since the leader started. The creep is removed.
+   - **T15** (new): a leader under power that does not move. The follower
+     moved 0.00 MM in 60 s.
+   - **Timing consequence:** in the model the follower now moves 7–12 s after
+     the leader starts, not 2–5 s, because it also waits for the leader's
+     position to advance.
+
+**Unintended consequences checked:**
+
+- **Real magnets pass at low PWM.** In all recordings, 2,421 recognized
+  ensembles: 141 had a median PWM below 35 and 17 below 30. The lowest moving
+  passages were at PWM 25–29. The PWM-0 ones are the Run 3 stop-over-magnet
+  tests. So the pause stays at 15; raising it would drop genuine slow passages.
+- **25 ADC floor.** Moving drifts seen are 10–23 ADC (Otto +10–14 before MM141;
+  Toby +23). **Toby's +23 is 2 ADC inside the floor.**
+- **Still not protected:** a stall at PWM 15 or more on a flank within 25 ADC
+  of the baseline; and a coast at PWM below 15 over a magnet. One of 35 Otto
+  stops was still rolling below 15.
+
+**Regression replay** (`u12_open_continuity_replay.py`, results in
+`analysis/…/results/r5_20261020/all_boots.json`):
+
+| Recording | Result |
+|---|---|
+| Otto, 11 recorded boots (Oct 15; Oct 18–19 including stall Run 9 and Runs 10–12) | **identical** to the field build: every claim, miss and CONTRADICTION |
+| Toby, Run 12 | **203/203, 0 CONTRADICTIONs, 0 misses**, against 10 correct and 8 wrong |
+| Toby, today (`E504D063…`) | 106/106. The one CONTRADICTION (MM157) follows Pi recording gaps; the field run had none there |
+| Otto, the collision run (`5CE2BC5F…`) | **MM109–114 claimed through the Arches departure**, where revision 4 froze at 108. It contradicts at MM115 at 17:22:05, the collision and Otto's emergency stop, when he was physically shoved |
+| Otto, the MM141 stretch (from a declaration after MM136) | MM137–146 claimed |
+
+**Host tests:** 15, all pass. **Compile:** Otto app `1e4dec4b3ce69b03…`, Toby app
+`266ef7c60ef82d34…`, 997,499 B each. **Not flashed.**

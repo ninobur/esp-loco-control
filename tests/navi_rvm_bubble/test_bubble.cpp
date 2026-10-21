@@ -21,7 +21,7 @@ struct Loco {
   uint32_t id = 0; uint8_t start = 0; int8_t dir = 1;
   double x = 0.3;                 // MM travelled from `start` (sensor just past it, on baseline)
   int applied = 0, target = 0; uint16_t upMs = 150, downMs = 31; uint32_t lastStep = 0;
-  bool autoOn = true, radioOn = true, tracking = true;
+  bool autoOn = true, radioOn = true, tracking = true, stalled = false;
   StationDriver drv; DriveOutput last;
   std::vector<std::pair<uint32_t, uint8_t>> passes; size_t nextPass = 0; uint8_t committed = 0;
   // stops (PWM 0 for >= 4 s): physical MM floor at the stop
@@ -39,7 +39,7 @@ static PeerPacket packetOf(const Loco& l) {
 }
 
 static void step(Loco& l, const PeerView& peer, uint32_t t) {
-  const double v = l.applied >= 20 ? l.applied / 90.0 : 0.0;
+  const double v = (l.applied >= 20 && !l.stalled) ? l.applied / 90.0 : 0.0;
   const int64_t f0 = int64_t(std::floor(l.x));
   l.x += v * DT / 1000.0;
   for (int64_t k = f0 + 1; k <= int64_t(std::floor(l.x)); ++k) l.passes.push_back({t, l.mmAt(double(k))});
@@ -220,7 +220,7 @@ int main() {
            heldAt / 1000.0, freeAt / 1000.0, movedAt / 1000.0, (movedAt - freeAt) / 1000.0);
     CHECK(heldAt && freeAt && movedAt, "follower must stop at the holding point, then move after the platform frees");
     CHECK(movedAt - freeAt >= FOLLOWER_START_DELAY_MIN_MS, "follower moved %u ms after the platform freed", unsigned(movedAt - freeAt));
-    CHECK(movedAt - freeAt <= FOLLOWER_START_DELAY_MAX_MS + 100, "follower waited too long: %u ms", unsigned(movedAt - freeAt));
+    // (no upper bound: the follower also waits until the leader's committed MM has moved on)
   }
   // ---- T12: convoy. Follower far behind: the leader waits on each platform until the follower is held,
   // then starts; the follower moves up 2 s later. Many laps, both directions, no deadlock, no contact.
@@ -293,6 +293,24 @@ int main() {
     printf("T14: convoy leader start delay after follower PWM 0: %.2f .. %.2f s\n", lo / 1000.0, hi / 1000.0);
     CHECK(lo != ~0u && hi <= LEADER_START_DELAY_MAX_MS + 300, "leader start delay out of range (max %u)", hi);
     CHECK(hi - lo >= 1000, "leader start delay does not vary (%u..%u)", lo, hi);
+  }
+  // ---- T15: Arches 17:21 field case. The leader is released and under power but does NOT move
+  // (its committed MM stays). The follower must not move toward it.
+  for (int8_t dir : {int8_t(1), int8_t(-1)}) {
+    Loco a, b; init(a, 1, 50, dir); init(b, 2, 40, dir); if (dir < 0) { init(a, 1, 120, dir); init(b, 2, 130, dir); }
+    Radio atA, atB; double minGap = 1e9; uint32_t t = 0, stalledAt = 0; double bAtStall = 0; bool wasHeldA = false;
+    for (; t < 400000; t += DT) {
+      exchange(atA, b, t); exchange(atB, a, t); step(a, atA.view, t); step(b, atB.view, t);
+      const bool heldNow = a.last.platformHeld;
+      if (!stalledAt && wasHeldA && !heldNow) { a.stalled = true; stalledAt = t; bAtStall = b.x; }   // convoy release: leader powers up but cannot move
+      wasHeldA = heldNow;
+      if (stalledAt) minGap = std::min(minGap, gap(b, a));
+      if (stalledAt && t - stalledAt > 60000) break;
+    }
+    printf("T15 dir %+d: leader stalled under power at %.1f s; follower moved %.2f MM in 60 s, min gap %.2f MM, follower pwm %d\n",
+           dir, stalledAt / 1000.0, b.x - bAtStall, minGap, b.applied);
+    CHECK(stalledAt, "dir %d: scenario did not arise", dir);
+    CHECK(b.x - bAtStall < 0.05 && b.applied == 0, "dir %d: follower moved toward a leader that is not moving", dir);
   }
   printf("%s (%d failures)\n", failures ? "FAILED" : "PASSED", failures);
   return failures ? 1 : 0;

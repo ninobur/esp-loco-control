@@ -455,12 +455,13 @@ class StationDriver {
         const bool moved = v.p.pwm > 0 || (v.p.lastMm != heldPeerMm_ && aheadMm(heldPeerMm_, v.p.lastMm, in.dir) <= ROUTE_N / 2);
         if (moved && !peerMoved_) { peerMoved_ = true; moveSeenMs_ = in.nowMs; followDelayMs_ = randRange(FOLLOWER_START_DELAY_MIN_MS, FOLLOWER_START_DELAY_MAX_MS); }
         if (!moved && v.p.pwm == 0 && v.p.lastMm == heldPeerMm_) peerMoved_ = false;   // it stopped again before we left
-        // Move up after the delay. If the leader has not yet cleared a whole MM, a
-        // standing gap of BUBBLE_HOLD_MM is still respected (dLead > 0) or we go
-        // once it has been moving for the delay (its committed MM lags ~1 s).
-        if (peerMoved_ && uint32_t(in.nowMs - moveSeenMs_) >= followDelayMs_ && (dLead > 0 || v.p.pwm > 0)) followHeld_ = false;
-      } else if (dLead <= 0 && v.p.pwm == 0) {
-        followHeld_ = true; heldPeerMm_ = v.p.lastMm; peerMoved_ = false;   // leader standing 5 MM ahead or closer
+        // Move up after the delay AND only once the leader's committed MM has moved
+        // on far enough (dLead > 0). Throttle alone is never movement (field
+        // 2026-10-20, Arches 17:21: the leader's PWM was up, its position was not
+        // moving, the follower crept into it).
+        if (peerMoved_ && uint32_t(in.nowMs - moveSeenMs_) >= followDelayMs_ && dLead > 0) followHeld_ = false;
+      } else if (dLead <= 0) {
+        followHeld_ = true; heldPeerMm_ = v.p.lastMm; peerMoved_ = false;   // within 5 MM of the leader: stop
       }
       if (followHeld_) {
         out.followHeld = true;
@@ -468,9 +469,7 @@ class StationDriver {
           out.cmd.pwm = 0; out.cmd.overlay = true; out.cmd.execution = StopExecution::Braking;
         }
       } else if (dLead <= 11) {
-        // dLead <= 0 here only after release behind a leader under power whose
-        // committed MM has not moved on yet: creep at the carpet's last step.
-        const StopGeography g = stopGeography(0, int32_t(dLead > 0 ? dLead : 1) * kStopMm, 1);
+        const StopGeography g = stopGeography(0, int32_t(dLead) * kStopMm, 1);
         if (g.applicable() && g.pwm < out.cmd.pwm) { out.cmd.pwm = g.pwm; out.cmd.overlay = true; out.followCapped = true; }
       }
     } else { followHeld_ = false; peerMoved_ = false; }
