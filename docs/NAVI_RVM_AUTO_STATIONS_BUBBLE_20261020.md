@@ -626,3 +626,12 @@ not subscribe to it, which was a porting gap. It is now subscribed and handled
 as in NAVI_EWO_0_6: AUTO enlisted and running are both cleared, a controlled
 stop is made, `state/auto 0` is published, and the warning reads "RELEASED by
 dispatcher".
+
+### Flash of revision 5 (`fc759b8`)
+
+David authorized it: "Flash revision 5 (fc759b8) to Otto and Toby over USB, no
+backup, and verify over MQTT." No backup was taken.
+
+| Locomotive | Port / MAC | MQTT after boot |
+|---|---|---|
+| Otto | `/dev/cu.wchusbserial110`, `68:09:47:ac:4e:b4`; app `094cf61cbfd64191…` "Hash of data verified" | boot `E7526088BAFB4520`; continuity on; `paused_blocks` present (r5); ESP-NOW 1, link SOLO, `peer_rx` 0 (Toby not yet on r5); `heap_free` 35.5 KB, `heap_min` 9,088 B; `block_q_drop` 0 |
