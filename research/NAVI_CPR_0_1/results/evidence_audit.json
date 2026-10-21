@@ -1,0 +1,994 @@
+{
+  "native_roundtrip": {
+    "otto_cw": {
+      "sha256": "747ee15e0590d0668bf0b7af06b02f9ba002d61a4b0550c6b108aadc409fca89",
+      "byte_identical": true
+    },
+    "otto_ccw": {
+      "sha256": "dbab5d195809e4eccf7889319cd25135accae3dcc7bf0b67afc01793d72f69e1",
+      "byte_identical": true
+    },
+    "toby_cw": {
+      "sha256": "e0578d70583d661ab79ad0cbe67a7dd69447d809327bd614fd5f0ed13ebd6360",
+      "byte_identical": true
+    },
+    "otto_train": {
+      "sha256": "b366bff8f17d28c64f7b666b68e171cef8521dcd1a791ecf6b147713506d0b20",
+      "byte_identical": true
+    }
+  },
+  "case": {
+    "historical_false_window_s": [
+      965.43,
+      967.05
+    ],
+    "historical_false_amplitude_adc": 12.4,
+    "overlapping_native_gaps_s": [
+      [
+        965.8000000000001,
+        966.66
+      ]
+    ],
+    "baseline_ready_nearby": [
+      {
+        "kind": "baseline_ready",
+        "t": 967.66,
+        "level": 1892.005306122449,
+        "note": "warmup baseline identity unverified"
+      }
+    ],
+    "native70_nearby": [
+      {
+        "kind": "native70_detection",
+        "t": 969.819428,
+        "polarity": -1,
+        "baseline": 1893.098869540674
+      },
+      {
+        "kind": "native70_detection",
+        "t": 969.820688,
+        "polarity": -1,
+        "baseline": 1893.098869540674
+      },
+      {
+        "kind": "native70_detection",
+        "t": 969.822402,
+        "polarity": -1,
+        "baseline": 1893.098869540674
+      },
+      {
+        "kind": "native70_detection",
+        "t": 969.824303,
+        "polarity": -1,
+        "baseline": 1893.098869540674
+      },
+      {
+        "kind": "native70_detection",
+        "t": 969.826026,
+        "polarity": -1,
+        "baseline": 1893.098869540674
+      },
+      {
+        "kind": "native70_detection",
+        "t": 969.827213,
+        "polarity": -1,
+        "baseline": 1893.098869540674
+      },
+      {
+        "kind": "native70_detection",
+        "t": 969.828438,
+        "polarity": -1,
+        "baseline": 1893.098869540674
+      },
+      {
+        "kind": "native70_detection",
+        "t": 969.830738,
+        "polarity": -1,
+        "baseline": 1893.098869540674
+      },
+      {
+        "kind": "native70_detection",
+        "t": 969.832329,
+        "polarity": -1,
+        "baseline": 1893.098869540674
+      },
+      {
+        "kind": "native70_detection",
+        "t": 969.833213,
+        "polarity": -1,
+        "baseline": 1893.098869540674
+      },
+      {
+        "kind": "native70_detection",
+        "t": 969.836384,
+        "polarity": -1,
+        "baseline": 1893.098869540674
+      },
+      {
+        "kind": "native70_detection",
+        "t": 969.856252,
+        "polarity": -1,
+        "baseline": 1893.098869540674
+      },
+      {
+        "kind": "native70_detection",
+        "t": 969.905303,
+        "polarity": -1,
+        "baseline": 1893.098869540674
+      },
+      {
+        "kind": "native70_detection",
+        "t": 970.330303,
+        "polarity": -1,
+        "baseline": 1893.098869540674
+      },
+      {
+        "kind": "native70_detection",
+        "t": 970.534302,
+        "polarity": -1,
+        "baseline": 1893.098869540674
+      },
+      {
+        "kind": "native70_detection",
+        "t": 970.60745,
+        "polarity": -1,
+        "baseline": 1893.098869540674
+      },
+      {
+        "kind": "native70_detection",
+        "t": 970.623797,
+        "polarity": -1,
+        "baseline": 1893.098869540674
+      },
+      {
+        "kind": "native70_detection",
+        "t": 970.624404,
+        "polarity": -1,
+        "baseline": 1893.098869540674
+      },
+      {
+        "kind": "native70_detection",
+        "t": 970.628799,
+        "polarity": -1,
+        "baseline": 1893.098869540674
+      },
+      {
+        "kind": "native70_detection",
+        "t": 970.629,
+        "polarity": -1,
+        "baseline": 1893.098869540674
+      },
+      {
+        "kind": "native70_detection",
+        "t": 970.630439,
+        "polarity": -1,
+        "baseline": 1893.098869540674
+      },
+      {
+        "kind": "native70_detection",
+        "t": 970.632608,
+        "polarity": -1,
+        "baseline": 1893.098869540674
+      },
+      {
+        "kind": "native70_detection",
+        "t": 970.634291,
+        "polarity": -1,
+        "baseline": 1893.098869540674
+      },
+      {
+        "kind": "native70_detection",
+        "t": 970.636595,
+        "polarity": -1,
+        "baseline": 1893.098869540674
+      },
+      {
+        "kind": "native70_detection",
+        "t": 970.638453,
+        "polarity": -1,
+        "baseline": 1893.098869540674
+      },
+      {
+        "kind": "native70_detection",
+        "t": 970.639411,
+        "polarity": -1,
+        "baseline": 1893.098869540674
+      },
+      {
+        "kind": "native70_detection",
+        "t": 970.641628,
+        "polarity": -1,
+        "baseline": 1893.098869540674
+      },
+      {
+        "kind": "native70_detection",
+        "t": 970.642379,
+        "polarity": -1,
+        "baseline": 1893.098869540674
+      },
+      {
+        "kind": "native70_detection",
+        "t": 970.647503,
+        "polarity": -1,
+        "baseline": 1893.098869540674
+      },
+      {
+        "kind": "native70_detection",
+        "t": 970.647967,
+        "polarity": -1,
+        "baseline": 1893.098869540674
+      }
+    ],
+    "following_south": [
+      {
+        "id": 489,
+        "start": 969.1600000000001,
+        "end": 971.8000000000001,
+        "completed": 972.28,
+        "noise": 1.393644000000081,
+        "return_residual_rms": 1.1311203908341578,
+        "return_band": 4.180932000000243,
+        "return_bins": 24,
+        "amplitude": 180.5588695406741,
+        "duration": 2.6399999999999864,
+        "snr": 129.55881813480602,
+        "polarity": -1,
+        "peak_t": 970.23,
+        "asymmetry": 0.40458015267175573,
+        "opposite_area": 0.036484022538283936,
+        "native70": true,
+        "native70_second_us": 969819428,
+        "scores": {
+          "pca": {
+            "distance": 23.838461683928607,
+            "threshold": 80.98523092402726,
+            "score": 0.705644332776039,
+            "recognized": true
+          },
+          "template": {
+            "distance": 9.974049648673423,
+            "threshold": 19.03037640907023,
+            "score": 0.47588794702349624,
+            "recognized": true
+          },
+          "gaussian": {
+            "distance": 8.540905902189298,
+            "threshold": 16.55883785463821,
+            "score": 0.4842086155341542,
+            "recognized": true
+          }
+        }
+      }
+    ],
+    "interpretation": "INCONCLUSIVE: native gap and subsequent warmup censor the false-event window; no demonstrated rejection",
+    "mqtt_source": "/home/david/NGR/telemetry/runs/9950011_20261019_180350.log",
+    "mqtt_source_sha256": "b78570e806117be4d89db649397b5639c023e989eb9b142ffa0b62ddbf27c8a0"
+  },
+  "errors": {
+    "otto_cw": {
+      "first_unmatched_historical_objects": [
+        {
+          "start": 1692.13,
+          "end": 1783.13,
+          "source": "MM",
+          "historical_polarity": "S",
+          "historical_mm": "2",
+          "seq": "321",
+          "amplitude": 237.6
+        }
+      ],
+      "first_unmatched_cpr_objects": []
+    },
+    "otto_ccw": {
+      "first_unmatched_historical_objects": [
+        {
+          "start": 90.29,
+          "end": 90.53,
+          "source": "MM",
+          "historical_polarity": "N",
+          "historical_mm": "6.0",
+          "seq": "35",
+          "amplitude": 229.1
+        },
+        {
+          "start": 96.19,
+          "end": 96.39,
+          "source": "MM",
+          "historical_polarity": "S",
+          "historical_mm": "2.0",
+          "seq": "39",
+          "amplitude": 227.8
+        },
+        {
+          "start": 214.43,
+          "end": 214.63,
+          "source": "MM",
+          "historical_polarity": "N",
+          "historical_mm": "83.0",
+          "seq": "129",
+          "amplitude": 180.6
+        },
+        {
+          "start": 218.91,
+          "end": 219.11,
+          "source": "MM",
+          "historical_polarity": "S",
+          "historical_mm": "79.0",
+          "seq": "133",
+          "amplitude": 200.4
+        },
+        {
+          "start": 223.31,
+          "end": 223.51,
+          "source": "MM",
+          "historical_polarity": "S",
+          "historical_mm": "75.0",
+          "seq": "137",
+          "amplitude": 171.2
+        },
+        {
+          "start": 259.95,
+          "end": 260.15,
+          "source": "MM",
+          "historical_polarity": "S",
+          "historical_mm": "45.0",
+          "seq": "167",
+          "amplitude": 178.9
+        },
+        {
+          "start": 282.27,
+          "end": 282.53,
+          "source": "MM",
+          "historical_polarity": "N",
+          "historical_mm": "28.0",
+          "seq": "184",
+          "amplitude": 159.3
+        },
+        {
+          "start": 283.69,
+          "end": 283.93,
+          "source": "MM",
+          "historical_polarity": "S",
+          "historical_mm": "27.0",
+          "seq": "185",
+          "amplitude": 173.1
+        },
+        {
+          "start": 285.05,
+          "end": 285.29,
+          "source": "MM",
+          "historical_polarity": "S",
+          "historical_mm": "26.0",
+          "seq": "186",
+          "amplitude": 173.6
+        },
+        {
+          "start": 288.79,
+          "end": 289.01,
+          "source": "MM",
+          "historical_polarity": "N",
+          "historical_mm": "23.0",
+          "seq": "189",
+          "amplitude": 178.6
+        },
+        {
+          "start": 289.99,
+          "end": 290.25,
+          "source": "MM",
+          "historical_polarity": "S",
+          "historical_mm": "22.0",
+          "seq": "190",
+          "amplitude": 185.3
+        },
+        {
+          "start": 308.79,
+          "end": 308.99,
+          "source": "MM",
+          "historical_polarity": "S",
+          "historical_mm": "8.0",
+          "seq": "204",
+          "amplitude": 217.8
+        }
+      ],
+      "first_unmatched_cpr_objects": [
+        {
+          "id": 35,
+          "start": 89.88000000000001,
+          "end": 90.72,
+          "completed": 91.2,
+          "noise": 1.2527970000000404,
+          "return_residual_rms": 1.7606260899847896,
+          "return_band": 3.7583910000001213,
+          "return_bins": 24,
+          "amplitude": 225.84083200880286,
+          "duration": 0.8399999999999892,
+          "snr": 180.2692950324718,
+          "polarity": 1,
+          "peak_t": 90.41,
+          "asymmetry": 0.6341463414634146,
+          "opposite_area": 0.11079214769193133,
+          "native70": true,
+          "native70_second_us": 90350491,
+          "scores": {
+            "pca": {
+              "distance": 19.092999487053234,
+              "threshold": 80.98523092402726,
+              "score": 0.7642409699990299,
+              "recognized": true
+            },
+            "template": {
+              "distance": 3.3209096278095975,
+              "threshold": 19.03037640907023,
+              "score": 0.8254942752353133,
+              "recognized": true
+            },
+            "gaussian": {
+              "distance": 2.4242878730270134,
+              "threshold": 16.55883785463821,
+              "score": 0.8535955304165287,
+              "recognized": true
+            }
+          }
+        },
+        {
+          "id": 39,
+          "start": 95.78,
+          "end": 96.54,
+          "completed": 97.02,
+          "noise": 1.1786669999999393,
+          "return_residual_rms": 1.4140950730691821,
+          "return_band": 3.5360009999998177,
+          "return_bins": 24,
+          "amplitude": 229.94516101268778,
+          "duration": 0.7600000000000051,
+          "snr": 195.08916514392922,
+          "polarity": -1,
+          "peak_t": 96.28999999999999,
+          "asymmetry": 0.6756756756756757,
+          "opposite_area": 0.0704357942804384,
+          "native70": true,
+          "native70_second_us": 96216363,
+          "scores": {
+            "pca": {
+              "distance": 14.591940674886335,
+              "threshold": 80.98523092402726,
+              "score": 0.819819731222658,
+              "recognized": true
+            },
+            "template": {
+              "distance": 2.9023113921867494,
+              "threshold": 19.03037640907023,
+              "score": 0.8474905945211124,
+              "recognized": true
+            },
+            "gaussian": {
+              "distance": 2.674773035970966,
+              "threshold": 16.55883785463821,
+              "score": 0.8384685532009272,
+              "recognized": true
+            }
+          }
+        },
+        {
+          "id": 129,
+          "start": 214.12,
+          "end": 214.79999999999998,
+          "completed": 215.28,
+          "noise": 2.0551659999999607,
+          "return_residual_rms": 2.8603062369882712,
+          "return_band": 6.165497999999882,
+          "return_bins": 24,
+          "amplitude": 176.02012173484923,
+          "duration": 0.6799999999999784,
+          "snr": 85.64764195926392,
+          "polarity": 1,
+          "peak_t": 214.53,
+          "asymmetry": 0.6060606060606061,
+          "opposite_area": 0.18046607045471214,
+          "native70": true,
+          "native70_second_us": 214470252,
+          "scores": {
+            "pca": {
+              "distance": 16.3573641090493,
+              "threshold": 80.98523092402726,
+              "score": 0.7980204054194246,
+              "recognized": true
+            },
+            "template": {
+              "distance": 0.6176174402985025,
+              "threshold": 19.03037640907023,
+              "score": 0.9675457055066901,
+              "recognized": true
+            },
+            "gaussian": {
+              "distance": 0.13364686164508888,
+              "threshold": 16.55883785463821,
+              "score": 0.9919289709327244,
+              "recognized": true
+            }
+          }
+        },
+        {
+          "id": 133,
+          "start": 218.62,
+          "end": 219.35999999999999,
+          "completed": 219.84,
+          "noise": 1.7939460000000538,
+          "return_residual_rms": 2.1082026704282346,
+          "return_band": 5.381838000000162,
+          "return_bins": 24,
+          "amplitude": 195.0224763062522,
+          "duration": 0.7399999999999807,
+          "snr": 108.71145302380694,
+          "polarity": -1,
+          "peak_t": 219.01000000000002,
+          "asymmetry": 0.5277777777777778,
+          "opposite_area": 0.21923336972328877,
+          "native70": true,
+          "native70_second_us": 218958339,
+          "scores": {
+            "pca": {
+              "distance": 47.37333503240737,
+              "threshold": 80.98523092402726,
+              "score": 0.415037353207666,
+              "recognized": true
+            },
+            "template": {
+              "distance": 2.7206116878598148,
+              "threshold": 19.03037640907023,
+              "score": 0.8570384721048859,
+              "recognized": true
+            },
+            "gaussian": {
+              "distance": 0.48794460496620434,
+              "threshold": 16.55883785463821,
+              "score": 0.9705326781233304,
+              "recognized": true
+            }
+          }
+        },
+        {
+          "id": 137,
+          "start": 223.0,
+          "end": 223.68,
+          "completed": 224.16,
+          "noise": 1.7049900000001348,
+          "return_residual_rms": 2.273189837114024,
+          "return_band": 5.114970000000405,
+          "return_bins": 24,
+          "amplitude": 162.29531944931864,
+          "duration": 0.6800000000000068,
+          "snr": 95.18842893465991,
+          "polarity": -1,
+          "peak_t": 223.39000000000001,
+          "asymmetry": 0.5757575757575758,
+          "opposite_area": 0.2021438296136412,
+          "native70": true,
+          "native70_second_us": 223349434,
+          "scores": {
+            "pca": {
+              "distance": 21.85714489370712,
+              "threshold": 80.98523092402726,
+              "score": 0.7301094947273603,
+              "recognized": true
+            },
+            "template": {
+              "distance": 0.9437833629374397,
+              "threshold": 19.03037640907023,
+              "score": 0.9504064794804786,
+              "recognized": true
+            },
+            "gaussian": {
+              "distance": 0.4354742721275392,
+              "threshold": 16.55883785463821,
+              "score": 0.9737013988571933,
+              "recognized": true
+            }
+          }
+        },
+        {
+          "id": 167,
+          "start": 259.64000000000004,
+          "end": 260.32000000000005,
+          "completed": 260.8,
+          "noise": 1.141601999999973,
+          "return_residual_rms": 1.20783452632062,
+          "return_band": 3.4248059999999185,
+          "return_bins": 24,
+          "amplitude": 179.17833821691102,
+          "duration": 0.6800000000000068,
+          "snr": 156.9534200333525,
+          "polarity": -1,
+          "peak_t": 260.07,
+          "asymmetry": 0.6363636363636364,
+          "opposite_area": 0.06471365047917328,
+          "native70": true,
+          "native70_second_us": 260002420,
+          "scores": {
+            "pca": {
+              "distance": 6.542922618900895,
+              "threshold": 80.98523092402726,
+              "score": 0.9192084464753969,
+              "recognized": true
+            },
+            "template": {
+              "distance": 0.4096895360345241,
+              "threshold": 19.03037640907023,
+              "score": 0.9784718112123489,
+              "recognized": true
+            },
+            "gaussian": {
+              "distance": 0.09138797955704317,
+              "threshold": 16.55883785463821,
+              "score": 0.9944810148900972,
+              "recognized": true
+            }
+          }
+        },
+        {
+          "id": 184,
+          "start": 281.98,
+          "end": 285.48,
+          "completed": 285.96,
+          "noise": 0.9789698571427407,
+          "return_residual_rms": 1.471210041888864,
+          "return_band": 3.0,
+          "return_bins": 24,
+          "amplitude": 173.03539338818632,
+          "duration": 3.5,
+          "snr": 176.75252422297672,
+          "polarity": -1,
+          "peak_t": 285.17,
+          "asymmetry": 0.9137931034482759,
+          "opposite_area": 0.6516669210512197,
+          "native70": true,
+          "native70_second_us": 282347212,
+          "scores": {
+            "pca": {
+              "distance": 515.2097131786388,
+              "threshold": 80.98523092402726,
+              "score": -5.361773712319969,
+              "recognized": false
+            },
+            "template": {
+              "distance": 22.7365629628804,
+              "threshold": 19.03037640907023,
+              "score": -0.194751090264496,
+              "recognized": false
+            },
+            "gaussian": {
+              "distance": 16.73107223222019,
+              "threshold": 16.55883785463821,
+              "score": -0.010401356610526546,
+              "recognized": false
+            }
+          }
+        },
+        {
+          "id": 187,
+          "start": 288.48,
+          "end": 290.48,
+          "completed": 290.96,
+          "noise": 1.0452329999998922,
+          "return_residual_rms": 2.0076680811602423,
+          "return_band": 3.1356989999996765,
+          "return_bins": 24,
+          "amplitude": 180.5339148056837,
+          "duration": 2.0,
+          "snr": 172.72121604054055,
+          "polarity": 1,
+          "peak_t": 288.91,
+          "asymmetry": 0.21212121212121213,
+          "opposite_area": 0.9466541365034395,
+          "native70": true,
+          "native70_second_us": 288842401,
+          "scores": {
+            "pca": {
+              "distance": 907.7456327296852,
+              "threshold": 80.98523092402726,
+              "score": -10.208779951263544,
+              "recognized": false
+            },
+            "template": {
+              "distance": 13.590035719583714,
+              "threshold": 19.03037640907023,
+              "score": 0.2858766727752977,
+              "recognized": true
+            },
+            "gaussian": {
+              "distance": 10.060580176070989,
+              "threshold": 16.55883785463821,
+              "score": 0.39243440485450665,
+              "recognized": true
+            }
+          }
+        },
+        {
+          "id": 201,
+          "start": 308.5,
+          "end": 309.18,
+          "completed": 309.66,
+          "noise": 1.14160200000031,
+          "return_residual_rms": 0.618613765109314,
+          "return_band": 3.42480600000093,
+          "return_bins": 24,
+          "amplitude": 218.16882138280585,
+          "duration": 0.6800000000000068,
+          "snr": 191.10760263449663,
+          "polarity": -1,
+          "peak_t": 308.91,
+          "asymmetry": 0.6060606060606061,
+          "opposite_area": 0.07293430529127135,
+          "native70": true,
+          "native70_second_us": 308841327,
+          "scores": {
+            "pca": {
+              "distance": 13.535709274077883,
+              "threshold": 80.98523092402726,
+              "score": 0.8328620031129402,
+              "recognized": true
+            },
+            "template": {
+              "distance": 2.1243951129055563,
+              "threshold": 19.03037640907023,
+              "score": 0.8883682031694848,
+              "recognized": true
+            },
+            "gaussian": {
+              "distance": 1.763089222006157,
+              "threshold": 16.55883785463821,
+              "score": 0.8935257874083049,
+              "recognized": true
+            }
+          }
+        },
+        {
+          "id": 203,
+          "start": 311.0,
+          "end": 311.84000000000003,
+          "completed": 312.32,
+          "noise": 0.9933420000001079,
+          "return_residual_rms": 1.598455349911367,
+          "return_band": 3.0,
+          "return_bins": 24,
+          "amplitude": 224.367279287374,
+          "duration": 0.8400000000000318,
+          "snr": 225.8711292660027,
+          "polarity": 1,
+          "peak_t": 311.55,
+          "asymmetry": 0.6585365853658537,
+          "opposite_area": 0.08969756529973513,
+          "native70": true,
+          "native70_second_us": 311476339,
+          "scores": {
+            "pca": {
+              "distance": 20.23933836727405,
+              "threshold": 80.98523092402726,
+              "score": 0.7500860572187453,
+              "recognized": true
+            },
+            "template": {
+              "distance": 3.0223940728433383,
+              "threshold": 19.03037640907023,
+              "score": 0.8411805416837257,
+              "recognized": true
+            },
+            "gaussian": {
+              "distance": 2.296403258206114,
+              "threshold": 16.55883785463821,
+              "score": 0.8613185732981328,
+              "recognized": true
+            }
+          }
+        },
+        {
+          "id": 222,
+          "start": 338.06,
+          "end": 338.78000000000003,
+          "completed": 339.26,
+          "noise": 1.4257165714285371,
+          "return_residual_rms": 1.631258221181379,
+          "return_band": 4.277149714285612,
+          "return_bins": 24,
+          "amplitude": 162.06519504215112,
+          "duration": 0.7200000000000273,
+          "snr": 113.67280025353517,
+          "polarity": -1,
+          "peak_t": 338.47,
+          "asymmetry": 0.5714285714285714,
+          "opposite_area": 0.16782517382411064,
+          "native70": true,
+          "native70_second_us": 338420306,
+          "scores": {
+            "pca": {
+              "distance": 18.77027750975494,
+              "threshold": 80.98523092402726,
+              "score": 0.7682259185336713,
+              "recognized": true
+            },
+            "template": {
+              "distance": 1.3659401021647675,
+              "threshold": 19.03037640907023,
+              "score": 0.9282231694842497,
+              "recognized": true
+            },
+            "gaussian": {
+              "distance": 0.42823630459420603,
+              "threshold": 16.55883785463821,
+              "score": 0.9741385048664961,
+              "recognized": true
+            }
+          }
+        },
+        {
+          "id": 230,
+          "start": 348.04,
+          "end": 348.92,
+          "completed": 349.40000000000003,
+          "noise": 1.5863820000002427,
+          "return_residual_rms": 1.7496722504876125,
+          "return_band": 4.759146000000728,
+          "return_bins": 24,
+          "amplitude": 171.04637263088148,
+          "duration": 0.8799999999999955,
+          "snr": 107.82168016962832,
+          "polarity": -1,
+          "peak_t": 348.57,
+          "asymmetry": 0.6046511627906976,
+          "opposite_area": 0.20459694163441558,
+          "native70": true,
+          "native70_second_us": 348512390,
+          "scores": {
+            "pca": {
+              "distance": 24.173631454976512,
+              "threshold": 80.98523092402726,
+              "score": 0.7015056797497565,
+              "recognized": true
+            },
+            "template": {
+              "distance": 1.076211705452357,
+              "threshold": 19.03037640907023,
+              "score": 0.9434476921360623,
+              "recognized": true
+            },
+            "gaussian": {
+              "distance": 0.3180651421960551,
+              "threshold": 16.55883785463821,
+              "score": 0.9807918197527996,
+              "recognized": true
+            }
+          }
+        }
+      ]
+    },
+    "toby_cw": {
+      "first_unmatched_historical_objects": [
+        {
+          "start": 94.01,
+          "end": 94.53,
+          "source": "MM",
+          "historical_polarity": "S",
+          "historical_mm": "40.0",
+          "seq": "1",
+          "amplitude": 199.5
+        },
+        {
+          "start": 96.65,
+          "end": 96.99,
+          "source": "MM",
+          "historical_polarity": "S",
+          "historical_mm": "41.0",
+          "seq": "2",
+          "amplitude": 190.3
+        },
+        {
+          "start": 98.53,
+          "end": 98.77,
+          "source": "MM",
+          "historical_polarity": "N",
+          "historical_mm": "42.0",
+          "seq": "3",
+          "amplitude": 185.4
+        },
+        {
+          "start": 100.15,
+          "end": 100.41,
+          "source": "MM",
+          "historical_polarity": "S",
+          "historical_mm": "43.0",
+          "seq": "4",
+          "amplitude": 193.0
+        },
+        {
+          "start": 101.69,
+          "end": 101.95,
+          "source": "MM",
+          "historical_polarity": "N",
+          "historical_mm": "44.0",
+          "seq": "5",
+          "amplitude": 180.8
+        },
+        {
+          "start": 103.23,
+          "end": 103.49,
+          "source": "MM",
+          "historical_polarity": "S",
+          "historical_mm": "45.0",
+          "seq": "6",
+          "amplitude": 198.5
+        },
+        {
+          "start": 104.75,
+          "end": 105.01,
+          "source": "MM",
+          "historical_polarity": "S",
+          "historical_mm": "46.0",
+          "seq": "7",
+          "amplitude": 213.1
+        },
+        {
+          "start": 106.23,
+          "end": 106.49,
+          "source": "MM",
+          "historical_polarity": "S",
+          "historical_mm": "47.0",
+          "seq": "8",
+          "amplitude": 197.7
+        },
+        {
+          "start": 107.73,
+          "end": 107.97,
+          "source": "MM",
+          "historical_polarity": "N",
+          "historical_mm": "48.0",
+          "seq": "9",
+          "amplitude": 192.0
+        },
+        {
+          "start": 109.17,
+          "end": 109.37,
+          "source": "MM",
+          "historical_polarity": "N",
+          "historical_mm": "49.0",
+          "seq": "10",
+          "amplitude": 194.7
+        },
+        {
+          "start": 123.99,
+          "end": 124.27,
+          "source": "CONTRADICTION",
+          "historical_polarity": "N",
+          "historical_mm": "",
+          "seq": "11",
+          "amplitude": 263.3
+        },
+        {
+          "start": 125.43,
+          "end": 125.55,
+          "source": "RECOGNIZED_NO_CLAIM",
+          "historical_polarity": "S",
+          "historical_mm": "",
+          "seq": "12",
+          "amplitude": 212.1
+        }
+      ],
+      "first_unmatched_cpr_objects": []
+    }
+  },
+  "resources": {
+    "scoring_calls": 638,
+    "all_three_models_ms_p50": 0.043291999999972575,
+    "all_three_models_ms_p99": 0.07391979000015422,
+    "all_three_models_ms_max": 0.248333000000045,
+    "max_stored_event_bins": 1519,
+    "proposed_c_compact_event_bytes_per_bin": 16,
+    "proposed_c_compact_event_bytes": 24304,
+    "target_runtime_measured": false
+  },
+  "training_background": {
+    "exposure_s": 1281.5200000000004,
+    "positive_events_wholly_inside_background": 0,
+    "status": "construction-only ADC background labels; not a test false-positive rate",
+    "source_sha256": "bedbb3a87b29781c1b64fc090ae9be9a95b66017741b153448322a926e74dfa2"
+  }
+}

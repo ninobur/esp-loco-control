@@ -1,0 +1,281 @@
+CODEX Assignment — NAVI Continuous Pattern Recognition (CPR)
+
+Repository: https://github.com/ninobur/esp-loco-control
+
+Project: NAVI_CPR_0_1
+
+Status: Preliminary research and experimental implementation
+
+Authorization: Read repository materials, develop an independent offline prototype, run experiments, and document findings. Do not modify production firmware, governing specifications, or locomotive control behavior.
+
+1. Objective
+
+Develop a continuous pattern recognition model that identifies complete magnetic encounters in a locomotive’s Hall sensor tracing.
+
+The model should recognize genuine magnetic patterns from their continuous development, physical shape, amplitude, and return to baseline.
+
+It must not begin by classifying individual observations as failures or by comparing arbitrary fixed-duration windows against magnet and nonmagnet classes.
+
+The intended processing sequence is:
+
+Trace → Discover → Complete → Recognize → Locate
+
+The immediate research scope ends at Recognize. Geographic interpretation is a later integration stage.
+
+Our central research question is:
+
+Can a statistical model recognize complete magnetic ensembles in Otto’s recorded Hall traces without knowing their geographic identities?
+
+2. Background
+
+Earlier NAVI work progressively shifted from recognizing magnetic patterns to evaluating individual measurements against thresholds and failure conditions.
+
+The operator’s original concept was simpler:
+
+A locomotive travels through a known magnetic environment. Each magnet produces a characteristic developing pattern in the Hall tracing. The navigator should recognize those patterns as they occur.
+
+The pattern may include:
+
+* A principal positive or negative lobe.
+* Asymmetric rising and falling portions.
+* Secondary lobes or return-flux features.
+* Shoulders, irregularities, and temporary flattening.
+* A return toward the local baseline.
+
+These are not necessarily separate observations. They may be parts of one magnetic encounter.
+
+Three independent mathematical investigations—Grok, Google Gemini, and DeepSeek—have suggested a common architecture based on continuous event segmentation followed by whole-event statistical recognition.
+
+Their algorithms and claimed results have not been accepted as validated implementations. CODEX should treat them as research proposals rather than governing specifications.
+
+3. Proposed architecture
+
+Stage A — Continuous baseline awareness
+
+Maintain a causal estimate of:
+
+* Local Hall baseline.
+* Baseline drift.
+* Background noise and variability.
+
+Possible methods include robust local-linear regression, Kalman-style tracking, or another defensible estimator.
+
+When a candidate magnetic encounter develops, protect the baseline estimate against contamination by the magnetic signal.
+
+Do not assume the baseline is constant across a run or identical across locomotives.
+
+Stage B — Magnetic ensemble discovery
+
+Observe the continuous residual tracing relative to its local baseline.
+
+When evidence suggests that a magnetic structure is developing, open a provisional ensemble and preserve sufficient pre-onset history.
+
+Follow the evolving tracing without declaring a magnet.
+
+Do not treat the first peak, a shoulder, a temporary reversal, or a secondary lobe as automatic completion.
+
+A magnetic ensemble is a continuous physical event, not a fixed-duration sampling window.
+
+Stage C — Evidence-based completion
+
+An ensemble becomes eligible for recognition only after sufficient evidence that its tracing has returned to the local baseline.
+
+Investigate sustained baseline-return criteria using:
+
+* Residual magnitude relative to baseline noise.
+* Persistence of baseline behavior.
+* Evidence of continuing structure.
+* Separation between consecutive magnetic encounters.
+
+Do not equate CUSUM returning to zero with proof that the physical tracing has returned to baseline.
+
+Completion criteria must be derived and tested against actual Hall recordings.
+
+A maximum observation horizon may protect memory, but reaching that limit must not manufacture a successful recognition.
+
+Stage D — Whole-ensemble pattern recognition
+
+Evaluate the completed ensemble as one object.
+
+The statistical representation should preserve information about:
+
+* Polarity.
+* Actual amplitude.
+* Duration.
+* Overall curve shape.
+* Asymmetry.
+* Secondary lobes and shoulders.
+* Noise-relative signal strength.
+* Variability within the population of genuine magnetic encounters.
+
+Investigate alternative recognition methods, including:
+
+1. Families of empirical magnetic templates.
+2. Low-dimensional shape representations with learned covariance.
+3. Parametric curve fitting where appropriate.
+4. Hybrid methods combining shape similarity with independently retained amplitude and duration.
+
+Do not assume that all genuine magnetic encounters are Gaussian.
+
+Shape normalization may be used as an additional representation, but must not eliminate amplitude as physical evidence.
+
+The recognizer should learn the population of genuine magnetic patterns rather than requiring every pattern to resemble one idealized waveform.
+
+Stage E — Geographic interpretation (future integration)
+
+A recognized encounter can subsequently be interpreted using:
+
+* The declared geographic starting point.
+* Direction of travel.
+* Ordered magnetic polarity map.
+* IR-measured travel and speed, where valid.
+* Previously trusted geographic context.
+
+This stage is explicitly outside the initial CPR recognition experiment.
+
+Do not use the DNA map to decide whether an incomplete Hall tracing is a genuine magnetic ensemble.
+
+4. Governing design principles
+
+1. Continuous tracing is primary. Recognition operates on complete developing magnetic structures.
+2. Detection is provisional. A candidate is not a recognized magnet.
+3. Completion precedes recognition.
+4. Baseline is a physical reference, not a competing classification.
+5. Real magnetic recordings define the target population.
+6. Amplitude, shape, and duration remain distinct forms of evidence.
+7. An unrecognized observation requires no speculative failure diagnosis.
+8. Recognition and geographic interpretation remain separate.
+9. The recognizer must operate causally with bounded memory and computational cost.
+10. One complete magnetic ensemble should produce at most one recognition.
+
+Preserve the established governing Hall detection requirement of a departure of at least 70 counts for two consecutive samples, with detection on the second sample. Do not silently replace or supersede that requirement.
+
+Because CPR investigates a different statistical recognition architecture, explicitly analyze how this existing rule should coexist with provisional ensemble discovery. Any proposed change must be identified for operator approval rather than incorporated implicitly.
+
+5. Repository investigation
+
+Before implementation, inspect the existing NAVI research, governing decisions, Hall recordings, and experimental recognizers.
+
+In particular, locate and review:
+
+* The NAVI_RVM operator metaphors and engineering compendium.
+* The Behavioral Authority Audit, especially F01, F02, and F06.
+* Existing Hall waveform recognition experiments.
+* The NAVI_RVM_CONTINUITY_MANUAL experiment and its delivery report.
+* Recorded Otto Hall traces from October 19, 2026.
+* Relevant earlier recordings demonstrating secondary lobes, repeated observations, weak disturbances, and baseline changes.
+
+The October 19 clockwise and counterclockwise runs are especially useful.
+
+The counterclockwise run contained hundreds of successful geographic advancements and a consequential false North recognition before the genuine South encounter at MM101.
+
+Examine this episode as a recognition problem, without assuming in advance what caused the false observation.
+
+Do not use geographically successful outcomes as proof that every associated Hall recognition was correct.
+
+Document the provenance and suitability of all training and evaluation data. Respect previously reserved test data.
+
+6. Initial implementation
+
+Build a standalone offline CPR reference model, preferably in Python.
+
+It must accept recorded Hall sample sequences and produce a time-ordered record of:
+
+* Provisional ensemble openings.
+* Estimated ensemble starts.
+* Ensemble completions.
+* Completed ensemble boundaries.
+* Recognized magnetic patterns.
+* Polarity and measured features.
+* Unrecognized completed candidates.
+* Recognition scores and diagnostic information.
+
+Provide visual plots overlaying these decisions on the original Hall tracing and estimated baseline.
+
+Keep baseline estimation, segmentation, completion, and recognition as separately testable components.
+
+Do not write ESP32 firmware during this phase.
+
+7. Experimental evaluation
+
+Begin with synthetic signals to establish basic mathematical correctness, but make real Hall recordings the principal validation material.
+
+Evaluate:
+
+* Strong and weak genuine magnetic encounters.
+* Both polarities.
+* Asymmetric curves.
+* Principal and secondary lobes.
+* Shoulders and irregular magnetic shapes.
+* Closely spaced consecutive magnets.
+* Slow and abrupt baseline changes.
+* Correlated noise.
+* Short nonmagnetic disturbances.
+* Interrupted or incomplete encounters.
+* Extended stationary intervals.
+* Differences between locomotives where suitable recordings exist.
+
+Measure recognition recall, false recognitions per operating hour, splitting, merging, completion accuracy, declaration latency, and computational/memory requirements.
+
+Separate the evaluation of event segmentation from the evaluation of magnetic recognition.
+
+Use separate training, calibration, and test material. Avoid data leakage.
+
+Do not report synthetic success as proof of field reliability.
+
+8. Research questions requiring explicit answers
+
+1. What observable evidence reliably establishes the beginning of a magnetic ensemble?
+2. What evidence establishes that the ensemble has ended?
+3. How can the model preserve secondary lobes without merging separate magnets?
+4. Which baseline estimator best handles real locomotive Hall recordings?
+5. What statistical representation captures genuine magnetic shape variability?
+6. How should amplitude contribute to recognition without excluding legitimate weaker magnets?
+7. Can genuine magnetic encounters be recognized without geographic information?
+8. How well does the model handle the October 19 MM101 false recognition?
+9. What are the measured false-positive and missed-recognition rates?
+10. Is the resulting algorithm computationally feasible on the ESP32 at the required sampling rate?
+
+If the available evidence cannot answer a question, identify the missing evidence rather than inventing an answer.
+
+9. Deliverables
+
+Produce:
+
+A. Architectural reconciliation
+
+Explain how the proposed CPR architecture relates to existing NAVI governing decisions, experiments, and operator intent. Identify conflicts and unresolved questions.
+
+B. Offline reference implementation
+
+A runnable, documented prototype with reproducible tests.
+
+C. Experimental evidence
+
+Plots, measurements, failure examples, and comparison of plausible component alternatives.
+
+D. Implementation assessment
+
+A realistic estimate of memory, processing cost, and suitability for eventual ESP32 integration.
+
+E. Recommendation
+
+State whether CPR is sufficiently supported to proceed toward a locomotive implementation, what must first be corrected, and what decisions require operator approval.
+
+10. Boundaries and working method
+
+Do not modify existing locomotive sketches, NAVI governing specifications, CTO, dispatcher behavior, or motor-control logic.
+
+Do not replace the intended architecture with a conventional sliding-window classifier merely because one is easier to implement.
+
+Do not introduce a catalog of hypothetical failure types as the governing recognition method.
+
+Do not claim successful recognition solely because a geographic position subsequently appears plausible.
+
+Preserve existing repository work. Use a separate research branch and keep all experimental changes isolated.
+
+Report repository paths, commit identifiers, data provenance, and reproduction instructions.
+
+The goal is not to produce another sketch quickly. It is to establish whether continuous recognition of complete magnetic patterns provides the simpler, more reliable foundation that NAVI has been seeking.
+
+Proceed with the repository investigation, offline prototype, and documented experiments. Stop before any production firmware implementation or governing specification change.

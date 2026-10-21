@@ -1,0 +1,247 @@
+{
+  "historical_false_window_s": [
+    965.43,
+    967.05
+  ],
+  "historical_false_amplitude_adc": 12.4,
+  "overlapping_native_gaps_s": [
+    [
+      965.8000000000001,
+      966.66
+    ]
+  ],
+  "baseline_ready_nearby": [
+    {
+      "kind": "baseline_ready",
+      "t": 967.66,
+      "level": 1892.005306122449,
+      "note": "warmup baseline identity unverified"
+    }
+  ],
+  "native70_nearby": [
+    {
+      "kind": "native70_detection",
+      "t": 969.819428,
+      "polarity": -1,
+      "baseline": 1893.098869540674
+    },
+    {
+      "kind": "native70_detection",
+      "t": 969.820688,
+      "polarity": -1,
+      "baseline": 1893.098869540674
+    },
+    {
+      "kind": "native70_detection",
+      "t": 969.822402,
+      "polarity": -1,
+      "baseline": 1893.098869540674
+    },
+    {
+      "kind": "native70_detection",
+      "t": 969.824303,
+      "polarity": -1,
+      "baseline": 1893.098869540674
+    },
+    {
+      "kind": "native70_detection",
+      "t": 969.826026,
+      "polarity": -1,
+      "baseline": 1893.098869540674
+    },
+    {
+      "kind": "native70_detection",
+      "t": 969.827213,
+      "polarity": -1,
+      "baseline": 1893.098869540674
+    },
+    {
+      "kind": "native70_detection",
+      "t": 969.828438,
+      "polarity": -1,
+      "baseline": 1893.098869540674
+    },
+    {
+      "kind": "native70_detection",
+      "t": 969.830738,
+      "polarity": -1,
+      "baseline": 1893.098869540674
+    },
+    {
+      "kind": "native70_detection",
+      "t": 969.832329,
+      "polarity": -1,
+      "baseline": 1893.098869540674
+    },
+    {
+      "kind": "native70_detection",
+      "t": 969.833213,
+      "polarity": -1,
+      "baseline": 1893.098869540674
+    },
+    {
+      "kind": "native70_detection",
+      "t": 969.836384,
+      "polarity": -1,
+      "baseline": 1893.098869540674
+    },
+    {
+      "kind": "native70_detection",
+      "t": 969.856252,
+      "polarity": -1,
+      "baseline": 1893.098869540674
+    },
+    {
+      "kind": "native70_detection",
+      "t": 969.905303,
+      "polarity": -1,
+      "baseline": 1893.098869540674
+    },
+    {
+      "kind": "native70_detection",
+      "t": 970.330303,
+      "polarity": -1,
+      "baseline": 1893.098869540674
+    },
+    {
+      "kind": "native70_detection",
+      "t": 970.534302,
+      "polarity": -1,
+      "baseline": 1893.098869540674
+    },
+    {
+      "kind": "native70_detection",
+      "t": 970.60745,
+      "polarity": -1,
+      "baseline": 1893.098869540674
+    },
+    {
+      "kind": "native70_detection",
+      "t": 970.623797,
+      "polarity": -1,
+      "baseline": 1893.098869540674
+    },
+    {
+      "kind": "native70_detection",
+      "t": 970.624404,
+      "polarity": -1,
+      "baseline": 1893.098869540674
+    },
+    {
+      "kind": "native70_detection",
+      "t": 970.628799,
+      "polarity": -1,
+      "baseline": 1893.098869540674
+    },
+    {
+      "kind": "native70_detection",
+      "t": 970.629,
+      "polarity": -1,
+      "baseline": 1893.098869540674
+    },
+    {
+      "kind": "native70_detection",
+      "t": 970.630439,
+      "polarity": -1,
+      "baseline": 1893.098869540674
+    },
+    {
+      "kind": "native70_detection",
+      "t": 970.632608,
+      "polarity": -1,
+      "baseline": 1893.098869540674
+    },
+    {
+      "kind": "native70_detection",
+      "t": 970.634291,
+      "polarity": -1,
+      "baseline": 1893.098869540674
+    },
+    {
+      "kind": "native70_detection",
+      "t": 970.636595,
+      "polarity": -1,
+      "baseline": 1893.098869540674
+    },
+    {
+      "kind": "native70_detection",
+      "t": 970.638453,
+      "polarity": -1,
+      "baseline": 1893.098869540674
+    },
+    {
+      "kind": "native70_detection",
+      "t": 970.639411,
+      "polarity": -1,
+      "baseline": 1893.098869540674
+    },
+    {
+      "kind": "native70_detection",
+      "t": 970.641628,
+      "polarity": -1,
+      "baseline": 1893.098869540674
+    },
+    {
+      "kind": "native70_detection",
+      "t": 970.642379,
+      "polarity": -1,
+      "baseline": 1893.098869540674
+    },
+    {
+      "kind": "native70_detection",
+      "t": 970.647503,
+      "polarity": -1,
+      "baseline": 1893.098869540674
+    },
+    {
+      "kind": "native70_detection",
+      "t": 970.647967,
+      "polarity": -1,
+      "baseline": 1893.098869540674
+    }
+  ],
+  "following_south": [
+    {
+      "id": 489,
+      "start": 969.1600000000001,
+      "end": 971.8000000000001,
+      "completed": 972.28,
+      "noise": 1.393644000000081,
+      "return_residual_rms": 1.1311203908341578,
+      "return_band": 4.180932000000243,
+      "return_bins": 24,
+      "amplitude": 180.5588695406741,
+      "duration": 2.6399999999999864,
+      "snr": 129.55881813480602,
+      "polarity": -1,
+      "peak_t": 970.23,
+      "asymmetry": 0.40458015267175573,
+      "opposite_area": 0.036484022538283936,
+      "native70": true,
+      "native70_second_us": 969819428,
+      "scores": {
+        "pca": {
+          "distance": 23.838461683928607,
+          "threshold": 80.98523092402726,
+          "score": 0.705644332776039,
+          "recognized": true
+        },
+        "template": {
+          "distance": 9.974049648673423,
+          "threshold": 19.03037640907023,
+          "score": 0.47588794702349624,
+          "recognized": true
+        },
+        "gaussian": {
+          "distance": 8.540905902189298,
+          "threshold": 16.55883785463821,
+          "score": 0.4842086155341542,
+          "recognized": true
+        }
+      }
+    }
+  ],
+  "interpretation": "INCONCLUSIVE: native gap and subsequent warmup censor the false-event window; no demonstrated rejection",
+  "mqtt_source": "/home/david/NGR/telemetry/runs/9950011_20261019_180350.log",
+  "mqtt_source_sha256": "b78570e806117be4d89db649397b5639c023e989eb9b142ffa0b62ddbf27c8a0"
+}

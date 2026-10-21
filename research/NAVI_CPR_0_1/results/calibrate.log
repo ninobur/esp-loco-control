@@ -1,0 +1,7 @@
+component linear 0.12 train 230 / 378 cal 3 / 282
+component linear 0.24 train 160 / 378 cal 2 / 282
+component linear 0.48 train 60 / 378 cal 1 / 282
+component ema 0.12 train 323 / 378 cal 254 / 282
+component ema 0.24 train 321 / 378 cal 253 / 282
+component ema 0.48 train 316 / 378 cal 260 / 282
+frozen {'baseline': 'ema', 'return_s': 0.48, 'dt': 0.02, 'history': 100, 'warmup': 50, 'pre': 15, 'onset_n': 3, 'horizon_s': 30.0} objects 316 260 thresholds {'pca': 80.98523092402726, 'template': 19.03037640907023, 'gaussian': 16.55883785463821}

@@ -1,0 +1,5 @@
+raw/
+__pycache__/
+*.pyc
+!results/*.log
+!sources/mm101_mqtt_excerpt.log

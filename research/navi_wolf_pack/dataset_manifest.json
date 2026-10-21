@@ -1,0 +1,48 @@
+{
+  "schema": "navi-wolf-pack.dataset-manifest.v1",
+  "frozen_at": "2026-10-21",
+  "rule": "Assignments are by entire recording session; labels are not physical ground truth unless separately identified.",
+  "recordings": [
+    {
+      "id": "otto_train_20261015",
+      "locomotive": "Otto",
+      "partition": "development",
+      "native_hall": "research/NAVI_CPR_0_1/data/otto_train_native.npz",
+      "source_sha256": "b366bff8f17d28c64f7b666b68e171cef8521dcd1a791ecf6b147713506d0b20",
+      "ground_truth": "historical annotations only; not independent",
+      "eligible_for_definitive_geographic_score": false
+    },
+    {
+      "id": "otto_cw_20261019",
+      "locomotive": "Otto",
+      "partition": "development_calibration",
+      "native_hall": "research/NAVI_CPR_0_1/data/otto_cw_native.npz",
+      "source_sha256": "747ee15e0590d0668bf0b7af06b02f9ba002d61a4b0550c6b108aadc409fca89",
+      "ground_truth": "historical annotations only; not independent",
+      "eligible_for_definitive_geographic_score": false
+    },
+    {
+      "id": "otto_ccw_20261019",
+      "locomotive": "Otto",
+      "partition": "validation",
+      "native_hall": "research/NAVI_CPR_0_1/data/otto_ccw_native.npz",
+      "source_sha256": "dbab5d195809e4eccf7889319cd25135accae3dcc7bf0b67afc01793d72f69e1",
+      "ground_truth": "historical annotations only; not independent",
+      "eligible_for_definitive_geographic_score": false
+    },
+    {
+      "id": "toby_cw_20261019",
+      "locomotive": "Toby",
+      "partition": "final_test",
+      "native_hall": "research/NAVI_CPR_0_1/data/toby_cw_native.npz",
+      "source_sha256": "e0578d70583d661ab79ad0cbe67a7dd69447d809327bd614fd5f0ed13ebd6360",
+      "ground_truth": "historical annotations only; not independent",
+      "eligible_for_definitive_geographic_score": false
+    }
+  ],
+  "excluded": [
+    {
+      "reason": "No common, raw causal observation stream and independent geographic truth have yet been recovered for the recorded DNA, QUORUM, NAVI_SIMPLIFIED, and later RVM field sessions."
+    }
+  ]
+}
