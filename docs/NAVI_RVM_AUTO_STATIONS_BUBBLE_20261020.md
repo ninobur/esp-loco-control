@@ -635,3 +635,8 @@ backup, and verify over MQTT." No backup was taken.
 | Locomotive | Port / MAC | MQTT after boot |
 |---|---|---|
 | Otto | `/dev/cu.wchusbserial110`, `68:09:47:ac:4e:b4`; app `094cf61cbfd64191…` "Hash of data verified" | boot `E7526088BAFB4520`; continuity on; `paused_blocks` present (r5); ESP-NOW 1, link SOLO, `peer_rx` 0 (Toby not yet on r5); `heap_free` 35.5 KB, `heap_min` 9,088 B; `block_q_drop` 0 |
+| Toby | `/dev/cu.wchusbserial110`, `ec:e3:34:78:a2:60`; app `ab1a9868421f83c5…` "Hash of data verified" | boot `2CD346F1614DAF44`; continuity on; `paused_blocks` present (r5); ESP-NOW 1; `heap_free` 25.7 KB, `heap_min` 9,240 B; `block_q_drop` 0 |
+
+**The peer link on revision 5 is not yet verified.** Otto was `online 0`
+(unplugged) when Toby came up, so `peer_rx` was 0 on both. Check `state/station`
+`peer_rx`, `link` and `role` once both are powered on the track.
