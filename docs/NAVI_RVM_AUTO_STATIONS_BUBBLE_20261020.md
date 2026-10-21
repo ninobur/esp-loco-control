@@ -640,3 +640,32 @@ backup, and verify over MQTT." No backup was taken.
 **The peer link on revision 5 is not yet verified.** Otto was `online 0`
 (unplugged) when Toby came up, so `peer_rx` was 0 on both. Check `state/station`
 `peer_rx`, `link` and `role` once both are powered on the track.
+
+### Revision 5.1: declarations made standing (field defect in r5)
+
+**David:** "both locos are refusing AUTO 'POSITION NOT DECLARED' but I declared
+position on both."
+
+**Cause.** This is an unintended consequence of the r5 motor-off pause, and the
+defect is mine. Declarations took effect only at the first admitted block,
+meaning the motor on. A declaration is made standing, and AUTO needs TRACKING
+before the locomotive can move. That is a deadlock.
+
+**Fix.** A declaration requested while paused takes effect at the next paused
+block:
+
+1. The delay line, which holds the moments before the stop, is decided first.
+2. The pending declarations are then applied: navigator TRACKING, and the
+   recognizer baseline starts with the next block that has the motor on.
+
+**Checks:**
+
+- `tests/navi_rvm_bubble/test_standing_declaration.cpp` passes (declared while
+  standing: 1).
+- The key replays are unchanged: Arches departure MM109–114, Toby Run 12
+  203/203, Run 12 MM101 clean, MM137–146.
+
+| Locomotive | App sha256 (first 16) |
+|---|---|
+| Otto | `5cfc216426e2377b` |
+| Toby | `dc7b3d8777816c1d` |

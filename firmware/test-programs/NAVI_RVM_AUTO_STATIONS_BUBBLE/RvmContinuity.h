@@ -36,7 +36,8 @@
 // the recognizer or this rule: the motor-off Hall level (40-52 ADC from the
 // moving level, creeping during a long dwell) cannot reach navigation. PWM is
 // used only to know the motor is off, never as evidence of movement.
-// Declarations take effect at the first admitted block at or after them.
+// A declaration made while paused takes effect at once (the next paused block);
+// otherwise at the first admitted block at or after it.
 //
 // MOVING-BASELINE REFERENCE (2026-10-20, field: Otto MM141, Toby MM064, Arches
 // 17:21). Both locomotives' Hall reads 40-52 ADC differently standing (motor
@@ -118,7 +119,24 @@ class HallContinuity {
   // takes effect, before its block is decided (the caller starts the recognizer's
   // baseline and declares the navigator there). At most one block is decided.
   template <class E, class D> void admit(const Block& b, E&& emit, D&& onDeclare) {
-    if (b.pwm < CONT_STOPPED_PWM) { ++pausedTotal_; paused_ = true; return; }   // motor off: not part of the waveform
+    if (b.pwm < CONT_STOPPED_PWM) {                  // motor off: not part of the waveform
+      ++pausedTotal_; paused_ = true;
+      // A declaration is made standing (motor off). It must take effect now, or
+      // navigation never tracks and AUTO (which needs TRACKING) can never start
+      // (field 2026-10-20, r5). Decide what is still in the delay line (it is
+      // from before the stop), then apply the pending declarations here.
+      if (nPend_) {
+        while (count_) decideOldest(emit, onDeclare);
+        while (nPend_) {
+          const ContDecl d = pend_[0];
+          for (uint8_t q = 1; q < nPend_; ++q) pend_[q - 1] = pend_[q];
+          --nPend_;
+          initBaseline(); declaredOnce_ = true; armed_ = false;
+          onDeclare(d);
+        }
+      }
+      return;
+    }
     paused_ = false;
     for (uint8_t k = 0; k < nPend_; ++k) if (!pend_[k].assigned) { pend_[k].index = b.index; pend_[k].assigned = true; }
     ring_[(head_ + count_) % CONT_K] = b; ++count_; ++admitted_;
