@@ -15,6 +15,7 @@ Included **1081** preserved opening records only when the opening has `matched_s
 | Ensemble IR distance (mm) | 1080 | 55.178 | 46.842–64.338 | 38.608–76.996 |
 | Baseline before ensemble (s) | 1081 | 1.000 | 0.070–4.300 | 0.050–211.900 |
 | Baseline before ensemble (native Hall samples) | 1081 | 1000.000 | 70.000–6730.000 | 50.000–211906.000 |
+| Baseline before ensemble IR distance (mm) | 1081 | 239.184 | 7.748–273.429 | 0.000–482.128 |
 
 ## Direction
 
@@ -29,4 +30,4 @@ RVM is **not** an independent physical-boundary measurement. `RvmShape.h` scores
 
 ## Limits
 
-The IR coordinate is interpolated and its per-boundary bracket time is retained. It is valid movement evidence, not a direct Hall boundary sensor. This earlier source is Otto-only; it does not establish Toby dimensions. It also does not claim that every supported interval is a physical magnet—only that it is a well-bounded, ADC-supported encounter associated with a matching recorded opening.
+The IR coordinate is interpolated and its per-boundary bracket time is retained. For the preceding-baseline distance, the largest endpoint bracket has median 101.0 ms (5th–95th 99.1–108.1 ms). It is movement evidence, not a direct Hall boundary sensor. This earlier source is Otto-only; it does not establish Toby dimensions. It also does not claim that every supported interval is a physical magnet—only that it is a well-bounded, ADC-supported encounter associated with a matching recorded opening.
