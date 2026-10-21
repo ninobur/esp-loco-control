@@ -1,0 +1,65 @@
+{
+  "inclusion": "kind=4, matched_supported_activity, mm==target; excludes uncertain, censored, unsupported and mismatched intervals",
+  "recordings": [
+    "15549e9385faa4d5",
+    "4d8083de79a0e299"
+  ],
+  "ensembles": {
+    "n": 1081,
+    "min": 0.15,
+    "p05": 0.2,
+    "median": 0.25,
+    "p95": 0.66,
+    "max": 1.67
+  },
+  "native_samples": {
+    "n": 1081,
+    "min": 746.0,
+    "p05": 999.0,
+    "median": 1250.0,
+    "p95": 3300.0,
+    "max": 8354.0
+  },
+  "ir_distance_mm": {
+    "n": 1080,
+    "min": 38.60800000000745,
+    "p05": 46.84183711888554,
+    "median": 55.17838161760301,
+    "p95": 64.33809674514995,
+    "max": 76.99602855814737
+  },
+  "baseline_before_s": {
+    "n": 1081,
+    "min": 0.05,
+    "p05": 0.07,
+    "median": 1.0,
+    "p95": 4.3,
+    "max": 211.9
+  },
+  "baseline_before_native_samples": {
+    "n": 1081,
+    "min": 50.0,
+    "p05": 70.0,
+    "median": 1000.0,
+    "p95": 6730.0,
+    "max": 211906.0
+  },
+  "by_direction": {
+    "CW": {
+      "n": 731,
+      "min": 0.15,
+      "p05": 0.19,
+      "median": 0.24,
+      "p95": 0.65,
+      "max": 1.67
+    },
+    "CCW": {
+      "n": 350,
+      "min": 0.19,
+      "p05": 0.21,
+      "median": 0.26,
+      "p95": 0.67,
+      "max": 0.98
+    }
+  }
+}
