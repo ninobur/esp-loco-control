@@ -1,0 +1,93 @@
+{
+  "total_closes": 162,
+  "agree": 144,
+  "disagree": 14,
+  "no_annotation_within_window": 4,
+  "disagreements": [
+    {
+      "t_s": 1424.16,
+      "recognizer_mm": 126,
+      "annotation_mm": 127,
+      "dt": -0.18
+    },
+    {
+      "t_s": 1426.48,
+      "recognizer_mm": 127,
+      "annotation_mm": 129,
+      "dt": -0.2
+    },
+    {
+      "t_s": 1427.7,
+      "recognizer_mm": 128,
+      "annotation_mm": 130,
+      "dt": -0.21
+    },
+    {
+      "t_s": 1428.94,
+      "recognizer_mm": 129,
+      "annotation_mm": 131,
+      "dt": -0.22
+    },
+    {
+      "t_s": 1431.14,
+      "recognizer_mm": 130,
+      "annotation_mm": 133,
+      "dt": -0.2
+    },
+    {
+      "t_s": 1433.3,
+      "recognizer_mm": 131,
+      "annotation_mm": 135,
+      "dt": -0.2
+    },
+    {
+      "t_s": 1434.4,
+      "recognizer_mm": 132,
+      "annotation_mm": 136,
+      "dt": -0.2
+    },
+    {
+      "t_s": 1435.56,
+      "recognizer_mm": 133,
+      "annotation_mm": 137,
+      "dt": -0.21
+    },
+    {
+      "t_s": 1436.76,
+      "recognizer_mm": 134,
+      "annotation_mm": 138,
+      "dt": -0.22
+    },
+    {
+      "t_s": 1441.5,
+      "recognizer_mm": 135,
+      "annotation_mm": 142,
+      "dt": -0.21
+    },
+    {
+      "t_s": 1443.92,
+      "recognizer_mm": 136,
+      "annotation_mm": 144,
+      "dt": -0.2
+    },
+    {
+      "t_s": 295.38,
+      "recognizer_mm": 86,
+      "annotation_mm": 85,
+      "dt": -0.23
+    },
+    {
+      "t_s": 1111.64,
+      "recognizer_mm": 86,
+      "annotation_mm": 85,
+      "dt": -0.22
+    },
+    {
+      "t_s": 1734.62,
+      "recognizer_mm": 86,
+      "annotation_mm": 85,
+      "dt": -0.24
+    }
+  ],
+  "caveat": "Annotation agreement is a diagnostic comparison against historical ADC-derived hypotheses, not a false-positive/false-negative rate against independent physical ground truth (a15036f)."
+}

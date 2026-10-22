@@ -1,0 +1,10 @@
+{
+  "scope": "Otto, boot 15549e9385faa4d5 (otto_train), PWM-90/PWM-0-only contiguous stretches, non-IR.",
+  "min_acquire_duration_s": 0.02,
+  "n_trials": 9,
+  "n_trials_skipped_no_seed": 4,
+  "total_close_and_advance": 162,
+  "total_contradictions": 14,
+  "total_disposed_short": 4,
+  "limitation": "Starting position per trial is seeded from a historical annotation standing in for an operator declaration, not independently verified. Everything after that seed is this recognizer's own causal decision."
+}

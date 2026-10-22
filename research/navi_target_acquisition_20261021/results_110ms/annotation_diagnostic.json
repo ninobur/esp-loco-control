@@ -1,0 +1,123 @@
+{
+  "total_closes": 63,
+  "agree": 44,
+  "disagree": 19,
+  "no_annotation_within_window": 0,
+  "disagreements": [
+    {
+      "t_s": 383.48,
+      "recognizer_mm": 120,
+      "annotation_mm": 126,
+      "dt": -0.2
+    },
+    {
+      "t_s": 387.0,
+      "recognizer_mm": 121,
+      "annotation_mm": 128,
+      "dt": -0.28
+    },
+    {
+      "t_s": 688.8,
+      "recognizer_mm": 122,
+      "annotation_mm": 143,
+      "dt": -0.22
+    },
+    {
+      "t_s": 1621.32,
+      "recognizer_mm": 24,
+      "annotation_mm": 30,
+      "dt": -0.21
+    },
+    {
+      "t_s": 1626.52,
+      "recognizer_mm": 25,
+      "annotation_mm": 34,
+      "dt": -0.21
+    },
+    {
+      "t_s": 996.66,
+      "recognizer_mm": 24,
+      "annotation_mm": 29,
+      "dt": -0.2
+    },
+    {
+      "t_s": 997.94,
+      "recognizer_mm": 25,
+      "annotation_mm": 30,
+      "dt": -0.21
+    },
+    {
+      "t_s": 1001.96,
+      "recognizer_mm": 26,
+      "annotation_mm": 33,
+      "dt": -0.21
+    },
+    {
+      "t_s": 295.38,
+      "recognizer_mm": 86,
+      "annotation_mm": 85,
+      "dt": -0.23
+    },
+    {
+      "t_s": 306.88,
+      "recognizer_mm": 91,
+      "annotation_mm": 94,
+      "dt": -0.26
+    },
+    {
+      "t_s": 308.22,
+      "recognizer_mm": 92,
+      "annotation_mm": 95,
+      "dt": -0.24
+    },
+    {
+      "t_s": 1111.64,
+      "recognizer_mm": 86,
+      "annotation_mm": 85,
+      "dt": -0.22
+    },
+    {
+      "t_s": 1122.54,
+      "recognizer_mm": 90,
+      "annotation_mm": 94,
+      "dt": -0.26
+    },
+    {
+      "t_s": 1125.08,
+      "recognizer_mm": 91,
+      "annotation_mm": 96,
+      "dt": -0.23
+    },
+    {
+      "t_s": 1734.62,
+      "recognizer_mm": 86,
+      "annotation_mm": 85,
+      "dt": -0.24
+    },
+    {
+      "t_s": 1740.8,
+      "recognizer_mm": 88,
+      "annotation_mm": 90,
+      "dt": -0.21
+    },
+    {
+      "t_s": 1743.06,
+      "recognizer_mm": 89,
+      "annotation_mm": 92,
+      "dt": -0.22
+    },
+    {
+      "t_s": 1745.5,
+      "recognizer_mm": 90,
+      "annotation_mm": 94,
+      "dt": -0.25
+    },
+    {
+      "t_s": 1748.0,
+      "recognizer_mm": 91,
+      "annotation_mm": 96,
+      "dt": -0.23
+    }
+  ],
+  "caveat": "Annotation agreement is a diagnostic comparison against historical ADC-derived hypotheses, not a false-positive/false-negative rate against independent physical ground truth (a15036f)."
+}
