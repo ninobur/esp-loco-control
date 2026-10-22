@@ -8,7 +8,411 @@ no revision to governing architectural decisions (`AGENTS.md` §2, §12).
 [`docs/NAVI_NON_IR_ACQUISITION_PWM90_20261021.md`](../../docs/NAVI_NON_IR_ACQUISITION_PWM90_20261021.md).
 **Branch:** `research/navi-target-acquisition-pwm90-20261021`.
 
+---
+
+## Corrective investigation addendum (2026-10-22)
+
+An independent review of the original experiment (below) raised five
+concerns. This addendum investigates each against the source code and
+the real recording, states a verdict for each, and gives the corrected
+results. The original report below is left intact as the record of what
+was first found and claimed; where this addendum supersedes a specific
+original claim, that is stated explicitly rather than silently edited
+away. Per the assignment's own closing instruction, each criticism was
+tested against evidence rather than accepted or defended by default.
+
+### Operator correction, received after the investigation below was written
+
+David subsequently identified that the historical navigation system
+these annotations come from had its own known failure: **IR distance
+underreporting that caused incorrect geographic identification.** The
+annotations' magnet-identity labels (`mm`) are therefore not a reliable
+geographic reference at all -- not merely "not independently verified,"
+which is the weaker caveat the rest of this document uses, but
+specifically suspected of being wrong in ways inherited from a known
+IR-dependent defect. This withdraws a stronger interpretation this
+addendum initially drew from the fix in §2/§3: **that the recognizer's
+subsequent close annotation agreement demonstrates it now tracks correct
+geographic position.** It does not. Agreement with a historically
+unreliable label is not evidence of correctness, and disagreement with it
+is not evidence of failure, in either direction. The governing rule from
+here on, applied retroactively to every percentage below: **annotation
+agreement is diagnostic information about this experiment's own internal
+consistency, never a geographic-accuracy measurement.** §7 ("Trial 6,
+re-investigated from direct physical evidence") replaces the
+annotation-based interpretation of Trial 6 with one that does not depend
+on trusting the annotations' identity at all.
+
+What is **not** withdrawn: the two confirmed code defects (seed-timing,
+§2; comparison methodology, §3) were real implementation problems in this
+experiment's own harness, independent of whether the annotations it
+compares against are trustworthy -- starting geographic progression before
+a declared reference encounter has even finished, and conflating an
+encounter's opening with its closure in a timestamp comparison, are wrong
+regardless of what the annotations say. Those fixes stand. What is
+withdrawn is treating the resulting *agreement percentage* as proof the
+recognizer is geographically correct.
+
+### Verdicts, stated first
+
+| # | Concern | Verdict |
+|---|---|---|
+| 1 | `_expected(c.start_s)` (frozen RTB reference) is a baseline-handling defect | **Not confirmed -- rejected, with evidence.** The alternative the review suggested would have been a regression. Evidence is physical (the real Hall signal and fitted slope), not annotation-dependent. |
+| 2 | Seed annotation may not have been encountered yet when geographic progression begins | **Confirmed. Fixed.** A real timing defect in this experiment's own harness, independent of annotation reliability. |
+| 3 | Nearest-timestamp annotation comparison conflates encounter stages | **Confirmed. Fixed.** Replaced with interval overlap, matching `98db802`'s own method. **Superseded in part by the operator correction above:** fixing this comparison still does not make its result a geographic-accuracy measurement -- see the reframed §6/§7. |
+| 4 | 110 ms duration gate rejects genuine encounters | **Confirmed, on physical grounds independent of annotations** -- the real full-waveform-width distribution (measured directly from the Hall signal) is itself the evidence; §6 below removes the annotation-agreement framing this verdict originally also cited. |
+| 5 | ΔBIC is diagnostic only, not yet shown to be needed for acquisition | **Investigated; no concrete need found in this recording**, based on direct inspection of the Hall waveform (§7), not on annotation agreement. Not changed, per the assignment's own instruction not to add machinery without evidence. |
+
+### 1. The `_expected(c.start_s)` line -- investigated and rejected as a defect
+
+The suspected line uses the baseline level *frozen at the candidate's own
+opening time* for the return-to-baseline comparison, rather than
+continuously re-extrapolating the fitted (level, slope) forward to the
+current sample time. The review proposed the latter as a fix.
+
+**Direct test, not assumption:** Trial 0's actual 284.58 s open candidate
+(target MM129) was reconstructed exactly -- the real baseline fit at that
+point had slope **13.26 ADC/s**, noise 6.04. Computing what the
+*continuously-extrapolated* reference would have read at every subsequent
+real sample (`investigate_anomaly.py`, `results_anomaly_investigation/anomaly_trace.csv`)
+shows it would have crossed into the "quiet" band at **t=391.72 -- only
+3.12 s after the candidate opened** -- while the real Hall signal was
+still sitting genuinely ~80 ADC above the true pre-encounter baseline,
+and stayed there, essentially flat (std 0.6-0.75 ADC across 5 s windows)
+with only a slow, slight monotonic creep (+4 ADC over ~260 s, consistent
+with thermal drift, not movement noise), for the full 284.58 s before
+genuinely returning. See `results_anomaly_investigation/anomaly_plot.png`.
+
+**What the 284.58 s event actually is, determined rather than assumed:**
+native PWM is constant at 90 throughout (no PWM=0 stop recorded), with
+zero missing samples (one single 1-frame serial gap in 1,434,760 raw
+reads) -- so this is not a data gap. The signal's own texture (near-zero
+noise, slow monotonic creep, no transient structure) is inconsistent with
+continued travel past dozens of further real magnets (which would show
+the same sharp, large-amplitude transitions visible everywhere else in
+this recording) and consistent with the locomotive having come to rest at
+or very near this specific magnet for an extended real interval, with
+this recording's `pwm` field not reliably indicating that it had actually
+stopped. This is itself a notable, reportable characteristic of this
+specific recording (`otto_train` is explicitly a "construction" stream
+per its own `REPORT.md` description), not a property of the architecture
+or a defect in this implementation.
+
+**Conclusion:** the frozen reference is the *safer* choice, demonstrated
+directly rather than argued abstractly: continuously extrapolating a
+fitted slope across a long interval risks exactly the "baseline absorbing
+a genuine signal" failure mode the original report's §5 already
+identifies and the architecture document explicitly prohibits ("do not
+extrapolate a fitted baseline through an active magnetic curve"). **No
+code change was made.** A regression test
+(`test_frozen_reference_does_not_falsely_close_a_genuine_long_stall`) now
+locks this behavior in.
+
+### 2. Seed-timing: confirmed and fixed
+
+**Confirmed by direct inspection.** `replay.py` seeded each trial's
+`last_confirmed_mm` from the first historical OPENING annotation at or
+after the trial's *raw start* (`lo`), then began feeding the recognizer
+from `lo` -- before that annotation's own encounter had necessarily
+finished. Concrete example: Trial 0 began at t=365.52; its seed annotation
+(enc_id 61, MM111) itself spans [365.63, 365.88] -- so for the first 0.36 s
+of "confirmed" MM111, the real encounter for MM111 was still in progress.
+
+**Fix:** `seed_established_index()` (`replay.py`) finds the bin index at
+or after the seed's own `end_s` and geographic progression begins only
+there -- never before the seed encounter has actually closed. Where a
+trial's eligible stretch ends before the seed encounter itself closes, or
+leaves too little span afterward, the trial is now explicitly skipped
+(`SKIPPED_SEED_ENCOUNTER_NOT_CLOSED_IN_TRIAL`, `SKIPPED_TOO_SHORT_AFTER_SEED`)
+rather than silently run anyway. Three synthetic regression tests cover
+this (`tests/test_replay_seeding.py`).
+
+**Effect, measured:** with the duration-floor configuration (0.02 s),
+geographic disagreement against historical annotations (now compared by
+interval overlap, §3) drops from **14/162 to 0/149**. Every one of the
+9 runnable trials now shows zero contradictions and zero disposed
+candidates end to end -- see the per-trial table in §6 below.
+
+### 3. Annotation-comparison methodology: confirmed and fixed
+
+**Confirmed.** The original comparison matched each `CLOSE_AND_ADVANCE`
+timestamp to the *nearest* annotation `start_s`, which conflates an
+encounter's opening against its own closure and can attribute a correct
+closure to the wrong nearby annotation when encounters are closely
+spaced.
+
+**Fix:** `diagnostic_annotation_agreement()` (`analyze.py`) now matches
+each recognizer candidate's own `[start_s, close_s]` interval against
+annotation `[start_s, end_s]` intervals by overlap fraction (≥30% of the
+annotation's own duration -- the same method and threshold `98db802`'s
+own replay script already used), and reports **geographic agreement**
+(does the matched annotation's mm equal the recognizer's) separately from
+**event-timing agreement** (how closely the recognizer's own start/close
+timestamps track the matched annotation's own start/end), per instruction.
+
+**Verification against the specific Trial 6 table the review cited:**
+the review's five quoted rows (1424.16 MM126/127, 1426.48 MM127/129,
+1428.94 MM129/131, 1433.30 MM131/135, 1441.50 MM135/142) were checked
+directly against the original committed `results_departure_floor` data
+and **match exactly** -- this specific criticism was not fabricated, and
+the pattern of growing numerical gaps against the annotations was real.
+**What that pattern means was revised by the operator correction above:**
+with both fixes applied, the recognizer's closures now land immediately
+beside the annotations' own timestamps throughout MM126-143 with no gap
+(`results_corrected_departure_floor/example_trial6_geographic_lag.png`,
+§6) -- but per the operator's correction, this is agreement with a label
+source now known to carry its own IR-inherited identification errors, so
+it is reported as a change in measured agreement, not as confirmation
+that the recognizer's geographic labels are now correct. §7 investigates
+Trial 6 again, directly from the Hall waveform, without relying on the
+annotations' identity at all.
+
+### 4. Minimum-duration requirement, re-examined precisely
+
+Distinguishing the four quantities the assignment asked to separate,
+measured from the corrected, geographically-clean duration-floor run:
+
+| Quantity | Value |
+|---|---|
+| Departure criterion (opens a candidate) | 70 ADC, 2 consecutive 20 ms bins = 0.02-0.04 s |
+| Configured minimum acquisition duration (original) | 0.11 s |
+| Actual active duration achieved before RTB, matching candidates | median 0.02 s, essentially always << 0.11 s |
+| **Complete width of a genuine magnetic waveform** (candidate open-to-close, this locomotive, PWM 90) | **min 0.10 s, median 0.12 s, max 0.20 s** (n=148, excluding the one 284.58 s stall) |
+
+The 110 ms configured gate is not merely "a bit strict" -- it sits at
+essentially the *median* of the real full encounter width, meaning it
+rejects a genuine encounter whenever that specific encounter happens to
+run even slightly short, which real data shows happens often. **This
+finding rests entirely on directly measured Hall-waveform timing** (the
+candidate's own open-to-close span, logged from the real ADC signal) and
+does not depend on the historical annotations' identity at all.
+
+**No independent minimum-duration requirement beyond the departure
+criterion itself was needed to discriminate real encounters from noise in
+this recording**: once the seed-timing and comparison-methodology defects
+are corrected, the duration-floor configuration (effectively, no separate
+gate beyond the 2-consecutive-bin departure criterion) produces 149
+closures, every one inspected (§5, §7) showing the expected single-lobe,
+high-ΔBIC shape of a genuine magnetic curve at the expected location and
+polarity -- not a disturbance. This is evidence *for this recording*, not
+a universal claim; a different, noisier stretch could reveal a real need
+the duration gate would have served, which has simply not been observed
+here.
+
+### 5. Waveform recognition (ΔBIC): investigated, not elaborated without need
+
+The corrected run's 149 closures all show ΔBIC comfortably above the
+historical 10-point declaration threshold (min 24.79, median 48.29, max
+78.95) -- genuine encounters are easily and consistently distinguished
+from a flat line on shape grounds alone, which is useful confirmation.
+Direct visual inspection of the Hall waveform (§7, and the plots in §6)
+across the whole corrected run shows single, clean, well-separated lobes
+at each acquisition -- no secondary lobes, no two closely-spaced genuine
+encounters merged into one candidate, and no electrical disturbance
+distinct from a real curve was found. This determination is made from
+the waveform and the recognizer's own shape/timing evidence directly, not
+from annotation agreement. There is therefore no recorded case in this
+data where ΔBIC-based discrimination would have changed an outcome. Per
+the assignment's own instruction not to implement a more elaborate
+recognition model without a recorded, concrete need, **no change was
+made**: ΔBIC remains recorded as diagnostic, supportive evidence, exactly
+as the original report described it, and this investigation's
+contribution is confirming that this recording does not yet evidence a
+need to promote it to a gate.
+
+### 6. Reproduced and compared results
+
+All four runs below use the real `otto_train` recording
+(`raw/otto_train.bin`, SHA-256 `b366bff8f17d28c64f7b666b68e171cef8521dcd1a791ecf6b147713506d0b20`,
+re-verified for this investigation), the same real map, and the same
+recognizer logic (`target_acquisition.py` unchanged, per the verdict on
+item 1). Only `replay.py`'s seeding (item 2) and `analyze.py`'s
+comparison method (item 3) changed between "original" and "corrected."
+
+All counts in this table (closures, contradictions, disposals) are read
+directly from the recognizer's own event log and do not depend on the
+annotations at all. The "annotation agreement" row is diagnostic
+information about consistency with a label source now known to carry its
+own IR-inherited identification errors (operator correction, above) --
+**it is reported, per instruction, but not characterized as a measure of
+geographic accuracy in either direction.**
+
+| | original, 110ms | original, floor | **corrected, 110ms** | **corrected, floor** |
+|---|---:|---:|---:|---:|
+| Trials run / skipped | 9 / 4 | 9 / 4 | 7 / 6 | 7 / 6 |
+| CLOSE_AND_ADVANCE (recognizer's own count) | 63 | 162 | 54 | **149** |
+| CONTRADICTION (recognizer's own count) | 59 | 14 | 42 | **0** |
+| DISPOSED (recognizer's own count) | 58 | 4 | 53 | **0** |
+| Annotation agreement, diagnostic only (overlap method, of matched closures) | 44/63 (69.8%) | 143/157 (91.1%) | 42/54 (77.8%) | 146/146 (100%) |
+| Closures with no matching annotation (not counted above) | 0 | 5 | 0 | 3 |
+
+Two trials that were runnable before are now explicitly excluded
+(`SKIPPED_TOO_SHORT_AFTER_SEED`): once geographic progression correctly
+waits for the seed encounter to close, their remaining span falls under
+the 15 s minimum. This is the method being honest about what it can
+responsibly claim, not data being discarded to improve the numbers --
+per instruction, this limitation is stated rather than hidden.
+
+**What the recognizer's own event log shows, independent of any
+annotation:** the corrected 110 ms configuration produced 42
+CONTRADICTION and 53 DISPOSED events against its own, internally
+consistent target sequence -- these are directly observed facts about
+when the recognizer failed to match a candidate to its current target,
+not inferences from comparing labels to a historical source. The
+corrected duration-floor configuration produced zero of either. This by
+itself already demonstrates the duration-gate effect from item 4, without
+any reference to annotation identity. **What is withdrawn** is the
+further claim this addendum originally drew from annotation mm-gaps (e.g.
+"recognizer MM120 vs. annotation MM126, a gap of 6 magnets") -- that
+specific gap size assumed the annotation's mm label was itself a correct
+geographic reference, which the operator correction above states it is
+not. The underlying architectural point stands on its own regardless:
+**this architecture has no built-in means of recovering from a missed or
+contradicted encounter** (it is not supposed to, per the assignment's
+prohibition on recovery search) -- CONTRADICTION/DISPOSED events, once
+they occur, are not self-correcting by design. Whether any specific
+instance in this recording left the recognizer's belief about its actual
+physical position wrong is a question this experiment's evidence (absent
+independent ground truth) cannot answer, and does not claim to.
+
+### 7. Trial 6, re-investigated from direct physical evidence (supersedes the annotation-based interpretation)
+
+Per the operator's correction, Trial 6 is re-examined here using only the
+Hall waveform and the recognizer's own event log -- never the historical
+annotations' identity -- against the five questions the correction poses.
+
+**Under the corrected-seed, duration-floor configuration** (trial index 6,
+seed MM125, `results_corrected_departure_floor`): 20 candidates opened,
+20 closed, **zero contradictions, zero disposals**. The waveform plot
+(`example_trial6_mm126_137.png` and the wider `example_trial6_geographic_lag.png`)
+shows, by direct visual inspection: every candidate is a single, clean,
+well-separated lobe; no two lobes are close enough to have been merged or
+split; no candidate shows a secondary bump distinct from its main curve;
+every `ACQUIRED` event is logged distinctly before, and earlier than, its
+own `CLOSE_AND_ADVANCE`; and the target sequence advances by exactly one
+mapped magnet at every closure, with no skips (structurally guaranteed,
+also directly observed). **Answering the five questions directly, for
+this configuration: genuine curves are recognized (20/20, by direct
+waveform inspection); none are incorrectly rejected or combined; no
+secondary lobes or disturbances produced additional candidates;
+acquisition and closure are correctly distinguished; deterministic target
+progression is maintained throughout.**
+
+**Under the corrected-seed, 110 ms configuration** (same trial, same
+underlying Hall signal): 21 candidates opened, only 3 closed, 6
+contradicted, 11 disposed. This is the *same physical signal* as the
+clean run above -- the difference is entirely the duration gate (item 4).
+Direct inspection of the raw Hall samples underlying several of these
+disposed/contradicted candidates (e.g. the t≈1421-1428 region: narrow,
+~150-230 ADC peak, single-lobe departures returning fully to baseline
+within 0.04-0.12 s, alternating sign roughly every ~1.1-1.3 s) shows each
+one individually is a genuine, well-formed single curve -- not a
+secondary lobe, not two merged encounters, and not an electrical
+disturbance distinct from a real curve. **The 110 ms configuration
+therefore does incorrectly reject genuine curves** (confirmed directly
+from the waveform, independent of any annotation), precisely because they
+are narrower in active duration than the configured gate -- it does not
+combine curves, invent encounters from disturbances, or fail to
+distinguish acquisition from closure (no evidence of either was found in
+either configuration).
+
+**Conclusion for Trial 6:** the deterministic target-acquisition
+architecture correctly recognizes every genuine magnetic encounter in
+this window when the duration gate does not interfere; the 110 ms gate's
+rejections are real and are rejections of genuine curves, not correct
+exclusions of disturbances; and this conclusion rests entirely on the
+Hall waveform and the recognizer's own event log, not on whether the
+historical annotations' magnet identities happen to agree.
+
+### Starting-reference distinctions, made explicit
+
+Per the operator's correction, three different things must not be
+conflated, and the fix in §2 only addresses the first:
+
+1. **A genuinely trusted geographic starting reference** -- independently
+   verified physical ground truth. **Not available for this recording, at
+   any point.** This experiment does not have one and does not claim to.
+2. **A provisional starting reference derived from historical
+   annotations** -- used here (§3 of the original report, below) to seed
+   each trial. §2's fix corrects *when* that reference is treated as
+   established (after its own encounter closes, not before) -- it does
+   **not** make the referenced magnet's *identity* (its `mm` number)
+   trustworthy. That identity comes from the same historically
+   IR-dependent system the operator's correction flags, and is used here
+   only as a provisional label, exactly as an uncertain operator
+   declaration would be -- never confirmed.
+3. **Subsequent geographic progression determined solely by the
+   recognizer** -- every `CLOSE_AND_ADVANCE` after the seed is this
+   recognizer's own causal decision from the real Hall signal, polarity,
+   and map, with no further annotation input. This is what §7 evaluates
+   directly, and it is the part of this experiment actually capable of
+   answering the central question.
+
+A consequence worth stating plainly: because (2)'s identity is
+unconfirmed, every `target_mm` label in every results file could be
+offset by a constant from the true physical position without changing
+anything about whether this recognizer's own sequence of decisions, from
+that starting point forward, was internally coherent. §7's findings
+(curves correctly recognized, none combined or invented, deterministic
+one-step advancement) are evaluated at that level -- behavioral
+correctness relative to the real Hall signal -- not as a verified
+absolute geographic position.
+
+### Plots and traces produced by this investigation
+
+- `results_anomaly_investigation/anomaly_plot.png`, `anomaly_trace.csv` --
+  the detailed Trial 0/MM129 trace required by item 1, including the
+  counterfactual comparison.
+- `results_corrected_departure_floor/example_trial6_geographic_lag.png` --
+  Trial 6 after both fixes: zero gap, MM126-143.
+- `results_departure_floor/example_trial6_geographic_lag.png` -- the same
+  window, original (buggy-seed) data, re-plotted with the corrected
+  overlap-comparison method, for direct before/after visual comparison.
+- `results_corrected_110ms/`, `results_corrected_departure_floor/` --
+  full corrected event traces, trial summaries, and diagnostics.
+
+### What remains unresolved, stated rather than hidden
+
+- **The historical annotations are now known, not merely suspected, to
+  carry identification errors inherited from the old IR-dependent
+  system.** Every annotation-agreement number in this document (69.8%,
+  91.1%, 77.8%, 100%) is diagnostic information about this experiment's
+  internal consistency with that label source, stated per instruction,
+  and **none of them is a geographic-accuracy claim in either direction.**
+  §7 is the part of this investigation that does not depend on that
+  source at all, and is where the central question is actually answered.
+- The 12 CONTRADICTION/DISPOSED-driven gaps in the corrected 110 ms
+  configuration are explained by mechanism (item 4, confirmed directly
+  from the Hall waveform in §7) but their exact per-instance trigger was
+  not individually re-traced for every one; the mechanism is confirmed,
+  not every instance.
+- Three trials still have no seed annotation at all and were not run
+  (unchanged from the original report); two further trials are now
+  explicitly excluded for insufficient post-seed span. This investigation
+  does not increase the fraction of the recording actually validated --
+  it corrects what is claimed about the fraction that was.
+- Independent physical ground truth for this recording still does not
+  exist, and now specifically cannot be reconstructed from the historical
+  annotations either, since their own source is the system now known to
+  have had an identification defect. Whether this recognizer's absolute
+  geographic labels (as opposed to its relative, one-step-at-a-time
+  behavior, which §7 does verify directly) match physical reality remains
+  open, and is not claimed to be resolved by this investigation.
+
+---
+
 ## The central question, answered directly
+
+> **Note (2026-10-22 addendum, above):** the "88.9% diagnostically agree"
+> figure below is superseded in its interpretation, not its arithmetic --
+> the historical annotations it compares against are now known to carry
+> identification errors inherited from the old IR-dependent system, so
+> this percentage is diagnostic agreement with a label source, not
+> evidence of geographic correctness. The addendum's §7 re-answers this
+> same question from the Hall waveform directly, without that source.
+> The claims about target-advancement behavior (one mapped magnet at a
+> time, acquisition timing) below are unaffected -- they come from the
+> recognizer's own event log, not the annotations.
 
 *Given a trusted starting magnet and the known magnetic map, can NAVI
 follow the sequence of real Hall waveforms and reliably acquire each

@@ -84,12 +84,32 @@ def find_trials(trace):
     return runs
 
 
-def run_trial(trial_id, trace, lo, hi, seed_opening, min_acquire_duration_s):
+def seed_established_index(trace, lo, hi, seed_opening):
+    """The bin index at or after which the seed annotation's OWN encounter
+    has ended -- geographic progression must not begin before this. A
+    trial's playback otherwise starts at `lo` (the trial's own start),
+    which can precede the seed encounter's actual end; treating the seed
+    magnet as already "confirmed" from `lo` is an unsupported assumption
+    (the independent review's finding #2, confirmed by inspection --
+    see REPORT.md). Returns None if the seed's end never falls inside
+    [lo, hi) (the seed encounter itself is not fully contained in this
+    trial's eligible stretch)."""
+    times = [t for t, _, _ in trace[lo:hi]]
+    for offset, t in enumerate(times):
+        if t >= seed_opening.end_s:
+            return lo + offset
+    return None
+
+
+def run_trial(trial_id, trace, start_idx, hi, seed_opening, min_acquire_duration_s):
+    """`start_idx` is the bin index geographic progression begins at --
+    AFTER the seed encounter's own end (see seed_established_index), never
+    the trial's raw start. The recognizer's first BASELINE phase begins
+    here, exactly as an operator declaration at this instant would."""
     ta = TargetAcquisition(last_confirmed_mm=seed_opening.mm, direction=seed_opening.direction,
                             min_acquire_duration_s=min_acquire_duration_s)
     rows = []
-    for t, hall, pwm in trace[lo:hi]:
-        before_candidate = ta.target_mm
+    for t, hall, pwm in trace[start_idx:hi]:
         ta.observe(t, hall, pwm)
     # Collect a flat, chronological event trace with trial/boot/stream identity.
     for e in ta.events:
@@ -132,7 +152,28 @@ def main():
                 span_s=round(t_end - t_start, 2), status="SKIPPED_NO_SEED_ANNOTATION",
             ))
             continue
-        ta, rows = run_trial(i, trace, lo, hi, seed, args.min_acquire_duration)
+        start_idx = seed_established_index(trace, lo, hi, seed)
+        if start_idx is None:
+            # The seed encounter's own end falls outside this trial's
+            # eligible stretch (e.g. a PWM transition cut the stretch
+            # short mid-encounter) -- do not infer it ended anyway.
+            trial_summaries.append(dict(
+                trial=i, t_start_s=round(t_start, 2), t_end_s=round(t_end, 2),
+                span_s=round(t_end - t_start, 2), status="SKIPPED_SEED_ENCOUNTER_NOT_CLOSED_IN_TRIAL",
+                seed_mm=seed.mm, seed_enc_id=seed.enc_id,
+            ))
+            continue
+        t_progress_start = trace[start_idx][0]
+        if t_end - t_progress_start < MIN_TRIAL_SPAN_S:
+            trial_summaries.append(dict(
+                trial=i, t_start_s=round(t_start, 2), t_end_s=round(t_end, 2),
+                span_s=round(t_end - t_start, 2), status="SKIPPED_TOO_SHORT_AFTER_SEED",
+                seed_mm=seed.mm, seed_enc_id=seed.enc_id,
+                t_progress_start_s=round(t_progress_start, 2),
+                post_seed_span_s=round(t_end - t_progress_start, 2),
+            ))
+            continue
+        ta, rows = run_trial(i, trace, start_idx, hi, seed, args.min_acquire_duration)
         all_rows += rows
         n_candidates = sum(1 for e in ta.events if e.kind == "OPEN_CANDIDATE")
         n_closed = sum(1 for e in ta.events if e.kind == "CLOSE_AND_ADVANCE")
@@ -142,6 +183,8 @@ def main():
             trial=i, t_start_s=round(t_start, 2), t_end_s=round(t_end, 2),
             span_s=round(t_end - t_start, 2), status="RUN",
             seed_mm=seed.mm, seed_enc_id=seed.enc_id, seed_direction=seed.direction,
+            t_progress_start_s=round(t_progress_start, 2),
+            post_seed_span_s=round(t_end - t_progress_start, 2),
             final_last_confirmed_mm=ta.last_confirmed_mm, final_target_mm=ta.target_mm,
             n_open_candidates=n_candidates, n_closed_advances=n_closed,
             n_contradictions=n_contra, n_disposed_short=n_disposed,
@@ -156,15 +199,24 @@ def main():
             w.writerow(r)
     (args.out / "trial_summary.json").write_text(json.dumps(trial_summaries, indent=2) + "\n")
 
+    skip_reasons = {}
+    for t in trial_summaries:
+        if t["status"] != "RUN":
+            skip_reasons[t["status"]] = skip_reasons.get(t["status"], 0) + 1
     overall = dict(
         scope="Otto, boot 15549e9385faa4d5 (otto_train), PWM-90/PWM-0-only contiguous stretches, non-IR.",
         min_acquire_duration_s=args.min_acquire_duration,
         n_trials=sum(1 for t in trial_summaries if t["status"] == "RUN"),
-        n_trials_skipped_no_seed=sum(1 for t in trial_summaries if t["status"] != "RUN"),
+        n_trials_skipped=sum(1 for t in trial_summaries if t["status"] != "RUN"),
+        skip_reasons=skip_reasons,
         total_close_and_advance=sum(t.get("n_closed_advances", 0) for t in trial_summaries),
         total_contradictions=sum(t.get("n_contradictions", 0) for t in trial_summaries),
         total_disposed_short=sum(t.get("n_disposed_short", 0) for t in trial_summaries),
-        limitation="Starting position per trial is seeded from a historical annotation standing in for an operator declaration, not independently verified. Everything after that seed is this recognizer's own causal decision.",
+        limitation=("Starting position per trial is seeded from a historical annotation standing in "
+                    "for an operator declaration, not independently verified. Geographic progression "
+                    "begins only after that seed encounter's own end (t_progress_start_s), not at the "
+                    "trial's raw start -- everything from there on is this recognizer's own causal "
+                    "decision."),
     )
     (args.out / "summary.json").write_text(json.dumps(overall, indent=2) + "\n")
     print(json.dumps(overall, indent=2))

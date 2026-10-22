@@ -1,0 +1,190 @@
+{
+  "method": "interval overlap (candidate [start_s, close_s] vs annotation [start_s, end_s]), >= 30% of the annotation's own duration -- not nearest-timestamp.",
+  "total_closes": 54,
+  "geographic_agree": 42,
+  "geographic_disagree": 12,
+  "no_matching_annotation": 0,
+  "disagreements": [
+    {
+      "recognizer_close_s": 383.48,
+      "recognizer_mm": 120,
+      "annotation_mm": 126,
+      "overlap_frac": 0.636,
+      "annotation_interval": [
+        383.28,
+        383.5
+      ],
+      "recognizer_interval": [
+        383.34,
+        383.48
+      ]
+    },
+    {
+      "recognizer_close_s": 387.0,
+      "recognizer_mm": 121,
+      "annotation_mm": 128,
+      "overlap_frac": 0.645,
+      "annotation_interval": [
+        386.72,
+        387.03
+      ],
+      "recognizer_interval": [
+        386.8,
+        387.0
+      ]
+    },
+    {
+      "recognizer_close_s": 688.8,
+      "recognizer_mm": 122,
+      "annotation_mm": 143,
+      "overlap_frac": 0.609,
+      "annotation_interval": [
+        688.58,
+        688.81
+      ],
+      "recognizer_interval": [
+        688.66,
+        688.8
+      ]
+    },
+    {
+      "recognizer_close_s": 1621.32,
+      "recognizer_mm": 24,
+      "annotation_mm": 30,
+      "overlap_frac": 0.636,
+      "annotation_interval": [
+        1621.11,
+        1621.33
+      ],
+      "recognizer_interval": [
+        1621.18,
+        1621.32
+      ]
+    },
+    {
+      "recognizer_close_s": 1626.52,
+      "recognizer_mm": 25,
+      "annotation_mm": 34,
+      "overlap_frac": 0.609,
+      "annotation_interval": [
+        1626.31,
+        1626.54
+      ],
+      "recognizer_interval": [
+        1626.38,
+        1626.52
+      ]
+    },
+    {
+      "recognizer_close_s": 996.66,
+      "recognizer_mm": 24,
+      "annotation_mm": 29,
+      "overlap_frac": 0.667,
+      "annotation_interval": [
+        996.46,
+        996.67
+      ],
+      "recognizer_interval": [
+        996.52,
+        996.66
+      ]
+    },
+    {
+      "recognizer_close_s": 997.94,
+      "recognizer_mm": 25,
+      "annotation_mm": 30,
+      "overlap_frac": 0.636,
+      "annotation_interval": [
+        997.73,
+        997.95
+      ],
+      "recognizer_interval": [
+        997.8,
+        997.94
+      ]
+    },
+    {
+      "recognizer_close_s": 1001.96,
+      "recognizer_mm": 26,
+      "annotation_mm": 33,
+      "overlap_frac": 0.667,
+      "annotation_interval": [
+        1001.75,
+        1001.96
+      ],
+      "recognizer_interval": [
+        1001.82,
+        1001.96
+      ]
+    },
+    {
+      "recognizer_close_s": 1426.5,
+      "recognizer_mm": 127,
+      "annotation_mm": 129,
+      "overlap_frac": 0.609,
+      "annotation_interval": [
+        1426.28,
+        1426.51
+      ],
+      "recognizer_interval": [
+        1426.36,
+        1426.5
+      ]
+    },
+    {
+      "recognizer_close_s": 1442.66,
+      "recognizer_mm": 128,
+      "annotation_mm": 143,
+      "overlap_frac": 0.583,
+      "annotation_interval": [
+        1442.44,
+        1442.68
+      ],
+      "recognizer_interval": [
+        1442.52,
+        1442.66
+      ]
+    },
+    {
+      "recognizer_close_s": 306.88,
+      "recognizer_mm": 91,
+      "annotation_mm": 94,
+      "overlap_frac": 0.593,
+      "annotation_interval": [
+        306.62,
+        306.89
+      ],
+      "recognizer_interval": [
+        306.72,
+        306.88
+      ]
+    },
+    {
+      "recognizer_close_s": 308.22,
+      "recognizer_mm": 92,
+      "annotation_mm": 95,
+      "overlap_frac": 0.615,
+      "annotation_interval": [
+        307.98,
+        308.24
+      ],
+      "recognizer_interval": [
+        308.06,
+        308.22
+      ]
+    }
+  ],
+  "event_timing": {
+    "start_offset_s": {
+      "min": 0.05999999999994543,
+      "median": 0.07999999999992724,
+      "max": 0.12000000000000455
+    },
+    "close_offset_from_annotation_end_s": {
+      "min": -0.09000000000003183,
+      "median": -0.009999999999990905,
+      "max": 0.0
+    }
+  },
+  "caveat": "Annotation agreement is a diagnostic comparison against historical ADC-derived hypotheses, not a false-positive/false-negative rate against independent physical ground truth (a15036f)."
+}

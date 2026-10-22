@@ -1,0 +1,21 @@
+{
+  "method": "interval overlap (candidate [start_s, close_s] vs annotation [start_s, end_s]), >= 30% of the annotation's own duration -- not nearest-timestamp.",
+  "total_closes": 149,
+  "geographic_agree": 146,
+  "geographic_disagree": 0,
+  "no_matching_annotation": 3,
+  "disagreements": [],
+  "event_timing": {
+    "start_offset_s": {
+      "min": 0.05999999999994543,
+      "median": 0.07999999999992724,
+      "max": 0.12000000000011823
+    },
+    "close_offset_from_annotation_end_s": {
+      "min": -0.09000000000003183,
+      "median": -0.01999999999998181,
+      "max": 0.0
+    }
+  },
+  "caveat": "Annotation agreement is a diagnostic comparison against historical ADC-derived hypotheses, not a false-positive/false-negative rate against independent physical ground truth (a15036f)."
+}

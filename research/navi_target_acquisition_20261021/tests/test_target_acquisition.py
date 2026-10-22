@@ -184,6 +184,33 @@ class TargetAcquisitionTests(unittest.TestCase):
                 self.assertLessEqual(e.t, t_seen + 1e-9,
                                       "an event must never be timestamped beyond samples seen so far")
 
+    def test_frozen_reference_does_not_falsely_close_a_genuine_long_stall(self):
+        """Regression test for the 2026-10-22 corrective investigation's
+        item 1 (Trial 0, MM129, a real 284.58 s open candidate): an
+        independent review suspected `_expected(c.start_s)` (the frozen
+        pre-candidate reference) was a defect, and suggested comparing
+        against `_expected(t)` (continuously re-extrapolated) instead.
+        Investigation showed the real recording's candidate stayed
+        elevated ~80 ADC above baseline for 284 s with a fitted slope of
+        13.26 ADC/s; extrapolating that slope to current time would have
+        produced a FALSE return-to-baseline after only ~3 s, while the
+        signal was still genuinely departed. This test locks in the
+        correct (frozen) behavior with an equivalent synthetic case:
+        a candidate that opens and then plateaus well above baseline for
+        a long duration must stay open the whole time, not close early."""
+        ta = self.make(last_confirmed=45, direction=1)
+        feed(ta, quiet_run(40))
+        obs = curve_run(20, t0=0.8, amplitude=-140.0, width_s=0.3)  # rising departure
+        obs += [(0.8 + (20 + i) * DT, BASELINE_LEVEL - 80.0 + (i * 0.0003), 90)
+                for i in range(5000)]  # 100 s plateau, ~80 ADC departed, slow monotonic creep
+                                       # (+1.5 ADC over 100 s, matching the real recording's
+                                       # observed ~+4 ADC over 260 s -- not enough to drift
+                                       # back into the quiet band on its own)
+        completed = feed(ta, obs)
+        self.assertEqual(len(completed), 0, "a genuinely sustained departure must not close early")
+        self.assertIsNotNone(ta.candidate, "the candidate must remain open throughout the plateau")
+        self.assertEqual(ta.last_confirmed_mm, 45, "position must not advance during the stall")
+
 
 if __name__ == "__main__":
     unittest.main()

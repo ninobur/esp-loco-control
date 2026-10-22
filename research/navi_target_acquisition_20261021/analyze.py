@@ -24,29 +24,75 @@ def load_events(path: Path):
     return list(csv.DictReader(open(path)))
 
 
-def diagnostic_annotation_agreement(events, openings, window_s=0.5):
-    """For each CLOSE_AND_ADVANCE, find the nearest OPENING annotation
-    within `window_s` of its closure time and report mm agreement.
+def _overlap(a, b):
+    return max(0.0, min(a[1], b[1]) - max(a[0], b[0]))
+
+
+def diagnostic_annotation_agreement(events, openings, overlap_threshold=0.30):
+    """For each CLOSE_AND_ADVANCE, match it to the historical OPENING
+    annotation whose own [start_s, end_s] interval overlaps the
+    candidate's own [start_s, close_s] interval the most, as a FRACTION
+    OF THE ANNOTATION'S OWN DURATION (the same method and threshold as
+    98db802's own replay script) -- not nearest-single-timestamp, which
+    conflates different stages of an encounter (independent review
+    finding #3; confirmed as a real methodological weakness of the
+    original analysis, corrected here).
+
+    Reports GEOGRAPHIC agreement (does the matched annotation's mm equal
+    the recognizer's target_mm) and EVENT-TIMING agreement (how closely
+    the recognizer's own start/acquired/close timestamps align with the
+    matched annotation's own start/end) SEPARATELY, per instruction.
+
     DIAGNOSTIC ONLY -- these annotations are historical ADC-derived
     comparison hypotheses (a15036f), not independent physical ground
-    truth, and are not used anywhere in the recognizer itself."""
+    truth, and are not used anywhere in the recognizer's own decisions.
+    """
     closes = [e for e in events if e["kind"] == "CLOSE_AND_ADVANCE"]
-    agree, disagree, no_annotation = 0, 0, 0
+    geo_agree, geo_disagree, no_match = 0, 0, 0
     disagreements = []
+    timing_offsets_start = []
+    timing_offsets_end = []
     for e in closes:
-        t = float(e["t_s"])
-        nearest = min(openings, key=lambda o: abs(o.start_s - t), default=None)
-        if nearest is None or abs(nearest.start_s - t) > window_s:
-            no_annotation += 1
+        cand_start, cand_end = float(e["start_s"]), float(e["t_s"])
+        cand_len = max(cand_end - cand_start, 1e-9)
+        best = None
+        best_frac = 0.0
+        for o in openings:
+            ann_len = max(o.end_s - o.start_s, 1e-9)
+            frac = _overlap((cand_start, cand_end), (o.start_s, o.end_s)) / ann_len
+            if frac > best_frac:
+                best_frac, best = frac, o
+        if best is None or best_frac < overlap_threshold:
+            no_match += 1
             continue
-        if nearest.mm == int(e["target_mm"]):
-            agree += 1
+        if best.mm == int(e["target_mm"]):
+            geo_agree += 1
         else:
-            disagree += 1
-            disagreements.append(dict(t_s=t, recognizer_mm=int(e["target_mm"]),
-                                       annotation_mm=nearest.mm, dt=round(nearest.start_s - t, 3)))
-    return dict(total_closes=len(closes), agree=agree, disagree=disagree,
-                no_annotation_within_window=no_annotation, disagreements=disagreements)
+            geo_disagree += 1
+            disagreements.append(dict(
+                recognizer_close_s=cand_end, recognizer_mm=int(e["target_mm"]),
+                annotation_mm=best.mm, overlap_frac=round(best_frac, 3),
+                annotation_interval=[best.start_s, best.end_s],
+                recognizer_interval=[cand_start, cand_end],
+            ))
+        timing_offsets_start.append(cand_start - best.start_s)
+        timing_offsets_end.append(cand_end - best.end_s)
+    result = dict(
+        method="interval overlap (candidate [start_s, close_s] vs annotation [start_s, end_s]), "
+               f">= {overlap_threshold:.0%} of the annotation's own duration -- not nearest-timestamp.",
+        total_closes=len(closes),
+        geographic_agree=geo_agree, geographic_disagree=geo_disagree,
+        no_matching_annotation=no_match,
+        disagreements=disagreements,
+    )
+    if timing_offsets_start:
+        result["event_timing"] = dict(
+            start_offset_s=dict(min=min(timing_offsets_start), median=st.median(timing_offsets_start),
+                                 max=max(timing_offsets_start)),
+            close_offset_from_annotation_end_s=dict(
+                min=min(timing_offsets_end), median=st.median(timing_offsets_end), max=max(timing_offsets_end)),
+        )
+    return result
 
 
 def timing_stats(events):
@@ -84,13 +130,14 @@ def timing_stats(events):
     return stats
 
 
-def plot_example(data_root: Path, out_path: Path, t_lo: float, t_hi: float, events, title):
+def plot_example(data_root: Path, out_path: Path, t_lo: float, t_hi: float, events, title, openings=None):
     native = np.memmap(data_root / "raw" / "otto_train.bin", dtype=DTYPE, mode="r")
     trace = bins(native)
     xs = [t for t, _, _ in trace if t_lo <= t <= t_hi]
     ys = [h for t, h, _ in trace if t_lo <= t <= t_hi]
-    fig, ax = plt.subplots(figsize=(12, 4))
+    fig, ax = plt.subplots(figsize=(14, 5))
     ax.plot(xs, ys, color="#3366cc", linewidth=0.8, label="Hall (20ms mean)")
+    ymax = max(ys) if ys else 0
     for e in events:
         t = float(e["t_s"])
         if not (t_lo <= t <= t_hi):
@@ -101,10 +148,17 @@ def plot_example(data_root: Path, out_path: Path, t_lo: float, t_hi: float, even
             ax.axvline(t, color="#ff9900", linestyle="--", linewidth=1.2)
         elif e["kind"] == "CLOSE_AND_ADVANCE":
             ax.axvline(t, color="#109618", linewidth=1.4)
-            ax.text(t, max(ys), f"MM{e['target_mm']}", rotation=90, fontsize=7,
+            ax.text(t, ymax, f"MM{e['target_mm']}", rotation=90, fontsize=7,
                     va="top", ha="right", color="#109618")
         elif e["kind"] == "CONTRADICTION":
             ax.axvline(t, color="#dc3912", linestyle="--", linewidth=1.2)
+    if openings:
+        ymin = min(ys) if ys else 0
+        for o in openings:
+            if t_lo <= o.start_s <= t_hi:
+                ax.axvline(o.start_s, color="#9467bd", linestyle="-.", linewidth=0.8, alpha=0.6)
+                ax.text(o.start_s, ymin, f"ann MM{o.mm}", rotation=90, fontsize=6,
+                        va="bottom", ha="left", color="#9467bd")
     ax.set_xlabel("time (s)")
     ax.set_ylabel("Hall ADC (20ms mean)")
     ax.set_title(title)
@@ -112,9 +166,11 @@ def plot_example(data_root: Path, out_path: Path, t_lo: float, t_hi: float, even
         plt.Line2D([0], [0], color="#3366cc", label="Hall trace"),
         plt.Line2D([0], [0], color="#999999", linestyle=":", label="OPEN_CANDIDATE"),
         plt.Line2D([0], [0], color="#ff9900", linestyle="--", label="ACQUIRED"),
-        plt.Line2D([0], [0], color="#109618", label="CLOSE_AND_ADVANCE"),
+        plt.Line2D([0], [0], color="#109618", label="CLOSE_AND_ADVANCE (recognizer mm)"),
         plt.Line2D([0], [0], color="#dc3912", linestyle="--", label="CONTRADICTION"),
     ]
+    if openings:
+        handles.append(plt.Line2D([0], [0], color="#9467bd", linestyle="-.", label="historical annotation mm"))
     ax.legend(handles=handles, loc="upper right", fontsize=8)
     fig.tight_layout()
     fig.savefig(out_path, dpi=130)
@@ -159,6 +215,10 @@ def main():
     plot_example(args.data_root, args.results / "example_trial6_mm126_137.png",
                  1420.5, 1438.5, [e for e in events if e["trial"] == "6"],
                  f"Trial 6, MM126-137 ({args.label})")
+    plot_example(args.data_root, args.results / "example_trial6_geographic_lag.png",
+                 1419.5, 1442.5, [e for e in events if e["trial"] == "6"],
+                 f"Trial 6, geographic lag region, recognizer vs historical annotation mm ({args.label})",
+                 openings=openings)
 
     print(args.label, json.dumps(diag, indent=2))
     print(json.dumps(timing_summary, indent=2))

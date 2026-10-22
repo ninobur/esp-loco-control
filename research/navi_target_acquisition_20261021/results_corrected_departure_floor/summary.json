@@ -1,0 +1,14 @@
+{
+  "scope": "Otto, boot 15549e9385faa4d5 (otto_train), PWM-90/PWM-0-only contiguous stretches, non-IR.",
+  "min_acquire_duration_s": 0.02,
+  "n_trials": 7,
+  "n_trials_skipped": 6,
+  "skip_reasons": {
+    "SKIPPED_NO_SEED_ANNOTATION": 4,
+    "SKIPPED_TOO_SHORT_AFTER_SEED": 2
+  },
+  "total_close_and_advance": 149,
+  "total_contradictions": 0,
+  "total_disposed_short": 0,
+  "limitation": "Starting position per trial is seeded from a historical annotation standing in for an operator declaration, not independently verified. Geographic progression begins only after that seed encounter's own end (t_progress_start_s), not at the trial's raw start -- everything from there on is this recognizer's own causal decision."
+}
