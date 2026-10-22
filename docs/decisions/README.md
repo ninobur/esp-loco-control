@@ -72,3 +72,4 @@ rather than a silent drift discovered later.
 | [0020](0020-compensation-requires-observed-evidence.md) | No compensation mechanism is added without demonstrated need | Accepted |
 | [0021](0021-ir-speed-is-local-and-telemetry-is-summary.md) | IR speed is computed locally and telemetry reports summaries | Accepted |
 | [0022](0022-plastic-ten-spoke-wheel-is-the-ir-target.md) | The LGB plastic 10-spoke wheel is the IR speed target | Accepted |
+| [0023](0023-navi-tracer-adopts-the-validated-hall-recognizer.md) | NAVI_TRACER_0_1 ports the independently validated Hall recognizer and replaces NAVI_RVM_SHAPE_MANUAL's statistical shape classifier | Accepted |
