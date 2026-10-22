@@ -13,31 +13,56 @@ per `AGENTS.md` §2 — this document does not grant it.
 | Arduino libraries | `WiFi`, `WiFiUdp`, `Wire`, `esp_timer` (bundled with the esp32 core); `PubSubClient`; `Adafruit_INA219` |
 | Build command | `tools/navi_tracer_0_1/build.sh --credentials-dir DIR` |
 
-**Result: NOT YET RUN.** The environment this port was implemented and
-tested in could not install `arduino-cli` — its egress policy denies
-`downloads.arduino.cc` (confirmed: `curl` to that host returns a proxy
-policy rejection, not a transient failure). This is an environment
-limitation of the implementing session, not a property of the firmware.
+**Result: SUCCESSFUL, real Xtensa/ESP32 compile (2026-10-22, re-verification pass).**
+`downloads.arduino.cc` and the entire `*.arduino.cc` domain remain blocked by
+this environment's egress policy, so the official `arduino-cli` binary and
+official board-manager assets could not be fetched directly. A working
+toolchain was built from source instead, entirely from reachable hosts
+(`proxy.golang.org`, plain `git clone` of public GitHub repos, and GitHub
+release-asset URLs, all of which are *not* blocked — only the Arduino-owned
+domain is):
 
-**What was verified instead, in this environment:**
-- The complete recognition core (`NaviTracerCore.h`) compiles cleanly on
-  the host with `c++ -std=c++17 -O2 -Wall -Wextra -Werror` — zero warnings,
-  zero errors — both standalone and as included by the unit-test and
-  equivalence-test binaries (`tests/navi_tracer_0_1/`).
-- The `.ino` itself was **not** compiled in this environment (it requires
-  Arduino core headers and the esp32 toolchain), so syntax or API-usage
-  errors specific to the Arduino/ESP32 glue code (as opposed to
-  `NaviTracerCore.h`) are **not** ruled out by anything in this report. The
-  glue code (hardware/MQTT/telemetry handling, task setup) is unchanged
-  from `NAVI_RVM_SHAPE_MANUAL` except for the recognizer-specific sections
-  documented in `docs/NAVI_TRACER_0_1_BASE_SKETCH_ASSESSMENT.md`, which
-  itself compiled and ran correctly on real Otto hardware.
+- `arduino-cli` built from its own source (`github.com/arduino/arduino-cli`,
+  tag `v1.5.1`) via `go build`.
+- `esp32:esp32` core **version 3.3.12** installed via the real Espressif
+  board-index JSON (`raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/...`),
+  whose toolchain/tool assets are GitHub release downloads. (The default
+  `core install` without a version pin had resolved 2.0.9, which lacks
+  `ledcAttach(pin, freq, resolution)` and `WiFiClient::setConnectionTimeout`
+  — both genuinely used by `NAVI_RVM_SHAPE_MANUAL`'s own unmodified
+  hardware/network code, carried into this sketch unchanged. Pinning to
+  3.3.12, the version whose API the base sketch actually assumes, resolved
+  both — this was an environment/toolchain-version correction, not a sketch
+  change.)
+- `PubSubClient`, `Adafruit_INA219`, `Adafruit_BusIO` installed by cloning
+  their public GitHub repos directly into the library path.
+- The Arduino-specific `ctags` fork (`github.com/arduino/ctags`) built from
+  source after one two-line patch to its own `general.h` (reordering a
+  system-header include ahead of a macro definition that collides with a
+  modern glibc internal macro name on this build host) — a pre-existing
+  incompatibility between circa-2013 ctags source and a current glibc, with
+  no effect on ctags' actual tagging logic. **Generic Universal Ctags
+  (the Ubuntu-packaged `ctags`) was tried first and produces a cascading
+  compile failure** (malformed auto-generated function prototypes —
+  `"int serviceBattery()"` instead of `void`, etc. — a generic-ctags
+  limitation, confirmed by it affecting the file uniformly regardless of
+  which function came first). The genuine Arduino ctags fork compiles the
+  identical sketch cleanly. Neither of these two fixes touched
+  `NAVI_TRACER_0_1.ino` or `NaviTracerCore.h` in any way.
 
-**Required before flashing:** run `tools/navi_tracer_0_1/build.sh` on a
-machine with `arduino-cli` and the `esp32` board core + `PubSubClient` +
-`Adafruit_INA219` libraries installed (the same setup `NAVI_RVM_SHAPE_MANUAL`
-already builds on), resolve any compile errors, and update this report with
-the actual result before proceeding to flash.
+| Item | Value |
+|---|---|
+| Board | `esp32:esp32:esp32` |
+| Core version | `esp32:esp32@3.3.12` |
+| Libraries | `PubSubClient` (git HEAD), `Adafruit_INA219` (git HEAD), `Adafruit_BusIO` (git HEAD) |
+| Flash | **969,691 bytes (73%) of 1,310,720 max** (default esp32 partition table — no custom partition scheme is referenced anywhere in this sketch) |
+| RAM (static) | **53,044 bytes (16%) of 327,680 max**, 274,636 bytes free for locals |
+| Warnings | Zero, from any file this sketch's own commit added or modified, even with `--warnings all`. (Three pre-existing `-Wdeprecated-enum-enum-conversion` warnings appear inside the third-party `Adafruit_INA219.cpp` library itself — unrelated to this sketch.) |
+| `-Werror=format` | Passed — no format-string mismatches anywhere in the build. |
+
+**Not yet done:** flashing Otto with this image, and a real-hardware timing
+measurement — both correctly withheld pending your separate flashing
+authorization (§D/§F below).
 
 ## B. Behavioral equivalence — see `docs/NAVI_TRACER_0_1_BEHAVIORAL_EQUIVALENCE.md`
 

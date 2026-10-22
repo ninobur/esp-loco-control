@@ -122,18 +122,30 @@ are the direct evidence for that claim on the fixtures tested.
 
 ## What remains unverified (honest limitation, not resolved by this report)
 
-- **No equivalence check against the real recorded Hall waveform exists.**
-  The raw recording was not available in this environment. The 284.58 s
-  anomaly and Trial 6 checks above are synthetic reconstructions of their
-  *reported shape*, not replays of the recorded samples themselves.
-- **No ESP32 cross-compilation was performed** (see the build report in
-  `docs/NAVI_TRACER_0_1_FIELD_TEST_AND_ROLLBACK.md`) — `arduino-cli` could
-  not be installed in this environment (egress policy denies
-  `downloads.arduino.cc`). The identical `NaviTracerCore.h` was compiled and
-  run on the host (`c++ -std=c++17`) for both the unit tests and the
-  equivalence harness, with zero warnings under `-Wall -Wextra -Werror`, but
-  this is not a substitute for an actual Xtensa/ESP32 toolchain build.
+- **No equivalence check against the real recorded Hall waveform exists,
+  and this was specifically re-investigated and remains blocked.** The raw
+  recording (`raw/otto_train.bin`, SHA-256
+  `b366bff8f17d28c64f7b666b68e171cef8521dcd1a791ecf6b147713506d0b20`) was
+  searched for exhaustively on 2026-10-22: every branch of
+  `ninobur/esp-loco-control` (no path named `NAVI_CPR_0_1`, `otto_train`, or
+  any `.bin` ever committed, on any branch); the only other two GitHub
+  repositories on this account reachable from this session
+  (`ninobur/NGR-Automated-Train-Control` — cloned and searched, including
+  full history; `ninobur/desktop-tutorial` — an unrelated generic tutorial
+  repo); and this container's entire filesystem. **It does not exist
+  anywhere reachable from this environment.** Per the research's own
+  README, it exists only at two paths on a machine outside this repository
+  entirely. The 284.58 s anomaly and Trial 6 checks above remain synthetic
+  reconstructions of their *reported shape*, not replays of the recorded
+  samples themselves — closing this gap requires the actual file (or the
+  actual recorded event/Hall telemetry from Otto's first field run, which
+  would serve the same purpose going forward) supplied from outside this
+  session.
+- **ESP32 cross-compilation is now done** — see
+  `docs/NAVI_TRACER_0_1_FIELD_TEST_AND_ROLLBACK.md` §A for the real build
+  result (flash/RAM usage, toolchain used). This was the other open item
+  from the first pass of this report and is no longer a limitation.
 - **Real-hardware timing** (actual sample-period jitter, Hall ADC noise
   floor, the PWM ramp-down behavior around the `pwm == 0` gate — see
-  decision 0023) is unverified by construction: this is a host-side,
-  synthetic-data report.
+  decision 0023) remains unverified by construction: a compile, however
+  real, is not a hardware run.
