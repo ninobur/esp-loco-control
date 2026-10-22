@@ -10,6 +10,17 @@ commit `98db802` (`research/navi-normal-curve-20261021`) and its correction
 `a15036f` (`research/navi-wolf-pack-20261021`).
 **Authorization:** Research and design only, per the assignment. This
 document does not authorize implementation (`AGENTS.md` §2).
+**Superseded in part (2026-10-21):** David has withdrawn IR evidence from
+the current development stage entirely, and declared the ±15% distance
+tolerance vestigial for this model. Every IR-dependent passage below (the
+movement-evidence stream as described, IR health/validity as a design
+input) and the ±15%-tolerance passages are superseded for the current
+stage by
+[`NAVI_NON_IR_ACQUISITION_PWM90_20261021.md`](NAVI_NON_IR_ACQUISITION_PWM90_20261021.md).
+This document's text is left as written, as the durable record of what
+was proposed and why; it is not edited away. The signal-existence gate,
+polarity reasoning, and geographic-constraint logic not dependent on IR
+or on the withdrawn tolerance are not affected.
 
 ## How this applies the governing principles
 

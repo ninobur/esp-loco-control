@@ -8,6 +8,24 @@ document.
 proposed in
 [`NAVI_TARGET_ACQUISITION_EVALUATION_20261021.md`](NAVI_TARGET_ACQUISITION_EVALUATION_20261021.md).
 **Authorization:** Design examination only (`AGENTS.md` §2).
+**Superseded, §7–§8 and the addendum (2026-10-21):** David has gone
+further than withdrawing IR and the ±15% tolerance — he has directed that
+ordinary ACQUIRE carry **no** automatic distance- or time-based transition
+to LOST at all. The map is a representation of physical reality, not a
+probability distribution: when NAVI closes MM045, its target is MM046,
+not a hypothesis to be abandoned because a distance estimate is
+imperfect or a curve is slow to appear. §7's argument that "some bound is
+indispensable" and §8's bound, along with the addendum that tried to
+derive its value, are superseded in full by
+[`NAVI_NON_IR_ACQUISITION_PWM90_20261021.md`](NAVI_NON_IR_ACQUISITION_PWM90_20261021.md),
+which removes the automatic bound entirely rather than re-deriving it.
+0098's recovery machinery is not deleted — it remains available for
+genuine recovery circumstances (startup, operator redeclaration, a
+failure pattern actually demonstrated in recordings) — but nothing in
+ordinary ACQUIRE triggers it automatically. §1–§6, §9's disposal
+reasoning for non-matching candidates, and §10's structural conclusion
+(no separate branch; ordinary ACQUIRE already handles every case) remain
+correct and are unaffected — they did not depend on the bound.
 
 ## Verdict, stated first, and corrected from the prior document
 

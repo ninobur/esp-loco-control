@@ -10,6 +10,19 @@ asking for the actual decision machinery behind ACCEPT / HOLD / NO
 ENCOUNTER.
 **Authorization:** Research and design only. This document does not
 authorize implementation (`AGENTS.md` §2).
+**Superseded in part (2026-10-21):** David has withdrawn IR evidence from
+the current development stage entirely, and declared the ±15% distance
+tolerance vestigial for this model. Every answer below that relies on IR
+distance or the ±15% tolerance (notably §9, §13, §14, §17's IR case, and
+the reachability-window arithmetic in the worked examples) is superseded
+for the current stage by
+[`NAVI_NON_IR_ACQUISITION_PWM90_20261021.md`](NAVI_NON_IR_ACQUISITION_PWM90_20261021.md).
+Separately, this document's own candidate-set framing was itself later
+narrowed by
+[`NAVI_TARGET_ACQUISITION_EVALUATION_20261021.md`](NAVI_TARGET_ACQUISITION_EVALUATION_20261021.md)
+to apply only to lost-position recovery, not ordinary tracking. This
+document's text is left as written, as the durable record of what was
+proposed and why.
 
 No new architectural framework is introduced. Every mechanism below is
 either the prior proposal's own four parts, or named, already-accepted NAVI

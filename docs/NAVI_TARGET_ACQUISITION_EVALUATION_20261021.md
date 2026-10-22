@@ -9,6 +9,17 @@ Target-Acquisition Approach?", asking for an honest evaluation of
 CLOSE → BASELINE → TARGET → ACQUIRE → CLOSE against the candidate-selection
 machinery in the two prior documents.
 **Authorization:** Research and design only (`AGENTS.md` §2).
+**Superseded in part (2026-10-21):** David has withdrawn IR evidence from
+the current development stage entirely, and declared the ±15% distance
+tolerance vestigial for this model. The IR-dependent portions below
+(§2's "movement information," §9's minimum-state IR health item, and the
+±15%-tolerance assumptions throughout) are superseded for the current
+stage by
+[`NAVI_NON_IR_ACQUISITION_PWM90_20261021.md`](NAVI_NON_IR_ACQUISITION_PWM90_20261021.md).
+The target-acquisition sequence itself (CLOSE → BASELINE → TARGET →
+ACQUIRE → CLOSE), the verdict that it is a sound foundation, and the
+correction it made to the two prior documents' candidate-search scope are
+unaffected and remain current.
 
 ## Verdict, stated first
 
