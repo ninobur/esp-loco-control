@@ -205,14 +205,12 @@ Because §7 establishes that *some* bound is indispensable, here is its
 complete content — and it is deliberately as small as the question asks
 for:
 
-- **Entry condition:** accumulated movement evidence since the last
-  confirmed magnet exceeds an explicit, generous bound (large enough to
-  absorb ordinary spacing/measurement slop — on the order of a full extra
-  inter-magnet spacing, not a fraction of one) without a completed,
-  correctly-specified acquisition of the current target; **or** more than
-  a small explicit number of clean, fully-formed, contradicting candidates
-  for the same target have been disposed of in succession (not one — one
-  is ordinary, §4).
+- **Entry condition:** accumulated *distance* evidence since the last
+  confirmed magnet exceeds a bound derived from the map, as specified
+  precisely in the addendum below, without a completed, correctly-
+  specified acquisition of the current target. (The addendum below
+  revises this away from the two-part criterion given in the first
+  draft of this section — see its correction there.)
 - **Trusted geographic information preserved:** the last confirmed
   magnet and its reference point, exactly as under ordinary ACQUIRE —
   nothing new to preserve, because nothing changed.
@@ -272,6 +270,118 @@ examination, it added a state without adding behavior.
 
 ---
 
+## Addendum — specifying the bound precisely (David's follow-up)
+
+David asked three direct questions about the one surviving piece of
+machinery: what exactly is bounded, what determines the bound's value,
+and what happens when it is reached.
+
+### 1. What exactly is bounded
+
+**Distance — not elapsed moving time, and not a separate count of
+observations, as its own bound dimension.** The bound is evaluated against
+accumulated *distance* since the last confirmed magnet: the direct
+measurement (IR) when healthy, or the degraded PWM/time-based proxy when
+it is not (0108, principle 3). Elapsed moving time is not a second,
+independent bound — it is already *the same thing* as the degraded-mode
+proxy used when IR is unavailable, so counting it separately would
+double-count one physical quantity as if it were two confirming
+measurements, exactly the error the twenty-questions document's §16 warns
+against.
+
+This corrects the two-part entry condition given in §8 above. On
+reflection, the second part of that condition — a count of disposed
+contradicting candidates, triggering independently of distance — is not
+actually grounded in any demonstrated field case. §4 already establishes
+that a single contradicting candidate is ordinary and disposed of without
+consequence; nothing in the evidence reviewed shows that a *second* or
+*third* one, considered purely as a count and not as distance, carries any
+different physical meaning. Keeping it as a second bound dimension would
+be adding machinery "just in case," which is exactly what this whole
+review has been removing. It is dropped as a decision trigger. A running
+count of disposed candidates is still worth retaining as **diagnostic
+telemetry** (principle 15 — transparent judgment) for whoever reviews a
+LOST event after the fact, but it does not itself decide anything.
+
+### 2. What determines the bound
+
+**Derived from the map's own surveyed spacing and the tolerance already
+in use elsewhere in NAVI, not an arbitrary safety margin, and not one
+constant for the whole railway.** The physically motivated question is:
+at what accumulated distance does "the target is just late" stop being a
+defensible reading of the evidence, because the *next* mapped magnet
+beyond the target has itself become a competing, equally physical
+explanation?
+
+Concretely, using the real local map (`RouteMap.h`): MM45→46 is 300 mm;
+MM46→47 is a further 300 mm. Applying the existing ±15% tolerance
+(reused, not invented — the same figure already used for ordinary
+reachability) to each leg independently:
+
+- MM46's own plausible window, from MM45: roughly 255–345 mm.
+- MM47's own plausible window, from MM45: roughly 510–690 mm (300 mm +
+  300 mm, each ±15%).
+
+Between 345 mm and 510 mm in this specific interval there is a genuine
+gap — neither window covers it. Accumulated distance in that gap means
+the target is simply overdue, with no competing explanation yet; ordinary
+ACQUIRE should keep waiting, exactly as §2 above already concludes. **The
+bound belongs at the far edge of that gap — the point where MM47's own
+tolerance window begins (≈510 mm here) — because beyond it, a correctly-
+signed curve could plausibly be either a very late MM46 or an on-time
+MM47, and distance alone can no longer defend the single-target
+assumption ACQUIRE depends on.** This is not a round number chosen for
+safety; it is read directly off the surveyed spacing table and the
+tolerance convention already in force, and it will differ somewhat from
+one magnet to the next because the real spacing table is not uniform
+(280–360 mm across the route) — a single network-wide constant would
+itself be the kind of ungrounded number this review has been removing.
+
+This bound is deliberately a different number, and a different purpose,
+from 0098's existing ±10-MM figure. 0098's bound sizes the *search width*
+of recovery once LOST has already been declared; this bound decides *when
+to declare LOST* in the first place. Conflating the two — which the first
+draft of §8 above came close to doing by analogy — would be a mistake;
+they are evaluated at different moments and derived from different
+physical facts (the local two-leg spacing gap here; the outer plausible
+range of a lost position there).
+
+### 3. What happens at the bound
+
+**Everything accumulated is preserved and handed forward; nothing is
+discarded.** This follows directly from carry-forward rule 2 (immutable
+observations; attach hypotheses, never rewrite) and from 0098's own
+practice ("keep observations after correction"):
+
+- The last confirmed magnet and its reference point remain exactly as
+  they were — they are not invalidated by reaching the bound, and they
+  are precisely what 0098's subsequent recovery search needs as its own
+  anchor.
+- Every candidate observed and disposed of during the overrun (including
+  any contradicting ones from §4) is preserved with its own evidence —
+  resolved polarity, approximate location, ΔBIC summary — and handed to
+  recovery as evidence, not discarded as noise. A disposed candidate's
+  polarity and approximate distance are exactly the kind of datum 0098's
+  recovery search already weighs (did something of the right polarity
+  for some *other* nearby mapped position appear during this window?).
+  Recovery therefore starts with full context, not a blank slate.
+- The accumulated distance evidence itself (and whether it was direct or
+  degraded-proxy, 0108) is preserved and carried into recovery rather
+  than reset to zero.
+
+Reaching the bound changes only one thing: ACQUIRE stops treating MM046
+as the sole physically available explanation and hands the question to
+0098's existing recovery search, which starts from the preserved last-
+confirmed position using the preserved observations — not from nothing.
+
+### Correction this addendum makes to the document above
+
+§8's "Entry condition" bullet, and the corresponding row in the
+conclusion table below, are superseded by this addendum: the bound is a
+single, map-derived distance threshold evaluated per interval from the
+real spacing table and the existing ±15% tolerance, not a generic
+"generous" figure with a separate contradiction-count trigger.
+
 ## Required conclusion
 
 **Recommendation A, with the clarification that follows.** No separate
@@ -307,7 +417,7 @@ CLOSE -> BASELINE -> TARGET -> ACQUIRE (continues through all ordinary
 |---|---|
 | Established | 0098's recovery search and its own bound/discipline; 0104/0106/0107/0108 as cited; the MM008 field record and its documented cause (a physically moved/duplicated magnet, not a measurement defect). |
 | Corrected from the prior document | The "ACQUISITION EXCEPTION" branch is removed as an unneeded named state; its content folds into ACQUIRE's own bound plus the already-existing LOST transition. |
-| Proposed here, not yet evidenced | The specific numeric bound (how much travel, or how many disposed candidates, is "generous enough" before declaring LOST) and the small explicit repeat-count for contradicting candidates. |
+| Proposed here, resolved by the addendum | The bound is a single distance threshold, derived per-interval from `ROUTE_SPACING_MM` and the existing ±15% tolerance (the point where the next mapped magnet's own window begins), not a network-wide constant and not a separate contradiction-count trigger. |
 | Not established | Any reliability number; whether this exact collapse (no separate branch) holds once Toby, other speeds, acceleration, or stop/restart interactions are field-tested — entirely outside this review's scope, as in the prior documents. |
 
 ## References
