@@ -30,8 +30,15 @@ def interpolate_ir_mm(ir_by_boot, boot, source_us):
 def main():
     OUT.mkdir(exist_ok=True)
     key=lambda x:str(int(float(x)))
-    encounters={key(r['encounter_id']):r for r in csv.DictReader((SOURCE/'encounters_adc_only.csv').open())}
-    ground={r['ground_id']:r for r in csv.DictReader((SOURCE/'ground_intervals.csv').open())}
+    # IDs restart for each boot and source stream; retain both namespaces in
+    # every join so an Otto/native event cannot pick up a legacy or other-boot
+    # ground interval with the same numeric ID.
+    encounters={(r['boot'],r['stream'],key(r['encounter_id'])):r
+                for r in csv.DictReader((SOURCE/'encounters_adc_only.csv').open())}
+    previous_encounter={(r['boot'],r['stream'],r['right_ground_id']):r
+                        for r in encounters.values()}
+    ground={(r['boot'],r['stream'],r['ground_id']):r
+            for r in csv.DictReader((SOURCE/'ground_intervals.csv').open())}
     ir_by_boot={}
     for r in csv.DictReader((SOURCE/'ir_coordinate_source.csv').open()):
         boot=r['boot']
@@ -45,8 +52,14 @@ def main():
         # supported ADC-only interval excludes uncertainty/censoring and failed
         # geographic association; no RVM decision is consulted here.
         if not (r['kind']=='4' and r['match_status']=='matched_supported_activity' and r['mm']==r['target']): continue
-        e=encounters[key(r['encounter_id'])]; left=ground[e['left_ground_id']]
-        if not (e['classification']=='supported_activity' and left['boot']==e['boot']): continue
+        e=encounters[(r['boot'],'native',key(r['encounter_id']))]
+        left=ground[(e['boot'],e['stream'],e['left_ground_id'])]
+        previous=previous_encounter.get((e['boot'],e['stream'],left['ground_id']))
+        # A baseline next to an unclassified/edge activity can be a fragment
+        # created by the partition rather than a trustworthy inter-ensemble
+        # baseline.  Keep only segments bracketed by supported activity.
+        if not (e['classification']=='supported_activity' and left['boot']==e['boot']
+                and previous is not None and previous['classification']=='supported_activity'): continue
         try: distance=abs(float(r['end_interp_mm'])-float(r['start_interp_mm']))
         except ValueError: distance=None
         baseline_start=interpolate_ir_mm(ir_by_boot, e['boot'], int(float(left['start_us'])))
@@ -64,7 +77,7 @@ def main():
           'baseline_before_ir_max_bracket_ms':baseline_ir_bracket_ms,'source_classification':e['classification']})
     with (OUT/'measured_supported_matched.csv').open('w',newline='') as f:
         w=csv.DictWriter(f,rows[0].keys(),lineterminator='\n');w.writeheader();w.writerows(rows)
-    summary={'inclusion':'kind=4, matched_supported_activity, mm==target; excludes uncertain, censored, unsupported and mismatched intervals',
+    summary={'inclusion':'kind=4, matched_supported_activity, mm==target, and preceding native encounter supported_activity; excludes uncertain, censored, unsupported, edge and mismatched intervals',
       'recordings':sorted({r['boot'] for r in rows}),'ensembles':q([r['ensemble_s'] for r in rows]),
       'native_samples':q([r['ensemble_native_samples'] for r in rows]),'ir_distance_mm':q([r['ensemble_ir_mm'] for r in rows if r['ensemble_ir_mm'] is not None]),
       'baseline_before_s':q([r['baseline_before_s'] for r in rows]),'baseline_before_native_samples':q([r['baseline_before_native_samples'] for r in rows]),
@@ -75,7 +88,7 @@ def main():
     z=summary
     lines=['# Independent Hall-ground ensemble and baseline measurement','',
       'This supersedes the October-19 RVM-adjacent width estimate for requirements work. It uses the earlier October-15 **ADC-only** ground/encounter partition, frozen before opening decisions, geographic sequence and RVM work were read. Its ground intervals are observed stable, low-variation Hall segments; encounters are the bounded complements.','',
-      '## Inclusion and exclusion','',f"Included **{z['ensembles']['n']}** preserved opening records only when the opening has `matched_supported_activity` and `mm == target`. Excluded: uncertain instability, censored edge/gap activity, unsupported activity, unmatched openings, and mismatched identity. The retained row-level reasons and bracket quality are in `measured_supported_matched.csv`.",'',
+      '## Inclusion and exclusion','',f"Included **{z['ensembles']['n']}** preserved opening records only when the opening has `matched_supported_activity`, `mm == target`, and the immediately preceding native encounter is also `supported_activity`. Excluded: uncertain instability, censored edge/gap activity, unsupported activity, unmatched openings, mismatched identity, and baseline fragments adjacent to a failed/edge encounter. The retained row-level reasons and bracket quality are in `measured_supported_matched.csv`.",'',
       '## Measurements','', '| Quantity | n | median | 5th–95th | min–max |','|---|---:|---:|---:|---:|']
     for label,key,unit in [('Ensemble width','ensembles','s'),('Ensemble width','native_samples','native Hall samples'),('Ensemble IR distance','ir_distance_mm','mm'),('Baseline before ensemble','baseline_before_s','s'),('Baseline before ensemble','baseline_before_native_samples','native Hall samples'),('Baseline before ensemble IR distance','baseline_before_ir_distance_mm','mm')]:
         a=z[key];lines.append(f"| {label} ({unit}) | {a['n']} | {a['median']:.3f} | {a['p05']:.3f}–{a['p95']:.3f} | {a['min']:.3f}–{a['max']:.3f} |")

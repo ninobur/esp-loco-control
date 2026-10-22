@@ -4,25 +4,25 @@ This supersedes the October-19 RVM-adjacent width estimate for requirements work
 
 ## Inclusion and exclusion
 
-Included **1081** preserved opening records only when the opening has `matched_supported_activity` and `mm == target`. Excluded: uncertain instability, censored edge/gap activity, unsupported activity, unmatched openings, and mismatched identity. The retained row-level reasons and bracket quality are in `measured_supported_matched.csv`.
+Included **945** preserved opening records only when the opening has `matched_supported_activity`, `mm == target`, and the immediately preceding native encounter is also `supported_activity`. Excluded: uncertain instability, censored edge/gap activity, unsupported activity, unmatched openings, mismatched identity, and baseline fragments adjacent to a failed/edge encounter. The retained row-level reasons and bracket quality are in `measured_supported_matched.csv`.
 
 ## Measurements
 
 | Quantity | n | median | 5th–95th | min–max |
 |---|---:|---:|---:|---:|
-| Ensemble width (s) | 1081 | 0.250 | 0.200–0.660 | 0.150–1.670 |
-| Ensemble width (native Hall samples) | 1081 | 1250.000 | 999.000–3300.000 | 746.000–8354.000 |
-| Ensemble IR distance (mm) | 1080 | 55.178 | 46.842–64.338 | 38.608–76.996 |
-| Baseline before ensemble (s) | 1081 | 1.000 | 0.070–4.300 | 0.050–211.900 |
-| Baseline before ensemble (native Hall samples) | 1081 | 1000.000 | 70.000–6730.000 | 50.000–211906.000 |
-| Baseline before ensemble IR distance (mm) | 1081 | 239.184 | 7.748–273.429 | 0.000–482.128 |
+| Ensemble width (s) | 945 | 0.240 | 0.200–0.620 | 0.150–1.670 |
+| Ensemble width (native Hall samples) | 945 | 1201.000 | 1000.000–3100.000 | 746.000–8354.000 |
+| Ensemble IR distance (mm) | 944 | 55.556 | 47.489–65.714 | 38.608–79.344 |
+| Baseline before ensemble (s) | 945 | 1.050 | 0.850–3.058 | 0.720–225.850 |
+| Baseline before ensemble (native Hall samples) | 945 | 5250.000 | 4250.000–15286.800 | 3600.000–1129250.000 |
+| Baseline before ensemble IR distance (mm) | 945 | 245.999 | 226.327–277.484 | 211.779–328.168 |
 
 ## Direction
 
 | Direction | n | median ensemble width s | 5th–95th s |
 |---|---:|---:|---:|
-| CW | 731 | 0.240 | 0.190–0.650 |
-| CCW | 350 | 0.260 | 0.210–0.670 |
+| CW | 667 | 0.240 | 0.200–0.610 |
+| CCW | 278 | 0.250 | 0.210–0.650 |
 
 ## What RVM 5.x actually bounds
 
@@ -30,4 +30,4 @@ RVM is **not** an independent physical-boundary measurement. `RvmShape.h` scores
 
 ## Limits
 
-The IR coordinate is interpolated and its per-boundary bracket time is retained. For the preceding-baseline distance, the largest endpoint bracket has median 101.0 ms (5th–95th 99.1–108.1 ms). It is movement evidence, not a direct Hall boundary sensor. This earlier source is Otto-only; it does not establish Toby dimensions. It also does not claim that every supported interval is a physical magnet—only that it is a well-bounded, ADC-supported encounter associated with a matching recorded opening.
+The IR coordinate is interpolated and its per-boundary bracket time is retained. For the preceding-baseline distance, the largest endpoint bracket has median 101.0 ms (5th–95th 99.1–108.8 ms). It is movement evidence, not a direct Hall boundary sensor. This earlier source is Otto-only; it does not establish Toby dimensions. It also does not claim that every supported interval is a physical magnet—only that it is a well-bounded, ADC-supported encounter associated with a matching recorded opening.
