@@ -148,35 +148,39 @@ def run_evaluator(block_t0, hall, pwm_blk, window_blocks=25, threshold=10.0, per
     return excursions, valid, vt, vh, db_trace
 
 
-def independent_true_onset(vt, vh, around_idx, lookback=400, sigma_mult=3.0):
-    """Simple, independent estimate of excursion onset: scan backward from
-    a point already inside the excursion for the first run of >=6
-    consecutive blocks within a tight band of the locally-established
-    background (median/std of a quiet stretch just before). Used only to
-    measure the evaluator's detection latency, not as part of the
-    evaluator itself."""
-    lo = max(0, around_idx - lookback)
-    bg = vh[lo:around_idx]
-    if len(bg) < 20:
+def independent_true_onset(vt, vh, around_idx, bg_window=30, max_lookback=50, sigma_mult=3.0):
+    """Independent estimate of true excursion onset. BUG FIX (Experiment 2):
+    the original version scanned background-vs-departure over a range that
+    extended *past* around_idx, and kept overwriting its answer with the
+    *most recent* qualifying quiet run -- so for a short excursion, it
+    would find the quiet run *after* the excursion recovered (which is
+    also close to the same background level) instead of the quiet run
+    *before* the excursion began. That produced the suspicious, uniform
+    ~-980ms results in Experiment 1.
+
+    Fixed version: never looks at or past around_idx. Establishes
+    background from a window strictly before the search region, then
+    scans forward through [search_start, around_idx) for the first
+    2-consecutive-block departure from that background (same persistence
+    convention already used elsewhere in this project for the 70-ADC
+    departure criterion) -- not used as part of the evaluator itself,
+    only to measure its detection latency against something independent."""
+    search_start = max(0, around_idx - max_lookback)
+    bg_lo = max(0, search_start - bg_window)
+    bg = vh[bg_lo:search_start]
+    if len(bg) < max(10, bg_window // 2):
         return None
     med, std = np.median(bg), np.std(bg)
     band = max(3.0, sigma_mult * std)
-    dep = np.abs(vh[lo:around_idx + 50] - med)
-    ok = dep <= band
-    # find the LAST index (scanning forward) where 6 consecutive are quiet,
-    # then the first index after that run where it's no longer quiet
-    run = 0
-    last_quiet_end = None
-    for i, q in enumerate(ok):
-        if q:
-            run += 1
-            if run >= 6:
-                last_quiet_end = i
-        else:
-            run = 0
-    if last_quiet_end is None:
+    seg = vh[search_start:around_idx]
+    if len(seg) < 2:
         return None
-    return lo + last_quiet_end
+    dep = np.abs(seg - med)
+    exceed = dep > band
+    for i in range(len(exceed) - 1):
+        if exceed[i] and exceed[i + 1]:
+            return search_start + i
+    return None
 
 
 def main():
@@ -195,13 +199,19 @@ def main():
     excursions, valid, vt, vh, db_trace = run_evaluator(block_t0, hall, pwm_blk, window_blocks, threshold, persistence)
     print(f"[{label}] excursions detected: {len(excursions)}")
 
-    # latency measurement
+    # latency measurement: independent true onset vs. the evaluator's own
+    # DECISION time (curve_detect_t_us -- when the transition condition was
+    # actually satisfied), not the back-dated window-start estimate.
+    # Fixed, small, independent of window_blocks (deliberately -- this is
+    # the independent check, not the thing being tested): background from
+    # a short window, search no further back than 800ms, safely inside
+    # the shortest real inter-magnet gap observed (~1.1s at PWM 90).
     for e in excursions:
-        k = e["curve_start_k_est"]
-        onset_idx = independent_true_onset(vt, vh, k)
+        k = e["curve_detect_k"]
+        onset_idx = independent_true_onset(vt, vh, k, bg_window=15, max_lookback=40)
         if onset_idx is not None:
             e["independent_onset_t_us"] = float(vt[onset_idx])
-            e["detection_latency_ms"] = (e["curve_start_t_us_est"] - vt[onset_idx]) / 1e3
+            e["detection_latency_ms"] = (e["curve_detect_t_us"] - vt[onset_idx]) / 1e3
         else:
             e["independent_onset_t_us"] = None
             e["detection_latency_ms"] = None
@@ -213,6 +223,16 @@ def main():
               f"min={lat.min():.1f} max={lat.max():.1f} negative(early)={int((lat<0).sum())} "
               f"zero_or_more(late_or_exact)={int((lat>=0).sum())}")
 
+    if not excursions:
+        print(f"[{label}] no excursions detected (window too short for ΔBIC's own "
+              f"9-sample minimum, or genuinely nothing found)")
+        json.dump({"label": label, "window_blocks": window_blocks, "threshold": threshold,
+                   "n_blocks": int(len(block_t0)), "n_excursions": 0, "excursions": []},
+                  open(out_json, "w"), indent=1)
+        np.savez_compressed(out_json.replace(".json", "_trace.npz"),
+                             block_t0=block_t0, hall=hall, pwm_blk=pwm_blk,
+                             valid=valid, db_trace=db_trace)
+        return
     durations = np.array([e["duration_s"] for e in excursions])
     peaks = np.array([e["peak_departure"] for e in excursions if np.isfinite(e["peak_departure"])])
     medians = np.array([e["line_segment_median"] for e in excursions if np.isfinite(e["line_segment_median"])])

@@ -1,8 +1,10 @@
-# Experiment 1 — causal rolling line/curve evaluator, code
+# Experiment 1 & 2 — causal rolling line/curve evaluator, code
 
-Offline research code only, not firmware. See
-`../NAVI_TRACER_0_2_EXPERIMENT_1_LINE_CURVE_EVALUATOR_20261023.md` for the
-writeup and findings this code produced.
+Offline research code only, not firmware. Same code serves both
+experiments; see
+`../NAVI_TRACER_0_2_EXPERIMENT_1_LINE_CURVE_EVALUATOR_20261023.md` and
+`../NAVI_TRACER_0_2_EXPERIMENT_2_WINDOW_DURATION_20261023.md` for the
+writeups and findings.
 
 ## Files
 
@@ -35,12 +37,19 @@ writeup and findings this code produced.
 Both on the Pi at `/home/david/NGR/navi_sync/`. Extraction is read-only;
 nothing on the Pi is modified by this code.
 
-## Known limitation in this pass, disclosed in the writeup
+## History
 
-The persistence requirement was added mid-experiment, after the
-unpersisted version flickered on real data, rather than being decided
-jointly beforehand as the agreed process called for. See the writeup's
-closing section. The detection-latency measurement in
-`evaluator_experiment.py` (`independent_true_onset` /
-`detection_latency_ms`) produced suspiciously uniform values and is not
-represented as a trustworthy result.
+Experiment 1: persistence (consecutive-agreement smoothing) was added
+mid-experiment, after the unpersisted version flickered on real data,
+rather than being decided jointly beforehand as the agreed process called
+for — disclosed in that writeup's closing section. Its detection-latency
+measurement (`independent_true_onset` / `detection_latency_ms`) had a
+real bug (not just noise): it scanned past the detected onset and kept
+overwriting its answer with the *most recent* qualifying quiet run,
+finding the post-excursion recovery instead of the pre-excursion
+background for short excursions. Fixed for Experiment 2 — see the
+function's current docstring for the fix and why the old results were
+wrong, not just unreliable.
+
+Experiment 2: `persistence=1` (no smoothing) used throughout, isolating
+`window_blocks` as the only variable, per Sam and David's request.
