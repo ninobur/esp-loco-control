@@ -1,10 +1,25 @@
-# Experiment 1 & 2 — causal rolling line/curve evaluator, code
+# Experiments 1–3 — causal rolling line/curve evaluator, code
 
-Offline research code only, not firmware. Same code serves both
-experiments; see
-`../NAVI_TRACER_0_2_EXPERIMENT_1_LINE_CURVE_EVALUATOR_20261023.md` and
-`../NAVI_TRACER_0_2_EXPERIMENT_2_WINDOW_DURATION_20261023.md` for the
+Offline research code only, not firmware. See
+`../NAVI_TRACER_0_2_EXPERIMENT_1_LINE_CURVE_EVALUATOR_20261023.md`,
+`../NAVI_TRACER_0_2_EXPERIMENT_2_WINDOW_DURATION_20261023.md`, and
+`../NAVI_TRACER_0_2_EXPERIMENT_3_WINDOW_VS_SPEED_20261023.md` for the
 writeups and findings.
+
+Experiment 3 adds:
+
+- `exp3_parse_closes.py` — parses `CLOSE_AND_ADVANCE` events (confirmed
+  mm/target, wall-clock time) out of an NGR telemetry log.
+- `exp3_segments.py` — builds the confirmed magnet-to-magnet segment
+  dataset: mapped distance (from `RouteMap.h`'s own `ROUTE_SPACING_MM`,
+  copied verbatim), elapsed time, average segment speed, PWM at arrival,
+  and an independently-measured physical waveform duration (not taken
+  from the evaluator) bounded by the neighboring confirmed closes so it
+  can't reach into an adjacent magnet.
+- `exp3_match.py` — cross-references each confirmed segment's real peak
+  against a given Experiment-2 window run's excursion list: clean (one
+  piece, exact span contains the peak and no other), fragmented, or
+  missed.
 
 ## Files
 
