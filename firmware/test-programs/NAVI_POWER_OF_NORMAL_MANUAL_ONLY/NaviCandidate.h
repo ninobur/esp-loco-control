@@ -13,12 +13,28 @@
 // RULE. A slow reference level tracks the native Hall stream while no
 // candidate is open (nothing is withheld from it: it simply stops updating
 // once a candidate opens, and resumes once NaviEncounter closes one). An
-// onset is declared the instant two CONSECUTIVE native samples both deviate
-// from that reference by >= 70 ADC counts in the same direction. The first of
-// the two samples, not the second, is the true opening instant — it is
-// recorded, not discarded, which is the "pre-trigger preservation" the
-// conference asked for: the detector does not need the first sample twice to
-// notice it, but the encounter stage is told where it actually began.
+// onset is declared the instant two CONSECUTIVE samples both deviate from
+// that reference by >= 70 ADC counts in the same direction. The first of the
+// two samples, not the second, is the true opening instant — it is recorded,
+// not discarded, which is the "pre-trigger preservation" the conference
+// asked for: the detector does not need the first sample twice to notice it,
+// but the encounter stage is told where it actually began.
+//
+// SAMPLE RATE (corrected 2026-10-24, per David's instruction to reconcile
+// this implementation with the governing requirement). The established rule
+// — NAVI_SIMPLIFIED, documented in
+// esp-loco-control-rvmgated/docs/NAVI_RVM_70_COUNT_GATE_20261020.md — is
+// defined as two consecutive samples AT 1 kHz. This sketch's native Hall
+// acquisition runs at 5 kHz (hallTask, 5 reads per 1 ms tick). Evaluating
+// "two consecutive" directly on the raw 5 kHz stream, as the first version
+// of this file did, imposes a trigger window five times narrower in real
+// time than the rule was established at — a single-sample ADC noise dip at
+// the threshold boundary, lasting under 1 ms, can defeat it, where the
+// 1 kHz rule would not notice. STRIDE decimates the native stream to the
+// established 1 kHz cadence before the two-consecutive-sample test runs;
+// every sample is still available to the caller for unconditional recording
+// (NaviObservation.h / NaviSyncRecorder.h), only detection is paced to match
+// the rule's own definition.
 //
 // This stage makes no judgement about magnets, polarity-vs-the-map, width, or
 // completion. It only says: "something started here, in this direction." The
@@ -30,7 +46,9 @@
 namespace navi_power {
 
 static constexpr float CANDIDATE_THRESHOLD_ADC = 70.0f;   // operator's excursion floor, carried forward unchanged
-static constexpr float CANDIDATE_LEVEL_ALPHA = 1.0f / 1250.0f;  // ~0.25 s time constant at 5 kHz: slow enough not to chase a real excursion, fast enough to track genuine baseline drift between encounters
+static constexpr uint32_t CANDIDATE_NATIVE_HZ = 5000, CANDIDATE_RULE_HZ = 1000;
+static constexpr uint32_t CANDIDATE_STRIDE = CANDIDATE_NATIVE_HZ / CANDIDATE_RULE_HZ;   // 5: decimate 5 kHz to the rule's own 1 kHz
+static constexpr float CANDIDATE_LEVEL_ALPHA = 1.0f / 250.0f;  // ~0.25 s time constant AT THE RULE'S 1 kHz CADENCE (was 1/1250 at 5 kHz -- same real-time constant, now expressed at the evaluated rate)
 
 struct CandidateOnset {
   uint32_t openSerial = 0;      // the FIRST of the two crossing samples (the true opening instant)
@@ -44,8 +62,12 @@ class CandidateDetector {
   // No effect while a candidate is open (open() / close() below) other than
   // bookkeeping; the caller must call close() once NaviEncounter decides the
   // candidate (accepted or abandoned) so the reference resumes tracking.
+  // Every call is counted (so the stride lines up even while a candidate is
+  // open), but detection logic below runs only once every CANDIDATE_STRIDE
+  // calls, at the established rule's own 1 kHz cadence.
   bool onSample(uint16_t adc, uint32_t serial, CandidateOnset& out) {
-    if (open_) return false;
+    const bool evaluate = (strideCounter_++ % CANDIDATE_STRIDE) == 0;
+    if (open_ || !evaluate) return false;
     const float x = float(adc);
     if (!haveLevel_) { level_ = x; haveLevel_ = true; }
     const float dev = x - level_;
@@ -82,6 +104,7 @@ class CandidateDetector {
   float level_ = 0;
   int8_t pendingSign_ = 1;
   uint32_t pendingSerial_ = 0;
+  uint32_t strideCounter_ = 0;
 };
 
 }  // namespace navi_power

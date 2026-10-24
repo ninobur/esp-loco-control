@@ -57,8 +57,10 @@ int main(int argc, char** argv) {
   std::string out = argv[4];
   FILE* fe = fopen((out + "/encounters.csv").c_str(), "w");
   FILE* fn = fopen((out + "/nav.csv").c_str(), "w");
-  fprintf(fe, "t_us,open_block,width_blocks,pol,peak_adc,meets_min_width,abandoned\n");
+  FILE* fo = fopen((out + "/onsets.csv").c_str(), "w");
+  fprintf(fe, "open_us,close_us,open_block,width_blocks,pol,peak_adc,meets_min_width,abandoned\n");
   fprintf(fn, "t_us,event,mm,expected\n");
+  fprintf(fo, "onset_us,serial,pol,level_at_open\n");
 
   navi_power::Tracing tracing;
   navi_power::CandidateDetector candidate;
@@ -68,7 +70,7 @@ int main(int argc, char** argv) {
   uint32_t confirmed = 0, nonqualifying = 0, abandoned = 0, onsets = 0;
   size_t ci = 0;
   int8_t sessionDir = 0; bool forward = true;
-  uint64_t lastUs = 0;
+  uint64_t lastUs = 0, openUs = 0;
 
   auto applyCmd = [&](const Cmd& c) {
     if (c.leaf == "session_direction") { sessionDir = c.payload == "CW" ? 1 : -1; }
@@ -95,7 +97,7 @@ int main(int argc, char** argv) {
       if (encounter.push(b, done)) {
         const uint8_t expectedBefore = target.nextMm();
         const auto r = target.onEncounter(done);
-        fprintf(fe, "%llu,%u,%u,%d,%.1f,%u,%u\n", (unsigned long long)lastUs, done.openBlockId, done.widthBlocks,
+        fprintf(fe, "%llu,%llu,%u,%u,%d,%.1f,%u,%u\n", (unsigned long long)openUs, (unsigned long long)lastUs, done.openBlockId, done.widthBlocks,
                 done.pol, double(done.peakAdc), unsigned(done.meetsMinWidth), unsigned(done.abandoned));
         if (r == navi_power::JudgementResult::Confirmed) {
           ++confirmed;
@@ -114,12 +116,13 @@ int main(int argc, char** argv) {
     navi_power::CandidateOnset onset;
     if (candidate.onSample(uint16_t(r.adc), r.serial, onset)) {
       ++onsets;
-      if (!encounter.active()) encounter.open(onset, blockCounter);
+      fprintf(fo, "%llu,%u,%d,%.1f\n", (unsigned long long)r.us, onset.openSerial, onset.pol, double(onset.levelAtOpen));
+      if (!encounter.active()) { encounter.open(onset, blockCounter); openUs = r.us; }
     }
     tracing.add(r.us, uint16_t(r.adc), r.direction, r.serial, r.pwm, 255, onBlock);
     ++nrec;
   }
-  fclose(f); fclose(fe); fclose(fn);
+  fclose(f); fclose(fe); fclose(fn); fclose(fo);
   printf("{\"native_reads\":%llu,\"blocks\":%u,\"onsets\":%u,\"confirmed\":%u,\"nonqualifying\":%u,\"abandoned\":%u}\n",
          (unsigned long long)nrec, blockCounter, onsets, confirmed, nonqualifying, abandoned);
   return 0;

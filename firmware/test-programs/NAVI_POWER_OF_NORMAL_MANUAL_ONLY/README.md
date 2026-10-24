@@ -34,11 +34,25 @@ r6 change to `RvmStations.h`.
 - **Arrival-boundary table** (`NaviArrivalBoundary.h`, `BOUNDARY_TABLE_MS`):
   mechanism present, every entry intentionally unset. Fitting it against the
   historical per-interval travel-time corpus is unstarted.
-- **Candidate-detector tuning**: a replay against the boot-1 corpus used for
-  the old recognizer's own evaluation (see below) found and fixed one bug (the
-  reference level was partly absorbed into a gradual excursion before the
-  onset trigger could fire) but still detects ~15% fewer onsets than the
-  corpus's own annotated magnet openings. Root cause not isolated.
+- **A real lockup bug, root-caused but not fixed** (see
+  `docs/navi/NAVI_POWER_OF_NORMAL_ONSET_SHORTFALL_INVESTIGATION_20261024.md`
+  for the full investigation). `NaviCandidate`'s single global "one candidate
+  open at a time" gate, combined with `NaviEncounter`'s return-to-baseline
+  test comparing against a reference frozen at the instant of onset and
+  never updated, cannot track the real ~100+ ADC baseline drift this railway
+  shows over several consecutive magnets. Once one candidate fails to
+  return, detection is blind to everything else for up to 10 s, repeatedly.
+  Measured on the boot-1 corpus: 184 such lockups, 48% of the recording's
+  duration, accounting for 97% of missed annotated openings. This is an
+  architecture question (how "observed return to baseline" should behave
+  when real magnets are closely spaced), not a parameter to retune, and is
+  reported for decision rather than fixed unilaterally.
+- Separately, `NaviCandidate.h`'s two-consecutive-sample test now runs at
+  the established rule's own 1 kHz cadence (not the native 5 kHz), per
+  `docs/NAVI_RVM_70_COUNT_GATE_20261020.md`. Measured in isolation this
+  performs worse on this corpus, but the measurement is confounded by the
+  lockup above and is not meaningful until that is fixed — see the
+  investigation doc.
 - **Full-sketch arduino-cli compile**: blocked on this machine by a
   pre-existing `Adafruit_BusIO` / esp32 core 3.3.12 incompatibility
   (`BitOrder`) in the INA219 battery-monitor include chain. Confirmed this

@@ -79,27 +79,55 @@ static void test_encounter_min_width_inert() {
   CHECK(completed && done.meetsMinWidth, "with MIN_WIDTH_BLOCKS==0 nothing may be rejected on width");
 }
 
-// ---- CandidateDetector: the two-consecutive-raw-sample onset, with a frozen
-// reference (regression test for the level-chasing bug found via replay).
+// ---- CandidateDetector: the two-consecutive-sample onset at the
+// established rule's own 1 kHz cadence (CANDIDATE_STRIDE native calls per
+// evaluated sample, matching hallTask's 5 native reads per 1 ms tick), with
+// a frozen reference (regression test for the level-chasing bug found via
+// replay). `feed(adc)` mimics one 1 ms tick's worth of native reads, all
+// equal, exactly as a near-constant real signal looks over 1 ms.
+static bool feed(CandidateDetector& c, uint16_t adc, uint32_t& serial, CandidateOnset& onset) {
+  bool got = false;
+  for (uint32_t i = 0; i < CANDIDATE_STRIDE; ++i) { const bool r = c.onSample(adc, serial++, onset); got = got || r; }
+  return got;
+}
 static void test_candidate_two_consecutive_samples() {
   CandidateDetector c;
   CandidateOnset onset;
+  uint32_t serial = 0;
   bool got = false;
-  for (int i = 0; i < 2000 && !got; ++i) got = c.onSample(1900, uint32_t(i), onset);   // settle the reference
+  for (int i = 0; i < 2000 && !got; ++i) got = feed(c, 1900, serial, onset);   // settle the reference
   CHECK(!got, "quiet samples near a stable level must never trigger an onset");
   const float settled = c.level();
-  CHECK(!c.onSample(1971, 9000, onset), "a single crossing sample must not open a candidate by itself");
-  got = c.onSample(1972, 9001, onset);
-  CHECK(got, "a second consecutive same-sign crossing sample must open a candidate");
+  CHECK(!feed(c, 1971, serial, onset), "a single evaluated crossing sample must not open a candidate by itself");
+  got = feed(c, 1972, serial, onset);
+  CHECK(got, "a second consecutive same-sign EVALUATED crossing sample must open a candidate");
   CHECK(onset.pol == 1, "an above-reference excursion must report positive polarity");
   CHECK(onset.levelAtOpen == settled, "the reference at open must be the level BEFORE the excursion started, not drifted toward it");
 }
 static void test_candidate_ramp_still_triggers() {
   // A gradual, physically realistic ramp (the case the level-chasing bug missed).
-  CandidateDetector c; CandidateOnset onset; bool got = false;
-  for (int i = 0; i < 2000 && !got; ++i) got = c.onSample(1900, uint32_t(i), onset);
-  for (int step = 0; step < 40 && !got; ++step) got = c.onSample(uint16_t(1900 + step * 3), uint32_t(2000 + step), onset);
+  CandidateDetector c; CandidateOnset onset; uint32_t serial = 0; bool got = false;
+  for (int i = 0; i < 2000 && !got; ++i) got = feed(c, 1900, serial, onset);
+  for (int step = 0; step < 40 && !got; ++step) got = feed(c, uint16_t(1900 + step * 3), serial, onset);
   CHECK(got, "a signal that rises gradually (not an instant step) must still be detected once it departs the frozen level by >=70 counts");
+}
+static void test_candidate_single_tick_noise_dip_no_longer_defeats_onset() {
+  // The case the 5 kHz-vs-1 kHz mismatch caused: a genuine step excursion
+  // with a single noisy raw sample dipping back under threshold WITHIN one
+  // 1 ms tick must still be recognized, because only one evaluated sample
+  // per tick is tested, not every raw 5 kHz read.
+  CandidateDetector c; CandidateOnset onset; uint32_t serial = 0; bool got = false;
+  for (int i = 0; i < 2000 && !got; ++i) got = feed(c, 1900, serial, onset);
+  CHECK(!got, "settling phase must not itself trigger");
+  // Tick 1: first evaluated read crosses; the OTHER 4 raw reads in this same
+  // tick are irrelevant to detection now (they were not, before the fix).
+  got = c.onSample(1972, serial++, onset);
+  CHECK(!got, "first evaluated crossing sample alone must not open a candidate");
+  for (uint32_t i = 1; i < CANDIDATE_STRIDE; ++i) c.onSample(1800, serial++, onset);   // noisy/irrelevant raw reads, same tick
+  // Tick 2: the evaluated sample crosses again -> onset.
+  got = c.onSample(1973, serial++, onset);
+  CHECK(got, "the second tick's evaluated sample must still confirm the onset despite noisy raw reads within either tick");
+  for (uint32_t i = 1; i < CANDIDATE_STRIDE; ++i) c.onSample(1800, serial++, onset);
 }
 
 // ---- ArrivalBoundary: fails open when unset; the hard AUTO gate is present.
@@ -131,6 +159,7 @@ int main() {
   test_encounter_min_width_inert();
   test_candidate_two_consecutive_samples();
   test_candidate_ramp_still_triggers();
+  test_candidate_single_tick_noise_dip_no_longer_defeats_onset();
   test_boundary_unset_never_fires();
   test_boundary_fires_when_set();
   test_hard_gate_present();
