@@ -21,6 +21,21 @@ Experiment 3 adds:
   piece, exact span contains the peak and no other), fragmented, or
   missed.
 
+The calibration-corpus review (`../NAVI_TRACER_0_2_CAL_CORPUS_REVIEW_20261023.md`)
+adds:
+
+- `exp4_cal_parse.py` — parses all of `field-records/cal/*.txt` (the
+  June 29-30 calibration corpus), applies the documented strict filter
+  (`EXACT_LOCKED`, `obs==expected`, `MOVING`, `seg_mm` 250-360, `dt>0`,
+  adjacent direction known) plus the neighbor-speed artifact filter from
+  the precedent `HALL_SELECTIVITY_AND_GATE_TIMING_FROM_CAL_20260630.md`
+  analysis. Run from the repo root (reads `field-records/cal/*.txt`
+  relative to cwd); writes `exp4_cal_filtered.json`.
+- `exp4_ref_compat.py` — independently checks the Codex relative-speed
+  study's reference-section compatibility (MM115-125 vs MM035-055) and
+  MM060-079 directional claim against the filtered corpus. Run after
+  `exp4_cal_parse.py`, from the same directory.
+
 ## Files
 
 - `extract_run2_full_csv.py` — read-only extraction of a bounded time
