@@ -7,7 +7,7 @@ import re, glob, json
 import numpy as np
 
 LINE_RE = re.compile(
-    r"^MM(\d+)\s+obs=(\S+)\s+expected=(\S+)\s+pos=(\S+)\s+dir=(\S+)\s+dt=(\d+)\s+"
+    r"^MM(\d+)\s+(?:[A-Za-z]+\s+)?obs=(\S+)\s+expected=(\S+)\s+pos=(\S+)\s+dir=(\S+)\s+dt=(\d+)\s+"
     r"dt_expected=(\d+)\s+timing_mode=(\S+)\s+effective_pwm_avg=(\d+)\s+seg_mm=(\d+)\s+"
     r"speed_mm_s=([\d.]+)\s+peakN=(\d+)\s+peakS=(\d+)\s+hallms=(\d+)"
 )

@@ -7,6 +7,22 @@ Experiments 1–3, incorporate the Codex relative-speed study, and
 establish selection criteria and coverage before any further evaluator
 work.
 
+**CORRECTED 2026-10-23, see
+`NAVI_TRACER_0_2_PWM60_PWM90_RUN_REPRODUCIBILITY_20261023.md`:** the
+parser behind §2's passage counts and §5's reference-compatibility
+numbers had a real bug — it silently dropped every landmark-named marker
+line (`MM063 Grillers`, `MM072 Westpoint`, and six others), including
+MM063, which sits inside the MM060-079 section this whole investigation
+is about, and it caused runs passing through a landmark to be
+artificially split in two. The counts and ratios below are superseded by
+the corrected analysis in that document; left here unedited as the
+record of what was actually reported, per this project's standing
+practice of not editing a report away. Corrected totals: 10,503 raw
+lines (not 10,014), 9,063 filtered passages (not 8,225). The
+reconciliation conclusion — Codex's tight PWM≥70 compatibility claim
+still doesn't reproduce, the MM060-079 directional finding still does —
+is unchanged by the fix.
+
 ## 0. Responding to the Experiment 3 critique directly
 
 Three points, taken in order, without softening them:

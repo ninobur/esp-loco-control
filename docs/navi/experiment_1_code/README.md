@@ -36,6 +36,21 @@ adds:
   MM060-079 directional claim against the filtered corpus. Run after
   `exp4_cal_parse.py`, from the same directory.
 
+`exp4_cal_parse.py`'s regex was fixed 2026-10-23 (see
+`../NAVI_TRACER_0_2_PWM60_PWM90_RUN_REPRODUCIBILITY_20261023.md`'s
+correction note) to tolerate the landmark-name token on 8 marker lines
+(`MM063 Grillers` etc.) that it previously silently dropped.
+
+The PWM 60/90 reproducibility review adds:
+
+- `exp5_runs.py` — identifies maximal contiguous runs at *exactly* PWM
+  60 or PWM 90 (no bands), `timing_mode=MOVING` throughout, strict
+  marker adjacency (a run ends the instant PWM changes or adjacency
+  breaks). Computes within-run MM035-055 / MM060-079 section ratios
+  without combining separate runs. Writes `exp5_runs.json`, which
+  preserves every individual segment speed per run, not just summary
+  ratios.
+
 ## Files
 
 - `extract_run2_full_csv.py` — read-only extraction of a bounded time
