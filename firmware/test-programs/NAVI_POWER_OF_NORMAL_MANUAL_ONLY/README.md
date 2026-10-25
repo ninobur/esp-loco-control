@@ -41,10 +41,15 @@ design.
   of the last *confirmed* 70x2 opening to the current candidate's native
   70x2 opening. A nonqualifying observation never resets it. Profiles are
   independently keyed by source marker, direction, and fixed PWM, so a CW
-  90-PWM value is never used for CCW or 60-PWM travel. The catalogue is
-  intentionally empty until field data establishes normal variation; until
-  then every measured interval is visibly `UNPROFILED`, not silently passed
-  by a guessed tolerance.
+  90-PWM value is never used for CCW or 60-PWM travel. The PWM-90 map has
+  342 survey-derived entries (171 per direction), generated from
+  `docs/OTTO_70X2_ONSET_PWM90_TIMING_TABLE_20261025.{csv,json}`. Each entry
+  is a normalized geographic factor, not a frozen duration: its expected
+  time and observed lower/upper bounds are scaled by the current locomotive
+  and consist's span-weighted standardization pace over MM035–055 and
+  MM115–125. Until one complete directed calibration pass is observed,
+  PWM-90 timing is visibly `AWAITING_CALIBRATION`; PWM-60 remains
+  `UNPROFILED` because no valid 70x2 onset-pair survey exists.
 
 ## What is reused unchanged, from r5.1 commit `5b7a518b`
 
@@ -66,9 +71,9 @@ design.
 - **Minimum physically plausible width** (`NaviEncounter.h`,
   `MIN_WIDTH_BLOCKS`): mechanism present, value intentionally `0`
   (disabled).
-- **Timing profiles and acceptance bands**: the field test must establish
-  them from clean fixed-PWM CW and CCW runs at 60 and 90. No values are
-  invented in firmware.
+- **PWM-60 timing map**: the required supervised fixed-PWM-60 70x2 survey
+  has not yet been collected. No 60-PWM value is inferred from the 90-PWM
+  map, route spacing, or another locomotive.
 - **CCW**: declared successfully (suspends and re-declares correctly on a
   session-direction change) but not yet driven/observed in the field —
   untested, not known-broken.
@@ -86,6 +91,8 @@ Adafruit_BusIO/core incompatibility did not reproduce).
 
 ## Testing
 
-`tests/navi_power_of_normal/run_checks.sh` — host-side unit tests for all
-five headers plus a replay of the real boot-1 native Hall corpus. No
-hardware, no network.
+`tests/navi_power_of_normal/run_checks.sh` — host-side unit tests for the
+navigation headers plus a replay of the real boot-1 native Hall corpus. The
+timing tests verify that only the designated standardization intervals can
+activate the PWM-90 map and that the normalized factors scale afterward. No
+hardware or network.

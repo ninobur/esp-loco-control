@@ -45,14 +45,39 @@ static void test_target_unset_has_no_claim() {
 static void test_timing_profile_qualification() {
   TimingPredictor p;
   CHECK(p.noAnchor().result == TimingResult::NoAnchor, "a declaration must not invent a timing opening anchor");
-  p.installApprovedProfile({10, +1, 90, 1000, 100});
-  CHECK(p.evaluate(10, +1, 90, 90, 1080).result == TimingResult::Matches, "inside an installed band must match");
-  CHECK(p.evaluate(10, +1, 90, 90, 1201).result == TimingResult::Mismatches, "outside an installed band must mismatch");
-  CHECK(p.evaluate(10, +1, 90, 60, 1000).result == TimingResult::Unprofiled, "a 90 profile must not be applied after a 60-PWM arrival");
-  CHECK(p.evaluate(10, -1, 90, 90, 1000).result == TimingResult::Unprofiled, "CW must not be applied to CCW");
-  p.installApprovedProfile({10, +1, 60, 1600, 100});
-  CHECK(p.evaluate(10, +1, 60, 60, 1600).result == TimingResult::Matches, "60 and 90 profiles must coexist");
-  CHECK(p.evaluate(10, +1, 90, 90, 1000).result == TimingResult::Matches, "adding 60 must not replace 90");
+  CHECK(p.evaluate(10, +1, 90, 90, 1190).result == TimingResult::AwaitingCalibration,
+        "a surveyed PWM-90 interval must await the current locomotive/consist calibration");
+  p.setCalibrationBaseForTest(+1, PWM90_SURVEY_BASE_CW_MS);
+  const TimingEvidence match = p.evaluate(10, +1, 90, 90, 1190);
+  CHECK(match.result == TimingResult::Matches, "the survey typical time must match at the survey base");
+  CHECK(match.lowerMs == 1177 && match.upperMs == 1199,
+        "survey extrema must become the asymmetric timing bounds without invented tolerance");
+  CHECK(p.evaluate(10, +1, 90, 90, 1200).result == TimingResult::Mismatches,
+        "outside the observed PWM-90 range must mismatch");
+  CHECK(p.evaluate(10, +1, 90, 60, 1190).result == TimingResult::Unprofiled,
+        "a 90 map must not be applied after a throttle change");
+  CHECK(p.evaluate(10, +1, 60, 60, 1600).result == TimingResult::Unprofiled,
+        "PWM 60 must remain unprofiled until its own survey exists");
+}
+static void test_timing_calibration_uses_only_standardization_segments() {
+  TimingPredictor p;
+  p.beginCalibration(+1);
+  // A non-standard mapped interval cannot establish the base.
+  p.observeConfirmed(10, +1, 90, 90, 1300);
+  CHECK(p.evaluate(10, +1, 90, 90, 1190).result == TimingResult::AwaitingCalibration,
+        "ordinary route intervals must not self-calibrate the timing map");
+  // One complete directed pass of the designated sections establishes a
+  // synthetic 1300-ms base; values are supplied only from verified advances.
+  for (uint16_t i = 0; i < TIMING_PROFILE_COUNT; ++i) {
+    const auto& d = TIMING_PROFILES[i];
+    if (d.dir == +1 && d.pwm == 90 && d.calibrationWeightMm)
+      p.observeConfirmed(d.fromMm, d.dir, 90, 90, uint32_t(d.factor * 1300.0f + 0.5f));
+  }
+  const TimingEvidence ev = p.evaluate(10, +1, 90, 90, uint32_t(1190.0f / PWM90_SURVEY_BASE_CW_MS * 1300.0f + 0.5f));
+  CHECK(ev.calibrationReady && ev.calibrationCoveredMm == PWM90_STANDARDIZATION_SPAN_MM,
+        "all designated standardization spans must establish the base once");
+  CHECK(ev.result == TimingResult::Matches,
+        "the calibrated base must scale the geographic factor for non-standard intervals");
 }
 static void test_timing_anchor_is_last_confirmed_opening() {
   TargetTracker t; t.declare(10, 11, +1);
@@ -62,7 +87,8 @@ static void test_timing_anchor_is_last_confirmed_opening() {
   CHECK(t.onEncounter(wrong) == JudgementResult::NonQualifying, "wrong polarity remains nonqualifying");
   CompletedEncounter next{}; next.pol = expectedHallSign(12); next.meetsMinWidth = true; next.openUs = 3000000; next.pwmAtOpen = 90;
   CHECK(t.onEncounter(next) == JudgementResult::Confirmed, "next correct polarity confirms while timing is unprofiled");
-  CHECK(t.lastTiming().result == TimingResult::Unprofiled, "unmeasured variation remains visible as unprofiled");
+  CHECK(t.lastTiming().result == TimingResult::AwaitingCalibration,
+        "surveyed timing must remain visible as awaiting session calibration");
   CHECK(t.lastTiming().measuredMs == 2000, "a nonqualifying opening must not reset the interval clock");
 }
 
@@ -280,6 +306,7 @@ int main() {
   test_target_abandoned_is_no_claim();
   test_target_unset_has_no_claim();
   test_timing_profile_qualification();
+  test_timing_calibration_uses_only_standardization_segments();
   test_timing_anchor_is_last_confirmed_opening();
   test_encounter_completes_on_rtb();
   test_encounter_never_times_out();

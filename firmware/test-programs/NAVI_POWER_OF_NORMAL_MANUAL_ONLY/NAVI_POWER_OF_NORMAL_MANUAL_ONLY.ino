@@ -149,9 +149,10 @@ struct NavSnapshot {
   // Timing qualification evidence (2026-10-24), for the most recently judged
   // encounter -- visibility into whether/how it participated, per David's
   // instruction that this must be verifiable, not just present in code.
-  bool timingHaveAnchor = false, timingHaveProfile = false, timingAgrees = false;
+  bool timingHaveAnchor = false, timingHaveProfile = false, timingCalibrationReady = false, timingAgrees = false;
   uint8_t timingResult = 0;
-  uint32_t timingPredictedMs = 0, timingMeasuredMs = 0, timingToleranceMs = 0;
+  uint16_t timingCalibrationCoveredMm = 0, timingCalibrationRequiredMm = 0;
+  uint32_t timingPredictedMs = 0, timingMeasuredMs = 0, timingLowerMs = 0, timingUpperMs = 0, timingToleranceMs = 0;
 };
 static navi_power::Encounter encounter;             // rvmTask only
 static navi_power::BaselineTracker baseline;        // rvmTask only — the long inter-magnet measurement
@@ -327,8 +328,12 @@ static void publishSnapshot() {
   s.blocksEmitted = obsHealth.blocksEmitted; s.blocksDropped = obsHealth.blocksDropped;
   { const auto& t = target.lastTiming();
     s.timingHaveAnchor = t.haveAnchor; s.timingHaveProfile = t.haveProfile;
+    s.timingCalibrationReady = t.calibrationReady;
+    s.timingCalibrationCoveredMm = t.calibrationCoveredMm;
+    s.timingCalibrationRequiredMm = t.calibrationRequiredMm;
     s.timingResult = uint8_t(t.result); s.timingPredictedMs = t.expectedMs;
-    s.timingMeasuredMs = t.measuredMs; s.timingToleranceMs = t.toleranceMs;
+    s.timingMeasuredMs = t.measuredMs; s.timingLowerMs = t.lowerMs;
+    s.timingUpperMs = t.upperMs; s.timingToleranceMs = t.toleranceMs;
     s.timingAgrees = t.result != navi_power::TimingResult::Mismatches;
   }
   portENTER_CRITICAL(&navMux);
@@ -420,20 +425,21 @@ static const char* stateName(uint8_t s) {
 static char lastNavEvent[24] = "NONE";
 static void publishNavState() {
   const NavSnapshot s = navSnapshot();
-  char payload[480];
+  char payload[640];
   snprintf(payload, sizeof(payload),
     "{\"state\":\"%s\",\"mm\":%u,\"target\":%u,\"dir\":%d,\"session_dir\":\"%s\","
     "\"position_reliable\":%u,\"event\":\"%s\","
     "\"confirmed\":%lu,\"nonqualifying\":%lu,\"abandoned\":%lu,\"encounter_active\":%u,"
     "\"blocks_emitted\":%lu,\"blocks_dropped\":%lu,"
-    "\"timing_have_anchor\":%u,\"timing_have_profile\":%u,\"timing_result\":%u,\"timing_predicted_ms\":%lu,\"timing_measured_ms\":%lu,\"timing_tolerance_ms\":%lu,\"timing_agrees\":%u,"
+    "\"timing_have_anchor\":%u,\"timing_have_profile\":%u,\"timing_calibration_ready\":%u,\"timing_calibration_covered_mm\":%u,\"timing_calibration_required_mm\":%u,\"timing_result\":%u,\"timing_predicted_ms\":%lu,\"timing_lower_ms\":%lu,\"timing_upper_ms\":%lu,\"timing_measured_ms\":%lu,\"timing_tolerance_ms\":%lu,\"timing_agrees\":%u,"
     "\"authority\":\"NAVI_POWER_OF_NORMAL_MANUAL_ONLY\"}",
     stateName(s.state), s.last, s.next, s.dir, sessionDir > 0 ? "CW" : sessionDir < 0 ? "CCW" : "UNSET",
     s.state == uint8_t(navi_power::TargetState::Tracking), lastNavEvent,
     (unsigned long)s.confirmed, (unsigned long)s.nonqualifying, (unsigned long)s.abandoned, s.encounterActive,
     (unsigned long)s.blocksEmitted, (unsigned long)s.blocksDropped,
-    s.timingHaveAnchor, s.timingHaveProfile, unsigned(s.timingResult),
-    (unsigned long)s.timingPredictedMs, (unsigned long)s.timingMeasuredMs,
+    s.timingHaveAnchor, s.timingHaveProfile, s.timingCalibrationReady,
+    unsigned(s.timingCalibrationCoveredMm), unsigned(s.timingCalibrationRequiredMm), unsigned(s.timingResult),
+    (unsigned long)s.timingPredictedMs, (unsigned long)s.timingLowerMs, (unsigned long)s.timingUpperMs, (unsigned long)s.timingMeasuredMs,
     (unsigned long)s.timingToleranceMs, s.timingAgrees);
   pub("state/nav", payload, true);
   pub("state/nav_ready", s.state == uint8_t(navi_power::TargetState::Tracking) ? "1" : "0", true);

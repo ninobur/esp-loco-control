@@ -46,6 +46,7 @@ class TargetTracker {
  public:
   void declare(uint8_t last, uint8_t next, int8_t dir) {
     last_ = last; next_ = next; dir_ = dir; state_ = TargetState::Tracking;
+    predictor_.beginCalibration(dir_);
     // A declaration identifies geography but does not invent an observed
     // 70x2 opening. The next confirmed target establishes the timing anchor.
     haveConfirmedOpen_ = false; confirmedOpenUs_ = 0; confirmedOpenPwm_ = 0;
