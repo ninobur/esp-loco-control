@@ -2,106 +2,70 @@
 // ---------------------------------------------------------------------------
 // NaviCandidate — the 70-count, two-consecutive-sample onset detector.
 //
-// The Power of Normal conference record (docs/navi/NAVI_CONFERENCE_POWER_OF_
-// NORMAL_RECORD_20261024.md) and both independent audits of r5.1 (Claude and
-// Codex, 2026-10-24) agree this mechanism does not exist in any prior sketch:
-// the old recognizer applied its 70-count amplitude floor to 20 ms block
-// means, after shape scoring, not as a two-consecutive-sample trigger on the
-// native 5 kHz stream. This file is new, built directly from the conference
-// record, not adapted from RvmShape.h.
+// RULE. An onset is declared the instant two CONSECUTIVE samples, at the
+// established rule's own 1 kHz cadence (NAVI_SIMPLIFIED, docs/NAVI_RVM_70_
+// COUNT_GATE_20261020.md — this sketch's native acquisition runs at 5 kHz,
+// so CANDIDATE_STRIDE decimates to the rule's own rate before evaluating),
+// both deviate from the current baseline level by >= 70 ADC counts in the
+// same direction. The first of the two samples is the true opening instant.
 //
-// RULE. A slow reference level tracks the native Hall stream while no
-// candidate is open (nothing is withheld from it: it simply stops updating
-// once a candidate opens, and resumes once NaviEncounter closes one). An
-// onset is declared the instant two CONSECUTIVE samples both deviate from
-// that reference by >= 70 ADC counts in the same direction. The first of the
-// two samples, not the second, is the true opening instant — it is recorded,
-// not discarded, which is the "pre-trigger preservation" the conference
-// asked for: the detector does not need the first sample twice to notice it,
-// but the encounter stage is told where it actually began.
-//
-// SAMPLE RATE (corrected 2026-10-24, per David's instruction to reconcile
-// this implementation with the governing requirement). The established rule
-// — NAVI_SIMPLIFIED, documented in
-// esp-loco-control-rvmgated/docs/NAVI_RVM_70_COUNT_GATE_20261020.md — is
-// defined as two consecutive samples AT 1 kHz. This sketch's native Hall
-// acquisition runs at 5 kHz (hallTask, 5 reads per 1 ms tick). Evaluating
-// "two consecutive" directly on the raw 5 kHz stream, as the first version
-// of this file did, imposes a trigger window five times narrower in real
-// time than the rule was established at — a single-sample ADC noise dip at
-// the threshold boundary, lasting under 1 ms, can defeat it, where the
-// 1 kHz rule would not notice. STRIDE decimates the native stream to the
-// established 1 kHz cadence before the two-consecutive-sample test runs;
-// every sample is still available to the caller for unconditional recording
-// (NaviObservation.h / NaviSyncRecorder.h), only detection is paced to match
-// the rule's own definition.
-//
-// This stage makes no judgement about magnets, polarity-vs-the-map, width, or
-// completion. It only says: "something started here, in this direction." The
-// map- and completion-aware decisions belong to NaviEncounter and NaviTarget.
+// NO LOCK, NO OWN REFERENCE. This stage holds no open/closed state and
+// tracks no baseline of its own — both were unauthorized inventions in an
+// earlier version of this file, found 2026-10-24 to recreate the exact
+// lockout/stale-reference defects this build exists to remove (see
+// docs/navi/NAVI_POWER_OF_NORMAL_ONSET_SHORTFALL_INVESTIGATION_20261024.md).
+// The reference compared against is NaviBaseline's live estimate of the
+// current ordinary interval — the long inter-magnet measurement — passed in
+// fresh on every call. Detection self-resets the instant a sample drops back
+// under threshold, so a later, genuinely separate departure is always
+// noticed regardless of whether a previous one has been interpreted yet.
+// This stage makes no judgement about completion, width, or geography —
+// that belongs to NaviEncounter and NaviTarget.
 // ---------------------------------------------------------------------------
 #include <stdint.h>
 #include <math.h>
 
 namespace navi_power {
 
-static constexpr float CANDIDATE_THRESHOLD_ADC = 70.0f;   // operator's excursion floor, carried forward unchanged
+static constexpr float CANDIDATE_THRESHOLD_ADC = 70.0f;
 static constexpr uint32_t CANDIDATE_NATIVE_HZ = 5000, CANDIDATE_RULE_HZ = 1000;
-static constexpr uint32_t CANDIDATE_STRIDE = CANDIDATE_NATIVE_HZ / CANDIDATE_RULE_HZ;   // 5: decimate 5 kHz to the rule's own 1 kHz
-static constexpr float CANDIDATE_LEVEL_ALPHA = 1.0f / 250.0f;  // ~0.25 s time constant AT THE RULE'S 1 kHz CADENCE (was 1/1250 at 5 kHz -- same real-time constant, now expressed at the evaluated rate)
+static constexpr uint32_t CANDIDATE_STRIDE = CANDIDATE_NATIVE_HZ / CANDIDATE_RULE_HZ;  // 5: decimate 5 kHz to the rule's own 1 kHz
 
 struct CandidateOnset {
-  uint32_t openSerial = 0;      // the FIRST of the two crossing samples (the true opening instant)
-  int8_t pol = 0;                // +1 above the reference, -1 below
-  float levelAtOpen = 0;         // the reference level the excursion departed from
+  uint32_t openSerial = 0;   // the FIRST of the two crossing samples (the true opening instant)
+  int8_t pol = 0;             // +1 above the reference, -1 below
+  float levelAtOpen = 0;      // the live baseline level the excursion departed from
 };
 
 class CandidateDetector {
  public:
-  // Feed one native 5 kHz read. Returns true exactly once per onset, via `out`.
-  // No effect while a candidate is open (open() / close() below) other than
-  // bookkeeping; the caller must call close() once NaviEncounter decides the
-  // candidate (accepted or abandoned) so the reference resumes tracking.
-  // Every call is counted (so the stride lines up even while a candidate is
-  // open), but detection logic below runs only once every CANDIDATE_STRIDE
-  // calls, at the established rule's own 1 kHz cadence.
-  bool onSample(uint16_t adc, uint32_t serial, CandidateOnset& out) {
+  // Feed one native 5 kHz read and the current live baseline level (read
+  // from NaviBaseline — never computed here). Returns true exactly once per
+  // genuinely new departure, via `out`. Nothing about this call can be
+  // suspended by anything downstream.
+  bool onSample(uint16_t adc, float baselineLevel, uint32_t serial, CandidateOnset& out) {
     const bool evaluate = (strideCounter_++ % CANDIDATE_STRIDE) == 0;
-    if (open_ || !evaluate) return false;
-    const float x = float(adc);
-    if (!haveLevel_) { level_ = x; haveLevel_ = true; }
-    const float dev = x - level_;
+    if (!evaluate) return false;
+    const float dev = float(adc) - baselineLevel;
     const bool crosses = fabsf(dev) >= CANDIDATE_THRESHOLD_ADC;
     const int8_t sign = dev >= 0 ? 1 : -1;
     bool onset = false;
     if (crosses) {
-      if (pendingCross_ && sign == pendingSign_) {
-        out.openSerial = pendingSerial_; out.pol = sign; out.levelAtOpen = level_;
-        open_ = true;
+      if (!excursionActive_ && pendingCross_ && pendingSign_ == sign) {
+        out.openSerial = pendingSerial_; out.pol = sign; out.levelAtOpen = baselineLevel;
         onset = true;
+        excursionActive_ = true;
       }
-      // else: the FIRST crossing sample, or a crossing of the other sign.
-      // Freeze the level here either way — a gradually rising excursion must
-      // not be partly absorbed into the reference before its second sample
-      // confirms the onset, or the effective threshold silently grows past
-      // 70 counts for anything that isn't an instant step. (Found exactly
-      // this way: an initial replay against the boot-1 corpus recognized
-      // 911 onsets against 1,087 annotated openings — a 16% miss rate — and
-      // tracing it back led here.)
+      pendingCross_ = true; pendingSign_ = sign; pendingSerial_ = serial;
     } else {
-      level_ += (x - level_) * CANDIDATE_LEVEL_ALPHA;
+      pendingCross_ = false;
+      excursionActive_ = false;   // back under threshold: the next departure will be noticed fresh
     }
-    pendingCross_ = crosses; pendingSign_ = sign; pendingSerial_ = serial;
     return onset;
   }
-  // NaviEncounter has decided the candidate (either way); resume tracking.
-  void close() { open_ = false; pendingCross_ = false; }
-  bool isOpen() const { return open_; }
-  float level() const { return level_; }
 
  private:
-  bool haveLevel_ = false, open_ = false, pendingCross_ = false;
-  float level_ = 0;
+  bool pendingCross_ = false, excursionActive_ = false;
   int8_t pendingSign_ = 1;
   uint32_t pendingSerial_ = 0;
   uint32_t strideCounter_ = 0;

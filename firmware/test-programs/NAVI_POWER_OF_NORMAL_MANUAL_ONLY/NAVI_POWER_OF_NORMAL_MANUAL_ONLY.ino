@@ -6,7 +6,7 @@
  * RvmNavigator.h: those are discarded entirely, per the independent audits
  * (Claude and Codex, 2026-10-24) that found their active logic in direct
  * conflict with the agreed design. See NaviCandidate.h, NaviEncounter.h,
- * NaviTarget.h and NaviArrivalBoundary.h for the replacement, built new.
+ * NaviTarget.h and NaviTimingPredictor.h for the replacement, built new.
  *
  * REUSED UNCHANGED from NAVI_RVM_AUTO_STATIONS_BUBBLE r5.1 (commit 5b7a518b,
  * the last-flashed, field-run build): RouteMap.h, RvmStations.h, RvmOps.h,
@@ -16,20 +16,21 @@
  * only the navigation call sites are new.
  *
  * MANUAL ONLY. AUTO is hard-refused in handleCommand() below
- * (navi_power::ARRIVAL_BOUNDARY_VALIDATED is false) because the arrival-
- * boundary protective stop (NaviArrivalBoundary.h) has not yet been validated
- * against recorded evidence. This is not a placeholder comment: flipping that
- * constant is the only thing that lifts the refusal, and it requires that
- * validation to exist first. Manual throttle/direction/declare/E-STOP/battery
- * protection all work normally; GO and AUTO do not.
+ * (navi_power::AUTO_GO_PERMITTED is false). The arrival-boundary protective
+ * stop (Proposition 6B) was removed 2026-10-24 by David's instruction:
+ * "missing a magnet is not our problem; correctly recognizing it is." There
+ * is no automatic-stop mechanism in this build at all now, and this gate
+ * stays false regardless — this instruction did not authorize enabling AUTO.
+ * Manual throttle/direction/declare/E-STOP/battery protection all work
+ * normally; GO and AUTO do not.
  *
  * NAVIGATION (new): continuous, unconditional 20 ms tracing (NaviObservation.h,
  * no PWM gating, no withholding) + a 70-count two-consecutive-RAW-sample
  * onset detector at 5 kHz (NaviCandidate.h) + observed-return-to-baseline
  * encounter packaging (NaviEncounter.h, no shape/Gaussian scoring at all) +
- * single-expected-target judgement with no Contradiction/stop state
- * (NaviTarget.h) + a separate, currently-inert arrival-boundary clock
- * (NaviArrivalBoundary.h).
+ * single-expected-target judgement with no Contradiction/stop state, now
+ * requiring geographic opening-to-opening timing to agree alongside polarity
+ * and width (NaviTarget.h, NaviTimingPredictor.h, 2026-10-24).
  * ========================================================================== */
 #include <Arduino.h>
 #include <WiFi.h>
@@ -48,11 +49,20 @@
 #include "NaviEstop.h"
 #include "RouteMap.h"
 #include "NaviObservation.h"
+#include "NaviBaseline.h"
 #include "NaviCandidate.h"
 #include "NaviEncounter.h"
 #include "NaviTarget.h"
-#include "NaviArrivalBoundary.h"
 #include "RvmStations.h"
+
+namespace navi_power {
+// AUTO/GO hard gate, independent of any specific mechanism file. False until
+// a protective scheme for AUTO is proposed and approved — removing the old
+// arrival-boundary stop (2026-10-24) does not lift this; it was never tied
+// to that mechanism's internals, only to the fact that nothing has been
+// approved for AUTO yet.
+static constexpr bool AUTO_GO_PERMITTED = false;
+}  // namespace navi_power
 
 static portMUX_TYPE recorderMux = portMUX_INITIALIZER_UNLOCKED;
 #define NAVI_SYNC_ENTER_CRITICAL() portENTER_CRITICAL(&recorderMux)
@@ -91,7 +101,12 @@ static navi_sync::Recorder* recorder = nullptr;
 static QueueHandle_t pubQ = nullptr, cmdQ = nullptr, blockQ = nullptr, onsetQ = nullptr, ctlQ = nullptr, navEvQ = nullptr;
 static uint32_t pubDrops = 0, cmdDrops = 0;
 static std::atomic<uint32_t> blockQueueDrops{0}, onsetQueueDrops{0}, navEventDrops{0}, ctlDrops{0};
-static std::atomic<bool> candidateCloseRequested{false};
+// The live baseline level, written only by rvmTask (from NaviBaseline, the
+// long inter-magnet measurement) and read only by hallTask's CandidateDetector
+// at native rate. No lock: single writer, single reader, same core.
+static std::atomic<float> sharedBaselineLevel{0};
+static std::atomic<bool> sharedBaselineReady{false};
+static std::atomic<uint32_t> baselineRetainedCount{0};  // diagnostic: insufficient-evidence fallback firings
 static uint64_t bootId = 0;
 static uint32_t lastMqttReportMs = 0;
 
@@ -130,11 +145,16 @@ enum : uint8_t { EV_DECLARED = 1, EV_SUSPENDED = 2, EV_CONFIRMED = 3, EV_NONQUAL
 struct NavSnapshot {
   uint8_t state = 0, last = 0, next = 0; int8_t dir = 0;
   uint32_t confirmed = 0, nonqualifying = 0, abandoned = 0, blocksEmitted = 0, blocksDropped = 0;
-  bool encounterActive = false, boundaryRunning = false, boundaryExceeded = false;
+  bool encounterActive = false;
+  // Timing qualification evidence (2026-10-24), for the most recently judged
+  // encounter -- visibility into whether/how it participated, per David's
+  // instruction that this must be verifiable, not just present in code.
+  bool timingHavePrediction = false, timingAgrees = false;
+  uint32_t timingPredictedMs = 0, timingMeasuredMs = 0;
 };
 static navi_power::Encounter encounter;             // rvmTask only
+static navi_power::BaselineTracker baseline;        // rvmTask only — the long inter-magnet measurement
 static navi_power::TargetTracker target;            // rvmTask only
-static navi_power::ArrivalBoundary boundary;         // rvmTask only
 static navi_power::ObservationHealth obsHealth;      // rvmTask only
 // ------------------------------------------------------- AUTO and the bubble --
 static rvm_ops::StationDriver stationDriver;
@@ -149,6 +169,8 @@ static portMUX_TYPE navMux = portMUX_INITIALIZER_UNLOCKED;
 static std::atomic<uint64_t> firstBlockUs{0};
 static std::atomic<uint32_t> rvmStackFree{0};
 static uint32_t blockCounter = 0;                    // rvmTask: running count of blocks consumed (openBlockId bookkeeping)
+static uint32_t lastOnsetBlockId = 0;                 // rvmTask: block id of the previous GENUINE opening, for timing evidence
+static bool haveLastOnset = false;                    // rvmTask: false until the first genuine opening since boot (avoids a boot-to-first-onset garbage measurement)
 
 static NavSnapshot navSnapshot() {
   portENTER_CRITICAL(&navMux); NavSnapshot s = navShared; portEXIT_CRITICAL(&navMux); return s;
@@ -279,10 +301,13 @@ static void hallTask(void*) {
       recorder->addNativeHall(item, ctx);
       tracing.add(us, uint16_t(raw), dirByte, serial, uint8_t(actualPwm), uint8_t(commandedPwm), emit);
       if (!firstBlockUs.load()) firstBlockUs.store(tracing.firstBlockUs());
-      if (candidate.isOpen() && candidateCloseRequested.exchange(false)) candidate.close();
-      navi_power::CandidateOnset onset;
-      if (candidate.onSample(uint16_t(raw), serial, onset)) {
-        if (!onsetQ || xQueueSend(onsetQ, &onset, 0) != pdTRUE) ++onsetQueueDrops;
+      // No lock here: detection runs continuously, gated only on whether a
+      // live baseline level exists yet (it always will, shortly after boot).
+      if (sharedBaselineReady.load()) {
+        navi_power::CandidateOnset onset;
+        if (candidate.onSample(uint16_t(raw), sharedBaselineLevel.load(), serial, onset)) {
+          if (!onsetQ || xQueueSend(onsetQ, &onset, 0) != pdTRUE) ++onsetQueueDrops;
+        }
       }
     }
     wire.median = INT16_MIN;
@@ -299,9 +324,11 @@ static void publishSnapshot() {
   NavSnapshot s;
   s.state = uint8_t(target.state()); s.last = target.lastMm(); s.next = target.nextMm(); s.dir = target.dir();
   s.encounterActive = encounter.active();
-  s.boundaryRunning = boundary.running();
-  s.boundaryExceeded = boundary.running() && boundary.exceeded(millis());
   s.blocksEmitted = obsHealth.blocksEmitted; s.blocksDropped = obsHealth.blocksDropped;
+  { const auto& t = target.lastTiming();
+    s.timingHavePrediction = t.havePrediction; s.timingPredictedMs = t.predictedMs; s.timingMeasuredMs = t.measuredMs;
+    s.timingAgrees = true;  // fails open: see NaviTimingPredictor.h -- no approved tolerance yet
+  }
   portENTER_CRITICAL(&navMux);
   s.confirmed = navShared.confirmed; s.nonqualifying = navShared.nonqualifying; s.abandoned = navShared.abandoned;
   navShared = s;
@@ -311,8 +338,10 @@ static void postEvent(const NavEvent& ev) { if (!navEvQ || xQueueSend(navEvQ, &e
 
 // A completed encounter is judged against the single expected target. A
 // nonqualifying result changes nothing: no state transition, no stop — NAVI
-// keeps waiting for the same target (Proposition 8). Only Confirmed resets
-// the arrival-boundary clock onto the new interval.
+// keeps waiting for the same target (Proposition 8). There is no arrival-
+// boundary clock to reset any more (removed 2026-10-24); geographic timing
+// now participates as qualification evidence instead, inside
+// target.onEncounter() (NaviTimingPredictor.h).
 static void judgeEncounter(const navi_power::CompletedEncounter& e) {
   const uint8_t expectedBefore = target.nextMm();
   const auto r = target.onEncounter(e);
@@ -322,8 +351,10 @@ static void judgeEncounter(const navi_power::CompletedEncounter& e) {
   else if (e.abandoned) { ev.kind = EV_ABANDONED; ++navShared.abandoned; }
   else { ev.kind = EV_NONQUALIFYING; ++navShared.nonqualifying; }
   portEXIT_CRITICAL(&navMux);
-  if (r == navi_power::JudgementResult::Confirmed) boundary.startInterval(target.lastMm(), millis(), NAVI_BASE_CRUISE_PWM);
-  candidateCloseRequested.store(true);     // hallTask resumes baseline tracking regardless of outcome
+  // No baseline.beginCollection() call here, deliberately (corrected
+  // 2026-10-24): the long measurement starts watching for the next
+  // interval's entry point on its own, inside baseline.onBlock(), the
+  // instant finalize() ran -- this confirmation's timing has no say in it.
   postEvent(ev);
 }
 static void applyControl() {
@@ -331,11 +362,10 @@ static void applyControl() {
   while (ctlQ && xQueueReceive(ctlQ, &c, 0) == pdTRUE) {
     if (c.kind == CTL_DECLARE) {
       target.declare(c.last, c.next, c.dir);
-      boundary.startInterval(c.last, millis(), NAVI_BASE_CRUISE_PWM);
       NavEvent ev{}; ev.kind = EV_DECLARED; ev.last = target.lastMm(); ev.next = target.nextMm(); ev.dir = target.dir();
       publishSnapshot(); postEvent(ev);
     } else {
-      target.suspend(); boundary.stop();
+      target.suspend();
       NavEvent ev{}; ev.kind = EV_SUSPENDED; ev.last = target.lastMm(); ev.next = target.nextMm(); ev.dir = target.dir();
       publishSnapshot(); postEvent(ev);
     }
@@ -348,18 +378,39 @@ static void rvmTask(void*) {
     applyControl();
     navi_power::CandidateOnset onset;
     while (onsetQ && xQueueReceive(onsetQ, &onset, 0) == pdTRUE) {
-      if (!encounter.active()) encounter.open(onset, blockCounter);
-      // an onset while an encounter is already active cannot happen: hallTask
-      // holds the detector closed until candidateCloseRequested is served.
+      if (!encounter.active()) {
+        // Only the onset that actually opens a new encounter ends the long
+        // measurement's collection for this interval -- an echo onset while
+        // one is already active (noise re-crossing mid-excursion) must not
+        // be treated as a second interval boundary.
+        uint32_t sampleCount = 0;
+        if (!baseline.finalize(sampleCount)) ++baselineRetainedCount;  // zero moving samples this interval: previous level retained, not invented
+        // Opening-to-opening timing evidence (2026-10-24): elapsed time since
+        // the previous GENUINE opening (not an echo), regardless of whether
+        // that previous encounter confirmed -- a real magnetic passage
+        // occurred either way, and the next interval's clock starts there.
+        // The very first onset since boot has no previous onset to measure
+        // from, so it is explicitly marked invalid rather than guessed.
+        const bool timingValid = haveLastOnset;
+        const uint32_t timingElapsedMs = timingValid ? (blockCounter - lastOnsetBlockId) * navi_power::Tracing::BLOCK_US / 1000 : 0;
+        lastOnsetBlockId = blockCounter; haveLastOnset = true;
+        encounter.open(onset, blockCounter, timingElapsedMs, timingValid);
+      }
+      // A second onset while an encounter is already active is not blocked
+      // anywhere upstream (NaviCandidate/NaviBaseline never suspend); it is
+      // simply not opened as a second encounter here. Rare, and visible via
+      // the existing onsetQueueDrops-style counters if it recurs often.
     }
     if (got) {
       obsHealth.noteEmitted();
       ++blockCounter;
+      baseline.onBlock(b.hall, b.pwm > 0);               // the long measurement: always fed, never gated by the encounter
+      sharedBaselineLevel.store(baseline.level());
+      sharedBaselineReady.store(baseline.haveLevel());
       if (encounter.active()) {
         navi_power::CompletedEncounter done;
-        if (encounter.push(b, done)) judgeEncounter(done);
+        if (encounter.push(b, done)) judgeEncounter(done);  // the short measurement: observed return to the committed level
       }
-      boundary.samplePace(b.pwm);
     }
     publishSnapshot();
     rvmStackFree.store(uxTaskGetStackHighWaterMark(nullptr));
@@ -378,12 +429,14 @@ static void publishNavState() {
     "{\"state\":\"%s\",\"mm\":%u,\"target\":%u,\"dir\":%d,\"session_dir\":\"%s\","
     "\"position_reliable\":%u,\"event\":\"%s\","
     "\"confirmed\":%lu,\"nonqualifying\":%lu,\"abandoned\":%lu,\"encounter_active\":%u,"
-    "\"boundary_running\":%u,\"boundary_exceeded\":%u,\"blocks_emitted\":%lu,\"blocks_dropped\":%lu,"
+    "\"blocks_emitted\":%lu,\"blocks_dropped\":%lu,"
+    "\"timing_have_prediction\":%u,\"timing_predicted_ms\":%lu,\"timing_measured_ms\":%lu,\"timing_agrees\":%u,"
     "\"authority\":\"NAVI_POWER_OF_NORMAL_MANUAL_ONLY\"}",
     stateName(s.state), s.last, s.next, s.dir, sessionDir > 0 ? "CW" : sessionDir < 0 ? "CCW" : "UNSET",
     s.state == uint8_t(navi_power::TargetState::Tracking), lastNavEvent,
     (unsigned long)s.confirmed, (unsigned long)s.nonqualifying, (unsigned long)s.abandoned, s.encounterActive,
-    s.boundaryRunning, s.boundaryExceeded, (unsigned long)s.blocksEmitted, (unsigned long)s.blocksDropped);
+    (unsigned long)s.blocksEmitted, (unsigned long)s.blocksDropped,
+    s.timingHavePrediction, (unsigned long)s.timingPredictedMs, (unsigned long)s.timingMeasuredMs, s.timingAgrees);
   pub("state/nav", payload, true);
   pub("state/nav_ready", s.state == uint8_t(navi_power::TargetState::Tracking) ? "1" : "0", true);
 }
@@ -402,20 +455,23 @@ static void serviceNavEvents() {
       char mm[8] = "null";
       if (ev.kind == EV_CONFIRMED) snprintf(mm, sizeof(mm), "%u", ev.mm);
       const auto& e = ev.e;
-      char row[400];
+      char row[480];
       snprintf(row, sizeof(row),
         "{\"boot\":\"%016llX\",\"result\":\"%s\",\"mm\":%s,\"expected_mm\":%u,"
         "\"expected_polarity\":\"%s\",\"polarity\":\"%s\",\"dir\":%d,\"width_blocks\":%u,"
-        "\"peak_adc\":%.1f,\"meets_min_width\":%u,\"authority\":\"OBSERVATION_ONLY\"}",
+        "\"peak_adc\":%.1f,\"meets_min_width\":%u,"
+        "\"timing_elapsed_ms\":%lu,\"timing_valid\":%u,"
+        "\"authority\":\"OBSERVATION_ONLY\"}",
         (unsigned long long)bootId, result, mm, ev.expected,
         navi_power::expectedHallSign(ev.expected) > 0 ? "N" : "S", e.pol > 0 ? "N" : "S", ev.dir,
-        unsigned(e.widthBlocks), double(e.peakAdc), unsigned(e.meetsMinWidth));
+        unsigned(e.widthBlocks), double(e.peakAdc), unsigned(e.meetsMinWidth),
+        (unsigned long)e.timingElapsedMs, unsigned(e.timingValid));
       pub("diag/navi_encounter", row);
       Serial.printf("[NAVI] %s\n", row);
       if (ev.kind == EV_CONFIRMED) pub("mm/marker", row);
       // NONQUALIFYING and ABANDONED are logged, not warned: per Proposition 8
-      // this is normal waiting, not a fault. Only the arrival boundary (in
-      // serviceAuto) may warn and stop.
+      // this is normal waiting, not a fault. Nothing in this build warns or
+      // stops for it any more (the arrival boundary was removed 2026-10-24).
     }
     publishNavState();
   }
@@ -511,15 +567,15 @@ static void publishStation(bool force) {
   pub("state/station", payload, true);
 }
 // One AUTO decision per loop pass. Navigation is read from the snapshot only.
-// The arrival boundary — NOT a nonqualifying encounter — is the only
-// navigation-sourced reason AUTO is withdrawn here (Proposition 8 / 6B).
+// There is no arrival-boundary stop any more (removed 2026-10-24, David's
+// instruction: "missing a magnet is not our problem; correctly recognizing
+// it is"). AUTO_GO_PERMITTED stays false regardless, so this path is not
+// reachable in this build either way.
 static void serviceAuto() {
   const NavSnapshot s = navSnapshot();
   const bool tracking = s.state == uint8_t(navi_power::TargetState::Tracking);
   if (autoRunning && !tracking)
     withdrawAuto("AUTO WITHDRAWN: navigation not tracking — controlled stop.");
-  if (autoRunning && s.boundaryExceeded)
-    withdrawAuto("AUTO WITHDRAWN: arrival boundary exceeded — controlled stop. Declare the position again.");
   if (autoRunning && (estopped || estopAsserted || lowVoltage)) { autoRunning = false; publishAuto(); }
   rvm_ops::DriveInput in;
   in.reliable = tracking; in.pos = s.last; in.dir = s.dir;
@@ -583,12 +639,11 @@ static void handleCommand(const CmdMsg& command) {
     bool want;
     if (!parseBool(command.payload, want)) { warn("AUTO REFUSED: expected 0 or 1"); return; }
     if (!want) { withdrawAuto(nullptr); return; }
-    // HARD GATE: this build's arrival-boundary protective stop
-    // (NaviArrivalBoundary.h) has not been validated against recorded
-    // evidence. Flipping navi_power::ARRIVAL_BOUNDARY_VALIDATED requires
-    // that validation to exist first — it is not an MQTT-settable option.
-    if (!navi_power::ARRIVAL_BOUNDARY_VALIDATED) {
-      warn("AUTO REFUSED: arrival-boundary protective stop not yet validated against recorded evidence — manual operation only");
+    // HARD GATE: not an MQTT-settable option. Removing the arrival-boundary
+    // stop (2026-10-24) did not lift this — nothing has been approved for
+    // AUTO operation yet, and this instruction did not authorize it either.
+    if (!navi_power::AUTO_GO_PERMITTED) {
+      warn("AUTO REFUSED: not approved for this build — manual operation only");
       return;
     }
     if (Refusal reason = admitAuto(o)) { warn(reason); return; }
@@ -599,7 +654,7 @@ static void handleCommand(const CmdMsg& command) {
     publishAuto();
     warn("RELEASED by dispatcher");
   } else if (!strcmp(leaf, "go")) {
-    if (!navi_power::ARRIVAL_BOUNDARY_VALIDATED) { warn("GO REFUSED: arrival-boundary protective stop not yet validated — manual operation only"); return; }
+    if (!navi_power::AUTO_GO_PERMITTED) { warn("GO REFUSED: not approved for this build — manual operation only"); return; }
     if (Refusal reason = admitGo(o)) { warn(reason); return; }
     autoRunning = true; clearWarning(); publishAuto();
   } else if (!strcmp(leaf, "throttle")) {
@@ -685,13 +740,13 @@ static void serviceStatus() {
     "{\"build\":\"%s\",\"class\":\"%s\",\"pwm\":%d,\"commanded\":%d,\"estop\":%u,\"lowvolt\":%u,"
     "\"nav\":\"%s\",\"confirmed\":%lu,\"nonqualifying\":%lu,\"abandoned\":%lu,"
     "\"block_q_drop\":%lu,\"onset_q_drop\":%lu,\"nav_event_drop\":%lu,\"ctl_drop\":%lu,"
-    "\"blocks_emitted\":%lu,\"blocks_dropped\":%lu,\"boundary_validated\":%u,\"rvm_stack_free\":%lu,"
+    "\"blocks_emitted\":%lu,\"blocks_dropped\":%lu,\"auto_go_permitted\":%u,\"rvm_stack_free\":%lu,"
     "\"nsr_hall_drop\":%lu,\"nsr_native_drop\":%lu,\"nsr_udp_fail\":%lu,\"pub_drop\":%lu,\"cmd_drop\":%lu,"
     "\"heap_free\":%u,\"heap_min\":%u}",
     SKETCH_NAME, BUILD_CLASS, int(actualPwm), int(commandedPwm), unsigned(estopped || estopAsserted), unsigned(lowVoltage),
     stateName(s.state), (unsigned long)s.confirmed, (unsigned long)s.nonqualifying, (unsigned long)s.abandoned,
     (unsigned long)blockQueueDrops.load(), (unsigned long)onsetQueueDrops.load(), (unsigned long)navEventDrops.load(), (unsigned long)ctlDrops.load(),
-    (unsigned long)s.blocksEmitted, (unsigned long)s.blocksDropped, unsigned(navi_power::ARRIVAL_BOUNDARY_VALIDATED), (unsigned long)rvmStackFree.load(),
+    (unsigned long)s.blocksEmitted, (unsigned long)s.blocksDropped, unsigned(navi_power::AUTO_GO_PERMITTED), (unsigned long)rvmStackFree.load(),
     (unsigned long)recorder->hallDrops(), (unsigned long)recorder->nativeDrops(),
     (unsigned long)naviSyncUdpFailures, (unsigned long)pubDrops, (unsigned long)cmdDrops,
     unsigned(ESP.getFreeHeap()), unsigned(ESP.getMinFreeHeap()));
@@ -781,8 +836,8 @@ static void networkTask(void*) {
         snprintf(boot, sizeof(boot),
           "{\"sketch\":\"%s\",\"class\":\"%s\",\"boot_id\":\"%016llX\",\"field_accepted\":0,"
           "\"navigation\":\"NAVI_POWER_OF_NORMAL\",\"recognizer\":\"NAVI_CANDIDATE_70X2_RAW_PLUS_RTB_NO_SHAPE\","
-          "\"boundary_validated\":%u,\"auto\":\"LOCKED\",\"bubble_hold_mm\":%u}",
-          SKETCH_NAME, BUILD_CLASS, (unsigned long long)bootId, unsigned(navi_power::ARRIVAL_BOUNDARY_VALIDATED), unsigned(rvm_ops::BUBBLE_HOLD_MM));
+          "\"auto_go_permitted\":%u,\"auto\":\"LOCKED\",\"bubble_hold_mm\":%u}",
+          SKETCH_NAME, BUILD_CLASS, (unsigned long long)bootId, unsigned(navi_power::AUTO_GO_PERMITTED), unsigned(rvm_ops::BUBBLE_HOLD_MM));
         char topic[72]; snprintf(topic, sizeof(topic), "ngr/loco/%s/state/bootid", LOCO_NAME);
         mqtt.publish(topic, boot, true);
         Serial.printf("[MQTT] connected broker=%s client=%s\n", MQTT_BROKER, id);
@@ -817,7 +872,7 @@ void setup() {
   Serial.begin(115200);
   pinMode(MOTOR_PWM_PIN, OUTPUT); digitalWrite(MOTOR_PWM_PIN, LOW);
   delay(300);
-  navi_power::boundaryTableInit();
+  baseline.beginBootCollection();   // boot exception: collect stationary (PWM==0) until the first magnet opens
   recorder = new (std::nothrow) navi_sync::Recorder();
   if (!recorder || !recorder->storageReady()) haltStartup("recorder storage", false);
   bootId = (uint64_t(esp_random()) << 32) | esp_random();
@@ -848,8 +903,8 @@ void setup() {
   if (!mqtt.setBufferSize(1024)) haltStartup("mqtt buffer", true);
   if (xTaskCreatePinnedToCore(networkTask, "net", 8192, nullptr, 1, nullptr, 1) != pdPASS) haltStartup("network task", true);
   if (!inaReady) warn("INA219 NOT FOUND — no battery protection this session");
-  Serial.printf("[BOOT] %s %s loco=%s boundary_validated=%u — EXPERIMENTAL, MANUAL ONLY, not field accepted\n",
-                SKETCH_NAME, BUILD_CLASS, LOCO_NAME, unsigned(navi_power::ARRIVAL_BOUNDARY_VALIDATED));
+  Serial.printf("[BOOT] %s %s loco=%s auto_go_permitted=%u — EXPERIMENTAL, MANUAL ONLY, not field accepted\n",
+                SKETCH_NAME, BUILD_CLASS, LOCO_NAME, unsigned(navi_power::AUTO_GO_PERMITTED));
 }
 
 void loop() {

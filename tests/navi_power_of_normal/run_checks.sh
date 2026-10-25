@@ -15,6 +15,5 @@ if [ -f "$NATIVE" ] && [ -f "$DECL" ]; then
 else
   echo "boot-1 native archive or declarations.csv not present: replay skipped"
 fi
-echo "NOTE: full-sketch arduino-cli compile is currently blocked on this machine by an unrelated,"
-echo "pre-existing Adafruit_BusIO / esp32 core 3.3.12 incompatibility (BitOrder) that affects the"
-echo "donor r5.1 sketch identically -- not something introduced by this build."
+echo "Full-sketch arduino-cli compile (esp32:esp32:esp32) succeeds as of 2026-10-24; run separately:"
+echo "  arduino-cli compile --fqbn esp32:esp32:esp32 \"$SK\""

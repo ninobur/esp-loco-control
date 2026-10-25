@@ -3,10 +3,10 @@
 //   c++ -std=c++17 -O2 -Wall -Wextra -Werror -I<sketch dir> unit.cpp -o t && ./t
 #include <cstdio>
 #include "NaviObservation.h"
+#include "NaviBaseline.h"
 #include "NaviCandidate.h"
 #include "NaviEncounter.h"
 #include "NaviTarget.h"
-#include "NaviArrivalBoundary.h"
 
 static int failures = 0;
 #define CHECK(c, ...) do { if (!(c)) { ++failures; printf("FAIL line %d: ", __LINE__); printf(__VA_ARGS__); printf("\n"); } } while (0)
@@ -61,14 +61,18 @@ static void test_encounter_completes_on_rtb() {
   CHECK(!done.abandoned, "a real return-to-baseline is not an abandonment");
   CHECK(done.peakAdc >= 190.0f, "peak excursion (diagnostic) must reflect the 200-count departure observed");
 }
-static void test_encounter_abandons_on_timeout() {
+static void test_encounter_never_times_out() {
+  // No MAX_ENCOUNTER_BLOCKS / abandon state in this build (REC-14): an
+  // encounter that never observably returns simply stays open. Only the
+  // separately-validated arrival boundary may act on "this is taking too
+  // long" -- not this class.
   Encounter e;
   CandidateOnset onset; onset.pol = 1; onset.levelAtOpen = 1000;
   e.open(onset, 0);
   CompletedEncounter done; bool completed = false;
-  for (uint32_t i = 0; i < MAX_ENCOUNTER_BLOCKS && !completed; ++i) { Block b{}; b.hall = 1200; completed = e.push(b, done); }
-  CHECK(completed, "an encounter that never returns to baseline must still be decided (abandoned), not left open forever");
-  CHECK(done.abandoned, "a timed-out encounter must be marked abandoned");
+  for (uint32_t i = 0; i < 5000 && !completed; ++i) { Block b{}; b.hall = 1200; completed = e.push(b, done); }
+  CHECK(!completed, "an encounter that never returns to baseline must stay open indefinitely, not time out");
+  CHECK(e.active(), "the encounter must remain active with no timeout mechanism present");
 }
 static void test_encounter_min_width_inert() {
   CHECK(MIN_WIDTH_BLOCKS == 0, "the open minimum-width question must not have an invented numeric value");
@@ -81,73 +85,219 @@ static void test_encounter_min_width_inert() {
 
 // ---- CandidateDetector: the two-consecutive-sample onset at the
 // established rule's own 1 kHz cadence (CANDIDATE_STRIDE native calls per
-// evaluated sample, matching hallTask's 5 native reads per 1 ms tick), with
-// a frozen reference (regression test for the level-chasing bug found via
-// replay). `feed(adc)` mimics one 1 ms tick's worth of native reads, all
-// equal, exactly as a near-constant real signal looks over 1 ms.
-static bool feed(CandidateDetector& c, uint16_t adc, uint32_t& serial, CandidateOnset& onset) {
+// evaluated sample, matching hallTask's 5 native reads per 1 ms tick). This
+// stage tracks no reference of its own (2026-10-24: that was an unauthorized
+// invention, removed) -- every call is given the live level explicitly, as
+// NaviBaseline would supply it. `feed(adc, level)` mimics one 1 ms tick's
+// worth of native reads, all equal, exactly as a near-constant real signal
+// looks over 1 ms.
+static bool feed(CandidateDetector& c, uint16_t adc, float level, uint32_t& serial, CandidateOnset& onset) {
   bool got = false;
-  for (uint32_t i = 0; i < CANDIDATE_STRIDE; ++i) { const bool r = c.onSample(adc, serial++, onset); got = got || r; }
+  for (uint32_t i = 0; i < CANDIDATE_STRIDE; ++i) { const bool r = c.onSample(adc, level, serial++, onset); got = got || r; }
   return got;
 }
 static void test_candidate_two_consecutive_samples() {
   CandidateDetector c;
   CandidateOnset onset;
   uint32_t serial = 0;
-  bool got = false;
-  for (int i = 0; i < 2000 && !got; ++i) got = feed(c, 1900, serial, onset);   // settle the reference
-  CHECK(!got, "quiet samples near a stable level must never trigger an onset");
-  const float settled = c.level();
-  CHECK(!feed(c, 1971, serial, onset), "a single evaluated crossing sample must not open a candidate by itself");
-  got = feed(c, 1972, serial, onset);
+  const float level = 1900;
+  CHECK(!feed(c, 1900, level, serial, onset), "quiet samples at the reference level must never trigger an onset");
+  CHECK(!feed(c, 1971, level, serial, onset), "a single evaluated crossing sample must not open a candidate by itself");
+  const bool got = feed(c, 1972, level, serial, onset);
   CHECK(got, "a second consecutive same-sign EVALUATED crossing sample must open a candidate");
   CHECK(onset.pol == 1, "an above-reference excursion must report positive polarity");
-  CHECK(onset.levelAtOpen == settled, "the reference at open must be the level BEFORE the excursion started, not drifted toward it");
+  CHECK(onset.levelAtOpen == level, "the reported level must be exactly the live level supplied at open, nothing computed here");
 }
-static void test_candidate_ramp_still_triggers() {
-  // A gradual, physically realistic ramp (the case the level-chasing bug missed).
-  CandidateDetector c; CandidateOnset onset; uint32_t serial = 0; bool got = false;
-  for (int i = 0; i < 2000 && !got; ++i) got = feed(c, 1900, serial, onset);
-  for (int step = 0; step < 40 && !got; ++step) got = feed(c, uint16_t(1900 + step * 3), serial, onset);
-  CHECK(got, "a signal that rises gradually (not an instant step) must still be detected once it departs the frozen level by >=70 counts");
+static void test_candidate_notices_second_departure_without_being_closed() {
+  // There is no open/close lock in this build (2026-10-24: the previous
+  // version's global exclusivity caused 184 multi-minute detection
+  // blackouts on the real boot-1 corpus). Returning under threshold must by
+  // itself make the detector ready to notice the next departure -- nothing
+  // external needs to "release" it.
+  CandidateDetector c; CandidateOnset onset; uint32_t serial = 0;
+  const float level = 1900;
+  feed(c, 1972, level, serial, onset);                                    // first evaluated crossing tick
+  CHECK(feed(c, 1972, level, serial, onset), "second consecutive tick must open the first departure");
+  // Signal returns under threshold (no external close() call exists at all).
+  feed(c, 1900, level, serial, onset);
+  // A second, later, genuinely separate departure must still be noticed.
+  feed(c, 1972, level, serial, onset);
+  const bool got = feed(c, 1973, level, serial, onset);
+  CHECK(got, "a second departure after a real return to normal must be detected with no external action required");
+}
+static void test_candidate_follows_external_baseline_updates() {
+  // The level is read fresh every call; NaviBaseline's live estimate moving
+  // between calls (as it does between magnets) must shift what counts as a
+  // departure, without this class doing anything to track that itself.
+  CandidateDetector c; CandidateOnset onset; uint32_t serial = 0;
+  CHECK(!feed(c, 1972, 1950, serial, onset), "a sample within 70 counts of the CURRENT external level must not cross");
+  const bool got = feed(c, 2022, 1950, serial, onset);
+  CHECK(!got, "single sample at the new level's threshold must not open by itself");
 }
 static void test_candidate_single_tick_noise_dip_no_longer_defeats_onset() {
-  // The case the 5 kHz-vs-1 kHz mismatch caused: a genuine step excursion
-  // with a single noisy raw sample dipping back under threshold WITHIN one
-  // 1 ms tick must still be recognized, because only one evaluated sample
-  // per tick is tested, not every raw 5 kHz read.
-  CandidateDetector c; CandidateOnset onset; uint32_t serial = 0; bool got = false;
-  for (int i = 0; i < 2000 && !got; ++i) got = feed(c, 1900, serial, onset);
-  CHECK(!got, "settling phase must not itself trigger");
-  // Tick 1: first evaluated read crosses; the OTHER 4 raw reads in this same
-  // tick are irrelevant to detection now (they were not, before the fix).
-  got = c.onSample(1972, serial++, onset);
+  // A genuine step excursion with a single noisy raw sample dipping back
+  // under threshold WITHIN one 1 ms tick must still be recognized, because
+  // only one evaluated sample per tick is tested, not every raw 5 kHz read.
+  CandidateDetector c; CandidateOnset onset; uint32_t serial = 0;
+  const float level = 1900;
+  // Tick 1: first evaluated read crosses.
+  bool got = c.onSample(1972, level, serial++, onset);
   CHECK(!got, "first evaluated crossing sample alone must not open a candidate");
-  for (uint32_t i = 1; i < CANDIDATE_STRIDE; ++i) c.onSample(1800, serial++, onset);   // noisy/irrelevant raw reads, same tick
+  for (uint32_t i = 1; i < CANDIDATE_STRIDE; ++i) c.onSample(1800, level, serial++, onset);   // noisy/irrelevant raw reads, same tick
   // Tick 2: the evaluated sample crosses again -> onset.
-  got = c.onSample(1973, serial++, onset);
+  got = c.onSample(1973, level, serial++, onset);
   CHECK(got, "the second tick's evaluated sample must still confirm the onset despite noisy raw reads within either tick");
-  for (uint32_t i = 1; i < CANDIDATE_STRIDE; ++i) c.onSample(1800, serial++, onset);
+  for (uint32_t i = 1; i < CANDIDATE_STRIDE; ++i) c.onSample(1800, level, serial++, onset);
 }
 
-// ---- ArrivalBoundary: fails open when unset; the hard AUTO gate is present.
-static void test_boundary_unset_never_fires() {
-  boundaryTableInit();
-  ArrivalBoundary b;
-  b.startInterval(5, 0, 90);
-  CHECK(!b.exceeded(10'000'000), "an interval with no fitted boundary must never stop AUTO, however long elapsed");
+// ---- BaselineTracker: the LONG, inter-magnet measurement.
+static void test_baseline_boot_collects_stationary_only() {
+  BaselineTracker b;
+  b.beginBootCollection();
+  for (int i = 0; i < 100; ++i) b.onBlock(2500, /*pwmOn=*/true);    // moving, must be excluded at boot
+  CHECK(!b.haveLevel(), "PWM>0 blocks must not count toward the boot (stationary) collection");
+  for (int i = 0; i < 100; ++i) b.onBlock(1890, /*pwmOn=*/false);   // stationary, included at boot
+  for (uint32_t i = 0; i < BASELINE_RECOMPUTE_BLOCKS; ++i) b.onBlock(1890, false);   // force a recompute
+  CHECK(b.haveLevel(), "enough stationary samples at boot must produce a live level");
+  CHECK(b.level() > 1800 && b.level() < 2000, "the boot level must reflect the stationary samples, not the excluded moving ones");
 }
-static void test_boundary_fires_when_set() {
-  boundaryTableInit();
-  BOUNDARY_TABLE_MS[7] = 5000;
-  ArrivalBoundary b;
-  b.startInterval(7, 0, 90);
-  for (int i = 0; i < 100; ++i) b.samplePace(90);     // steady at the reference pace
-  CHECK(!b.exceeded(4000), "must not fire before its own boundary at reference pace");
-  CHECK(b.exceeded(6000), "must fire once elapsed pace-adjusted time exceeds its boundary");
+static void test_baseline_steady_state_gates_on_pwm() {
+  BaselineTracker b;
+  b.beginBootCollection();
+  for (uint32_t i = 0; i < BASELINE_RECOMPUTE_BLOCKS; ++i) b.onBlock(1890, false);
+  uint32_t n = 0;
+  b.finalize(n);                            // boot interval ends; now watching for the next entry point, automatically
+  b.onBlock(1890, /*pwmOn=*/true);           // within the entry margin, PWM>0: triggers entry, admitted
+  for (int i = 0; i < 200; ++i) b.onBlock(9999, /*pwmOn=*/false);   // stationary, wildly different value: must stay excluded even once collecting
+  for (uint32_t i = 0; i < BASELINE_RECOMPUTE_BLOCKS; ++i) b.onBlock(1890, /*pwmOn=*/true);
+  CHECK(b.level() > 1800 && b.level() < 2000, "PWM=0 blocks must stay excluded even after collecting has started, however different their value");
 }
-static void test_hard_gate_present() {
-  CHECK(ARRIVAL_BOUNDARY_VALIDATED == false, "AUTO must remain hard-refused until the arrival boundary is validated against recorded evidence");
+static void test_baseline_entry_requires_appearing_ordinary() {
+  BaselineTracker b;
+  b.beginBootCollection();
+  for (uint32_t i = 0; i < BASELINE_RECOMPUTE_BLOCKS; ++i) b.onBlock(1890, false);
+  uint32_t n = 0; b.finalize(n);
+  for (int i = 0; i < 50; ++i) b.onBlock(3000, /*pwmOn=*/true);   // moving, but far from the committed level -- still clearly excursed
+  const bool valid = b.finalize(n);
+  CHECK(!valid, "blocks far from the committed level must not trigger entry, however many arrive");
+  CHECK(n == 0, "nothing should be admitted while still clearly excursed");
+}
+static void test_baseline_retains_on_zero_evidence() {
+  BaselineTracker b;
+  b.beginBootCollection();
+  for (uint32_t i = 0; i < BASELINE_RECOMPUTE_BLOCKS; ++i) b.onBlock(1890, false);
+  uint32_t n = 0;
+  CHECK(b.finalize(n), "the boot interval with ample samples must be valid");
+  const float before = b.level();
+  for (int i = 0; i < 50; ++i) b.onBlock(9999, /*pwmOn=*/false);   // fully stationary the whole interval: gate never opens
+  const bool valid = b.finalize(n);
+  CHECK(!valid, "an interval with zero gated samples must be reported invalid");
+  CHECK(n == 0, "exactly zero samples must have been collected");
+  CHECK(b.level() == before, "the previous committed level must be retained untouched when nothing was collected");
+}
+static void test_baseline_promotes_on_any_nonzero_evidence() {
+  // No arbitrary minimum (corrected 2026-10-24): even one collected sample
+  // is promoted.
+  BaselineTracker b;
+  b.beginBootCollection();
+  for (uint32_t i = 0; i < BASELINE_RECOMPUTE_BLOCKS; ++i) b.onBlock(1890, false);
+  uint32_t n = 0; b.finalize(n);
+  b.onBlock(1895, /*pwmOn=*/true);   // exactly one admitted sample
+  const bool valid = b.finalize(n);
+  CHECK(valid, "even a single collected sample must be promoted -- no arbitrary minimum");
+  CHECK(n == 1, "exactly one sample must have been counted");
+  CHECK(b.level() == 1895, "the promoted level must be exactly that one sample's value");
+}
+static void test_baseline_independent_of_encounter_confirmation() {
+  // BaselineTracker is fed every block regardless of Encounter's state, and
+  // must already be collecting real samples well before Encounter's own
+  // RTB_RUN_BLOCKS confirmation completes -- proving no coupling either way.
+  BaselineTracker b; Encounter e;
+  b.beginBootCollection();
+  for (uint32_t i = 0; i < BASELINE_RECOMPUTE_BLOCKS; ++i) b.onBlock(1890, false);
+  uint32_t n = 0; b.finalize(n);
+  CandidateOnset onset; onset.pol = 1; onset.levelAtOpen = 1890;
+  e.open(onset, 0);
+  bool confirmed = false;
+  for (uint32_t i = 0; i < RTB_RUN_BLOCKS - 2 && !confirmed; ++i) {
+    Block blk{}; blk.hall = 1895;
+    b.onBlock(blk.hall, true);
+    CompletedEncounter done;
+    confirmed = e.push(blk, done);
+  }
+  CHECK(!confirmed, "Encounter must not have confirmed yet with RTB_RUN_BLOCKS-2 settled blocks (sanity check)");
+  uint32_t mid = 0; const bool wouldBeValid = b.finalize(mid);
+  CHECK(wouldBeValid && mid > 0, "BaselineTracker must have already collected real samples before Encounter's own confirmation completed");
+}
+
+// ---- NaviCandidate <-> NaviBaseline integration: the two simultaneous
+// measurements must not substitute for each other.
+static void test_two_measurements_are_independent() {
+  BaselineTracker b; CandidateDetector c; CandidateOnset onset; uint32_t serial = 0;
+  b.beginBootCollection();
+  for (uint32_t i = 0; i < BASELINE_RECOMPUTE_BLOCKS; ++i) b.onBlock(1890, false);
+  uint32_t n = 0; b.finalize(n);
+  b.onBlock(1890, /*pwmOn=*/true);   // triggers entry
+  for (uint32_t i = 0; i < BASELINE_RECOMPUTE_BLOCKS; ++i) b.onBlock(1890, true);   // ordinary track, steady state
+  const float level = b.level();
+  feed(c, uint16_t(level + 100), level, serial, onset);
+  const bool got = feed(c, uint16_t(level + 100), level, serial, onset);   // the SHORT measurement's detection reads the LONG measurement's live level
+  CHECK(got, "detection must use NaviBaseline's live level directly, with no separate copy of its own");
+  CHECK(onset.levelAtOpen == level, "the committed level handed to the encounter must be exactly what NaviBaseline was reporting, unaltered by detection");
+}
+
+// ---- TimingPredictor: geographic opening-to-opening timing as
+// qualification evidence (2026-10-24). The arrival-boundary stop mechanism
+// was removed this same day on instruction; this is a distinct, new
+// mechanism for RECOGNITION, not a stop.
+static void test_timing_no_prediction_fails_open() {
+  TimingPredictor p;
+  const TimingEvidence ev = p.evaluate(5, 1, 1234);
+  CHECK(!ev.havePrediction, "no prior confirmed traversal of this interval: no prediction yet");
+  CHECK(p.agrees(ev), "must fail open with no prediction established, not invent a rejection");
+}
+static void test_timing_observe_then_predict() {
+  TimingPredictor p;
+  p.observe(5, 1, 970);
+  const TimingEvidence ev = p.evaluate(5, 1, 1500);
+  CHECK(ev.havePrediction, "a prior confirmed traversal must establish a prediction");
+  CHECK(ev.predictedMs == 970, "the prediction must be exactly the last observed real measurement -- no smoothing, no invented margin");
+  CHECK(p.agrees(ev), "must still fail open: no acceptance tolerance has been approved yet (TIMING_TOLERANCE_ESTABLISHED == false)");
+}
+static void test_timing_separate_slots_per_direction() {
+  TimingPredictor p;
+  p.observe(5, 1, 900);
+  const TimingEvidence cw = p.evaluate(5, 1, 0);
+  const TimingEvidence ccw = p.evaluate(5, -1, 0);
+  CHECK(cw.havePrediction && cw.predictedMs == 900, "the CW observation must be retrievable for CW");
+  CHECK(!ccw.havePrediction, "CCW of the same physical gap must not inherit CW's observation -- not assumed equal travel time");
+}
+static void test_timing_tolerance_not_established() {
+  CHECK(TIMING_TOLERANCE_ESTABLISHED == false, "no acceptance window has been approved; must not silently start gating on an invented number");
+}
+static void test_timing_cannot_override_wrong_polarity() {
+  // Required identifiers must ALL agree (David, 2026-10-24): timing can
+  // never rescue a wrong-polarity encounter, even though it currently
+  // fails open (reports "agrees") for lack of an approved tolerance.
+  TargetTracker t; t.declare(10, 11, +1);
+  const int8_t expected = expectedHallSign(11);
+  CompletedEncounter wrong{};
+  wrong.pol = int8_t(-expected); wrong.meetsMinWidth = true;
+  wrong.timingElapsedMs = 1000; wrong.timingValid = true;
+  CHECK(t.onEncounter(wrong) == JudgementResult::NonQualifying, "wrong polarity must be rejected regardless of what timing reports");
+  CHECK(t.nextMm() == 11, "target must not advance on wrong polarity under any timing condition");
+}
+static void test_correct_polarity_alone_does_not_bypass_timing_check() {
+  // Confirms the qualification call site actually evaluates timing (not
+  // just polarity+width) for every encounter -- "participates," per
+  // instruction, even while the agreement test itself fails open.
+  TargetTracker t; t.declare(10, 11, +1);
+  const int8_t expected = expectedHallSign(11);
+  CompletedEncounter right{};
+  right.pol = expected; right.meetsMinWidth = true;
+  right.timingElapsedMs = 777; right.timingValid = true;
+  CHECK(t.onEncounter(right) == JudgementResult::Confirmed, "correct polarity, width and (fail-open) timing together confirm");
+  CHECK(t.lastTiming().measuredMs == 777, "the timing evidence actually evaluated for this encounter must be recorded, not bypassed");
 }
 
 int main() {
@@ -155,14 +305,25 @@ int main() {
   test_target_abandoned_is_no_claim();
   test_target_unset_has_no_claim();
   test_encounter_completes_on_rtb();
-  test_encounter_abandons_on_timeout();
+  test_encounter_never_times_out();
   test_encounter_min_width_inert();
   test_candidate_two_consecutive_samples();
-  test_candidate_ramp_still_triggers();
+  test_candidate_notices_second_departure_without_being_closed();
+  test_candidate_follows_external_baseline_updates();
   test_candidate_single_tick_noise_dip_no_longer_defeats_onset();
-  test_boundary_unset_never_fires();
-  test_boundary_fires_when_set();
-  test_hard_gate_present();
+  test_baseline_boot_collects_stationary_only();
+  test_baseline_steady_state_gates_on_pwm();
+  test_baseline_entry_requires_appearing_ordinary();
+  test_baseline_retains_on_zero_evidence();
+  test_baseline_promotes_on_any_nonzero_evidence();
+  test_baseline_independent_of_encounter_confirmation();
+  test_two_measurements_are_independent();
+  test_timing_no_prediction_fails_open();
+  test_timing_observe_then_predict();
+  test_timing_separate_slots_per_direction();
+  test_timing_tolerance_not_established();
+  test_timing_cannot_override_wrong_polarity();
+  test_correct_polarity_alone_does_not_bypass_timing_check();
   if (failures) { printf("%d FAILURE(S)\n", failures); return 1; }
   printf("ALL PASSED\n");
   return 0;

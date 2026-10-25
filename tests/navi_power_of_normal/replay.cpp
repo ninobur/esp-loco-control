@@ -20,6 +20,7 @@
 #include <vector>
 #include <string>
 #include "NaviObservation.h"
+#include "NaviBaseline.h"
 #include "NaviCandidate.h"
 #include "NaviEncounter.h"
 #include "NaviTarget.h"
@@ -63,11 +64,14 @@ int main(int argc, char** argv) {
   fprintf(fo, "onset_us,serial,pol,level_at_open\n");
 
   navi_power::Tracing tracing;
+  navi_power::BaselineTracker baseline;
   navi_power::CandidateDetector candidate;
   navi_power::Encounter encounter;
   navi_power::TargetTracker target;
+  baseline.beginBootCollection();
   uint32_t blockCounter = 0;
-  uint32_t confirmed = 0, nonqualifying = 0, abandoned = 0, onsets = 0;
+  uint32_t lastOnsetBlockId = 0; bool haveLastOnset = false;
+  uint32_t confirmed = 0, nonqualifying = 0, abandoned = 0, onsets = 0, baselineRetained = 0;
   size_t ci = 0;
   int8_t sessionDir = 0; bool forward = true;
   uint64_t lastUs = 0, openUs = 0;
@@ -92,6 +96,7 @@ int main(int argc, char** argv) {
 
   auto onBlock = [&](const navi_power::Block& b) {
     ++blockCounter;
+    baseline.onBlock(b.hall, b.pwm > 0);   // the long measurement: always fed, inert while an encounter is active
     if (encounter.active()) {
       navi_power::CompletedEncounter done;
       if (encounter.push(b, done)) {
@@ -104,7 +109,8 @@ int main(int argc, char** argv) {
           fprintf(fn, "%llu,CONFIRMED,%u,%u\n", (unsigned long long)lastUs, target.lastMm(), expectedBefore);
         } else if (done.abandoned) { ++abandoned; fprintf(fn, "%llu,ABANDONED,-1,%u\n", (unsigned long long)lastUs, expectedBefore); }
         else { ++nonqualifying; fprintf(fn, "%llu,NONQUALIFYING,-1,%u\n", (unsigned long long)lastUs, expectedBefore); }
-        candidate.close();
+        // No baseline.beginCollection() call: the long measurement resumes
+        // watching for the next interval's entry point on its own.
       }
     }
   };
@@ -113,17 +119,26 @@ int main(int argc, char** argv) {
   while (fread(&r, sizeof r, 1, f) == 1) {
     lastUs = r.us;
     while (ci < cmds.size() && cmds[ci].tUs <= r.us) { applyCmd(cmds[ci]); ++ci; }
-    navi_power::CandidateOnset onset;
-    if (candidate.onSample(uint16_t(r.adc), r.serial, onset)) {
-      ++onsets;
-      fprintf(fo, "%llu,%u,%d,%.1f\n", (unsigned long long)r.us, onset.openSerial, onset.pol, double(onset.levelAtOpen));
-      if (!encounter.active()) { encounter.open(onset, blockCounter); openUs = r.us; }
+    if (baseline.haveLevel()) {
+      navi_power::CandidateOnset onset;
+      if (candidate.onSample(uint16_t(r.adc), baseline.level(), r.serial, onset)) {
+        ++onsets;
+        fprintf(fo, "%llu,%u,%d,%.1f\n", (unsigned long long)r.us, onset.openSerial, onset.pol, double(onset.levelAtOpen));
+        if (!encounter.active()) {
+          uint32_t sampleCount = 0;
+          if (!baseline.finalize(sampleCount)) ++baselineRetained;   // only the onset that actually opens a new encounter ends this interval
+          const bool timingValid = haveLastOnset;
+          const uint32_t timingElapsedMs = timingValid ? (blockCounter - lastOnsetBlockId) * navi_power::Tracing::BLOCK_US / 1000 : 0;
+          lastOnsetBlockId = blockCounter; haveLastOnset = true;
+          encounter.open(onset, blockCounter, timingElapsedMs, timingValid); openUs = r.us;
+        }
+      }
     }
     tracing.add(r.us, uint16_t(r.adc), r.direction, r.serial, r.pwm, 255, onBlock);
     ++nrec;
   }
   fclose(f); fclose(fe); fclose(fn); fclose(fo);
-  printf("{\"native_reads\":%llu,\"blocks\":%u,\"onsets\":%u,\"confirmed\":%u,\"nonqualifying\":%u,\"abandoned\":%u}\n",
-         (unsigned long long)nrec, blockCounter, onsets, confirmed, nonqualifying, abandoned);
+  printf("{\"native_reads\":%llu,\"blocks\":%u,\"onsets\":%u,\"confirmed\":%u,\"nonqualifying\":%u,\"abandoned\":%u,\"baseline_retained\":%u}\n",
+         (unsigned long long)nrec, blockCounter, onsets, confirmed, nonqualifying, abandoned, baselineRetained);
   return 0;
 }
