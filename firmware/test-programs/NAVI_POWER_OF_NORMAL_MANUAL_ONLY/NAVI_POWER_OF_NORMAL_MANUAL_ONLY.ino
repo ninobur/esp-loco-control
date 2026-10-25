@@ -458,12 +458,12 @@ static void serviceNavEvents() {
         "{\"boot\":\"%016llX\",\"result\":\"%s\",\"mm\":%s,\"expected_mm\":%u,"
         "\"expected_polarity\":\"%s\",\"polarity\":\"%s\",\"dir\":%d,\"width_blocks\":%u,"
         "\"peak_adc\":%.1f,\"meets_min_width\":%u,"
-        "\"timing_elapsed_ms\":%lu,\"timing_valid\":%u,"
+        "\"opening_us\":%llu,\"opening_pwm\":%u,"
         "\"authority\":\"OBSERVATION_ONLY\"}",
         (unsigned long long)bootId, result, mm, ev.expected,
         navi_power::expectedHallSign(ev.expected) > 0 ? "N" : "S", e.pol > 0 ? "N" : "S", ev.dir,
         unsigned(e.widthBlocks), double(e.peakAdc), unsigned(e.meetsMinWidth),
-        (unsigned long)e.timingElapsedMs, unsigned(e.timingValid));
+        (unsigned long long)e.openUs, unsigned(e.pwmAtOpen));
       pub("diag/navi_encounter", row);
       Serial.printf("[NAVI] %s\n", row);
       if (ev.kind == EV_CONFIRMED) pub("mm/marker", row);
