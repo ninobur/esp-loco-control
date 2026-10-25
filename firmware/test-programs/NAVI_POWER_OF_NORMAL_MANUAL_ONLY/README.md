@@ -12,7 +12,7 @@ is how the build is meant to be operated right now.
 ## What is new
 
 `NaviCandidate.h`, `NaviEncounter.h`, `NaviBaseline.h`, `NaviTarget.h`,
-`NaviTimingPredictor.h` — built directly from the conference record and the
+`NaviTimingPredictor.h`, `NaviTimingProfiles.h` — built directly from the conference record and the
 integrated implementation proposal, not adapted from `RvmShape.h` /
 `RvmContinuity.h` / `RvmNavigator.h`, which both independent audits of r5.1
 (Claude and Codex, 2026-10-24) found in active conflict with the agreed
@@ -36,17 +36,15 @@ design.
   return to the committed baseline level, no timeout.
 - **Target** (`NaviTarget.h`): one expected target; nonqualifying evidence
   leaves it unchanged; no Contradiction/search/recovery state.
-- **Timing as qualification evidence** (`NaviTimingPredictor.h`, 2026-10-24):
-  geographic opening-to-opening timing for the specific mapped interval
-  (keyed by from-marker and direction) is a required identifier alongside
-  polarity, width and observed completion — not an override, not a
-  tie-breaker. The prediction is simply the last observed real traversal of
-  that interval; no smoothing, no invented tolerance. `TIMING_TOLERANCE_
-  ESTABLISHED` is `false`, so the agreement check fails open (same pattern
-  as the old boundary table) until a real acceptance window is approved —
-  structurally wired into every qualification decision and recorded, not
-  yet gating. Real variation measured 2026-10-24 (175 clean intervals of a
-  177-marker field lap): pace median 235mm/s, p10-p90 199-271mm/s, CV 11.7%.
+- **Timing as qualification evidence** (`NaviTimingPredictor.h`,
+  `NaviTimingProfiles.h`): the interval clock runs from the native timestamp
+  of the last *confirmed* 70x2 opening to the current candidate's native
+  70x2 opening. A nonqualifying observation never resets it. Profiles are
+  independently keyed by source marker, direction, and fixed PWM, so a CW
+  90-PWM value is never used for CCW or 60-PWM travel. The catalogue is
+  intentionally empty until field data establishes normal variation; until
+  then every measured interval is visibly `UNPROFILED`, not silently passed
+  by a guessed tolerance.
 
 ## What is reused unchanged, from r5.1 commit `5b7a518b`
 
@@ -68,8 +66,9 @@ design.
 - **Minimum physically plausible width** (`NaviEncounter.h`,
   `MIN_WIDTH_BLOCKS`): mechanism present, value intentionally `0`
   (disabled).
-- **Timing acceptance window**: see above — structurally present, not yet
-  gating pending an approved tolerance.
+- **Timing profiles and acceptance bands**: the field test must establish
+  them from clean fixed-PWM CW and CCW runs at 60 and 90. No values are
+  invented in firmware.
 - **CCW**: declared successfully (suspends and re-declares correctly on a
   session-direction change) but not yet driven/observed in the field —
   untested, not known-broken.

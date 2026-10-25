@@ -1,91 +1,124 @@
 #pragma once
 // ---------------------------------------------------------------------------
-// NaviTimingPredictor — geographic timing as qualification evidence
-// (David, 2026-10-24, reconciled against the governing documents: the
-// integrated proposal's §1 "movement evidence predicts where and when that
-// target should arrive" and the decision register's movement-time-predictor
-// row, "the conference supports movement-derived timing but not one
-// formula... do not let timing create magnetic confirmation").
+// NaviTimingPredictor — timing as geographic recognition evidence.
 //
-// WHAT THIS IS. After confirming marker k, NAVI expects marker k+dir. The
-// measured opening-to-opening travel time for THAT SPECIFIC mapped interval
-// (keyed by the FROM marker and direction — the two directions of the same
-// physical gap are not assumed to take the same time) predicts when the
-// next opening should occur. This is evidence for qualification, not a
-// stop mechanism: nothing here requests a motor action. A stopped-clock
-// read is not an emergency; it is one of four things that must agree.
+// Geography supplies exactly one next marker. From that last CONFIRMED
+// marker, movement history predicts when that marker's 70x2 opening should
+// appear. Hall evidence still establishes that a magnetic excursion occurred;
+// timing neither creates confirmation nor overrides wrong polarity. A timing
+// mismatch leaves the same target in place for continued observation. Nothing
+// here controls the motor or requests a stop.
 //
-// PREDICTION METHOD (per instruction, 2026-10-24): the observed opening-to-
-// opening interval IS the prediction. No smoothing, no percentage margin, no
-// invented acceptance window, no PWM-to-pace proportional assumption. The
-// last real measurement for a given (fromMm, dir) is the next prediction for
-// that same interval; it updates only when a traversal of that interval is
-// actually confirmed, so the history stays tied to verified-correct
-// intervals, not to a guess.
+// The clock is native-opening to native-opening: the first sample of the
+// confirmed 70x2 pair to the first sample of the candidate 70x2 pair. It is
+// never derived from delayed 20 ms tracing blocks, and a nonqualifying Hall
+// observation never resets it.
 //
-// NO TOLERANCE SET YET. Real variation was measured 2026-10-24 against
-// today's field run (175 clean intervals of a 177-marker CW lap, excluding
-// the one station-dwell outlier at mm125 and the known curve interval):
-// pace median 235 mm/s, p10-p90 199-271 mm/s, CV 11.7%. That is evidence
-// toward an acceptance window, not a decision — TIMING_TOLERANCE_ESTABLISHED
-// stays false, and agreement() fails OPEN (reports true) until a real
-// tolerance is approved, exactly mirroring this codebase's own precedent in
-// NaviArrivalBoundary.h's BOUNDARY_UNSET: an unmeasured quantity must not
-// invent a number, and must not silently block real confirmations either.
-// This is a deliberate engineering choice to flag, not a hidden assumption.
+// Profiles are keyed by (from marker, direction, fixed operating PWM). They
+// must be installed from field evidence in NaviTimingProfiles.h. Until then
+// timing is measured, recorded, and reported as UNPROFILED; it is not silently
+// converted into a guessed rejection rule.
 // ---------------------------------------------------------------------------
 #include <stdint.h>
 #include "RouteMap.h"
+#include "NaviTimingProfiles.h"
 
 namespace navi_power {
 
-static constexpr bool TIMING_TOLERANCE_ESTABLISHED = false;  // DO NOT set true without an approved acceptance window
+enum class TimingResult : uint8_t { NoAnchor = 0, Unprofiled, Matches, Mismatches };
 
 struct TimingEvidence {
-  bool havePrediction = false;
-  uint32_t predictedMs = 0;
+  TimingResult result = TimingResult::NoAnchor;
+  bool haveAnchor = false;
+  bool haveProfile = false;
+  uint8_t fromMm = 0;
+  int8_t dir = 0;
+  uint8_t sourcePwm = 0;
+  uint8_t arrivalPwm = 0;
   uint32_t measuredMs = 0;
+  uint32_t expectedMs = 0;
+  uint32_t toleranceMs = 0;
 };
 
 class TimingPredictor {
  public:
-  // Call the instant a genuine opening occurs (not an echo), for the
-  // interval FROM the last confirmed marker in the current direction.
-  // `measuredMs` is the elapsed time since the previous genuine opening —
-  // the opening-to-opening measurement for this specific interval.
-  TimingEvidence evaluate(uint8_t fromMm, int8_t dir, uint32_t measuredMs) const {
+  TimingPredictor() { loadApprovedProfiles(); }
+  TimingEvidence noAnchor() const { return TimingEvidence{}; }
+
+  TimingEvidence evaluate(uint8_t fromMm, int8_t dir, uint8_t sourcePwm,
+                          uint8_t arrivalPwm, uint32_t measuredMs) const {
     TimingEvidence ev;
-    ev.measuredMs = measuredMs;
-    const Entry& e = table_[slot(fromMm, dir)];
-    ev.havePrediction = e.have;
-    ev.predictedMs = e.have ? e.ms : 0;
+    ev.haveAnchor = true; ev.fromMm = fromMm; ev.dir = dir;
+    ev.sourcePwm = sourcePwm; ev.arrivalPwm = arrivalPwm; ev.measuredMs = measuredMs;
+    const Entry& entry = table_[slot(fromMm, dir)];
+    const Profile* profile = findProfile(entry, sourcePwm);
+    // A calibrated fixed-PWM traversal is comparable only when both endpoints
+    // were observed at that PWM. A throttle change is useful telemetry, not a
+    // reason to apply the wrong profile.
+    if (profile == nullptr || arrivalPwm != sourcePwm) {
+      ev.result = TimingResult::Unprofiled;
+      return ev;
+    }
+    ev.haveProfile = true;
+    ev.expectedMs = profile->expectedMs;
+    ev.toleranceMs = profile->toleranceMs;
+    const uint32_t delta = measuredMs > profile->expectedMs
+        ? measuredMs - profile->expectedMs : profile->expectedMs - measuredMs;
+    ev.result = delta <= profile->toleranceMs ? TimingResult::Matches : TimingResult::Mismatches;
     return ev;
   }
 
-  // Whether the evidence agrees with the prediction. Fails open (true) when
-  // no prediction exists yet for this interval, or when no tolerance has
-  // been approved — see the class comment. Structurally present so the
-  // decision is visible and recorded; not yet a numeric gate.
-  bool agrees(const TimingEvidence& ev) const {
-    if (!ev.havePrediction) return true;          // nothing observed yet for this interval: fail open
-    if (!TIMING_TOLERANCE_ESTABLISHED) return true; // no approved acceptance window yet: fail open
-    return true;  // placeholder for the approved tolerance comparison once TIMING_TOLERANCE_ESTABLISHED is true
+  // Only a verified geographic advance contributes a timing observation.
+  // These are diagnostic records, not self-trained acceptance profiles.
+  void observeConfirmed(uint8_t fromMm, int8_t dir, uint8_t sourcePwm,
+                        uint8_t arrivalPwm, uint32_t measuredMs) {
+    Entry& entry = table_[slot(fromMm, dir)];
+    entry.haveObservation = true; entry.lastObservedMs = measuredMs;
+    entry.lastSourcePwm = sourcePwm; entry.lastArrivalPwm = arrivalPwm;
   }
 
-  // Call only when a traversal of (fromMm, dir) is actually CONFIRMED, so
-  // the recorded history stays tied to verified-correct intervals.
-  void observe(uint8_t fromMm, int8_t dir, uint32_t measuredMs) {
-    Entry& e = table_[slot(fromMm, dir)];
-    e.ms = measuredMs; e.have = true;
+  // Used by setup-time profile loading and host tests. Firmware never learns
+  // an acceptance band while it is running.
+  void installApprovedProfile(const TimingProfileDefinition& definition) {
+    if (definition.dir == 0 || definition.toleranceMs == 0 || definition.expectedMs == 0) return;
+    Entry& entry = table_[slot(definition.fromMm, definition.dir)];
+    Profile* profile = findProfile(entry, definition.pwm);
+    if (profile == nullptr) profile = firstFreeProfile(entry);
+    if (profile == nullptr) return;  // never overwrite another PWM profile
+    profile->have = true; profile->pwm = definition.pwm;
+    profile->expectedMs = definition.expectedMs; profile->toleranceMs = definition.toleranceMs;
   }
 
  private:
-  static uint16_t slot(uint8_t fromMm, int8_t dir) {
-    // CW and CCW traversals of the same gap are not assumed equal; separate slots.
-    return uint16_t(fromMm) * 2 + (dir > 0 ? 0 : 1);
-  }
-  struct Entry { bool have = false; uint32_t ms = 0; };
+  static constexpr uint8_t MAX_PWM_PROFILES_PER_INTERVAL = 4;
+  struct Profile { bool have = false; uint8_t pwm = 0; uint32_t expectedMs = 0; uint32_t toleranceMs = 0; };
+  struct Entry {
+    Profile profiles[MAX_PWM_PROFILES_PER_INTERVAL];
+    bool haveObservation = false;
+    uint32_t lastObservedMs = 0;
+    uint8_t lastSourcePwm = 0, lastArrivalPwm = 0;
+  };
   Entry table_[navi_one::ROUTE_N * 2];
+
+  static uint16_t slot(uint8_t fromMm, int8_t dir) { return uint16_t(fromMm) * 2 + (dir > 0 ? 0 : 1); }
+  static const Profile* findProfile(const Entry& entry, uint8_t pwm) {
+    for (uint8_t i = 0; i < MAX_PWM_PROFILES_PER_INTERVAL; ++i)
+      if (entry.profiles[i].have && entry.profiles[i].pwm == pwm) return &entry.profiles[i];
+    return nullptr;
+  }
+  static Profile* findProfile(Entry& entry, uint8_t pwm) {
+    for (uint8_t i = 0; i < MAX_PWM_PROFILES_PER_INTERVAL; ++i)
+      if (entry.profiles[i].have && entry.profiles[i].pwm == pwm) return &entry.profiles[i];
+    return nullptr;
+  }
+  static Profile* firstFreeProfile(Entry& entry) {
+    for (uint8_t i = 0; i < MAX_PWM_PROFILES_PER_INTERVAL; ++i)
+      if (!entry.profiles[i].have) return &entry.profiles[i];
+    return nullptr;
+  }
+  void loadApprovedProfiles() {
+    for (uint16_t i = 0; i < TIMING_PROFILE_COUNT; ++i) installApprovedProfile(TIMING_PROFILES[i]);
+  }
 };
 
 }  // namespace navi_power

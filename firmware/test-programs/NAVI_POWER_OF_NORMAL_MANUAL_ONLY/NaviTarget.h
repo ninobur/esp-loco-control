@@ -46,6 +46,10 @@ class TargetTracker {
  public:
   void declare(uint8_t last, uint8_t next, int8_t dir) {
     last_ = last; next_ = next; dir_ = dir; state_ = TargetState::Tracking;
+    // A declaration identifies geography but does not invent an observed
+    // 70x2 opening. The next confirmed target establishes the timing anchor.
+    haveConfirmedOpen_ = false; confirmedOpenUs_ = 0; confirmedOpenPwm_ = 0;
+    lastTiming_ = predictor_.noAnchor();
   }
   void suspend() { state_ = TargetState::Unset; }
 
@@ -55,21 +59,30 @@ class TargetTracker {
   // width failure is handled identically to a polarity failure here — both
   // are "nonqualifying," neither is a stop.
   //
-  // TIMING (2026-10-24): geographic opening-to-opening timing for the
-  // interval FROM the last confirmed marker is now a required identifier
-  // alongside polarity, width and completion — not a tie-breaker, not an
-  // override. Correct polarity alone is insufficient; timing cannot rescue
-  // wrong polarity either (NaviTimingPredictor::agrees() fails open until a
-  // real tolerance is approved, so it does not yet reject on its own, but
-  // it is structurally evaluated and recorded for every encounter, and the
-  // prediction only updates from an encounter that was actually confirmed).
+  // TIMING: the directed interval starts at the prior CONFIRMED 70x2 opening,
+  // not at an arbitrary observed signal. Once a field profile exists, timing
+  // joins polarity, width, and completion as a required identifier. Before
+  // then it remains explicitly UNPROFILED rather than gaining an invented
+  // pass/fail number.
   JudgementResult onEncounter(const CompletedEncounter& e) {
     if (state_ != TargetState::Tracking) return JudgementResult::NoClaim;
     if (e.abandoned) return JudgementResult::NoClaim;    // never reached return-to-baseline: not evidence either way
-    lastTiming_ = predictor_.evaluate(last_, dir_, e.timingElapsedMs);
-    const bool timingOk = predictor_.agrees(lastTiming_);
+    if (!haveConfirmedOpen_) {
+      lastTiming_ = predictor_.noAnchor();
+    } else if (e.openUs < confirmedOpenUs_) {
+      lastTiming_ = predictor_.evaluate(last_, dir_, confirmedOpenPwm_, e.pwmAtOpen, UINT32_MAX);
+      lastTiming_.result = TimingResult::Mismatches;
+    } else {
+      const uint64_t elapsedUs = e.openUs - confirmedOpenUs_;
+      const uint32_t elapsedMs = elapsedUs > uint64_t(UINT32_MAX) * 1000ULL
+          ? UINT32_MAX : uint32_t(elapsedUs / 1000ULL);
+      lastTiming_ = predictor_.evaluate(last_, dir_, confirmedOpenPwm_, e.pwmAtOpen, elapsedMs);
+    }
+    const bool timingOk = lastTiming_.result != TimingResult::Mismatches;
     if (e.pol == expectedHallSign(next_) && e.meetsMinWidth && timingOk) {
-      if (e.timingValid) predictor_.observe(last_, dir_, e.timingElapsedMs);  // the first opening since boot has nothing real to record
+      if (lastTiming_.haveAnchor)
+        predictor_.observeConfirmed(last_, dir_, confirmedOpenPwm_, e.pwmAtOpen, lastTiming_.measuredMs);
+      confirmedOpenUs_ = e.openUs; confirmedOpenPwm_ = e.pwmAtOpen; haveConfirmedOpen_ = true;
       last_ = next_; next_ = navi_one::nextMarker(next_, dir_);
       return JudgementResult::Confirmed;
     }
@@ -86,6 +99,9 @@ class TargetTracker {
   TargetState state_ = TargetState::Unset;
   uint8_t last_ = 0, next_ = 0;
   int8_t dir_ = 0;
+  bool haveConfirmedOpen_ = false;
+  uint64_t confirmedOpenUs_ = 0;
+  uint8_t confirmedOpenPwm_ = 0;
   TimingPredictor predictor_;
   TimingEvidence lastTiming_;
 };

@@ -149,8 +149,9 @@ struct NavSnapshot {
   // Timing qualification evidence (2026-10-24), for the most recently judged
   // encounter -- visibility into whether/how it participated, per David's
   // instruction that this must be verifiable, not just present in code.
-  bool timingHavePrediction = false, timingAgrees = false;
-  uint32_t timingPredictedMs = 0, timingMeasuredMs = 0;
+  bool timingHaveAnchor = false, timingHaveProfile = false, timingAgrees = false;
+  uint8_t timingResult = 0;
+  uint32_t timingPredictedMs = 0, timingMeasuredMs = 0, timingToleranceMs = 0;
 };
 static navi_power::Encounter encounter;             // rvmTask only
 static navi_power::BaselineTracker baseline;        // rvmTask only — the long inter-magnet measurement
@@ -169,8 +170,6 @@ static portMUX_TYPE navMux = portMUX_INITIALIZER_UNLOCKED;
 static std::atomic<uint64_t> firstBlockUs{0};
 static std::atomic<uint32_t> rvmStackFree{0};
 static uint32_t blockCounter = 0;                    // rvmTask: running count of blocks consumed (openBlockId bookkeeping)
-static uint32_t lastOnsetBlockId = 0;                 // rvmTask: block id of the previous GENUINE opening, for timing evidence
-static bool haveLastOnset = false;                    // rvmTask: false until the first genuine opening since boot (avoids a boot-to-first-onset garbage measurement)
 
 static NavSnapshot navSnapshot() {
   portENTER_CRITICAL(&navMux); NavSnapshot s = navShared; portEXIT_CRITICAL(&navMux); return s;
@@ -305,7 +304,8 @@ static void hallTask(void*) {
       // live baseline level exists yet (it always will, shortly after boot).
       if (sharedBaselineReady.load()) {
         navi_power::CandidateOnset onset;
-        if (candidate.onSample(uint16_t(raw), sharedBaselineLevel.load(), serial, onset)) {
+        if (candidate.onSample(uint16_t(raw), sharedBaselineLevel.load(), serial, us,
+                               uint8_t(actualPwm), onset)) {
           if (!onsetQ || xQueueSend(onsetQ, &onset, 0) != pdTRUE) ++onsetQueueDrops;
         }
       }
@@ -326,8 +326,10 @@ static void publishSnapshot() {
   s.encounterActive = encounter.active();
   s.blocksEmitted = obsHealth.blocksEmitted; s.blocksDropped = obsHealth.blocksDropped;
   { const auto& t = target.lastTiming();
-    s.timingHavePrediction = t.havePrediction; s.timingPredictedMs = t.predictedMs; s.timingMeasuredMs = t.measuredMs;
-    s.timingAgrees = true;  // fails open: see NaviTimingPredictor.h -- no approved tolerance yet
+    s.timingHaveAnchor = t.haveAnchor; s.timingHaveProfile = t.haveProfile;
+    s.timingResult = uint8_t(t.result); s.timingPredictedMs = t.expectedMs;
+    s.timingMeasuredMs = t.measuredMs; s.timingToleranceMs = t.toleranceMs;
+    s.timingAgrees = t.result != navi_power::TimingResult::Mismatches;
   }
   portENTER_CRITICAL(&navMux);
   s.confirmed = navShared.confirmed; s.nonqualifying = navShared.nonqualifying; s.abandoned = navShared.abandoned;
@@ -385,16 +387,10 @@ static void rvmTask(void*) {
         // be treated as a second interval boundary.
         uint32_t sampleCount = 0;
         if (!baseline.finalize(sampleCount)) ++baselineRetainedCount;  // zero moving samples this interval: previous level retained, not invented
-        // Opening-to-opening timing evidence (2026-10-24): elapsed time since
-        // the previous GENUINE opening (not an echo), regardless of whether
-        // that previous encounter confirmed -- a real magnetic passage
-        // occurred either way, and the next interval's clock starts there.
-        // The very first onset since boot has no previous onset to measure
-        // from, so it is explicitly marked invalid rather than guessed.
-        const bool timingValid = haveLastOnset;
-        const uint32_t timingElapsedMs = timingValid ? (blockCounter - lastOnsetBlockId) * navi_power::Tracing::BLOCK_US / 1000 : 0;
-        lastOnsetBlockId = blockCounter; haveLastOnset = true;
-        encounter.open(onset, blockCounter, timingElapsedMs, timingValid);
+        // CandidateOnset carries its native 70x2 timestamp. NaviTarget later
+        // measures only from the previous CONFIRMED opening; an echo or a
+        // nonqualifying observation never moves that geographic clock.
+        encounter.open(onset, blockCounter);
       }
       // A second onset while an encounter is already active is not blocked
       // anywhere upstream (NaviCandidate/NaviBaseline never suspend); it is
@@ -430,13 +426,15 @@ static void publishNavState() {
     "\"position_reliable\":%u,\"event\":\"%s\","
     "\"confirmed\":%lu,\"nonqualifying\":%lu,\"abandoned\":%lu,\"encounter_active\":%u,"
     "\"blocks_emitted\":%lu,\"blocks_dropped\":%lu,"
-    "\"timing_have_prediction\":%u,\"timing_predicted_ms\":%lu,\"timing_measured_ms\":%lu,\"timing_agrees\":%u,"
+    "\"timing_have_anchor\":%u,\"timing_have_profile\":%u,\"timing_result\":%u,\"timing_predicted_ms\":%lu,\"timing_measured_ms\":%lu,\"timing_tolerance_ms\":%lu,\"timing_agrees\":%u,"
     "\"authority\":\"NAVI_POWER_OF_NORMAL_MANUAL_ONLY\"}",
     stateName(s.state), s.last, s.next, s.dir, sessionDir > 0 ? "CW" : sessionDir < 0 ? "CCW" : "UNSET",
     s.state == uint8_t(navi_power::TargetState::Tracking), lastNavEvent,
     (unsigned long)s.confirmed, (unsigned long)s.nonqualifying, (unsigned long)s.abandoned, s.encounterActive,
     (unsigned long)s.blocksEmitted, (unsigned long)s.blocksDropped,
-    s.timingHavePrediction, (unsigned long)s.timingPredictedMs, (unsigned long)s.timingMeasuredMs, s.timingAgrees);
+    s.timingHaveAnchor, s.timingHaveProfile, unsigned(s.timingResult),
+    (unsigned long)s.timingPredictedMs, (unsigned long)s.timingMeasuredMs,
+    (unsigned long)s.timingToleranceMs, s.timingAgrees);
   pub("state/nav", payload, true);
   pub("state/nav_ready", s.state == uint8_t(navi_power::TargetState::Tracking) ? "1" : "0", true);
 }

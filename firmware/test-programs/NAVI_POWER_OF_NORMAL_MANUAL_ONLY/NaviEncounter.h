@@ -27,11 +27,10 @@
 // problem; correctly recognizing it is"); this class never had a timeout
 // concept of its own and still doesn't.
 //
-// TIMING EVIDENCE (2026-10-24). `open()` now takes the elapsed time since
-// the previous genuine opening, measured by the caller — this class does
-// not compute it, only carries it through to CompletedEncounter so
-// NaviTarget's qualification can use it alongside polarity, width and
-// completion. See NaviTimingPredictor.h.
+// TIMING EVIDENCE. `open()` carries the native 70x2 opening timestamp and
+// applied PWM from CandidateOnset through to CompletedEncounter. This class
+// neither measures nor resets the geographic interval clock; NaviTarget uses
+// only the previous CONFIRMED opening as that clock's anchor.
 // ---------------------------------------------------------------------------
 #include <stdint.h>
 #include <math.h>
@@ -51,17 +50,17 @@ struct CompletedEncounter {
   float peakAdc = 0;             // diagnostic only: never gates admission or completion
   bool meetsMinWidth = true;     // always true while MIN_WIDTH_BLOCKS == 0; carried for when it is set
   bool abandoned = false;        // always false in this build; kept only for NaviTarget.h's existing interface
-  uint32_t timingElapsedMs = 0;  // elapsed time since the previous genuine opening (caller-measured)
-  bool timingValid = false;      // false for the first opening since boot, which has no previous opening to measure from
+  uint64_t openUs = 0;           // native timestamp of this 70x2 opening
+  uint8_t pwmAtOpen = 0;         // applied PWM at this opening
 };
 
 class Encounter {
  public:
-  void open(const CandidateOnset& onset, uint32_t openBlockId, uint32_t timingElapsedMs = 0, bool timingValid = false) {
+  void open(const CandidateOnset& onset, uint32_t openBlockId) {
     active_ = true;
     pol_ = onset.pol; level_ = onset.levelAtOpen;
     openBlockId_ = openBlockId; width_ = 0; peak_ = 0; rtbRun_ = 0;
-    timingElapsedMs_ = timingElapsedMs; timingValid_ = timingValid;
+    openUs_ = onset.openUs; pwmAtOpen_ = onset.pwmAtOpen;
   }
   bool active() const { return active_; }
 
@@ -84,8 +83,8 @@ class Encounter {
     out.pol = pol_; out.peakAdc = peak_;
     out.meetsMinWidth = MIN_WIDTH_BLOCKS == 0 || out.widthBlocks >= MIN_WIDTH_BLOCKS;
     out.abandoned = false;
-    out.timingElapsedMs = timingElapsedMs_;
-    out.timingValid = timingValid_;
+    out.openUs = openUs_;
+    out.pwmAtOpen = pwmAtOpen_;
     active_ = false;
     return true;
   }
@@ -96,8 +95,8 @@ class Encounter {
   float level_ = 0, peak_ = 0;
   uint32_t openBlockId_ = 0;
   uint32_t width_ = 0, rtbRun_ = 0;
-  uint32_t timingElapsedMs_ = 0;
-  bool timingValid_ = false;
+  uint64_t openUs_ = 0;
+  uint8_t pwmAtOpen_ = 0;
 };
 
 }  // namespace navi_power

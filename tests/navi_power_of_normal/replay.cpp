@@ -5,8 +5,7 @@
 // exercises the same entry points as the real sketch (session_direction,
 // start_interval/start_mm).
 //
-//   c++ -std=c++17 -O2 -Wall -Wextra -Werror \
-//     -I<sketch dir> replay.cpp -o replay && \
+//   c++ -std=c++17 -O2 -Wall -Wextra -Werror -I<sketch dir> replay.cpp -o replay &&
 //   ./replay <native.bin> <declarations.csv> <boot_id> <out_dir>
 //
 // native.bin: packed records {u32 serial, u64 us, i16 adc, u8 pwm, u8 dir}
@@ -45,7 +44,7 @@ int main(int argc, char** argv) {
   const std::string bootId = argv[3];
   std::vector<Cmd> cmds;
   { FILE* d = fopen(argv[2], "r"); char line[512];
-    if (d) fgets(line, sizeof line, d);   // header
+    if (d && fgets(line, sizeof line, d) == nullptr) { fclose(d); d = nullptr; }  // header
     while (d && fgets(line, sizeof line, d)) {
       char boot[64], topic[128], payload[64]; unsigned long long tUs;
       if (sscanf(line, "%63[^,],%llu,%127[^,],%63[^\n]", boot, &tUs, topic, payload) == 4 && bootId == boot) {
@@ -59,8 +58,8 @@ int main(int argc, char** argv) {
   FILE* fe = fopen((out + "/encounters.csv").c_str(), "w");
   FILE* fn = fopen((out + "/nav.csv").c_str(), "w");
   FILE* fo = fopen((out + "/onsets.csv").c_str(), "w");
-  fprintf(fe, "open_us,close_us,open_block,width_blocks,pol,peak_adc,meets_min_width,abandoned\n");
-  fprintf(fn, "t_us,event,mm,expected\n");
+  fprintf(fe, "open_us,close_us,open_block,width_blocks,pol,peak_adc,meets_min_width,abandoned,timing_result,timing_measured_ms,timing_expected_ms,timing_tolerance_ms\n");
+  fprintf(fn, "t_us,event,mm,expected,timing_result,timing_measured_ms\n");
   fprintf(fo, "onset_us,serial,pol,level_at_open\n");
 
   navi_power::Tracing tracing;
@@ -70,11 +69,10 @@ int main(int argc, char** argv) {
   navi_power::TargetTracker target;
   baseline.beginBootCollection();
   uint32_t blockCounter = 0;
-  uint32_t lastOnsetBlockId = 0; bool haveLastOnset = false;
   uint32_t confirmed = 0, nonqualifying = 0, abandoned = 0, onsets = 0, baselineRetained = 0;
   size_t ci = 0;
   int8_t sessionDir = 0; bool forward = true;
-  uint64_t lastUs = 0, openUs = 0;
+  uint64_t lastUs = 0;
 
   auto applyCmd = [&](const Cmd& c) {
     if (c.leaf == "session_direction") { sessionDir = c.payload == "CW" ? 1 : -1; }
@@ -83,7 +81,8 @@ int main(int argc, char** argv) {
       const int8_t dir = sessionDir * (forward ? 1 : -1);
       int last = -1, next = -1;
       if (c.leaf == "start_interval") {
-        int a, b; parseInterval(c.payload, a, b);
+        int a = -1, b = -1;
+        if (!parseInterval(c.payload, a, b)) return;
         last = dir > 0 ? a : b; next = dir > 0 ? b : a;
       } else {
         const int mm = atoi(c.payload.c_str());
@@ -102,13 +101,15 @@ int main(int argc, char** argv) {
       if (encounter.push(b, done)) {
         const uint8_t expectedBefore = target.nextMm();
         const auto r = target.onEncounter(done);
-        fprintf(fe, "%llu,%llu,%u,%u,%d,%.1f,%u,%u\n", (unsigned long long)openUs, (unsigned long long)lastUs, done.openBlockId, done.widthBlocks,
-                done.pol, double(done.peakAdc), unsigned(done.meetsMinWidth), unsigned(done.abandoned));
+        const auto& timing = target.lastTiming();
+        fprintf(fe, "%llu,%llu,%u,%u,%d,%.1f,%u,%u,%u,%u,%u,%u\n", (unsigned long long)done.openUs, (unsigned long long)lastUs, done.openBlockId, done.widthBlocks,
+                done.pol, double(done.peakAdc), unsigned(done.meetsMinWidth), unsigned(done.abandoned),
+                unsigned(timing.result), timing.measuredMs, timing.expectedMs, timing.toleranceMs);
         if (r == navi_power::JudgementResult::Confirmed) {
           ++confirmed;
-          fprintf(fn, "%llu,CONFIRMED,%u,%u\n", (unsigned long long)lastUs, target.lastMm(), expectedBefore);
-        } else if (done.abandoned) { ++abandoned; fprintf(fn, "%llu,ABANDONED,-1,%u\n", (unsigned long long)lastUs, expectedBefore); }
-        else { ++nonqualifying; fprintf(fn, "%llu,NONQUALIFYING,-1,%u\n", (unsigned long long)lastUs, expectedBefore); }
+          fprintf(fn, "%llu,CONFIRMED,%u,%u,%u,%u\n", (unsigned long long)lastUs, target.lastMm(), expectedBefore, unsigned(timing.result), timing.measuredMs);
+        } else if (done.abandoned) { ++abandoned; fprintf(fn, "%llu,ABANDONED,-1,%u,%u,%u\n", (unsigned long long)lastUs, expectedBefore, unsigned(timing.result), timing.measuredMs); }
+        else { ++nonqualifying; fprintf(fn, "%llu,NONQUALIFYING,-1,%u,%u,%u\n", (unsigned long long)lastUs, expectedBefore, unsigned(timing.result), timing.measuredMs); }
         // No baseline.beginCollection() call: the long measurement resumes
         // watching for the next interval's entry point on its own.
       }
@@ -121,16 +122,13 @@ int main(int argc, char** argv) {
     while (ci < cmds.size() && cmds[ci].tUs <= r.us) { applyCmd(cmds[ci]); ++ci; }
     if (baseline.haveLevel()) {
       navi_power::CandidateOnset onset;
-      if (candidate.onSample(uint16_t(r.adc), baseline.level(), r.serial, onset)) {
+      if (candidate.onSample(uint16_t(r.adc), baseline.level(), r.serial, r.us, r.pwm, onset)) {
         ++onsets;
-        fprintf(fo, "%llu,%u,%d,%.1f\n", (unsigned long long)r.us, onset.openSerial, onset.pol, double(onset.levelAtOpen));
+        fprintf(fo, "%llu,%u,%d,%.1f\n", (unsigned long long)onset.openUs, onset.openSerial, onset.pol, double(onset.levelAtOpen));
         if (!encounter.active()) {
           uint32_t sampleCount = 0;
           if (!baseline.finalize(sampleCount)) ++baselineRetained;   // only the onset that actually opens a new encounter ends this interval
-          const bool timingValid = haveLastOnset;
-          const uint32_t timingElapsedMs = timingValid ? (blockCounter - lastOnsetBlockId) * navi_power::Tracing::BLOCK_US / 1000 : 0;
-          lastOnsetBlockId = blockCounter; haveLastOnset = true;
-          encounter.open(onset, blockCounter, timingElapsedMs, timingValid); openUs = r.us;
+          encounter.open(onset, blockCounter);
         }
       }
     }

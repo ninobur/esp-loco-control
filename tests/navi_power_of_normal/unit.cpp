@@ -42,6 +42,30 @@ static void test_target_unset_has_no_claim() {
   CHECK(t.onEncounter(e) == JudgementResult::NoClaim, "an undeclared tracker must never confirm or judge");
 }
 
+static void test_timing_profile_qualification() {
+  TimingPredictor p;
+  CHECK(p.noAnchor().result == TimingResult::NoAnchor, "a declaration must not invent a timing opening anchor");
+  p.installApprovedProfile({10, +1, 90, 1000, 100});
+  CHECK(p.evaluate(10, +1, 90, 90, 1080).result == TimingResult::Matches, "inside an installed band must match");
+  CHECK(p.evaluate(10, +1, 90, 90, 1201).result == TimingResult::Mismatches, "outside an installed band must mismatch");
+  CHECK(p.evaluate(10, +1, 90, 60, 1000).result == TimingResult::Unprofiled, "a 90 profile must not be applied after a 60-PWM arrival");
+  CHECK(p.evaluate(10, -1, 90, 90, 1000).result == TimingResult::Unprofiled, "CW must not be applied to CCW");
+  p.installApprovedProfile({10, +1, 60, 1600, 100});
+  CHECK(p.evaluate(10, +1, 60, 60, 1600).result == TimingResult::Matches, "60 and 90 profiles must coexist");
+  CHECK(p.evaluate(10, +1, 90, 90, 1000).result == TimingResult::Matches, "adding 60 must not replace 90");
+}
+static void test_timing_anchor_is_last_confirmed_opening() {
+  TargetTracker t; t.declare(10, 11, +1);
+  CompletedEncounter first{}; first.pol = expectedHallSign(11); first.meetsMinWidth = true; first.openUs = 1000000; first.pwmAtOpen = 90;
+  CHECK(t.onEncounter(first) == JudgementResult::Confirmed, "first qualifying encounter establishes the opening anchor");
+  CompletedEncounter wrong{}; wrong.pol = int8_t(-expectedHallSign(12)); wrong.meetsMinWidth = true; wrong.openUs = 2000000; wrong.pwmAtOpen = 90;
+  CHECK(t.onEncounter(wrong) == JudgementResult::NonQualifying, "wrong polarity remains nonqualifying");
+  CompletedEncounter next{}; next.pol = expectedHallSign(12); next.meetsMinWidth = true; next.openUs = 3000000; next.pwmAtOpen = 90;
+  CHECK(t.onEncounter(next) == JudgementResult::Confirmed, "next correct polarity confirms while timing is unprofiled");
+  CHECK(t.lastTiming().result == TimingResult::Unprofiled, "unmeasured variation remains visible as unprofiled");
+  CHECK(t.lastTiming().measuredMs == 2000, "a nonqualifying opening must not reset the interval clock");
+}
+
 // ---- Encounter: observed return-to-baseline, not a fitted-window timer.
 static void test_encounter_completes_on_rtb() {
   Encounter e;
@@ -93,7 +117,10 @@ static void test_encounter_min_width_inert() {
 // looks over 1 ms.
 static bool feed(CandidateDetector& c, uint16_t adc, float level, uint32_t& serial, CandidateOnset& onset) {
   bool got = false;
-  for (uint32_t i = 0; i < CANDIDATE_STRIDE; ++i) { const bool r = c.onSample(adc, level, serial++, onset); got = got || r; }
+  for (uint32_t i = 0; i < CANDIDATE_STRIDE; ++i) {
+    const bool r = c.onSample(adc, level, serial, uint64_t(serial) * 200, 90, onset);
+    ++serial; got = got || r;
+  }
   return got;
 }
 static void test_candidate_two_consecutive_samples() {
@@ -106,6 +133,8 @@ static void test_candidate_two_consecutive_samples() {
   const bool got = feed(c, 1972, level, serial, onset);
   CHECK(got, "a second consecutive same-sign EVALUATED crossing sample must open a candidate");
   CHECK(onset.pol == 1, "an above-reference excursion must report positive polarity");
+  CHECK(onset.openUs == 1000, "onset must retain the first crossing sample timestamp");
+  CHECK(onset.pwmAtOpen == 90, "onset must retain applied PWM context");
   CHECK(onset.levelAtOpen == level, "the reported level must be exactly the live level supplied at open, nothing computed here");
 }
 static void test_candidate_notices_second_departure_without_being_closed() {
@@ -141,13 +170,13 @@ static void test_candidate_single_tick_noise_dip_no_longer_defeats_onset() {
   CandidateDetector c; CandidateOnset onset; uint32_t serial = 0;
   const float level = 1900;
   // Tick 1: first evaluated read crosses.
-  bool got = c.onSample(1972, level, serial++, onset);
+  bool got = c.onSample(1972, level, serial, uint64_t(serial) * 200, 90, onset); ++serial;
   CHECK(!got, "first evaluated crossing sample alone must not open a candidate");
-  for (uint32_t i = 1; i < CANDIDATE_STRIDE; ++i) c.onSample(1800, level, serial++, onset);   // noisy/irrelevant raw reads, same tick
+  for (uint32_t i = 1; i < CANDIDATE_STRIDE; ++i) { c.onSample(1800, level, serial, uint64_t(serial) * 200, 90, onset); ++serial; }
   // Tick 2: the evaluated sample crosses again -> onset.
-  got = c.onSample(1973, level, serial++, onset);
+  got = c.onSample(1973, level, serial, uint64_t(serial) * 200, 90, onset); ++serial;
   CHECK(got, "the second tick's evaluated sample must still confirm the onset despite noisy raw reads within either tick");
-  for (uint32_t i = 1; i < CANDIDATE_STRIDE; ++i) c.onSample(1800, level, serial++, onset);
+  for (uint32_t i = 1; i < CANDIDATE_STRIDE; ++i) { c.onSample(1800, level, serial, uint64_t(serial) * 200, 90, onset); ++serial; }
 }
 
 // ---- BaselineTracker: the LONG, inter-magnet measurement.
@@ -246,64 +275,12 @@ static void test_two_measurements_are_independent() {
   CHECK(onset.levelAtOpen == level, "the committed level handed to the encounter must be exactly what NaviBaseline was reporting, unaltered by detection");
 }
 
-// ---- TimingPredictor: geographic opening-to-opening timing as
-// qualification evidence (2026-10-24). The arrival-boundary stop mechanism
-// was removed this same day on instruction; this is a distinct, new
-// mechanism for RECOGNITION, not a stop.
-static void test_timing_no_prediction_fails_open() {
-  TimingPredictor p;
-  const TimingEvidence ev = p.evaluate(5, 1, 1234);
-  CHECK(!ev.havePrediction, "no prior confirmed traversal of this interval: no prediction yet");
-  CHECK(p.agrees(ev), "must fail open with no prediction established, not invent a rejection");
-}
-static void test_timing_observe_then_predict() {
-  TimingPredictor p;
-  p.observe(5, 1, 970);
-  const TimingEvidence ev = p.evaluate(5, 1, 1500);
-  CHECK(ev.havePrediction, "a prior confirmed traversal must establish a prediction");
-  CHECK(ev.predictedMs == 970, "the prediction must be exactly the last observed real measurement -- no smoothing, no invented margin");
-  CHECK(p.agrees(ev), "must still fail open: no acceptance tolerance has been approved yet (TIMING_TOLERANCE_ESTABLISHED == false)");
-}
-static void test_timing_separate_slots_per_direction() {
-  TimingPredictor p;
-  p.observe(5, 1, 900);
-  const TimingEvidence cw = p.evaluate(5, 1, 0);
-  const TimingEvidence ccw = p.evaluate(5, -1, 0);
-  CHECK(cw.havePrediction && cw.predictedMs == 900, "the CW observation must be retrievable for CW");
-  CHECK(!ccw.havePrediction, "CCW of the same physical gap must not inherit CW's observation -- not assumed equal travel time");
-}
-static void test_timing_tolerance_not_established() {
-  CHECK(TIMING_TOLERANCE_ESTABLISHED == false, "no acceptance window has been approved; must not silently start gating on an invented number");
-}
-static void test_timing_cannot_override_wrong_polarity() {
-  // Required identifiers must ALL agree (David, 2026-10-24): timing can
-  // never rescue a wrong-polarity encounter, even though it currently
-  // fails open (reports "agrees") for lack of an approved tolerance.
-  TargetTracker t; t.declare(10, 11, +1);
-  const int8_t expected = expectedHallSign(11);
-  CompletedEncounter wrong{};
-  wrong.pol = int8_t(-expected); wrong.meetsMinWidth = true;
-  wrong.timingElapsedMs = 1000; wrong.timingValid = true;
-  CHECK(t.onEncounter(wrong) == JudgementResult::NonQualifying, "wrong polarity must be rejected regardless of what timing reports");
-  CHECK(t.nextMm() == 11, "target must not advance on wrong polarity under any timing condition");
-}
-static void test_correct_polarity_alone_does_not_bypass_timing_check() {
-  // Confirms the qualification call site actually evaluates timing (not
-  // just polarity+width) for every encounter -- "participates," per
-  // instruction, even while the agreement test itself fails open.
-  TargetTracker t; t.declare(10, 11, +1);
-  const int8_t expected = expectedHallSign(11);
-  CompletedEncounter right{};
-  right.pol = expected; right.meetsMinWidth = true;
-  right.timingElapsedMs = 777; right.timingValid = true;
-  CHECK(t.onEncounter(right) == JudgementResult::Confirmed, "correct polarity, width and (fail-open) timing together confirm");
-  CHECK(t.lastTiming().measuredMs == 777, "the timing evidence actually evaluated for this encounter must be recorded, not bypassed");
-}
-
 int main() {
   test_target_nonqualifying_keeps_waiting();
   test_target_abandoned_is_no_claim();
   test_target_unset_has_no_claim();
+  test_timing_profile_qualification();
+  test_timing_anchor_is_last_confirmed_opening();
   test_encounter_completes_on_rtb();
   test_encounter_never_times_out();
   test_encounter_min_width_inert();
@@ -318,12 +295,6 @@ int main() {
   test_baseline_promotes_on_any_nonzero_evidence();
   test_baseline_independent_of_encounter_confirmation();
   test_two_measurements_are_independent();
-  test_timing_no_prediction_fails_open();
-  test_timing_observe_then_predict();
-  test_timing_separate_slots_per_direction();
-  test_timing_tolerance_not_established();
-  test_timing_cannot_override_wrong_polarity();
-  test_correct_polarity_alone_does_not_bypass_timing_check();
   if (failures) { printf("%d FAILURE(S)\n", failures); return 1; }
   printf("ALL PASSED\n");
   return 0;

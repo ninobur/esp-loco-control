@@ -33,6 +33,8 @@ static constexpr uint32_t CANDIDATE_STRIDE = CANDIDATE_NATIVE_HZ / CANDIDATE_RUL
 
 struct CandidateOnset {
   uint32_t openSerial = 0;   // the FIRST of the two crossing samples (the true opening instant)
+  uint64_t openUs = 0;       // native timestamp of that FIRST crossing sample
+  uint8_t pwmAtOpen = 0;     // applied PWM at that instant; timing context, never a Hall gate
   int8_t pol = 0;             // +1 above the reference, -1 below
   float levelAtOpen = 0;      // the live baseline level the excursion departed from
 };
@@ -43,7 +45,8 @@ class CandidateDetector {
   // from NaviBaseline — never computed here). Returns true exactly once per
   // genuinely new departure, via `out`. Nothing about this call can be
   // suspended by anything downstream.
-  bool onSample(uint16_t adc, float baselineLevel, uint32_t serial, CandidateOnset& out) {
+  bool onSample(uint16_t adc, float baselineLevel, uint32_t serial, uint64_t us,
+                uint8_t pwm, CandidateOnset& out) {
     const bool evaluate = (strideCounter_++ % CANDIDATE_STRIDE) == 0;
     if (!evaluate) return false;
     const float dev = float(adc) - baselineLevel;
@@ -52,11 +55,12 @@ class CandidateDetector {
     bool onset = false;
     if (crosses) {
       if (!excursionActive_ && pendingCross_ && pendingSign_ == sign) {
-        out.openSerial = pendingSerial_; out.pol = sign; out.levelAtOpen = baselineLevel;
+        out.openSerial = pendingSerial_; out.openUs = pendingUs_; out.pwmAtOpen = pendingPwm_;
+        out.pol = sign; out.levelAtOpen = baselineLevel;
         onset = true;
         excursionActive_ = true;
       }
-      pendingCross_ = true; pendingSign_ = sign; pendingSerial_ = serial;
+      pendingCross_ = true; pendingSign_ = sign; pendingSerial_ = serial; pendingUs_ = us; pendingPwm_ = pwm;
     } else {
       pendingCross_ = false;
       excursionActive_ = false;   // back under threshold: the next departure will be noticed fresh
@@ -68,6 +72,8 @@ class CandidateDetector {
   bool pendingCross_ = false, excursionActive_ = false;
   int8_t pendingSign_ = 1;
   uint32_t pendingSerial_ = 0;
+  uint64_t pendingUs_ = 0;
+  uint8_t pendingPwm_ = 0;
   uint32_t strideCounter_ = 0;
 };
 
