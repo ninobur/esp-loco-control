@@ -9,47 +9,50 @@ checks it directly; it cannot be bypassed from MQTT. Manual throttle,
 direction, declare, E-STOP and battery protection work normally, and this
 is how the build is meant to be operated right now.
 
+**2026-10-27 — waveform recognizer.** The 70×2 onset / frozen-baseline /
+PWM-90 timing machinery described below as "What is new" has been retired
+and replaced by a single-scale matched-filter waveform recognizer with a
+simple next-target DNA matcher (see the new "What is new" section, and
+`docs/navi/NAVI_WAVEFORM_RECOGNIZER_HANDOFF_20261027.md`). The locomotive
+is selected at compile time with `-DNAVI_LOCO=9950011` (Otto, default) or
+`-DNAVI_LOCO=9950012` (Toby).
+
 ## What is new
 
-`NaviCandidate.h`, `NaviEncounter.h`, `NaviBaseline.h`, `NaviTarget.h`,
-`NaviTimingPredictor.h`, `NaviTimingProfiles.h` — built directly from the conference record and the
-integrated implementation proposal, not adapted from `RvmShape.h` /
-`RvmContinuity.h` / `RvmNavigator.h`, which both independent audits of r5.1
-(Claude and Codex, 2026-10-24) found in active conflict with the agreed
-design.
+`NaviMatchedFilter.h`, `NaviWaveformTemplate.h`, `NaviWaveformMatcher.h`,
+`NaviDiagnosticLevel.h` — built from the matched-filter research
+(`research/navi_matched_filter/REPORT.md`) and the architecture
+(`docs/navi/NAVI_WAVEFORM_RECOGNIZER_ARCHITECTURE_20261027.md`), following
+Claude's single-scale recognizer design
+(`docs/navi/NAVI_WAVEFORM_RECOGNIZER_DESIGN_20261027.md`).
 
-- **Onset detection** (`NaviCandidate.h`): 70-count, two-consecutive-sample
-  sentinel at the established 1 kHz cadence, comparing against the live
-  baseline level. No lock, no reference of its own — a candidate while
-  another encounter is unresolved does not stop detection.
-- **Baseline** (`NaviBaseline.h`): the long, inter-magnet measurement.
-  Collection begins the instant the signal *appears* to re-enter ordinary
-  track (one block within margin of the committed level) — not gated on
-  `NaviEncounter`'s own confirmation — and runs, PWM-gated, to the next
-  genuine opening, where the median of everything collected is promoted.
-  Retains the previous level only when literally zero samples were
-  collected (e.g. a fully stationary dwell). Verified independent of the
-  short measurement's timing, both in host tests and against 198 real
-  encounters (entry always preceded confirmation by ~200-300ms, zero
-  counterexamples).
-- **Encounter** (`NaviEncounter.h`): the short, local measurement — observed
-  return to the committed baseline level, no timeout.
-- **Target** (`NaviTarget.h`): one expected target; nonqualifying evidence
-  leaves it unchanged; no Contradiction/search/recovery state.
-- **Timing as qualification evidence** (`NaviTimingPredictor.h`,
-  `NaviTimingProfiles.h`): the interval clock runs from the native timestamp
-  of the last *confirmed* 70x2 opening to the current candidate's native
-  70x2 opening. A nonqualifying observation never resets it. Profiles are
-  independently keyed by source marker, direction, and fixed PWM, so a CW
-  90-PWM value is never used for CCW or 60-PWM travel. The PWM-90 map has
-  342 survey-derived entries (171 per direction), generated from
-  `docs/OTTO_70X2_ONSET_PWM90_TIMING_TABLE_20261025.{csv,json}`. Each entry
-  is a normalized geographic factor, not a frozen duration: its expected
-  time and observed lower/upper bounds are scaled by the current locomotive
-  and consist's span-weighted standardization pace over MM035–055 and
-  MM115–125. Until one complete directed calibration pass is observed,
-  PWM-90 timing is visibly `AWAITING_CALIBRATION`; PWM-60 remains
-  `UNPROFILED` because no valid 70x2 onset-pair survey exists.
+- **Waveform recognition** (`NaviMatchedFilter.h`, `NaviWaveformTemplate.h`):
+  per 1 ms tick, the median of the 5 Hall reads; pairs averaged to a 500 Hz
+  series; one fixed 240 ms magnetic waveform template, pad 0.5, level-only
+  normalized correlation; acceptance r ≥ 0.7 and |A| ≥ 70 ADC counts; local
+  maxima of |r| with ±120 ms non-maximum suppression; greedy causal
+  declaration at passage + 359 ms. Recognition is independent of map
+  position, expected polarity, IR, and geographic timing. Each event
+  carries passage time, recognition time, polarity, score r, and amplitude.
+- **Simple matcher** (`NaviWaveformMatcher.h`): last confirmed marker, next
+  expected marker and its mapped polarity. Expected polarity → confirm and
+  advance. Contradictory polarity → record the observation and the
+  discrepancy; retain the last confirmed position; leave the expected
+  target unchanged. No re-alignment, no rearview mirror, no competing
+  hypotheses, no automatic geographic correction. A provisional
+  duplicate-advance guard (400 ms, separate from recognition) refuses an
+  advance when the previous advance's passage was less than 400 ms
+  earlier; the observation is still recorded.
+- **Diagnostic 70×2 onset detector** (`NaviCandidate.h`, unchanged): still
+  runs in hallTask, fed by a trailing 1 s median level
+  (`NaviDiagnosticLevel.h`), counted and logged to Serial only. It never
+  reaches the matcher and never vetoes the recognizer.
+- **Retired** (deleted; preserved in git history at `621a029`):
+  `NaviBaseline.h`, `NaviTarget.h`, `NaviEncounter.h`,
+  `NaviTimingPredictor.h`, `NaviTimingProfiles.h`, `NaviObservation.h` —
+  the frozen-median baseline, the PWM-90 timing gate, the encounter
+  packaging, and the 20 ms tracing. The survey table is regenerable from
+  `docs/OTTO_70X2_ONSET_PWM90_TIMING_TABLE_20261025.{csv,json}`.
 
 ## What is reused unchanged, from r5.1 commit `5b7a518b`
 
@@ -68,15 +71,33 @@ design.
 
 ## What is NOT done
 
-- **Minimum physically plausible width** (`NaviEncounter.h`,
-  `MIN_WIDTH_BLOCKS`): mechanism present, value intentionally `0`
-  (disabled).
-- **PWM-60 timing map**: the required supervised fixed-PWM-60 70x2 survey
-  has not yet been collected. No 60-PWM value is inferred from the 90-PWM
-  map, route spacing, or another locomotive.
+- **PWM-60 and lower speeds**: the single 240 ms template is built from
+  PWM-90 passages. Slower passages are wider and score lower (r 0.74–0.77
+  at PWM 21–50 in the panels replay; the research's 6-scale detector used
+  0.38 s for the PWM-64 MM56). The first track test is at PWM 90 for this
+  reason. Whether the single scale is enough at lower speeds is a
+  track-test question, not a dry-lab one.
 - **CCW**: declared successfully (suspends and re-declares correctly on a
   session-direction change) but not yet driven/observed in the field —
   untested, not known-broken.
+- **Merged-signal condition**: no raw Hall trace of the 2026-10-25 12:06
+  MM108–120 failure exists; the recognizer has not been replayed over it.
+  The track test should watch MM108 and the MM107–113 same-polarity
+  stretch.
+
+## Field status, 2026-10-27
+
+Not yet flashed or run. Host verification (`tests/navi_waveform_recognizer/run_checks.sh`):
+Level 1 replay (Otto, 96.8 s NSR) finds 20/20 reference magnets, 0 missed,
+0 polarity errors, 0 false events; the panels replay produces no false
+events while stationary. Full-sketch ESP32 compile succeeds for both Otto
+and Toby (arduino-cli, ESP32 core 3.3.12, zero warnings; 78% flash, 20%
+RAM). One build note: with core 3.3.12 and Adafruit_BusIO 1.17.4 the build
+needs `-DESP32` added to the build flags, because the core no longer
+defines the plain `ESP32` macro that BusIO tests for — without it the
+build fails inside Adafruit_BusIO, not in the sketch. See
+`docs/navi/NAVI_WAVEFORM_RECOGNIZER_HANDOFF_20261027.md` for the full
+handoff, including the flashing and recovery instructions.
 
 ## Field status, 2026-10-24
 
@@ -91,8 +112,9 @@ Adafruit_BusIO/core incompatibility did not reproduce).
 
 ## Testing
 
-`tests/navi_power_of_normal/run_checks.sh` — host-side unit tests for the
-navigation headers plus a replay of the real boot-1 native Hall corpus. The
-timing tests verify that only the designated standardization intervals can
-activate the PWM-90 map and that the normalized factors scale afterward. No
-hardware or network.
+`tests/navi_waveform_recognizer/run_checks.sh` — host-side unit tests for
+the recognizer and matcher, plus a replay of the Level 1 native Hall
+recording (Otto, 96.8 s) scored against the research reference, and a
+robustness replay of the plotted-samples panels. No hardware or network.
+The old host tests in `tests/navi_power_of_normal/` do not compile against
+the retired APIs and are superseded by the new harness.

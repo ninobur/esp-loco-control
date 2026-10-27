@@ -1,0 +1,55 @@
+{
+ "panels": [
+  {
+   "t0_us": 193604510,
+   "ticks": 8000,
+   "duration_s": 7.998987,
+   "pwm_min": 0,
+   "pwm_max": 0
+  },
+  {
+   "t0_us": 886840361,
+   "ticks": 5107,
+   "duration_s": 5.106195,
+   "pwm_min": 0,
+   "pwm_max": 0
+  },
+  {
+   "t0_us": 892226532,
+   "ticks": 2594,
+   "duration_s": 2.611873,
+   "pwm_min": 0,
+   "pwm_max": 0
+  },
+  {
+   "t0_us": 1575880406,
+   "ticks": 8000,
+   "duration_s": 7.999,
+   "pwm_min": 21,
+   "pwm_max": 45
+  },
+  {
+   "t0_us": 2265630931,
+   "ticks": 8000,
+   "duration_s": 7.998776,
+   "pwm_min": 90,
+   "pwm_max": 90
+  },
+  {
+   "t0_us": 2958731663,
+   "ticks": 7999,
+   "duration_s": 7.997834,
+   "pwm_min": 50,
+   "pwm_max": 50
+  },
+  {
+   "t0_us": 3651324317,
+   "ticks": 7990,
+   "duration_s": 7.998141,
+   "pwm_min": 0,
+   "pwm_max": 0
+  }
+ ],
+ "source": "DB430F7C-161F-4F10-B0B1-685DF0777941-raw_15549e9385faa4d5_plotted_samples.csv",
+ "ticks_file": "/home/hatch/workspace/user/files/DB430F7C-161F-4F10-B0B1-685DF0777941-raw_15549e9385faa4d5_plotted_samples.ticks.bin"
+}

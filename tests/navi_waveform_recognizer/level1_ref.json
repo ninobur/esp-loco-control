@@ -1,0 +1,109 @@
+{
+ "magnets": [
+  {
+   "t_peak_s": 43.549,
+   "polarity": -1,
+   "ref_mm": 37
+  },
+  {
+   "t_peak_s": 45.261,
+   "polarity": -1,
+   "ref_mm": 38
+  },
+  {
+   "t_peak_s": 46.739,
+   "polarity": -1,
+   "ref_mm": 39
+  },
+  {
+   "t_peak_s": 48.175,
+   "polarity": -1,
+   "ref_mm": 40
+  },
+  {
+   "t_peak_s": 49.619,
+   "polarity": -1,
+   "ref_mm": 41
+  },
+  {
+   "t_peak_s": 51.067,
+   "polarity": 1,
+   "ref_mm": 42
+  },
+  {
+   "t_peak_s": 52.367,
+   "polarity": -1,
+   "ref_mm": 43
+  },
+  {
+   "t_peak_s": 53.645,
+   "polarity": 1,
+   "ref_mm": 44
+  },
+  {
+   "t_peak_s": 54.941,
+   "polarity": -1,
+   "ref_mm": 45
+  },
+  {
+   "t_peak_s": 56.207,
+   "polarity": -1,
+   "ref_mm": 46
+  },
+  {
+   "t_peak_s": 57.425,
+   "polarity": -1,
+   "ref_mm": 47
+  },
+  {
+   "t_peak_s": 58.661,
+   "polarity": 1,
+   "ref_mm": 48
+  },
+  {
+   "t_peak_s": 59.943,
+   "polarity": 1,
+   "ref_mm": 49
+  },
+  {
+   "t_peak_s": 61.255,
+   "polarity": -1,
+   "ref_mm": 50
+  },
+  {
+   "t_peak_s": 62.561,
+   "polarity": 1,
+   "ref_mm": 51
+  },
+  {
+   "t_peak_s": 63.827,
+   "polarity": -1,
+   "ref_mm": 52
+  },
+  {
+   "t_peak_s": 65.179,
+   "polarity": -1,
+   "ref_mm": 53
+  },
+  {
+   "t_peak_s": 66.627,
+   "polarity": -1,
+   "ref_mm": 54
+  },
+  {
+   "t_peak_s": 68.145,
+   "polarity": -1,
+   "ref_mm": 55
+  },
+  {
+   "t_peak_s": 69.971,
+   "polarity": 1,
+   "ref_mm": 56
+  }
+ ],
+ "span_s": [
+  43.549,
+  69.971
+ ],
+ "source": "research event_ledger.csv, session 9950011_20261025_133357 (level1), classification=magnet (route-anchored reference)"
+}

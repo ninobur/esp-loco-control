@@ -5,8 +5,9 @@
  * authorization of the same date. Not based on RvmShape.h / RvmContinuity.h /
  * RvmNavigator.h: those are discarded entirely, per the independent audits
  * (Claude and Codex, 2026-10-24) that found their active logic in direct
- * conflict with the agreed design. See NaviCandidate.h, NaviEncounter.h,
- * NaviTarget.h and NaviTimingPredictor.h for the replacement, built new.
+ * conflict with the agreed design. The 2026-10-24 replacement (NaviCandidate.h,
+ * NaviEncounter.h, NaviTarget.h, NaviTimingPredictor.h) is itself retired by
+ * the 2026-10-27 waveform recognizer; see the NAVIGATION paragraph below.
  *
  * REUSED UNCHANGED from NAVI_RVM_AUTO_STATIONS_BUBBLE r5.1 (commit 5b7a518b,
  * the last-flashed, field-run build): RouteMap.h, RvmStations.h, RvmOps.h,
@@ -24,13 +25,21 @@
  * Manual throttle/direction/declare/E-STOP/battery protection all work
  * normally; GO and AUTO do not.
  *
- * NAVIGATION (new): continuous, unconditional 20 ms tracing (NaviObservation.h,
- * no PWM gating, no withholding) + a 70-count two-consecutive-RAW-sample
- * onset detector at 5 kHz (NaviCandidate.h) + observed-return-to-baseline
- * encounter packaging (NaviEncounter.h, no shape/Gaussian scoring at all) +
- * single-expected-target judgement with no Contradiction/stop state, now
- * requiring geographic opening-to-opening timing to agree alongside polarity
- * and width (NaviTarget.h, NaviTimingPredictor.h, 2026-10-24).
+ * NAVIGATION (new, 2026-10-27): a single-scale matched-filter waveform
+ * recognizer (NaviMatchedFilter.h — one fixed 240 ms template, level-only
+ * correlation, r >= 0.7, |A| >= 70, 120 ms NMS, causal declaration at
+ * passage + 359 ms) over the continuous Hall signal, fed by 1 ms tick
+ * medians (hallTask) and correlated in rvmTask, plus a simple next-target
+ * DNA matcher (NaviWaveformMatcher.h): confirm and advance on polarity
+ * agreement, record the observation and the discrepancy on contradiction,
+ * position and target unchanged. No timing gate, no interval scaling, no
+ * IR, no sequence re-alignment, no rearview mirror, no competing
+ * hypotheses. The 70x2 onset detector (NaviCandidate.h) stays only as a
+ * diagnostic cross-check, fed by a trailing median level; it never vetoes
+ * or modifies the recognizer. The frozen-median baseline, the PWM-90
+ * timing gate, the encounter packaging and the 20 ms tracing of the
+ * 2026-10-26 revision are retired; see docs/navi/
+ * NAVI_WAVEFORM_RECOGNIZER_IMPLEMENTATION_PLAN_20261027.md.
  * ========================================================================== */
 #include <Arduino.h>
 #include <WiFi.h>
@@ -48,11 +57,11 @@
 #include "RvmOps.h"
 #include "NaviEstop.h"
 #include "RouteMap.h"
-#include "NaviObservation.h"
-#include "NaviBaseline.h"
 #include "NaviCandidate.h"
-#include "NaviEncounter.h"
-#include "NaviTarget.h"
+#include "NaviWaveformTemplate.h"
+#include "NaviMatchedFilter.h"
+#include "NaviWaveformMatcher.h"
+#include "NaviDiagnosticLevel.h"
 #include "RvmStations.h"
 
 namespace navi_power {
@@ -98,16 +107,12 @@ static IPAddress naviSyncDest;
 static bool naviSyncDestValid = false;
 static uint32_t naviSyncUdpFailures = 0, naviSyncDatagrams = 0;
 static navi_sync::Recorder* recorder = nullptr;
-static QueueHandle_t pubQ = nullptr, cmdQ = nullptr, blockQ = nullptr, onsetQ = nullptr, ctlQ = nullptr, navEvQ = nullptr;
+static QueueHandle_t pubQ = nullptr, cmdQ = nullptr, medianQ = nullptr, ctlQ = nullptr, navEvQ = nullptr;
 static uint32_t pubDrops = 0, cmdDrops = 0;
-static std::atomic<uint32_t> blockQueueDrops{0}, onsetQueueDrops{0}, navEventDrops{0}, ctlDrops{0};
-// The live baseline level, written only by rvmTask (from NaviBaseline, the
-// long inter-magnet measurement) and read only by hallTask's CandidateDetector
-// at native rate. No lock: single writer, single reader, same core.
-static std::atomic<float> sharedBaselineLevel{0};
-static std::atomic<bool> sharedBaselineReady{false};
-static std::atomic<bool> sharedIdentificationGate{false};
-static std::atomic<uint32_t> baselineRetainedCount{0};  // diagnostic: insufficient-evidence fallback firings
+static std::atomic<uint32_t> medianQueueDrops{0}, navEventDrops{0}, ctlDrops{0};
+// 70x2 diagnostic onsets (hallTask only). A count, not a gate: the diagnostic
+// never vetoes or modifies the recognizer.
+static std::atomic<uint32_t> diagOnsets{0};
 static uint64_t bootId = 0;
 static uint32_t lastMqttReportMs = 0;
 
@@ -131,34 +136,44 @@ static bool autoEnrolled = false, autoRunning = false;
 static uint64_t activeCommandOrder = 0, activeCommandReceivedUs = 0;
 
 // ------------------------------------------------- navigation (observer) --
-// Owned by rvmTask (core 0) except CandidateDetector, which is local to
-// hallTask (it must see every native 5 kHz sample). The loop (core 1) sends
-// declarations / suspensions via ctlQ and receives events via navEvQ.
-// Nothing here is read by the motor path except the NavSnapshot below.
+// Owned by rvmTask (core 0) except the tick-median producer and the 70x2
+// diagnostic, which are local to hallTask. The recognizer core and the
+// matcher live in rvmTask. The loop (core 1) sends declarations /
+// suspensions via ctlQ and receives events via navEvQ. Nothing here is
+// read by the motor path except the NavSnapshot below.
+// One 1 ms tick median, hallTask -> rvmTask (medianQ, depth 256 = 256 ms of
+// slack; rvmTask drains it every iteration).
+struct TickMedian { int16_t median; uint64_t tUs; };
 struct NavCtl { uint8_t kind; uint8_t last, next; int8_t dir; };      // 1 declare, 2 suspend
 enum : uint8_t { CTL_DECLARE = 1, CTL_SUSPEND = 2 };
-struct NavEvent {
-  uint8_t kind;      // 1 declared, 2 suspended, 3 confirmed, 4 nonqualifying, 5 abandoned
-  uint8_t mm, expected, last, next; int8_t dir;
-  navi_power::CompletedEncounter e;
+// One judged observation, rvmTask -> loop (navEvQ). `e` is the matcher's
+// Observation record for the event, plus the PWM at recognition time.
+struct NavEventData {
+  uint32_t seq = 0;
+  uint64_t passageUs = 0, recognizedUs = 0;
+  float r = 0, amplitude = 0;
+  int8_t pol = 0, expectedPol = 0;
+  uint8_t expectedMm = 0;
+  uint8_t outcome = 0;  // MatcherOutcome
+  uint8_t pwmAtRecognition = 0;
 };
-enum : uint8_t { EV_DECLARED = 1, EV_SUSPENDED = 2, EV_CONFIRMED = 3, EV_NONQUALIFYING = 4, EV_ABANDONED = 5 };
+struct NavEvent {
+  uint8_t kind;      // 1 declared, 2 suspended, 3 confirmed, 4 nonqualifying (polarity discrepancy), 5 abandoned (unused, retained), 6 duplicate-guard, 7 observation (no target)
+  uint8_t mm, expected, last, next; int8_t dir;
+  NavEventData e;
+};
+enum : uint8_t { EV_DECLARED = 1, EV_SUSPENDED = 2, EV_CONFIRMED = 3, EV_NONQUALIFYING = 4, EV_ABANDONED = 5, EV_DUPLICATE_GUARD = 6, EV_OBSERVATION = 7 };
 struct NavSnapshot {
   uint8_t state = 0, last = 0, next = 0; int8_t dir = 0;
-  uint32_t confirmed = 0, nonqualifying = 0, abandoned = 0, blocksEmitted = 0, blocksDropped = 0;
+  // confirmed = advances; nonqualifying = recorded polarity discrepancies
+  // (observations that did not confirm the target); abandoned is always 0
+  // in this build (no encounter packaging); duplicateGuards counts advances
+  // refused by the provisional 400 ms guard.
+  uint32_t confirmed = 0, nonqualifying = 0, abandoned = 0, duplicateGuards = 0;
   bool encounterActive = false;
-  // Timing qualification evidence (2026-10-24), for the most recently judged
-  // encounter -- visibility into whether/how it participated, per David's
-  // instruction that this must be verifiable, not just present in code.
-  bool timingHaveAnchor = false, timingHaveProfile = false, timingCalibrationReady = false, timingAgrees = false;
-  uint8_t timingResult = 0;
-  uint16_t timingCalibrationCoveredMm = 0, timingCalibrationRequiredMm = 0;
-  uint32_t timingPredictedMs = 0, timingMeasuredMs = 0, timingLowerMs = 0, timingUpperMs = 0, timingToleranceMs = 0;
 };
-static navi_power::Encounter encounter;             // rvmTask only
-static navi_power::BaselineTracker baseline;        // rvmTask only — the long inter-magnet measurement
-static navi_power::TargetTracker target;            // rvmTask only
-static navi_power::ObservationHealth obsHealth;      // rvmTask only
+static NaviMatchedFilter recognizer;   // rvmTask only — the waveform recognizer core
+static navi_power::WaveformMatcher matcher;  // rvmTask only — the simple DNA matcher
 // ------------------------------------------------------- AUTO and the bubble --
 static rvm_ops::StationDriver stationDriver;
 static rvm_ops::DriveOutput lastDrive;
@@ -169,22 +184,17 @@ static volatile bool espNowReady = false;
 static const uint8_t BROADCAST_MAC[6] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
 static NavSnapshot navShared;
 static portMUX_TYPE navMux = portMUX_INITIALIZER_UNLOCKED;
-static std::atomic<uint64_t> firstBlockUs{0};
 static std::atomic<uint32_t> rvmStackFree{0};
-static uint32_t blockCounter = 0;                    // rvmTask: running count of blocks consumed (openBlockId bookkeeping)
 
 static NavSnapshot navSnapshot() {
   portENTER_CRITICAL(&navMux); NavSnapshot s = navShared; portEXIT_CRITICAL(&navMux); return s;
-}
-static uint64_t blockUs(uint32_t id) {             // centre of tracing block `id` on the boot clock
-  return firstBlockUs.load() + uint64_t(id) * navi_power::Tracing::BLOCK_US + navi_power::Tracing::BLOCK_US / 2;
 }
 
 // ------------------------------------------------------------ recorder --
 static navi_sync::Context recorderContext() {
   const NavSnapshot s = navSnapshot();
   navi_sync::Context c;
-  const bool tracking = s.state == uint8_t(navi_power::TargetState::Tracking);
+  const bool tracking = s.state == uint8_t(navi_power::MatcherState::Tracking);
   c.navMm = tracking ? s.last : navi_sync::MM_NA;
   c.navDir = s.dir; c.stationPhase = 0;
   uint8_t f = 0;
@@ -267,57 +277,67 @@ static Ops opsNow() {
   Ops o; o.estopped = estopped || estopAsserted; o.lowVoltage = lowVoltage;
   o.actualPwm = actualPwm; o.commandedPwm = commandedPwm; o.sessionDir = sessionDir;
   o.safeDirPwm = SAFE_DIRECTION_CHANGE_PWM;
-  o.positionKnown = navSnapshot().state == uint8_t(navi_power::TargetState::Tracking);
+  o.positionKnown = navSnapshot().state == uint8_t(navi_power::MatcherState::Tracking);
   o.forward = motorDirection != 0; o.enrolled = autoEnrolled;
   return o;
 }
 
 // ------------------------------------------------------------- Hall task --
-// 5 kHz native reads (5 per 1 ms tick). The candidate detector lives here: it
-// must see every raw sample, unconditionally, motor on or off (no PWM gate
-// anywhere in this path — David's instruction, 2026-10-24: do not withhold
-// observations). Native/legacy NSR1 records for the Pi and the 20 ms tracing
-// for recognition are unchanged from r5.1.
+// 5 kHz native reads (5 per 1 ms tick). Two things happen here, and neither
+// is gated on PWM, navigation state, or any baseline (David's instruction,
+// 2026-10-24: do not withhold observations):
+//   (a) the tick median (median of the 5 reads) is sent to rvmTask, where
+//       the matched-filter recognizer correlates it;
+//   (b) the 70x2 onset detector runs as a DIAGNOSTIC cross-check only,
+//       against a trailing median level. Its onsets are counted and logged
+//       to Serial; they never reach the matcher and never veto anything.
+// Native/legacy NSR1 records for the Pi are unchanged.
 static void hallTask(void*) {
-  static navi_power::Tracing tracing;
-  static navi_power::CandidateDetector candidate;
+  static navi_power::CandidateDetector candidate;  // diagnostic only
+  static navi_power::DiagnosticLevel diagLevel;    // diagnostic level source
   static uint32_t serial = 0;
   TickType_t wake = xTaskGetTickCount();
-  auto emit = [](const navi_power::Block& b) {
-    if (!blockQ || xQueueSend(blockQ, &b, 0) != pdTRUE) ++blockQueueDrops;
-  };
   for (;;) {
     navi_sync::HallSample wire{};
     const uint64_t firstUs = esp_timer_get_time();
     const int8_t routeDir = travelDirection();
     const uint8_t dirByte = routeDir > 0 ? 1 : routeDir < 0 ? 2 : 0;
     const auto ctx = recorderContext();
+    int16_t reads[5];
     for (unsigned i = 0; i < 5; ++i) {
       ++serial;
       const uint64_t us = esp_timer_get_time();
       const int raw = analogRead(HALL_PIN);
+      reads[i] = int16_t(raw);
       wire.raw[i] = uint16_t(raw);
       navi_sync::NativeHallItem item{};
       item.serial = serial; item.tUs = us; item.raw = int16_t(raw); item.pwm = uint8_t(actualPwm); item.direction = dirByte;
       recorder->addNativeHall(item, ctx);
-      tracing.add(us, uint16_t(raw), dirByte, serial, uint8_t(actualPwm), uint8_t(commandedPwm), emit);
-      if (!firstBlockUs.load()) firstBlockUs.store(tracing.firstBlockUs());
-      // No lock here: detection runs continuously, gated only on whether a
-      // live baseline level exists yet (it always will, shortly after boot).
-      if (!sharedIdentificationGate.load()) candidate.reset();
-      if (sharedBaselineReady.load() && sharedIdentificationGate.load()) {
+      // 70x2 diagnostic: unconditional, against the trailing median level.
+      diagLevel.add(int16_t(raw));
+      if (diagLevel.haveLevel()) {
         navi_power::CandidateOnset onset;
-        if (candidate.onSample(uint16_t(raw), sharedBaselineLevel.load(), serial, us,
+        if (candidate.onSample(uint16_t(raw), diagLevel.level(), serial, us,
                                uint8_t(actualPwm), onset)) {
-          if (!onsetQ || xQueueSend(onsetQ, &onset, 0) != pdTRUE) ++onsetQueueDrops;
+          ++diagOnsets;
+          Serial.printf("[DIAG70X2] onset pol=%+d openUs=%llu pwm=%u level=%.1f\n",
+                        int(onset.pol), (unsigned long long)onset.openUs,
+                        unsigned(onset.pwmAtOpen), double(onset.levelAtOpen));
         }
       }
     }
-    wire.median = INT16_MIN;
+    // The tick median is the recognizer's input. Its timestamp is the first
+    // read of the tick; the 5 reads span ~230 us, negligible against the
+    // 359 ms recognition latency. The median is also recorded in the NSR
+    // Hall record (it was previously left as INT16_MIN).
+    const int16_t tickMedian = medianOf5(reads);
+    wire.median = tickMedian;
     wire.pwmActual = uint8_t(actualPwm); wire.pwmCommanded = uint8_t(commandedPwm);
     wire.flags = motorDirection ? navi_sync::HALL_F_DIR_FWD : 0;
     if (actualPwm == 0) wire.flags |= navi_sync::HALL_F_HOLD;
     recorder->addHall(firstUs, uint32_t(firstUs / 1000), wire, ctx);
+    const TickMedian m{tickMedian, firstUs};
+    if (!medianQ || xQueueSend(medianQ, &m, 0) != pdTRUE) ++medianQueueDrops;
     vTaskDelayUntil(&wake, 1);
   }
 }
@@ -325,42 +345,40 @@ static void hallTask(void*) {
 // -------------------------------------------------------------- RVM task --
 static void publishSnapshot() {
   NavSnapshot s;
-  s.state = uint8_t(target.state()); s.last = target.lastMm(); s.next = target.nextMm(); s.dir = target.dir();
-  s.encounterActive = false; // completion is not a navigation prerequisite
-  s.blocksEmitted = obsHealth.blocksEmitted; s.blocksDropped = obsHealth.blocksDropped;
-  { const auto& t = target.lastTiming();
-    s.timingHaveAnchor = t.haveAnchor; s.timingHaveProfile = t.haveProfile;
-    s.timingCalibrationReady = t.calibrationReady;
-    s.timingCalibrationCoveredMm = t.calibrationCoveredMm;
-    s.timingCalibrationRequiredMm = t.calibrationRequiredMm;
-    s.timingResult = uint8_t(t.result); s.timingPredictedMs = t.expectedMs;
-    s.timingMeasuredMs = t.measuredMs; s.timingLowerMs = t.lowerMs;
-    s.timingUpperMs = t.upperMs; s.timingToleranceMs = t.toleranceMs;
-    s.timingAgrees = t.result == navi_power::TimingResult::Matches;
-  }
+  s.state = uint8_t(matcher.state()); s.last = matcher.lastMm(); s.next = matcher.nextMm(); s.dir = matcher.dir();
+  s.confirmed = matcher.confirmed(); s.nonqualifying = matcher.discrepancies(); s.abandoned = 0;
+  s.duplicateGuards = matcher.duplicateGuards();
+  s.encounterActive = false;
   portENTER_CRITICAL(&navMux);
-  s.confirmed = navShared.confirmed; s.nonqualifying = navShared.nonqualifying; s.abandoned = navShared.abandoned;
   navShared = s;
   portEXIT_CRITICAL(&navMux);
 }
 static void postEvent(const NavEvent& ev) { if (!navEvQ || xQueueSend(navEvQ, &ev, 0) != pdTRUE) ++navEventDrops; }
 
-// Geographic decision occurs at the native Hall opening, not at closure.
-static void judgeOnset(const navi_power::CandidateOnset& onset) {
-  const uint8_t expectedBefore = target.nextMm();
-  const auto r = target.onOnset(onset);
-  NavEvent ev{}; ev.expected = expectedBefore; ev.last = target.lastMm();
-  ev.next = target.nextMm(); ev.dir = target.dir();
-  ev.e.openUs = onset.openUs; ev.e.pwmAtOpen = onset.pwmAtOpen;
-  ev.e.pol = onset.pol; ev.e.meetsMinWidth = true;
-  portENTER_CRITICAL(&navMux);
-  if (r == navi_power::JudgementResult::Confirmed) {
-    ev.kind = EV_CONFIRMED; ev.mm = target.lastMm(); ++navShared.confirmed;
-  } else { ev.kind = EV_NONQUALIFYING; ++navShared.nonqualifying; }
-  portEXIT_CRITICAL(&navMux);
-  if (r == navi_power::JudgementResult::Confirmed) {
-    baseline.onConfirmedOpening();
-    sharedIdentificationGate.store(false);
+// Judge one recognized event against the current target (Option B: confirm
+// on agreement, record on contradiction). The observation is already in the
+// matcher's record; this only packages it for the loop thread.
+static void judgeEvent(const NaviRecognizedEvent& e) {
+  const uint8_t expectedBefore = matcher.nextMm();
+  const auto out = matcher.onEvent(e);
+  const auto& o = matcher.latest();
+  NavEvent ev{};
+  ev.expected = expectedBefore; ev.last = matcher.lastMm();
+  ev.next = matcher.nextMm(); ev.dir = matcher.dir();
+  ev.e.seq = o.seq; ev.e.passageUs = o.passageUs; ev.e.recognizedUs = o.recognizedUs;
+  ev.e.r = o.r; ev.e.amplitude = o.amplitude; ev.e.pol = o.polarity;
+  ev.e.expectedMm = o.expectedMm; ev.e.expectedPol = o.expectedPolarity;
+  ev.e.outcome = uint8_t(o.outcome);
+  ev.e.pwmAtRecognition = uint8_t(actualPwm);
+  switch (out) {
+    case navi_power::MatcherOutcome::Confirmed:
+      ev.kind = EV_CONFIRMED; ev.mm = matcher.lastMm(); break;
+    case navi_power::MatcherOutcome::Discrepancy:
+      ev.kind = EV_NONQUALIFYING; ev.mm = 0; break;
+    case navi_power::MatcherOutcome::DuplicateGuard:
+      ev.kind = EV_DUPLICATE_GUARD; ev.mm = 0; break;
+    default:  // NoClaim: no target to judge against; still reported
+      ev.kind = EV_OBSERVATION; ev.mm = 0; break;
   }
   postEvent(ev);
 }
@@ -368,45 +386,30 @@ static void applyControl() {
   NavCtl c;
   while (ctlQ && xQueueReceive(ctlQ, &c, 0) == pdTRUE) {
     if (c.kind == CTL_DECLARE) {
-      sharedIdentificationGate.store(false);
-      target.declare(c.last, c.next, c.dir);
-      NavEvent ev{}; ev.kind = EV_DECLARED; ev.last = target.lastMm(); ev.next = target.nextMm(); ev.dir = target.dir();
+      matcher.declare(c.last, c.next, c.dir);
+      NavEvent ev{}; ev.kind = EV_DECLARED; ev.last = matcher.lastMm(); ev.next = matcher.nextMm(); ev.dir = matcher.dir();
       publishSnapshot(); postEvent(ev);
     } else {
-      sharedIdentificationGate.store(false);
-      target.suspend();
-      NavEvent ev{}; ev.kind = EV_SUSPENDED; ev.last = target.lastMm(); ev.next = target.nextMm(); ev.dir = target.dir();
+      matcher.suspend();
+      NavEvent ev{}; ev.kind = EV_SUSPENDED; ev.last = matcher.lastMm(); ev.next = matcher.nextMm(); ev.dir = matcher.dir();
       publishSnapshot(); postEvent(ev);
     }
   }
 }
 static void rvmTask(void*) {
   for (;;) {
-    navi_power::Block b;
-    bool got = blockQ && xQueueReceive(blockQ, &b, pdMS_TO_TICKS(100)) == pdTRUE;
-    applyControl();
-    navi_power::CandidateOnset onset;
-    while (onsetQ && xQueueReceive(onsetQ, &onset, 0) == pdTRUE) {
-      // The opening timestamp itself must fall inside the active gate.
-      // Ignore stale queue entries after an earlier confirmation.
-      if (sharedIdentificationGate.load() && target.windowOpen(onset.openUs))
-        judgeOnset(onset);
-    }
+    // Drain the tick medians (block briefly so declarations and the snapshot
+    // still get serviced when the Hall stream pauses). Feeding the core may
+    // declare events; they are judged after applyControl, as before.
+    TickMedian m;
+    bool got = medianQ && xQueueReceive(medianQ, &m, pdMS_TO_TICKS(50)) == pdTRUE;
     if (got) {
-      obsHealth.noteEmitted();
-      ++blockCounter;
-      baseline.onBlock(b.hall, b.pwm > 0);
+      recognizer.pushTickMedian(m.median, m.tUs);
+      while (medianQ && xQueueReceive(medianQ, &m, 0) == pdTRUE)
+        recognizer.pushTickMedian(m.median, m.tUs);
     }
-    // Gate transition is time-driven. The median is frozen BEFORE enabling
-    // native Hall identification, and stays fixed until confirmed opening.
-    const bool open = target.windowOpen(esp_timer_get_time());
-    if (open && !sharedIdentificationGate.load()) {
-      if (baseline.phase() != navi_power::BaselineTracker::Phase::Boot)
-        if (!baseline.freezeAtGate()) ++baselineRetainedCount;
-    }
-    sharedBaselineLevel.store(baseline.level());
-    sharedBaselineReady.store(baseline.haveLevel());
-    sharedIdentificationGate.store(open && baseline.haveLevel());
+    applyControl();
+    while (recognizer.hasEvent()) judgeEvent(recognizer.nextEvent());
     publishSnapshot();
     rvmStackFree.store(uxTaskGetStackHighWaterMark(nullptr));
   }
@@ -414,29 +417,30 @@ static void rvmTask(void*) {
 
 // ---------------------------------------------------------- nav reporting --
 static const char* stateName(uint8_t s) {
-  return s == uint8_t(navi_power::TargetState::Tracking) ? "TRACKING" : "UNSET";
+  return s == uint8_t(navi_power::MatcherState::Tracking) ? "TRACKING" : "UNSET";
 }
 static char lastNavEvent[24] = "NONE";
 static void publishNavState() {
   const NavSnapshot s = navSnapshot();
+  // Payload format is kept stable for the Pi-side logger (docs/CLAUDE.md):
+  // the timing_* fields are 0/false (no timing gate in this build) and the
+  // blocks_* fields are 0 (no 20 ms block pipeline); duplicate_guards is
+  // new. `nonqualifying` counts recorded polarity discrepancies.
   char payload[640];
   snprintf(payload, sizeof(payload),
     "{\"state\":\"%s\",\"mm\":%u,\"target\":%u,\"dir\":%d,\"session_dir\":\"%s\","
     "\"position_reliable\":%u,\"event\":\"%s\","
-    "\"confirmed\":%lu,\"nonqualifying\":%lu,\"abandoned\":%lu,\"encounter_active\":%u,"
+    "\"confirmed\":%lu,\"nonqualifying\":%lu,\"abandoned\":%lu,\"duplicate_guards\":%lu,\"encounter_active\":%u,"
     "\"blocks_emitted\":%lu,\"blocks_dropped\":%lu,"
     "\"timing_have_anchor\":%u,\"timing_have_profile\":%u,\"timing_calibration_ready\":%u,\"timing_calibration_covered_mm\":%u,\"timing_calibration_required_mm\":%u,\"timing_result\":%u,\"timing_predicted_ms\":%lu,\"timing_lower_ms\":%lu,\"timing_upper_ms\":%lu,\"timing_measured_ms\":%lu,\"timing_tolerance_ms\":%lu,\"timing_agrees\":%u,"
     "\"authority\":\"NAVI_POWER_OF_NORMAL_MANUAL_ONLY\"}",
     stateName(s.state), s.last, s.next, s.dir, sessionDir > 0 ? "CW" : sessionDir < 0 ? "CCW" : "UNSET",
-    s.state == uint8_t(navi_power::TargetState::Tracking), lastNavEvent,
-    (unsigned long)s.confirmed, (unsigned long)s.nonqualifying, (unsigned long)s.abandoned, s.encounterActive,
-    (unsigned long)s.blocksEmitted, (unsigned long)s.blocksDropped,
-    s.timingHaveAnchor, s.timingHaveProfile, s.timingCalibrationReady,
-    unsigned(s.timingCalibrationCoveredMm), unsigned(s.timingCalibrationRequiredMm), unsigned(s.timingResult),
-    (unsigned long)s.timingPredictedMs, (unsigned long)s.timingLowerMs, (unsigned long)s.timingUpperMs, (unsigned long)s.timingMeasuredMs,
-    (unsigned long)s.timingToleranceMs, s.timingAgrees);
+    s.state == uint8_t(navi_power::MatcherState::Tracking), lastNavEvent,
+    (unsigned long)s.confirmed, (unsigned long)s.nonqualifying, (unsigned long)s.abandoned, (unsigned long)s.duplicateGuards, s.encounterActive,
+    0UL, 0UL,
+    0, 0, 0, 0u, 0u, 0u, 0UL, 0UL, 0UL, 0UL, 0UL, 0u);
   pub("state/nav", payload, true);
-  pub("state/nav_ready", s.state == uint8_t(navi_power::TargetState::Tracking) ? "1" : "0", true);
+  pub("state/nav_ready", s.state == uint8_t(navi_power::MatcherState::Tracking) ? "1" : "0", true);
 }
 static void serviceNavEvents() {
   NavEvent ev;
@@ -448,28 +452,37 @@ static void serviceNavEvents() {
     } else if (ev.kind == EV_SUSPENDED) {
       strlcpy(lastNavEvent, "SUSPENDED", sizeof(lastNavEvent));
     } else {
-      const char* result = ev.kind == EV_CONFIRMED ? "CONFIRMED" : ev.kind == EV_ABANDONED ? "ABANDONED" : "NONQUALIFYING";
+      const char* result = ev.kind == EV_CONFIRMED ? "CONFIRMED" : ev.kind == EV_DUPLICATE_GUARD ? "DUPLICATE_GUARD" : ev.kind == EV_OBSERVATION ? "OBSERVATION" : ev.kind == EV_ABANDONED ? "ABANDONED" : "NONQUALIFYING";
       strlcpy(lastNavEvent, result, sizeof(lastNavEvent));
       char mm[8] = "null";
       if (ev.kind == EV_CONFIRMED) snprintf(mm, sizeof(mm), "%u", ev.mm);
       const auto& e = ev.e;
-      char row[480];
+      const char* expPol = e.outcome == uint8_t(navi_power::MatcherOutcome::NoClaim) ? "NONE" : (e.expectedPol > 0 ? "N" : "S");
+      // The row keeps its existing fields (width_blocks/peak_adc stay 0, as
+      // they already were; meets_min_width stays 1, vestigial) and gains the
+      // recognizer's event fields, so the exact point of divergence is
+      // diagnosable. opening_us is the passage (template-peak) time;
+      // opening_pwm is the PWM at recognition time.
+      char row[560];
       snprintf(row, sizeof(row),
         "{\"boot\":\"%016llX\",\"result\":\"%s\",\"mm\":%s,\"expected_mm\":%u,"
         "\"expected_polarity\":\"%s\",\"polarity\":\"%s\",\"dir\":%d,\"width_blocks\":%u,"
         "\"peak_adc\":%.1f,\"meets_min_width\":%u,"
         "\"opening_us\":%llu,\"opening_pwm\":%u,"
-        "\"authority\":\"OBSERVATION_ONLY\"}",
+        "\"seq\":%lu,\"passage_us\":%llu,\"recognized_us\":%llu,\"score_r\":%.3f,\"amplitude_adc\":%.1f,\"outcome\":\"%s\","
+        "\"authority\":\"WAVEFORM_RECOGNITION\"}",
         (unsigned long long)bootId, result, mm, ev.expected,
-        navi_power::expectedHallSign(ev.expected) > 0 ? "N" : "S", e.pol > 0 ? "N" : "S", ev.dir,
-        unsigned(e.widthBlocks), double(e.peakAdc), unsigned(e.meetsMinWidth),
-        (unsigned long long)e.openUs, unsigned(e.pwmAtOpen));
+        expPol, e.pol > 0 ? "N" : "S", ev.dir,
+        0u, 0.0, 1u,
+        (unsigned long long)e.passageUs, unsigned(e.pwmAtRecognition),
+        (unsigned long)e.seq, (unsigned long long)e.passageUs, (unsigned long long)e.recognizedUs,
+        double(e.r), double(e.amplitude), result);
       pub("diag/navi_encounter", row);
       Serial.printf("[NAVI] %s\n", row);
       if (ev.kind == EV_CONFIRMED) pub("mm/marker", row);
-      // NONQUALIFYING and ABANDONED are logged, not warned: per Proposition 8
-      // this is normal waiting, not a fault. Nothing in this build warns or
-      // stops for it any more (the arrival boundary was removed 2026-10-24).
+      // A discrepancy or a duplicate-guard refusal is logged, not warned:
+      // a recorded observation that disagrees with the map is evidence, not
+      // a fault. Nothing in this build warns or stops for it.
     }
     publishNavState();
   }
@@ -490,7 +503,7 @@ static void declare(uint8_t last, uint8_t next, int8_t dir, const char* interval
 }
 static void suspendIfDeclared(const char* why) {
   const NavSnapshot s = navSnapshot();
-  if (s.state == uint8_t(navi_power::TargetState::Unset)) return;
+  if (s.state == uint8_t(navi_power::MatcherState::Unset)) return;
   recordDeclaration(navi_sync::InputKind::Reversal, uint32_t(travelDirection() > 0 ? 1 : 2), travelDirection());
   navControl(CTL_SUSPEND);
   warn(why);
@@ -528,7 +541,7 @@ static void servicePeerTx() {
   const NavSnapshot s = navSnapshot();
   rvm_ops::PeerPacket p;
   p.locoId = uint32_t(LOCO_ID); p.seq = ++peerTxSeq;
-  p.reliable = s.state == uint8_t(navi_power::TargetState::Tracking); p.dir = s.dir; p.lastMm = s.last;
+  p.reliable = s.state == uint8_t(navi_power::MatcherState::Tracking); p.dir = s.dir; p.lastMm = s.last;
   p.station = lastDrive.station; p.execution = uint8_t(lastDrive.cmd.execution);
   p.autoRunning = autoRunning; p.bubble = uint8_t(lastDrive.bubble); p.role = uint8_t(lastDrive.role); p.pwm = uint8_t(actualPwm < 0 ? 0 : actualPwm > 255 ? 255 : actualPwm);
   if (esp_now_send(BROADCAST_MAC, reinterpret_cast<const uint8_t*>(&p), sizeof(p)) != ESP_OK) ++peerTxFail;
@@ -571,7 +584,7 @@ static void publishStation(bool force) {
 // reachable in this build either way.
 static void serviceAuto() {
   const NavSnapshot s = navSnapshot();
-  const bool tracking = s.state == uint8_t(navi_power::TargetState::Tracking);
+  const bool tracking = s.state == uint8_t(navi_power::MatcherState::Tracking);
   if (autoRunning && !tracking)
     withdrawAuto("AUTO WITHDRAWN: navigation not tracking — controlled stop.");
   if (autoRunning && (estopped || estopAsserted || lowVoltage)) { autoRunning = false; publishAuto(); }
@@ -736,15 +749,15 @@ static void serviceStatus() {
   char payload[600];
   snprintf(payload, sizeof(payload),
     "{\"build\":\"%s\",\"class\":\"%s\",\"pwm\":%d,\"commanded\":%d,\"estop\":%u,\"lowvolt\":%u,"
-    "\"nav\":\"%s\",\"confirmed\":%lu,\"nonqualifying\":%lu,\"abandoned\":%lu,"
-    "\"block_q_drop\":%lu,\"onset_q_drop\":%lu,\"nav_event_drop\":%lu,\"ctl_drop\":%lu,"
-    "\"blocks_emitted\":%lu,\"blocks_dropped\":%lu,\"auto_go_permitted\":%u,\"rvm_stack_free\":%lu,"
+    "\"nav\":\"%s\",\"confirmed\":%lu,\"nonqualifying\":%lu,\"abandoned\":%lu,\"duplicate_guards\":%lu,"
+    "\"median_q_drop\":%lu,\"diag_onsets\":%lu,\"nav_event_drop\":%lu,\"ctl_drop\":%lu,"
+    "\"auto_go_permitted\":%u,\"rvm_stack_free\":%lu,"
     "\"nsr_hall_drop\":%lu,\"nsr_native_drop\":%lu,\"nsr_udp_fail\":%lu,\"pub_drop\":%lu,\"cmd_drop\":%lu,"
     "\"heap_free\":%u,\"heap_min\":%u}",
     SKETCH_NAME, BUILD_CLASS, int(actualPwm), int(commandedPwm), unsigned(estopped || estopAsserted), unsigned(lowVoltage),
-    stateName(s.state), (unsigned long)s.confirmed, (unsigned long)s.nonqualifying, (unsigned long)s.abandoned,
-    (unsigned long)blockQueueDrops.load(), (unsigned long)onsetQueueDrops.load(), (unsigned long)navEventDrops.load(), (unsigned long)ctlDrops.load(),
-    (unsigned long)s.blocksEmitted, (unsigned long)s.blocksDropped, unsigned(navi_power::AUTO_GO_PERMITTED), (unsigned long)rvmStackFree.load(),
+    stateName(s.state), (unsigned long)s.confirmed, (unsigned long)s.nonqualifying, (unsigned long)s.abandoned, (unsigned long)s.duplicateGuards,
+    (unsigned long)medianQueueDrops.load(), (unsigned long)diagOnsets.load(), (unsigned long)navEventDrops.load(), (unsigned long)ctlDrops.load(),
+    unsigned(navi_power::AUTO_GO_PERMITTED), (unsigned long)rvmStackFree.load(),
     (unsigned long)recorder->hallDrops(), (unsigned long)recorder->nativeDrops(),
     (unsigned long)naviSyncUdpFailures, (unsigned long)pubDrops, (unsigned long)cmdDrops,
     unsigned(ESP.getFreeHeap()), unsigned(ESP.getMinFreeHeap()));
@@ -833,7 +846,7 @@ static void networkTask(void*) {
         char boot[400];
         snprintf(boot, sizeof(boot),
           "{\"sketch\":\"%s\",\"class\":\"%s\",\"boot_id\":\"%016llX\",\"field_accepted\":0,"
-          "\"navigation\":\"NAVI_POWER_OF_NORMAL\",\"recognizer\":\"NAVI_CANDIDATE_70X2_RAW_PLUS_RTB_NO_SHAPE\","
+          "\"navigation\":\"NAVI_POWER_OF_NORMAL\",\"recognizer\":\"NAVI_WAVEFORM_MATCHED_FILTER_SINGLE240\","
           "\"auto_go_permitted\":%u,\"auto\":\"LOCKED\",\"bubble_hold_mm\":%u}",
           SKETCH_NAME, BUILD_CLASS, (unsigned long long)bootId, unsigned(navi_power::AUTO_GO_PERMITTED), unsigned(rvm_ops::BUBBLE_HOLD_MM));
         char topic[72]; snprintf(topic, sizeof(topic), "ngr/loco/%s/state/bootid", LOCO_NAME);
@@ -870,7 +883,6 @@ void setup() {
   Serial.begin(115200);
   pinMode(MOTOR_PWM_PIN, OUTPUT); digitalWrite(MOTOR_PWM_PIN, LOW);
   delay(300);
-  baseline.beginBootCollection();   // boot exception: collect stationary (PWM==0) until the first magnet opens
   recorder = new (std::nothrow) navi_sync::Recorder();
   if (!recorder || !recorder->storageReady()) haltStartup("recorder storage", false);
   bootId = (uint64_t(esp_random()) << 32) | esp_random();
@@ -887,11 +899,10 @@ void setup() {
   inaReady = ina219.begin();
   pubQ = xQueueCreate(PUB_QUEUE_DEPTH, sizeof(PubMsg));
   cmdQ = xQueueCreate(16, sizeof(CmdMsg));
-  blockQ = xQueueCreate(128, sizeof(navi_power::Block));       // 2.5 s of blocks
-  onsetQ = xQueueCreate(8, sizeof(navi_power::CandidateOnset)); // onsets are rare: one per encounter
+  medianQ = xQueueCreate(256, sizeof(TickMedian));   // 256 ms of tick medians
   ctlQ = xQueueCreate(8, sizeof(NavCtl));
   navEvQ = xQueueCreate(16, sizeof(NavEvent));
-  if (!pubQ || !cmdQ || !blockQ || !onsetQ || !ctlQ || !navEvQ) haltStartup("queues", true);
+  if (!pubQ || !cmdQ || !medianQ || !ctlQ || !navEvQ) haltStartup("queues", true);
   if (xTaskCreatePinnedToCore(hallTask, "hall", 4096, nullptr, 3, nullptr, 0) != pdPASS) haltStartup("hall task", true);
   if (xTaskCreatePinnedToCore(rvmTask, "rvm", 8192, nullptr, 1, nullptr, 0) != pdPASS) haltStartup("rvm task", true);
   WiFi.mode(WIFI_STA);
