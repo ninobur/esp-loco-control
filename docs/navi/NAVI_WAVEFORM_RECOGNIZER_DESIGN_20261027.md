@@ -48,6 +48,8 @@
    - **Timing-based alternatives** suppress thousands of genuine encounters as soon as speed changes.
 
    I do not propose a rule. I propose a bounded track test and present the measured options (§4.4, §9).
+
+   **Added 2026-10-27, experimental:** a minimal map-aware matcher (§4.5). It decides on current evidence, retains recent observations, and may revise. On held-out replay it made 5,834 correct and 132 wrong assignments, against 3,365 / 1,332 for P8 [R]. Its penalties are not validated, and it is not an approved navigation rule. The October 21 hold rule stays established. The map-aware matcher is to be tried on the track beside it.
 7. **IR is not in this design.** David's ruling of 2026-10-21 excludes IR from the current stage, and the fielded firmware contains no IR path [M]. The assignment asks how IR *can* support matching. §5 answers that only so David can decide whether to re-admit it.
 
 ---
@@ -345,7 +347,90 @@ What this shows:
 
 What I propose [P]: **keep P8 behaviour (hold, do not search) for the first implementation, and add the Observation record.** Every disagreement and every hold is then visible and countable on the track, and nothing new is built. In parallel, run the bounded test in §8 (T5), so David can decide the rule from track evidence. The remaining choices are listed in §9 as decisions, not built.
 
-**The MM066/067/069 map question is independent of this.** Once David has inspected the magnets and either turned them back or changed the map, case B on those magnets disappears.
+**The MM066/067/069 map question is independent of this.** Once David has inspected the magnets and either turned them back or changed the map, case B on those magnets disappears. (David corrected them on Oct 27. In Toby's 08:33 run all three read as mapped: `docs/navi/NAVI_TOBY_FIELD_RUN_20261027.md`.)
+
+**Correction to the table above (added 2026-10-27).** `design_analysis.py` §4 included each span's starting-anchor event as the first encounter after the anchor, an off-by-one. With that event excluded, as in `matcher_replay.py`, the P8 figures become:
+
+- dev: 1,594 / 60, with 48 held;
+- validation: 830 / 600, with 561 held;
+- transfer: 2,535 / 732, with 708 held.
+
+The conclusion is unchanged. The other rows were not re-run.
+
+### 4.5 EXPERIMENTAL PROPOSAL — minimal map-aware matcher (not an approved navigation rule)
+
+**Status.** This is an experimental proposal, added 2026-10-27 at David's request after a discussion between David and Sam. The **established rule remains the October 21 hold rule** (P8): advance to `next` only when polarity agrees, otherwise hold. Nothing in this section changes that rule. The penalties below are hand-picked and **not validated**. The proposal exists so that its effect on actual navigation can be measured on Otto and Toby.
+
+**Principle (David and Sam).**
+
+- NAVI pursues one target, but interprets each encounter in the context of the surrounding map.
+- A contradiction should challenge its interpretation, not erase its awareness.
+- Recognition, interpretation and trust are separate steps.
+- The simplest model that works wins.
+
+**The rule, in its simplest form (David's choice: decide on current evidence, retain recent observations, permit revision).**
+
+1. NAVI keeps its last trusted position (the anchor) and the polarity of every recognized encounter since then. This is the rearview mirror.
+2. Each new encounter can be explained in only four ways:
+   - **NEXT:** the next mapped magnet;
+   - **AFTER_ONE_MISS:** the magnet after it, one having been missed;
+   - **AFTER_TWO_MISSES:** two having been missed;
+   - **NOT_A_MAGNET:** a false event; position unchanged.
+3. Each explanation carries a fixed penalty:
+   - polarity disagrees with the map: C_MIS = 1;
+   - each assumed miss: C_SKIP = 1.5;
+   - not a magnet: C_SP = 1.5.
+4. NAVI reports the position at the end of the **cheapest explanation of the whole history since the anchor**.
+   - Only explanations within 4 of the best are kept, so the set stays small: a handful of positions just ahead of the anchor.
+5. When a later encounter makes a different history cheapest, the reported position changes. That is a **revision**, and it is reported as one.
+6. A polarity disagreement on the cheapest explanation is reported as an infrastructure observation: "MMxxx observed S, map N". The DNA map is never changed.
+
+**What it does not use:** speed, PWM, time since the last encounter, IR, or a search of all 171 magnets. It needs about a few hundred bytes of state [E] and a few dozen lines of code.
+
+**Replay** [R]:
+
+- **Script and output:** `research/navi_waveform_design_20261027/matcher_replay.py`; output in `matcher_replay_output.txt`.
+- **Input:** the proposed recognizer's events. Each span starts from its first anchor.
+- **Truth used for scoring:** the research reference, which is route-anchored oracle evidence, not physical truth.
+- **Counting:** an event is correct when its assigned identity matches the reference. A false event is correct only if labelled NOT_A_MAGNET.
+- **Episodes:** a "wrong episode" is a run of consecutive wrong assignments.
+
+| Matcher | Dev, Oct 25 Otto | Validation, Oct 26 Otto | Transfer, Toby Oct 25–26 | Oct 27 Toby (magnets corrected) |
+|---|---|---|---|---|
+| **P8, October 21 hold rule** (established) | 1,594 / 60, 48 held; 6 episodes, longest 23 | 830 / 600, 561 held; 10 episodes, longest 180 | 2,535 / 732, 708 held; 7 episodes, longest 184 | 273 / 0 |
+| **Map-aware, decide now, may revise** (experimental, preferred form) | 1,677 / 26; 9 episodes, longest 8; 9 revisions | 1,934 / 57; 17 episodes, longest 4; 25 revisions | 3,900 / 75; 17 episodes, longest 13; 45 revisions | 273 / 0; 0 revisions |
+| Map-aware, decide one encounter later | 1,671 / 19, 13 held | 1,928 / 53, 10 held | 3,872 / 70, 33 held | 272 / 0, 1 held |
+| Map-aware, decide two encounters later | 1,662 / 15, 26 held | 1,930 / 41, 20 held | 3,846 / 63, 66 held | 271 / 0, 2 held |
+
+Correct / wrong assignments; "held" means no identity was assigned. The figures in my chat reply of 2026-10-27 were summed wrongly; this table supersedes them.
+
+On held-out Otto Oct 26 + Toby Oct 25–26:
+
+- **P8:** 3,365 correct, 1,332 wrong, 1,269 held. When it is lost, it stays lost for up to 184 encounters.
+- **Map-aware, decide now:** 5,834 correct, 132 wrong, 0 held. The longest wrong episode is 13 encounters.
+
+Waiting before deciding buys little, and adds one magnet interval of delay per encounter waited. That is why "decide now, allow revision" is the preferred form.
+
+**Assumptions.**
+
+- At most two consecutive magnets are missed.
+- A false event and a miss are each rarer than a single map disagreement. That is what the 1.5-versus-1 penalties encode.
+- The anchor is correct. The matcher never questions the anchor itself.
+
+**Limitations, all measured on replay** [R]:
+
+- **It never identified a false event as a false event:** 0 of 13. It always explains them some other way, which costs one or more wrong assignments each time.
+- **Its wrong episodes last up to 13 encounters** (Toby). During an episode NAVI reports a position that is wrong but self-consistent.
+- **The penalties were set once, by hand, and not tuned** (David: no penalty optimization now). Different penalties would give different numbers.
+- **It is scored against the research reference, not physical truth.** The replay spans also include stops and direction changes that operational running handles with declarations.
+- **A revision moves the reported position**, possibly by up to three magnets, possibly backwards relative to the last report. Anything that acts on position, such as station stops in a later AUTO build, would need a rule for revisions. This build is manual only, so nothing acts on it.
+
+**What the track test must answer** (T5, run once with each matcher): does map-aware judgement improve actual navigation on Otto and Toby? It is measured as:
+
+- the fraction of encounters with the correct identity, against a lap-by-lap operator record or a clean replay;
+- the number and length of wrong episodes;
+- the number of revisions;
+- the number of map-disagreement observations.
 
 ---
 
@@ -480,6 +565,12 @@ The three times, all [R] on causal emulation of the proposed configuration:
    - (c) allow `next+1` when a miss is evident, which contradicts Proposition 8's no-search rule.
 
    **Implication to weigh.** (a) never advances on a contradiction, but stays one magnet displaced after any miss until polarity coincidence re-aligns it. (b) and (c) can recover from a miss, but act on evidence the current proposition rules out, and (c) depends on timing that has failed whenever speed changed. This needs track evidence (T5) before a choice.
+
+   **(d), added 2026-10-27 and experimental:** the minimal map-aware matcher (§4.5). It recovers from misses and from map disagreements without timing, and allows revision.
+
+   - **Implication:** NAVI may report a position on evidence that disagrees with the map, and may later move that report by up to three magnets.
+   - **What it means for later decisions:** in operational running, a revision has to be handled by anything that acts on position.
+   - David has directed that (d) be prepared for an experimental build, to be compared with (a) on the track. That direction is not approval of (d) as a navigation rule.
 2. **MM066/067/069.** Turn the magnets back to the map, or change the map, after inspection.
 3. **Thresholds.** Accept R_MIN = 0.7 and A_MIN = 70 as defaults to be confirmed on track, or require a separate tuning run.
 4. **IR.** Remains excluded (current ruling), or re-admitted as context only (§5).
@@ -499,6 +590,8 @@ For review; not authorization to code.
 
    It emits `MagneticEvent` (§3) from boot, unconditionally.
 2. **Keep** `NaviTarget`'s single expected target with P8 behaviour. Add the `Observation` record (§4.2) and publish and record it. Do not add timing vetoes, reachability rules, searches or recovery.
+
+   *Amended 2026-10-27 by David's direction:* the experimental build also carries the map-aware matcher (§4.5) as a second matcher, for comparison on the track. Recognition events and geographic judgements are published separately.
 3. **Run correlation in rvmTask.** hallTask only conditions.
 4. **Gate the build on replay parity (R1) before any flash.** Then run T1–T6 with NSR recording on. Flashing and any field run need David's separate authorization.
 5. **Name the build for what it enables.** Example: `NAVI_WAVEFORM_RECOGNIZER_MANUAL_OBSERVE` — manual operation only, AUTO locked, as in the current build.

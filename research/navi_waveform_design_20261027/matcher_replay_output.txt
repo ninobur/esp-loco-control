@@ -1,0 +1,16 @@
+P8          dev         {'correct': 1594, 'held_genuine': 48, 'held_spurious': 1, 'longest_episode': 23, 'spurious_events': 5, 'spurious_labelled_spurious': 0, 'wrong': 60, 'wrong_episodes': 6}
+P8          oct27_toby  {'correct': 273, 'spurious_events': 0}
+P8          transfer    {'correct': 2535, 'held_genuine': 708, 'longest_episode': 184, 'spurious_events': 0, 'wrong': 732, 'wrong_episodes': 7}
+P8          validation  {'correct': 830, 'held_genuine': 559, 'held_spurious': 2, 'longest_episode': 180, 'spurious_events': 8, 'spurious_labelled_spurious': 0, 'wrong': 600, 'wrong_episodes': 10}
+judge_lag0  dev         {'correct': 1677, 'longest_episode': 8, 'revisions': 9, 'spurious_labelled_spurious': 0, 'wrong': 26, 'wrong_episodes': 9}
+judge_lag0  oct27_toby  {'correct': 273, 'revisions': 0}
+judge_lag0  transfer    {'correct': 3900, 'longest_episode': 13, 'revisions': 45, 'wrong': 75, 'wrong_episodes': 17}
+judge_lag0  validation  {'correct': 1934, 'longest_episode': 4, 'revisions': 25, 'spurious_labelled_spurious': 0, 'wrong': 57, 'wrong_episodes': 17}
+judge_lag1  dev         {'correct': 1671, 'held_genuine': 13, 'longest_episode': 8, 'revisions': 9, 'spurious_labelled_spurious': 0, 'wrong': 19, 'wrong_episodes': 6}
+judge_lag1  oct27_toby  {'correct': 272, 'held_genuine': 1, 'revisions': 0}
+judge_lag1  transfer    {'correct': 3872, 'held_genuine': 33, 'longest_episode': 13, 'revisions': 45, 'wrong': 70, 'wrong_episodes': 17}
+judge_lag1  validation  {'correct': 1928, 'held_genuine': 8, 'held_spurious': 2, 'longest_episode': 4, 'revisions': 25, 'spurious_labelled_spurious': 0, 'wrong': 53, 'wrong_episodes': 16}
+judge_lag2  dev         {'correct': 1662, 'held_genuine': 25, 'held_spurious': 1, 'longest_episode': 8, 'revisions': 9, 'spurious_labelled_spurious': 1, 'wrong': 15, 'wrong_episodes': 4}
+judge_lag2  oct27_toby  {'correct': 271, 'held_genuine': 2, 'revisions': 0}
+judge_lag2  transfer    {'correct': 3846, 'held_genuine': 66, 'longest_episode': 13, 'revisions': 45, 'wrong': 63, 'wrong_episodes': 15}
+judge_lag2  validation  {'correct': 1930, 'held_genuine': 17, 'held_spurious': 3, 'longest_episode': 3, 'revisions': 25, 'spurious_labelled_spurious': 0, 'wrong': 41, 'wrong_episodes': 16}
