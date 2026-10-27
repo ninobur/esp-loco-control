@@ -25,7 +25,7 @@ import numpy as np
 
 HERE = Path(__file__).resolve().parent
 RESEARCH = Path('/home/hatch/workspace/navi-matched-filter-20261026/research/navi_matched_filter')
-SKETCH = HERE.parent.parent / 'firmware/test-programs/NAVI_POWER_OF_NORMAL_MANUAL_ONLY'
+SKETCH = HERE.parent.parent / 'NAVI_WAVEFORM_0_1'
 sys.path.insert(0, str(RESEARCH))
 import mf
 import exp_continuous as ec

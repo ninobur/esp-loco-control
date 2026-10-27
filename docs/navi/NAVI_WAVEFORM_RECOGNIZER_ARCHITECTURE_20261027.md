@@ -53,7 +53,7 @@ the 945-curve characterization on `research/navi-wolf-pack-20261021` @
 firmware on the same research branch, `firmware/programs/NAVI_ONE/
 variants/NAVI_ONE_X20` (Hall acquisition, ExcursionDetector,
 MagnetRecognizer, Navigator, RouteMap.h), and the manual test sketch
-`firmware/test-programs/NAVI_POWER_OF_NORMAL_MANUAL_ONLY` (the 70×2
+`NAVI_WAVEFORM_0_1` (the 70×2
 detector and the timing-gate implementation). **Revision 1
 additionally rests on** `docs/decisions/0090` and `0092` (the
 operator's NAVI/IR decision model, 2026-09-22) and
@@ -1669,7 +1669,7 @@ Each of those is stated as an open question with a test attached.
   withdraw but never correct a position), `ExcursionDetector.h`,
   `RouteMap.h` (polarity table identical to the manual sketch's;
   spacing table differs at MM11–13).
-- `firmware/test-programs/NAVI_POWER_OF_NORMAL_MANUAL_ONLY/` (the
+- `NAVI_WAVEFORM_0_1/` (the
   70×2 detector, `NaviTarget`/`NaviTimingPredictor` timing gate,
   `NaviTimingProfiles.h`).
 - **Revision 1 additions.** `docs/decisions/0090` (operator rulings

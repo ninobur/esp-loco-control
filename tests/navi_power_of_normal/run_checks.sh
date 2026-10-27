@@ -1,7 +1,7 @@
 #!/bin/sh
-# Host checks for NAVI_POWER_OF_NORMAL_MANUAL_ONLY. No hardware, no network.
+# Legacy host checks for NAVI_POWER_OF_NORMAL_MANUAL_ONLY. No hardware, no network.
 set -e
-ROOT=$(cd "$(dirname "$0")/../.." && pwd); SK="$ROOT/firmware/test-programs/NAVI_POWER_OF_NORMAL_MANUAL_ONLY"
+ROOT=$(cd "$(dirname "$0")/../.." && pwd); SK="$ROOT/NAVI_WAVEFORM_0_1"
 OUT=${TMPDIR:-/tmp}/navi_power_of_normal_checks; mkdir -p "$OUT"
 c++ -std=c++17 -O2 -Wall -Wextra -Werror -I"$SK" "$ROOT/tests/navi_power_of_normal/unit.cpp" -o "$OUT/unit" && "$OUT/unit"
 c++ -std=c++17 -O2 -Wall -Wextra -Werror -I"$SK" "$ROOT/tests/navi_power_of_normal/replay.cpp" -o "$OUT/replay"

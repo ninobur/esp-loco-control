@@ -1,5 +1,5 @@
 /* ============================================================================
- * NAVI_POWER_OF_NORMAL_MANUAL_ONLY — EXPERIMENTAL. Clean-sheet NAVI built
+ * NAVI_WAVEFORM_0_1 — EXPERIMENTAL. Clean-sheet NAVI built
  * directly from the "Power of Normal" conference record
  * (docs/navi/NAVI_CONFERENCE_POWER_OF_NORMAL_RECORD_20261024.md), per David's
  * authorization of the same date. Not based on RvmShape.h / RvmContinuity.h /

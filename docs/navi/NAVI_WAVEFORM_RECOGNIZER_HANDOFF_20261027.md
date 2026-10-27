@@ -61,7 +61,7 @@ time is less than 400 ms earlier; the observation is still recorded
 (last 32, chronological) with its outcome. No re-alignment, no rearview
 mirror, no competing hypotheses, no automatic correction.
 
-**Integration** (`NAVI_POWER_OF_NORMAL_MANUAL_ONLY.ino`): hallTask computes
+**Integration** (`NAVI_WAVEFORM_0_1/NAVI_WAVEFORM_0_1.ino`): hallTask computes
 the tick median and sends it to rvmTask on a new queue (medianQ, depth
 256); rvmTask feeds the recognizer and passes declared events to the
 matcher. The 70×2 onset detector stays in hallTask as a **diagnostic
@@ -420,7 +420,7 @@ credentials — do not commit it).
 
 **Flash Otto (first test):**
 ```
-cd firmware/test-programs/NAVI_POWER_OF_NORMAL_MANUAL_ONLY
+cd NAVI_WAVEFORM_0_1
 # default build is Otto (NAVI_LOCO=9950011); no edit needed
 ```
 
@@ -485,17 +485,16 @@ the Pi (`/home/david/NGR/telemetry/runs/`). After the run, the log files
 and the NSR capture are the evidence — send them to Muse for the
 marker-by-marker analysis, as with the 2026-10-25 run.
 
-**Restoring the prior working build:** the known-working firmware is the
-parent commit `a8154b5` (the 2026-10-24 manual sketch). To restore it:
+**Restoring the prior working build:** the known-working firmware is
+commit `a8154b5` (the 2026-10-24 manual sketch), whose source remains at
+`firmware/test-programs/NAVI_POWER_OF_NORMAL_MANUAL_ONLY/` in that commit.
+To inspect or build it without disturbing this sketch, create a separate
+recovery worktree from the repository root:
 ```
-cd firmware/test-programs/NAVI_POWER_OF_NORMAL_MANUAL_ONLY
-git checkout a8154b5 -- .        # restores the sketch to the known-working state
-# then rebuild and reflash as above (Otto default)
-git checkout impl/navi-waveform-recognizer-manual-20261027 -- .   # to come back
+git worktree add ../esp-loco-control-navi-recovery a8154b5
+cd ../esp-loco-control-navi-recovery/firmware/test-programs/NAVI_POWER_OF_NORMAL_MANUAL_ONLY
 ```
-(The `-- .` form restores only this sketch directory; it does not move
-the branch. The full history, including the frozen-baseline branch at
-`621a029`, is preserved.)
+The current sketch is in `NAVI_WAVEFORM_0_1/` at the repository root.
 
 ## 6. What Sam and Claude should examine
 
@@ -525,7 +524,7 @@ the branch. The full history, including the frozen-baseline branch at
   guard (finding 1: `lastControlUs_`, events whose passage predates
   the most recent control return NoClaim) — please check the guard
   against the ordering rule in the header comment.
-- **`NAVI_POWER_OF_NORMAL_MANUAL_ONLY.ino`** — the integration:
+- **`NAVI_WAVEFORM_0_1/NAVI_WAVEFORM_0_1.ino`** — the integration:
   hallTask (tick median and sequence stamp, diagnostic 70×2), rvmTask
   (medianQ drain through the stream consumer, judge-before-control
   ordering, recognizer, matcher), the retired machinery's removal (is

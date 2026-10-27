@@ -1,4 +1,6 @@
-# NAVI_POWER_OF_NORMAL_MANUAL_ONLY
+# NAVI_WAVEFORM_0_1
+
+Sketch entry point: `NAVI_WAVEFORM_0_1.ino` in this folder.
 
 EXPERIMENTAL. Clean-sheet NAVI built from
 `docs/navi/NAVI_CONFERENCE_POWER_OF_NORMAL_RECORD_20261024.md`, authorized
@@ -91,13 +93,10 @@ Not yet flashed or run. Host verification (`tests/navi_waveform_recognizer/run_c
 Level 1 replay (Otto, 96.8 s NSR) finds 20/20 reference magnets, 0 missed,
 0 polarity errors, 0 false events; the panels replay produces no false
 events while stationary. Full-sketch ESP32 compile succeeds for both Otto
-and Toby (arduino-cli, ESP32 core 3.3.12, zero warnings; 78% flash, 20%
-RAM). One build note: with core 3.3.12 and Adafruit_BusIO 1.17.4 the build
-needs `-DESP32` added to the build flags, because the core no longer
-defines the plain `ESP32` macro that BusIO tests for — without it the
-build fails inside Adafruit_BusIO, not in the sketch. See
+and Toby (arduino-cli, ESP32 core 3.3.12, zero warnings; 985,931 bytes,
+75% flash, 67,508 bytes RAM). No `-DESP32` flag is needed. See
 `docs/navi/NAVI_WAVEFORM_RECOGNIZER_HANDOFF_20261027.md` for the full
-handoff, including the flashing and recovery instructions.
+compile, flashing, and recovery instructions.
 
 ## Field status, 2026-10-24
 

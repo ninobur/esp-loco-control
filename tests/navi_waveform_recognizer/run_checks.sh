@@ -6,7 +6,7 @@
 # The replay fixtures are in fixtures/ (derived from the recorded NSR/CSV
 # by make_tick_medians.py; the sources are named in the fixture JSONs).
 set -e
-SKETCH="$(cd "$(dirname "$0")/../../firmware/test-programs/NAVI_POWER_OF_NORMAL_MANUAL_ONLY" && pwd)"
+SKETCH="$(cd "$(dirname "$0")/../../NAVI_WAVEFORM_0_1" && pwd)"
 DIR="$(cd "$(dirname "$0")" && pwd)"
 BUILD="${TMPDIR:-/tmp}/navi_waveform_checks"
 mkdir -p "$BUILD"
