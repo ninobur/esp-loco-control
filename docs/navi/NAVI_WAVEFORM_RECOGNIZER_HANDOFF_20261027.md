@@ -14,11 +14,13 @@ no automatic geographic correction).
   (the current manual-only sketch). The last known-working field build is
   its parent, `a8154b5` (2026-10-24 full CW lap: every marker confirmed,
   zero non-qualifying, zero abandoned) — see §5 for the recovery path.
-- **Commit:** `7394afb` ("NAVI waveform recognizer, manual-only
-  experimental firmware (Option B)"), on branch
-  `impl/navi-waveform-recognizer-manual-20261027`. The handoff itself
-  was finalized in the following commit; the implementation commit is
-  the one to review.
+- **Commit:** `d8ec1d3` ("Address Codex review findings 1-4 (Sam's
+  assessment)"), on branch `impl/navi-waveform-recognizer-manual-20261027`.
+  This is the current implementation commit to review. It supersedes
+  `7394afb` (the original implementation, same branch), correcting the
+  four findings from Codex's independent review of the patches — see
+  the "Corrective review cycle" subsection in §2. The handoff itself
+  was finalized in the following commit.
 - **Firmware variant:** `NAVI_POWER_OF_NORMAL_MANUAL_ONLY`, experimental,
   manual only. `AUTO_GO_PERMITTED` is `false`; AUTO/GO are hard-refused;
   there is no protective stop. Locomotive is selected at compile time:
@@ -92,18 +94,25 @@ The survey table in `NaviTimingProfiles.h` is regenerable from
   `opening_us` is the passage (template-peak) time; `opening_pwm` is the
   PWM at recognition time. Authority is now `WAVEFORM_RECOGNITION`.
   Published to `mm/marker` on confirm, as before.
-- `state/loopstat`: `block_q_drop`/`onset_q_drop`/`blocks_*` replaced by
+- `state/loopstat`: the retired `block_q_drop`, `onset_q_drop`,
+  `blocks_emitted` and `blocks_dropped` fields are kept and report 0
+  (those queues and the 20 ms block pipeline no longer exist); the new
   `median_q_drop` (median-queue drops), `diag_onsets` (70×2 diagnostic
-  onset count), and `duplicate_guards`.
+  onset count), and `duplicate_guards` fields are added alongside
+  them, not in their place. (Corrective cycle, finding 2 — the
+  original commit removed the retired fields; they are restored here.)
 - Boot payload: `recognizer` is now
   `NAVI_WAVEFORM_MATCHED_FILTER_SINGLE240`.
 
 **Host verification** (`tests/navi_waveform_recognizer/`, run with
 `sh run_checks.sh`): unit tests for the matcher (confirm / discrepancy /
-duplicate guard / suspend / Observation record), the diagnostic level,
-the median-of-5, and the recognizer smoke test; a replay harness that
-feeds recorded 1 ms tick medians through the portable core; a scorer
-against the research reference. Fixtures are in `tests/.../fixtures/`
+duplicate guard / suspend / Observation record, plus the control-ordering
+guard), the diagnostic level, the median-of-5, the recognizer smoke test,
+data-loss and jitter behaviour; a replay harness that feeds recorded
+1 ms tick medians through the portable core; a scorer against the research
+reference; and a direct comparison of the firmware core against the
+research's `causal_events` on a synthetic trace with competing nearby
+peaks (`compare_causal.py`). Fixtures are in `tests/.../fixtures/`
 (Level 1 ticks + reference, and the CSV panels). Note: the binary
 tick files (`*.ticks.bin`) are git-ignored by the repo's `.gitignore`
 (`*.bin`) and are not in the commit; regenerate them with
@@ -111,14 +120,100 @@ tick files (`*.ticks.bin`) are git-ignored by the repo's `.gitignore`
 (`2F752FA0-89C8-4BB0-B9F4-B7871D197D93-9950011_20261025_133357.nsr`)
 and the plotted-samples CSV, which live outside the repo.
 
+### Corrective review cycle (Codex findings 1–4, Sam's assessment)
+
+Codex reviewed the patches for `7394afb` (no changes made, harness not
+run) and found four issues. Sam assessed two as correct-before-flashing
+and two as focused verification. None challenges the Option B
+architecture. All four are addressed in commit `d8ec1d3`; the scope
+(recognizer, simple matcher, manual-only, no re-alignment) is unchanged.
+
+1. **Control/event ordering (High — corrected).** In `rvmTask` the
+   drain fed medians into the recognizer, then `applyControl()` changed
+   the matcher state, and only then were the queued events judged — so
+   an event formed from pre-control samples could be judged against a
+   post-control target, and a re-declaration could reinterpret a stale
+   observation as a confirmation of the new target. Two changes, both
+   in the direction Sam specified (an explicit ordering rule, no new
+   navigation algorithm):
+   - `rvmTask` now judges events already declared **before** applying
+     any pending control, so an observation is evaluated against the
+     navigation state in effect when it was observed.
+   - The matcher records the time each control takes effect
+     (`declare`/`suspend` take a `nowUs`; `applyControl` passes
+     `esp_timer_get_time()`, the same clock as the event passage
+     times). An event whose passage predates the most recent control
+     belongs to the previous navigation sequence: it is recorded as an
+     observation (outcome `NoClaim`, `expectedMm` 0) and is never
+     judged against the new target. This is the guarantee; it covers
+     the recognizer's ~359 ms latency window, where an event can be
+     declared after a control that follows its passage. Regression
+     test `testMatcherControlOrdering` covers re-declaration, suspension,
+     and a fresh declaration after each, with stale and fresh events.
+2. **MQTT compatibility (High — corrected).** The original commit
+   removed `block_q_drop`, `onset_q_drop`, `blocks_emitted` and
+   `blocks_dropped` from `state/loopstat`. They are restored and report
+   0 (those queues and the block pipeline no longer exist); the new
+   fields are added alongside, not in their place. `state/nav` and
+   `diag/navi_encounter` were already additive-only (verified by
+   diffing the payload format strings against `621a029`).
+3. **Causal candidate selection (Medium — verified, no change).**
+   The implementation's rule (b) considers stronger *earlier*
+   candidates only; Codex asked whether a later candidate within the
+   ±60-bin neighbourhood, already evaluated and in the ring, should
+   also be able to block. Direct comparison
+   (`tests/navi_waveform_recognizer/compare_causal.py`): the firmware
+   core and the research's `causal_events` (single 240 ms scale, pad
+   0.5, level-only) were run on the same synthetic trace with
+   competing nearby peaks — same-polarity pairs 80 ms apart (weaker
+   earlier and stronger earlier), opposite-polarity pairs 100 ms and
+   50 ms apart, plus lone and well-separated controls — and produced
+   **9/9 identical events** (passage time, polarity, r, A within
+   0.1 ADC). No discrepancy, so the decision rule is unchanged. Why
+   they agree: for a single scale, a candidate's ready time is
+   `t_centre + 361 ms` with a constant offset, so ready order is
+   centre order, and "knowable" (ready ≤ current ready) is exactly
+   "earlier". (The physical peaks also merge or repel beyond the NMS
+   radius — same-polarity pairs ≤120 ms merge into one maximum;
+   opposite-polarity maxima sit ≥130 ms apart — so the three-candidate
+   chain that would distinguish the rules is not reachable with this
+   template.)
+4. **Sample gaps (Medium — corrected).** The 100 ms gap threshold
+   tolerates scheduler jitter but could conceal dropped medians. The
+   fix distinguishes the two by their source: `rvmTask` now watches
+   the median-queue drop counter (`medianQueueDrops`, incremented by
+   `hallTask` when a queue send fails) and, when it changes, calls
+   `recognizer.noteDataLoss()` (a reset) before feeding the first
+   post-loss median — so no correlation window is evaluated across
+   the loss. A timestamp jump alone is still not treated as loss.
+   The >100 ms gap rule in the core is complementary (it catches long
+   timestamp jumps). Tests: `testRecognizerDataLoss` (a magnet cut off
+   by a loss produces no event; recognition resumes for the next
+   magnet) and `testRecognizerJitter` (irregular tick intervals, no
+   loss, recognition unaffected).
+
+Also corrected in this cycle: the flashing instructions in §5 now
+include the `-DESP32` build flag (it was documented in §3 but missing
+from the commands).
+
 ## 3. Verification results
 
 ### Host verification — completed
 
 - **Unit tests:** all pass (`medianOf5`, `DiagnosticLevel`,
-  `WaveformMatcher`, recognizer smoke). The smoke test gives exact
-  passage times, recognition at passage + 359 ms, r = ±1.000,
-  A = 169.9 / −179.9 for true ±170/180.
+  `WaveformMatcher`, `WaveformMatcher` control ordering (finding 1:
+  re-declaration / suspension with stale events), recognizer smoke,
+  recognizer data loss and recognizer jitter (finding 4). The smoke
+  test gives exact passage times, recognition at passage + 359 ms,
+  r = ±1.000, A = 169.9 / −179.9 for true ±170/180.
+- **Causal comparison (finding 3):** `compare_causal.py` runs the
+  firmware core and the research's `causal_events` (single 240 ms
+  scale, pad 0.5, level-only) on the same synthetic trace with
+  competing nearby peaks (same-polarity pairs 80 ms apart, weaker
+  earlier and stronger earlier; opposite-polarity pairs 100 ms and
+  50 ms apart; lone and well-separated controls). **9/9 events agree
+  exactly** (passage time, polarity, r, A within 0.1 ADC). No change
+  to the decision rule was needed.
 - **Level 1 replay (Otto, the 96.8 s NSR file, 20 route-anchored
   reference magnets MM037–MM056):** **20/20 found, 0 missed,
   0 polarity errors, 0 false events in the span.** Passage timing error
@@ -151,13 +246,14 @@ and the plotted-samples CSV, which live outside the repo.
   1.17.4, Adafruit BusIO dependencies (Adafruit Sensor), all from
   GitHub master. `credentials.h` for the compile test is a copy of the
   inert `credentials.example.h` (git-ignored, not committed).
-- **Otto** (`-DNAVI_LOCO=9950011`): compiles. Sketch uses **1,027,211
+- **Otto** (`-DNAVI_LOCO=9950011`): compiles. Sketch uses **1,027,279
   bytes (78%)** of program storage (max 1,310,720); global variables
-  **67,612 bytes (20%)** of dynamic memory (max 327,680), leaving
-  260,068 bytes. `.bin`, `.elf`, and merged `.bin` produced.
-  **Zero warnings** in the whole build log.
+  **67,620 bytes (20%)** of dynamic memory (max 327,680), leaving
+  260,060 bytes. `.bin`, `.elf`, and merged `.bin` produced.
+  **Zero warnings** in the whole build log. (Sizes after the corrective
+  commit `d8ec1d3`; the original `7394afb` was 1,027,211 / 67,612.)
 - **Toby** (`-DNAVI_LOCO=9950012`): compiles, identical size
-  (1,027,211 bytes, 78% flash, 67,612 bytes RAM).
+  (1,027,279 bytes, 78% flash, 67,620 bytes RAM).
 - **One build note (environment, not a sketch defect):** with core
   3.3.12 and Adafruit_BusIO 1.17.4 the build needs **`-DESP32`** added
   to the build flags, because core 3.3.12 no longer defines the plain
@@ -198,10 +294,14 @@ and the plotted-samples CSV, which live outside the repo.
    to a fresh start instead of invalidating a sliding window. Short gaps
    need no handling (the correlation is over consecutive fed bins; the
    passage time comes from the bin's own timestamp). After the fix:
-   20/20. **Reviewers: please check this reasoning** — it is the one
-   place where the implementation diverges from the design's gap
-   discussion, and it was driven by the recorded data, not by the
-   design.
+   20/20. **Corrective cycle (finding 4):** a short timestamp jump can
+   also be a queue overflow (lost medians), which the timestamp cannot
+   distinguish from jitter — so `rvmTask` now watches the drop counter
+   and calls `noteDataLoss()` (reset) when medians were actually lost.
+   The two mechanisms are complementary. **Reviewers: please check this
+   reasoning** — it is the one place where the implementation diverges
+   from the design's gap discussion, and it was driven by the recorded
+   data, not by the design.
 2. **Amplitude scaling (found by the smoke test).** The draft computed
    A as dot(x, Tn), overstating it ~5.24×. The least-squares amplitude
    is A = dot(x, Tn) / ||T − mean(T)|| (norm 5.241398, now
@@ -240,11 +340,6 @@ and the plotted-samples CSV, which live outside the repo.
    `replay.cpp`) did not compile against the retired APIs (pre-existing,
    H2 from the 2026-10-26 review) and have been replaced by the new
    harness in `tests/navi_waveform_recognizer/`. The old test directory
-   is left untouched.
-10. **The old host tests** (`tests/navi_power_of_normal/unit.cpp`,
-   `replay.cpp`) did not compile against the retired APIs (pre-existing,
-   H2 from the 2026-10-26 review) and have been replaced by the new
-   harness in `tests/navi_waveform_recognizer/`. The old test directory
    is left untouched. The sketch README has been updated to describe
    the waveform recognizer (its "What is new", "What is NOT done",
    "Testing", and field-status sections); the 2026-10-24 field-status
@@ -264,10 +359,14 @@ cd firmware/test-programs/NAVI_POWER_OF_NORMAL_MANUAL_ONLY
 # default build is Otto (NAVI_LOCO=9950011); no edit needed
 # Arduino IDE: select the ESP32 board, the USB port, Upload.
 # arduino-cli: arduino-cli compile --fqbn esp32:esp32:esp32 \
-#   --build-property build.extra_flags=-DNAVI_LOCO=9950011 . \
+#   --build-property build.extra_flags="-DNAVI_LOCO=9950011 -DESP32" . \
 #   && arduino-cli upload -p <port> --fqbn esp32:esp32:esp32 .
+# The -DESP32 flag is required with ESP32 core 3.3.12 and Adafruit_BusIO
+# 1.17.4 (the core no longer defines the plain ESP32 macro that BusIO
+# tests for; without it the build fails inside Adafruit_BusIO, not in
+# the sketch — see section 3).
 ```
-For Toby, build with `-DNAVI_LOCO=9950012`.
+For Toby, build with `-DNAVI_LOCO=9950012` (and the same `-DESP32` flag).
 
 **Starting a manual test (Otto, PWM 90 first):**
 1. Power Otto on the track, stationary, and confirm it connects
@@ -312,20 +411,31 @@ the branch. The full history, including the frozen-baseline branch at
     gap) and the reasoning in the comment — this is the correction the
     replay forced, and it is the most consequential judgment call in
     the implementation;
-  - the causal declaration (decideReadyCandidates, rules (a) and (b))
-    against the research's `causal_events` semantics — is the
-    "stronger knowable candidate" rule implemented as the research
-    defines it (earlier candidates only, or all knowable ones)?;
+  - the causal declaration (decideReadyCandidates, rules (a) and (b)):
+    the direct comparison against the research's `causal_events`
+    (`tests/navi_waveform_recognizer/compare_causal.py`, 9/9 events
+    agree on competing nearby peaks) is the evidence that the rule is
+    implemented as the research defines it; please check that the
+    comparison's reasoning (ready order = centre order for a single
+    scale) is sound;
+  - `noteDataLoss()` — the reset on a median-queue overflow (finding
+    4), and whether the drop counter is the right loss signal;
   - the amplitude (correlateCentre, A = dot / NAVI_TEMPLATE_NORM).
 - **`NaviWaveformMatcher.h`** — the simple matcher, the Observation
-  record, and the 400 ms duplicate guard (its justification and whether
-  400 ms is the right provisional value).
+  record, the 400 ms duplicate guard (its justification and whether
+  400 ms is the right provisional value), and the control-ordering
+  guard (finding 1: `lastControlUs_`, events whose passage predates
+  the most recent control return NoClaim) — please check the guard
+  against the ordering rule in the header comment.
 - **`NAVI_POWER_OF_NORMAL_MANUAL_ONLY.ino`** — the integration:
-  hallTask (tick median, diagnostic 70×2), rvmTask (medianQ drain,
-  recognizer, matcher), the retired machinery's removal (is anything
-  still referenced that should not be?), and the telemetry changes
+  hallTask (tick median, diagnostic 70×2), rvmTask (medianQ drain
+  with drop detection, judge-before-control ordering, recognizer,
+  matcher), the retired machinery's removal (is anything still
+  referenced that should not be?), and the telemetry changes
   (state/nav, diag/navi_encounter, loopstat) against the repo's
-  constraint that topic names and payload formats do not change.
+  constraint that topic names and payload formats do not change —
+  in particular, that `state/loopstat` now restores the retired
+  fields as 0 (finding 2).
 - **The host verification** (`tests/navi_waveform_recognizer/`):
   re-run `sh run_checks.sh` and confirm 20/20 on Level 1; check the
   scorer's span handling and the panels robustness results.
