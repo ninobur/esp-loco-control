@@ -1,0 +1,66 @@
+== 1. scale/window options
+bank2_p1.0      causal  dev     rec 1711/1719 (99.53%) false 3 dup 0 | miss by pwm pwm<60:0/15 60-84:0/50 85-95:4/1583 >95:4/71
+bank2_p1.0      causal  heldout rec 6001/6027 (99.57%) false 11 dup 0 | miss by pwm pwm<60:2/30 60-84:7/237 85-95:17/5598 >95:0/162
+bank2_p1.0      offline dev     rec 1711/1719 (99.53%) false 3 dup 0 | miss by pwm pwm<60:0/15 60-84:0/50 85-95:4/1583 >95:4/71
+bank2_p1.0      offline heldout rec 6003/6027 (99.60%) false 9 dup 0 | miss by pwm pwm<60:2/30 60-84:5/237 85-95:17/5598 >95:0/162
+bank3_p1.0      causal  dev     rec 1711/1719 (99.53%) false 3 dup 0 | miss by pwm pwm<60:0/15 60-84:0/50 85-95:4/1583 >95:4/71
+bank3_p1.0      causal  heldout rec 6001/6027 (99.57%) false 11 dup 0 | miss by pwm pwm<60:2/30 60-84:7/237 85-95:17/5598 >95:0/162
+bank3_p1.0      offline dev     rec 1711/1719 (99.53%) false 3 dup 0 | miss by pwm pwm<60:0/15 60-84:0/50 85-95:4/1583 >95:4/71
+bank3_p1.0      offline heldout rec 6005/6027 (99.63%) false 7 dup 0 | miss by pwm pwm<60:1/30 60-84:4/237 85-95:17/5598 >95:0/162
+bank6_p1.0      causal  dev     rec 1714/1719 (99.71%) false 8 dup 0 | miss by pwm pwm<60:0/15 60-84:0/50 85-95:4/1583 >95:1/71
+bank6_p1.0      causal  heldout rec 6002/6027 (99.59%) false 13 dup 1 | miss by pwm pwm<60:2/30 60-84:6/237 85-95:17/5598 >95:0/162
+bank6_p1.0      offline dev     rec 1715/1719 (99.77%) false 7 dup 0 | miss by pwm pwm<60:0/15 60-84:0/50 85-95:3/1583 >95:1/71
+bank6_p1.0      offline heldout rec 6007/6027 (99.67%) false 8 dup 1 | miss by pwm pwm<60:1/30 60-84:2/237 85-95:17/5598 >95:0/162
+single240_p0.5  causal  dev     rec 1710/1719 (99.48%) false 4 dup 1 | miss by pwm pwm<60:0/15 60-84:0/50 85-95:5/1583 >95:4/71
+single240_p0.5  causal  heldout rec 5999/6027 (99.54%) false 8 dup 1 | miss by pwm pwm<60:2/30 60-84:8/237 85-95:18/5598 >95:0/162
+single240_p0.5  offline dev     rec 1710/1719 (99.48%) false 4 dup 1 | miss by pwm pwm<60:0/15 60-84:0/50 85-95:5/1583 >95:4/71
+single240_p0.5  offline heldout rec 5999/6027 (99.54%) false 8 dup 1 | miss by pwm pwm<60:2/30 60-84:8/237 85-95:18/5598 >95:0/162
+single240_p1.0  causal  dev     rec 1710/1719 (99.48%) false 3 dup 0 | miss by pwm pwm<60:0/15 60-84:0/50 85-95:5/1583 >95:4/71
+single240_p1.0  causal  heldout rec 5996/6027 (99.49%) false 7 dup 0 | miss by pwm pwm<60:3/30 60-84:10/237 85-95:18/5598 >95:0/162
+single240_p1.0  offline dev     rec 1710/1719 (99.48%) false 3 dup 0 | miss by pwm pwm<60:0/15 60-84:0/50 85-95:5/1583 >95:4/71
+single240_p1.0  offline heldout rec 5996/6027 (99.49%) false 7 dup 0 | miss by pwm pwm<60:3/30 60-84:10/237 85-95:18/5598 >95:0/162
+single300_p0.5  causal  dev     rec 1695/1719 (98.60%) false 3 dup 0 | miss by pwm pwm<60:0/15 60-84:0/50 85-95:5/1583 >95:19/71
+single300_p0.5  causal  heldout rec 5997/6027 (99.50%) false 7 dup 1 | miss by pwm pwm<60:2/30 60-84:7/237 85-95:18/5598 >95:3/162
+single300_p0.5  offline dev     rec 1695/1719 (98.60%) false 3 dup 0 | miss by pwm pwm<60:0/15 60-84:0/50 85-95:5/1583 >95:19/71
+single300_p0.5  offline heldout rec 5997/6027 (99.50%) false 7 dup 1 | miss by pwm pwm<60:2/30 60-84:7/237 85-95:18/5598 >95:3/162
+bank2_p1.0      60-84   n=  242 latency ms med 479 p95 479 max 479 | travel mm med 87 p95 112 max 145
+bank2_p1.0      85-95   n= 7126 latency ms med 479 p95 479 max 1193 | travel mm med 112 p95 138 max 770
+bank2_p1.0      >95     n=  220 latency ms med 479 p95 479 max 479 | travel mm med 149 p95 280 max 310
+bank2_p1.0      pwm<60  n=   37 latency ms med 479 p95 479 max 479 | travel mm med 61 p95 83 max 89
+bank3_p1.0      60-84   n=  242 latency ms med 479 p95 479 max 479 | travel mm med 87 p95 112 max 145
+bank3_p1.0      85-95   n= 7126 latency ms med 479 p95 479 max 1193 | travel mm med 112 p95 138 max 770
+bank3_p1.0      >95     n=  220 latency ms med 479 p95 479 max 479 | travel mm med 149 p95 280 max 310
+bank3_p1.0      pwm<60  n=   37 latency ms med 479 p95 479 max 479 | travel mm med 61 p95 83 max 89
+bank6_p1.0      60-84   n=  243 latency ms med 298 p95 298 max 757 | travel mm med 54 p95 70 max 145
+bank6_p1.0      85-95   n= 7124 latency ms med 298 p95 298 max 1193 | travel mm med 70 p95 86 max 816
+bank6_p1.0      >95     n=  226 latency ms med 298 p95 298 max 298 | travel mm med 93 p95 175 max 193
+bank6_p1.0      pwm<60  n=   37 latency ms med 298 p95 479 max 479 | travel mm med 47 p95 61 max 62
+single240_p0.5  60-84   n=  242 latency ms med 359 p95 359 max 359 | travel mm med 65 p95 84 max 109
+single240_p0.5  85-95   n= 7123 latency ms med 359 p95 359 max 359 | travel mm med 84 p95 103 max 261
+single240_p0.5  >95     n=  220 latency ms med 359 p95 359 max 359 | travel mm med 111 p95 210 max 233
+single240_p0.5  pwm<60  n=   37 latency ms med 359 p95 359 max 359 | travel mm med 46 p95 62 max 67
+single240_p1.0  60-84   n=  242 latency ms med 479 p95 479 max 479 | travel mm med 87 p95 112 max 145
+single240_p1.0  85-95   n= 7123 latency ms med 479 p95 479 max 479 | travel mm med 112 p95 138 max 339
+single240_p1.0  >95     n=  220 latency ms med 479 p95 479 max 479 | travel mm med 149 p95 280 max 310
+single240_p1.0  pwm<60  n=   37 latency ms med 479 p95 479 max 479 | travel mm med 61 p95 83 max 89
+single300_p0.5  60-84   n=  243 latency ms med 447 p95 447 max 447 | travel mm med 81 p95 105 max 136
+single300_p0.5  85-95   n= 7123 latency ms med 447 p95 447 max 447 | travel mm med 104 p95 129 max 324
+single300_p0.5  >95     n=  190 latency ms med 447 p95 447 max 447 | travel mm med 132 p95 250 max 260
+single300_p0.5  pwm<60  n=   37 latency ms med 447 p95 447 max 447 | travel mm med 57 p95 77 max 83
+== 2/3. firmware-equivalent conditioning, tick spacing
+tick-median conditioning, held-out: {'ref_magnets': 6027, 'recognized': 5999, 'false': 8, 'duplicate': 1}
+samples per recorded 1 ms burst (7 = 7+): {2: 141068, 5: 11604074, 4: 186685, 6: 75819, 3: 167835, 7: 372450, 1: 191808}
+recorded tick spacing ms: median 1.000 p99.9 2.39 max 1393.0  >2ms 38177 of 12739718
+== 4. matcher variants (single240_p0.5 events)
+('P8_next_polarity_required', 'dev') {'correct_adv': 1586, 'incorrect_adv': 68, 'held_polarity': 54}
+('P8_next_polarity_required', 'transfer') {'correct_adv': 2525, 'held_polarity': 717, 'incorrect_adv': 742}
+('P8_next_polarity_required', 'validation') {'incorrect_adv': 603, 'held_polarity': 561, 'correct_adv': 829}
+('V1_time2_polarity_required', 'dev') {'correct_adv': 1094, 'incorrect_adv': 10, 'skip_one': 6, 'held_polarity': 14, 'unmatched_timing_genuine': 585, 'unmatched_timing_spurious': 5}
+('V1_time2_polarity_required', 'transfer') {'correct_adv': 885, 'held_polarity': 27, 'unmatched_timing_genuine': 3048, 'incorrect_adv': 24, 'skip_one': 11}
+('V1_time2_polarity_required', 'validation') {'incorrect_adv': 11, 'unmatched_timing_genuine': 1785, 'unmatched_timing_spurious': 3, 'correct_adv': 180, 'held_polarity': 14, 'skip_one': 3}
+('V2_time2_advance_on_location', 'dev') {'correct_adv': 1094, 'incorrect_adv': 193, 'skip_one': 76, 'advanced_polarity_disagrees': 95, 'unmatched_timing_genuine': 414, 'held_polarity': 2, 'unmatched_timing_spurious': 5}
+('V2_time2_advance_on_location', 'transfer') {'correct_adv': 1307, 'incorrect_adv': 187, 'skip_one': 101, 'advanced_polarity_disagrees': 109, 'unmatched_timing_genuine': 2485, 'held_polarity': 5}
+('V2_time2_advance_on_location', 'validation') {'incorrect_adv': 13, 'unmatched_timing_genuine': 196, 'unmatched_timing_spurious': 3, 'correct_adv': 1778, 'skip_one': 6, 'advanced_polarity_disagrees': 35, 'held_polarity': 3}
+('advance_every_credible', 'dev') {'correct_adv': 844, 'incorrect_adv': 864, 'advanced_polarity_disagrees': 455}
+('advance_every_credible', 'transfer') {'correct_adv': 1443, 'incorrect_adv': 2541, 'advanced_polarity_disagrees': 1325}
+('advance_every_credible', 'validation') {'incorrect_adv': 1867, 'advanced_polarity_disagrees': 968, 'correct_adv': 126}
