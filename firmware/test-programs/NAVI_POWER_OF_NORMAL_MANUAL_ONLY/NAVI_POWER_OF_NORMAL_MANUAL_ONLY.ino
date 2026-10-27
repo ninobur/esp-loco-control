@@ -106,6 +106,7 @@ static std::atomic<uint32_t> blockQueueDrops{0}, onsetQueueDrops{0}, navEventDro
 // at native rate. No lock: single writer, single reader, same core.
 static std::atomic<float> sharedBaselineLevel{0};
 static std::atomic<bool> sharedBaselineReady{false};
+static std::atomic<bool> sharedIdentificationGate{false};
 static std::atomic<uint32_t> baselineRetainedCount{0};  // diagnostic: insufficient-evidence fallback firings
 static uint64_t bootId = 0;
 static uint32_t lastMqttReportMs = 0;
@@ -303,7 +304,8 @@ static void hallTask(void*) {
       if (!firstBlockUs.load()) firstBlockUs.store(tracing.firstBlockUs());
       // No lock here: detection runs continuously, gated only on whether a
       // live baseline level exists yet (it always will, shortly after boot).
-      if (sharedBaselineReady.load()) {
+      if (!sharedIdentificationGate.load()) candidate.reset();
+      if (sharedBaselineReady.load() && sharedIdentificationGate.load()) {
         navi_power::CandidateOnset onset;
         if (candidate.onSample(uint16_t(raw), sharedBaselineLevel.load(), serial, us,
                                uint8_t(actualPwm), onset)) {
@@ -324,7 +326,7 @@ static void hallTask(void*) {
 static void publishSnapshot() {
   NavSnapshot s;
   s.state = uint8_t(target.state()); s.last = target.lastMm(); s.next = target.nextMm(); s.dir = target.dir();
-  s.encounterActive = encounter.active();
+  s.encounterActive = false; // completion is not a navigation prerequisite
   s.blocksEmitted = obsHealth.blocksEmitted; s.blocksDropped = obsHealth.blocksDropped;
   { const auto& t = target.lastTiming();
     s.timingHaveAnchor = t.haveAnchor; s.timingHaveProfile = t.haveProfile;
@@ -334,7 +336,7 @@ static void publishSnapshot() {
     s.timingResult = uint8_t(t.result); s.timingPredictedMs = t.expectedMs;
     s.timingMeasuredMs = t.measuredMs; s.timingLowerMs = t.lowerMs;
     s.timingUpperMs = t.upperMs; s.timingToleranceMs = t.toleranceMs;
-    s.timingAgrees = t.result != navi_power::TimingResult::Mismatches;
+    s.timingAgrees = t.result == navi_power::TimingResult::Matches;
   }
   portENTER_CRITICAL(&navMux);
   s.confirmed = navShared.confirmed; s.nonqualifying = navShared.nonqualifying; s.abandoned = navShared.abandoned;
@@ -343,35 +345,35 @@ static void publishSnapshot() {
 }
 static void postEvent(const NavEvent& ev) { if (!navEvQ || xQueueSend(navEvQ, &ev, 0) != pdTRUE) ++navEventDrops; }
 
-// A completed encounter is judged against the single expected target. A
-// nonqualifying result changes nothing: no state transition, no stop — NAVI
-// keeps waiting for the same target (Proposition 8). There is no arrival-
-// boundary clock to reset any more (removed 2026-10-24); geographic timing
-// now participates as qualification evidence instead, inside
-// target.onEncounter() (NaviTimingPredictor.h).
-static void judgeEncounter(const navi_power::CompletedEncounter& e) {
+// Geographic decision occurs at the native Hall opening, not at closure.
+static void judgeOnset(const navi_power::CandidateOnset& onset) {
   const uint8_t expectedBefore = target.nextMm();
-  const auto r = target.onEncounter(e);
-  NavEvent ev{}; ev.e = e; ev.expected = expectedBefore; ev.last = target.lastMm(); ev.next = target.nextMm(); ev.dir = target.dir();
+  const auto r = target.onOnset(onset);
+  NavEvent ev{}; ev.expected = expectedBefore; ev.last = target.lastMm();
+  ev.next = target.nextMm(); ev.dir = target.dir();
+  ev.e.openUs = onset.openUs; ev.e.pwmAtOpen = onset.pwmAtOpen;
+  ev.e.pol = onset.pol; ev.e.meetsMinWidth = true;
   portENTER_CRITICAL(&navMux);
-  if (r == navi_power::JudgementResult::Confirmed) { ev.kind = EV_CONFIRMED; ev.mm = target.lastMm(); ++navShared.confirmed; }
-  else if (e.abandoned) { ev.kind = EV_ABANDONED; ++navShared.abandoned; }
-  else { ev.kind = EV_NONQUALIFYING; ++navShared.nonqualifying; }
+  if (r == navi_power::JudgementResult::Confirmed) {
+    ev.kind = EV_CONFIRMED; ev.mm = target.lastMm(); ++navShared.confirmed;
+  } else { ev.kind = EV_NONQUALIFYING; ++navShared.nonqualifying; }
   portEXIT_CRITICAL(&navMux);
-  // No baseline.beginCollection() call here, deliberately (corrected
-  // 2026-10-24): the long measurement starts watching for the next
-  // interval's entry point on its own, inside baseline.onBlock(), the
-  // instant finalize() ran -- this confirmation's timing has no say in it.
+  if (r == navi_power::JudgementResult::Confirmed) {
+    baseline.onConfirmedOpening();
+    sharedIdentificationGate.store(false);
+  }
   postEvent(ev);
 }
 static void applyControl() {
   NavCtl c;
   while (ctlQ && xQueueReceive(ctlQ, &c, 0) == pdTRUE) {
     if (c.kind == CTL_DECLARE) {
+      sharedIdentificationGate.store(false);
       target.declare(c.last, c.next, c.dir);
       NavEvent ev{}; ev.kind = EV_DECLARED; ev.last = target.lastMm(); ev.next = target.nextMm(); ev.dir = target.dir();
       publishSnapshot(); postEvent(ev);
     } else {
+      sharedIdentificationGate.store(false);
       target.suspend();
       NavEvent ev{}; ev.kind = EV_SUSPENDED; ev.last = target.lastMm(); ev.next = target.nextMm(); ev.dir = target.dir();
       publishSnapshot(); postEvent(ev);
@@ -385,34 +387,26 @@ static void rvmTask(void*) {
     applyControl();
     navi_power::CandidateOnset onset;
     while (onsetQ && xQueueReceive(onsetQ, &onset, 0) == pdTRUE) {
-      if (!encounter.active()) {
-        // Only the onset that actually opens a new encounter ends the long
-        // measurement's collection for this interval -- an echo onset while
-        // one is already active (noise re-crossing mid-excursion) must not
-        // be treated as a second interval boundary.
-        uint32_t sampleCount = 0;
-        if (!baseline.finalize(sampleCount)) ++baselineRetainedCount;  // zero moving samples this interval: previous level retained, not invented
-        // CandidateOnset carries its native 70x2 timestamp. NaviTarget later
-        // measures only from the previous CONFIRMED opening; an echo or a
-        // nonqualifying observation never moves that geographic clock.
-        encounter.open(onset, blockCounter);
-      }
-      // A second onset while an encounter is already active is not blocked
-      // anywhere upstream (NaviCandidate/NaviBaseline never suspend); it is
-      // simply not opened as a second encounter here. Rare, and visible via
-      // the existing onsetQueueDrops-style counters if it recurs often.
+      // The opening timestamp itself must fall inside the active gate.
+      // Ignore stale queue entries after an earlier confirmation.
+      if (sharedIdentificationGate.load() && target.windowOpen(onset.openUs))
+        judgeOnset(onset);
     }
     if (got) {
       obsHealth.noteEmitted();
       ++blockCounter;
-      baseline.onBlock(b.hall, b.pwm > 0);               // the long measurement: always fed, never gated by the encounter
-      sharedBaselineLevel.store(baseline.level());
-      sharedBaselineReady.store(baseline.haveLevel());
-      if (encounter.active()) {
-        navi_power::CompletedEncounter done;
-        if (encounter.push(b, done)) judgeEncounter(done);  // the short measurement: observed return to the committed level
-      }
+      baseline.onBlock(b.hall, b.pwm > 0);
     }
+    // Gate transition is time-driven. The median is frozen BEFORE enabling
+    // native Hall identification, and stays fixed until confirmed opening.
+    const bool open = target.windowOpen(esp_timer_get_time());
+    if (open && !sharedIdentificationGate.load()) {
+      if (baseline.phase() != navi_power::BaselineTracker::Phase::Boot)
+        if (!baseline.freezeAtGate()) ++baselineRetainedCount;
+    }
+    sharedBaselineLevel.store(baseline.level());
+    sharedBaselineReady.store(baseline.haveLevel());
+    sharedIdentificationGate.store(open && baseline.haveLevel());
     publishSnapshot();
     rvmStackFree.store(uxTaskGetStackHighWaterMark(nullptr));
   }
