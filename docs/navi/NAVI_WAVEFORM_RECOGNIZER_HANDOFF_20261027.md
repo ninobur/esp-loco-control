@@ -14,7 +14,11 @@ no automatic geographic correction).
   (the current manual-only sketch). The last known-working field build is
   its parent, `a8154b5` (2026-10-24 full CW lap: every marker confirmed,
   zero non-qualifying, zero abandoned) — see §5 for the recovery path.
-- **Commit:** [TO FILL — the implementation commit hash]
+- **Commit:** `7394afb` ("NAVI waveform recognizer, manual-only
+  experimental firmware (Option B)"), on branch
+  `impl/navi-waveform-recognizer-manual-20261027`. The handoff itself
+  was finalized in the following commit; the implementation commit is
+  the one to review.
 - **Firmware variant:** `NAVI_POWER_OF_NORMAL_MANUAL_ONLY`, experimental,
   manual only. `AUTO_GO_PERMITTED` is `false`; AUTO/GO are hard-refused;
   there is no protective stop. Locomotive is selected at compile time:
@@ -100,7 +104,12 @@ duplicate guard / suspend / Observation record), the diagnostic level,
 the median-of-5, and the recognizer smoke test; a replay harness that
 feeds recorded 1 ms tick medians through the portable core; a scorer
 against the research reference. Fixtures are in `tests/.../fixtures/`
-(Level 1 ticks + reference, and the CSV panels).
+(Level 1 ticks + reference, and the CSV panels). Note: the binary
+tick files (`*.ticks.bin`) are git-ignored by the repo's `.gitignore`
+(`*.bin`) and are not in the commit; regenerate them with
+`make_tick_medians.py` from the NSR file
+(`2F752FA0-89C8-4BB0-B9F4-B7871D197D93-9950011_20261025_133357.nsr`)
+and the plotted-samples CSV, which live outside the repo.
 
 ## 3. Verification results
 
