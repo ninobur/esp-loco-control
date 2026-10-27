@@ -1,0 +1,922 @@
+[
+ {
+  "capture": "9950011_20261025_133357.nsr",
+  "sha256": "18059ed557b9931dbb55886f152cdf2ce1b811a30dff8a1d7f9c69789c8e88be",
+  "bytes": 10390492,
+  "locomotive": "Otto 9950011",
+  "boots": [
+   "07385a0556011b88"
+  ],
+  "native_samples": 483936,
+  "duration_s": 96.8,
+  "crc_bad_records": 0,
+  "native_serial_gaps": 0,
+  "record_counts": {
+   "ACTION": 324,
+   "HALL_NATIVE": 10082,
+   "HALL": 2035,
+   "STATUS": 97
+  },
+  "partition": "level1",
+  "reference_magnets": 20,
+  "reference_expected": 0,
+  "scored_span_s": 26.4,
+  "oracle_excursions": 22
+ },
+ {
+  "capture": "navi_session_9950011_1101C8E84BD203CE_CAC98672_20261025_185713.nsr",
+  "sha256": "37de2113206baf8a390498901a3e50fe01ce3147f027c2bd98eaf600b2760b2b",
+  "bytes": 42227783,
+  "locomotive": "Otto 9950011",
+  "boots": [
+   "1101c8e84bd203ce"
+  ],
+  "native_samples": 1981680,
+  "duration_s": 396.3,
+  "crc_bad_records": 0,
+  "native_serial_gaps": 0,
+  "record_counts": {
+   "ACTION": 219,
+   "HALL_NATIVE": 41285,
+   "HALL": 8276,
+   "STATUS": 395
+  },
+  "partition": "dev",
+  "reference_magnets": 175,
+  "reference_expected": 0,
+  "scored_span_s": 257.3,
+  "oracle_excursions": 177
+ },
+ {
+  "capture": "navi_session_9950011_278F53E8D6A6A152_863442F4_20261026_130108.nsr",
+  "sha256": "a4367e674c940a04c063e73be9b741df8d6970964fa9fe4a05ced19c510f2151",
+  "bytes": 13666480,
+  "locomotive": "Otto 9950011",
+  "boots": [
+   "278f53e8d6a6a152"
+  ],
+  "native_samples": 640704,
+  "duration_s": 128.1,
+  "crc_bad_records": 0,
+  "native_serial_gaps": 0,
+  "record_counts": {
+   "ACTION": 80,
+   "HALL_NATIVE": 13348,
+   "HALL": 2688,
+   "STATUS": 128
+  },
+  "partition": "validation",
+  "reference_magnets": 11,
+  "reference_expected": 0,
+  "scored_span_s": 23.9,
+  "oracle_excursions": 28
+ },
+ {
+  "capture": "navi_session_9950011_2DBF9301D441406A_EFB1DB70_20261026_125003.nsr",
+  "sha256": "e7eae0606b1b1ed4cedfec5dbb8ef4bc5e2a7f0dc163196a2d1d347d22ca984f",
+  "bytes": 37185331,
+  "locomotive": "Otto 9950011",
+  "boots": [
+   "2dbf9301d441406a"
+  ],
+  "native_samples": 1747104,
+  "duration_s": 349.4,
+  "crc_bad_records": 0,
+  "native_serial_gaps": 0,
+  "record_counts": {
+   "ACTION": 1,
+   "HALL_NATIVE": 36398,
+   "HALL": 7299,
+   "STATUS": 348
+  },
+  "partition": "validation",
+  "reference_magnets": 0,
+  "reference_expected": 0,
+  "scored_span_s": 0,
+  "oracle_excursions": 0
+ },
+ {
+  "capture": "navi_session_9950011_396E722E9B21858E_2810F463_20261025_143214.nsr",
+  "sha256": "6d7466a5a3bb6d156422d34be2e1bb4c3c4261331e172c577aaf31a895e912a9",
+  "bytes": 45267275,
+  "locomotive": "Otto 9950011",
+  "boots": [
+   "396e722e9b21858e"
+  ],
+  "native_samples": 2122368,
+  "duration_s": 424.5,
+  "crc_bad_records": 0,
+  "native_serial_gaps": 0,
+  "record_counts": {
+   "ACTION": 413,
+   "HALL_NATIVE": 44216,
+   "HALL": 8862,
+   "STATUS": 423
+  },
+  "partition": "dev",
+  "reference_magnets": 167,
+  "reference_expected": 0,
+  "scored_span_s": 231.7,
+  "oracle_excursions": 169
+ },
+ {
+  "capture": "navi_session_9950011_39942C7C86D977F4_F5327735_20261025_144532.nsr",
+  "sha256": "72eebfc5585cf4bb35bc2fd76e9a49ec855f1c140e4821ba1b6a16478afadb7e",
+  "bytes": 31220243,
+  "locomotive": "Otto 9950011",
+  "boots": [
+   "39942c7c86d977f4"
+  ],
+  "native_samples": 1462800,
+  "duration_s": 292.6,
+  "crc_bad_records": 0,
+  "native_serial_gaps": 2,
+  "record_counts": {
+   "ACTION": 343,
+   "HALL_NATIVE": 30475,
+   "HALL": 6115,
+   "STATUS": 292
+  },
+  "partition": "dev",
+  "reference_magnets": 168,
+  "reference_expected": 0,
+  "scored_span_s": 229.0,
+  "oracle_excursions": 170
+ },
+ {
+  "capture": "navi_session_9950011_4B4D99C1FC8A2402_E341D221_20261025_144039.nsr",
+  "sha256": "4bca1c8af26fb85cc4a683f64881c4d9fcc294fd318189f40897a766ffea2f7c",
+  "bytes": 30465613,
+  "locomotive": "Otto 9950011",
+  "boots": [
+   "4b4d99c1fc8a2402"
+  ],
+  "native_samples": 1428960,
+  "duration_s": 285.8,
+  "crc_bad_records": 0,
+  "native_serial_gaps": 0,
+  "record_counts": {
+   "ACTION": 199,
+   "HALL_NATIVE": 29770,
+   "HALL": 5974,
+   "STATUS": 285
+  },
+  "partition": "dev",
+  "reference_magnets": 174,
+  "reference_expected": 0,
+  "scored_span_s": 244.9,
+  "oracle_excursions": 176
+ },
+ {
+  "capture": "navi_session_9950011_54CB76FF31D2533C_93C00FA1_20261026_112038.nsr",
+  "sha256": "7ad28676c3f9b2963132bbe74486453bfa58b83265177ff130b2f62d6a493f9b",
+  "bytes": 25727473,
+  "locomotive": "Otto 9950011",
+  "boots": [
+   "54cb76ff31d2533c"
+  ],
+  "native_samples": 1195008,
+  "duration_s": 239.0,
+  "crc_bad_records": 0,
+  "native_serial_gaps": 0,
+  "record_counts": {
+   "ACTION": 1191,
+   "HALL_NATIVE": 24896,
+   "HALL": 4999,
+   "STATUS": 238
+  },
+  "partition": "validation",
+  "reference_magnets": 41,
+  "reference_expected": 0,
+  "scored_span_s": 110.7,
+  "oracle_excursions": 57
+ },
+ {
+  "capture": "navi_session_9950011_5EB1E25967EA0D9F_C3650F9F_20261025_191440.nsr",
+  "sha256": "a339540299cf511577d9dedafd855f49f4a1222d5c1b770abddcbb160056e01a",
+  "bytes": 49778208,
+  "locomotive": "Otto 9950011",
+  "boots": [
+   "5eb1e25967ea0d9f"
+  ],
+  "native_samples": 2336688,
+  "duration_s": 467.9,
+  "crc_bad_records": 0,
+  "native_serial_gaps": 2,
+  "record_counts": {
+   "ACTION": 212,
+   "HALL_NATIVE": 48681,
+   "HALL": 9755,
+   "STATUS": 466
+  },
+  "partition": "dev",
+  "reference_magnets": 174,
+  "reference_expected": 0,
+  "scored_span_s": 287.3,
+  "oracle_excursions": 179
+ },
+ {
+  "capture": "navi_session_9950011_63DD5C95E06D134A_29B54108_20261025_183301.nsr",
+  "sha256": "b239e268c78fcf3e9b5a4920bf53faeaaf54714c2c696c8e67620a0b5fcf3845",
+  "bytes": 56272755,
+  "locomotive": "Otto 9950011",
+  "boots": [
+   "63dd5c95e06d134a"
+  ],
+  "native_samples": 2644368,
+  "duration_s": 528.9,
+  "crc_bad_records": 0,
+  "native_serial_gaps": 0,
+  "record_counts": {
+   "ACTION": 1,
+   "HALL_NATIVE": 55091,
+   "HALL": 11037,
+   "STATUS": 527
+  },
+  "partition": "dev",
+  "reference_magnets": 0,
+  "reference_expected": 0,
+  "scored_span_s": 0,
+  "oracle_excursions": 0
+ },
+ {
+  "capture": "navi_session_9950011_7463C9467F2273E6_8DBC960E_20261025_151449.nsr",
+  "sha256": "8c39eb0d575be0615ba87f29f0e3f4ef207fd548b5823fa0e60ec2e051b05097",
+  "bytes": 58998864,
+  "locomotive": "Otto 9950011",
+  "boots": [
+   "7463c9467f2273e6"
+  ],
+  "native_samples": 2768592,
+  "duration_s": 553.7,
+  "crc_bad_records": 0,
+  "native_serial_gaps": 0,
+  "record_counts": {
+   "ACTION": 346,
+   "HALL_NATIVE": 57679,
+   "HALL": 11555,
+   "STATUS": 551
+  },
+  "partition": "dev",
+  "reference_magnets": 365,
+  "reference_expected": 0,
+  "scored_span_s": 496.6,
+  "oracle_excursions": 370
+ },
+ {
+  "capture": "navi_session_9950011_77E1D0EB6602E52F_3FF447A6_20261026_131105.nsr",
+  "sha256": "55437b360a54ab1af1fbb2477b31fa59baa151e5ca0e4057703d95cb5e2d1c90",
+  "bytes": 31179092,
+  "locomotive": "Otto 9950011",
+  "boots": [
+   "77e1d0eb6602e52f"
+  ],
+  "native_samples": 1462416,
+  "duration_s": 292.7,
+  "crc_bad_records": 0,
+  "native_serial_gaps": 1,
+  "record_counts": {
+   "ACTION": 212,
+   "HALL_NATIVE": 30467,
+   "HALL": 6112,
+   "STATUS": 291
+  },
+  "partition": "validation",
+  "reference_magnets": 176,
+  "reference_expected": 6,
+  "scored_span_s": 214.6,
+  "oracle_excursions": 178
+ },
+ {
+  "capture": "navi_session_9950011_7A62A59107547EAE_11DAC74E_20261025_185700.nsr",
+  "sha256": "258c656e8395ed390b8dc8e6409d63ac3d9fdc54d99614b4ee1b742f58bf0917",
+  "bytes": 265687,
+  "locomotive": "Otto 9950011",
+  "boots": [
+   "7a62a59107547eae"
+  ],
+  "native_samples": 11616,
+  "duration_s": 2.3,
+  "crc_bad_records": 0,
+  "native_serial_gaps": 0,
+  "record_counts": {
+   "ACTION": 1,
+   "HALL_NATIVE": 242,
+   "HALL": 68,
+   "STATUS": 3
+  },
+  "partition": "excluded (<50k samples)"
+ },
+ {
+  "capture": "navi_session_9950011_8139C11783F1F6A0_9EB7A3B3_20261025_150002.nsr",
+  "sha256": "745cfb2b9497183c580b2c64e3dd1db77f1ffae07bdf017fa851e3a0eeadc3e3",
+  "bytes": 41428634,
+  "locomotive": "Otto 9950011",
+  "boots": [
+   "8139c11783f1f6a0"
+  ],
+  "native_samples": 1943040,
+  "duration_s": 388.6,
+  "crc_bad_records": 0,
+  "native_serial_gaps": 0,
+  "record_counts": {
+   "ACTION": 314,
+   "HALL_NATIVE": 40480,
+   "HALL": 8115,
+   "STATUS": 387
+  },
+  "partition": "dev",
+  "reference_magnets": 176,
+  "reference_expected": 0,
+  "scored_span_s": 305.8,
+  "oracle_excursions": 184
+ },
+ {
+  "capture": "navi_session_9950011_8B9F1FABA221C52D_FB2C11B8_20261025_195900.nsr",
+  "sha256": "160a85ac1c43d45578fcc2cae1588e05dc96d23fae55814f860adf30ae90bc44",
+  "bytes": 3258425,
+  "locomotive": "Otto 9950011",
+  "boots": [
+   "8b9f1faba221c52d"
+  ],
+  "native_samples": 152304,
+  "duration_s": 30.5,
+  "crc_bad_records": 0,
+  "native_serial_gaps": 0,
+  "record_counts": {
+   "ACTION": 1,
+   "HALL_NATIVE": 3173,
+   "HALL": 654,
+   "STATUS": 31
+  },
+  "partition": "dev",
+  "reference_magnets": 0,
+  "reference_expected": 0,
+  "scored_span_s": 0,
+  "oracle_excursions": 0
+ },
+ {
+  "capture": "navi_session_9950011_AEA377BE8702355B_DE880485_20261025_200053.nsr",
+  "sha256": "cc5f71a08e7c07071b6b27b2387d0a916ec847f32be68cc680617c3236bccd9c",
+  "bytes": 11807513,
+  "locomotive": "Otto 9950011",
+  "boots": [
+   "aea377be8702355b"
+  ],
+  "native_samples": 551040,
+  "duration_s": 110.2,
+  "crc_bad_records": 0,
+  "native_serial_gaps": 0,
+  "record_counts": {
+   "ACTION": 279,
+   "HALL_NATIVE": 11480,
+   "HALL": 2315,
+   "STATUS": 110
+  },
+  "partition": "dev",
+  "reference_magnets": 0,
+  "reference_expected": 0,
+  "scored_span_s": 0,
+  "oracle_excursions": 17
+ },
+ {
+  "capture": "navi_session_9950011_C2C3E51F16AFA083_E9253DED_20261025_200750.nsr",
+  "sha256": "a5c5930ec242f863cdb7ce0503df60440d50d6afef46044eb3f4883896b07c50",
+  "bytes": 45018642,
+  "locomotive": "Otto 9950011",
+  "boots": [
+   "c2c3e51f16afa083"
+  ],
+  "native_samples": 2112864,
+  "duration_s": 422.6,
+  "crc_bad_records": 0,
+  "native_serial_gaps": 0,
+  "record_counts": {
+   "ACTION": 218,
+   "HALL_NATIVE": 44018,
+   "HALL": 8823,
+   "STATUS": 421
+  },
+  "partition": "dev",
+  "reference_magnets": 174,
+  "reference_expected": 0,
+  "scored_span_s": 253.9,
+  "oracle_excursions": 176
+ },
+ {
+  "capture": "navi_session_9950011_D1EC9A0B0A105CD2_B5B48C5A_20261025_141344.nsr",
+  "sha256": "1bac364b139e9403458f92a2f30216f18964763c507ef2844096b7e693601c8e",
+  "bytes": 35722757,
+  "locomotive": "Otto 9950011",
+  "boots": [
+   "d1ec9a0b0a105cd2"
+  ],
+  "native_samples": 1669776,
+  "duration_s": 334.0,
+  "crc_bad_records": 0,
+  "native_serial_gaps": 0,
+  "record_counts": {
+   "ACTION": 761,
+   "HALL_NATIVE": 34787,
+   "HALL": 6976,
+   "STATUS": 333
+  },
+  "partition": "dev",
+  "reference_magnets": 146,
+  "reference_expected": 6,
+  "scored_span_s": 147.6,
+  "oracle_excursions": 209
+ },
+ {
+  "capture": "navi_session_9950011_D29E200C39A80EC7_CDCCADA8_20261026_113500.nsr",
+  "sha256": "aa3b44c2488ab725bdcd88278a9fe7891c2304e626d83d0fd99c929b40d869b4",
+  "bytes": 20744505,
+  "locomotive": "Otto 9950011",
+  "boots": [
+   "d29e200c39a80ec7"
+  ],
+  "native_samples": 961776,
+  "duration_s": 192.4,
+  "crc_bad_records": 0,
+  "native_serial_gaps": 0,
+  "record_counts": {
+   "ACTION": 1107,
+   "HALL_NATIVE": 20037,
+   "HALL": 4026,
+   "STATUS": 192
+  },
+  "partition": "validation",
+  "reference_magnets": 73,
+  "reference_expected": 0,
+  "scored_span_s": 106.4,
+  "oracle_excursions": 81
+ },
+ {
+  "capture": "navi_session_9950011_F420A05DCE376BCB_2C88DC27_20261026_114657.nsr",
+  "sha256": "78dba2ff1b6e390774c9b2208ddd0d8a8d136b77dc3545c2e7f450e9c49a2d47",
+  "bytes": 243305848,
+  "locomotive": "Otto 9950011",
+  "boots": [
+   "f420a05dce376bcb"
+  ],
+  "native_samples": 11433168,
+  "duration_s": 2286.6,
+  "crc_bad_records": 0,
+  "native_serial_gaps": 0,
+  "record_counts": {
+   "ACTION": 270,
+   "HALL_NATIVE": 238191,
+   "HALL": 47657,
+   "STATUS": 2275
+  },
+  "partition": "validation",
+  "reference_magnets": 1707,
+  "reference_expected": 65,
+  "scored_span_s": 2194.7,
+  "oracle_excursions": 1745
+ },
+ {
+  "capture": "navi_session_9950011_FBD13DC1F568014F_F59AA401_20261025_193740.nsr",
+  "sha256": "dbce158300d53a1689862bd3bc915d33a05e6cad33fa61f06a242cde97376492",
+  "bytes": 15598695,
+  "locomotive": "Otto 9950011",
+  "boots": [
+   "fbd13dc1f568014f"
+  ],
+  "native_samples": 732384,
+  "duration_s": 146.5,
+  "crc_bad_records": 0,
+  "native_serial_gaps": 0,
+  "record_counts": {
+   "ACTION": 1,
+   "HALL_NATIVE": 15258,
+   "HALL": 3071,
+   "STATUS": 146
+  },
+  "partition": "dev",
+  "reference_magnets": 0,
+  "reference_expected": 0,
+  "scored_span_s": 0,
+  "oracle_excursions": 2
+ },
+ {
+  "capture": "navi_session_9950012_06CFF492E36BFCB0_85C18893_20261026_101548.nsr",
+  "sha256": "5c0c04b8b17cb7a790488211363e5ca777ffe9b91f2702090e7c3a9bbf4db905",
+  "bytes": 19841810,
+  "locomotive": "Toby 9950012",
+  "boots": [
+   "06cff492e36bfcb0"
+  ],
+  "native_samples": 917808,
+  "duration_s": 183.6,
+  "crc_bad_records": 0,
+  "native_serial_gaps": 0,
+  "record_counts": {
+   "ACTION": 1238,
+   "HALL_NATIVE": 19121,
+   "HALL": 3844,
+   "STATUS": 183
+  },
+  "partition": "transfer",
+  "reference_magnets": 0,
+  "reference_expected": 0,
+  "scored_span_s": 0,
+  "oracle_excursions": 0
+ },
+ {
+  "capture": "navi_session_9950012_0D92C1805255ECAE_6CDDD0D5_20261026_094944.nsr",
+  "sha256": "0991cc5554a68d910fba9ee3353f84b8ecaff2bdd1e808ce868757965cbc7c2f",
+  "bytes": 20833645,
+  "locomotive": "Toby 9950012",
+  "boots": [
+   "0d92c1805255ecae"
+  ],
+  "native_samples": 978480,
+  "duration_s": 195.7,
+  "crc_bad_records": 0,
+  "native_serial_gaps": 0,
+  "record_counts": {
+   "ACTION": 1,
+   "HALL_NATIVE": 20385,
+   "HALL": 4096,
+   "STATUS": 195
+  },
+  "partition": "transfer",
+  "reference_magnets": 0,
+  "reference_expected": 0,
+  "scored_span_s": 0,
+  "oracle_excursions": 2
+ },
+ {
+  "capture": "navi_session_9950012_22BBF8FCFE386F3D_D53310BE_20261026_102503.nsr",
+  "sha256": "db5dca8a1ce8b7d9c30807cfeba9b7d6df924b7d7ea8f3b9fe6a54d75b536875",
+  "bytes": 342658653,
+  "locomotive": "Toby 9950012",
+  "boots": [
+   "22bbf8fcfe386f3d"
+  ],
+  "native_samples": 16001616,
+  "duration_s": 3202.6,
+  "crc_bad_records": 0,
+  "native_serial_gaps": 10,
+  "record_counts": {
+   "ACTION": 9187,
+   "HALL_NATIVE": 333367,
+   "HALL": 66710,
+   "STATUS": 3188
+  },
+  "partition": "transfer",
+  "reference_magnets": 718,
+  "reference_expected": 0,
+  "scored_span_s": 1013.8,
+  "oracle_excursions": 863
+ },
+ {
+  "capture": "navi_session_9950012_2623C224035307E9_7AD84649_20261025_180656.nsr",
+  "sha256": "95a0a47b488d8d7369dddb6c5e2e1f075f89067e2ac6986d594881dfc0b3c52a",
+  "bytes": 33413924,
+  "locomotive": "Toby 9950012",
+  "boots": [
+   "2623c224035307e9"
+  ],
+  "native_samples": 1567536,
+  "duration_s": 313.5,
+  "crc_bad_records": 0,
+  "native_serial_gaps": 0,
+  "record_counts": {
+   "ACTION": 206,
+   "HALL_NATIVE": 32657,
+   "HALL": 6550,
+   "STATUS": 312
+  },
+  "partition": "transfer",
+  "reference_magnets": 190,
+  "reference_expected": 0,
+  "scored_span_s": 257.7,
+  "oracle_excursions": 192
+ },
+ {
+  "capture": "navi_session_9950012_2DC048162F8C579F_8323322C_20261025_185727.nsr",
+  "sha256": "a50279aa991a634bc17ad19211d1015129dce0a6eabd198cf6a9d6ceb753ddc0",
+  "bytes": 40961437,
+  "locomotive": "Toby 9950012",
+  "boots": [
+   "2dc048162f8c579f"
+  ],
+  "native_samples": 1922208,
+  "duration_s": 384.4,
+  "crc_bad_records": 0,
+  "native_serial_gaps": 0,
+  "record_counts": {
+   "ACTION": 215,
+   "HALL_NATIVE": 40046,
+   "HALL": 8028,
+   "STATUS": 383
+  },
+  "partition": "transfer",
+  "reference_magnets": 175,
+  "reference_expected": 0,
+  "scored_span_s": 257.4,
+  "oracle_excursions": 177
+ },
+ {
+  "capture": "navi_session_9950012_5F2005DA1FBBC01E_187A1D30_20261025_191436.nsr",
+  "sha256": "46eea12e055a582ad0abf073a1f1ae616cc4c974bdbd3c93adc10e92621f45c2",
+  "bytes": 50398255,
+  "locomotive": "Toby 9950012",
+  "boots": [
+   "5f2005da1fbbc01e"
+  ],
+  "native_samples": 2365824,
+  "duration_s": 473.8,
+  "crc_bad_records": 0,
+  "native_serial_gaps": 3,
+  "record_counts": {
+   "ACTION": 211,
+   "HALL_NATIVE": 49288,
+   "HALL": 9877,
+   "STATUS": 471
+  },
+  "partition": "transfer",
+  "reference_magnets": 173,
+  "reference_expected": 0,
+  "scored_span_s": 284.9,
+  "oracle_excursions": 177
+ },
+ {
+  "capture": "navi_session_9950012_799E9E058F1382BD_E89FE745_20261026_095302.nsr",
+  "sha256": "dfe0473395de5f4e7437b96dd3a89e9f051301555bb46bf969f5efb443f562a9",
+  "bytes": 34310755,
+  "locomotive": "Toby 9950012",
+  "boots": [
+   "799e9e058f1382bd"
+  ],
+  "native_samples": 1606224,
+  "duration_s": 321.2,
+  "crc_bad_records": 0,
+  "native_serial_gaps": 0,
+  "record_counts": {
+   "ACTION": 509,
+   "HALL_NATIVE": 33463,
+   "HALL": 6712,
+   "STATUS": 320
+  },
+  "partition": "transfer",
+  "reference_magnets": 171,
+  "reference_expected": 0,
+  "scored_span_s": 259.4,
+  "oracle_excursions": 173
+ },
+ {
+  "capture": "navi_session_9950012_83100720D44BDAB1_E7B4D9E7_20261026_102433.nsr",
+  "sha256": "52f9da59ec490ee4ddef1978f1f910b967b963e32664ba2158fcd1c5d3566579",
+  "bytes": 2935841,
+  "locomotive": "Toby 9950012",
+  "boots": [
+   "83100720d44bdab1"
+  ],
+  "native_samples": 137184,
+  "duration_s": 27.4,
+  "crc_bad_records": 0,
+  "native_serial_gaps": 0,
+  "record_counts": {
+   "ACTION": 1,
+   "HALL_NATIVE": 2858,
+   "HALL": 590,
+   "STATUS": 28
+  },
+  "partition": "transfer",
+  "reference_magnets": 0,
+  "reference_expected": 0,
+  "scored_span_s": 0,
+  "oracle_excursions": 0
+ },
+ {
+  "capture": "navi_session_9950012_8CFE3CE1CCE52D3D_164FAB31_20261026_122609.nsr",
+  "sha256": "a0aad31088cad7dd6605f42e60f7d70f0e1350580ed0ae44176103cc9f9ba280",
+  "bytes": 108430380,
+  "locomotive": "Toby 9950012",
+  "boots": [
+   "8cfe3ce1cce52d3d"
+  ],
+  "native_samples": 5090736,
+  "duration_s": 1019.4,
+  "crc_bad_records": 0,
+  "native_serial_gaps": 12,
+  "record_counts": {
+   "ACTION": 486,
+   "HALL_NATIVE": 106057,
+   "HALL": 21228,
+   "STATUS": 1014
+  },
+  "partition": "transfer",
+  "reference_magnets": 686,
+  "reference_expected": 24,
+  "scored_span_s": 949.4,
+  "oracle_excursions": 690
+ },
+ {
+  "capture": "navi_session_9950012_9D8C9C19279A29AD_4D1E66C8_20261025_184241.nsr",
+  "sha256": "fc67c0e97a242ccb70de2349df8b564c9bd033f60645fd71403d35e3715bc8a0",
+  "bytes": 39617547,
+  "locomotive": "Toby 9950012",
+  "boots": [
+   "9d8c9c19279a29ad"
+  ],
+  "native_samples": 1858944,
+  "duration_s": 371.8,
+  "crc_bad_records": 0,
+  "native_serial_gaps": 0,
+  "record_counts": {
+   "ACTION": 221,
+   "HALL_NATIVE": 38728,
+   "HALL": 7765,
+   "STATUS": 370
+  },
+  "partition": "transfer",
+  "reference_magnets": 164,
+  "reference_expected": 0,
+  "scored_span_s": 263.1,
+  "oracle_excursions": 166
+ },
+ {
+  "capture": "navi_session_9950012_9E37ADE2EFB0E0D7_F3826809_20261025_175823.nsr",
+  "sha256": "f7801c0a39e9fb67411f21ef05468a2d1a899d127303e73a3dc76e5ce215a719",
+  "bytes": 2090813,
+  "locomotive": "Toby 9950012",
+  "boots": [
+   "9e37ade2efb0e0d7"
+  ],
+  "native_samples": 97776,
+  "duration_s": 25.1,
+  "crc_bad_records": 0,
+  "native_serial_gaps": 53,
+  "record_counts": {
+   "ACTION": 1,
+   "HALL_NATIVE": 2037,
+   "HALL": 418,
+   "STATUS": 25
+  },
+  "partition": "transfer",
+  "reference_magnets": 0,
+  "reference_expected": 0,
+  "scored_span_s": 0,
+  "oracle_excursions": 0
+ },
+ {
+  "capture": "navi_session_9950012_B695139999A7B587_BB2D5C01_20261025_180046.nsr",
+  "sha256": "163de58216e2114c79b6141cb3ddca3ae32d5e15706ebfda36904e14ea64da20",
+  "bytes": 856467,
+  "locomotive": "Toby 9950012",
+  "boots": [
+   "b695139999a7b587"
+  ],
+  "native_samples": 39696,
+  "duration_s": 10.4,
+  "crc_bad_records": 0,
+  "native_serial_gaps": 26,
+  "record_counts": {
+   "ACTION": 1,
+   "HALL_NATIVE": 827,
+   "HALL": 178,
+   "STATUS": 8
+  },
+  "partition": "excluded (<50k samples)"
+ },
+ {
+  "capture": "navi_session_9950012_C354E790319577EA_58DAC53F_20261026_100013.nsr",
+  "sha256": "152b3b3a45f2bcbc1bc08576a97af81f67898cc6f3d49932d7db48fd9aad9f63",
+  "bytes": 39394964,
+  "locomotive": "Toby 9950012",
+  "boots": [
+   "c354e790319577ea"
+  ],
+  "native_samples": 1845552,
+  "duration_s": 369.1,
+  "crc_bad_records": 0,
+  "native_serial_gaps": 0,
+  "record_counts": {
+   "ACTION": 480,
+   "HALL_NATIVE": 38449,
+   "HALL": 7709,
+   "STATUS": 368
+  },
+  "partition": "transfer",
+  "reference_magnets": 185,
+  "reference_expected": 0,
+  "scored_span_s": 318.1,
+  "oracle_excursions": 187
+ },
+ {
+  "capture": "navi_session_9950012_D3B52A95255F8497_4A69B912_20261026_100832.nsr",
+  "sha256": "e37e5a77b058ec5c1987cf7d233e8660d3e191dbf8970bb9052259d41a13371e",
+  "bytes": 34109085,
+  "locomotive": "Toby 9950012",
+  "boots": [
+   "d3b52a95255f8497"
+  ],
+  "native_samples": 1598976,
+  "duration_s": 319.8,
+  "crc_bad_records": 0,
+  "native_serial_gaps": 0,
+  "record_counts": {
+   "ACTION": 311,
+   "HALL_NATIVE": 33312,
+   "HALL": 6682,
+   "STATUS": 319
+  },
+  "partition": "transfer",
+  "reference_magnets": 177,
+  "reference_expected": 0,
+  "scored_span_s": 256.9,
+  "oracle_excursions": 179
+ },
+ {
+  "capture": "navi_session_9950012_D5F9CF8FD06D12F3_12EC5BB1_20261026_101853.nsr",
+  "sha256": "7abfd76084481de3cdf20b43db5370043c0a150f7cc280b5495a932c215a60fc",
+  "bytes": 70817,
+  "locomotive": "Toby 9950012",
+  "boots": [
+   "d5f9cf8fd06d12f3"
+  ],
+  "native_samples": 2448,
+  "duration_s": 0.5,
+  "crc_bad_records": 0,
+  "native_serial_gaps": 0,
+  "record_counts": {
+   "ACTION": 1,
+   "HALL_NATIVE": 51,
+   "HALL": 30,
+   "STATUS": 1
+  },
+  "partition": "excluded (<50k samples)"
+ },
+ {
+  "capture": "navi_session_9950012_DD9FE96B6F09252E_D1B726B4_20261026_101855.nsr",
+  "sha256": "bc4da3b0a8d4a1a639fc0efcdc33d4ccb887588645a772cbc2a6d42925133c44",
+  "bytes": 344689,
+  "locomotive": "Toby 9950012",
+  "boots": [
+   "dd9fe96b6f09252e"
+  ],
+  "native_samples": 15360,
+  "duration_s": 3.1,
+  "crc_bad_records": 0,
+  "native_serial_gaps": 0,
+  "record_counts": {
+   "ACTION": 1,
+   "HALL_NATIVE": 320,
+   "HALL": 83,
+   "STATUS": 3
+  },
+  "partition": "excluded (<50k samples)"
+ },
+ {
+  "capture": "navi_session_9950012_E7C3380915945FB0_FCB1031B_20261026_125212.nsr",
+  "sha256": "3514663dcac04bcc14186282ff608819b953d986d5849d0309826874ba1f64a5",
+  "bytes": 188397707,
+  "locomotive": "Toby 9950012",
+  "boots": [
+   "e7c3380915945fb0"
+  ],
+  "native_samples": 8849856,
+  "duration_s": 1770.0,
+  "crc_bad_records": 0,
+  "native_serial_gaps": 0,
+  "record_counts": {
+   "ACTION": 469,
+   "HALL_NATIVE": 184372,
+   "HALL": 36893,
+   "STATUS": 1762
+  },
+  "partition": "transfer",
+  "reference_magnets": 1206,
+  "reference_expected": 42,
+  "scored_span_s": 1551.7,
+  "oracle_excursions": 1208
+ },
+ {
+  "capture": "navi_session_9950012_EC79FDC0E8543B1E_21B8A1C4_20261025_180129.nsr",
+  "sha256": "285234afb0ba5656cfe94fa290c33881bfcb3a3221f146be678991e27b3c7d8c",
+  "bytes": 31732799,
+  "locomotive": "Toby 9950012",
+  "boots": [
+   "ec79fdc0e8543b1e"
+  ],
+  "native_samples": 1487664,
+  "duration_s": 299.2,
+  "crc_bad_records": 0,
+  "native_serial_gaps": 59,
+  "record_counts": {
+   "ACTION": 313,
+   "HALL_NATIVE": 30993,
+   "HALL": 6209,
+   "STATUS": 295
+  },
+  "partition": "transfer",
+  "reference_magnets": 174,
+  "reference_expected": 0,
+  "scored_span_s": 230.9,
+  "oracle_excursions": 177
+ }
+]
