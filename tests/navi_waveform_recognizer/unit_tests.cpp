@@ -1,13 +1,17 @@
 // unit_tests.cpp — host unit tests for the portable NAVI waveform code.
 // No Arduino dependencies. Covers the recognizer core (synthetic bumps),
-// the simple matcher (confirm / discrepancy / duplicate guard / suspend),
-// the diagnostic level, and the median-of-5 conditioning helper.
+// the simple matcher (confirm / discrepancy / duplicate guard / suspend /
+// control ordering), the diagnostic level, the median-of-5 conditioning
+// helper, and the median stream (data loss, jitter, and the queue-loss
+// integration test).
 // usage: unit_tests   (exit 0 = all pass)
 #include <cstdint>
 #include <cstdio>
 #include <cmath>
+#include <deque>
 
 #include "NaviMatchedFilter.h"
+#include "NaviMedianStream.h"
 #include "NaviWaveformMatcher.h"
 #include "NaviDiagnosticLevel.h"
 #include "RouteMap.h"
@@ -271,6 +275,139 @@ static void testRecognizerJitter() {
   std::printf("recognizer jitter: ok\n");
 }
 
+// Integration test: queue backlog, producer-side loss, reset at the
+// boundary (Codex's focused review of the corrective commit). A
+// simulated bounded queue (depth 256, the firmware's medianQ) carries
+// tick medians from a producer to a consumer that feeds them through
+// NaviMedianStream into the recognizer — the same portable code the
+// firmware's rvmTask uses. The signal has two magnets: A (North) at
+// bin 500 and B (South) at bin 1500.
+//
+// The phases are arranged so the defect is exposed: magnet A's
+// waveform is fed in two parts, with a producer-side loss in between.
+// Part 1 (bins 0..500) and part 2a (bins 501..628) are fed before the
+// loss. Part 2b (bins 629..680, the declaration-lag bins) is queued
+// before the loss but fed after it. The loss drops 105 ticks
+// (bins ~757..808) while the consumer is paused. The consumer then
+// drains part 2b and the queued pre-loss medians, reaches the sequence
+// gap, and resets — only then. Magnet A must be recognized: with the
+// old drop-counter check, the reset fired when the counter changed
+// (before part 2b was fed), discarding magnet A's accumulated
+// waveform, so magnet A was lost. Magnet B, entirely after the loss,
+// must also be recognized, proving the recognizer resumed. Exactly two
+// events and no false event from the gap region.
+static void testMedianStreamQueueLoss() {
+  // Signal value at one 500 Hz bin.
+  auto binValue = [](int bin) -> float {
+    float v = 1900.0f;
+    if (bin >= 500 - 60 && bin < 500 + 60)
+      v += 170.0f * NAVI_TEMPLATE_CORE[bin - (500 - 60)];
+    if (bin >= 1500 - 60 && bin < 1500 + 60)
+      v += -180.0f * NAVI_TEMPLATE_CORE[bin - (1500 - 60)];
+    return v;
+  };
+  struct SimMedian {
+    int16_t median;
+    uint32_t seq;
+    uint64_t tUs;
+  };
+  const int kDepth = 256;  // the firmware's medianQ depth
+  std::deque<SimMedian> q;
+  uint32_t drops = 0;
+  auto trySend = [&](const SimMedian& m) {
+    if ((int)q.size() >= kDepth) {
+      ++drops;
+      return false;
+    }
+    q.push_back(m);
+    return true;
+  };
+  NaviMatchedFilter core;
+  NaviMedianStream stream(core);
+  int nev = 0;
+  uint64_t passages[4] = {0, 0, 0, 0};
+  int8_t pols[4] = {0, 0, 0, 0};
+  float rs[4] = {0, 0, 0, 0};
+  auto drainEvents = [&]() {
+    while (core.hasEvent()) {
+      NaviRecognizedEvent e = core.nextEvent();
+      if (nev < 4) {
+        passages[nev] = e.tPassageUs;
+        pols[nev] = e.polarity;
+        rs[nev] = e.r;
+      }
+      ++nev;
+    }
+  };
+  // Produce ticks [first, last) (tick index = seq = tUs/1000; two ticks
+  // per bin, both carrying the bin value).
+  auto produce = [&](int first, int last) {
+    for (int tick = first; tick < last; ++tick) {
+      SimMedian m;
+      m.median = (int16_t)lroundf(binValue(tick / 2));
+      m.seq = (uint32_t)tick;
+      m.tUs = (uint64_t)tick * 1000;
+      trySend(m);
+    }
+  };
+  // Drain up to n medians from the queue and feed them through the
+  // stream; returns how many were fed.
+  auto consume = [&](int n) {
+    int fed = 0;
+    while (fed < n && !q.empty()) {
+      SimMedian m = q.front();
+      q.pop_front();
+      stream.feed(m.median, m.seq, m.tUs);
+      ++fed;
+    }
+    drainEvents();
+    return fed;
+  };
+
+  // Phases (tick indices; magnet A peak tick 1000, window ticks
+  // 760..1241, declaration needs ticks to 1361; magnet B peak tick
+  // 3000, window 2760..3241, declaration needs ticks to 3361).
+  produce(0, 256);
+  CHECK(consume(256) == 256);  // bins 0..127
+  produce(256, 512);
+  CHECK(consume(256) == 256);  // bins 128..255
+  produce(512, 768);
+  CHECK(consume(256) == 256);  // bins 256..383
+  produce(768, 1001);
+  CHECK(consume(233) == 233);  // bins 384..500 (magnet A peak fed)
+  produce(1001, 1257);
+  CHECK(consume(256) == 256);  // bins 501..628 (magnet A window fed)
+  produce(1257, 1362);         // bins 629..680 queued, not yet fed
+  CHECK((int)q.size() == 105);
+  produce(1362, 1618);  // queue takes 151, drops 105 (ticks 1513..1617)
+  CHECK(drops == 105);
+  CHECK((int)q.size() == 256);
+  CHECK(consume(256) == 256);  // ticks 1257..1512 (part 2b + pre-loss)
+  produce(1618, 1874);
+  CHECK(consume(256) == 256);  // first post-loss median (seq 1618) resets
+  // Remainder in lockstep (no further loss): magnet B is fed and
+  // recognized.
+  for (int tick = 1874; tick < 4000; tick += 256) {
+    int last = tick + 256 < 4000 ? tick + 256 : 4000;
+    produce(tick, last);
+    consume(last - tick);
+  }
+  drainEvents();
+  CHECK(drops == 105);
+  CHECK(nev == 2);
+  if (nev >= 1) {
+    CHECK(passages[0] == 1003000);
+    CHECK(pols[0] == 1);
+    CHECK(std::fabs(rs[0] - 1.0f) < 0.01f);
+  }
+  if (nev >= 2) {
+    CHECK(passages[1] == 3003000);
+    CHECK(pols[1] == -1);
+    CHECK(std::fabs(rs[1] + 1.0f) < 0.01f);
+  }
+  std::printf("median stream queue loss: ok\n");
+}
+
 int main() {
   testMedianOf5();
   testDiagnosticLevel();
@@ -279,6 +416,7 @@ int main() {
   testRecognizerSmoke();
   testRecognizerDataLoss();
   testRecognizerJitter();
+  testMedianStreamQueueLoss();
   if (failures) {
     std::printf("FAILED: %d checks\n", failures);
     return 1;

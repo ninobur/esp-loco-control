@@ -60,6 +60,7 @@
 #include "NaviCandidate.h"
 #include "NaviWaveformTemplate.h"
 #include "NaviMatchedFilter.h"
+#include "NaviMedianStream.h"
 #include "NaviWaveformMatcher.h"
 #include "NaviDiagnosticLevel.h"
 #include "RvmStations.h"
@@ -142,8 +143,11 @@ static uint64_t activeCommandOrder = 0, activeCommandReceivedUs = 0;
 // suspensions via ctlQ and receives events via navEvQ. Nothing here is
 // read by the motor path except the NavSnapshot below.
 // One 1 ms tick median, hallTask -> rvmTask (medianQ, depth 256 = 256 ms of
-// slack; rvmTask drains it every iteration).
-struct TickMedian { int16_t median; uint64_t tUs; };
+// slack; rvmTask drains it every iteration). seq is a per-tick sequence
+// number stamped by hallTask (+1 per tick, monotonic): the consumer uses
+// it to find the exact boundary of a loss (see NaviMedianStream.h). A
+// timestamp jump alone is not a loss signal.
+struct TickMedian { int16_t median; uint32_t seq; uint64_t tUs; };
 struct NavCtl { uint8_t kind; uint8_t last, next; int8_t dir; };      // 1 declare, 2 suspend
 enum : uint8_t { CTL_DECLARE = 1, CTL_SUSPEND = 2 };
 // One judged observation, rvmTask -> loop (navEvQ). `e` is the matcher's
@@ -173,6 +177,10 @@ struct NavSnapshot {
   bool encounterActive = false;
 };
 static NaviMatchedFilter recognizer;   // rvmTask only — the waveform recognizer core
+static NaviMedianStream medianStream(recognizer);  // rvmTask only — the
+  // tick-median stream consumer (sequence-gap loss detection; see
+  // NaviMedianStream.h). The median-queue drop counter is kept for
+  // telemetry only (median_q_drop); it no longer drives the reset.
 static navi_power::WaveformMatcher matcher;  // rvmTask only — the simple DNA matcher
 // ------------------------------------------------------- AUTO and the bubble --
 static rvm_ops::StationDriver stationDriver;
@@ -296,6 +304,7 @@ static void hallTask(void*) {
   static navi_power::CandidateDetector candidate;  // diagnostic only
   static navi_power::DiagnosticLevel diagLevel;    // diagnostic level source
   static uint32_t serial = 0;
+  static uint32_t tickSeq = 0;  // per-tick sequence number, +1 per tick
   TickType_t wake = xTaskGetTickCount();
   for (;;) {
     navi_sync::HallSample wire{};
@@ -336,7 +345,11 @@ static void hallTask(void*) {
     wire.flags = motorDirection ? navi_sync::HALL_F_DIR_FWD : 0;
     if (actualPwm == 0) wire.flags |= navi_sync::HALL_F_HOLD;
     recorder->addHall(firstUs, uint32_t(firstUs / 1000), wire, ctx);
-    const TickMedian m{tickMedian, firstUs};
+    // Stamp the per-tick sequence number so the consumer can find the
+    // exact boundary of a loss (see NaviMedianStream.h). The sequence
+    // is +1 per tick, monotonic; the send may still fail (queue full),
+    // in which case this median is lost and the consumer sees the gap.
+    const TickMedian m{tickMedian, tickSeq++, firstUs};
     if (!medianQ || xQueueSend(medianQ, &m, 0) != pdTRUE) ++medianQueueDrops;
     vTaskDelayUntil(&wake, 1);
   }
@@ -402,28 +415,18 @@ static void applyControl() {
   }
 }
 static void rvmTask(void*) {
-  // Medians lost to a median-queue overflow, as counted by hallTask.
-  // The count is the loss signal (see noteDataLoss); it is checked
-  // before feeding each median, so the first post-loss median is fed
-  // into a fresh core.
-  uint32_t lastMedianDrops = 0;
   for (;;) {
     // Drain the tick medians (block briefly so declarations and the snapshot
-    // still get serviced when the Hall stream pauses).
+    // still get serviced when the Hall stream pauses). Each median is fed
+    // through the stream consumer, which resets the recognizer at the
+    // exact boundary of a loss (a gap in the per-tick sequence numbers),
+    // preserving every valid pre-loss median.
     TickMedian m;
     bool got = medianQ && xQueueReceive(medianQ, &m, pdMS_TO_TICKS(50)) == pdTRUE;
     if (got) {
-      auto feedMedian = [&](const TickMedian& mm) {
-        const uint32_t drops = medianQueueDrops.load();
-        if (drops != lastMedianDrops) {
-          recognizer.noteDataLoss();
-          lastMedianDrops = drops;
-        }
-        recognizer.pushTickMedian(mm.median, mm.tUs);
-      };
-      feedMedian(m);
+      medianStream.feed(m.median, m.seq, m.tUs);
       while (medianQ && xQueueReceive(medianQ, &m, 0) == pdTRUE)
-        feedMedian(m);
+        medianStream.feed(m.median, m.seq, m.tUs);
     }
     // Judge events already declared BEFORE applying any pending control,
     // so an observation is evaluated against the navigation state in
@@ -449,6 +452,10 @@ static void publishNavState() {
   // the timing_* fields are 0/false (no timing gate in this build) and the
   // blocks_* fields are 0 (no 20 ms block pipeline); duplicate_guards is
   // new. `nonqualifying` counts recorded polarity discrepancies.
+  // Retired values, kept for compatibility and always the same:
+  // abandoned is always 0 (no encounter packaging, so nothing is ever
+  // abandoned); timing_* are 0/false (no timing gate); blocks_* are 0
+  // (no block pipeline).
   char payload[640];
   snprintf(payload, sizeof(payload),
     "{\"state\":\"%s\",\"mm\":%u,\"target\":%u,\"dir\":%d,\"session_dir\":\"%s\","
@@ -481,11 +488,17 @@ static void serviceNavEvents() {
       if (ev.kind == EV_CONFIRMED) snprintf(mm, sizeof(mm), "%u", ev.mm);
       const auto& e = ev.e;
       const char* expPol = e.outcome == uint8_t(navi_power::MatcherOutcome::NoClaim) ? "NONE" : (e.expectedPol > 0 ? "N" : "S");
-      // The row keeps its existing fields (width_blocks/peak_adc stay 0, as
-      // they already were; meets_min_width stays 1, vestigial) and gains the
-      // recognizer's event fields, so the exact point of divergence is
-      // diagnosable. opening_us is the passage (template-peak) time;
-      // opening_pwm is the PWM at recognition time.
+      // The row keeps its existing fields and gains the recognizer's
+      // event fields, so the exact point of divergence is diagnosable.
+      // Changed meanings (the old block-based encounter no longer
+      // exists): opening_us is now the passage (template-peak) time of
+      // the recognized event — identical to passage_us, kept under its
+      // old name for compatibility; opening_pwm is the PWM at
+      // recognition time (not at the magnet's passage). Retired values,
+      // kept for compatibility and always the same: width_blocks 0 and
+      // peak_adc 0 (no 20 ms block pipeline), meets_min_width 1
+      // (vestigial). The new fields (seq, passage_us, recognized_us,
+      // score_r, amplitude_adc, outcome) carry the recognizer's event.
       char row[560];
       snprintf(row, sizeof(row),
         "{\"boot\":\"%016llX\",\"result\":\"%s\",\"mm\":%s,\"expected_mm\":%u,"
