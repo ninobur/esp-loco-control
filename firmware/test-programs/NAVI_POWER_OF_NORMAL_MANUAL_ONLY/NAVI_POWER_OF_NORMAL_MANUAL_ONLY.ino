@@ -385,31 +385,54 @@ static void judgeEvent(const NaviRecognizedEvent& e) {
 static void applyControl() {
   NavCtl c;
   while (ctlQ && xQueueReceive(ctlQ, &c, 0) == pdTRUE) {
+    // The control takes effect now (esp_timer_get_time, the same clock
+    // as the event passage times). The matcher records this time so an
+    // event whose passage predates it is never judged against the new
+    // navigation state (see the ordering rule in NaviWaveformMatcher.h).
+    const uint64_t nowUs = esp_timer_get_time();
     if (c.kind == CTL_DECLARE) {
-      matcher.declare(c.last, c.next, c.dir);
+      matcher.declare(c.last, c.next, c.dir, nowUs);
       NavEvent ev{}; ev.kind = EV_DECLARED; ev.last = matcher.lastMm(); ev.next = matcher.nextMm(); ev.dir = matcher.dir();
       publishSnapshot(); postEvent(ev);
     } else {
-      matcher.suspend();
+      matcher.suspend(nowUs);
       NavEvent ev{}; ev.kind = EV_SUSPENDED; ev.last = matcher.lastMm(); ev.next = matcher.nextMm(); ev.dir = matcher.dir();
       publishSnapshot(); postEvent(ev);
     }
   }
 }
 static void rvmTask(void*) {
+  // Medians lost to a median-queue overflow, as counted by hallTask.
+  // The count is the loss signal (see noteDataLoss); it is checked
+  // before feeding each median, so the first post-loss median is fed
+  // into a fresh core.
+  uint32_t lastMedianDrops = 0;
   for (;;) {
     // Drain the tick medians (block briefly so declarations and the snapshot
-    // still get serviced when the Hall stream pauses). Feeding the core may
-    // declare events; they are judged after applyControl, as before.
+    // still get serviced when the Hall stream pauses).
     TickMedian m;
     bool got = medianQ && xQueueReceive(medianQ, &m, pdMS_TO_TICKS(50)) == pdTRUE;
     if (got) {
-      recognizer.pushTickMedian(m.median, m.tUs);
+      auto feedMedian = [&](const TickMedian& mm) {
+        const uint32_t drops = medianQueueDrops.load();
+        if (drops != lastMedianDrops) {
+          recognizer.noteDataLoss();
+          lastMedianDrops = drops;
+        }
+        recognizer.pushTickMedian(mm.median, mm.tUs);
+      };
+      feedMedian(m);
       while (medianQ && xQueueReceive(medianQ, &m, 0) == pdTRUE)
-        recognizer.pushTickMedian(m.median, m.tUs);
+        feedMedian(m);
     }
-    applyControl();
+    // Judge events already declared BEFORE applying any pending control,
+    // so an observation is evaluated against the navigation state in
+    // effect when it was observed, not against a state established after
+    // it. (The matcher's control-timestamp guard covers the recognizer's
+    // ~359 ms latency window, where an event is declared after the
+    // control that follows its passage.)
     while (recognizer.hasEvent()) judgeEvent(recognizer.nextEvent());
+    applyControl();
     publishSnapshot();
     rvmStackFree.store(uxTaskGetStackHighWaterMark(nullptr));
   }
@@ -746,18 +769,23 @@ static void serviceStatus() {
   if (millis() - last < 1000) return;
   last = millis();
   const NavSnapshot s = navSnapshot();
-  char payload[600];
+  // Payload format is kept stable for the Pi-side logger (docs/CLAUDE.md):
+  // the retired block/onset queue counters and blocks_* fields are kept
+  // and report 0 (those queues and the 20 ms block pipeline no longer
+  // exist); the new median_q_drop, diag_onsets and duplicate_guards
+  // fields are added alongside them, not in their place.
+  char payload[700];
   snprintf(payload, sizeof(payload),
     "{\"build\":\"%s\",\"class\":\"%s\",\"pwm\":%d,\"commanded\":%d,\"estop\":%u,\"lowvolt\":%u,"
     "\"nav\":\"%s\",\"confirmed\":%lu,\"nonqualifying\":%lu,\"abandoned\":%lu,\"duplicate_guards\":%lu,"
-    "\"median_q_drop\":%lu,\"diag_onsets\":%lu,\"nav_event_drop\":%lu,\"ctl_drop\":%lu,"
-    "\"auto_go_permitted\":%u,\"rvm_stack_free\":%lu,"
+    "\"block_q_drop\":%lu,\"onset_q_drop\":%lu,\"median_q_drop\":%lu,\"diag_onsets\":%lu,\"nav_event_drop\":%lu,\"ctl_drop\":%lu,"
+    "\"blocks_emitted\":%lu,\"blocks_dropped\":%lu,\"auto_go_permitted\":%u,\"rvm_stack_free\":%lu,"
     "\"nsr_hall_drop\":%lu,\"nsr_native_drop\":%lu,\"nsr_udp_fail\":%lu,\"pub_drop\":%lu,\"cmd_drop\":%lu,"
     "\"heap_free\":%u,\"heap_min\":%u}",
     SKETCH_NAME, BUILD_CLASS, int(actualPwm), int(commandedPwm), unsigned(estopped || estopAsserted), unsigned(lowVoltage),
     stateName(s.state), (unsigned long)s.confirmed, (unsigned long)s.nonqualifying, (unsigned long)s.abandoned, (unsigned long)s.duplicateGuards,
-    (unsigned long)medianQueueDrops.load(), (unsigned long)diagOnsets.load(), (unsigned long)navEventDrops.load(), (unsigned long)ctlDrops.load(),
-    unsigned(navi_power::AUTO_GO_PERMITTED), (unsigned long)rvmStackFree.load(),
+    0UL, 0UL, (unsigned long)medianQueueDrops.load(), (unsigned long)diagOnsets.load(), (unsigned long)navEventDrops.load(), (unsigned long)ctlDrops.load(),
+    0UL, 0UL, unsigned(navi_power::AUTO_GO_PERMITTED), (unsigned long)rvmStackFree.load(),
     (unsigned long)recorder->hallDrops(), (unsigned long)recorder->nativeDrops(),
     (unsigned long)naviSyncUdpFailures, (unsigned long)pubDrops, (unsigned long)cmdDrops,
     unsigned(ESP.getFreeHeap()), unsigned(ESP.getMinFreeHeap()));

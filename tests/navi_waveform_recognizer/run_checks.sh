@@ -23,4 +23,6 @@ echo "-- panels (robustness: PWM 0, 21-45, 50, 90; no reference) --"
 "$BUILD/replay_harness" "$DIR/fixtures/panels.ticks.bin" > "$BUILD/panels_events.csv" 2>"$BUILD/panels.log"
 cat "$BUILD/panels.log"
 python3 "$DIR/score_events.py" "$BUILD/panels_events.csv" "$DIR/fixtures/panels.ticks.json" --report
+echo "== causal comparison (firmware core vs research causal_events) =="
+python3 "$DIR/compare_causal.py"
 echo "== all checks done =="

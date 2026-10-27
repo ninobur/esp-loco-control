@@ -20,6 +20,21 @@
 //     400 ms earlier. The observation is still recorded (outcome
 //     DuplicateGuard); only the advance is refused.
 //
+// ORDERING RULE (controls vs observations). A control (declare/suspend)
+// takes effect at the moment it is applied, and it starts a new navigation
+// sequence. An event whose passage time predates the most recent control
+// belongs to the previous sequence: it is recorded as an observation but
+// is never judged against the new target (outcome NoClaim), so a
+// re-declaration cannot reinterpret a stale observation as a confirmation
+// of the new target. This matters because the recognizer declares an event
+// ~359 ms after its passage, so an event can be declared after a control
+// was applied even though the magnet passed before it. rvmTask also judges
+// events already declared before applying a pending control, so this guard
+// only fires for that latency window — but it is the guarantee, not the
+// ordering in rvmTask. The control timestamp is the time the control is
+// applied (esp_timer_get_time), on the same clock as the event passage
+// times.
+//
 // No Arduino dependencies (only RouteMap.h, which is plain C++), so this
 // file is host-testable alongside the recognizer core.
 
@@ -68,19 +83,24 @@ class WaveformMatcher {
   // — and it never suppresses an observation, only an advance.
   static constexpr uint64_t kMinAdvanceUs = 400000u;
 
-  void declare(uint8_t last, uint8_t next, int8_t dir) {
+  // nowUs is the time the control takes effect (esp_timer_get_time, the
+  // same clock as the event passage times). It starts a new navigation
+  // sequence; see the ordering rule in the header comment.
+  void declare(uint8_t last, uint8_t next, int8_t dir, uint64_t nowUs) {
     last_ = last;
     next_ = next;
     dir_ = dir;
     state_ = MatcherState::Tracking;
     seq_ = 0;
     lastAdvancePassageUs_ = 0;
+    lastControlUs_ = nowUs;
   }
 
-  void suspend() {
+  void suspend(uint64_t nowUs) {
     state_ = MatcherState::Unset;
     seq_ = 0;
     lastAdvancePassageUs_ = 0;
+    lastControlUs_ = nowUs;
   }
 
   // Judge one recognized event against the current target. Always records
@@ -94,13 +114,20 @@ class WaveformMatcher {
     o.r = e.r;
     o.amplitude = e.amplitude;
     o.polarity = e.polarity;
-    o.expectedMm = (state_ == MatcherState::Tracking) ? next_ : 0;
-    o.expectedPolarity =
-        (state_ == MatcherState::Tracking) ? expectedHallSign(next_) : 0;
     o.lastMmAfter = last_;
 
     MatcherOutcome out = MatcherOutcome::NoClaim;
-    if (state_ == MatcherState::Tracking) {
+    // Ordering rule: an event whose passage predates the most recent
+    // control belongs to the previous navigation sequence. Record it
+    // (expectedMm 0: no target was applied to it) but do not judge it
+    // against the new target — a re-declaration must not reinterpret a
+    // stale observation as a confirmation.
+    if (e.tPassageUs < lastControlUs_) {
+      o.expectedMm = 0;
+      o.expectedPolarity = 0;
+    } else if (state_ == MatcherState::Tracking) {
+      o.expectedMm = next_;
+      o.expectedPolarity = expectedHallSign(next_);
       if (e.polarity != expectedHallSign(next_)) {
         out = MatcherOutcome::Discrepancy;
         ++discrepancies_;
@@ -116,6 +143,9 @@ class WaveformMatcher {
         ++confirmed_;
         o.lastMmAfter = last_;
       }
+    } else {
+      o.expectedMm = 0;
+      o.expectedPolarity = 0;
     }
     o.outcome = out;
     record_(o);
@@ -160,6 +190,8 @@ class WaveformMatcher {
   int8_t dir_ = 0;
   uint32_t seq_ = 0;
   uint64_t lastAdvancePassageUs_ = 0;  // 0 = no advance yet this declaration
+  uint64_t lastControlUs_ = 0;  // time the most recent control took effect;
+                                // 0 = no control yet (no event can predate it)
   uint32_t confirmed_ = 0, discrepancies_ = 0, duplicateGuards_ = 0;
   WaveformObservation obs_[kObsRing];
   int obsHead_ = 0;

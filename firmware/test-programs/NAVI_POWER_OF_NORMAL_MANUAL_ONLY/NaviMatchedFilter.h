@@ -100,7 +100,17 @@ class NaviMatchedFilter {
     }
   }
 
-  // Feed one 1 ms tick median (median of the 5 Hall reads in that tick).
+  // Called by the consumer (rvmTask) when tick medians were lost to a
+  // median-queue overflow. The drop counter, not the timestamp, is the
+  // loss signal: a timestamp jump alone may be ordinary scheduler
+  // jitter (up to ~4.5 ms in the recorded data), but a lost median
+  // means the correlation windows spanning the loss are invalid, so
+  // the core resets to a fresh start and the next fed median begins a
+  // new window. This is the same reset the >100 ms gap rule performs;
+  // the two are complementary: the gap rule catches long timestamp
+  // jumps, this catches short losses that the timestamp cannot
+  // distinguish from jitter.
+  void noteDataLoss() { reset(); }
   // tUs is the tick time on the caller's clock. Ticks must arrive in
   // order, ~1000 us apart. A jump of more than kGapUs is a real gap (ticks
   // lost, e.g. a median-queue overflow): the pre-gap bins are stale, so
