@@ -32,8 +32,8 @@ static constexpr uint32_t CANDIDATE_NATIVE_HZ = 5000, CANDIDATE_RULE_HZ = 1000;
 static constexpr uint32_t CANDIDATE_STRIDE = CANDIDATE_NATIVE_HZ / CANDIDATE_RULE_HZ;  // 5: decimate 5 kHz to the rule's own 1 kHz
 
 struct CandidateOnset {
-  uint32_t openSerial = 0;   // the FIRST of the two crossing samples (the true opening instant)
-  uint64_t openUs = 0;       // native timestamp of that FIRST crossing sample
+  uint32_t openSerial = 0;   // the SECOND qualifying sample (confirmation instant)
+  uint64_t openUs = 0;       // native timestamp of the SECOND qualifying sample
   uint8_t pwmAtOpen = 0;     // applied PWM at that instant; timing context, never a Hall gate
   int8_t pol = 0;             // +1 above the reference, -1 below
   float levelAtOpen = 0;      // the live baseline level the excursion departed from
@@ -45,6 +45,7 @@ class CandidateDetector {
   // from NaviBaseline — never computed here). Returns true exactly once per
   // genuinely new departure, via `out`. Nothing about this call can be
   // suspended by anything downstream.
+  void reset() { pendingCross_ = false; excursionActive_ = false; }
   bool onSample(uint16_t adc, float baselineLevel, uint32_t serial, uint64_t us,
                 uint8_t pwm, CandidateOnset& out) {
     const bool evaluate = (strideCounter_++ % CANDIDATE_STRIDE) == 0;
@@ -55,7 +56,7 @@ class CandidateDetector {
     bool onset = false;
     if (crosses) {
       if (!excursionActive_ && pendingCross_ && pendingSign_ == sign) {
-        out.openSerial = pendingSerial_; out.openUs = pendingUs_; out.pwmAtOpen = pendingPwm_;
+        out.openSerial = serial; out.openUs = us; out.pwmAtOpen = pwm;
         out.pol = sign; out.levelAtOpen = baselineLevel;
         onset = true;
         excursionActive_ = true;
