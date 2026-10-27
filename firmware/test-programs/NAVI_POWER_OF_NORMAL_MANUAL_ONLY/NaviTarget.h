@@ -54,60 +54,39 @@ class TargetTracker {
   }
   void suspend() { state_ = TargetState::Unset; }
 
-  // A completed encounter is in: confirm it against the single expected
-  // target, or leave the target exactly as it is. Width disqualification is
-  // inert until MIN_WIDTH_BLOCKS is set (NaviEncounter.h); when it is, a
-  // width failure is handled identically to a polarity failure here — both
-  // are "nonqualifying," neither is a stop.
-  //
-  // TIMING: the directed interval starts at the prior CONFIRMED 70x2 opening,
-  // not at an arbitrary observed signal. Once a field profile exists, timing
-  // joins polarity, width, and completion as a required identifier. Before
-  // then it remains explicitly UNPROFILED rather than gaining an invented
-  // pass/fail number.
-  JudgementResult onEncounter(const CompletedEncounter& e) {
+  // Gate is time-driven and opens only once per confirmed directed segment.
+  // First declared target has no prior observed opening: boot median is used.
+  bool windowOpen(uint64_t nowUs) const {
+    if (state_ != TargetState::Tracking) return false;
+    if (!haveConfirmedOpen_) return true;
+    if (confirmedOpenPwm_ != 90 || nowUs < confirmedOpenUs_) return false;
+    const uint32_t lower = lowerGateMs_();
+    return lower != 0 && nowUs - confirmedOpenUs_ >= uint64_t(lower) * 1000ULL;
+  }
+  uint32_t gateLowerMs() const { return haveConfirmedOpen_ ? lowerGateMs_() : 0; }
+
+  // Called at the native 70x2 onset, never at waveform completion.
+  JudgementResult onOnset(const CandidateOnset& e) {
     if (state_ != TargetState::Tracking) return JudgementResult::NoClaim;
-    if (e.abandoned) return JudgementResult::NoClaim;    // never reached return-to-baseline: not evidence either way
-    // PWM-90 gate uses the measured lower survey interval for this directed
-    // segment. This is an empirical opening time, not a proven physical Vmax.
-    // The first accepted encounter establishes an opening-time anchor.
     lastTiming_ = TimingEvidence{};
-    bool windowOpen = !haveConfirmedOpen_;
-    if (haveConfirmedOpen_) {
-      lastTiming_.haveAnchor = true;
-      lastTiming_.fromMm = last_;
-      lastTiming_.dir = dir_;
-      lastTiming_.sourcePwm = confirmedOpenPwm_;
-      lastTiming_.arrivalPwm = e.pwmAtOpen;
-      if (e.openUs >= confirmedOpenUs_) {
-        const uint64_t ms = (e.openUs - confirmedOpenUs_) / 1000ULL;
-        lastTiming_.measuredMs = ms > UINT32_MAX ? UINT32_MAX : uint32_t(ms);
-      }
-      // A PWM-90-only window must not silently qualify other speeds.
-      if (e.openUs >= confirmedOpenUs_ &&
-          confirmedOpenPwm_ == 90 && e.pwmAtOpen == 90) {
-        for (uint16_t i = 0; i < TIMING_PROFILE_COUNT; ++i) {
-          const auto& p = TIMING_PROFILES[i];
-          if (p.fromMm != last_ || p.dir != dir_ || p.pwm != 90) continue;
-          lastTiming_.haveProfile = true;
-          const float base = dir_ > 0 ? PWM90_SURVEY_BASE_CW_MS : PWM90_SURVEY_BASE_CCW_MS;
-          lastTiming_.lowerMs = uint32_t(p.lowerFactor * base + 0.5f);
-          lastTiming_.expectedMs = uint32_t(p.factor * base + 0.5f);
-          lastTiming_.upperMs = uint32_t(p.upperFactor * base + 0.5f);
-          windowOpen = lastTiming_.measuredMs >= lastTiming_.lowerMs;
-          lastTiming_.result = windowOpen ? TimingResult::Matches : TimingResult::Mismatches;
-          break;
-        }
-      }
-      if (!lastTiming_.haveProfile) lastTiming_.result = TimingResult::Unprofiled;
+    const bool hasAnchor = haveConfirmedOpen_;
+    lastTiming_.haveAnchor = hasAnchor;
+    lastTiming_.fromMm = last_;
+    lastTiming_.dir = dir_;
+    lastTiming_.sourcePwm = confirmedOpenPwm_;
+    lastTiming_.arrivalPwm = e.pwmAtOpen;
+    if (hasAnchor && e.openUs >= confirmedOpenUs_) {
+      const uint64_t ms = (e.openUs - confirmedOpenUs_) / 1000ULL;
+      lastTiming_.measuredMs = ms > UINT32_MAX ? UINT32_MAX : uint32_t(ms);
+      lastTiming_.lowerMs = lowerGateMs_();
+      lastTiming_.haveProfile = lastTiming_.lowerMs != 0;
     }
-    const bool timingOk = windowOpen;
-    if (e.pol == expectedHallSign(next_) && e.meetsMinWidth && timingOk) {
-      confirmedOpenUs_ = e.openUs; confirmedOpenPwm_ = e.pwmAtOpen; haveConfirmedOpen_ = true;
-      last_ = next_; next_ = navi_one::nextMarker(next_, dir_);
-      return JudgementResult::Confirmed;
-    }
-    return JudgementResult::NonQualifying;                // target unchanged; keep observing for it
+    const bool timingOk = !hasAnchor || (e.pwmAtOpen == 90 && windowOpen(e.openUs));
+    lastTiming_.result = timingOk ? TimingResult::Matches : TimingResult::Mismatches;
+    if (e.pol != expectedHallSign(next_) || !timingOk) return JudgementResult::NonQualifying;
+    confirmedOpenUs_ = e.openUs; confirmedOpenPwm_ = e.pwmAtOpen; haveConfirmedOpen_ = true;
+    last_ = next_; next_ = navi_one::nextMarker(next_, dir_);
+    return JudgementResult::Confirmed;
   }
 
   TargetState state() const { return state_; }
@@ -117,6 +96,16 @@ class TargetTracker {
   const TimingEvidence& lastTiming() const { return lastTiming_; }
 
  private:
+  uint32_t lowerGateMs_() const {
+    for (uint16_t i=0; i<TIMING_PROFILE_COUNT; ++i) {
+      const auto& p=TIMING_PROFILES[i];
+      if (p.fromMm == last_ && p.dir == dir_ && p.pwm == 90) {
+        const float base=dir_ > 0 ? PWM90_SURVEY_BASE_CW_MS : PWM90_SURVEY_BASE_CCW_MS;
+        return uint32_t(p.lowerFactor * base + 0.5f);
+      }
+    }
+    return 0;
+  }
   TargetState state_ = TargetState::Unset;
   uint8_t last_ = 0, next_ = 0;
   int8_t dir_ = 0;
