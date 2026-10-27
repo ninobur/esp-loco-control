@@ -130,6 +130,13 @@ These were inspected one by one (`figures/residuals_dev.png`, `figures/residuals
 
 This is **evidence, not interpreted**. I don't know whether magnets were turned or replaced or something else happened. The map was not changed (`figures/field_cases.png`, panel 4).
 
+**Operator explanation (David, 2026-10-27).** Between the Oct 25 and Oct 26 sessions David levelled the ballast in this area because Toby was slipping. That meant removing the magnets and putting them back, and their polarity was not checked afterwards. This is a physical railway change and accounts for the observation. Still open, for David:
+
+- confirm against the actual magnets. Observed on Oct 26: MM066 S, MM067 N, MM069 S. RouteMap.h has MM066 N, MM067 S, MM069 N;
+- decide whether to turn the magnets back or change the map.
+
+Neither has been done here.
+
 Consequence for any polarity-sequence navigator: see §10.
 
 ---
