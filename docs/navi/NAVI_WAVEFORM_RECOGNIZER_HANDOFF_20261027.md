@@ -14,13 +14,15 @@ no automatic geographic correction).
   (the current manual-only sketch). The last known-working field build is
   its parent, `a8154b5` (2026-10-24 full CW lap: every marker confirmed,
   zero non-qualifying, zero abandoned) — see §5 for the recovery path.
-- **Commit:** `d8ec1d3` ("Address Codex review findings 1-4 (Sam's
-  assessment)"), on branch `impl/navi-waveform-recognizer-manual-20261027`.
-  This is the current implementation commit to review. It supersedes
-  `7394afb` (the original implementation, same branch), correcting the
-  four findings from Codex's independent review of the patches — see
-  the "Corrective review cycle" subsection in §2. The handoff itself
-  was finalized in the following commit.
+- **Commit:** `32fcc97` ("Queue-loss boundary: per-tick sequence
+  numbers, reset at the discontinuity"), on branch
+  `impl/navi-waveform-recognizer-manual-20261027`. This is the current
+  implementation commit to review. It supersedes `d8ec1d3` (the
+  corrective commit for Codex's four findings) and `7394afb` (the
+  original implementation), correcting the queue-loss boundary defect
+  Codex found on re-review — see the "Queue-loss boundary correction"
+  subsection in §2. The handoff itself was finalized in the following
+  commit.
 - **Firmware variant:** `NAVI_POWER_OF_NORMAL_MANUAL_ONLY`, experimental,
   manual only. `AUTO_GO_PERMITTED` is `false`; AUTO/GO are hard-refused;
   there is no protective stop. Locomotive is selected at compile time:
@@ -83,17 +85,23 @@ The survey table in `NaviTimingProfiles.h` is regenerable from
 - `state/nav`: same fields and order; `confirmed` counts advances;
   `nonqualifying` counts recorded polarity discrepancies (observations
   that did not confirm the target — the same core meaning as before,
-  with timing no longer a cause); `abandoned` is always 0 (no encounter
-  packaging); `duplicate_guards` is new; the `timing_*` fields are 0/false
-  (no timing gate) and the `blocks_*` fields are 0 (no block pipeline).
-- `diag/navi_encounter`: same existing fields (`width_blocks`/`peak_adc`
-  stay 0, as they already were; `meets_min_width` stays 1, vestigial)
-  plus the recognizer's event fields: `seq`, `passage_us`,
-  `recognized_us`, `score_r`, `amplitude_adc`, `outcome`
-  (`CONFIRMED` / `NONQUALIFYING` / `DUPLICATE_GUARD` / `OBSERVATION`).
-  `opening_us` is the passage (template-peak) time; `opening_pwm` is the
-  PWM at recognition time. Authority is now `WAVEFORM_RECOGNITION`.
-  Published to `mm/marker` on confirm, as before.
+  with timing no longer a cause); `duplicate_guards` is new. Retired
+  values, kept for compatibility and always the same: `abandoned` is
+  always 0 (no encounter packaging, so nothing is ever abandoned);
+  the `timing_*` fields are 0/false (no timing gate) and the
+  `blocks_*` fields are 0 (no block pipeline).
+- `diag/navi_encounter`: same existing fields plus the recognizer's
+  event fields: `seq`, `passage_us`, `recognized_us`, `score_r`,
+  `amplitude_adc`, `outcome` (`CONFIRMED` / `NONQUALIFYING` /
+  `DUPLICATE_GUARD` / `OBSERVATION`). Changed meanings (the old
+  block-based encounter no longer exists): `opening_us` is now the
+  passage (template-peak) time of the recognized event — identical to
+  `passage_us`, kept under its old name for compatibility;
+  `opening_pwm` is the PWM at recognition time, not at the magnet's
+  passage. Retired values, kept for compatibility and always the same:
+  `width_blocks` 0 and `peak_adc` 0 (no 20 ms block pipeline),
+  `meets_min_width` 1 (vestigial). Published to `mm/marker` on
+  confirm, as before. Authority is now `WAVEFORM_RECOGNITION`.
 - `state/loopstat`: the retired `block_q_drop`, `onset_q_drop`,
   `blocks_emitted` and `blocks_dropped` fields are kept and report 0
   (those queues and the 20 ms block pipeline no longer exist); the new
@@ -192,9 +200,52 @@ architecture. All four are addressed in commit `d8ec1d3`; the scope
    magnet) and `testRecognizerJitter` (irregular tick intervals, no
    loss, recognition unaffected).
 
-Also corrected in this cycle: the flashing instructions in §5 now
-include the `-DESP32` build flag (it was documented in §3 but missing
-from the commands).
+Also corrected in that cycle: the flashing instructions in §5 were
+updated (the `-DESP32` flag was added to the commands there — see the
+correction below; that advice turned out to be wrong and is corrected
+in §3 and §5 of this handoff).
+
+### Queue-loss boundary correction (Codex's focused review, 2026-10-27)
+
+Codex re-reviewed the corrected patches (`d8ec1d3`) and accepted the
+control/event ordering correction. One remaining defect: the
+drop-counter reset (finding 4) could fire before the consumer reached
+the actual discontinuity — the counter is global and increments in the
+producer, so it could reset the recognizer while valid pre-loss
+medians were still queued, discarding a partial waveform already fed.
+The correction, in the commit this handoff now records, replaces the
+counter with a per-tick sequence number carried with each median:
+
+- `TickMedian` gains a `seq` field; `hallTask` stamps it (+1 per tick,
+  monotonic). The drop counter (`medianQueueDrops`) is kept for
+  telemetry (`median_q_drop`) only; it no longer drives the reset.
+- `NaviMedianStream.h` (new, portable, no Arduino dependencies) is the
+  stream consumer: it detects a gap in the sequence numbers and resets
+  the recognizer at the exact boundary — every pre-loss median is fed
+  normally, and the first post-loss median is fed into a fresh core, so
+  no correlation window is evaluated across the loss. A timestamp jump
+  alone is still not treated as loss (the tick clock jitters by up to
+  ~4.5 ms); the sequence number is the loss signal. `rvmTask` drains
+  the queue through this consumer.
+- Integration regression test `testMedianStreamQueueLoss`
+  (`tests/navi_waveform_recognizer/unit_tests.cpp`): a simulated
+  bounded queue (depth 256, the firmware's `medianQ`) carries tick
+  medians from a producer to the consumer. A backlog is created, the
+  producer drops 105 ticks, and the consumer drains. Magnet A (North,
+  bin 500) is split across the loss — its first part fed before it, its
+  declaration-lag bins queued before it but fed after it — and must
+  still be recognized; magnet B (South, bin 1500), entirely after the
+  loss, must also be recognized. The test was verified to fail under the
+  old drop-counter logic (only magnet B recognized — magnet A lost to
+  the premature reset) and pass under the new logic (both recognized,
+  no false events). The earlier `testRecognizerDataLoss` (which calls
+  `noteDataLoss()` directly) is kept as a unit test of the core's reset
+  behaviour; this test covers the producer/consumer boundary.
+
+Two documentation corrections in the same commit: the telemetry
+meanings in §2 (see the `diag/navi_encounter` and `state/nav` bullets)
+and the flashing instructions in §5 — the earlier `-DESP32` advice was
+wrong (see the build note in §3), and the IDE path is now given.
 
 ## 3. Verification results
 
@@ -203,9 +254,15 @@ from the commands).
 - **Unit tests:** all pass (`medianOf5`, `DiagnosticLevel`,
   `WaveformMatcher`, `WaveformMatcher` control ordering (finding 1:
   re-declaration / suspension with stale events), recognizer smoke,
-  recognizer data loss and recognizer jitter (finding 4). The smoke
-  test gives exact passage times, recognition at passage + 359 ms,
-  r = ±1.000, A = 169.9 / −179.9 for true ±170/180.
+  recognizer data loss and recognizer jitter (finding 4), and the
+  median-stream queue-loss integration test (Codex's focused review:
+  simulated bounded queue, backlog, 105 dropped ticks, magnet A
+  recognized across the loss boundary and magnet B after it). The
+  smoke test gives exact passage times, recognition at passage +
+  359 ms, r = ±1.000, A = 169.9 / −179.9 for true ±170/180. The
+  queue-loss test was verified to fail under the old drop-counter
+  logic (only magnet B recognized) and pass under the new
+  sequence-gap logic.
 - **Causal comparison (finding 3):** `compare_causal.py` runs the
   firmware core and the research's `causal_events` (single 240 ms
   scale, pad 0.5, level-only) on the same synthetic trace with
@@ -246,26 +303,34 @@ from the commands).
   1.17.4, Adafruit BusIO dependencies (Adafruit Sensor), all from
   GitHub master. `credentials.h` for the compile test is a copy of the
   inert `credentials.example.h` (git-ignored, not committed).
-- **Otto** (`-DNAVI_LOCO=9950011`): compiles. Sketch uses **1,027,279
-  bytes (78%)** of program storage (max 1,310,720); global variables
-  **67,620 bytes (20%)** of dynamic memory (max 327,680), leaving
-  260,060 bytes. `.bin`, `.elf`, and merged `.bin` produced.
-  **Zero warnings** in the whole build log. (Sizes after the corrective
-  commit `d8ec1d3`; the original `7394afb` was 1,027,211 / 67,612.)
+- **Otto** (`-DNAVI_LOCO=9950011`): compiles. Sketch uses **985,931
+  bytes (75%)** of program storage (max 1,310,720); global variables
+  **67,508 bytes (20%)** of dynamic memory (max 327,680), leaving
+  260,172 bytes. `.bin`, `.elf`, and merged `.bin` produced.
+  **Zero warnings** in the whole build log. (Sizes after the
+  queue-loss-boundary correction; see the build note below for why
+  they differ from the earlier 1,027,279 / 67,620.)
 - **Toby** (`-DNAVI_LOCO=9950012`): compiles, identical size
-  (1,027,279 bytes, 78% flash, 67,620 bytes RAM).
-- **One build note (environment, not a sketch defect):** with core
-  3.3.12 and Adafruit_BusIO 1.17.4 the build needs **`-DESP32`** added
-  to the build flags, because core 3.3.12 no longer defines the plain
-  `ESP32` macro that BusIO tests for (`#elif defined(ESP32)` in
-  `Adafruit_SPIDevice.h`). Without it the build fails inside
-  Adafruit_BusIO (`'BitOrder' does not name a type`) — the sketch code
-  itself is not at fault. The 2026-10-24 build did not need this flag
-  (a previously-flagged BusIO/core incompatibility "did not reproduce"
-  then), so the difference is the core/library versions, not the
-  sketch. The flag is a standard platform macro that many libraries
-  expect; defining it is benign. The flashing instructions in §5
-  include it.
+  (985,931 bytes, 75% flash, 67,508 bytes RAM). The Toby binary was
+  confirmed to contain its locomotive name (`9950012`); Otto's
+  contains `9950011`.
+- **Build note — corrected (the earlier `-DESP32` advice was wrong).**
+  The ESP32 core 3.3.12's `platform.txt` already defines `-DESP32=ESP32`
+  in `build.extra_flags`, so **no `-DESP32` flag is needed**. The build
+  failure that led to that advice was caused by passing
+  `--build-property build.extra_flags="-DNAVI_LOCO=..."`, which
+  *replaces* the platform's whole `build.extra_flags` — removing not
+  only `-DESP32=ESP32` but also `-DCORE_DEBUG_LEVEL`, the USB CDC
+  settings, and the other platform flags — and produced a different
+  (41 KB larger) build. The locomotive is now selected via
+  `compiler.cpp.extra_flags` / `compiler.c.extra_flags`, which add the
+  `-DNAVI_LOCO` define without touching `build.extra_flags`
+  (those two properties are empty in the core's `platform.txt`, so
+  nothing is clobbered). **Do not pass `build.extra_flags` on the
+  compile command.** The flashing instructions in §5 use the correct
+  form. (The earlier commits' builds used the clobbering form and were
+  1,027,279 bytes; they compiled and the sketch code is identical, but
+  they were built without the platform's flags.)
 
 ### Not verified here (unavailable checks)
 
@@ -357,16 +422,44 @@ credentials — do not commit it).
 ```
 cd firmware/test-programs/NAVI_POWER_OF_NORMAL_MANUAL_ONLY
 # default build is Otto (NAVI_LOCO=9950011); no edit needed
-# Arduino IDE: select the ESP32 board, the USB port, Upload.
-# arduino-cli: arduino-cli compile --fqbn esp32:esp32:esp32 \
-#   --build-property build.extra_flags="-DNAVI_LOCO=9950011 -DESP32" . \
-#   && arduino-cli upload -p <port> --fqbn esp32:esp32:esp32 .
-# The -DESP32 flag is required with ESP32 core 3.3.12 and Adafruit_BusIO
-# 1.17.4 (the core no longer defines the plain ESP32 macro that BusIO
-# tests for; without it the build fails inside Adafruit_BusIO, not in
-# the sketch — see section 3).
 ```
-For Toby, build with `-DNAVI_LOCO=9950012` (and the same `-DESP32` flag).
+
+The locomotive is selected by a `-DNAVI_LOCO` define. It must be passed
+in a way that does **not** overwrite the platform's `build.extra_flags`
+— that property already carries `-DESP32=ESP32` (and the debug-level
+and USB settings), and replacing it breaks the Adafruit_BusIO build
+and produces a different binary. **No `-DESP32` flag is needed
+anywhere; do not add one, and do not pass `build.extra_flags`.**
+
+- **arduino-cli** (the exact commands; use these, not
+  `--build-property build.extra_flags=...`):
+  ```
+  arduino-cli compile --fqbn esp32:esp32:esp32 \
+    --build-property compiler.cpp.extra_flags="-DNAVI_LOCO=9950011" \
+    --build-property compiler.c.extra_flags="-DNAVI_LOCO=9950011" .
+  arduino-cli upload -p <port> --fqbn esp32:esp32:esp32 .
+  ```
+  For Toby, replace `9950011` with `9950012` in both
+  `--build-property` flags.
+- **Arduino IDE:** the IDE has no per-sketch define field, so put the
+  define in a `platform.local.txt` file in the ESP32 core's platform
+  folder (alongside `platform.txt`), with exactly these two lines:
+  ```
+  compiler.cpp.extra_flags=-DNAVI_LOCO=9950011
+  compiler.c.extra_flags=-DNAVI_LOCO=9950011
+  ```
+  On macOS the folder is
+  `~/Library/Arduino15/packages/esp32/hardware/esp32/3.3.12/`
+  (replace `3.3.12` with the installed core version if different;
+  find it in the IDE under Tools → Board → Boards Manager, or list the
+  folders under `.../hardware/esp32/`). Those two properties are empty
+  in the core's `platform.txt`, so setting them here clobbers nothing.
+  Restart the IDE after creating the file, then select the ESP32 board,
+  the USB port, and Upload. For Toby, use `9950012` in both lines.
+  (This was verified: a plain compile with that file produces the same
+  985,931-byte binary with the locomotive name in it. Remove the file
+  if you switch back to another project that must not carry the define;
+  it applies to every ESP32 sketch built with that core.)
 
 **Starting a manual test (Otto, PWM 90 first):**
 1. Power Otto on the track, stationary, and confirm it connects
@@ -421,6 +514,11 @@ the branch. The full history, including the frozen-baseline branch at
   - `noteDataLoss()` — the reset on a median-queue overflow (finding
     4), and whether the drop counter is the right loss signal;
   - the amplitude (correlateCentre, A = dot / NAVI_TEMPLATE_NORM).
+- **`NaviMedianStream.h`** — the stream consumer (new): the per-tick
+  sequence-number gap detection and the reset at the exact loss
+  boundary. Please check that the sequence-number arithmetic (including
+  the uint32_t wrap) is sound, and that the integration test
+  (`testMedianStreamQueueLoss`) genuinely exercises the boundary.
 - **`NaviWaveformMatcher.h`** — the simple matcher, the Observation
   record, the 400 ms duplicate guard (its justification and whether
   400 ms is the right provisional value), and the control-ordering
@@ -428,14 +526,21 @@ the branch. The full history, including the frozen-baseline branch at
   the most recent control return NoClaim) — please check the guard
   against the ordering rule in the header comment.
 - **`NAVI_POWER_OF_NORMAL_MANUAL_ONLY.ino`** — the integration:
-  hallTask (tick median, diagnostic 70×2), rvmTask (medianQ drain
-  with drop detection, judge-before-control ordering, recognizer,
-  matcher), the retired machinery's removal (is anything still
-  referenced that should not be?), and the telemetry changes
-  (state/nav, diag/navi_encounter, loopstat) against the repo's
+  hallTask (tick median and sequence stamp, diagnostic 70×2), rvmTask
+  (medianQ drain through the stream consumer, judge-before-control
+  ordering, recognizer, matcher), the retired machinery's removal (is
+  anything still referenced that should not be?), and the telemetry
+  changes (state/nav, diag/navi_encounter, loopstat) against the repo's
   constraint that topic names and payload formats do not change —
   in particular, that `state/loopstat` now restores the retired
-  fields as 0 (finding 2).
+  fields as 0 (finding 2), and that the `opening_us` / `opening_pwm`
+  meanings and the retired values are documented as in §2.
+- **The build instructions (§5 and the build note in §3):** the
+  `-DESP32` advice in the previous handoff was wrong — please confirm
+  the corrected account (the platform already defines it; the failure
+  came from `--build-property build.extra_flags=...` replacing the
+  platform's flags) and that the `compiler.*.extra_flags` /
+  `platform.local.txt` paths are correct and unambiguous.
 - **The host verification** (`tests/navi_waveform_recognizer/`):
   re-run `sh run_checks.sh` and confirm 20/20 on Level 1; check the
   scorer's span handling and the panels robustness results.
