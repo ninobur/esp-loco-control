@@ -54,7 +54,7 @@ On parked boots, the afternoon gave 3–6 stationary observations across configu
 
 ### 3. Two residuals no width addresses
 
-- **8 false detections in the corpus**, present in every configuration including the fielded one. All are in two Otto Oct 26 sessions, `278F53E8…` and `F420A05D…`, that were already known for Hall background steps (later found to be wiring). They are disturbances with a magnet-like shape at r 0.71–1.00. Time scaling does not separate them.
+- **8 false detections in the corpus**, present in every configuration including the fielded one. All are in two Otto Oct 26 sessions, `278F53E8…` and `F420A05D…`, that were already known for Hall background steps. *(Corrected 2026-10-28: this said "later found to be wiring". That is not established. Both sessions were recorded on Oct 26, after the Oct 25 wiring adjustment; see `NAVI_WAVEFORM_CORPUS_MISSES_INVESTIGATION_20261028.md` §2A.)* They are disturbances with a magnet-like shape at r 0.71–1.00. Time scaling does not separate them.
 - **21–26 corpus misses**, mostly at cruise. They remain in every configuration, so they are not a width problem. This analysis does not determine their cause.
 
 ### 4. The recordings we can call normal operation, both Oct 27 sets
