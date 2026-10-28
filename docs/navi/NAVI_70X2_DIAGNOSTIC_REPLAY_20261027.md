@@ -21,7 +21,7 @@
 
 The onsets are counted in `diag_onsets` (`state/loopstat`) and printed to Serial. They do not reach the matcher.
 
-**This is not the fielded `621a029` path.** The `NAVI_POWER_OF_NORMAL_MANUAL_ONLY` build used the 70×2 rule against `NaviBaseline`'s frozen median, behind the PWM-90 `windowOpen` timing gate and `NaviEncounter`. That path was not run on these recordings and is **not replayed here**; see §6.
+**This is not the `621a029` path.** At `621a029`, `NAVI_POWER_OF_NORMAL_MANUAL_ONLY` used the 70×2 rule against `NaviBaseline`'s frozen median, behind the PWM-90 `windowOpen` timing gate. That path is replayed separately in §8. *(Corrected 2026-10-27: an earlier version of this paragraph called `621a029` "fielded". The logs show it never ran on a loco; see §8.1.)*
 
 **Fidelity check against the firmware's own counter.** The replay's onset total was compared with the last `diag_onsets` value the loco published for the same boot.
 
@@ -121,7 +121,7 @@ Every 70×2 polarity on a leading onset agreed with the truth polarity.
 
 ## 6. Not covered
 
-- **The fielded `621a029` 70×2 path** (`NaviBaseline` frozen median, PWM-90 `windowOpen` gate, `NaviEncounter`). Its baseline and suppression differ from the diagnostic's, so its result on these recordings could differ. Replaying it needs a port of those three files and a fidelity check. These recordings carry no firmware counter for that path, so parity could only be checked on its own Oct 25–26 recordings.
+- **The `621a029` 70×2 path.** Replayed afterwards, in §8. *(Corrected 2026-10-27: this item called it "fielded", and said its parity could be checked on its own Oct 25–26 recordings. Neither is true; see §8.1.)*
 - The replay level warms up on the first 100 recorded reads, not on boot data. No onset fell in the first 200 ms of any capture.
 - The classification windows (+50 ms, 0.6 s) were chosen after looking at the onset-time distribution. They change how onsets are labelled (leading, duplicate, trailing), not the onset counts, the missed passages or the parity.
 
@@ -206,3 +206,69 @@ Where the gap comes from:
 - **Behaviour on a run with moving background disturbances.** These runs had none.
 
 **This is analysis, not a proposal.** The arrangement, and whether to pursue it at all, is David's decision.
+
+## 8. The `621a029` 70×2 path (added 2026-10-27, at David's request)
+
+### 8.1 First, a correction: `621a029` never ran on a loco
+
+- **Commit date.** `621a029` ("freeze baseline at timing gate and qualify MM directly at Hall opening") was committed on **Oct 26 at 20:30**.
+- **No log shows it.** At `621a029`, `state/nav` publishes `timing_lower_ms` and `timing_calibration_ready`. I searched every MQTT log in `~/Pi_Log_Downloads` from Oct 24–27. Those fields appear **only** in the Oct 27 afternoon NAVI_WAVEFORM_0_1 boots, which inherited the publisher.
+- **The Oct 27 morning Toby run (`96348B2C`) was an earlier commit of the same sketch.** Its evidence:
+  - `state/nav` has no `timing_lower_ms`;
+  - its encounter rows carry `width_blocks` and `peak_adc`, from the return-to-baseline `NaviEncounter`, which `621a029` no longer fills;
+  - it confirmed openings at PWM 29–88, which `621a029`'s gate would refuse.
+- **Telemetry cannot tell the commits apart.** `state/bootid` names only the sketch, and every commit of this sketch has the same name.
+- **This corrects my own records:**
+  - the design document's line "Both locos ran it on Oct 25–26";
+  - this report's earlier word "fielded".
+- **Consequence.** There is no firmware output for `621a029` to check this replay against. The replay implements the code as written.
+
+### 8.2 What was replayed
+
+- **Script:** `replay_621a029.py`, with its output and `replay_621a029.json`.
+- **Ported from `621a029`:** `NaviObservation.h` (20 ms blocks), `NaviBaseline.h`, `NaviCandidate.h`, `NaviTarget.h` (`windowOpen`, `onOnset`), `NaviTimingProfiles.h` (lower factors and survey bases), `RouteMap.h`, and the `rvmTask` / `hallTask` ordering.
+- **Source check:** the copies used are byte-identical to `621a029`.
+- **Declarations** come from each capture's command records:
+  - `session_direction`, then `start_interval`;
+  - a declaration is refused without a session direction, as `admitStartMarker` does. That applies to the Muse control run, whose interval came first.
+- **Two approximations** (stated in the script):
+  - the median buffer's order after `nth_element`;
+  - gate changes take effect at 20 ms block boundaries.
+- Neither approximation affects the result below. The result is decided by a PWM comparison that is wrong by 30–50 PWM units, not by a few milliseconds or counts.
+
+**`NaviEncounter` is compiled into `621a029` but not used.** Judgement happens at the 70×2 onset (`judgeOnset` → `NaviTarget::onOnset`). The only suppression is the gate:
+
+- 70×2 runs only while the gate is open;
+- the detector is reset on every read while the gate is shut;
+- a confirmation shuts the gate, and drops onsets still in the queue.
+
+### 8.3 Result: one magnet per run, then the gate never reopens
+
+| Run | Declared | Gate open | Judged onsets | Result | Magnets passed |
+|---|---|---|---|---|---|
+| Otto run 1 CCW | 004-005 | 41.95–58.69 s | 1 | MM004 confirmed (correct, pol S), onset 58.684 s at **PWM 59** | 234 |
+| Otto CCW 044 | 044-045 | 21.60–36.94 s | 1 | MM044 confirmed (correct, N), 36.937 s at **PWM 53** | 179 |
+| Otto CW 040 | 040-041 | 11.91–31.83 s | 1 (2 more onsets dropped from the queue) | MM041 confirmed (correct, S), 31.816 s at **PWM 42** | 180 |
+| Otto control MM121–039 | refused (interval before session direction) | never | 0 | — | 90 |
+| Toby CCW 035 | 035-036 | 78.15–98.25 s | 1 | MM035 confirmed (correct, N), 98.242 s at **PWM 57** | 186 |
+| Toby CW 024 | 024-025 | 71.53–83.09 s | 1 | MM025 confirmed (correct, N), 83.072 s at **PWM 41** | 188 |
+
+**Why the gate stays shut.**
+
+1. The first expected magnet after a declaration is judged with no timing anchor, so it needs polarity only. In every run it was passed while Otto or Toby was still accelerating, at PWM 41–59, and it was confirmed correctly.
+2. That onset becomes the anchor, with its PWM.
+3. `NaviTarget::windowOpen()` returns false whenever `confirmedOpenPwm_ != 90`. The gate therefore never opens again, and nothing in the path re-declares.
+4. **This is decided by the code, not by the signal.** It does not depend on the replay's approximations.
+5. Under these driving conditions, `621a029` would have recognized 5 of 1,057 magnets on the Oct 27 runs.
+
+**MM037, MM113, MM169:** none was judged; the gate was shut at each of them. This replay therefore cannot say how `621a029`'s frozen-median 70×2 rule itself would have handled those passages.
+
+### 8.4 What this adds to the comparison
+
+- **Sensitivity.** The as-coded `621a029` 70×2 path is limited by its gate, not by its detector. On these runs it is far below the diagnostic 70×2 (1,055) and both matched-filter configurations (1,054 and 1,057).
+- **Specificity.** While its gate was open it produced no false or nonqualifying judgements: 5 judged, 5 correct. It can only be judged over 83.6 s of open gate before a first magnet, almost all of it with the loco stationary or accelerating.
+- **Timeliness.** Its onset times are those of the 70×2 rule: 155–233 ms before the template peak on the five passages. These were slow, accelerating passages, which is why the lead is longer than the diagnostic's cruise median of 58 ms.
+- **The frozen-median 70×2 rule is untested here.** That rule is the part of `621a029` that might have been worth comparing with the diagnostic's 200 ms trailing median. Testing it would need either:
+  - a replay on a run whose first magnet is passed at PWM 90; or
+  - a replay with the PWM-90 anchor condition set aside.
+- The second option is a change to the path, not a replay of it. Both are David's decision.

@@ -1,0 +1,174 @@
+{
+ "563C8E21CDA1CABF": {
+  "label": "Otto CCW 044-045",
+  "truth_magnets": 179,
+  "raw_onsets_under_gate": 1,
+  "judged": 1,
+  "confirmed": 1,
+  "nonqualifying": 0,
+  "magnets_with_a_judged_onset": 1,
+  "gate_open_s": 15.3,
+  "gate_spans": [
+   [
+    21.6,
+    36.94
+   ]
+  ],
+  "rows": [
+   {
+    "t": 36.937,
+    "result": "Confirmed",
+    "expected_mm": 44,
+    "pol": 1,
+    "pwm": 53,
+    "level": 1898.9,
+    "magnet_t_peak": 37.101,
+    "magnet_pol": 1
+   }
+  ],
+  "focus": {
+   "MM037": {
+    "gate_open_at_peak": false,
+    "judged_within_1_5s": []
+   }
+  }
+ },
+ "7247956AF788A3E4": {
+  "label": "Otto CW 040-041",
+  "truth_magnets": 180,
+  "raw_onsets_under_gate": 3,
+  "judged": 1,
+  "confirmed": 1,
+  "nonqualifying": 0,
+  "magnets_with_a_judged_onset": 1,
+  "gate_open_s": 19.9,
+  "gate_spans": [
+   [
+    11.91,
+    31.83
+   ]
+  ],
+  "rows": [
+   {
+    "t": 31.816,
+    "result": "Confirmed",
+    "expected_mm": 41,
+    "pol": -1,
+    "pwm": 42,
+    "level": 2059.9,
+    "magnet_t_peak": 31.985,
+    "magnet_pol": -1
+   }
+  ],
+  "focus": {}
+ },
+ "CA662AD9DC993994": {
+  "label": "Otto run 1 CCW 004-005",
+  "truth_magnets": 234,
+  "raw_onsets_under_gate": 1,
+  "judged": 1,
+  "confirmed": 1,
+  "nonqualifying": 0,
+  "magnets_with_a_judged_onset": 1,
+  "gate_open_s": 16.7,
+  "gate_spans": [
+   [
+    41.95,
+    58.69
+   ]
+  ],
+  "rows": [
+   {
+    "t": 58.684,
+    "result": "Confirmed",
+    "expected_mm": 4,
+    "pol": -1,
+    "pwm": 59,
+    "level": 2068.2,
+    "magnet_t_peak": 58.917,
+    "magnet_pol": -1
+   }
+  ],
+  "focus": {
+   "MM169": {
+    "gate_open_at_peak": false,
+    "judged_within_1_5s": []
+   },
+   "MM113": {
+    "gate_open_at_peak": false,
+    "judged_within_1_5s": []
+   }
+  }
+ },
+ "CC9DF08D5F1552AA": {
+  "label": "Otto control (Muse) MM121-039",
+  "truth_magnets": 90,
+  "raw_onsets_under_gate": 0,
+  "judged": 0,
+  "confirmed": 0,
+  "nonqualifying": 0,
+  "magnets_with_a_judged_onset": 0,
+  "gate_open_s": 0,
+  "gate_spans": [],
+  "rows": [],
+  "focus": {}
+ },
+ "51104A27DEA43752": {
+  "label": "Toby CW 024-025",
+  "truth_magnets": 188,
+  "raw_onsets_under_gate": 1,
+  "judged": 1,
+  "confirmed": 1,
+  "nonqualifying": 0,
+  "magnets_with_a_judged_onset": 1,
+  "gate_open_s": 11.6,
+  "gate_spans": [
+   [
+    71.53,
+    83.09
+   ]
+  ],
+  "rows": [
+   {
+    "t": 83.072,
+    "result": "Confirmed",
+    "expected_mm": 25,
+    "pol": 1,
+    "pwm": 41,
+    "level": 1836.1,
+    "magnet_t_peak": 83.251,
+    "magnet_pol": 1
+   }
+  ],
+  "focus": {}
+ },
+ "EDFAFAEA80CF3499": {
+  "label": "Toby CCW 035-036",
+  "truth_magnets": 186,
+  "raw_onsets_under_gate": 2,
+  "judged": 1,
+  "confirmed": 1,
+  "nonqualifying": 0,
+  "magnets_with_a_judged_onset": 1,
+  "gate_open_s": 20.1,
+  "gate_spans": [
+   [
+    78.15,
+    98.25
+   ]
+  ],
+  "rows": [
+   {
+    "t": 98.242,
+    "result": "Confirmed",
+    "expected_mm": 35,
+    "pol": 1,
+    "pwm": 57,
+    "level": 1856.3,
+    "magnet_t_peak": 98.397,
+    "magnet_pol": 1
+   }
+  ],
+  "focus": {}
+ }
+}

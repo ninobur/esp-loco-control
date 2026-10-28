@@ -21,6 +21,7 @@
   - the 945-curve study (`research/navi_wolf_pack/.../curve_shapes/`);
   - Muse's three Oct 26 reports.
 - **Fielded firmware:** `NAVI_POWER_OF_NORMAL_MANUAL_ONLY` on `experiment/navi-manual-frozen-baseline-20261026` (`621a029`). Both locos ran it on Oct 25–26 [M: `state/bootid`].
+  - *Correction, 2026-10-27:* this is wrong. `621a029` was committed Oct 26 20:30, and no log shows it running on a loco: its `state/nav` fields `timing_lower_ms` and `timing_calibration_ready` appear in no Oct 24–27 log except the NAVI_WAVEFORM_0_1 boots. The Oct 25–26 runs, and the Oct 27 morning Toby run, used earlier commits of the same sketch. `state/bootid` names only the sketch. See `NAVI_70X2_DIAGNOSTIC_REPLAY_20261027.md` §8.1.
 - **Telemetry:** the Oct 25–26 `state/loopstat` logs in `~/Pi_Log_Downloads`.
 - **Earlier IR ruling:** `docs/NAVI_NON_IR_ACQUISITION_PWM90_20261021.md` (commit `348514e`).
 - **New analyses for this document:** `research/navi_waveform_design_20261027/design_analysis.py` with its output.
