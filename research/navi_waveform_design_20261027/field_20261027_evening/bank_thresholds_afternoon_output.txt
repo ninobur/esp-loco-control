@@ -1,0 +1,3 @@
+240+600            wide|r|>=0.7  recognized 1057/1057  false 0  duplicates 0  parked-boot stationary events 4
+150+240+600+1500   wide|r|>=0.7  recognized 1057/1057  false 0  duplicates 0  parked-boot stationary events 6
+150+240+600+1500   wide|r|>=0.9  recognized 1057/1057  false 0  duplicates 0  parked-boot stationary events 3
