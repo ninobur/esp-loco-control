@@ -1,0 +1,2874 @@
+{
+ "3D46D33098A9004A": {
+  "label": "Otto restart b (E-stop)",
+  "replay_onsets": 151,
+  "firmware_diag_onsets": 149,
+  "serial_gaps": 0,
+  "onsets_first_200ms": 0,
+  "stationary_onsets": [
+   {
+    "t": 54.057,
+    "pol": -1,
+    "level": 2047.0
+   },
+   {
+    "t": 54.06,
+    "pol": -1,
+    "level": 2047.0
+   },
+   {
+    "t": 54.063,
+    "pol": -1,
+    "level": 2047.0
+   },
+   {
+    "t": 54.162,
+    "pol": -1,
+    "level": 1986.0
+   },
+   {
+    "t": 54.166,
+    "pol": -1,
+    "level": 1986.0
+   }
+  ]
+ },
+ "563C8E21CDA1CABF": {
+  "label": "Otto CCW 044-045",
+  "replay_onsets": 600,
+  "firmware_diag_onsets": 600,
+  "serial_gaps": 0,
+  "onsets_first_200ms": 0,
+  "stationary_onsets": [],
+  "truth_magnets": 179,
+  "detected": 178,
+  "missed": [
+   {
+    "t_peak": 273.44,
+    "pol": -1
+   }
+  ],
+  "leading": 178,
+  "trailing": 372,
+  "trailing_per_magnet": {
+   "0": 10,
+   "1": 69,
+   "2": 48,
+   "3": 25,
+   "4": 10,
+   "5": 13,
+   "6": 3,
+   "9": 1
+  },
+  "false": [],
+  "duplicates": [
+   {
+    "t": 36.965,
+    "pol": 1,
+    "pwm": 54,
+    "dt_from_peak": -0.136
+   },
+   {
+    "t": 36.969,
+    "pol": 1,
+    "pwm": 54,
+    "dt_from_peak": -0.132
+   },
+   {
+    "t": 36.985,
+    "pol": 1,
+    "pwm": 54,
+    "dt_from_peak": -0.116
+   },
+   {
+    "t": 37.07,
+    "pol": 1,
+    "pwm": 54,
+    "dt_from_peak": -0.031
+   },
+   {
+    "t": 41.361,
+    "pol": 1,
+    "pwm": 83,
+    "dt_from_peak": -0.06
+   },
+   {
+    "t": 53.923,
+    "pol": 1,
+    "pwm": 90,
+    "dt_from_peak": 0.03
+   },
+   {
+    "t": 59.18,
+    "pol": 1,
+    "pwm": 90,
+    "dt_from_peak": -0.079
+   },
+   {
+    "t": 59.183,
+    "pol": 1,
+    "pwm": 90,
+    "dt_from_peak": -0.076
+   },
+   {
+    "t": 60.972,
+    "pol": 1,
+    "pwm": 90,
+    "dt_from_peak": -0.079
+   },
+   {
+    "t": 62.933,
+    "pol": -1,
+    "pwm": 90,
+    "dt_from_peak": 0.03
+   },
+   {
+    "t": 70.032,
+    "pol": -1,
+    "pwm": 90,
+    "dt_from_peak": -0.063
+   },
+   {
+    "t": 74.098,
+    "pol": -1,
+    "pwm": 90,
+    "dt_from_peak": -0.055
+   },
+   {
+    "t": 77.966,
+    "pol": -1,
+    "pwm": 90,
+    "dt_from_peak": -0.057
+   },
+   {
+    "t": 82.593,
+    "pol": 1,
+    "pwm": 90,
+    "dt_from_peak": -0.058
+   },
+   {
+    "t": 121.53,
+    "pol": 1,
+    "pwm": 90,
+    "dt_from_peak": -0.055
+   },
+   {
+    "t": 122.79,
+    "pol": -1,
+    "pwm": 90,
+    "dt_from_peak": -0.055
+   },
+   {
+    "t": 125.316,
+    "pol": 1,
+    "pwm": 90,
+    "dt_from_peak": 0.033
+   },
+   {
+    "t": 127.925,
+    "pol": -1,
+    "pwm": 90,
+    "dt_from_peak": -0.054
+   },
+   {
+    "t": 130.501,
+    "pol": -1,
+    "pwm": 90,
+    "dt_from_peak": -0.05
+   },
+   {
+    "t": 133.005,
+    "pol": 1,
+    "pwm": 90,
+    "dt_from_peak": -0.054
+   },
+   {
+    "t": 137.902,
+    "pol": 1,
+    "pwm": 90,
+    "dt_from_peak": 0.031
+   },
+   {
+    "t": 139.031,
+    "pol": -1,
+    "pwm": 90,
+    "dt_from_peak": -0.048
+   },
+   {
+    "t": 139.052,
+    "pol": -1,
+    "pwm": 90,
+    "dt_from_peak": -0.027
+   },
+   {
+    "t": 139.114,
+    "pol": -1,
+    "pwm": 90,
+    "dt_from_peak": 0.035
+   },
+   {
+    "t": 145.657,
+    "pol": 1,
+    "pwm": 90,
+    "dt_from_peak": 0.036
+   },
+   {
+    "t": 146.938,
+    "pol": 1,
+    "pwm": 90,
+    "dt_from_peak": -0.061
+   },
+   {
+    "t": 168.334,
+    "pol": 1,
+    "pwm": 90,
+    "dt_from_peak": -0.041
+   },
+   {
+    "t": 173.88,
+    "pol": 1,
+    "pwm": 90,
+    "dt_from_peak": -0.051
+   },
+   {
+    "t": 175.195,
+    "pol": 1,
+    "pwm": 90,
+    "dt_from_peak": -0.018
+   },
+   {
+    "t": 183.072,
+    "pol": -1,
+    "pwm": 90,
+    "dt_from_peak": 0.033
+   },
+   {
+    "t": 188.344,
+    "pol": -1,
+    "pwm": 90,
+    "dt_from_peak": -0.069
+   },
+   {
+    "t": 197.615,
+    "pol": -1,
+    "pwm": 90,
+    "dt_from_peak": -0.052
+   },
+   {
+    "t": 198.834,
+    "pol": 1,
+    "pwm": 90,
+    "dt_from_peak": 0.041
+   },
+   {
+    "t": 203.755,
+    "pol": 1,
+    "pwm": 90,
+    "dt_from_peak": 0.042
+   },
+   {
+    "t": 205.049,
+    "pol": -1,
+    "pwm": 90,
+    "dt_from_peak": -0.064
+   },
+   {
+    "t": 208.892,
+    "pol": -1,
+    "pwm": 90,
+    "dt_from_peak": 0.029
+   },
+   {
+    "t": 217.628,
+    "pol": 1,
+    "pwm": 90,
+    "dt_from_peak": -0.035
+   },
+   {
+    "t": 220.668,
+    "pol": -1,
+    "pwm": 90,
+    "dt_from_peak": -0.037
+   },
+   {
+    "t": 222.723,
+    "pol": 1,
+    "pwm": 90,
+    "dt_from_peak": -0.032
+   },
+   {
+    "t": 226.756,
+    "pol": 1,
+    "pwm": 90,
+    "dt_from_peak": -0.027
+   },
+   {
+    "t": 228.738,
+    "pol": -1,
+    "pwm": 90,
+    "dt_from_peak": -0.039
+   },
+   {
+    "t": 228.79,
+    "pol": -1,
+    "pwm": 90,
+    "dt_from_peak": 0.013
+   },
+   {
+    "t": 230.884,
+    "pol": 1,
+    "pwm": 90,
+    "dt_from_peak": -0.045
+   },
+   {
+    "t": 234.859,
+    "pol": -1,
+    "pwm": 90,
+    "dt_from_peak": -0.058
+   },
+   {
+    "t": 248.152,
+    "pol": -1,
+    "pwm": 90,
+    "dt_from_peak": 0.043
+   },
+   {
+    "t": 249.282,
+    "pol": 1,
+    "pwm": 90,
+    "dt_from_peak": 0.035
+   },
+   {
+    "t": 252.747,
+    "pol": 1,
+    "pwm": 90,
+    "dt_from_peak": -0.052
+   },
+   {
+    "t": 265.491,
+    "pol": -1,
+    "pwm": 56,
+    "dt_from_peak": -0.1
+   },
+   {
+    "t": 268.167,
+    "pol": -1,
+    "pwm": 44,
+    "dt_from_peak": -0.148
+   },
+   {
+    "t": 268.17,
+    "pol": -1,
+    "pwm": 44,
+    "dt_from_peak": -0.145
+   }
+  ],
+  "onset_before_peak_ms": {
+   "min": 35,
+   "median": 57,
+   "max": 157
+  },
+  "mf240_events": 178,
+  "focus": {
+   "MM037": {
+    "truth_t_peak": 273.445,
+    "truth_pol": -1,
+    "detected": false,
+    "onset": null,
+    "onsets_within_1_5s": [],
+    "raw_min_max_within_1s": [
+     1617,
+     2000
+    ]
+   }
+  }
+ },
+ "7247956AF788A3E4": {
+  "label": "Otto CW 040-041",
+  "replay_onsets": 777,
+  "firmware_diag_onsets": 777,
+  "serial_gaps": 1,
+  "onsets_first_200ms": 0,
+  "stationary_onsets": [],
+  "truth_magnets": 180,
+  "detected": 180,
+  "missed": [],
+  "leading": 180,
+  "trailing": 504,
+  "trailing_per_magnet": {
+   "0": 2,
+   "1": 42,
+   "2": 49,
+   "3": 40,
+   "4": 22,
+   "5": 7,
+   "6": 11,
+   "7": 3,
+   "8": 2,
+   "9": 2
+  },
+  "false": [],
+  "duplicates": [
+   {
+    "t": 31.859,
+    "pol": -1,
+    "pwm": 42,
+    "dt_from_peak": -0.126
+   },
+   {
+    "t": 31.955,
+    "pol": -1,
+    "pwm": 43,
+    "dt_from_peak": -0.03
+   },
+   {
+    "t": 34.388,
+    "pol": 1,
+    "pwm": 59,
+    "dt_from_peak": -0.083
+   },
+   {
+    "t": 34.392,
+    "pol": 1,
+    "pwm": 59,
+    "dt_from_peak": -0.079
+   },
+   {
+    "t": 34.496,
+    "pol": 1,
+    "pwm": 60,
+    "dt_from_peak": 0.025
+   },
+   {
+    "t": 40.745,
+    "pol": -1,
+    "pwm": 90,
+    "dt_from_peak": -0.044
+   },
+   {
+    "t": 42.964,
+    "pol": 1,
+    "pwm": 90,
+    "dt_from_peak": 0.041
+   },
+   {
+    "t": 43.993,
+    "pol": -1,
+    "pwm": 90,
+    "dt_from_peak": -0.048
+   },
+   {
+    "t": 45.127,
+    "pol": 1,
+    "pwm": 90,
+    "dt_from_peak": -0.04
+   },
+   {
+    "t": 50.796,
+    "pol": 1,
+    "pwm": 90,
+    "dt_from_peak": -0.053
+   },
+   {
+    "t": 57.347,
+    "pol": 1,
+    "pwm": 90,
+    "dt_from_peak": -0.062
+   },
+   {
+    "t": 60.552,
+    "pol": 1,
+    "pwm": 90,
+    "dt_from_peak": 0.037
+   },
+   {
+    "t": 63.767,
+    "pol": 1,
+    "pwm": 90,
+    "dt_from_peak": -0.06
+   },
+   {
+    "t": 63.833,
+    "pol": 1,
+    "pwm": 90,
+    "dt_from_peak": 0.006
+   },
+   {
+    "t": 68.772,
+    "pol": -1,
+    "pwm": 90,
+    "dt_from_peak": -0.059
+   },
+   {
+    "t": 68.786,
+    "pol": -1,
+    "pwm": 90,
+    "dt_from_peak": -0.045
+   },
+   {
+    "t": 70.373,
+    "pol": 1,
+    "pwm": 90,
+    "dt_from_peak": -0.032
+   },
+   {
+    "t": 71.881,
+    "pol": -1,
+    "pwm": 90,
+    "dt_from_peak": -0.058
+   },
+   {
+    "t": 73.385,
+    "pol": 1,
+    "pwm": 90,
+    "dt_from_peak": -0.052
+   },
+   {
+    "t": 73.452,
+    "pol": 1,
+    "pwm": 90,
+    "dt_from_peak": 0.015
+   },
+   {
+    "t": 74.87,
+    "pol": -1,
+    "pwm": 90,
+    "dt_from_peak": -0.053
+   },
+   {
+    "t": 74.917,
+    "pol": -1,
+    "pwm": 90,
+    "dt_from_peak": -0.006
+   },
+   {
+    "t": 79.562,
+    "pol": -1,
+    "pwm": 90,
+    "dt_from_peak": -0.059
+   },
+   {
+    "t": 81.191,
+    "pol": 1,
+    "pwm": 90,
+    "dt_from_peak": -0.066
+   },
+   {
+    "t": 81.196,
+    "pol": 1,
+    "pwm": 90,
+    "dt_from_peak": -0.061
+   },
+   {
+    "t": 82.995,
+    "pol": 1,
+    "pwm": 90,
+    "dt_from_peak": 0.03
+   },
+   {
+    "t": 84.552,
+    "pol": 1,
+    "pwm": 90,
+    "dt_from_peak": -0.055
+   },
+   {
+    "t": 84.556,
+    "pol": 1,
+    "pwm": 90,
+    "dt_from_peak": -0.051
+   },
+   {
+    "t": 84.629,
+    "pol": 1,
+    "pwm": 90,
+    "dt_from_peak": 0.022
+   },
+   {
+    "t": 87.798,
+    "pol": 1,
+    "pwm": 90,
+    "dt_from_peak": 0.035
+   },
+   {
+    "t": 90.694,
+    "pol": 1,
+    "pwm": 90,
+    "dt_from_peak": 0.033
+   },
+   {
+    "t": 94.989,
+    "pol": -1,
+    "pwm": 90,
+    "dt_from_peak": -0.064
+   },
+   {
+    "t": 100.354,
+    "pol": -1,
+    "pwm": 90,
+    "dt_from_peak": -0.053
+   },
+   {
+    "t": 101.458,
+    "pol": 1,
+    "pwm": 90,
+    "dt_from_peak": -0.045
+   },
+   {
+    "t": 101.544,
+    "pol": 1,
+    "pwm": 90,
+    "dt_from_peak": 0.041
+   },
+   {
+    "t": 111.209,
+    "pol": -1,
+    "pwm": 90,
+    "dt_from_peak": 0.044
+   },
+   {
+    "t": 116.757,
+    "pol": 1,
+    "pwm": 90,
+    "dt_from_peak": 0.03
+   },
+   {
+    "t": 117.727,
+    "pol": -1,
+    "pwm": 90,
+    "dt_from_peak": -0.042
+   },
+   {
+    "t": 118.8,
+    "pol": -1,
+    "pwm": 90,
+    "dt_from_peak": -0.049
+   },
+   {
+    "t": 120.049,
+    "pol": -1,
+    "pwm": 90,
+    "dt_from_peak": 0.026
+   },
+   {
+    "t": 121.159,
+    "pol": 1,
+    "pwm": 90,
+    "dt_from_peak": -0.04
+   },
+   {
+    "t": 121.232,
+    "pol": 1,
+    "pwm": 90,
+    "dt_from_peak": 0.033
+   },
+   {
+    "t": 125.267,
+    "pol": 1,
+    "pwm": 90,
+    "dt_from_peak": 0.03
+   },
+   {
+    "t": 126.853,
+    "pol": 1,
+    "pwm": 90,
+    "dt_from_peak": 0.032
+   },
+   {
+    "t": 128.079,
+    "pol": 1,
+    "pwm": 90,
+    "dt_from_peak": -0.058
+   },
+   {
+    "t": 135.719,
+    "pol": 1,
+    "pwm": 90,
+    "dt_from_peak": -0.046
+   },
+   {
+    "t": 136.908,
+    "pol": 1,
+    "pwm": 90,
+    "dt_from_peak": -0.047
+   },
+   {
+    "t": 138.037,
+    "pol": 1,
+    "pwm": 90,
+    "dt_from_peak": -0.04
+   },
+   {
+    "t": 140.204,
+    "pol": -1,
+    "pwm": 90,
+    "dt_from_peak": 0.037
+   },
+   {
+    "t": 141.12,
+    "pol": -1,
+    "pwm": 90,
+    "dt_from_peak": -0.053
+   },
+   {
+    "t": 143.172,
+    "pol": -1,
+    "pwm": 90,
+    "dt_from_peak": -0.051
+   },
+   {
+    "t": 143.184,
+    "pol": -1,
+    "pwm": 90,
+    "dt_from_peak": -0.039
+   },
+   {
+    "t": 146.527,
+    "pol": -1,
+    "pwm": 90,
+    "dt_from_peak": 0.046
+   },
+   {
+    "t": 151.038,
+    "pol": 1,
+    "pwm": 90,
+    "dt_from_peak": 0.031
+   },
+   {
+    "t": 151.042,
+    "pol": 1,
+    "pwm": 90,
+    "dt_from_peak": 0.035
+   },
+   {
+    "t": 152.066,
+    "pol": -1,
+    "pwm": 90,
+    "dt_from_peak": -0.033
+   },
+   {
+    "t": 153.068,
+    "pol": -1,
+    "pwm": 90,
+    "dt_from_peak": -0.041
+   },
+   {
+    "t": 154.107,
+    "pol": 1,
+    "pwm": 90,
+    "dt_from_peak": -0.04
+   },
+   {
+    "t": 158.426,
+    "pol": -1,
+    "pwm": 90,
+    "dt_from_peak": -0.045
+   },
+   {
+    "t": 161.883,
+    "pol": 1,
+    "pwm": 90,
+    "dt_from_peak": -0.038
+   },
+   {
+    "t": 164.268,
+    "pol": 1,
+    "pwm": 90,
+    "dt_from_peak": 0.025
+   },
+   {
+    "t": 164.273,
+    "pol": 1,
+    "pwm": 90,
+    "dt_from_peak": 0.03
+   },
+   {
+    "t": 165.506,
+    "pol": 1,
+    "pwm": 90,
+    "dt_from_peak": -0.049
+   },
+   {
+    "t": 166.763,
+    "pol": 1,
+    "pwm": 90,
+    "dt_from_peak": -0.044
+   },
+   {
+    "t": 168.065,
+    "pol": 1,
+    "pwm": 90,
+    "dt_from_peak": 0.04
+   },
+   {
+    "t": 172.658,
+    "pol": 1,
+    "pwm": 90,
+    "dt_from_peak": 0.037
+   },
+   {
+    "t": 177.202,
+    "pol": 1,
+    "pwm": 90,
+    "dt_from_peak": -0.057
+   },
+   {
+    "t": 178.54,
+    "pol": -1,
+    "pwm": 90,
+    "dt_from_peak": -0.059
+   },
+   {
+    "t": 179.933,
+    "pol": 1,
+    "pwm": 90,
+    "dt_from_peak": -0.056
+   },
+   {
+    "t": 182.536,
+    "pol": -1,
+    "pwm": 90,
+    "dt_from_peak": 0.037
+   },
+   {
+    "t": 189.133,
+    "pol": -1,
+    "pwm": 90,
+    "dt_from_peak": -0.06
+   },
+   {
+    "t": 195.34,
+    "pol": 1,
+    "pwm": 90,
+    "dt_from_peak": 0.039
+   },
+   {
+    "t": 198.161,
+    "pol": -1,
+    "pwm": 90,
+    "dt_from_peak": -0.062
+   },
+   {
+    "t": 198.164,
+    "pol": -1,
+    "pwm": 90,
+    "dt_from_peak": -0.059
+   },
+   {
+    "t": 208.572,
+    "pol": 1,
+    "pwm": 90,
+    "dt_from_peak": -0.071
+   },
+   {
+    "t": 215.574,
+    "pol": 1,
+    "pwm": 90,
+    "dt_from_peak": 0.037
+   },
+   {
+    "t": 218.141,
+    "pol": 1,
+    "pwm": 90,
+    "dt_from_peak": -0.052
+   },
+   {
+    "t": 225.245,
+    "pol": -1,
+    "pwm": 90,
+    "dt_from_peak": -0.072
+   },
+   {
+    "t": 225.355,
+    "pol": -1,
+    "pwm": 90,
+    "dt_from_peak": 0.038
+   },
+   {
+    "t": 226.772,
+    "pol": -1,
+    "pwm": 90,
+    "dt_from_peak": 0.037
+   },
+   {
+    "t": 231.39,
+    "pol": 1,
+    "pwm": 90,
+    "dt_from_peak": -0.047
+   },
+   {
+    "t": 231.473,
+    "pol": 1,
+    "pwm": 90,
+    "dt_from_peak": 0.036
+   },
+   {
+    "t": 232.576,
+    "pol": 1,
+    "pwm": 90,
+    "dt_from_peak": -0.049
+   },
+   {
+    "t": 239.196,
+    "pol": 1,
+    "pwm": 90,
+    "dt_from_peak": -0.055
+   },
+   {
+    "t": 240.561,
+    "pol": 1,
+    "pwm": 90,
+    "dt_from_peak": -0.056
+   },
+   {
+    "t": 241.962,
+    "pol": 1,
+    "pwm": 90,
+    "dt_from_peak": -0.049
+   },
+   {
+    "t": 246.101,
+    "pol": 1,
+    "pwm": 90,
+    "dt_from_peak": -0.056
+   },
+   {
+    "t": 247.451,
+    "pol": -1,
+    "pwm": 90,
+    "dt_from_peak": -0.058
+   },
+   {
+    "t": 249.99,
+    "pol": -1,
+    "pwm": 90,
+    "dt_from_peak": -0.055
+   },
+   {
+    "t": 255.904,
+    "pol": -1,
+    "pwm": 90,
+    "dt_from_peak": -0.051
+   },
+   {
+    "t": 257.085,
+    "pol": 1,
+    "pwm": 89,
+    "dt_from_peak": 0.026
+   },
+   {
+    "t": 257.096,
+    "pol": 1,
+    "pwm": 89,
+    "dt_from_peak": 0.037
+   },
+   {
+    "t": 263.621,
+    "pol": 1,
+    "pwm": 53,
+    "dt_from_peak": 0.02
+   }
+  ],
+  "onset_before_peak_ms": {
+   "min": 38,
+   "median": 56,
+   "max": 129
+  },
+  "mf240_events": 180,
+  "focus": {}
+ },
+ "90C059995820F1AB": {
+  "label": "Otto parked",
+  "replay_onsets": 4,
+  "firmware_diag_onsets": 5,
+  "serial_gaps": 0,
+  "onsets_first_200ms": 0,
+  "stationary_onsets": [
+   {
+    "t": 25.354,
+    "pol": 1,
+    "level": 2110.0
+   },
+   {
+    "t": 26.749,
+    "pol": 1,
+    "level": 2107.0
+   },
+   {
+    "t": 26.762,
+    "pol": 1,
+    "level": 2109.0
+   },
+   {
+    "t": 34.112,
+    "pol": 1,
+    "level": 2112.0
+   }
+  ]
+ },
+ "AFADA3EFA01C91F1": {
+  "label": "Otto parked (old build)",
+  "replay_onsets": 27,
+  "firmware_diag_onsets": null,
+  "serial_gaps": 0,
+  "onsets_first_200ms": 0,
+  "stationary_onsets": [
+   {
+    "t": 1.649,
+    "pol": -1,
+    "level": 2207.0
+   },
+   {
+    "t": 1.652,
+    "pol": -1,
+    "level": 2207.0
+   },
+   {
+    "t": 1.663,
+    "pol": -1,
+    "level": 2207.0
+   },
+   {
+    "t": 32.625,
+    "pol": 1,
+    "level": 1977.0
+   },
+   {
+    "t": 32.855,
+    "pol": 1,
+    "level": 1995.0
+   },
+   {
+    "t": 33.391,
+    "pol": 1,
+    "level": 2036.0
+   },
+   {
+    "t": 33.438,
+    "pol": 1,
+    "level": 2047.0
+   },
+   {
+    "t": 33.462,
+    "pol": 1,
+    "level": 2062.0
+   },
+   {
+    "t": 36.277,
+    "pol": 1,
+    "level": 2064.0
+   },
+   {
+    "t": 48.283,
+    "pol": -1,
+    "level": 2123.0
+   },
+   {
+    "t": 53.661,
+    "pol": 1,
+    "level": 2030.0
+   },
+   {
+    "t": 74.861,
+    "pol": 1,
+    "level": 2102.0
+   },
+   {
+    "t": 74.871,
+    "pol": 1,
+    "level": 2102.0
+   },
+   {
+    "t": 77.265,
+    "pol": -1,
+    "level": 2244.0
+   },
+   {
+    "t": 77.268,
+    "pol": -1,
+    "level": 2244.0
+   },
+   {
+    "t": 77.274,
+    "pol": -1,
+    "level": 2244.0
+   },
+   {
+    "t": 82.29,
+    "pol": 1,
+    "level": 2111.0
+   },
+   {
+    "t": 82.297,
+    "pol": 1,
+    "level": 2112.0
+   },
+   {
+    "t": 83.849,
+    "pol": 1,
+    "level": 2114.0
+   },
+   {
+    "t": 83.896,
+    "pol": 1,
+    "level": 2126.0
+   },
+   {
+    "t": 83.901,
+    "pol": 1,
+    "level": 2126.0
+   },
+   {
+    "t": 83.905,
+    "pol": 1,
+    "level": 2126.0
+   },
+   {
+    "t": 83.911,
+    "pol": 1,
+    "level": 2126.0
+   },
+   {
+    "t": 83.915,
+    "pol": 1,
+    "level": 2126.0
+   },
+   {
+    "t": 83.92,
+    "pol": 1,
+    "level": 2128.0
+   },
+   {
+    "t": 83.923,
+    "pol": 1,
+    "level": 2128.0
+   },
+   {
+    "t": 86.22,
+    "pol": 1,
+    "level": 2188.0
+   }
+  ]
+ },
+ "CA662AD9DC993994": {
+  "label": "Otto run 1 CCW 004-005",
+  "replay_onsets": 937,
+  "firmware_diag_onsets": 937,
+  "serial_gaps": 0,
+  "onsets_first_200ms": 0,
+  "stationary_onsets": [
+   {
+    "t": 2.086,
+    "pol": 1,
+    "level": 2095.0
+   },
+   {
+    "t": 2.101,
+    "pol": 1,
+    "level": 2096.0
+   },
+   {
+    "t": 2.206,
+    "pol": 1,
+    "level": 2112.0
+   },
+   {
+    "t": 12.93,
+    "pol": 1,
+    "level": 2112.0
+   },
+   {
+    "t": 12.989,
+    "pol": 1,
+    "level": 2112.0
+   },
+   {
+    "t": 12.999,
+    "pol": 1,
+    "level": 2112.0
+   },
+   {
+    "t": 18.278,
+    "pol": 1,
+    "level": 2102.0
+   },
+   {
+    "t": 18.926,
+    "pol": 1,
+    "level": 2111.0
+   },
+   {
+    "t": 22.502,
+    "pol": 1,
+    "level": 2121.0
+   },
+   {
+    "t": 23.596,
+    "pol": 1,
+    "level": 2076.0
+   },
+   {
+    "t": 23.606,
+    "pol": 1,
+    "level": 2076.0
+   },
+   {
+    "t": 23.61,
+    "pol": 1,
+    "level": 2076.0
+   },
+   {
+    "t": 28.96,
+    "pol": 1,
+    "level": 2080.0
+   },
+   {
+    "t": 28.971,
+    "pol": 1,
+    "level": 2080.0
+   },
+   {
+    "t": 29.204,
+    "pol": 1,
+    "level": 2083.0
+   },
+   {
+    "t": 29.209,
+    "pol": 1,
+    "level": 2083.0
+   }
+  ],
+  "truth_magnets": 234,
+  "detected": 233,
+  "missed": [
+   {
+    "t_peak": 406.88,
+    "pol": 1
+   }
+  ],
+  "leading": 233,
+  "trailing": 557,
+  "trailing_per_magnet": {
+   "0": 12,
+   "1": 65,
+   "2": 64,
+   "3": 46,
+   "4": 25,
+   "5": 10,
+   "6": 11,
+   "10": 1
+  },
+  "false": [
+   {
+    "t": 2.086,
+    "pol": 1,
+    "pwm": 0,
+    "level": 2095.0,
+    "nearest_peak_dt": -56.831
+   },
+   {
+    "t": 2.101,
+    "pol": 1,
+    "pwm": 0,
+    "level": 2096.0,
+    "nearest_peak_dt": -56.816
+   },
+   {
+    "t": 2.206,
+    "pol": 1,
+    "pwm": 0,
+    "level": 2112.0,
+    "nearest_peak_dt": -56.711
+   },
+   {
+    "t": 12.93,
+    "pol": 1,
+    "pwm": 0,
+    "level": 2112.0,
+    "nearest_peak_dt": -45.987
+   },
+   {
+    "t": 12.989,
+    "pol": 1,
+    "pwm": 0,
+    "level": 2112.0,
+    "nearest_peak_dt": -45.928
+   },
+   {
+    "t": 12.999,
+    "pol": 1,
+    "pwm": 0,
+    "level": 2112.0,
+    "nearest_peak_dt": -45.918
+   },
+   {
+    "t": 18.278,
+    "pol": 1,
+    "pwm": 0,
+    "level": 2102.0,
+    "nearest_peak_dt": -40.639
+   },
+   {
+    "t": 18.926,
+    "pol": 1,
+    "pwm": 0,
+    "level": 2111.0,
+    "nearest_peak_dt": -39.991
+   },
+   {
+    "t": 22.502,
+    "pol": 1,
+    "pwm": 0,
+    "level": 2121.0,
+    "nearest_peak_dt": -36.415
+   },
+   {
+    "t": 23.596,
+    "pol": 1,
+    "pwm": 0,
+    "level": 2076.0,
+    "nearest_peak_dt": -35.321
+   },
+   {
+    "t": 23.606,
+    "pol": 1,
+    "pwm": 0,
+    "level": 2076.0,
+    "nearest_peak_dt": -35.311
+   },
+   {
+    "t": 23.61,
+    "pol": 1,
+    "pwm": 0,
+    "level": 2076.0,
+    "nearest_peak_dt": -35.307
+   },
+   {
+    "t": 28.96,
+    "pol": 1,
+    "pwm": 0,
+    "level": 2080.0,
+    "nearest_peak_dt": -29.957
+   },
+   {
+    "t": 28.971,
+    "pol": 1,
+    "pwm": 0,
+    "level": 2080.0,
+    "nearest_peak_dt": -29.946
+   },
+   {
+    "t": 29.204,
+    "pol": 1,
+    "pwm": 0,
+    "level": 2083.0,
+    "nearest_peak_dt": -29.713
+   },
+   {
+    "t": 29.209,
+    "pol": 1,
+    "pwm": 0,
+    "level": 2083.0,
+    "nearest_peak_dt": -29.708
+   }
+  ],
+  "duplicates": [
+   {
+    "t": 58.762,
+    "pol": -1,
+    "pwm": 60,
+    "dt_from_peak": -0.155
+   },
+   {
+    "t": 58.775,
+    "pol": -1,
+    "pwm": 60,
+    "dt_from_peak": -0.142
+   },
+   {
+    "t": 58.794,
+    "pol": -1,
+    "pwm": 60,
+    "dt_from_peak": -0.123
+   },
+   {
+    "t": 58.895,
+    "pol": -1,
+    "pwm": 60,
+    "dt_from_peak": -0.022
+   },
+   {
+    "t": 58.903,
+    "pol": -1,
+    "pwm": 60,
+    "dt_from_peak": -0.014
+   },
+   {
+    "t": 58.911,
+    "pol": -1,
+    "pwm": 60,
+    "dt_from_peak": -0.006
+   },
+   {
+    "t": 61.69,
+    "pol": -1,
+    "pwm": 79,
+    "dt_from_peak": -0.105
+   },
+   {
+    "t": 63.718,
+    "pol": -1,
+    "pwm": 90,
+    "dt_from_peak": 0.039
+   },
+   {
+    "t": 68.404,
+    "pol": -1,
+    "pwm": 90,
+    "dt_from_peak": -0.067
+   },
+   {
+    "t": 70.15,
+    "pol": 1,
+    "pwm": 90,
+    "dt_from_peak": -0.163
+   },
+   {
+    "t": 70.197,
+    "pol": 1,
+    "pwm": 90,
+    "dt_from_peak": -0.116
+   },
+   {
+    "t": 70.256,
+    "pol": 1,
+    "pwm": 90,
+    "dt_from_peak": -0.057
+   },
+   {
+    "t": 70.263,
+    "pol": 1,
+    "pwm": 90,
+    "dt_from_peak": -0.05
+   },
+   {
+    "t": 70.27,
+    "pol": 1,
+    "pwm": 90,
+    "dt_from_peak": -0.043
+   },
+   {
+    "t": 90.619,
+    "pol": 1,
+    "pwm": 90,
+    "dt_from_peak": -0.03
+   },
+   {
+    "t": 93.934,
+    "pol": -1,
+    "pwm": 90,
+    "dt_from_peak": -0.063
+   },
+   {
+    "t": 99.05,
+    "pol": -1,
+    "pwm": 90,
+    "dt_from_peak": 0.039
+   },
+   {
+    "t": 100.714,
+    "pol": 1,
+    "pwm": 90,
+    "dt_from_peak": 0.027
+   },
+   {
+    "t": 102.206,
+    "pol": -1,
+    "pwm": 90,
+    "dt_from_peak": 0.037
+   },
+   {
+    "t": 108.046,
+    "pol": 1,
+    "pwm": 90,
+    "dt_from_peak": -0.055
+   },
+   {
+    "t": 109.496,
+    "pol": -1,
+    "pwm": 90,
+    "dt_from_peak": -0.061
+   },
+   {
+    "t": 114.901,
+    "pol": 1,
+    "pwm": 90,
+    "dt_from_peak": -0.044
+   },
+   {
+    "t": 116.349,
+    "pol": 1,
+    "pwm": 90,
+    "dt_from_peak": -0.044
+   },
+   {
+    "t": 117.697,
+    "pol": -1,
+    "pwm": 90,
+    "dt_from_peak": -0.054
+   },
+   {
+    "t": 117.79,
+    "pol": -1,
+    "pwm": 90,
+    "dt_from_peak": 0.039
+   },
+   {
+    "t": 119.181,
+    "pol": 1,
+    "pwm": 90,
+    "dt_from_peak": 0.026
+   },
+   {
+    "t": 123.145,
+    "pol": 1,
+    "pwm": 90,
+    "dt_from_peak": -0.052
+   },
+   {
+    "t": 124.454,
+    "pol": 1,
+    "pwm": 90,
+    "dt_from_peak": -0.047
+   },
+   {
+    "t": 125.799,
+    "pol": 1,
+    "pwm": 90,
+    "dt_from_peak": -0.044
+   },
+   {
+    "t": 131.04,
+    "pol": -1,
+    "pwm": 90,
+    "dt_from_peak": -0.043
+   },
+   {
+    "t": 131.096,
+    "pol": -1,
+    "pwm": 90,
+    "dt_from_peak": 0.013
+   },
+   {
+    "t": 131.103,
+    "pol": -1,
+    "pwm": 90,
+    "dt_from_peak": 0.02
+   },
+   {
+    "t": 132.404,
+    "pol": -1,
+    "pwm": 90,
+    "dt_from_peak": -0.059
+   },
+   {
+    "t": 132.406,
+    "pol": -1,
+    "pwm": 90,
+    "dt_from_peak": -0.057
+   },
+   {
+    "t": 133.946,
+    "pol": -1,
+    "pwm": 90,
+    "dt_from_peak": 0.033
+   },
+   {
+    "t": 135.332,
+    "pol": -1,
+    "pwm": 90,
+    "dt_from_peak": -0.053
+   },
+   {
+    "t": 141.187,
+    "pol": -1,
+    "pwm": 90,
+    "dt_from_peak": -0.056
+   },
+   {
+    "t": 145.634,
+    "pol": -1,
+    "pwm": 90,
+    "dt_from_peak": -0.061
+   },
+   {
+    "t": 145.725,
+    "pol": -1,
+    "pwm": 90,
+    "dt_from_peak": 0.03
+   },
+   {
+    "t": 152.896,
+    "pol": -1,
+    "pwm": 90,
+    "dt_from_peak": 0.031
+   },
+   {
+    "t": 152.904,
+    "pol": -1,
+    "pwm": 90,
+    "dt_from_peak": 0.039
+   },
+   {
+    "t": 155.226,
+    "pol": -1,
+    "pwm": 90,
+    "dt_from_peak": -0.055
+   },
+   {
+    "t": 155.314,
+    "pol": -1,
+    "pwm": 90,
+    "dt_from_peak": 0.033
+   },
+   {
+    "t": 162.638,
+    "pol": -1,
+    "pwm": 90,
+    "dt_from_peak": 0.039
+   },
+   {
+    "t": 167.298,
+    "pol": 1,
+    "pwm": 90,
+    "dt_from_peak": -0.047
+   },
+   {
+    "t": 168.756,
+    "pol": 1,
+    "pwm": 90,
+    "dt_from_peak": 0.037
+   },
+   {
+    "t": 174.409,
+    "pol": 1,
+    "pwm": 90,
+    "dt_from_peak": -0.04
+   },
+   {
+    "t": 175.755,
+    "pol": 1,
+    "pwm": 90,
+    "dt_from_peak": -0.044
+   },
+   {
+    "t": 177.099,
+    "pol": -1,
+    "pwm": 90,
+    "dt_from_peak": -0.052
+   },
+   {
+    "t": 178.435,
+    "pol": -1,
+    "pwm": 90,
+    "dt_from_peak": -0.058
+   },
+   {
+    "t": 179.802,
+    "pol": -1,
+    "pwm": 90,
+    "dt_from_peak": -0.057
+   },
+   {
+    "t": 182.823,
+    "pol": -1,
+    "pwm": 90,
+    "dt_from_peak": 0.036
+   },
+   {
+    "t": 189.931,
+    "pol": 1,
+    "pwm": 90,
+    "dt_from_peak": -0.054
+   },
+   {
+    "t": 219.09,
+    "pol": 1,
+    "pwm": 90,
+    "dt_from_peak": -0.033
+   },
+   {
+    "t": 219.155,
+    "pol": 1,
+    "pwm": 90,
+    "dt_from_peak": 0.032
+   },
+   {
+    "t": 225.475,
+    "pol": -1,
+    "pwm": 90,
+    "dt_from_peak": -0.038
+   },
+   {
+    "t": 227.705,
+    "pol": 1,
+    "pwm": 90,
+    "dt_from_peak": -0.044
+   },
+   {
+    "t": 227.778,
+    "pol": 1,
+    "pwm": 90,
+    "dt_from_peak": 0.029
+   },
+   {
+    "t": 231.789,
+    "pol": -1,
+    "pwm": 90,
+    "dt_from_peak": -0.06
+   },
+   {
+    "t": 231.891,
+    "pol": -1,
+    "pwm": 90,
+    "dt_from_peak": 0.042
+   },
+   {
+    "t": 234.794,
+    "pol": -1,
+    "pwm": 90,
+    "dt_from_peak": -0.067
+   },
+   {
+    "t": 236.325,
+    "pol": 1,
+    "pwm": 90,
+    "dt_from_peak": -0.062
+   },
+   {
+    "t": 237.787,
+    "pol": -1,
+    "pwm": 90,
+    "dt_from_peak": -0.072
+   },
+   {
+    "t": 240.652,
+    "pol": 1,
+    "pwm": 90,
+    "dt_from_peak": -0.059
+   },
+   {
+    "t": 244.539,
+    "pol": -1,
+    "pwm": 90,
+    "dt_from_peak": -0.048
+   },
+   {
+    "t": 247.061,
+    "pol": 1,
+    "pwm": 90,
+    "dt_from_peak": 0.038
+   },
+   {
+    "t": 248.177,
+    "pol": -1,
+    "pwm": 90,
+    "dt_from_peak": -0.054
+   },
+   {
+    "t": 249.442,
+    "pol": 1,
+    "pwm": 90,
+    "dt_from_peak": -0.051
+   },
+   {
+    "t": 251.948,
+    "pol": -1,
+    "pwm": 90,
+    "dt_from_peak": -0.055
+   },
+   {
+    "t": 252.037,
+    "pol": -1,
+    "pwm": 90,
+    "dt_from_peak": 0.034
+   },
+   {
+    "t": 254.483,
+    "pol": -1,
+    "pwm": 90,
+    "dt_from_peak": -0.056
+   },
+   {
+    "t": 263.228,
+    "pol": -1,
+    "pwm": 90,
+    "dt_from_peak": -0.055
+   },
+   {
+    "t": 264.45,
+    "pol": -1,
+    "pwm": 90,
+    "dt_from_peak": -0.053
+   },
+   {
+    "t": 264.544,
+    "pol": -1,
+    "pwm": 90,
+    "dt_from_peak": 0.041
+   },
+   {
+    "t": 266.712,
+    "pol": 1,
+    "pwm": 90,
+    "dt_from_peak": -0.047
+   },
+   {
+    "t": 270.711,
+    "pol": 1,
+    "pwm": 90,
+    "dt_from_peak": 0.038
+   },
+   {
+    "t": 282.563,
+    "pol": 1,
+    "pwm": 90,
+    "dt_from_peak": 0.03
+   },
+   {
+    "t": 285.195,
+    "pol": 1,
+    "pwm": 90,
+    "dt_from_peak": -0.054
+   },
+   {
+    "t": 285.2,
+    "pol": 1,
+    "pwm": 90,
+    "dt_from_peak": -0.049
+   },
+   {
+    "t": 286.465,
+    "pol": -1,
+    "pwm": 90,
+    "dt_from_peak": -0.06
+   },
+   {
+    "t": 290.757,
+    "pol": -1,
+    "pwm": 90,
+    "dt_from_peak": -0.064
+   },
+   {
+    "t": 293.564,
+    "pol": 1,
+    "pwm": 90,
+    "dt_from_peak": 0.041
+   },
+   {
+    "t": 298.004,
+    "pol": 1,
+    "pwm": 90,
+    "dt_from_peak": -0.045
+   },
+   {
+    "t": 299.842,
+    "pol": 1,
+    "pwm": 90,
+    "dt_from_peak": -0.063
+   },
+   {
+    "t": 299.938,
+    "pol": 1,
+    "pwm": 90,
+    "dt_from_peak": 0.033
+   },
+   {
+    "t": 302.914,
+    "pol": 1,
+    "pwm": 90,
+    "dt_from_peak": -0.047
+   },
+   {
+    "t": 302.996,
+    "pol": 1,
+    "pwm": 90,
+    "dt_from_peak": 0.035
+   },
+   {
+    "t": 305.242,
+    "pol": -1,
+    "pwm": 90,
+    "dt_from_peak": 0.041
+   },
+   {
+    "t": 308.895,
+    "pol": 1,
+    "pwm": 90,
+    "dt_from_peak": -0.06
+   },
+   {
+    "t": 310.332,
+    "pol": 1,
+    "pwm": 90,
+    "dt_from_peak": -0.061
+   },
+   {
+    "t": 316.407,
+    "pol": 1,
+    "pwm": 90,
+    "dt_from_peak": -0.064
+   },
+   {
+    "t": 316.514,
+    "pol": 1,
+    "pwm": 90,
+    "dt_from_peak": 0.043
+   },
+   {
+    "t": 317.805,
+    "pol": 1,
+    "pwm": 90,
+    "dt_from_peak": -0.056
+   },
+   {
+    "t": 320.434,
+    "pol": 1,
+    "pwm": 90,
+    "dt_from_peak": -0.047
+   },
+   {
+    "t": 323.43,
+    "pol": 1,
+    "pwm": 90,
+    "dt_from_peak": 0.043
+   },
+   {
+    "t": 324.863,
+    "pol": -1,
+    "pwm": 90,
+    "dt_from_peak": -0.06
+   },
+   {
+    "t": 326.487,
+    "pol": -1,
+    "pwm": 90,
+    "dt_from_peak": -0.064
+   },
+   {
+    "t": 328.149,
+    "pol": -1,
+    "pwm": 90,
+    "dt_from_peak": 0.038
+   },
+   {
+    "t": 329.816,
+    "pol": -1,
+    "pwm": 90,
+    "dt_from_peak": 0.031
+   },
+   {
+    "t": 332.911,
+    "pol": -1,
+    "pwm": 90,
+    "dt_from_peak": 0.038
+   },
+   {
+    "t": 341.421,
+    "pol": 1,
+    "pwm": 90,
+    "dt_from_peak": -0.054
+   },
+   {
+    "t": 345.383,
+    "pol": 1,
+    "pwm": 90,
+    "dt_from_peak": -0.044
+   },
+   {
+    "t": 345.456,
+    "pol": 1,
+    "pwm": 90,
+    "dt_from_peak": 0.029
+   },
+   {
+    "t": 346.815,
+    "pol": 1,
+    "pwm": 90,
+    "dt_from_peak": -0.044
+   },
+   {
+    "t": 349.54,
+    "pol": 1,
+    "pwm": 90,
+    "dt_from_peak": -0.047
+   },
+   {
+    "t": 350.879,
+    "pol": -1,
+    "pwm": 90,
+    "dt_from_peak": -0.05
+   },
+   {
+    "t": 352.225,
+    "pol": 1,
+    "pwm": 90,
+    "dt_from_peak": -0.052
+   },
+   {
+    "t": 353.631,
+    "pol": 1,
+    "pwm": 90,
+    "dt_from_peak": 0.038
+   },
+   {
+    "t": 356.16,
+    "pol": 1,
+    "pwm": 90,
+    "dt_from_peak": -0.039
+   },
+   {
+    "t": 358.695,
+    "pol": 1,
+    "pwm": 90,
+    "dt_from_peak": -0.048
+   },
+   {
+    "t": 361.404,
+    "pol": -1,
+    "pwm": 90,
+    "dt_from_peak": 0.021
+   },
+   {
+    "t": 365.6,
+    "pol": -1,
+    "pwm": 90,
+    "dt_from_peak": -0.051
+   },
+   {
+    "t": 365.603,
+    "pol": -1,
+    "pwm": 90,
+    "dt_from_peak": -0.048
+   },
+   {
+    "t": 367.141,
+    "pol": 1,
+    "pwm": 90,
+    "dt_from_peak": 0.036
+   },
+   {
+    "t": 370.131,
+    "pol": -1,
+    "pwm": 90,
+    "dt_from_peak": 0.034
+   },
+   {
+    "t": 375.859,
+    "pol": -1,
+    "pwm": 90,
+    "dt_from_peak": -0.064
+   },
+   {
+    "t": 375.896,
+    "pol": -1,
+    "pwm": 90,
+    "dt_from_peak": -0.027
+   },
+   {
+    "t": 377.545,
+    "pol": 1,
+    "pwm": 90,
+    "dt_from_peak": -0.064
+   },
+   {
+    "t": 380.519,
+    "pol": 1,
+    "pwm": 90,
+    "dt_from_peak": 0.038
+   },
+   {
+    "t": 383.084,
+    "pol": -1,
+    "pwm": 90,
+    "dt_from_peak": 0.037
+   },
+   {
+    "t": 386.731,
+    "pol": -1,
+    "pwm": 83,
+    "dt_from_peak": 0.042
+   },
+   {
+    "t": 394.822,
+    "pol": -1,
+    "pwm": 63,
+    "dt_from_peak": 0.031
+   },
+   {
+    "t": 396.665,
+    "pol": -1,
+    "pwm": 58,
+    "dt_from_peak": -0.092
+   },
+   {
+    "t": 396.668,
+    "pol": -1,
+    "pwm": 58,
+    "dt_from_peak": -0.089
+   },
+   {
+    "t": 396.777,
+    "pol": -1,
+    "pwm": 58,
+    "dt_from_peak": 0.02
+   },
+   {
+    "t": 401.934,
+    "pol": -1,
+    "pwm": 45,
+    "dt_from_peak": -0.133
+   },
+   {
+    "t": 401.937,
+    "pol": -1,
+    "pwm": 45,
+    "dt_from_peak": -0.13
+   },
+   {
+    "t": 401.975,
+    "pol": -1,
+    "pwm": 45,
+    "dt_from_peak": -0.092
+   },
+   {
+    "t": 401.978,
+    "pol": -1,
+    "pwm": 45,
+    "dt_from_peak": -0.089
+   },
+   {
+    "t": 402.024,
+    "pol": -1,
+    "pwm": 45,
+    "dt_from_peak": -0.043
+   },
+   {
+    "t": 402.027,
+    "pol": -1,
+    "pwm": 45,
+    "dt_from_peak": -0.04
+   }
+  ],
+  "onset_before_peak_ms": {
+   "min": 36,
+   "median": 58,
+   "max": 171
+  },
+  "mf240_events": 232,
+  "focus": {
+   "MM169": {
+    "truth_t_peak": 70.313,
+    "truth_pol": 1,
+    "detected": true,
+    "onset": {
+     "t": 70.145,
+     "serial": 355865,
+     "pol": 1,
+     "pwm": 90,
+     "level": 2057.0,
+     "lead_ms": 168
+    },
+    "onsets_within_1_5s": [
+     {
+      "t": 70.145,
+      "pol": 1,
+      "pwm": 90,
+      "level": 2057.0
+     },
+     {
+      "t": 70.15,
+      "pol": 1,
+      "pwm": 90,
+      "level": 2057.0
+     },
+     {
+      "t": 70.197,
+      "pol": 1,
+      "pwm": 90,
+      "level": 2077.0
+     },
+     {
+      "t": 70.256,
+      "pol": 1,
+      "pwm": 90,
+      "level": 2132.0
+     },
+     {
+      "t": 70.263,
+      "pol": 1,
+      "pwm": 90,
+      "level": 2132.0
+     },
+     {
+      "t": 70.27,
+      "pol": 1,
+      "pwm": 90,
+      "level": 2132.0
+     }
+    ],
+    "raw_min_max_within_1s": [
+     1979,
+     2294
+    ]
+   },
+   "MM113": {
+    "truth_t_peak": 406.885,
+    "truth_pol": 1,
+    "detected": false,
+    "onset": null,
+    "onsets_within_1_5s": [],
+    "raw_min_max_within_1s": [
+     2027,
+     2299
+    ]
+   }
+  }
+ },
+ "CC9DF08D5F1552AA": {
+  "label": "Otto control (Muse) MM121-039",
+  "replay_onsets": 344,
+  "firmware_diag_onsets": 344,
+  "serial_gaps": 0,
+  "onsets_first_200ms": 0,
+  "stationary_onsets": [],
+  "truth_magnets": 90,
+  "detected": 90,
+  "missed": [],
+  "leading": 90,
+  "trailing": 211,
+  "trailing_per_magnet": {
+   "0": 34,
+   "1": 11,
+   "2": 11,
+   "3": 14,
+   "4": 4,
+   "5": 2,
+   "6": 4,
+   "7": 4,
+   "8": 2,
+   "9": 1,
+   "10": 2,
+   "13": 1
+  },
+  "false": [],
+  "duplicates": [
+   {
+    "t": 117.353,
+    "pol": -1,
+    "pwm": 52,
+    "dt_from_peak": -0.156
+   },
+   {
+    "t": 117.358,
+    "pol": -1,
+    "pwm": 53,
+    "dt_from_peak": -0.151
+   },
+   {
+    "t": 117.394,
+    "pol": -1,
+    "pwm": 53,
+    "dt_from_peak": -0.115
+   },
+   {
+    "t": 117.477,
+    "pol": -1,
+    "pwm": 53,
+    "dt_from_peak": -0.032
+   },
+   {
+    "t": 119.734,
+    "pol": -1,
+    "pwm": 68,
+    "dt_from_peak": -0.065
+   },
+   {
+    "t": 121.309,
+    "pol": -1,
+    "pwm": 79,
+    "dt_from_peak": -0.074
+   },
+   {
+    "t": 122.721,
+    "pol": 1,
+    "pwm": 88,
+    "dt_from_peak": 0.04
+   },
+   {
+    "t": 126.164,
+    "pol": 1,
+    "pwm": 90,
+    "dt_from_peak": 0.041
+   },
+   {
+    "t": 128.555,
+    "pol": 1,
+    "pwm": 90,
+    "dt_from_peak": -0.046
+   },
+   {
+    "t": 132.133,
+    "pol": 1,
+    "pwm": 90,
+    "dt_from_peak": -0.038
+   },
+   {
+    "t": 133.249,
+    "pol": -1,
+    "pwm": 90,
+    "dt_from_peak": -0.044
+   },
+   {
+    "t": 133.33,
+    "pol": -1,
+    "pwm": 90,
+    "dt_from_peak": 0.037
+   },
+   {
+    "t": 134.292,
+    "pol": -1,
+    "pwm": 90,
+    "dt_from_peak": -0.043
+   },
+   {
+    "t": 135.338,
+    "pol": 1,
+    "pwm": 90,
+    "dt_from_peak": -0.039
+   },
+   {
+    "t": 136.454,
+    "pol": 1,
+    "pwm": 90,
+    "dt_from_peak": 0.033
+   },
+   {
+    "t": 138.587,
+    "pol": -1,
+    "pwm": 90,
+    "dt_from_peak": -0.044
+   },
+   {
+    "t": 142.118,
+    "pol": -1,
+    "pwm": 90,
+    "dt_from_peak": -0.043
+   },
+   {
+    "t": 145.749,
+    "pol": 1,
+    "pwm": 90,
+    "dt_from_peak": 0.036
+   },
+   {
+    "t": 149.513,
+    "pol": 1,
+    "pwm": 90,
+    "dt_from_peak": -0.048
+   },
+   {
+    "t": 153.125,
+    "pol": -1,
+    "pwm": 90,
+    "dt_from_peak": 0.04
+   },
+   {
+    "t": 156.513,
+    "pol": 1,
+    "pwm": 90,
+    "dt_from_peak": -0.046
+   },
+   {
+    "t": 158.941,
+    "pol": 1,
+    "pwm": 90,
+    "dt_from_peak": -0.056
+   },
+   {
+    "t": 164.366,
+    "pol": -1,
+    "pwm": 90,
+    "dt_from_peak": -0.057
+   },
+   {
+    "t": 164.459,
+    "pol": -1,
+    "pwm": 90,
+    "dt_from_peak": 0.036
+   },
+   {
+    "t": 165.708,
+    "pol": 1,
+    "pwm": 90,
+    "dt_from_peak": 0.041
+   },
+   {
+    "t": 168.33,
+    "pol": 1,
+    "pwm": 90,
+    "dt_from_peak": -0.055
+   },
+   {
+    "t": 168.416,
+    "pol": 1,
+    "pwm": 90,
+    "dt_from_peak": 0.031
+   },
+   {
+    "t": 169.705,
+    "pol": -1,
+    "pwm": 90,
+    "dt_from_peak": -0.058
+   },
+   {
+    "t": 172.868,
+    "pol": -1,
+    "pwm": 90,
+    "dt_from_peak": 0.039
+   },
+   {
+    "t": 174.275,
+    "pol": -1,
+    "pwm": 90,
+    "dt_from_peak": -0.064
+   },
+   {
+    "t": 175.967,
+    "pol": 1,
+    "pwm": 90,
+    "dt_from_peak": 0.036
+   },
+   {
+    "t": 177.648,
+    "pol": 1,
+    "pwm": 90,
+    "dt_from_peak": 0.041
+   },
+   {
+    "t": 181.663,
+    "pol": 1,
+    "pwm": 111,
+    "dt_from_peak": -0.034
+   },
+   {
+    "t": 181.737,
+    "pol": 1,
+    "pwm": 111,
+    "dt_from_peak": 0.04
+   },
+   {
+    "t": 183.834,
+    "pol": -1,
+    "pwm": 125,
+    "dt_from_peak": 0.041
+   },
+   {
+    "t": 189.337,
+    "pol": -1,
+    "pwm": 150,
+    "dt_from_peak": 0.012
+   },
+   {
+    "t": 196.742,
+    "pol": -1,
+    "pwm": 134,
+    "dt_from_peak": 0.041
+   },
+   {
+    "t": 199.628,
+    "pol": 1,
+    "pwm": 128,
+    "dt_from_peak": -0.015
+   },
+   {
+    "t": 209.252,
+    "pol": 1,
+    "pwm": 104,
+    "dt_from_peak": 0.035
+   },
+   {
+    "t": 209.256,
+    "pol": 1,
+    "pwm": 104,
+    "dt_from_peak": 0.039
+   },
+   {
+    "t": 215.274,
+    "pol": -1,
+    "pwm": 45,
+    "dt_from_peak": 0.011
+   },
+   {
+    "t": 215.28,
+    "pol": -1,
+    "pwm": 44,
+    "dt_from_peak": 0.017
+   },
+   {
+    "t": 215.287,
+    "pol": -1,
+    "pwm": 44,
+    "dt_from_peak": 0.024
+   }
+  ],
+  "onset_before_peak_ms": {
+   "min": 26,
+   "median": 47,
+   "max": 160
+  },
+  "mf240_events": 90,
+  "focus": {}
+ },
+ "51104A27DEA43752": {
+  "label": "Toby CW 024-025",
+  "replay_onsets": 468,
+  "firmware_diag_onsets": 468,
+  "serial_gaps": 1,
+  "onsets_first_200ms": 0,
+  "stationary_onsets": [],
+  "truth_magnets": 188,
+  "detected": 188,
+  "missed": [],
+  "leading": 188,
+  "trailing": 258,
+  "trailing_per_magnet": {
+   "0": 2,
+   "1": 138,
+   "2": 35,
+   "3": 7,
+   "4": 3,
+   "5": 1,
+   "6": 2
+  },
+  "false": [
+   {
+    "t": 288.451,
+    "pol": -1,
+    "pwm": 90,
+    "level": 1738.0,
+    "nearest_peak_dt": 0.052
+   }
+  ],
+  "duplicates": [
+   {
+    "t": 83.094,
+    "pol": 1,
+    "pwm": 41,
+    "dt_from_peak": -0.157
+   },
+   {
+    "t": 83.194,
+    "pol": 1,
+    "pwm": 42,
+    "dt_from_peak": -0.057
+   },
+   {
+    "t": 83.243,
+    "pol": 1,
+    "pwm": 42,
+    "dt_from_peak": -0.008
+   },
+   {
+    "t": 92.552,
+    "pol": 1,
+    "pwm": 90,
+    "dt_from_peak": -0.051
+   },
+   {
+    "t": 106.384,
+    "pol": -1,
+    "pwm": 90,
+    "dt_from_peak": 0.047
+   },
+   {
+    "t": 115.46,
+    "pol": 1,
+    "pwm": 90,
+    "dt_from_peak": -0.051
+   },
+   {
+    "t": 137.758,
+    "pol": 1,
+    "pwm": 90,
+    "dt_from_peak": -0.049
+   },
+   {
+    "t": 139.73,
+    "pol": 1,
+    "pwm": 90,
+    "dt_from_peak": 0.039
+   },
+   {
+    "t": 141.319,
+    "pol": -1,
+    "pwm": 90,
+    "dt_from_peak": -0.076
+   },
+   {
+    "t": 148.023,
+    "pol": 1,
+    "pwm": 90,
+    "dt_from_peak": -0.06
+   },
+   {
+    "t": 149.596,
+    "pol": -1,
+    "pwm": 90,
+    "dt_from_peak": 0.033
+   },
+   {
+    "t": 160.426,
+    "pol": 1,
+    "pwm": 90,
+    "dt_from_peak": 0.029
+   },
+   {
+    "t": 171.331,
+    "pol": -1,
+    "pwm": 90,
+    "dt_from_peak": -0.036
+   },
+   {
+    "t": 182.703,
+    "pol": 1,
+    "pwm": 90,
+    "dt_from_peak": 0.04
+   },
+   {
+    "t": 192.743,
+    "pol": -1,
+    "pwm": 90,
+    "dt_from_peak": 0.044
+   },
+   {
+    "t": 211.391,
+    "pol": -1,
+    "pwm": 90,
+    "dt_from_peak": 0.046
+   },
+   {
+    "t": 224.051,
+    "pol": 1,
+    "pwm": 90,
+    "dt_from_peak": -0.056
+   },
+   {
+    "t": 264.232,
+    "pol": 1,
+    "pwm": 90,
+    "dt_from_peak": -0.015
+   },
+   {
+    "t": 270.24,
+    "pol": -1,
+    "pwm": 90,
+    "dt_from_peak": 0.023
+   },
+   {
+    "t": 297.827,
+    "pol": -1,
+    "pwm": 90,
+    "dt_from_peak": 0.034
+   },
+   {
+    "t": 340.5,
+    "pol": -1,
+    "pwm": 70,
+    "dt_from_peak": -0.081
+   }
+  ],
+  "onset_before_peak_ms": {
+   "min": 36,
+   "median": 59,
+   "max": 169
+  },
+  "mf240_events": 188,
+  "focus": {}
+ },
+ "B320624109FB8862": {
+  "label": "Toby parked (old build)",
+  "replay_onsets": 0,
+  "firmware_diag_onsets": null,
+  "serial_gaps": 139,
+  "onsets_first_200ms": 0,
+  "stationary_onsets": []
+ },
+ "D248E206532D8074": {
+  "label": "Toby parked",
+  "replay_onsets": 0,
+  "firmware_diag_onsets": 0,
+  "serial_gaps": 2,
+  "onsets_first_200ms": 0,
+  "stationary_onsets": []
+ },
+ "EDFAFAEA80CF3499": {
+  "label": "Toby CCW 035-036",
+  "replay_onsets": 499,
+  "firmware_diag_onsets": 499,
+  "serial_gaps": 1,
+  "onsets_first_200ms": 0,
+  "stationary_onsets": [],
+  "truth_magnets": 186,
+  "detected": 186,
+  "missed": [],
+  "leading": 186,
+  "trailing": 292,
+  "trailing_per_magnet": {
+   "0": 2,
+   "1": 129,
+   "2": 32,
+   "3": 13,
+   "4": 4,
+   "5": 1,
+   "6": 3,
+   "9": 1,
+   "12": 1
+  },
+  "false": [],
+  "duplicates": [
+   {
+    "t": 98.257,
+    "pol": 1,
+    "pwm": 57,
+    "dt_from_peak": -0.14
+   },
+   {
+    "t": 98.4,
+    "pol": 1,
+    "pwm": 58,
+    "dt_from_peak": 0.003
+   },
+   {
+    "t": 98.407,
+    "pol": 1,
+    "pwm": 58,
+    "dt_from_peak": 0.01
+   },
+   {
+    "t": 100.8,
+    "pol": 1,
+    "pwm": 74,
+    "dt_from_peak": 0.029
+   },
+   {
+    "t": 144.4,
+    "pol": -1,
+    "pwm": 90,
+    "dt_from_peak": -0.021
+   },
+   {
+    "t": 148.729,
+    "pol": 1,
+    "pwm": 90,
+    "dt_from_peak": 0.05
+   },
+   {
+    "t": 155.646,
+    "pol": 1,
+    "pwm": 90,
+    "dt_from_peak": -0.063
+   },
+   {
+    "t": 158.545,
+    "pol": -1,
+    "pwm": 90,
+    "dt_from_peak": -0.058
+   },
+   {
+    "t": 176.645,
+    "pol": 1,
+    "pwm": 90,
+    "dt_from_peak": -0.028
+   },
+   {
+    "t": 188.594,
+    "pol": -1,
+    "pwm": 90,
+    "dt_from_peak": -0.037
+   },
+   {
+    "t": 201.157,
+    "pol": -1,
+    "pwm": 90,
+    "dt_from_peak": -0.052
+   },
+   {
+    "t": 213.662,
+    "pol": -1,
+    "pwm": 90,
+    "dt_from_peak": -0.057
+   },
+   {
+    "t": 238.213,
+    "pol": -1,
+    "pwm": 90,
+    "dt_from_peak": 0.036
+   },
+   {
+    "t": 268.22,
+    "pol": -1,
+    "pwm": 90,
+    "dt_from_peak": 0.039
+   },
+   {
+    "t": 271.81,
+    "pol": 1,
+    "pwm": 90,
+    "dt_from_peak": -0.007
+   },
+   {
+    "t": 289.656,
+    "pol": 1,
+    "pwm": 90,
+    "dt_from_peak": -0.047
+   },
+   {
+    "t": 295.509,
+    "pol": 1,
+    "pwm": 90,
+    "dt_from_peak": -0.044
+   },
+   {
+    "t": 301.718,
+    "pol": -1,
+    "pwm": 90,
+    "dt_from_peak": -0.073
+   },
+   {
+    "t": 332.245,
+    "pol": 1,
+    "pwm": 90,
+    "dt_from_peak": -0.056
+   },
+   {
+    "t": 340.897,
+    "pol": 1,
+    "pwm": 90,
+    "dt_from_peak": -0.084
+   },
+   {
+    "t": 344.75,
+    "pol": -1,
+    "pwm": 90,
+    "dt_from_peak": 0.037
+   }
+  ],
+  "onset_before_peak_ms": {
+   "min": 40,
+   "median": 60,
+   "max": 164
+  },
+  "mf240_events": 186,
+  "focus": {}
+ }
+}
