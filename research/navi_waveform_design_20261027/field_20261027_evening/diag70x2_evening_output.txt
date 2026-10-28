@@ -1,0 +1,94 @@
+{
+"replay_onsets": 1577,
+"firmware_diag_onsets": 1580,
+"passages": 527,
+"detected": 521,
+"onsets_moving": {
+"leading": 521,
+"duplicate": 238,
+"trailing": 813,
+"false": 1
+},
+"onsets_at_stops": 4,
+"false_moving": [
+{
+"t": 427.79,
+"pol": -1,
+"pwm": 134,
+"nearest_dt": 0.213
+}
+],
+"onset_before_peak_ms": {
+"median": 47,
+"min": 11,
+"max": 270
+},
+"missed_by_70x2": [
+{
+"mm": 146,
+"t": 196.493,
+"pwm": 33,
+"phase": "decelerating",
+"recognizer": false
+},
+{
+"mm": 58,
+"t": 834.995,
+"pwm": 40,
+"phase": "steady",
+"recognizer": false
+},
+{
+"mm": 55,
+"t": 852.087,
+"pwm": 26,
+"phase": "decelerating",
+"recognizer": false
+},
+{
+"mm": 54,
+"t": 907.719,
+"pwm": 30,
+"phase": "accelerating",
+"recognizer": false
+},
+{
+"mm": 48,
+"t": 957.595,
+"pwm": 32,
+"phase": "decelerating",
+"recognizer": false
+},
+{
+"mm": 35,
+"t": 1020.675,
+"pwm": 21,
+"phase": "decelerating",
+"recognizer": false
+}
+]
+}
+PWM 0-29 {'passages': 2, 'detected_70x2': 0, 'recognized_waveform': 0, 'duplicates': 0, 'trailing': 0}
+PWM 30-34 {'passages': 5, 'detected_70x2': 2, 'recognized_waveform': 1, 'duplicates': 3, 'trailing': 8}
+PWM 35-39 {'passages': 2, 'detected_70x2': 2, 'recognized_waveform': 0, 'duplicates': 8, 'trailing': 14}
+PWM 40-44 {'passages': 15, 'detected_70x2': 14, 'recognized_waveform': 13, 'duplicates': 51, 'trailing': 69}
+PWM 45-59 {'passages': 32, 'detected_70x2': 32, 'recognized_waveform': 32, 'duplicates': 51, 'trailing': 94}
+PWM 60-90 {'passages': 194, 'detected_70x2': 194, 'recognized_waveform': 194, 'duplicates': 84, 'trailing': 447}
+PWM 91-119 {'passages': 72, 'detected_70x2': 72, 'recognized_waveform': 72, 'duplicates': 20, 'trailing': 162}
+PWM 120-149 {'passages': 68, 'detected_70x2': 68, 'recognized_waveform': 67, 'duplicates': 8, 'trailing': 19}
+PWM 150-174 {'passages': 90, 'detected_70x2': 90, 'recognized_waveform': 90, 'duplicates': 10, 'trailing': 0}
+PWM 175-200 {'passages': 47, 'detected_70x2': 47, 'recognized_waveform': 45, 'duplicates': 3, 'trailing': 0}
+{"mm": 3, "pol": -1, "t_peak": 135.625, "pwm": 31, "phase": "decelerating", "detected": true, "onset_t": 135.355, "onset_pol": -1, "onset_pwm": 31, "lead_ms": 270, "other_onsets_on_passage": []}
+{"mm": 146, "pol": 1, "t_peak": 196.493, "pwm": 33, "phase": "decelerating", "detected": false, "max_dev_within_1s": [-73.0, 196.797], "other_onsets_on_passage": []}
+{"mm": 70, "pol": -1, "t_peak": 282.975, "pwm": 187, "phase": "accelerating", "detected": true, "onset_t": 282.957, "onset_pol": -1, "onset_pwm": 187, "lead_ms": 18, "other_onsets_on_passage": []}
+{"mm": 39, "pol": -1, "t_peak": 296.997, "pwm": 189, "phase": "decelerating", "detected": true, "onset_t": 296.977, "onset_pol": -1, "onset_pwm": 189, "lead_ms": 20, "other_onsets_on_passage": []}
+{"mm": 57, "pol": -1, "t_peak": 427.577, "pwm": 134, "phase": "steady", "detected": true, "onset_t": 427.546, "onset_pol": -1, "onset_pwm": 134, "lead_ms": 31, "other_onsets_on_passage": [{"t": 427.771, "pol": 1, "cls": "trailing"}, {"t": 427.783, "pol": 1, "cls": "trailing"}, {"t": 427.79, "pol": -1, "cls": "false"}]}
+{"mm": 112, "pol": 1, "t_peak": 713.259, "pwm": 40, "phase": "steady", "detected": true, "onset_t": 713.116, "onset_pol": 1, "onset_pwm": 40, "lead_ms": 143, "other_onsets_on_passage": [{"t": 713.528, "pol": -1, "cls": "trailing"}, {"t": 713.531, "pol": -1, "cls": "trailing"}, {"t": 713.537, "pol": -1, "cls": "trailing"}, {"t": 713.555, "pol": -1, "cls": "trailing"}, {"t": 713.564, "pol": -1, "cls": "trailing"}, {"t": 713.57, "pol": -1, "cls": "trailing"}, {"t": 713.586, "pol": -1, "cls": "trailing"}, {"t": 713.614, "pol": -1, "cls": "trailing"}]}
+{"mm": 111, "pol": 1, "t_peak": 719.001, "pwm": 35, "phase": "decelerating", "detected": true, "onset_t": 718.807, "onset_pol": 1, "onset_pwm": 36, "lead_ms": 194, "other_onsets_on_passage": [{"t": 718.81, "pol": 1, "cls": "duplicate"}, {"t": 718.828, "pol": 1, "cls": "duplicate"}, {"t": 718.832, "pol": 1, "cls": "duplicate"}, {"t": 718.835, "pol": 1, "cls": "duplicate"}, {"t": 718.853, "pol": 1, "cls": "duplicate"}, {"t": 719.256, "pol": -1, "cls": "trailing"}, {"t": 719.274, "pol": -1, "cls": "trailing"}, {"t": 719.297, "pol": -1, "cls": "trailing"}, {"t": 719.307, "pol": -1, "cls": "trailing"}, {"t": 719.311, "pol": -1, "cls": "trailing"}]}
+{"mm": 58, "pol": -1, "t_peak": 834.995, "pwm": 40, "phase": "steady", "detected": false, "max_dev_within_1s": [184.0, 835.283], "other_onsets_on_passage": [{"t": 835.252, "pol": 1, "cls": "trailing"}, {"t": 835.272, "pol": 1, "cls": "trailing"}, {"t": 835.295, "pol": 1, "cls": "trailing"}, {"t": 835.308, "pol": 1, "cls": "trailing"}, {"t": 835.336, "pol": 1, "cls": "trailing"}]}
+{"mm": 56, "pol": 1, "t_peak": 844.569, "pwm": 36, "phase": "decelerating", "detected": true, "onset_t": 844.436, "onset_pol": 1, "onset_pwm": 36, "lead_ms": 133, "other_onsets_on_passage": [{"t": 844.452, "pol": 1, "cls": "duplicate"}, {"t": 844.456, "pol": 1, "cls": "duplicate"}, {"t": 844.476, "pol": 1, "cls": "duplicate"}, {"t": 844.833, "pol": -1, "cls": "trailing"}, {"t": 844.844, "pol": -1, "cls": "trailing"}, {"t": 844.85, "pol": -1, "cls": "trailing"}, {"t": 844.868, "pol": -1, "cls": "trailing"}, {"t": 844.874, "pol": -1, "cls": "trailing"}, {"t": 844.884, "pol": -1, "cls": "trailing"}, {"t": 844.888, "pol": -1, "cls": "trailing"}, {"t": 844.892, "pol": -1, "cls": "trailing"}, {"t": 844.916, "pol": -1, "cls": "trailing"}]}
+{"mm": 55, "pol": -1, "t_peak": 852.087, "pwm": 26, "phase": "decelerating", "detected": false, "max_dev_within_1s": [92.0, 852.089], "other_onsets_on_passage": []}
+{"mm": 54, "pol": -1, "t_peak": 907.719, "pwm": 30, "phase": "accelerating", "detected": false, "max_dev_within_1s": [84.0, 908.104], "other_onsets_on_passage": []}
+{"mm": 48, "pol": 1, "t_peak": 957.595, "pwm": 32, "phase": "decelerating", "detected": false, "max_dev_within_1s": [73.0, 958.37], "other_onsets_on_passage": []}
+{"mm": 35, "pol": 1, "t_peak": 1020.675, "pwm": 21, "phase": "decelerating", "detected": false, "max_dev_within_1s": [94.0, 1020.517], "other_onsets_on_passage": []}
+stop onsets [{"t": 15.604, "pol": 1, "level": 1922.0}, {"t": 443.057, "pol": 1, "level": 1904.0}, {"t": 443.076, "pol": -1, "level": 1904.0}, {"t": 443.209, "pol": 1, "level": 1936.0}]

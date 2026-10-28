@@ -64,7 +64,7 @@ Alignment costs:
 | 146 (N) | 196.49 | 33 | decelerating | 866 | 178 | 0.71, 54 | A |
 | 070 (S) | 282.98 | **187** | accelerating | **52** | 130 | −0.75, −67 | A |
 | 039 (S) | 297.00 | **189** | decelerating | **50** | 169 | −0.69, −86 | r |
-| 057 (S) | 427.84 | 134 | steady | 54 | — | −0.53, −411 | r. Passage overlaid by a hardware transient (§5) |
+| 057 (S) | **427.58** (corrected, see note) | 134 | steady | 82 | 183 | no candidate at the passage; the window's best is −0.53, −411 at the transient | The transient begins 190 ms after the passage, inside the 240 ms copy's window (§5) |
 | 112 (N) | 713.26 | 40 | steady | 754 | 186 | 0.67, 54 | r and A |
 | 111 (N) | 719.00 | 35 | decelerating | 764 | 193 | 0.68, 55 | r and A |
 | 058 (S) | 835.00 | 40 | steady | 816 | 190 | −0.71, −53 | A |
@@ -77,6 +77,14 @@ Alignment costs:
 - **The slow misses' magnets were normal.** Their amplitudes (178–242) are ordinary for these magnets.
 - **Their shape was ordinary too.** The same excursion stretched wider correlates at r 0.95–1.00 with the 1.5 s copy of the same template.
 - **What failed was width.** A 700–1,400 ms passage gives the 240 ms template only r about 0.7 and a fitted amplitude of 23–62.
+
+*Correction to MM057 (2026-10-27, found during the 70×2 replay, §8).* The map alignment attached MM057 to the excursion at 427.837 s, but that excursion is the hardware transient. Both it and the excursion at 427.577 s had zero alignment cost, and the alignment picked the later one. The magnet is the 427.577 s excursion, for three reasons:
+
+- it has a passage's shape: S, amplitude 183, 82 ms wide, Hall down to 1736;
+- the neighbouring intervals place MM057 there (MM058 at 426.813 s + 0.77 s; MM056 at 428.289 s − 0.71 s);
+- a 150 ms copy scores it r −0.99, A −195.
+
+The table row is corrected. `results.json` still carries 427.837; `diag70x2_evening.py` applies the correction explicitly. MM057 remains a miss of the 240 ms recognizer, either way.
 
 ## 4. When it fails: by speed, phase and restart
 
@@ -139,7 +147,7 @@ At both transients the Hall reading went far outside anything a magnet produces 
 
 | Time | PWM | Raw readings | Duration | Overlapped a passage? |
 |---|---|---|---|---|
-| 427.770–427.842 s | 134 | 4012 down to 721 | 72 ms | Yes: MM057's, which was lost (§3) |
+| 427.770–427.842 s | 134 | 4012 down to 721 | 72 ms | Not the passage itself. It began 190 ms after MM057's passage (427.58 s), inside the 240 ms copy's window, and MM057 was lost (§3) |
 | 443.056–443.112 s | 0 (standing) | 4095 (rail) down to 1121 | 56 ms | No |
 
 - **Neither produced a recognition.**
@@ -160,7 +168,7 @@ This uses the bank combining rule from the Oct 27 bank replay. It is reported fo
 
 - **The 600 ms copy recovers all ten slow misses:** r 0.72–0.91, A 99–187.
 - **A 150 ms copy scores the two fast ones well:** r −0.92 / −0.89, A −101 / −139.
-- **MM057's recovery by the 150 ms copy rests on the transient-overlaid signal** (A −705). It is not evidence about fast passages.
+- **MM057 and the 150 ms copy.** The 150 ms copy has a clean candidate at MM057's passage (r −0.99, A −195), 190 ms before the transient. *(Corrected: an earlier version of this item said the 150 ms recovery rested on the transient, A −705. That figure is the transient's candidate, not the passage's.)*
 - **The 150 ms copy has not been evaluated** against the Oct 25–26 corpus or for false events beyond this run.
 
 ## 7. Navigation, for the record
@@ -175,3 +183,88 @@ This uses the bank combining rule from the Oct 27 bank replay. It is reported fo
 - **Very fast passages near PWM 190.** This is new. Whether it matters depends on whether AUTO will run above about PWM 175. A narrower copy is the corresponding diagnostic; it has not been evaluated for false events.
 - **The transient at 443 s while standing** is hardware evidence with an undetermined cause.
 - **Build identity.** `SKETCH_NAME` still reads `NAVI_POWER_OF_NORMAL_MANUAL_ONLY`.
+
+## 8. The 70×2 diagnostic detector on the same run (added 2026-10-27, at David's request)
+
+**Method.**
+
+- The detector is the firmware-exact port of NAVI_WAVEFORM_0_1's observer-only 70×2: a 200 ms trailing median, refreshed every 20 ms; a 70-count threshold on two consecutive evaluated reads; suppressed until the signal falls back under 70. See `NAVI_70X2_DIAGNOSTIC_REPLAY_20261027.md` §1.
+- Its onsets are scored against the 527 map-confirmed passages, with the MM057 time corrected as noted in §3.
+- Scripts: `diag70x2_evening.py` and `diag70x2_parity_timeline.py`, with their outputs and `diag70x2_evening.json`.
+
+**Parity with the loco's counter.** The replay counts 1,577 onsets; the loco's final `diag_onsets` is 1,580.
+
+- The timeline of the counter against the replay agrees through the whole run except one step of **+3 at 436.6 s**.
+- That is exactly where the capture has a **576-read (115 ms) serial gap**, at PWM 39. The loco evaluated those reads; the capture does not contain them.
+- The other two gaps, at 294.5 s, produced no difference.
+
+### 8.1 How many of the 527 passages it detected
+
+| | 70×2 diagnostic | Waveform recognizer (240, as fielded) |
+|---|---|---|
+| Passages detected | **521 / 527** | 514 / 527 |
+| Missed | 6, all slow (PWM 21–40) | 13 (10 slow, 2 fast, MM057) |
+| Missed by both | MM146, MM058, MM055, MM054, MM048, MM035 | |
+| Polarity of the detection | correct on all 521 | correct on all 514 |
+| When it reports | median 47 ms before the passage peak (11–270 ms) | about 360 ms after the peak |
+
+**By applied PWM** (70×2 detected / waveform recognized / passages):
+
+| PWM | 70×2 | Waveform | Passages |
+|---|---|---|---|
+| < 30 | 0 | 0 | 2 |
+| 30–34 | 2 | 1 | 5 |
+| 35–39 | 2 | 0 | 2 |
+| 40–44 | 14 | 13 | 15 |
+| 45–174 | 456 | 455 | 456 |
+| 175–200 | 47 | 45 | 47 |
+
+### 8.2 The waveform recognizer's 13 misses
+
+| MM | PWM | 70×2 result |
+|---|---|---|
+| 003 (S) | 31 | **Detected**: onset 135.355 s, S, 270 ms before the peak |
+| 146 (N) | 33 | Not detected. Largest deviation from its own level within 1 s: −73, the wrong sign, and never on two consecutive reads |
+| 070 (S) | **187** | **Detected**: 282.957 s, S, 18 ms before the peak |
+| 039 (S) | **189** | **Detected**: 296.977 s, S, 20 ms before the peak |
+| 057 (S) | 134 | **Detected**: 427.546 s, S, 31 ms before the peak, ahead of the transient |
+| 112 (N) | 40 | **Detected**: 713.116 s, N, 143 ms before the peak; plus 8 wrong-sign onsets |
+| 111 (N) | 35 | **Detected**: 718.807 s, N, 194 ms before the peak; plus 5 duplicates and 5 wrong-sign onsets |
+| 058 (S) | 40 | Not detected. Only 5 wrong-sign (N) onsets after the peak, when the signal returned |
+| 056 (N) | 36 | **Detected**: 844.436 s, N, 133 ms before the peak; plus 3 duplicates and 9 wrong-sign onsets |
+| 055 (S) | 26 | Not detected. Largest deviation 92, never on two consecutive reads in the magnet's direction |
+| 054 (S) | 30 | Not detected. The first magnet after the 903 s restart |
+| 048 (N) | 32 | Not detected |
+| 035 (N) | 21 | Not detected |
+
+- **The two fast passages: 70×2 detected both.**
+- **The ten slow passages: 70×2 detected 4** (MM003, MM112, MM111, MM056) **and missed 6.**
+- **MM057: detected**, before the transient arrived.
+
+### 8.3 Duplicates, wrong-polarity onsets, false detections
+
+| Onsets | Count |
+|---|---|
+| Total | 1,577 (about 3.0 per passage) |
+| Detections (one per detected passage) | 521 |
+| Duplicates (same sign, same passage) | 238 |
+| Wrong polarity, caused by the magnet (opposite sign, after the peak) | 811 |
+| Onsets from the hardware transient at 427.77–427.79 s (moving) | 3 (+, +, −) |
+| False while moving, from anything else | **0** |
+| **During stops (PWM 0)** | **4**: 1 at 15.6 s (stationary noise at the start), 3 at 443.06–443.21 s (the hardware transient while standing) |
+
+- **Where the extra onsets come from:**
+  - **Wrong-polarity onsets** are heaviest at PWM 60–90 (447) and absent above PWM 150.
+  - **Duplicates** are heaviest at slow speed: 51 at PWM 40–44, the same at 45–59.
+  - The cause is the same as in the afternoon runs. The 200 ms level follows a slow or medium passage's field, and the return to background reads as a departure of the other sign. At high speed the passage is over before the level moves.
+- **The waveform recognizer** produced no recognition at either transient, at the start noise, or at any stop.
+
+### 8.4 Reading
+
+1. **Sensitivity.** On this run 70×2 detected more passages than the 240 ms recognizer (521 against 514).
+   - It caught both fast passages and MM057, which the recognizer's window lost to the transient.
+   - It caught 4 of the 10 slow passages.
+   - Its own six misses are a subset of the recognizer's: all slow, at PWM 21–40.
+   - **Neither mechanism reliably detects passages below about PWM 40.**
+2. **Specificity.** The recognizer is clean: one report per passage, none false. 70×2 produced 1,056 extra onsets on magnet passages (238 duplicates, 811 wrong-polarity, 3 transient-caused while moving, plus 4 at stops). It would need the same interpretation stage discussed in `NAVI_70X2_DIAGNOSTIC_REPLAY_20261027.md` §7.4 before it could inform NAVI.
+3. **The diagnostic 600 ms copy** (§6) recovers all ten slow passages, including the six that neither detector caught. That is the only mechanism examined here that covers the slow range.

@@ -1,0 +1,56 @@
+best offset gives total |diff| 1782; final firmware 1580 replay 1577
+firmware - replay changes +0 -> -4 between capture t 170.1 and 171.1 s
+firmware - replay changes -4 -> -1 between capture t 171.1 and 172.1 s
+firmware - replay changes -1 -> +0 between capture t 172.1 and 173.1 s
+firmware - replay changes +0 -> -1 between capture t 265.1 and 266.1 s
+firmware - replay changes -1 -> +0 between capture t 266.1 and 267.1 s
+firmware - replay changes +0 -> -1 between capture t 268.1 and 269.1 s
+firmware - replay changes -1 -> +0 between capture t 269.1 and 270.1 s
+firmware - replay changes +0 -> -1 between capture t 280.1 and 281.1 s
+firmware - replay changes -1 -> +0 between capture t 281.1 and 282.1 s
+firmware - replay changes +0 -> -1 between capture t 308.1 and 309.1 s
+firmware - replay changes -1 -> +0 between capture t 309.1 and 310.1 s
+firmware - replay changes +0 -> -2 between capture t 353.1 and 354.1 s
+firmware - replay changes -2 -> +0 between capture t 354.1 and 355.1 s
+firmware - replay changes +0 -> -2 between capture t 370.1 and 371.1 s
+firmware - replay changes -2 -> +0 between capture t 371.1 and 372.1 s
+firmware - replay changes +0 -> -1 between capture t 382.1 and 383.1 s
+firmware - replay changes -1 -> +0 between capture t 383.1 and 384.1 s
+firmware - replay changes +0 -> -1 between capture t 392.1 and 393.1 s
+firmware - replay changes -1 -> +0 between capture t 393.1 and 394.1 s
+firmware - replay changes +0 -> -1 between capture t 421.2 and 422.2 s
+firmware - replay changes -1 -> +0 between capture t 422.2 and 423.2 s
+firmware - replay changes +0 -> +3 between capture t 436.2 and 437.2 s
+firmware - replay changes +3 -> +2 between capture t 535.2 and 536.2 s
+firmware - replay changes +2 -> +3 between capture t 536.2 and 537.2 s
+firmware - replay changes +3 -> +2 between capture t 552.2 and 553.2 s
+firmware - replay changes +2 -> +3 between capture t 553.2 and 554.2 s
+firmware - replay changes +3 -> +2 between capture t 558.2 and 559.2 s
+firmware - replay changes +2 -> +3 between capture t 559.2 and 560.2 s
+firmware - replay changes +3 -> +1 between capture t 580.2 and 581.2 s
+firmware - replay changes +1 -> +3 between capture t 581.2 and 582.2 s
+firmware - replay changes +3 -> +2 between capture t 610.2 and 611.2 s
+firmware - replay changes +2 -> +3 between capture t 611.2 and 612.2 s
+firmware - replay changes +3 -> +2 between capture t 668.2 and 669.2 s
+firmware - replay changes +2 -> +3 between capture t 669.2 and 670.2 s
+firmware - replay changes +3 -> +0 between capture t 778.2 and 779.2 s
+firmware - replay changes +0 -> +3 between capture t 779.2 and 780.2 s
+firmware - replay changes +3 -> +2 between capture t 780.2 and 781.2 s
+firmware - replay changes +2 -> +3 between capture t 781.2 and 782.2 s
+firmware - replay changes +3 -> +2 between capture t 797.2 and 798.2 s
+firmware - replay changes +2 -> +3 between capture t 798.2 and 799.2 s
+firmware - replay changes +3 -> +2 between capture t 814.2 and 815.3 s
+firmware - replay changes +2 -> +3 between capture t 815.3 and 816.2 s
+firmware - replay changes +3 -> +2 between capture t 817.2 and 818.2 s
+firmware - replay changes +2 -> +3 between capture t 818.2 and 819.2 s
+firmware - replay changes +3 -> +1 between capture t 941.3 and 942.3 s
+firmware - replay changes +1 -> +3 between capture t 942.3 and 943.3 s
+firmware - replay changes +3 -> +2 between capture t 946.3 and 947.3 s
+firmware - replay changes +2 -> +3 between capture t 947.3 and 948.3 s
+firmware - replay changes +3 -> +2 between capture t 1003.3 and 1004.3 s
+firmware - replay changes +2 -> +3 between capture t 1004.3 and 1005.3 s
+firmware - replay changes +3 -> +2 between capture t 1013.3 and 1014.3 s
+firmware - replay changes +2 -> +3 between capture t 1014.3 and 1015.3 s
+serial gap at 294.538 s: 48 reads missing
+serial gap at 294.557 s: 96 reads missing
+serial gap at 436.589 s: 576 reads missing
