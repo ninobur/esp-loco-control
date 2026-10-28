@@ -1,0 +1,7 @@
+240 events 514 passages recognized 514 / 527 polarity ok 514 missed ['MM003@31', 'MM146@33', 'MM070@187', 'MM039@189', 'MM057@134', 'MM112@40', 'MM111@35', 'MM058@40', 'MM056@36', 'MM055@26', 'MM054@30', 'MM048@32', 'MM035@21'] events not at a map passage []
+240+600 events 524 passages recognized 524 / 527 polarity ok 524 missed ['MM070@187', 'MM039@189', 'MM057@134'] events not at a map passage []
+150+240 events 518 passages recognized 517 / 527 polarity ok 517 missed ['MM003@31', 'MM146@33', 'MM112@40', 'MM111@35', 'MM058@40', 'MM056@36', 'MM055@26', 'MM054@30', 'MM048@32', 'MM035@21'] events not at a map passage []
+150+240+600 events 528 passages recognized 527 / 527 polarity ok 527 missed [] events not at a map passage []
+fast miss MM070 pwm 187: 150 ms copy best r -0.92 A -100.9
+fast miss MM039 pwm 189: 150 ms copy best r -0.89 A -139.0
+fast miss MM057 pwm 134: 150 ms copy best r -0.73 A -705.1

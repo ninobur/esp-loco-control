@@ -1,0 +1,10 @@
+standstill   209.6-  219.0  level   1940  moving background   1940  dev    +0   last passage MM146 13.1 s before  next MM145 6.2 s after, recognized
+standstill   437.9-  473.1  level   1935  moving background   1904  dev   +31   last passage MM048 1.6 s before  next MM047 38.5 s after, recognized
+standstill   479.6-  505.1  level   1936  moving background   1936  dev    +1   last passage MM048 43.2 s before  next MM047 6.5 s after, recognized
+standstill   732.9-  745.6  level   1931  moving background   1930  dev    +1   last passage MM111 13.9 s before  next MM110 7.2 s after, recognized
+standstill   862.4-  876.2  level   1939  moving background   1939  dev    +0   last passage MM055 10.3 s before  next MM054 31.5 s after, MISSED
+standstill   879.9-  886.9  level   1939  moving background   1938  dev    +0   last passage MM055 27.8 s before  next MM054 20.8 s after, MISSED
+standstill   898.8-  903.3  level   1928  moving background   1929  dev    -2   last passage MM055 46.7 s before  next MM054 4.5 s after, MISSED
+standstill   914.6-  935.9  level   1936  moving background   1936  dev    +0   last passage MM054 6.9 s before  next MM053 6.5 s after, recognized
+standstill   970.4-  979.7  level   1936  moving background   1936  dev    +0   last passage MM048 12.8 s before  next MM047 7.2 s after, recognized
+standstill  1028.7- 1031.9  level   1928  moving background   1928  dev    +0   last passage MM035 8.1 s before  next -

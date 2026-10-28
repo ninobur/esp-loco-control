@@ -1,0 +1,32 @@
+band            passages recognized missed
+PWM   0- 29       2     0     2   missed: [('MM055', 26, 'decelerating'), ('MM035', 21, 'decelerating')]
+PWM  30- 34       5     1     4   missed: [('MM003', 31, 'decelerating'), ('MM146', 33, 'decelerating'), ('MM054', 30, 'accelerating'), ('MM048', 32, 'decelerating')]
+PWM  35- 39       2     0     2   missed: [('MM111', 35, 'decelerating'), ('MM056', 36, 'decelerating')]
+PWM  40- 44      15    13     2   missed: [('MM112', 40, 'steady'), ('MM058', 40, 'steady')]
+PWM  45- 59      32    32     0   missed: []
+PWM  60- 89     178   178     0   missed: []
+PWM  90- 90      16    16     0   missed: []
+PWM  91-119      72    72     0   missed: []
+PWM 120-149      68    67     1   missed: [('MM057', 134, 'steady')]
+PWM 150-174      90    90     0   missed: []
+PWM 175-200      47    45     2   missed: [('MM070', 187, 'accelerating'), ('MM039', 189, 'decelerating')]
+
+accelerating 97 recognized 95
+steady 223 recognized 220
+decelerating 207 recognized 199
+
+lowest recognized PWM [(32, 'MM036', 'decelerating'), (40, 'MM057', 'steady'), (40, 'MM113', 'steady'), (40, 'MM114', 'steady'), (40, 'MM115', 'steady'), (40, 'MM116', 'steady'), (41, 'MM037', 'steady'), (42, 'MM145', 'accelerating')]
+highest recognized PWM [(199, 'MM059', 'steady'), (199, 'MM060', 'steady'), (199, 'MM061', 'steady'), (199, 'MM062', 'steady'), (199, 'MM063', 'steady'), (199, 'MM064', 'steady'), (199, 'MM065', 'accelerating'), (200, 'MM049', 'steady')]
+
+first magnet after each standstill (>= 1 s at PWM 0):
+   t 66.5 MM048 pwm 55 accelerating 8.1 s after standstill -> recognized
+   t 225.2 MM145 pwm 42 accelerating 6.2 s after standstill -> recognized
+   t 511.6 MM047 pwm 44 accelerating 6.5 s after standstill -> recognized
+   t 752.8 MM110 pwm 48 accelerating 7.2 s after standstill -> recognized
+   t 907.7 MM054 pwm 30 accelerating 4.5 s after standstill -> MISSED
+   t 942.4 MM053 pwm 44 accelerating 6.5 s after standstill -> recognized
+   t 986.9 MM047 pwm 49 accelerating 7.2 s after standstill -> recognized
+
+fast miss MM070 t 282.975 pwm 187: inter-magnet times around it [0.482, 0.454, 0.46, 0.438, 0.428], r/A {'r': -0.75, 'A': -66.7}
+fast miss MM039 t 296.997 pwm 189: inter-magnet times around it [0.464, 0.458, 0.458, 0.458, 0.464], r/A {'r': -0.69, 'A': -86.3}
+fast miss MM057 t 427.837 pwm 134: inter-magnet times around it [0.81, 0.772, 1.024, 0.452, 0.708], r/A {'r': -0.53, 'A': -410.6}
