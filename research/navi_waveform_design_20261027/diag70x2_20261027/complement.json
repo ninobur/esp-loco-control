@@ -1,0 +1,330 @@
+{
+ "563C8E21CDA1CABF": {
+  "label": "Otto CCW 044-045",
+  "mf240": {
+   "onsets_confirmed": {
+    "leading": {
+     "onsets": 178,
+     "confirmed": 178
+    },
+    "duplicate": {
+     "onsets": 50,
+     "confirmed": 50
+    },
+    "trailing": {
+     "onsets": 372,
+     "confirmed": 0
+    }
+   },
+   "leading_unconfirmed": [],
+   "confirm_delay_ms": {
+    "min": 394,
+    "median": 416,
+    "max": 516
+   },
+   "mf_events_without_leading_onset": []
+  },
+  "bank240+600": {
+   "onsets_confirmed": {
+    "leading": {
+     "onsets": 178,
+     "confirmed": 178
+    },
+    "duplicate": {
+     "onsets": 50,
+     "confirmed": 50
+    },
+    "trailing": {
+     "onsets": 372,
+     "confirmed": 0
+    }
+   },
+   "leading_unconfirmed": [],
+   "confirm_delay_ms": {
+    "min": 394,
+    "median": 416,
+    "max": 516
+   },
+   "mf_events_without_leading_onset": [
+    {
+     "t_peak": 273.451,
+     "pol": -1,
+     "width_ms": 600
+    }
+   ]
+  }
+ },
+ "7247956AF788A3E4": {
+  "label": "Otto CW 040-041",
+  "mf240": {
+   "onsets_confirmed": {
+    "leading": {
+     "onsets": 180,
+     "confirmed": 180
+    },
+    "duplicate": {
+     "onsets": 93,
+     "confirmed": 93
+    },
+    "trailing": {
+     "onsets": 504,
+     "confirmed": 0
+    }
+   },
+   "leading_unconfirmed": [],
+   "confirm_delay_ms": {
+    "min": 397,
+    "median": 415,
+    "max": 488
+   },
+   "mf_events_without_leading_onset": []
+  },
+  "bank240+600": {
+   "onsets_confirmed": {
+    "leading": {
+     "onsets": 180,
+     "confirmed": 180
+    },
+    "duplicate": {
+     "onsets": 93,
+     "confirmed": 93
+    },
+    "trailing": {
+     "onsets": 504,
+     "confirmed": 0
+    }
+   },
+   "leading_unconfirmed": [],
+   "confirm_delay_ms": {
+    "min": 397,
+    "median": 415,
+    "max": 488
+   },
+   "mf_events_without_leading_onset": []
+  }
+ },
+ "CA662AD9DC993994": {
+  "label": "Otto run 1 CCW 004-005",
+  "mf240": {
+   "onsets_confirmed": {
+    "stationary": {
+     "onsets": 16,
+     "confirmed": 0
+    },
+    "leading": {
+     "onsets": 233,
+     "confirmed": 232
+    },
+    "duplicate": {
+     "onsets": 131,
+     "confirmed": 126
+    },
+    "trailing": {
+     "onsets": 557,
+     "confirmed": 0
+    }
+   },
+   "leading_unconfirmed": [
+    {
+     "t": 70.145,
+     "pol": 1,
+     "pwm": 90
+    }
+   ],
+   "confirm_delay_ms": {
+    "min": 395,
+    "median": 417,
+    "max": 530
+   },
+   "mf_events_without_leading_onset": []
+  },
+  "bank240+600": {
+   "onsets_confirmed": {
+    "stationary": {
+     "onsets": 16,
+     "confirmed": 0
+    },
+    "leading": {
+     "onsets": 233,
+     "confirmed": 233
+    },
+    "duplicate": {
+     "onsets": 131,
+     "confirmed": 131
+    },
+    "trailing": {
+     "onsets": 557,
+     "confirmed": 0
+    }
+   },
+   "leading_unconfirmed": [],
+   "confirm_delay_ms": {
+    "min": 395,
+    "median": 417,
+    "max": 1081
+   },
+   "mf_events_without_leading_onset": [
+    {
+     "t_peak": 406.889,
+     "pol": 1,
+     "width_ms": 600
+    }
+   ]
+  }
+ },
+ "CC9DF08D5F1552AA": {
+  "label": "Otto control (Muse) MM121-039",
+  "mf240": {
+   "onsets_confirmed": {
+    "leading": {
+     "onsets": 90,
+     "confirmed": 90
+    },
+    "duplicate": {
+     "onsets": 43,
+     "confirmed": 43
+    },
+    "trailing": {
+     "onsets": 211,
+     "confirmed": 0
+    }
+   },
+   "leading_unconfirmed": [],
+   "confirm_delay_ms": {
+    "min": 385,
+    "median": 406,
+    "max": 519
+   },
+   "mf_events_without_leading_onset": []
+  },
+  "bank240+600": {
+   "onsets_confirmed": {
+    "leading": {
+     "onsets": 90,
+     "confirmed": 90
+    },
+    "duplicate": {
+     "onsets": 43,
+     "confirmed": 43
+    },
+    "trailing": {
+     "onsets": 211,
+     "confirmed": 0
+    }
+   },
+   "leading_unconfirmed": [],
+   "confirm_delay_ms": {
+    "min": 385,
+    "median": 406,
+    "max": 519
+   },
+   "mf_events_without_leading_onset": []
+  }
+ },
+ "51104A27DEA43752": {
+  "label": "Toby CW 024-025",
+  "mf240": {
+   "onsets_confirmed": {
+    "leading": {
+     "onsets": 188,
+     "confirmed": 188
+    },
+    "duplicate": {
+     "onsets": 21,
+     "confirmed": 21
+    },
+    "trailing": {
+     "onsets": 258,
+     "confirmed": 0
+    },
+    "false": {
+     "onsets": 1,
+     "confirmed": 1
+    }
+   },
+   "leading_unconfirmed": [],
+   "confirm_delay_ms": {
+    "min": 395,
+    "median": 418,
+    "max": 528
+   },
+   "mf_events_without_leading_onset": []
+  },
+  "bank240+600": {
+   "onsets_confirmed": {
+    "leading": {
+     "onsets": 188,
+     "confirmed": 188
+    },
+    "duplicate": {
+     "onsets": 21,
+     "confirmed": 21
+    },
+    "trailing": {
+     "onsets": 258,
+     "confirmed": 0
+    },
+    "false": {
+     "onsets": 1,
+     "confirmed": 1
+    }
+   },
+   "leading_unconfirmed": [],
+   "confirm_delay_ms": {
+    "min": 395,
+    "median": 418,
+    "max": 528
+   },
+   "mf_events_without_leading_onset": []
+  }
+ },
+ "EDFAFAEA80CF3499": {
+  "label": "Toby CCW 035-036",
+  "mf240": {
+   "onsets_confirmed": {
+    "leading": {
+     "onsets": 186,
+     "confirmed": 186
+    },
+    "duplicate": {
+     "onsets": 21,
+     "confirmed": 21
+    },
+    "trailing": {
+     "onsets": 292,
+     "confirmed": 0
+    }
+   },
+   "leading_unconfirmed": [],
+   "confirm_delay_ms": {
+    "min": 399,
+    "median": 419,
+    "max": 523
+   },
+   "mf_events_without_leading_onset": []
+  },
+  "bank240+600": {
+   "onsets_confirmed": {
+    "leading": {
+     "onsets": 186,
+     "confirmed": 186
+    },
+    "duplicate": {
+     "onsets": 21,
+     "confirmed": 21
+    },
+    "trailing": {
+     "onsets": 292,
+     "confirmed": 0
+    }
+   },
+   "leading_unconfirmed": [],
+   "confirm_delay_ms": {
+    "min": 399,
+    "median": 419,
+    "max": 523
+   },
+   "mf_events_without_leading_onset": []
+  }
+ }
+}

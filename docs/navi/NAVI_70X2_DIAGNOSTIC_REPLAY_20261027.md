@@ -124,3 +124,85 @@ Every 70×2 polarity on a leading onset agreed with the truth polarity.
 - **The fielded `621a029` 70×2 path** (`NaviBaseline` frozen median, PWM-90 `windowOpen` gate, `NaviEncounter`). Its baseline and suppression differ from the diagnostic's, so its result on these recordings could differ. Replaying it needs a port of those three files and a fidelity check. These recordings carry no firmware counter for that path, so parity could only be checked on its own Oct 25–26 recordings.
 - The replay level warms up on the first 100 recorded reads, not on boot data. No onset fell in the first 200 ms of any capture.
 - The classification windows (+50 ms, 0.6 s) were chosen after looking at the onset-time distribution. They change how onsets are labelled (leading, duplicate, trailing), not the onset counts, the missed passages or the parity.
+
+## 7. David's three questions, and the fourth possibility
+
+These answers cover the Oct 27 driven runs only: 1,057 magnet passages, Otto and Toby, both directions.
+
+### 7.1 Sensitivity: which detector recognizes more genuine magnets?
+
+| Detector | Recognized | Missed |
+|---|---|---|
+| 70×2 diagnostic | 1,055 | MM113, MM037 (both braking, PWM ≈ 28–34, 700–790 ms wide) |
+| Matched filter, single 240 (as fielded) | 1,054 | MM169, MM113, MM037 |
+| Matched-filter bank 240+600 (replay only) | **1,057** | none |
+
+- At cruise, all three detectors recognize every magnet.
+- **During braking**, both 70×2 and single-240 miss the two end-of-run magnets. 70×2 misses them because its 200 ms level follows the slow rise (§3); single-240 misses them on r or A.
+- **For the obstructed passage at MM169** (400 ms wide), 70×2 is better than single-240.
+- Only the two-width bank recognizes all three.
+
+### 7.2 Specificity: which detector is better at rejecting disturbances?
+
+| | 70×2 | Matched filter (240 or 240+600) |
+|---|---|---|
+| Moving, not caused by a magnet | 0 | 0 |
+| Stationary (handling), driven runs | 16 | 0 |
+| Parked boots, Otto | 4 + 5 | 0 + 0 |
+| Wrong-sign trailing onsets caused by the magnet itself | 2,194 | 0 |
+| Extra same-sign onsets on one passage | 359 | 0 |
+
+- **The matched filter is clearly more specific.** While moving on these runs, though, there was no background disturbance for either detector to reject.
+- The difference lies in two places:
+  - **Stationary handling.**
+  - **70×2's own response to each magnet:** about 2.4 surplus onsets per passage, two of them of the wrong polarity on average.
+
+### 7.3 Timeliness: how much sooner does 70×2 recognize an encounter?
+
+**Measured.** For every passage both detectors recognized, the matched-filter declaration time was compared with the 70×2 leading onset:
+
+| Matched-filter copy | Declaration after the 70×2 onset |
+|---|---|
+| 240 ms | Median 406–419 ms per run; range 385–530 ms |
+| 600 ms (the only copy that recognized MM169 in the bank) | 1,081 ms |
+
+Where the gap comes from:
+
+- The onset leads the template peak by a median of 58 ms.
+- The 240 ms copy declares 359 ms after the peak; the 600 ms copy declares 893 ms after it.
+
+**70×2 is about 0.4 s sooner at cruise, and about 1 s sooner on a 600 ms passage.** The distance this represents at PWM 90 was not measured here.
+
+### 7.4 The fourth possibility: 70×2 observes immediately, the matched filter confirms
+
+**Test.** For each 70×2 onset, look for a matched-filter event of the **same polarity** whose template peak falls between 0.15 s before and 0.6 s after the onset. Every leading onset's own peak fell inside that window. Script: `complement_70x2_mf.py`; output in `complement.json`.
+
+| 70×2 onsets | Count | Confirmed, single 240 | Confirmed, bank 240+600 |
+|---|---|---|---|
+| Leading (the genuine detection) | 1,055 | 1,054 (MM169 not) | **1,055** |
+| Duplicates (same sign, same passage) | 359 | 354 | 359, by the **same** event as the leading onset |
+| Trailing (wrong sign) | 2,194 | **0** | **0** |
+| Stationary handling | 16 | **0** | **0** |
+| Other (Toby, 288.451 s, a late same-sign onset on a passage) | 1 | 1 | 1 |
+| Matched-filter events with **no** 70×2 onset | — | 0 | 2 (MM037, MM113, the 600 ms copy) |
+
+**What the replay shows:**
+
+1. **Confirmation separates the two kinds of onset cleanly on this data.**
+   - Every genuine detection was confirmed, by the bank.
+   - No wrong-sign trailing onset and no stationary onset was confirmed.
+   - Duplicates were confirmed by the same event as their leading onset, so they collapse into one observation, provided "one event confirms one observation" is a rule.
+2. **The confirmation arrives about 0.4 s after the onset at cruise, and about 1.1 s after it at MM169.** In that interval the 70×2 stream has usually already produced the passage's wrong-sign trailing onsets, which arrive 70–90 ms after the peak. An immediate-observation design would therefore treat every onset as provisional until confirmed. Otherwise it reports, for about 0.3 s, a second encounter of the wrong polarity.
+3. **The matched filter is not only a confirmer.** At the two braking magnets it recognized passages that 70×2 never saw. In a combined arrangement, the matched filter would also have to be able to originate an observation, not only confirm one.
+4. **The two mechanisms are not fully independent.**
+   - Both read the same Hall sensor and the same samples.
+   - Their independence is in method: a level threshold against a trailing median, versus a shape correlation.
+   - A disturbance that both crosses 70 and has a magnet's shape would pass both. None occurred on these runs.
+
+**What this does not establish:**
+
+- **Whether 0.4 s earlier matters on the railway.** It would matter only if something acts on the provisional observation; under the October 21 hold rule nothing does.
+- **Behaviour on the `621a029` path** (§6).
+- **Behaviour on a run with moving background disturbances.** These runs had none.
+
+**This is analysis, not a proposal.** The arrangement, and whether to pursue it at all, is David's decision.
