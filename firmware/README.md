@@ -68,6 +68,7 @@ Companion viewer: `tools/ir_usb_bench.py`. No promotion into QUORUM.
 | `test-programs/SENSORTEST/SENSORTEST.ino` | Diagnostic | Hall event measurement without a navigation map | Reference diagnostic | Header in sketch |
 | `test-programs/Spoke_IR_RSSI_survey/Spoke_IR_RSSI_survey.ino` | Diagnostic | Original two-flag IR/RSSI survey | Superseded by the later IR test lineage | `IR_TEST` header and field records |
 | `test-programs/MANUAL/MANUAL.ino` | Historical reference | Structural audit reference for Manual sovereignty | **Reference only; do not flash to an operating locomotive** | decision 0003 |
+| `../CTO_CLASSIC_0_1/` | Historical restore candidate | Four-block CTO/CE MQTT ensemble: one shared Otto/Toby sketch, dispatcher, and Flask browser console; ESP-NOW packet version 14 | **Built for both locomotive profiles and dispatcher with local archived credentials; no bench or track validation of this package** | `../CTO_CLASSIC_0_1/README.md`; archived May/June 2026 sources |
 
 The QUORUM rows describe immutable points in git history even though the path is
 the same. The sketch at repository HEAD may be newer than the field-accepted
