@@ -161,14 +161,15 @@ This uses the bank combining rule from the Oct 27 bank replay. It is reported fo
 |---|---|---|---|---|
 | 240 (as fielded) | 514 | 514 / 527 | 13 | 0 |
 | 240+600 | 524 | 524 / 527 | MM070, MM039, MM057 | 0 |
-| 150+240 | 518 | 517 / 527 | the 10 slow ones | 0 (1 duplicate on a passage) |
-| 150+240+600 | 528 | 527 / 527 | — | 0 (1 duplicate on a passage) |
+| 150+240 | 518 | 517 / 527 | the 10 slow ones | **1 false event: the hardware transient** (see the correction below) |
+| 150+240+600 | 528 | 527 / 527 | — | **1 false event: the hardware transient** |
 
 **What the table shows:**
 
 - **The 600 ms copy recovers all ten slow misses:** r 0.72–0.91, A 99–187.
 - **A 150 ms copy scores the two fast ones well:** r −0.92 / −0.89, A −101 / −139.
 - **MM057 and the 150 ms copy.** The 150 ms copy has a clean candidate at MM057's passage (r −0.99, A −195), 190 ms before the transient. *(Corrected: an earlier version of this item said the 150 ms recovery rested on the transient, A −705. That figure is the transient's candidate, not the passage's.)*
+- *Correction (2026-10-27).* The extra event in the two configurations with a 150 ms copy was first labelled "1 duplicate on a passage". It is the 150 ms copy firing on the hardware transient: 427.825 s, S, r −0.73, A −705. It was counted as a duplicate only because it lies within 0.3 s of MM057's passage. Its |A| is 2.5 times the largest of the other 527 events (285). **A 150 ms copy, as configured, produced a false event on this run.**
 - **The 150 ms copy has not been evaluated** against the Oct 25–26 corpus or for false events beyond this run.
 
 ## 7. Navigation, for the record
