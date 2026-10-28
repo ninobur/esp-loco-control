@@ -1,0 +1,94 @@
+{
+ "out_of_order": [
+  {
+   "config": "240+600",
+   "session": "9950011_278F53E8D6A6A152_86344",
+   "late": {
+    "t": 118.861,
+    "width_ms": 600,
+    "r": 0.701,
+    "A": 413.0,
+    "pwm": 71.0,
+    "condition": "cruise",
+    "latency_ms": 893
+   },
+   "late_class": "unscored",
+   "next": {
+    "t": 119.325,
+    "width_ms": 240,
+    "r": -0.855,
+    "A": -464.6,
+    "pwm": 71.0,
+    "condition": "cruise",
+    "latency_ms": 359
+   },
+   "next_class": "unscored"
+  },
+  {
+   "config": "240+600+1500",
+   "session": "9950011_278F53E8D6A6A152_86344",
+   "late": {
+    "t": 118.861,
+    "width_ms": 600,
+    "r": 0.701,
+    "A": 413.0,
+    "pwm": 71.0,
+    "condition": "cruise",
+    "latency_ms": 893
+   },
+   "late_class": "unscored",
+   "next": {
+    "t": 119.325,
+    "width_ms": 240,
+    "r": -0.855,
+    "A": -464.6,
+    "pwm": 71.0,
+    "condition": "cruise",
+    "latency_ms": 359
+   },
+   "next_class": "unscored"
+  }
+ ],
+ "width_speed_summary": {
+  "240": {
+   "n": 5837,
+   "speed_mm_s_median": 238,
+   "speed_p5": 171,
+   "speed_p95": 293
+  },
+  "600": {
+   "n": 100,
+   "speed_mm_s_median": 135,
+   "speed_p5": 97,
+   "speed_p95": 178
+  },
+  "1500": {
+   "n": 1,
+   "speed_mm_s_median": 88,
+   "speed_p5": 88,
+   "speed_p95": 88
+  }
+ },
+ "best_width_by_speed_band": {
+  "0-100": {
+   "1500": 1,
+   "600": 9,
+   "240": 3
+  },
+  "100-150": {
+   "600": 71,
+   "240": 50
+  },
+  "150-200": {
+   "240": 1011,
+   "600": 18
+  },
+  "200-300": {
+   "240": 4607
+  },
+  "300-2000": {
+   "600": 2,
+   "240": 166
+  }
+ }
+}
