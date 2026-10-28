@@ -272,3 +272,40 @@ Where the gap comes from:
   - a replay on a run whose first magnet is passed at PWM 90; or
   - a replay with the PWM-90 anchor condition set aside.
 - The second option is a change to the path, not a replay of it. Both are David's decision.
+
+## 9. Ramp-up and slow-down passages (added 2026-10-27, at David's request)
+
+**David's question:** during the ramp-up and slow-down of each run, did the waveform analyzer identify the magnets?
+
+**David's context:**
+- Every run started once and ended in a power-down, with no restarts.
+- For the later runs the power was cut before the power car was tilted to read its position.
+- In AUTO operation, stops are followed by starts.
+
+**Method.** Each magnet passage is assigned to a phase:
+- **ramp-up:** before the run first reaches PWM 90;
+- **slow-down:** after the run last leaves PWM 90;
+- passages between those at PWM ≥ 90 are cruise and are not listed.
+
+PWM is the applied PWM at the passage's peak. A passage is recognized if the fielded single-240 recognizer, as replayed, has an event within 0.15 s of it. That replay equals the firmware's events, 410 of 410 on the two Otto CCW captures. Script and output: `ramp_passages.py`, `ramp_passages_output.txt`.
+
+| Run | Ramp-up recognized | Lowest ramp-up PWM | Slow-down recognized | Lowest recognized slow-down PWM | Missed |
+|---|---|---|---|---|---|
+| Otto run 1 CCW | 2 / 2 | 61 | 11 / 12 | 45 | MM113 at PWM 33 |
+| Otto CCW 044 | 3 / 3 | 54 | 8 / 9 | 44 | MM037 at PWM 28 |
+| Otto CW 040 | 5 / 5 | 43 | 6 / 6 | 53 | — |
+| Otto control MM121–039 | 4 / 4 | 54 | 1 / 1 | 45 | — |
+| Toby CW 024 | 5 / 5 | 42 | 4 / 4 | 69 | — |
+| Toby CCW 035 | 3 / 3 | 58 | 6 / 6 | 46 | — |
+| **Total** | **22 / 22** | | **36 / 38** | | |
+
+**Observations:**
+- Every ramp-up passage was recognized, the slowest at PWM 42 (Toby) and 43 (Otto).
+- Every slow-down passage at PWM 44 or above was recognized.
+- The two misses are the only passages below PWM 42 in any of these runs: MM113 at PWM 33 and MM037 at PWM 28. Both were Otto's last magnet before a power-down stop.
+- Toby's slowest passage was PWM 46.
+
+**Interpretation:**
+- These runs establish recognition at PWM 42–90 while accelerating and at 44–90 while slowing.
+- Below PWM 42 they contain only two passages, both missed. Where between PWM 33 and 42 recognition stops working is not known.
+- **Stop-and-restart is not covered.** No run restarted mid-run. A start that crosses a magnet within its first few hundred millimetres would pass it in the same low-PWM range as the two misses. Whether the recognizer handles that is a question for a track test, not for these recordings.
