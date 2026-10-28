@@ -100,5 +100,5 @@ This is design check R1 (replay parity), met in the field on these two captures.
 
 - **Slow passages.** Whether to add a second, wider template width (0.6 s or 1.5 s were tried here, diagnostically only) is a design decision. It would change the recognizer's cost and its false-event behaviour, neither of which has been evaluated for this railway. No change has been made.
 - **Matcher recovery after a miss.** The October 21 hold rule remains the established rule. The experimental map-aware matcher (design §4.5) has not been in any build.
-- **Otto's stall** at about 16:05:39 near MM169–168, at PWM 90, is unexplained.
+- **Otto's stall** at about 16:05:39 near MM169–168, at PWM 90: **explained by David, 2026-10-27.** A piece of plastic blew across the track and held Otto up. David freed him by hand. The miss of MM169 was therefore a passage slowed by an obstruction, the same slow-passage case as the two end-of-run misses. It was not a recognizer or track-magnet fault.
 - **Build identity.** `SKETCH_NAME` should name the build. That is a code change in the implementation branch, for whoever owns it.
