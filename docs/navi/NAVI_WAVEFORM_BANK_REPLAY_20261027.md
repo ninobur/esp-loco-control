@@ -7,7 +7,7 @@
 **Answer, on replay [R]:**
 
 - **Yes for the October 27 recordings.** Adding a 600 ms copy recognised all three known misses, and adding a 1500 ms copy changed nothing further. Across all eleven Oct 27 recordings, the wider copies added **no false or duplicate observation in any driven run**, including Muse's control file (still 90 / 90).
-- **The wider copies did add six stationary observations in one parked Otto session** (`AFADA3EF…`, old build, PWM 0 throughout). The Hall signal there shows wide, clean excursions while Otto was not being driven. Their cause is not known (see "For David").
+- **The wider copies did add six stationary observations in one parked Otto session** (`AFADA3EF…`, old build, PWM 0 throughout). The Hall signal there shows wide, clean excursions while Otto was not being driven. David has since confirmed that Otto was being handled while parked (see §8).
 - **On the October 25–26 held-out corpus**, the wider copies recognise 4–5 more magnets and add 5 false events. All five added false events are in the two sessions already known for background steps and slow crawl (`278F53E8…`, `F420A05D…`).
 - **Raising only the wide copies' thresholds** to |r| ≥ 0.9 brings the corpus false count back to the single-template 8, still recognises 6,002–6,003 magnets, and still recognises all three October 27 misses.
 
@@ -196,15 +196,15 @@ The decimated scores were compared with the full-rate scores at every recognised
 | Criterion | Result |
 |---|---|
 | All three known misses recognised | **Met** with 240 + 600 and with 240 + 600 + 1500, at 0.7 / 70. Only the three-width bank still recognises all three when the wide copies' thresholds are raised to 0.9 |
-| No material rise in false events in slow or stationary segments | **Oct 27 driven runs: met** (0 → 0). **Corpus:** +1 slow and +1 stationary false at 0.7 / 70, both in the known background-step session F420. They are gone at wide-copy |r| ≥ 0.9. **Oct 27 parked Otto (`AFADA3EF…`):** 2 → 4 → 6 stationary observations at 0.7 / 70; cause unknown |
+| No material rise in false events in slow or stationary segments | **Oct 27 driven runs: met** (0 → 0). **Corpus:** +1 slow and +1 stationary false at 0.7 / 70, both in the known background-step session F420. They are gone at wide-copy |r| ≥ 0.9. **Oct 27 parked Otto (`AFADA3EF…`):** 2 → 4 → 6 stationary observations at 0.7 / 70. David confirmed Otto was being handled, so these are hand-passed magnets |
 | No duplicates after combining | **Met.** Duplicates stay at the baseline 1 (corpus) and 0 (Oct 27) |
 | Control file still clean at 90 / 90 | **Met** in every configuration and at every threshold tried |
 
 ## 8. For David
 
-- **The parked Otto session `AFADA3EF…`** (15:59, old build, PWM 0 for all 123 s) contains wide, clean Hall excursions: 366–1,168 ms at 74.9, 77.2 and 93.5 s, plus steps. The old build's 70×2 detector also reported 13 onsets there.
-  - Was Otto being handled, set on the track, or moved by hand in that period?
-  - If so, those are magnets passed by hand, not false observations. If not, they are the clearest stationary false-event case for the wide copies.
+- **The parked Otto session `AFADA3EF…`** (15:59, old build, PWM 0 for its full 123 s) contains wide, clean Hall excursions (366–1,168 ms) and steps. **David confirmed on 2026-10-27 that Otto was being handled while parked.** Those observations are therefore magnets passed by hand and handling disturbances, not stationary false events on the running railway.
+  - With that settled, the October 27 recordings show no stationary false observation from the wider copies.
+  - The wider copies did respond to hand movement, as the 240 ms copy did twice.
 - **Choices this replay informs, not decided here:**
   - two widths or three;
   - whether the wide copies get a higher r threshold;
